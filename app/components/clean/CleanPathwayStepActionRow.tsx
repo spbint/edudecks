@@ -23,6 +23,8 @@ type CleanPathwayStepActionRowProps = {
   exactAssessmentTitle?: string | null;
   autoCheckStatusLabel?: string | null;
   autoCheckStatusScope?: "bank" | "sub-element" | null;
+  confidenceStatusLabel?: string | null;
+  isExactStepContext?: boolean;
   noAssessmentMessage?: string | null;
 };
 
@@ -103,6 +105,8 @@ export default function CleanPathwayStepActionRow({
   exactAssessmentTitle,
   autoCheckStatusLabel,
   autoCheckStatusScope,
+  confidenceStatusLabel,
+  isExactStepContext = false,
   noAssessmentMessage,
 }: CleanPathwayStepActionRowProps) {
   const practiceItems = useMemo(
@@ -229,24 +233,7 @@ export default function CleanPathwayStepActionRow({
             }}
           >
             <div>
-              Auto-checked assessment:{" "}
-              <strong style={{ color: "#0f172a" }}>
-                {exactAssessmentTitle || assessmentBankTitle}
-              </strong>
-            </div>
-            {practiceTitle ? (
-              <div>
-                Practice available:{" "}
-                <strong style={{ color: "#0f172a" }}>{practiceTitle}</strong>
-              </div>
-            ) : null}
-            {assessmentBankTitle && exactAssessmentTitle ? (
-              <div>
-                Part of: <strong style={{ color: "#0f172a" }}>{assessmentBankTitle}</strong>
-              </div>
-            ) : null}
-            <div>
-              Latest auto-check result:{" "}
+              Auto-check:{" "}
               <strong style={{ color: "#0f172a" }}>
                 {autoCheckStatusLabel || "Not checked yet"}
               </strong>
@@ -256,6 +243,29 @@ export default function CleanPathwayStepActionRow({
                   ? " for this bank"
                   : ""}
             </div>
+            <div>
+              Confidence:{" "}
+              <strong style={{ color: "#0f172a" }}>
+                {confidenceStatusLabel || "Not saved"}
+              </strong>
+            </div>
+            <div>
+              Auto-checked assessment:{" "}
+              <strong style={{ color: "#0f172a" }}>
+                {exactAssessmentTitle || assessmentBankTitle}
+              </strong>
+            </div>
+            {practiceTitle ? (
+              <div>
+                Practise this skill:{" "}
+                <strong style={{ color: "#0f172a" }}>{practiceTitle}</strong>
+              </div>
+            ) : null}
+            {assessmentBankTitle && exactAssessmentTitle ? (
+              <div>
+                Part of: <strong style={{ color: "#0f172a" }}>{assessmentBankTitle}</strong>
+              </div>
+            ) : null}
             <div style={{ color: "#64748b" }}>
               Confidence has not been changed automatically.
             </div>
@@ -300,14 +310,16 @@ export default function CleanPathwayStepActionRow({
                 {completedPracticeTaskCount ? "Resume practise" : "Practise"}
               </button>
             )}
-            <button
-              type="button"
-              onClick={openMiniCheckPlayer}
-              style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
-              aria-label="Open mini check for this pathway step"
-            >
-              {completedMiniCheckCount ? "Resume mini-check" : "Mini-check"}
-            </button>
+            {!isExactStepContext ? (
+              <button
+                type="button"
+                onClick={openMiniCheckPlayer}
+                style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
+                aria-label="Open mini check for this pathway step"
+              >
+                {completedMiniCheckCount ? "Resume mini-check" : "Mini-check"}
+              </button>
+            ) : null}
           </>
         ) : practiceHref ? (
           <>
@@ -322,15 +334,17 @@ export default function CleanPathwayStepActionRow({
             >
               Practise
             </Link>
-            <button
-              type="button"
-              style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
-              disabled
-              title="Mini Check for this pathway step is coming later."
-              aria-label="Mini Check for this pathway step is coming later"
-            >
-              Mini-check
-            </button>
+            {!isExactStepContext ? (
+              <button
+                type="button"
+                style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+                disabled
+                title="Mini Check for this pathway step is coming later."
+                aria-label="Mini Check for this pathway step is coming later"
+              >
+                Mini-check
+              </button>
+            ) : null}
           </>
         ) : (
           <>
@@ -343,15 +357,17 @@ export default function CleanPathwayStepActionRow({
             >
               Practise
             </button>
-            <button
-              type="button"
-              style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
-              disabled
-              title="Mini Check for this pathway step is coming later."
-              aria-label="Mini Check for this pathway step is coming later"
-            >
-              Mini-check
-            </button>
+            {!isExactStepContext ? (
+              <button
+                type="button"
+                style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+                disabled
+                title="Mini Check for this pathway step is coming later."
+                aria-label="Mini Check for this pathway step is coming later"
+              >
+                Mini-check
+              </button>
+            ) : null}
           </>
         )}
 

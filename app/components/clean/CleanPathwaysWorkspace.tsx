@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -234,6 +234,10 @@ function getStrandKeyFromPathwayStepId(pathwayStepId: string) {
   return pathwayStepId.split("::")[1] || NUMBER_AND_PLACE_VALUE_STRAND_KEY;
 }
 
+function getRevealStepDisplayNumber(step: NumberPathwayRevealStep) {
+  return step.displayOrder ?? step.order + 1;
+}
+
 function buildPathwayStepReturnHref({
   pathname,
   subjectKey,
@@ -267,6 +271,21 @@ function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
         bank.stepKey === attempt.stepKey,
     ) ?? null
   );
+}
+
+function getAttemptPrototypeMetadata(attempt: CleanAssessmentAttempt) {
+  const metadata = attempt.summarySnapshot.prototypeMetadata;
+  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
+    ? (metadata as Record<string, unknown>)
+    : null;
+}
+
+function getAssessmentAttemptDisplayTitle(attempt: CleanAssessmentAttempt) {
+  const prototypeMetadata = getAttemptPrototypeMetadata(attempt);
+  const stepTitle = String(prototypeMetadata?.stepTitle ?? "").trim();
+  if (stepTitle) return stepTitle;
+
+  return getNumberBankForAttempt(attempt)?.shortTitle || "Assessment saved";
 }
 
 function formatAssessmentAttemptSavedAt(value: string | null) {
@@ -434,6 +453,7 @@ function buildWorkspaceStageSummaryCounts(
 function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialSubjectKey = useMemo(() => {
     const subjectParam = searchParams.get("subjectKey");
@@ -677,14 +697,17 @@ function PathwaysWorkspaceBody() {
     selectedWorkspaceStageIndex,
     unifiedPathwayStepStateIndex,
   ]);
-  const currentStageAssessmentAttempts = useMemo(
-    () => assessmentAttempts.filter((attempt) => attempt.stageKey === currentLearnerFocusStageKey),
-    [assessmentAttempts, currentLearnerFocusStageKey],
+  const visibleAssessmentAttempts = useMemo(
+    () =>
+      assessmentAttempts.filter(
+        (attempt) =>
+          attempt.learnerId === selectedLearnerId &&
+          attempt.subjectKey === selectedSubjectKey &&
+          attempt.strandKey === selectedStrandKey,
+      ),
+    [assessmentAttempts, selectedLearnerId, selectedStrandKey, selectedSubjectKey],
   );
-  const latestAssessmentAttempt = currentStageAssessmentAttempts[0] ?? assessmentAttempts[0] ?? null;
-  const latestAssessmentBank = latestAssessmentAttempt
-    ? getNumberBankForAttempt(latestAssessmentAttempt)
-    : null;
+  const latestAssessmentAttempt = visibleAssessmentAttempts[0] ?? null;
   const numberPathwayRevealGroups = useMemo(() => {
     if (
       !selectedSubjectWorkspace ||
@@ -711,6 +734,7 @@ function PathwaysWorkspaceBody() {
 
         return {
           id: step.id,
+          displayOrder: 0,
           title: step.title,
           stageKey: stage.key,
           stageTitle: stage.title,
@@ -718,7 +742,7 @@ function PathwaysWorkspaceBody() {
           pathwayStepId,
         };
       }),
-    );
+    ).map((step, index) => ({ ...step, displayOrder: index + 1 }));
 
     return getNumberPathwayRevealGroups(orderedSteps, assessmentAttempts, {
       subjectKey: selectedSubjectKey,
@@ -731,7 +755,9 @@ function PathwaysWorkspaceBody() {
       ? "Practise"
       : "Open the current focus";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
-    ? selectedSubjectWorkspace?.title || `${selectedSubject.title} pathways`
+    ? selectedSubjectWorkspace?.title ||
+      selectedSubjectDomain.title ||
+      `${selectedSubject.title} pathways`
     : `${selectedSubject.title} pathways`;
   const selectedSubjectSummaryHelper = selectedSubjectSupportsDetailedPathways
     ? `Current stage focus: ${selectedWorkspaceCurrentStage?.title || "Choose a strand below"}`
@@ -747,11 +773,31 @@ function PathwaysWorkspaceBody() {
     ? "/clean-my-assessments"
     : "/my-assessments";
 
+  function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("subjectKey", nextSubjectKey);
+    params.set("strandKey", nextStrandKey);
+    if (selectedLearnerId) {
+      params.set("learnerId", selectedLearnerId);
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  function handleSelectSubject(nextSubjectKey: PathwaySubjectKey) {
+    const nextStrandKey =
+      selectedStrandKeyBySubject[nextSubjectKey] ||
+      DETAILED_SUBJECT_CONFIGS[nextSubjectKey]?.defaultStrandKey ||
+      "";
+    setSelectedSubjectKey(nextSubjectKey);
+    replacePathwayViewParams(nextSubjectKey, nextStrandKey);
+  }
+
   function handleSelectSubjectStrand(nextStrandKey: string) {
     setSelectedStrandKeyBySubject((current) => ({
       ...current,
       [selectedSubjectKey]: nextStrandKey,
     }));
+    replacePathwayViewParams(selectedSubjectKey, nextStrandKey);
 
     const workspaceEl = pathwayDetailWorkspaceRef.current;
     if (!workspaceEl) return;
@@ -907,7 +953,7 @@ function PathwaysWorkspaceBody() {
                 <div style={eyebrowStyle}>Latest check</div>
                 <strong style={{ color: "#0f172a", fontSize: 16 }}>
                   {latestAssessmentAttempt
-                    ? latestAssessmentBank?.shortTitle || "Assessment saved"
+                    ? getAssessmentAttemptDisplayTitle(latestAssessmentAttempt)
                     : "No check saved yet"}
                 </strong>
                 <div style={{ color: "#64748b", lineHeight: 1.5 }}>
@@ -955,7 +1001,7 @@ function PathwaysWorkspaceBody() {
                   id="pathway-subject-selector"
                   value={selectedSubjectKey}
                   onChange={(event) =>
-                    setSelectedSubjectKey(event.target.value as PathwaySubjectKey)
+                    handleSelectSubject(event.target.value as PathwaySubjectKey)
                   }
                   style={inputStyle}
                 >
@@ -1631,7 +1677,7 @@ function NumberRevealStepCard({
             fontWeight: 800,
           }}
         >
-          Step {step.id}
+          Step {getRevealStepDisplayNumber(step)}
         </span>
         <span
           style={{
@@ -1795,7 +1841,9 @@ function NumberPathwayRevealPanel({
             height: "fit-content",
           }}
         >
-          {currentStartStep ? `Next focus: Step ${currentStartStep.id}` : "No signal yet"}
+          {currentStartStep
+            ? `Next focus: Step ${getRevealStepDisplayNumber(currentStartStep)}`
+            : "No signal yet"}
         </div>
       </div>
 
@@ -2142,13 +2190,23 @@ function DetailedMathematicsStepCard({
   );
   const status = statusState.status;
   const meta = statusMeta[status];
+  const exactStepContext = supportsExactStepPathwayContext(selectedSubjectKey, strand.key);
+  const displayStepNumber =
+    strand.stages
+      .slice(0, stageIndex)
+      .reduce((total, candidateStage) => total + candidateStage.steps.length, 0) +
+    stepIndex +
+    1;
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
   const stepUnifiedState = getUnifiedPathwayStepState(
     unifiedPathwayStepStateIndex,
     statusState.pathwayStepId,
   );
-  const assessmentConfidence =
-    stepUnifiedState?.assessmentConfidence || "Not assessed yet";
+  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not saved";
+  const statusChipMeta =
+    exactStepContext && confidenceStatusLabel === "Not saved"
+      ? statusMeta["Not started"]
+      : meta;
   const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const canonicalStepKey = useMemo(
     () => buildPathwayRegistryStepKey(step.title, step.id),
@@ -2405,7 +2463,7 @@ function DetailedMathematicsStepCard({
                 fontWeight: 800,
               }}
             >
-              Step {step.id}
+              Step {displayStepNumber}
             </span>
             <strong style={{ color: "#0f172a", fontSize: 15 }}>{step.title}</strong>
           </div>
@@ -2417,11 +2475,15 @@ function DetailedMathematicsStepCard({
         <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
           <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
             <div
-              title={meta.helper}
+              title={
+                exactStepContext
+                  ? `Manual confidence is ${confidenceStatusLabel}.`
+                  : meta.helper
+              }
               style={{
-                border: `1px solid ${meta.border}`,
+                border: `1px solid ${statusChipMeta.border}`,
                 borderRadius: 999,
-                background: meta.fill,
+                background: statusChipMeta.fill,
                 padding: "6px 10px",
                 display: "inline-flex",
                 alignItems: "center",
@@ -2434,11 +2496,13 @@ function DetailedMathematicsStepCard({
                   width: 10,
                   height: 10,
                   borderRadius: 999,
-                  background: meta.dot,
+                  background: statusChipMeta.dot,
                   flexShrink: 0,
                 }}
               />
-              <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
+              <strong style={{ color: statusChipMeta.text, fontSize: 12 }}>
+                {exactStepContext ? `Confidence: ${confidenceStatusLabel}` : status}
+              </strong>
             </div>
             {statusState.fromSavedEvidence ? (
               <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
@@ -2455,10 +2519,25 @@ function DetailedMathematicsStepCard({
                 lineHeight: 1.4,
               }}
             >
-              <div>
-                Assessment:{" "}
-                <strong style={{ color: "#0f172a" }}>{assessmentConfidence}</strong>
-              </div>
+              {exactStepContext ? (
+                <>
+                  <div>
+                    Confidence:{" "}
+                    <strong style={{ color: "#0f172a" }}>{confidenceStatusLabel}</strong>
+                  </div>
+                  <div>
+                    Auto-check:{" "}
+                    <strong style={{ color: "#0f172a" }}>
+                      {autoCheckStatus.status}
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  Assessment:{" "}
+                  <strong style={{ color: "#0f172a" }}>{confidenceStatusLabel}</strong>
+                </div>
+              )}
               <div>
                 Evidence linked:{" "}
                 <strong style={{ color: "#0f172a" }}>{evidenceLinkedCount}</strong>
@@ -2510,7 +2589,7 @@ function DetailedMathematicsStepCard({
 
       <CleanPathwayStepActionRow
         activity={
-          supportsExactStepPathwayContext(selectedSubjectKey, strand.key) && !exactStepPractice
+          exactStepContext
             ? null
             : practiceActivity
         }
@@ -2532,8 +2611,10 @@ function DetailedMathematicsStepCard({
             ? autoCheckStatus.scope
             : null
         }
+        confidenceStatusLabel={confidenceStatusLabel}
+        isExactStepContext={exactStepContext}
         noAssessmentMessage={
-          supportsExactStepPathwayContext(selectedSubjectKey, strand.key) && !exactStepAssessment
+          exactStepContext && !exactStepAssessment
             ? "Exact assessment is coming next for this step."
             : null
         }

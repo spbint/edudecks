@@ -42,6 +42,7 @@ export type NumberPathwayRevealGroupKey =
 
 export type NumberPathwayRevealStepInput = {
   id: number | string;
+  displayOrder?: number;
   title: string;
   stageKey: string;
   stageTitle: string;
