@@ -238,6 +238,40 @@ function getRevealStepDisplayNumber(step: NumberPathwayRevealStep) {
   return step.displayOrder ?? step.order + 1;
 }
 
+function getRevealFocusLabel(
+  currentStep: NumberPathwayRevealStep | null,
+  groups: NumberPathwayRevealGroups,
+) {
+  if (!currentStep) return "No signal yet";
+
+  if (
+    currentStep.autoCheck.status === "Developing" ||
+    currentStep.autoCheck.status === "Needs support"
+  ) {
+    return `Keep working on Step ${getRevealStepDisplayNumber(currentStep)}`;
+  }
+
+  if (
+    currentStep.autoCheck.status === "Secure" ||
+    currentStep.autoCheck.status === "Consolidating"
+  ) {
+    const nextActiveStep = [
+      ...groups.currentLearningZone,
+      ...groups.laterPathway,
+    ].find(
+      (step) =>
+        step.autoCheck.status !== "Secure" &&
+        step.autoCheck.status !== "Consolidating",
+    );
+
+    if (nextActiveStep) {
+      return `Next focus: Step ${getRevealStepDisplayNumber(nextActiveStep)}`;
+    }
+  }
+
+  return `Next focus: Step ${getRevealStepDisplayNumber(currentStep)}`;
+}
+
 function buildPathwayStepReturnHref({
   pathname,
   subjectKey,
@@ -1841,9 +1875,7 @@ function NumberPathwayRevealPanel({
             height: "fit-content",
           }}
         >
-          {currentStartStep
-            ? `Next focus: Step ${getRevealStepDisplayNumber(currentStartStep)}`
-            : "No signal yet"}
+          {getRevealFocusLabel(currentStartStep, groups)}
         </div>
       </div>
 
@@ -1866,7 +1898,7 @@ function NumberPathwayRevealPanel({
           <div style={compactCardStyle}>
             <div style={eyebrowStyle}>Current learning zone</div>
             <div style={{ color: "#475569", lineHeight: 1.5 }}>
-              The next few steps after the secure/consolidating range.
+              These are the steps to work on now.
             </div>
             <NumberRevealStepList
               steps={groups.currentLearningZone}
