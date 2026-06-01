@@ -1,4 +1,5 @@
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
+import { getStepAssessmentForPathwayStep } from "@/lib/clean/assessments/stepAssessmentRegistry";
 import {
   NUMBER_ASSESSMENT_BANKS,
   getNumberAssessmentBankByKey,
@@ -463,6 +464,61 @@ function getBankLevelStatus(attempt: CleanAssessmentAttempt): NumberAutoCheckSta
   return "Needs support";
 }
 
+function attemptMatchesExactPathwayStep(
+  attempt: CleanAssessmentAttempt,
+  context: {
+    pathwayStepId?: string | null;
+    stepKey?: string | null;
+    stepAssessmentKey?: string | null;
+    strandKey?: string | null;
+  },
+) {
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepKey = safe(context.stepKey);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+  const strandKey = safe(context.strandKey);
+  const prototypeMetadata = getPrototypeMetadata(attempt);
+  const attemptStepAssessmentKey = safe(prototypeMetadata?.stepAssessmentKey);
+
+  if (strandKey && attempt.strandKey !== strandKey) return false;
+  if (stepAssessmentKey && attemptStepAssessmentKey === stepAssessmentKey) return true;
+  if (!attemptStepAssessmentKey) return false;
+
+  return Boolean(
+    (pathwayStepId && attempt.pathwayStepId === pathwayStepId) ||
+      (stepKey && attempt.stepKey === stepKey),
+  );
+}
+
+export function getExactStepAutoCheckStatusForPathwayStep(
+  attempts: CleanAssessmentAttempt[],
+  context: {
+    pathwayStepId?: string | null;
+    stepKey?: string | null;
+    stepAssessmentKey?: string | null;
+    strandKey?: string | null;
+  },
+) {
+  const attempt =
+    attempts
+      .filter((candidate) => attemptMatchesExactPathwayStep(candidate, context))
+      .sort((left, right) => getAttemptTime(right) - getAttemptTime(left))[0] ?? null;
+
+  if (!attempt) {
+    return {
+      status: "Not checked yet" as NumberAutoCheckStatus,
+      attempt: null,
+      scope: "none" as const,
+    };
+  }
+
+  return {
+    status: getBankLevelStatus(attempt),
+    attempt,
+    scope: "bank" as const,
+  };
+}
+
 export function getAutoCheckStatusForPathwayStep(
   attempts: CleanAssessmentAttempt[],
   alignment: NumberPathwayAssessmentAlignment | null,
@@ -510,16 +566,35 @@ function isWeakAutoCheck(status: NumberAutoCheckStatus) {
 export function getNumberPathwayRevealGroups(
   steps: NumberPathwayRevealStepInput[],
   attempts: CleanAssessmentAttempt[],
+  options: {
+    subjectKey?: string;
+    strandKey?: string;
+  } = {},
 ): NumberPathwayRevealGroups {
+  const subjectKey = options.subjectKey || "mathematics";
+  const strandKey = options.strandKey || NUMBER_STRAND_KEY;
   const revealSteps = steps.map((step, index) => {
     const alignment = getNumberAssessmentAlignmentForPathwayStep({
-      subjectKey: "mathematics",
-      strandKey: NUMBER_STRAND_KEY,
+      subjectKey,
+      strandKey,
       stageKey: step.stageKey,
       pathwayStepId: step.pathwayStepId,
       stepKey: step.stepKey,
     });
-    const autoCheck = getAutoCheckStatusForPathwayStep(attempts, alignment);
+    const exactStepAssessment = getStepAssessmentForPathwayStep({
+      strandKey,
+      pathwayStepId: step.pathwayStepId,
+      stepKey: step.stepKey,
+    });
+    const autoCheck =
+      exactStepAssessment && strandKey !== NUMBER_STRAND_KEY
+        ? getExactStepAutoCheckStatusForPathwayStep(attempts, {
+            strandKey,
+            pathwayStepId: step.pathwayStepId,
+            stepKey: step.stepKey,
+            stepAssessmentKey: exactStepAssessment.key,
+          })
+        : getAutoCheckStatusForPathwayStep(attempts, alignment);
 
     return {
       ...step,

@@ -24,12 +24,12 @@ import {
   getNumberAssessmentAlignmentForPathwayStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
 import {
-  getNumberStepAssessmentForPathwayStep,
-  getNumberStepAssessmentItemsForDepth,
-} from "@/lib/clean/assessments/numberStepAssessmentRegistry";
+  getStepAssessmentForPathwayStep,
+  getStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/stepAssessmentRegistry";
 import {
-  getNumberStepPracticeForPathwayStep,
-} from "@/lib/clean/practice/numberStepPracticeRegistry";
+  getStepPracticeForPathwayStep,
+} from "@/lib/clean/practice/stepPracticeRegistry";
 import {
   NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
   getNumberStepAssessmentStatus,
@@ -2719,10 +2719,11 @@ function CleanNumberAssessmentPlayerBody() {
   );
   const incomingStepAssessment = useMemo(
     () =>
-      getNumberStepAssessmentForPathwayStep({
+      getStepAssessmentForPathwayStep({
         stepAssessmentKey: searchParams.get("stepAssessmentKey"),
         pathwayStepId: searchParams.get("pathwayStepId"),
         stepKey: searchParams.get("stepKey"),
+        strandKey: searchParams.get("strandKey"),
       }),
     [searchParams],
   );
@@ -2733,7 +2734,9 @@ function CleanNumberAssessmentPlayerBody() {
   const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
 
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
-    incomingStepAssessment?.parentBankKey ||
+    (incomingStepAssessment?.strandKey === "number-and-place-value"
+      ? incomingStepAssessment.parentBankKey as NumberAssessmentBankKey
+      : null) ||
       incomingBank?.key ||
       NUMBER_ASSESSMENT_BANKS[0]?.key ||
       "powers-roots-exponent-notation",
@@ -2763,9 +2766,21 @@ function CleanNumberAssessmentPlayerBody() {
       getNumberAssessmentBankByKey(selectedBankKey) || NUMBER_ASSESSMENT_BANKS[0],
     [selectedBankKey],
   );
+  const activeAssessmentContext = {
+    subjectKey: incomingStepAssessment?.subjectKey ?? selectedBank.subjectKey,
+    strandKey: incomingStepAssessment?.strandKey ?? selectedBank.strandKey,
+    stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
+    pathwayStepId: incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
+    stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
+    progressionBandKey:
+      incomingStepAssessment?.progressionBandKey ?? selectedBank.progressionBandKey,
+    itemBankKey: incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
+    parentFamilyTitle: incomingStepAssessment?.parentBankTitle ?? selectedBank.title,
+    sourceRoute: incomingStepAssessment?.sourceRoute ?? selectedBank.sourceRoute,
+  };
 
   const stepAssessmentItems = incomingStepAssessment
-    ? getNumberStepAssessmentItemsForDepth(incomingStepAssessment.key, assessmentDepth)
+    ? getStepAssessmentItemsForDepth(incomingStepAssessment, assessmentDepth)
     : [];
   const items = incomingStepAssessment ? stepAssessmentItems : selectedBank.items;
   const totalItems = items.length;
@@ -2783,20 +2798,20 @@ function CleanNumberAssessmentPlayerBody() {
     ? buildTargetedPracticeHref(summary.targetedPracticeRecommendation, returnTo)
     : "";
   const exactStepPractice = incomingStepAssessment
-    ? getNumberStepPracticeForPathwayStep({
+    ? getStepPracticeForPathwayStep({
         pathwayStepId: incomingStepAssessment.pathwayStepId,
         stepKey: incomingStepAssessment.stepKey,
+        strandKey: incomingStepAssessment.strandKey,
       })
     : null;
   const exactStepPracticeHref = exactStepPractice
     ? `/practice/number-targeted?${new URLSearchParams({
         stepPracticeKey: exactStepPractice.key,
-        subjectKey: incomingStepAssessment?.subjectKey ?? selectedBank.subjectKey,
-        strandKey: incomingStepAssessment?.strandKey ?? selectedBank.strandKey,
-        stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
-        pathwayStepId:
-          incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
-        stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
+        subjectKey: activeAssessmentContext.subjectKey,
+        strandKey: activeAssessmentContext.strandKey,
+        stageKey: activeAssessmentContext.stageKey,
+        pathwayStepId: activeAssessmentContext.pathwayStepId,
+        stepKey: activeAssessmentContext.stepKey,
         returnTo: returnTo || "/my-pathways",
       }).toString()}`
     : "";
@@ -2849,17 +2864,15 @@ function CleanNumberAssessmentPlayerBody() {
     return {
       mode,
       learnerId,
-      subjectKey: selectedBank.subjectKey,
-      strandKey: selectedBank.strandKey,
-      stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
-      pathwayStepId:
-        incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
-      stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
+      subjectKey: activeAssessmentContext.subjectKey,
+      strandKey: activeAssessmentContext.strandKey,
+      stageKey: activeAssessmentContext.stageKey,
+      pathwayStepId: activeAssessmentContext.pathwayStepId,
+      stepKey: activeAssessmentContext.stepKey,
       stepTitle: incomingStepAssessment?.title ?? selectedBank.title,
       assessmentDepth: incomingStepAssessment ? assessmentDepth : null,
       stepAssessmentKey: incomingStepAssessment?.key ?? null,
-      parentItemBankKey:
-        incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
+      parentItemBankKey: activeAssessmentContext.itemBankKey,
       itemId: item?.id ?? null,
       prompt: item?.prompt ?? null,
       responseType: item?.answerType ?? null,
@@ -3481,10 +3494,10 @@ function CleanNumberAssessmentPlayerBody() {
           autoCheckStatus: incomingStepAssessment
             ? getNumberStepAssessmentStatus(summary.correctCount, totalItems)
             : null,
-          parentFamilyTitle: incomingStepAssessment?.parentBankTitle ?? selectedBank.title,
-          parentItemBankKey:
-            incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
-          sourceRoute: selectedBank.sourceRoute,
+          parentFamilyTitle: activeAssessmentContext.parentFamilyTitle,
+          parentItemBankKey: activeAssessmentContext.itemBankKey,
+          strandKey: activeAssessmentContext.strandKey,
+          sourceRoute: activeAssessmentContext.sourceRoute,
           pathwayStepIdMode: "temporary-stable-key",
           learnerLabel: getLearnerLabel(selectedLearner) || null,
         },
@@ -3492,16 +3505,15 @@ function CleanNumberAssessmentPlayerBody() {
 
       const createdAttempt = await createAssessmentAttempt(familyId, {
         learnerId,
-        subjectKey: selectedBank.subjectKey,
-        strandKey: selectedBank.strandKey,
-        stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
-        pathwayStepId:
-          incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
-        stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
-        progressionBandKey: selectedBank.progressionBandKey,
-        itemBankKey: selectedBank.itemBankKey,
+        subjectKey: activeAssessmentContext.subjectKey,
+        strandKey: activeAssessmentContext.strandKey,
+        stageKey: activeAssessmentContext.stageKey,
+        pathwayStepId: activeAssessmentContext.pathwayStepId,
+        stepKey: activeAssessmentContext.stepKey,
+        progressionBandKey: activeAssessmentContext.progressionBandKey,
+        itemBankKey: activeAssessmentContext.itemBankKey,
         mode: "diagnostic",
-        sourceRoute: selectedBank.sourceRoute,
+        sourceRoute: activeAssessmentContext.sourceRoute,
         status: "completed",
         itemCount: totalItems,
         attemptedCount: summary.attemptedCount,
@@ -3603,7 +3615,7 @@ function CleanNumberAssessmentPlayerBody() {
                   color: "#0f172a",
                 }}
               >
-                Number assessment
+                {incomingStepAssessment ? "Step assessment" : "Number assessment"}
               </h1>
               <p
                 style={{

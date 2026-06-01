@@ -61,9 +61,9 @@ import {
 } from "@/lib/clean/practice/numberTerminatingRecurringRationalPracticeModules";
 import { getNumberAssessmentBankByKey } from "@/lib/clean/assessments/numberAssessmentBanks";
 import {
-  getNumberStepPracticeForPathwayStep,
-  getNumberStepPracticeTasksForDepth,
-} from "@/lib/clean/practice/numberStepPracticeRegistry";
+  getStepPracticeForPathwayStep,
+  getStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/stepPracticeRegistry";
 import {
   NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
   type NumberStepPracticeDepth,
@@ -1183,13 +1183,14 @@ export default function CleanNumberTargetedPracticeViewer() {
   );
   const sourceSubElement = safe(searchParams.get("sourceSubElement"));
   const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
-  const exactStepPractice = getNumberStepPracticeForPathwayStep({
+  const exactStepPractice = getStepPracticeForPathwayStep({
     stepPracticeKey: searchParams.get("stepPracticeKey"),
     pathwayStepId,
     stepKey,
+    strandKey,
   });
   const exactStepPracticeTasks = exactStepPractice
-    ? getNumberStepPracticeTasksForDepth(exactStepPractice.key, stepPracticeDepth)
+    ? getStepPracticeTasksForDepth(exactStepPractice, stepPracticeDepth)
     : [];
   const currentStepPracticeTask =
     exactStepPracticeTasks[Math.min(stepPracticeIndex, exactStepPracticeTasks.length - 1)];
@@ -1319,7 +1320,7 @@ export default function CleanNumberTargetedPracticeViewer() {
         {exactStepPractice ? (
           <>
             <section style={cardStyle}>
-              <div style={eyebrowStyle}>Step-level Number practice</div>
+              <div style={eyebrowStyle}>Step-level practice</div>
               <h1
                 style={{
                   margin: "8px 0",

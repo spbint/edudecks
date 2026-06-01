@@ -15,6 +15,7 @@ import {
   NUMBER_ASSESSMENT_BANKS,
 } from "@/lib/clean/assessments/numberAssessmentBanks";
 import {
+  getExactStepAutoCheckStatusForPathwayStep,
   getAutoCheckStatusForPathwayStep,
   getNumberAssessmentAlignmentForPathwayStep,
   getNumberPathwayRevealGroups,
@@ -22,11 +23,11 @@ import {
   type NumberPathwayRevealStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
 import {
-  getNumberStepAssessmentForPathwayStep,
-} from "@/lib/clean/assessments/numberStepAssessmentRegistry";
+  getStepAssessmentForPathwayStep,
+} from "@/lib/clean/assessments/stepAssessmentRegistry";
 import {
-  getNumberStepPracticeForPathwayStep,
-} from "@/lib/clean/practice/numberStepPracticeRegistry";
+  getStepPracticeForPathwayStep,
+} from "@/lib/clean/practice/stepPracticeRegistry";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
@@ -218,6 +219,14 @@ function getLearnerLabel(learner: Learner | null) {
 
 function isNumberPathwayContext(subjectKey: string, strandKey: string) {
   return subjectKey === "mathematics" && strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY;
+}
+
+function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) {
+  return (
+    subjectKey === "mathematics" &&
+    (strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ||
+      strandKey === "operations-and-calculation")
+  );
 }
 
 function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
@@ -612,7 +621,7 @@ function PathwaysWorkspaceBody() {
   const numberPathwayRevealGroups = useMemo(() => {
     if (
       !selectedSubjectWorkspace ||
-      !isNumberPathwayContext(selectedSubjectKey, selectedSubjectWorkspace.key)
+      !supportsExactStepPathwayContext(selectedSubjectKey, selectedSubjectWorkspace.key)
     ) {
       return null;
     }
@@ -644,7 +653,10 @@ function PathwaysWorkspaceBody() {
       }),
     );
 
-    return getNumberPathwayRevealGroups(orderedSteps, assessmentAttempts);
+    return getNumberPathwayRevealGroups(orderedSteps, assessmentAttempts, {
+      subjectKey: selectedSubjectKey,
+      strandKey: selectedSubjectWorkspace.key,
+    });
   }, [assessmentAttempts, selectedSubjectKey, selectedSubjectWorkspace]);
   const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
     ? "Check understanding"
@@ -1474,22 +1486,28 @@ function NumberRevealStepCard({
   compact?: boolean;
 }) {
   const tone = getAutoCheckTone(step.autoCheck.status);
-  const exactStepAssessment = getNumberStepAssessmentForPathwayStep({
+  const exactStepAssessment = getStepAssessmentForPathwayStep({
     pathwayStepId: step.pathwayStepId,
     stepKey: step.stepKey,
+    strandKey: step.pathwayStepId.includes("::operations-and-calculation::")
+      ? "operations-and-calculation"
+      : NUMBER_AND_PLACE_VALUE_STRAND_KEY,
   });
-  const exactStepPractice = getNumberStepPracticeForPathwayStep({
+  const exactStepPractice = getStepPracticeForPathwayStep({
     pathwayStepId: step.pathwayStepId,
     stepKey: step.stepKey,
+    strandKey: step.pathwayStepId.includes("::operations-and-calculation::")
+      ? "operations-and-calculation"
+      : NUMBER_AND_PLACE_VALUE_STRAND_KEY,
   });
   const assessmentHref = exactStepAssessment
     ? (() => {
         const params = new URLSearchParams();
         params.set("source", "my-pathways");
         params.set("stepAssessmentKey", exactStepAssessment.key);
-        params.set("subjectKey", "mathematics");
-        params.set("strandKey", NUMBER_AND_PLACE_VALUE_STRAND_KEY);
-        params.set("stageKey", step.stageKey);
+        params.set("subjectKey", exactStepAssessment.subjectKey);
+        params.set("strandKey", exactStepAssessment.strandKey);
+        params.set("stageKey", exactStepAssessment.stageKey);
         params.set("pathwayStepId", step.pathwayStepId);
         params.set("stepKey", step.stepKey);
         params.set("returnTo", returnPath);
@@ -1503,9 +1521,9 @@ function NumberRevealStepCard({
     ? (() => {
         const params = new URLSearchParams();
         params.set("stepPracticeKey", exactStepPractice.key);
-        params.set("subjectKey", "mathematics");
-        params.set("strandKey", NUMBER_AND_PLACE_VALUE_STRAND_KEY);
-        params.set("stageKey", step.stageKey);
+        params.set("subjectKey", exactStepPractice.subjectKey);
+        params.set("strandKey", exactStepPractice.strandKey);
+        params.set("stageKey", exactStepPractice.stageKey);
         params.set("pathwayStepId", step.pathwayStepId);
         params.set("stepKey", step.stepKey);
         params.set("returnTo", returnPath);
@@ -2101,19 +2119,21 @@ function DetailedMathematicsStepCard({
   );
   const exactStepAssessment = useMemo(
     () =>
-      getNumberStepAssessmentForPathwayStep({
+      getStepAssessmentForPathwayStep({
         pathwayStepId: canonicalPathwayStepId,
         stepKey: canonicalStepKey,
+        strandKey: strand.key,
       }),
-    [canonicalPathwayStepId, canonicalStepKey],
+    [canonicalPathwayStepId, canonicalStepKey, strand.key],
   );
   const exactStepPractice = useMemo(
     () =>
-      getNumberStepPracticeForPathwayStep({
+      getStepPracticeForPathwayStep({
         pathwayStepId: canonicalPathwayStepId,
         stepKey: canonicalStepKey,
+        strandKey: strand.key,
       }),
-    [canonicalPathwayStepId, canonicalStepKey],
+    [canonicalPathwayStepId, canonicalStepKey, strand.key],
   );
   const captureHref = useMemo(() => {
     const params = buildPathwayCaptureSearchParams(
@@ -2164,14 +2184,13 @@ function DetailedMathematicsStepCard({
     const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strand.key);
     const returnTo = `${returnPath}#${detailPanelId}`;
 
-    if (isNumberContext) {
-      if (exactStepAssessment) {
+    if (exactStepAssessment) {
         const params = new URLSearchParams();
         params.set("source", "my-pathways");
         params.set("stepAssessmentKey", exactStepAssessment.key);
-        params.set("subjectKey", selectedSubjectKey);
-        params.set("strandKey", strand.key);
-        params.set("stageKey", stage.key);
+        params.set("subjectKey", exactStepAssessment.subjectKey);
+        params.set("strandKey", exactStepAssessment.strandKey);
+        params.set("stageKey", exactStepAssessment.stageKey);
         params.set("pathwayStepId", canonicalPathwayStepId);
         params.set("stepKey", canonicalStepKey);
         params.set("returnTo", returnTo);
@@ -2182,8 +2201,9 @@ function DetailedMathematicsStepCard({
         }
 
         return `/assessments/number?${params.toString()}`;
-      }
+    }
 
+    if (isNumberContext) {
       return "";
     }
 
@@ -2221,9 +2241,9 @@ function DetailedMathematicsStepCard({
     const pathwayStepId = canonicalPathwayStepId || exactStepPractice.pathwayStepId;
     params.set("source", "my-pathways");
     params.set("stepPracticeKey", exactStepPractice.key);
-    params.set("subjectKey", selectedSubjectKey);
-    params.set("strandKey", strand.key);
-    params.set("stageKey", stage.key);
+    params.set("subjectKey", exactStepPractice.subjectKey);
+    params.set("strandKey", exactStepPractice.strandKey);
+    params.set("stageKey", exactStepPractice.stageKey);
     params.set("pathwayStepId", pathwayStepId);
     params.set("stepKey", canonicalStepKey);
     params.set("returnTo", `${returnPath}#${detailPanelId}`);
@@ -2239,13 +2259,24 @@ function DetailedMathematicsStepCard({
     exactStepPractice,
     returnPath,
     selectedLearnerId,
-    selectedSubjectKey,
-    stage.key,
-    strand.key,
   ]);
   const autoCheckStatus = useMemo(
-    () => getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment),
-    [assessmentAttempts, numberAssessmentAlignment],
+    () =>
+      numberAssessmentAlignment
+        ? getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment)
+        : exactStepAssessment
+          ? getExactStepAutoCheckStatusForPathwayStep(assessmentAttempts, {
+              strandKey: exactStepAssessment.strandKey,
+              pathwayStepId: exactStepAssessment.pathwayStepId,
+              stepKey: exactStepAssessment.stepKey,
+              stepAssessmentKey: exactStepAssessment.key,
+            })
+          : {
+              status: "Not checked yet" as const,
+              attempt: null,
+              scope: "none" as const,
+            },
+    [assessmentAttempts, exactStepAssessment, numberAssessmentAlignment],
   );
 
   return (
@@ -2386,7 +2417,7 @@ function DetailedMathematicsStepCard({
 
       <CleanPathwayStepActionRow
         activity={
-          isNumberPathwayContext(selectedSubjectKey, strand.key) && !exactStepPractice
+          supportsExactStepPathwayContext(selectedSubjectKey, strand.key) && !exactStepPractice
             ? null
             : practiceActivity
         }
@@ -2394,18 +2425,22 @@ function DetailedMathematicsStepCard({
         captureHref={captureHref}
         practiceHref={exactPracticeHref}
         practiceTitle={exactStepPractice?.title ?? null}
-        assessmentBankTitle={exactStepAssessment ? numberAssessmentBank?.title ?? null : null}
+        assessmentBankTitle={
+          exactStepAssessment
+            ? numberAssessmentBank?.title ?? exactStepAssessment.parentBankTitle
+            : null
+        }
         exactAssessmentTitle={exactStepAssessment?.title ?? null}
         autoCheckStatusLabel={
-          numberAssessmentBank ? autoCheckStatus.status : null
+          exactStepAssessment ? autoCheckStatus.status : null
         }
         autoCheckStatusScope={
-          numberAssessmentBank && autoCheckStatus.scope !== "none"
+          exactStepAssessment && autoCheckStatus.scope !== "none"
             ? autoCheckStatus.scope
             : null
         }
         noAssessmentMessage={
-          isNumberPathwayContext(selectedSubjectKey, strand.key) && !exactStepAssessment
+          supportsExactStepPathwayContext(selectedSubjectKey, strand.key) && !exactStepAssessment
             ? "Exact assessment is coming next for this step."
             : null
         }
