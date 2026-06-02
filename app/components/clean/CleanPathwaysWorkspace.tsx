@@ -228,7 +228,8 @@ function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) 
         strandKey === "operations-and-calculation" ||
         strandKey === "fractions-decimals-percentages" ||
         strandKey === "ratio-and-proportional-reasoning" ||
-        strandKey === "algebra-patterns-and-functions")
+        strandKey === "algebra-patterns-and-functions" ||
+        strandKey === "measurement")
     );
 }
 

@@ -18,6 +18,10 @@ import {
   getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
   getAlgebraPatternsFunctionsStepPracticeTasksForDepth,
 } from "@/lib/clean/practice/algebraPatternsFunctionsStepPracticeRegistry";
+import {
+  getMeasurementStepPracticeForPathwayStep,
+  getMeasurementStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/measurementStepPracticeRegistry";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type {
   NumberStepPractice,
@@ -90,6 +94,18 @@ function preferAlgebraPatternsFunctions(context: StepPracticeContext) {
   );
 }
 
+function preferMeasurement(context: StepPracticeContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepPracticeKey = safe(context.stepPracticeKey);
+
+  return (
+    strandKey === "measurement" ||
+    pathwayStepId.includes("::measurement::") ||
+    stepPracticeKey.startsWith("measurement-step-")
+  );
+}
+
 export function getStepPracticeForPathwayStep(
   context: StepPracticeContext,
 ): CleanStepPractice | null {
@@ -100,6 +116,7 @@ export function getStepPracticeForPathwayStep(
         getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
         getRatioProportionalReasoningStepPracticeForPathwayStep,
         getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+        getMeasurementStepPracticeForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -108,6 +125,7 @@ export function getStepPracticeForPathwayStep(
           getOperationsStepPracticeForPathwayStep,
           getRatioProportionalReasoningStepPracticeForPathwayStep,
           getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+          getMeasurementStepPracticeForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -116,6 +134,7 @@ export function getStepPracticeForPathwayStep(
             getOperationsStepPracticeForPathwayStep,
             getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
             getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+            getMeasurementStepPracticeForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -124,14 +143,25 @@ export function getStepPracticeForPathwayStep(
               getOperationsStepPracticeForPathwayStep,
               getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
               getRatioProportionalReasoningStepPracticeForPathwayStep,
+              getMeasurementStepPracticeForPathwayStep,
             ]
-          : [
-              getNumberStepPracticeForPathwayStep,
-              getOperationsStepPracticeForPathwayStep,
-              getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
-              getRatioProportionalReasoningStepPracticeForPathwayStep,
-              getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
-            ];
+          : preferMeasurement(context)
+            ? [
+                getMeasurementStepPracticeForPathwayStep,
+                getNumberStepPracticeForPathwayStep,
+                getOperationsStepPracticeForPathwayStep,
+                getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                getRatioProportionalReasoningStepPracticeForPathwayStep,
+                getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+              ]
+            : [
+                getNumberStepPracticeForPathwayStep,
+                getOperationsStepPracticeForPathwayStep,
+                getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                getRatioProportionalReasoningStepPracticeForPathwayStep,
+                getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                getMeasurementStepPracticeForPathwayStep,
+              ];
 
   for (const getPractice of registries) {
     const practice = getPractice(context);
@@ -168,6 +198,10 @@ export function getStepPracticeTasksForDepth(
       practice.key,
       depth,
     );
+  }
+
+  if (practice.strandKey === "measurement") {
+    return getMeasurementStepPracticeTasksForDepth(practice.key, depth);
   }
 
   return getNumberStepPracticeTasksForDepth(practice.key, depth);

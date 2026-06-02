@@ -19,6 +19,10 @@ import {
   getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
   getAlgebraPatternsFunctionsStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/algebraPatternsFunctionsStepAssessmentRegistry";
+import {
+  getMeasurementStepAssessmentForPathwayStep,
+  getMeasurementStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/measurementStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -94,6 +98,18 @@ function preferAlgebraPatternsFunctions(context: StepAssessmentContext) {
   );
 }
 
+function preferMeasurement(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "measurement" ||
+    pathwayStepId.includes("::measurement::") ||
+    stepAssessmentKey.startsWith("measurement-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
@@ -104,6 +120,7 @@ export function getStepAssessmentForPathwayStep(
         getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
         getRatioProportionalReasoningStepAssessmentForPathwayStep,
         getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+        getMeasurementStepAssessmentForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -112,6 +129,7 @@ export function getStepAssessmentForPathwayStep(
           getOperationsStepAssessmentForPathwayStep,
           getRatioProportionalReasoningStepAssessmentForPathwayStep,
           getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+          getMeasurementStepAssessmentForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -120,6 +138,7 @@ export function getStepAssessmentForPathwayStep(
             getOperationsStepAssessmentForPathwayStep,
             getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
             getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+            getMeasurementStepAssessmentForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -128,14 +147,25 @@ export function getStepAssessmentForPathwayStep(
               getOperationsStepAssessmentForPathwayStep,
               getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
               getRatioProportionalReasoningStepAssessmentForPathwayStep,
+              getMeasurementStepAssessmentForPathwayStep,
             ]
-          : [
-              getNumberStepAssessmentForPathwayStep,
-              getOperationsStepAssessmentForPathwayStep,
-              getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
-              getRatioProportionalReasoningStepAssessmentForPathwayStep,
-              getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
-            ];
+          : preferMeasurement(context)
+            ? [
+                getMeasurementStepAssessmentForPathwayStep,
+                getNumberStepAssessmentForPathwayStep,
+                getOperationsStepAssessmentForPathwayStep,
+                getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+              ]
+            : [
+                getNumberStepAssessmentForPathwayStep,
+                getOperationsStepAssessmentForPathwayStep,
+                getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+                getMeasurementStepAssessmentForPathwayStep,
+              ];
 
   for (const getAssessment of registries) {
     const assessment = getAssessment(context);
@@ -172,6 +202,10 @@ export function getStepAssessmentItemsForDepth(
       assessment.key,
       depth,
     );
+  }
+
+  if (assessment.strandKey === "measurement") {
+    return getMeasurementStepAssessmentItemsForDepth(assessment.key, depth);
   }
 
   return getNumberStepAssessmentItemsForDepth(assessment.key, depth);
