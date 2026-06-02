@@ -14,6 +14,10 @@ import {
   getRatioProportionalReasoningStepPracticeForPathwayStep,
   getRatioProportionalReasoningStepPracticeTasksForDepth,
 } from "@/lib/clean/practice/ratioProportionalReasoningStepPracticeRegistry";
+import {
+  getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+  getAlgebraPatternsFunctionsStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/algebraPatternsFunctionsStepPracticeRegistry";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type {
   NumberStepPractice,
@@ -74,6 +78,18 @@ function preferRatioProportionalReasoning(context: StepPracticeContext) {
   );
 }
 
+function preferAlgebraPatternsFunctions(context: StepPracticeContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepPracticeKey = safe(context.stepPracticeKey);
+
+  return (
+    strandKey === "algebra-patterns-and-functions" ||
+    pathwayStepId.includes("::algebra-patterns-and-functions::") ||
+    stepPracticeKey.startsWith("algebra-patterns-functions-step-")
+  );
+}
+
 export function getStepPracticeForPathwayStep(
   context: StepPracticeContext,
 ): CleanStepPractice | null {
@@ -83,6 +99,7 @@ export function getStepPracticeForPathwayStep(
         getNumberStepPracticeForPathwayStep,
         getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
         getRatioProportionalReasoningStepPracticeForPathwayStep,
+        getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -90,6 +107,7 @@ export function getStepPracticeForPathwayStep(
           getNumberStepPracticeForPathwayStep,
           getOperationsStepPracticeForPathwayStep,
           getRatioProportionalReasoningStepPracticeForPathwayStep,
+          getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -97,13 +115,23 @@ export function getStepPracticeForPathwayStep(
             getNumberStepPracticeForPathwayStep,
             getOperationsStepPracticeForPathwayStep,
             getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+            getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
           ]
-        : [
-            getNumberStepPracticeForPathwayStep,
-            getOperationsStepPracticeForPathwayStep,
-            getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
-            getRatioProportionalReasoningStepPracticeForPathwayStep,
-          ];
+        : preferAlgebraPatternsFunctions(context)
+          ? [
+              getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+              getNumberStepPracticeForPathwayStep,
+              getOperationsStepPracticeForPathwayStep,
+              getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+              getRatioProportionalReasoningStepPracticeForPathwayStep,
+            ]
+          : [
+              getNumberStepPracticeForPathwayStep,
+              getOperationsStepPracticeForPathwayStep,
+              getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+              getRatioProportionalReasoningStepPracticeForPathwayStep,
+              getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+            ];
 
   for (const getPractice of registries) {
     const practice = getPractice(context);
@@ -130,6 +158,13 @@ export function getStepPracticeTasksForDepth(
 
   if (practice.strandKey === "ratio-and-proportional-reasoning") {
     return getRatioProportionalReasoningStepPracticeTasksForDepth(
+      practice.key,
+      depth,
+    );
+  }
+
+  if (practice.strandKey === "algebra-patterns-and-functions") {
+    return getAlgebraPatternsFunctionsStepPracticeTasksForDepth(
       practice.key,
       depth,
     );

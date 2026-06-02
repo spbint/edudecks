@@ -15,6 +15,10 @@ import {
   getRatioProportionalReasoningStepAssessmentForPathwayStep,
   getRatioProportionalReasoningStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/ratioProportionalReasoningStepAssessmentRegistry";
+import {
+  getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+  getAlgebraPatternsFunctionsStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/algebraPatternsFunctionsStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -78,6 +82,18 @@ function preferRatioProportionalReasoning(context: StepAssessmentContext) {
   );
 }
 
+function preferAlgebraPatternsFunctions(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "algebra-patterns-and-functions" ||
+    pathwayStepId.includes("::algebra-patterns-and-functions::") ||
+    stepAssessmentKey.startsWith("algebra-patterns-functions-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
@@ -87,6 +103,7 @@ export function getStepAssessmentForPathwayStep(
         getNumberStepAssessmentForPathwayStep,
         getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
         getRatioProportionalReasoningStepAssessmentForPathwayStep,
+        getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -94,6 +111,7 @@ export function getStepAssessmentForPathwayStep(
           getNumberStepAssessmentForPathwayStep,
           getOperationsStepAssessmentForPathwayStep,
           getRatioProportionalReasoningStepAssessmentForPathwayStep,
+          getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -101,13 +119,23 @@ export function getStepAssessmentForPathwayStep(
             getNumberStepAssessmentForPathwayStep,
             getOperationsStepAssessmentForPathwayStep,
             getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+            getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
           ]
-        : [
-            getNumberStepAssessmentForPathwayStep,
-            getOperationsStepAssessmentForPathwayStep,
-            getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
-            getRatioProportionalReasoningStepAssessmentForPathwayStep,
-          ];
+        : preferAlgebraPatternsFunctions(context)
+          ? [
+              getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+              getNumberStepAssessmentForPathwayStep,
+              getOperationsStepAssessmentForPathwayStep,
+              getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+              getRatioProportionalReasoningStepAssessmentForPathwayStep,
+            ]
+          : [
+              getNumberStepAssessmentForPathwayStep,
+              getOperationsStepAssessmentForPathwayStep,
+              getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+              getRatioProportionalReasoningStepAssessmentForPathwayStep,
+              getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+            ];
 
   for (const getAssessment of registries) {
     const assessment = getAssessment(context);
@@ -134,6 +162,13 @@ export function getStepAssessmentItemsForDepth(
 
   if (assessment.strandKey === "ratio-and-proportional-reasoning") {
     return getRatioProportionalReasoningStepAssessmentItemsForDepth(
+      assessment.key,
+      depth,
+    );
+  }
+
+  if (assessment.strandKey === "algebra-patterns-and-functions") {
+    return getAlgebraPatternsFunctionsStepAssessmentItemsForDepth(
       assessment.key,
       depth,
     );

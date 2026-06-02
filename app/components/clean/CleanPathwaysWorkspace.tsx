@@ -224,11 +224,12 @@ function isNumberPathwayContext(subjectKey: string, strandKey: string) {
 function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) {
   return (
     subjectKey === "mathematics" &&
-    (strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ||
-      strandKey === "operations-and-calculation" ||
-      strandKey === "fractions-decimals-percentages" ||
-      strandKey === "ratio-and-proportional-reasoning")
-  );
+      (strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ||
+        strandKey === "operations-and-calculation" ||
+        strandKey === "fractions-decimals-percentages" ||
+        strandKey === "ratio-and-proportional-reasoning" ||
+        strandKey === "algebra-patterns-and-functions")
+    );
 }
 
 function getStrandKeyFromPathwayStepId(pathwayStepId: string) {
