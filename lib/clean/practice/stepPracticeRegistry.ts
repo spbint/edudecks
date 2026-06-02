@@ -34,6 +34,10 @@ import {
   getProbabilityChanceStepPracticeForPathwayStep,
   getProbabilityChanceStepPracticeTasksForDepth,
 } from "@/lib/clean/practice/probabilityChanceStepPracticeRegistry";
+import {
+  getFinancialRealWorldStepPracticeForPathwayStep,
+  getFinancialRealWorldStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/financialRealWorldStepPracticeRegistry";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type {
   NumberStepPractice,
@@ -154,6 +158,18 @@ function preferProbabilityChance(context: StepPracticeContext) {
   );
 }
 
+function preferFinancialRealWorld(context: StepPracticeContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepPracticeKey = safe(context.stepPracticeKey);
+
+  return (
+    strandKey === "financial-and-real-world-mathematics" ||
+    pathwayStepId.includes("::financial-and-real-world-mathematics::") ||
+    stepPracticeKey.startsWith("financial-real-world-step-")
+  );
+}
+
 export function getStepPracticeForPathwayStep(
   context: StepPracticeContext,
 ): CleanStepPractice | null {
@@ -168,6 +184,7 @@ export function getStepPracticeForPathwayStep(
         getGeometrySpatialReasoningStepPracticeForPathwayStep,
         getStatisticsDataStepPracticeForPathwayStep,
         getProbabilityChanceStepPracticeForPathwayStep,
+        getFinancialRealWorldStepPracticeForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -180,6 +197,7 @@ export function getStepPracticeForPathwayStep(
           getGeometrySpatialReasoningStepPracticeForPathwayStep,
           getStatisticsDataStepPracticeForPathwayStep,
           getProbabilityChanceStepPracticeForPathwayStep,
+          getFinancialRealWorldStepPracticeForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -192,6 +210,7 @@ export function getStepPracticeForPathwayStep(
             getGeometrySpatialReasoningStepPracticeForPathwayStep,
             getStatisticsDataStepPracticeForPathwayStep,
             getProbabilityChanceStepPracticeForPathwayStep,
+            getFinancialRealWorldStepPracticeForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -204,6 +223,7 @@ export function getStepPracticeForPathwayStep(
               getGeometrySpatialReasoningStepPracticeForPathwayStep,
               getStatisticsDataStepPracticeForPathwayStep,
               getProbabilityChanceStepPracticeForPathwayStep,
+              getFinancialRealWorldStepPracticeForPathwayStep,
             ]
           : preferMeasurement(context)
             ? [
@@ -216,6 +236,7 @@ export function getStepPracticeForPathwayStep(
                 getGeometrySpatialReasoningStepPracticeForPathwayStep,
                 getStatisticsDataStepPracticeForPathwayStep,
                 getProbabilityChanceStepPracticeForPathwayStep,
+                getFinancialRealWorldStepPracticeForPathwayStep,
               ]
             : preferGeometrySpatialReasoning(context)
               ? [
@@ -228,6 +249,7 @@ export function getStepPracticeForPathwayStep(
                   getMeasurementStepPracticeForPathwayStep,
                   getStatisticsDataStepPracticeForPathwayStep,
                   getProbabilityChanceStepPracticeForPathwayStep,
+                  getFinancialRealWorldStepPracticeForPathwayStep,
                 ]
               : preferStatisticsData(context)
                 ? [
@@ -240,6 +262,7 @@ export function getStepPracticeForPathwayStep(
                     getMeasurementStepPracticeForPathwayStep,
                     getGeometrySpatialReasoningStepPracticeForPathwayStep,
                     getProbabilityChanceStepPracticeForPathwayStep,
+                    getFinancialRealWorldStepPracticeForPathwayStep,
                   ]
                 : preferProbabilityChance(context)
                   ? [
@@ -252,7 +275,21 @@ export function getStepPracticeForPathwayStep(
                       getMeasurementStepPracticeForPathwayStep,
                       getGeometrySpatialReasoningStepPracticeForPathwayStep,
                       getStatisticsDataStepPracticeForPathwayStep,
+                      getFinancialRealWorldStepPracticeForPathwayStep,
                     ]
+                  : preferFinancialRealWorld(context)
+                    ? [
+                        getFinancialRealWorldStepPracticeForPathwayStep,
+                        getNumberStepPracticeForPathwayStep,
+                        getOperationsStepPracticeForPathwayStep,
+                        getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                        getRatioProportionalReasoningStepPracticeForPathwayStep,
+                        getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                        getMeasurementStepPracticeForPathwayStep,
+                        getGeometrySpatialReasoningStepPracticeForPathwayStep,
+                        getStatisticsDataStepPracticeForPathwayStep,
+                        getProbabilityChanceStepPracticeForPathwayStep,
+                      ]
                   : [
                       getNumberStepPracticeForPathwayStep,
                       getOperationsStepPracticeForPathwayStep,
@@ -263,6 +300,7 @@ export function getStepPracticeForPathwayStep(
                       getGeometrySpatialReasoningStepPracticeForPathwayStep,
                       getStatisticsDataStepPracticeForPathwayStep,
                       getProbabilityChanceStepPracticeForPathwayStep,
+                      getFinancialRealWorldStepPracticeForPathwayStep,
                     ];
 
   for (const getPractice of registries) {
@@ -324,6 +362,10 @@ export function getStepPracticeTasksForDepth(
 
   if (practice.strandKey === "probability-and-chance") {
     return getProbabilityChanceStepPracticeTasksForDepth(practice.key, depth);
+  }
+
+  if (practice.strandKey === "financial-and-real-world-mathematics") {
+    return getFinancialRealWorldStepPracticeTasksForDepth(practice.key, depth);
   }
 
   return getNumberStepPracticeTasksForDepth(practice.key, depth);

@@ -35,6 +35,10 @@ import {
   getProbabilityChanceStepAssessmentForPathwayStep,
   getProbabilityChanceStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/probabilityChanceStepAssessmentRegistry";
+import {
+  getFinancialRealWorldStepAssessmentForPathwayStep,
+  getFinancialRealWorldStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/financialRealWorldStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -158,6 +162,18 @@ function preferProbabilityChance(context: StepAssessmentContext) {
   );
 }
 
+function preferFinancialRealWorld(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "financial-and-real-world-mathematics" ||
+    pathwayStepId.includes("::financial-and-real-world-mathematics::") ||
+    stepAssessmentKey.startsWith("financial-real-world-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
@@ -172,6 +188,7 @@ export function getStepAssessmentForPathwayStep(
         getGeometrySpatialReasoningStepAssessmentForPathwayStep,
         getStatisticsDataStepAssessmentForPathwayStep,
         getProbabilityChanceStepAssessmentForPathwayStep,
+        getFinancialRealWorldStepAssessmentForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -184,6 +201,7 @@ export function getStepAssessmentForPathwayStep(
           getGeometrySpatialReasoningStepAssessmentForPathwayStep,
           getStatisticsDataStepAssessmentForPathwayStep,
           getProbabilityChanceStepAssessmentForPathwayStep,
+          getFinancialRealWorldStepAssessmentForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -196,6 +214,7 @@ export function getStepAssessmentForPathwayStep(
             getGeometrySpatialReasoningStepAssessmentForPathwayStep,
             getStatisticsDataStepAssessmentForPathwayStep,
             getProbabilityChanceStepAssessmentForPathwayStep,
+            getFinancialRealWorldStepAssessmentForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -208,6 +227,7 @@ export function getStepAssessmentForPathwayStep(
               getGeometrySpatialReasoningStepAssessmentForPathwayStep,
               getStatisticsDataStepAssessmentForPathwayStep,
               getProbabilityChanceStepAssessmentForPathwayStep,
+              getFinancialRealWorldStepAssessmentForPathwayStep,
             ]
           : preferMeasurement(context)
             ? [
@@ -220,6 +240,7 @@ export function getStepAssessmentForPathwayStep(
                 getGeometrySpatialReasoningStepAssessmentForPathwayStep,
                 getStatisticsDataStepAssessmentForPathwayStep,
                 getProbabilityChanceStepAssessmentForPathwayStep,
+                getFinancialRealWorldStepAssessmentForPathwayStep,
               ]
             : preferGeometrySpatialReasoning(context)
               ? [
@@ -232,6 +253,7 @@ export function getStepAssessmentForPathwayStep(
                   getMeasurementStepAssessmentForPathwayStep,
                   getStatisticsDataStepAssessmentForPathwayStep,
                   getProbabilityChanceStepAssessmentForPathwayStep,
+                  getFinancialRealWorldStepAssessmentForPathwayStep,
                 ]
               : preferStatisticsData(context)
                 ? [
@@ -244,6 +266,7 @@ export function getStepAssessmentForPathwayStep(
                     getMeasurementStepAssessmentForPathwayStep,
                     getGeometrySpatialReasoningStepAssessmentForPathwayStep,
                     getProbabilityChanceStepAssessmentForPathwayStep,
+                    getFinancialRealWorldStepAssessmentForPathwayStep,
                   ]
                 : preferProbabilityChance(context)
                   ? [
@@ -256,7 +279,21 @@ export function getStepAssessmentForPathwayStep(
                       getMeasurementStepAssessmentForPathwayStep,
                       getGeometrySpatialReasoningStepAssessmentForPathwayStep,
                       getStatisticsDataStepAssessmentForPathwayStep,
+                      getFinancialRealWorldStepAssessmentForPathwayStep,
                     ]
+                  : preferFinancialRealWorld(context)
+                    ? [
+                        getFinancialRealWorldStepAssessmentForPathwayStep,
+                        getNumberStepAssessmentForPathwayStep,
+                        getOperationsStepAssessmentForPathwayStep,
+                        getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                        getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                        getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+                        getMeasurementStepAssessmentForPathwayStep,
+                        getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                        getStatisticsDataStepAssessmentForPathwayStep,
+                        getProbabilityChanceStepAssessmentForPathwayStep,
+                      ]
                   : [
                       getNumberStepAssessmentForPathwayStep,
                       getOperationsStepAssessmentForPathwayStep,
@@ -267,6 +304,7 @@ export function getStepAssessmentForPathwayStep(
                       getGeometrySpatialReasoningStepAssessmentForPathwayStep,
                       getStatisticsDataStepAssessmentForPathwayStep,
                       getProbabilityChanceStepAssessmentForPathwayStep,
+                      getFinancialRealWorldStepAssessmentForPathwayStep,
                     ];
 
   for (const getAssessment of registries) {
@@ -328,6 +366,10 @@ export function getStepAssessmentItemsForDepth(
 
   if (assessment.strandKey === "probability-and-chance") {
     return getProbabilityChanceStepAssessmentItemsForDepth(assessment.key, depth);
+  }
+
+  if (assessment.strandKey === "financial-and-real-world-mathematics") {
+    return getFinancialRealWorldStepAssessmentItemsForDepth(assessment.key, depth);
   }
 
   return getNumberStepAssessmentItemsForDepth(assessment.key, depth);
