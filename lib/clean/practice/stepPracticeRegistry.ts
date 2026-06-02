@@ -22,6 +22,10 @@ import {
   getMeasurementStepPracticeForPathwayStep,
   getMeasurementStepPracticeTasksForDepth,
 } from "@/lib/clean/practice/measurementStepPracticeRegistry";
+import {
+  getGeometrySpatialReasoningStepPracticeForPathwayStep,
+  getGeometrySpatialReasoningStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/geometrySpatialReasoningStepPracticeRegistry";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type {
   NumberStepPractice,
@@ -106,6 +110,18 @@ function preferMeasurement(context: StepPracticeContext) {
   );
 }
 
+function preferGeometrySpatialReasoning(context: StepPracticeContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepPracticeKey = safe(context.stepPracticeKey);
+
+  return (
+    strandKey === "geometry-and-spatial-reasoning" ||
+    pathwayStepId.includes("::geometry-and-spatial-reasoning::") ||
+    stepPracticeKey.startsWith("geometry-spatial-reasoning-step-")
+  );
+}
+
 export function getStepPracticeForPathwayStep(
   context: StepPracticeContext,
 ): CleanStepPractice | null {
@@ -117,6 +133,7 @@ export function getStepPracticeForPathwayStep(
         getRatioProportionalReasoningStepPracticeForPathwayStep,
         getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
         getMeasurementStepPracticeForPathwayStep,
+        getGeometrySpatialReasoningStepPracticeForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -126,6 +143,7 @@ export function getStepPracticeForPathwayStep(
           getRatioProportionalReasoningStepPracticeForPathwayStep,
           getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
           getMeasurementStepPracticeForPathwayStep,
+          getGeometrySpatialReasoningStepPracticeForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -135,6 +153,7 @@ export function getStepPracticeForPathwayStep(
             getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
             getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
             getMeasurementStepPracticeForPathwayStep,
+            getGeometrySpatialReasoningStepPracticeForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -144,6 +163,7 @@ export function getStepPracticeForPathwayStep(
               getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
               getRatioProportionalReasoningStepPracticeForPathwayStep,
               getMeasurementStepPracticeForPathwayStep,
+              getGeometrySpatialReasoningStepPracticeForPathwayStep,
             ]
           : preferMeasurement(context)
             ? [
@@ -153,15 +173,27 @@ export function getStepPracticeForPathwayStep(
                 getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
                 getRatioProportionalReasoningStepPracticeForPathwayStep,
                 getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                getGeometrySpatialReasoningStepPracticeForPathwayStep,
               ]
-            : [
-                getNumberStepPracticeForPathwayStep,
-                getOperationsStepPracticeForPathwayStep,
-                getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
-                getRatioProportionalReasoningStepPracticeForPathwayStep,
-                getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
-                getMeasurementStepPracticeForPathwayStep,
-              ];
+            : preferGeometrySpatialReasoning(context)
+              ? [
+                  getGeometrySpatialReasoningStepPracticeForPathwayStep,
+                  getNumberStepPracticeForPathwayStep,
+                  getOperationsStepPracticeForPathwayStep,
+                  getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                  getRatioProportionalReasoningStepPracticeForPathwayStep,
+                  getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                  getMeasurementStepPracticeForPathwayStep,
+                ]
+              : [
+                  getNumberStepPracticeForPathwayStep,
+                  getOperationsStepPracticeForPathwayStep,
+                  getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                  getRatioProportionalReasoningStepPracticeForPathwayStep,
+                  getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                  getMeasurementStepPracticeForPathwayStep,
+                  getGeometrySpatialReasoningStepPracticeForPathwayStep,
+                ];
 
   for (const getPractice of registries) {
     const practice = getPractice(context);
@@ -202,6 +234,13 @@ export function getStepPracticeTasksForDepth(
 
   if (practice.strandKey === "measurement") {
     return getMeasurementStepPracticeTasksForDepth(practice.key, depth);
+  }
+
+  if (practice.strandKey === "geometry-and-spatial-reasoning") {
+    return getGeometrySpatialReasoningStepPracticeTasksForDepth(
+      practice.key,
+      depth,
+    );
   }
 
   return getNumberStepPracticeTasksForDepth(practice.key, depth);

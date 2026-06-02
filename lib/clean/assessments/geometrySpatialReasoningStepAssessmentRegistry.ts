@@ -1,0 +1,420 @@
+import type { NumberAssessmentBankItem } from "@/lib/clean/assessments/numberAssessmentBanks";
+import {
+  NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
+  getNumberStepAssessmentDepthItemCount,
+  type NumberStepAssessmentDepth,
+} from "@/lib/clean/assessments/numberStepAssessmentTypes";
+import type { CleanAssessmentStageKey } from "@/lib/clean/assessments/types";
+
+export const GEOMETRY_SPATIAL_REASONING_STRAND_KEY =
+  "geometry-and-spatial-reasoning";
+export const GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY =
+  "geometry-and-spatial-reasoning-foundations";
+export const GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_TITLE =
+  "Geometry and spatial reasoning";
+export const GEOMETRY_SPATIAL_REASONING_ITEM_BANK_KEY =
+  "geometry-spatial-reasoning-step-assessment-items-v1";
+export const GEOMETRY_SPATIAL_REASONING_SOURCE_ROUTE = "/assessments/number";
+
+type GeometryCase = {
+  title: string;
+  prompt: string;
+  practicePrompt: string;
+  options: string[];
+  answer: string;
+  visual: string;
+  cluster: string;
+  clusterTitle: string;
+  misconceptionTargets: string[];
+};
+
+type RawGeometryCase = [
+  string,
+  string,
+  string,
+  string[],
+  string,
+  string,
+  string,
+  string,
+  string[],
+];
+
+export type GeometrySpatialReasoningStepSpec = {
+  order: number;
+  stepNumber: number;
+  stageKey: CleanAssessmentStageKey;
+  stageTitle: string;
+  stepKey: string;
+  pathwayStepId: string;
+  title: string;
+  shortTitle: string;
+  description: string;
+  cases: GeometryCase[];
+};
+
+export type GeometrySpatialReasoningStepAssessment = {
+  key: string;
+  stepNumber: number;
+  stepKey: string;
+  pathwayStepId: string;
+  title: string;
+  shortTitle: string;
+  description: string;
+  subjectKey: "mathematics";
+  strandKey: typeof GEOMETRY_SPATIAL_REASONING_STRAND_KEY;
+  stageKey: CleanAssessmentStageKey;
+  parentBankKey: typeof GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY;
+  parentBankTitle: typeof GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_TITLE;
+  parentItemBankKey: typeof GEOMETRY_SPATIAL_REASONING_ITEM_BANK_KEY;
+  progressionBandKey: typeof GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY;
+  sourceRoute: typeof GEOMETRY_SPATIAL_REASONING_SOURCE_ROUTE;
+  depthOptions: typeof NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS;
+  items: NumberAssessmentBankItem[];
+};
+
+type StepAssessmentContext = {
+  stepKey?: string | null;
+  pathwayStepId?: string | null;
+  stepAssessmentKey?: string | null;
+};
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function visual(description: string) {
+  return { type: "context_card" as const, description };
+}
+
+function groups(caption: string, counts: number[], labels: string[] = counts.map(String)) {
+  return `early-number|caption=${caption}|groups=${counts.join(",")}|labels=${labels.join(",")}`;
+}
+
+function numbers(caption: string, values: Array<string | number>) {
+  return `early-number|caption=${caption}|numbers=${values.join(",")}`;
+}
+
+function makeCase([
+  title,
+  prompt,
+  practicePrompt,
+  options,
+  answer,
+  visual,
+  cluster,
+  clusterTitle,
+  misconceptionTargets,
+]: RawGeometryCase): GeometryCase {
+  return {
+    title,
+    prompt,
+    practicePrompt,
+    options,
+    answer,
+    visual,
+    cluster,
+    clusterTitle,
+    misconceptionTargets,
+  };
+}
+
+function itemId(spec: GeometrySpatialReasoningStepSpec, index: number) {
+  return `geometry-spatial-reasoning-step-${spec.order}-assess-${String(
+    index + 1,
+  ).padStart(3, "0")}`;
+}
+
+function makeItem(
+  spec: GeometrySpatialReasoningStepSpec,
+  item: GeometryCase,
+  index: number,
+): NumberAssessmentBankItem {
+  return {
+    id: itemId(spec, index),
+    progressionBandKey: GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY,
+    progressionStepKey: spec.stepKey,
+    subElementKey: item.cluster,
+    subElementTitle: item.clusterTitle,
+    subElementDescription: spec.description,
+    title: item.title,
+    prompt: item.prompt,
+    difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "geometry_spatial_reasoning_visual_card",
+    options: item.options,
+    expectedAnswer: item.answer,
+    acceptableAnswers: [item.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: item.answer,
+    misconceptionTargets: item.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: spec.stepKey,
+      ifCorrectGoToStepKey: spec.stepKey,
+      practiceRecommendation: `Practise ${spec.shortTitle.toLowerCase()} with shape cards, grids, maps, symmetry diagrams, angle cards, nets, and transformation models.`,
+      diagnosticNote: `Checks whether the learner can use ${spec.shortTitle.toLowerCase()} for this exact pathway step.`,
+    },
+    visualSupport: visual(item.visual),
+  };
+}
+
+const GEOMETRY_STEP_TITLES: Array<
+  [string, string, CleanAssessmentStageKey, string, number, string, string]
+> = [
+  ["Recognise familiar shapes in everyday life", "recognise-familiar-shapes-in-everyday-life", "foundation-kindergarten", "Foundation / Kindergarten", 1, "Familiar shapes", "Recognise familiar shapes in objects, pictures, and constructions."],
+  ["Use position and direction language in practical movement", "use-position-and-direction-language-in-practical-movement", "foundation-kindergarten", "Foundation / Kindergarten", 2, "Position and direction language", "Use simple position and direction words in practical movement and arrangement tasks."],
+  ["Describe shape features and simple symmetry", "describe-shape-features-and-simple-symmetry", "lower-primary", "Lower Primary", 1, "Shape features and symmetry", "Describe sides, corners, curved edges, and simple symmetry in familiar shapes."],
+  ["Follow and create simple routes or arrangements", "follow-and-create-simple-routes-or-arrangements", "lower-primary", "Lower Primary", 2, "Routes and arrangements", "Follow, create, and explain simple routes and spatial arrangements."],
+  ["Classify shapes and reason about properties", "classify-shapes-and-reason-about-properties", "middle-primary", "Middle Primary", 1, "Shape classification and properties", "Classify shapes by properties and explain why they belong in a group."],
+  ["Use grids, coordinates, and simple transformations", "use-grids-coordinates-and-simple-transformations", "middle-primary", "Middle Primary", 2, "Grids, coordinates, and transformations", "Use grids, coordinates, slides, flips, and turns to describe position and movement."],
+  ["Use angles, turns, and orientation meaningfully", "use-angles-turns-and-orientation-meaningfully", "upper-primary", "Upper Primary", 1, "Angles, turns, and orientation", "Recognise, compare, and use angle and turn language in practical spatial tasks."],
+  ["Visualise and build shapes in two and three dimensions", "visualise-and-build-shapes-in-two-and-three-dimensions", "upper-primary", "Upper Primary", 2, "2D and 3D visualisation", "Connect drawings, nets, models, and real objects through spatial visualisation."],
+  ["Reason about geometric relationships and transformations", "reason-about-geometric-relationships-and-transformations", "lower-secondary", "Lower Secondary", 1, "Geometric relationships and transformations", "Use properties, angle relationships, and transformations to justify geometric conclusions."],
+  ["Apply spatial reasoning in design, mapping, and layout", "apply-spatial-reasoning-in-design-mapping-and-layout", "lower-secondary", "Lower Secondary", 2, "Design, mapping, and layout", "Use geometry to plan, interpret, and critique arrangements of space."],
+  ["Use geometry to model and interpret space", "use-geometry-to-model-and-interpret-space", "years-9-10-consolidation", "Years 9-10 / consolidation", 1, "Geometric modelling", "Use geometric relationships in plans, diagrams, transformations, and coordinate-based models."],
+  ["Refine spatial judgement and explanation", "refine-spatial-judgement-and-explanation", "years-9-10-consolidation", "Years 9-10 / consolidation", 2, "Spatial judgement and explanation", "Check spatial claims and communicate geometric reasoning clearly."],
+];
+
+const RAW_GEOMETRY_CASES: RawGeometryCase[][] = [
+  [
+    ["Circle match", "Which shape is a circle?", "Look for the round shape with no corners.", ["circle", "square", "triangle"], "circle", numbers("Shape cards.", ["circle", "square", "triangle"]), "shape-recognition", "Shape recognition", ["corner-count-confusion"]],
+    ["Triangle match", "Which shape has 3 straight sides?", "Count the sides.", ["triangle", "rectangle", "circle"], "triangle", groups("Triangle side count.", [3], ["sides"]), "shape-features", "Shape features", ["counts-corners-as-sides"]],
+    ["Everyday circle", "Which object is shaped most like a circle?", "Match the object to the shape.", ["plate", "book", "door"], "plate", numbers("Everyday shape match.", ["plate", "book", "door"]), "everyday-shapes", "Everyday shapes", ["object-name-not-shape"]],
+    ["Square feature", "Which shape has 4 equal sides?", "Look for equal side lengths.", ["square", "triangle", "circle"], "square", groups("Square side model.", [4], ["equal sides"]), "shape-features", "Shape features", ["four-sides-any-shape"]],
+    ["Rectangle object", "Which object is usually rectangle-shaped?", "Match the everyday object.", ["window", "ball", "coin"], "window", numbers("Object cards.", ["window", "ball", "coin"]), "everyday-shapes", "Everyday shapes", ["orientation-confusion"]],
+    ["Same shape", "A small triangle and a large triangle are shown. What is the same?", "Size can change but shape can stay the same.", ["shape", "size", "colour"], "shape", numbers("Two triangles, different sizes.", ["small triangle", "large triangle"]), "shape-constancy", "Shape constancy", ["size-changes-shape"]],
+    ["Shape in picture", "Which shape could be used for a roof in a simple house drawing?", "Think of a common house picture.", ["triangle", "circle", "oval"], "triangle", numbers("House shape card.", ["roof", "triangle"]), "everyday-shapes", "Everyday shapes", ["context-feature-gap"]],
+    ["Corner count", "Which shape has no corners?", "Look for a curved boundary.", ["circle", "square", "triangle"], "circle", numbers("Corners card.", ["circle: 0", "square: 4"]), "shape-features", "Shape features", ["corner-vocabulary-gap"]],
+    ["Different orientation", "A square is turned like a diamond. What shape is it?", "Turning does not change the shape.", ["square", "triangle", "circle"], "square", numbers("Turned square.", ["square turned"]), "orientation", "Orientation", ["orientation-changes-shape"]],
+    ["Sort shapes", "Which shape belongs with rectangles?", "Use the 4 straight sides rule.", ["square", "circle", "oval"], "square", numbers("Rectangle family card.", ["rectangle", "square"]), "classification", "Shape classification", ["category-exclusion-gap"]],
+    ["Face shape", "A cereal box has rectangle faces. Which shape matches one face?", "Look at the flat face.", ["rectangle", "sphere", "cone"], "rectangle", numbers("Box face.", ["rectangle face"]), "2d-3d-link", "2D and 3D links", ["solid-face-confusion"]],
+    ["Best description", "Which description fits a triangle?", "Choose the shape feature.", ["3 sides and 3 corners", "round with no sides", "4 equal sides"], "3 sides and 3 corners", groups("Triangle features.", [3, 3], ["sides", "corners"]), "shape-language", "Shape language", ["feature-language-gap"]],
+  ],
+  [
+    ["Above", "Which object is above the table?", "Use the position word above.", ["lamp", "rug", "chair leg"], "lamp", numbers("Position card.", ["lamp above table", "rug below"]), "position-language", "Position language", ["above-below-confusion"]],
+    ["Under", "Where is the ball if it is under the chair?", "Choose the matching position.", ["below the chair", "on top of the chair", "beside the chair"], "below the chair", numbers("Under chair card.", ["chair", "ball below"]), "position-language", "Position language", ["under-beside-confusion"]],
+    ["Left turn", "Which instruction means turn left?", "Face forward, then choose the left turn.", ["turn to your left", "turn to your right", "stand still"], "turn to your left", numbers("Turn card.", ["left", "right"]), "direction-language", "Direction language", ["left-right-confusion"]],
+    ["Beside", "Which word means next to?", "Choose the position word.", ["beside", "above", "inside"], "beside", numbers("Position words.", ["beside", "above", "inside"]), "position-language", "Position language", ["position-vocabulary-gap"]],
+    ["In front", "A toy car is in front of a box. Where is it?", "Think about front and behind.", ["before the box", "inside the box", "under the box"], "before the box", numbers("Front and behind.", ["car", "box"]), "position-language", "Position language", ["front-behind-confusion"]],
+    ["Path command", "Which path follows: forward, forward, right?", "Choose the route with two forward moves and a right turn.", ["two steps forward then right", "one step forward then left", "right then two steps back"], "two steps forward then right", numbers("Route card.", ["F", "F", "R"]), "directions", "Directions", ["order-of-directions-error"]],
+    ["Inside", "Which item is inside the basket?", "Use the word inside.", ["apple in basket", "apple beside basket", "apple above basket"], "apple in basket", numbers("Basket position.", ["inside", "beside", "above"]), "position-language", "Position language", ["inside-outside-confusion"]],
+    ["Near and far", "Which object is nearer to the door?", "Compare distance from the door.", ["mat", "tree", "cloud"], "mat", numbers("Near/far card.", ["door", "mat near", "tree far"]), "distance-language", "Distance language", ["near-far-gap"]],
+    ["Arrange order", "Which instruction places the cup between the plate and spoon?", "Between means in the middle.", ["plate, cup, spoon", "cup, plate, spoon", "plate, spoon, cup"], "plate, cup, spoon", numbers("Arrangement card.", ["plate", "cup", "spoon"]), "arrangement", "Arrangement", ["between-language-gap"]],
+    ["Clockwise turn", "Which turn follows a clock hand?", "Think of the direction clock hands move.", ["clockwise", "anticlockwise", "straight ahead"], "clockwise", numbers("Turn direction.", ["clockwise arrow"]), "turns", "Turns", ["clockwise-vocabulary-gap"]],
+    ["Map position", "On a simple map, the park is right of the school. Which statement matches?", "Use left and right from the map view.", ["park is to the right of school", "park is below school", "park is inside school"], "park is to the right of school", numbers("Map card.", ["school", "park right"]), "maps", "Map position", ["map-orientation-confusion"]],
+    ["Follow instruction", "Start at the star. Move up one and right one. Where do you land?", "Follow each movement in order.", ["top-right square", "bottom-left square", "same square"], "top-right square", numbers("Grid moves.", ["start", "up 1", "right 1"]), "directions", "Directions", ["movement-order-error"]],
+  ],
+  [
+    ["Side count", "How many sides does a rectangle have?", "Count the straight sides.", ["4", "3", "0"], "4", groups("Rectangle sides.", [4], ["sides"]), "shape-features", "Shape features", ["side-corner-confusion"]],
+    ["Corner count", "How many corners does a triangle have?", "Count the vertices.", ["3", "4", "0"], "3", groups("Triangle corners.", [3], ["corners"]), "shape-features", "Shape features", ["corner-vocabulary-gap"]],
+    ["Curved edge", "Which shape has a curved edge?", "Look for a curve.", ["circle", "square", "rectangle"], "circle", numbers("Curved edge card.", ["circle", "square"]), "curves", "Curves", ["straight-curved-confusion"]],
+    ["Line of symmetry", "Which line is a line of symmetry for a square?", "It must make two matching halves.", ["vertical line through the centre", "line near one edge", "line outside the square"], "vertical line through the centre", numbers("Symmetry square.", ["centre line"]), "symmetry", "Symmetry", ["line-anywhere-error"]],
+    ["Symmetry picture", "Which picture has mirror symmetry?", "Look for two matching sides.", ["butterfly", "random scribble", "one shoe only"], "butterfly", numbers("Symmetry card.", ["butterfly mirror sides"]), "symmetry", "Symmetry", ["appearance-not-matching-halves"]],
+    ["Compare shapes", "Which is true about a square and a rectangle?", "Compare properties.", ["both have 4 sides", "both have 3 sides", "both are round"], "both have 4 sides", numbers("Square and rectangle.", ["4 sides", "4 sides"]), "properties", "Shape properties", ["family-property-gap"]],
+    ["Fold line", "A paper heart is folded so both sides match. What is the fold line?", "Name the symmetry line.", ["line of symmetry", "ruler line", "number line"], "line of symmetry", numbers("Folded heart.", ["matching halves"]), "symmetry", "Symmetry", ["symmetry-vocabulary-gap"]],
+    ["Not symmetrical", "Which shape is least likely to have a line of symmetry as drawn?", "Look for matching halves.", ["uneven blob", "square", "circle"], "uneven blob", numbers("Symmetry examples.", ["blob", "square", "circle"]), "symmetry", "Symmetry", ["assumes-all-shapes-symmetric"]],
+    ["Polygon feature", "Which description fits a polygon?", "Polygons have straight sides.", ["closed shape with straight sides", "open curved line", "solid object"], "closed shape with straight sides", numbers("Polygon card.", ["closed", "straight sides"]), "properties", "Shape properties", ["polygon-definition-gap"]],
+    ["Sort by corners", "Which group has shapes with 4 corners?", "Use corner count.", ["square and rectangle", "circle and oval", "triangle and circle"], "square and rectangle", numbers("Four-corner group.", ["square", "rectangle"]), "classification", "Shape classification", ["sorts-by-name-only"]],
+    ["Horizontal symmetry", "Which shape can have a horizontal line of symmetry?", "Imagine a line across the middle.", ["rectangle", "scalene triangle", "uneven arrow"], "rectangle", numbers("Horizontal symmetry.", ["rectangle centre line"]), "symmetry", "Symmetry", ["orientation-of-symmetry-gap"]],
+    ["Feature reason", "Why is a circle different from a square?", "Use shape features.", ["circle has no straight sides", "circle has more corners", "square is always bigger"], "circle has no straight sides", numbers("Circle vs square.", ["curve", "straight sides"]), "reasoning", "Shape reasoning", ["size-not-property"]],
+  ],
+  [
+    ["Grid route", "Which route follows: up 2, right 1?", "Follow the moves in order.", ["up two squares then right one", "right two then up one", "down two then left one"], "up two squares then right one", numbers("Route moves.", ["U", "U", "R"]), "routes", "Routes", ["movement-order-error"]],
+    ["Treasure map", "Start at A. Move right 3. Where is the treasure?", "Count three squares to the right.", ["three squares right of A", "three squares left of A", "above A"], "three squares right of A", numbers("Grid treasure.", ["A", "R3"]), "maps", "Maps", ["left-right-confusion"]],
+    ["Arrangement", "Put the cube below the sphere. Which arrangement matches?", "Use below.", ["sphere above cube", "cube above sphere", "cube beside sphere"], "sphere above cube", numbers("Object arrangement.", ["sphere", "cube below"]), "arrangements", "Arrangements", ["relative-position-confusion"]],
+    ["Create route", "Which instruction gets from start to the house shown two squares up?", "Choose the matching route.", ["up 2", "right 2", "down 2"], "up 2", numbers("Simple map.", ["start", "house above"]), "routes", "Routes", ["direction-word-error"]],
+    ["Obstacle route", "Which route avoids the pond?", "Choose the path around the obstacle.", ["right, right, up", "up into pond", "left into wall"], "right, right, up", numbers("Obstacle map.", ["start", "pond", "safe path"]), "route-planning", "Route planning", ["ignores-obstacle"]],
+    ["Position plan", "Which plan puts the bed next to the wall?", "Look for the object beside the wall.", ["bed beside wall", "bed in middle only", "bed outside room"], "bed beside wall", numbers("Room plan.", ["wall", "bed beside"]), "layout", "Layout", ["layout-language-gap"]],
+    ["Reverse route", "You went right 2. How do you return to start?", "Use the opposite direction.", ["left 2", "right 2", "up 2"], "left 2", numbers("Reverse route.", ["R2", "L2"]), "route-reversal", "Route reversal", ["opposite-direction-error"]],
+    ["Describe path", "Which description matches a path that turns left after the tree?", "Check the turning point.", ["go to tree, then left", "turn left before tree", "go around twice"], "go to tree, then left", numbers("Path card.", ["tree", "left after"]), "directions", "Directions", ["turning-point-error"]],
+    ["Build arrangement", "Which arrangement has three blocks in a row?", "Look for a straight row.", ["block-block-block", "blocks stacked", "blocks scattered"], "block-block-block", groups("Three in a row.", [1, 1, 1], ["block", "block", "block"]), "arrangements", "Arrangements", ["row-vs-stack"]],
+    ["Map symbols", "On a map, a star marks the library. What does the star show?", "Use the map key idea.", ["library location", "distance only", "shape name only"], "library location", numbers("Map symbol.", ["star = library"]), "maps", "Maps", ["symbol-purpose-gap"]],
+    ["Route length", "Which route is shorter?", "Compare the number of grid steps.", ["4 steps", "6 steps", "8 steps"], "4 steps", numbers("Grid route lengths.", [4, 6, 8]), "route-planning", "Route planning", ["path-length-gap"]],
+    ["Explain arrangement", "Why is the triangle between the square and circle?", "Use between language.", ["it is in the middle", "it is above both", "it is outside"], "it is in the middle", numbers("Arrangement.", ["square", "triangle", "circle"]), "arrangements", "Arrangements", ["between-explanation-gap"]],
+  ],
+  [
+    ["Quadrilateral", "Which shape is a quadrilateral?", "Look for 4 straight sides.", ["rectangle", "triangle", "circle"], "rectangle", groups("Four sides.", [4], ["sides"]), "classification", "Classification", ["shape-name-only"]],
+    ["Right angle", "Which shape usually has right angles?", "Look for square corners.", ["rectangle", "circle", "oval"], "rectangle", numbers("Right angle card.", ["rectangle corners"]), "angles", "Angles", ["right-angle-vocabulary-gap"]],
+    ["Parallel sides", "Which shape has two pairs of parallel opposite sides?", "Use side relationships.", ["parallelogram", "triangle", "circle"], "parallelogram", numbers("Parallel sides card.", ["opposite sides parallel"]), "properties", "Properties", ["parallel-vocabulary-gap"]],
+    ["Triangle sort", "Which is true of every triangle?", "Use a property that always holds.", ["3 sides", "4 sides", "no corners"], "3 sides", groups("Triangle property.", [3], ["sides"]), "properties", "Properties", ["example-specific-property"]],
+    ["Square and rhombus", "Which property do a square and rhombus share?", "Compare side lengths.", ["4 equal sides", "no angles", "curved edges"], "4 equal sides", groups("Equal side property.", [4, 4], ["square", "rhombus"]), "properties", "Properties", ["family-relationship-gap"]],
+    ["Classify by symmetry", "Which shape is likely to have many lines of symmetry?", "Compare symmetry properties.", ["regular hexagon", "scalene triangle", "irregular quadrilateral"], "regular hexagon", numbers("Symmetry comparison.", ["regular hexagon", "scalene triangle"]), "symmetry", "Symmetry", ["regular-vs-irregular-gap"]],
+    ["Polygon group", "Which item does not belong in a polygon group?", "Polygons are closed with straight sides.", ["circle", "pentagon", "triangle"], "circle", numbers("Polygon group.", ["triangle", "pentagon", "circle"]), "classification", "Classification", ["closed-straight-gap"]],
+    ["3D object", "Which object has 6 rectangular faces?", "Use solid properties.", ["cuboid", "sphere", "cone"], "cuboid", numbers("Solid property card.", ["6 rectangular faces"]), "3d-properties", "3D properties", ["2d-3d-confusion"]],
+    ["Net clue", "A net has 6 equal squares. Which solid can it make?", "Think of cube faces.", ["cube", "cone", "cylinder"], "cube", groups("Six square faces.", [1, 1, 1, 1, 1, 1], ["sq", "sq", "sq", "sq", "sq", "sq"]), "nets", "Nets", ["net-solid-gap"]],
+    ["Property reason", "Why is a rectangle not usually called a regular polygon?", "Regular means all sides and angles equal.", ["not all sides are equal", "it has no straight sides", "it is open"], "not all sides are equal", numbers("Regular polygon idea.", ["equal sides", "equal angles"]), "reasoning", "Geometric reasoning", ["regular-definition-gap"]],
+    ["Shape family", "Which statement is true?", "Use inclusive shape properties.", ["a square is a rectangle", "a circle is a rectangle", "a triangle is a square"], "a square is a rectangle", numbers("Shape families.", ["square", "rectangle"]), "classification", "Classification", ["exclusive-category-error"]],
+    ["Angle property", "Which polygon has interior angles that are all right angles?", "Look for four square corners.", ["rectangle", "equilateral triangle", "regular pentagon"], "rectangle", numbers("Right-angle polygon.", ["rectangle"]), "angles", "Angles", ["angle-property-gap"]],
+  ],
+  [
+    ["Coordinate point", "Which point is at (3, 2)?", "Move 3 across, then 2 up.", ["3 across and 2 up", "2 across and 3 up", "3 up only"], "3 across and 2 up", numbers("Coordinate grid.", ["x=3", "y=2"]), "coordinates", "Coordinates", ["coordinate-order-error"]],
+    ["Grid location", "On a map, B is in column 4 row 1. Which location matches?", "Use column then row.", ["4,1", "1,4", "5,1"], "4,1", numbers("Grid reference.", ["column 4", "row 1"]), "coordinates", "Coordinates", ["row-column-confusion"]],
+    ["Translation", "Which transformation is a slide?", "A slide moves without turning or flipping.", ["translation", "reflection", "rotation"], "translation", numbers("Transformation cards.", ["slide", "flip", "turn"]), "transformations", "Transformations", ["transformation-vocabulary-gap"]],
+    ["Reflection", "Which transformation makes a mirror image?", "Think of a flip over a line.", ["reflection", "translation", "enlargement"], "reflection", numbers("Mirror line.", ["shape", "mirror image"]), "transformations", "Transformations", ["reflection-rotation-confusion"]],
+    ["Rotation", "A shape turns around a point. Which transformation is used?", "A turn is a rotation.", ["rotation", "translation", "reflection"], "rotation", numbers("Turn around point.", ["turn", "centre"]), "transformations", "Transformations", ["rotation-vocabulary-gap"]],
+    ["Translate point", "Point A is at (2, 3). Move it 4 right. Where is it?", "Add 4 to x only.", ["(6, 3)", "(2, 7)", "(6, 7)"], "(6, 3)", numbers("Point translation.", ["(2,3)", "right 4"]), "coordinates", "Coordinates", ["changes-wrong-coordinate"]],
+    ["Reflect over vertical", "Reflect (2, 1) over a vertical mirror line to the right. What changes?", "A reflection flips side to side.", ["left-right position", "the shape size", "the number of sides"], "left-right position", numbers("Vertical reflection.", ["mirror line", "flip"]), "reflection", "Reflection", ["reflection-changes-size"]],
+    ["Same after slide", "What stays the same after a translation?", "Slides preserve size and shape.", ["size and shape", "all coordinates", "orientation always reverses"], "size and shape", numbers("Translation invariant.", ["same shape", "new place"]), "properties", "Transformation properties", ["translation-changes-shape"]],
+    ["Turn size", "Which turn is a quarter turn?", "A quarter turn is 90 degrees.", ["90 degrees", "180 degrees", "360 degrees"], "90 degrees", numbers("Turn measures.", ["quarter", "half", "full"]), "turns", "Turns", ["turn-size-confusion"]],
+    ["Map move", "A shape moves from (1,1) to (1,4). Which move happened?", "Only y changed.", ["up 3", "right 3", "down 3"], "up 3", numbers("Coordinate move.", ["(1,1)", "(1,4)"]), "coordinates", "Coordinates", ["axis-direction-error"]],
+    ["Transformation match", "Which picture shows a flip?", "Look for a mirror image.", ["shape mirrored across a line", "shape slid right", "shape made bigger"], "shape mirrored across a line", numbers("Flip card.", ["mirror", "shape"]), "transformations", "Transformations", ["visual-transformation-gap"]],
+    ["Coordinate reason", "Why is (5,2) different from (2,5)?", "Coordinate order matters.", ["the x and y values are swapped", "they are always the same point", "coordinates do not use order"], "the x and y values are swapped", numbers("Coordinate order.", ["(5,2)", "(2,5)"]), "coordinates", "Coordinates", ["coordinate-order-misconception"]],
+  ],
+  [
+    ["Right angle", "Which angle is a right angle?", "Look for a square corner.", ["90 degrees", "45 degrees", "180 degrees"], "90 degrees", numbers("Angle cards.", ["45", "90", "180"]), "angles", "Angles", ["angle-size-confusion"]],
+    ["Larger angle", "Which angle is larger?", "Compare the amount of turn.", ["120 degrees", "60 degrees", "30 degrees"], "120 degrees", numbers("Angle comparison.", [30, 60, 120]), "angle-comparison", "Compare angles", ["longer-arm-bias"]],
+    ["Half turn", "How many degrees is a half turn?", "Half of a full 360 degree turn.", ["180 degrees", "90 degrees", "45 degrees"], "180 degrees", numbers("Turns.", ["full 360", "half 180"]), "turns", "Turns", ["turn-fraction-gap"]],
+    ["Full turn", "A full turn is?", "Use turn measure knowledge.", ["360 degrees", "180 degrees", "100 degrees"], "360 degrees", numbers("Full turn.", ["360"]), "turns", "Turns", ["full-turn-confusion"]],
+    ["Acute angle", "Which angle is acute?", "Acute angles are less than 90 degrees.", ["45 degrees", "90 degrees", "135 degrees"], "45 degrees", numbers("Angle types.", [45, 90, 135]), "angle-types", "Angle types", ["acute-right-confusion"]],
+    ["Obtuse angle", "Which angle is obtuse?", "Obtuse angles are greater than 90 and less than 180 degrees.", ["120 degrees", "60 degrees", "180 degrees"], "120 degrees", numbers("Angle types.", [60, 120, 180]), "angle-types", "Angle types", ["obtuse-straight-confusion"]],
+    ["Route turn", "A robot faces north and turns right. Which way does it face?", "Use a compass turn.", ["east", "west", "south"], "east", numbers("Compass turn.", ["N", "right", "E"]), "orientation", "Orientation", ["left-right-turn-confusion"]],
+    ["Angle in shape", "Which shape has four right angles?", "Use angle properties.", ["rectangle", "equilateral triangle", "circle"], "rectangle", numbers("Shape angle card.", ["rectangle corners"]), "angles", "Angles", ["shape-angle-property-gap"]],
+    ["Clock turn", "From 12 to 3 on a clock is what turn?", "Think of a quarter of the clock.", ["quarter turn clockwise", "half turn", "full turn"], "quarter turn clockwise", numbers("Clock turn.", ["12", "3"]), "turns", "Turns", ["clock-turn-gap"]],
+    ["Orientation", "Which instruction changes direction but not location?", "A turn changes facing direction.", ["turn 90 degrees", "move forward 3", "slide right"], "turn 90 degrees", numbers("Orientation card.", ["turn in place"]), "orientation", "Orientation", ["movement-vs-turn"]],
+    ["Angle estimate", "Which angle is closest to a straight angle?", "A straight angle is 180 degrees.", ["175 degrees", "95 degrees", "45 degrees"], "175 degrees", numbers("Angle estimates.", [45, 95, 175]), "angle-estimation", "Angle estimation", ["benchmark-angle-gap"]],
+    ["Meaningful angle", "Which angle would suit a square corner in a design?", "Square corners are right angles.", ["90 degrees", "70 degrees", "140 degrees"], "90 degrees", numbers("Design corner.", ["square corner", "90"]), "application", "Angle application", ["context-angle-gap"]],
+  ],
+  [
+    ["Cube net", "Which net can fold into a cube?", "Look for 6 square faces connected.", ["six connected squares", "one circle and one rectangle", "four triangles only"], "six connected squares", groups("Cube net faces.", [1, 1, 1, 1, 1, 1], ["sq", "sq", "sq", "sq", "sq", "sq"]), "nets", "Nets", ["net-face-count-error"]],
+    ["Cylinder faces", "Which faces does a cylinder have?", "Think of a can.", ["2 circles and 1 curved face", "6 squares", "4 triangles"], "2 circles and 1 curved face", numbers("Cylinder model.", ["circle", "curved face", "circle"]), "3d-objects", "3D objects", ["solid-face-confusion"]],
+    ["Top view", "What is the top view of a cube?", "Look down at one square face.", ["square", "circle", "triangle"], "square", numbers("Cube top view.", ["square face"]), "views", "Views", ["view-solid-confusion"]],
+    ["Prism feature", "Which object is a rectangular prism?", "Look for a box shape.", ["shoebox", "ball", "cone"], "shoebox", numbers("3D object cards.", ["shoebox", "ball", "cone"]), "3d-objects", "3D objects", ["object-property-gap"]],
+    ["Net match", "A net has 4 triangles and 1 square. Which solid can it make?", "Think of a square pyramid.", ["square pyramid", "cube", "cylinder"], "square pyramid", groups("Pyramid net faces.", [1, 4], ["square base", "triangles"]), "nets", "Nets", ["pyramid-net-gap"]],
+    ["Side view", "A cylinder standing upright has which side view?", "Look from the side.", ["rectangle", "circle only", "triangle"], "rectangle", numbers("Cylinder side view.", ["rectangle side view"]), "views", "Views", ["viewpoint-confusion"]],
+    ["Faces count", "How many faces does a cube have?", "Count the square faces.", ["6", "8", "12"], "6", groups("Cube faces.", [6], ["faces"]), "3d-properties", "3D properties", ["edges-vs-faces"]],
+    ["Edge count", "Which solid has curved surface and no edges like a box?", "Think of a ball.", ["sphere", "cube", "pyramid"], "sphere", numbers("Solid cards.", ["sphere", "cube", "pyramid"]), "3d-objects", "3D objects", ["curved-vs-flat-gap"]],
+    ["Build from views", "A shape has square top, front, and side views. Which solid fits?", "A cube has square views.", ["cube", "cone", "cylinder"], "cube", numbers("Views card.", ["top square", "front square", "side square"]), "visualisation", "Visualisation", ["single-view-only"]],
+    ["Net fold", "What must be true for a net to fold into a closed solid?", "Faces must connect to close without overlap.", ["faces connect without overlap", "faces are all different colours", "the net has no faces"], "faces connect without overlap", numbers("Net rule.", ["connect", "fold", "close"]), "nets", "Nets", ["net-purpose-gap"]],
+    ["3D from 2D", "Which 2D shape is a face of a cube?", "A cube has square faces.", ["square", "circle", "pentagon"], "square", numbers("Cube face.", ["square"]), "2d-3d-link", "2D and 3D links", ["face-vs-solid"]],
+    ["Spatial reason", "Why can 6 loose squares fail to make a cube net?", "They must be arranged so they fold correctly.", ["arrangement matters", "squares cannot make cubes", "cubes need circles"], "arrangement matters", numbers("Net arrangement.", ["6 squares", "fold path"]), "visualisation", "Visualisation", ["face-count-only"]],
+  ],
+  [
+    ["Corresponding angles", "Parallel lines are cut by a transversal. Which angle relationship can help?", "Use angle relationships.", ["corresponding angles are equal", "all angles are 90 degrees", "all angles are different"], "corresponding angles are equal", numbers("Parallel line angles.", ["parallel", "transversal"]), "angle-relationships", "Angle relationships", ["parallel-angle-gap"]],
+    ["Triangle sum", "What is the angle sum of a triangle?", "Use the known triangle relationship.", ["180 degrees", "360 degrees", "90 degrees"], "180 degrees", numbers("Triangle angles.", ["sum 180"]), "angle-relationships", "Angle relationships", ["angle-sum-confusion"]],
+    ["Supplementary", "Angles on a straight line add to?", "Use straight angle knowledge.", ["180 degrees", "90 degrees", "360 degrees"], "180 degrees", numbers("Straight line angles.", ["straight line", "180"]), "angle-relationships", "Angle relationships", ["straight-line-gap"]],
+    ["Transformation invariant", "What stays the same under a rotation?", "Rotations preserve shape and size.", ["side lengths and angles", "all coordinates", "the page direction"], "side lengths and angles", numbers("Rotation invariant.", ["same shape", "same size"]), "transformations", "Transformations", ["rotation-changes-size"]],
+    ["Reflection claim", "A reflected shape is congruent to the original. What does congruent mean?", "Congruent means same shape and size.", ["same shape and size", "same position only", "larger copy"], "same shape and size", numbers("Congruence card.", ["same shape", "same size"]), "congruence", "Congruence", ["congruence-vocabulary-gap"]],
+    ["Find missing angle", "Two angles on a straight line are 65 degrees and x. What is x?", "Subtract from 180.", ["115 degrees", "65 degrees", "245 degrees"], "115 degrees", numbers("Straight line pair.", [65, "x", 180]), "angle-relationships", "Angle relationships", ["adds-instead-of-subtracts"]],
+    ["Shape proof", "A quadrilateral has two pairs of parallel opposite sides. Which classification fits?", "Use property reasoning.", ["parallelogram", "triangle", "circle"], "parallelogram", numbers("Property card.", ["opposite sides parallel"]), "properties", "Properties", ["property-classification-gap"]],
+    ["Translation effect", "A triangle is translated 5 right. What changes?", "Only position changes.", ["position", "shape size", "angle sizes"], "position", numbers("Translation card.", ["triangle", "right 5"]), "transformations", "Transformations", ["translation-property-gap"]],
+    ["Rotation centre", "Why does the centre of rotation matter?", "The shape turns around that point.", ["it sets the turning point", "it changes all side lengths", "it removes angles"], "it sets the turning point", numbers("Rotation centre.", ["centre", "turn"]), "transformations", "Transformations", ["rotation-centre-gap"]],
+    ["Tiling reason", "Which angle fact helps regular hexagons tile around a point?", "Angles around a point add to 360 degrees.", ["angles around a point total 360 degrees", "all shapes have 3 sides", "circles have corners"], "angles around a point total 360 degrees", numbers("Tiling point.", ["360 around point"]), "tiling", "Tiling", ["tiling-angle-gap"]],
+    ["Justify equality", "Why are vertical opposite angles equal?", "Use intersecting line relationships.", ["opposite angles at intersecting lines match", "all nearby angles match", "they are both drawn large"], "opposite angles at intersecting lines match", numbers("Intersecting lines.", ["vertical opposite angles"]), "angle-relationships", "Angle relationships", ["visual-size-only"]],
+    ["Transformation sequence", "A shape is reflected then translated. Which statement is true?", "Track each transformation.", ["it may change orientation then position", "it must change size", "it becomes a different polygon"], "it may change orientation then position", numbers("Transform sequence.", ["reflect", "translate"]), "transformations", "Transformations", ["sequence-effect-gap"]],
+  ],
+  [
+    ["Room layout", "Which measure helps decide if a sofa fits through a doorway?", "Use dimensions and orientation.", ["width and turning space", "colour only", "price only"], "width and turning space", numbers("Layout card.", ["door width", "sofa width"]), "layout", "Layout", ["irrelevant-feature-choice"]],
+    ["Map scale", "A map uses 1 cm for 5 km. What does 3 cm show?", "Use the scale.", ["15 km", "8 km", "3 km"], "15 km", groups("Three scale units.", [5, 5, 5], ["km", "km", "km"]), "mapping", "Mapping", ["scale-factor-error"]],
+    ["Shortest route", "Which route is shortest on a grid?", "Compare total steps.", ["6 steps", "8 steps", "10 steps"], "6 steps", numbers("Route lengths.", [6, 8, 10]), "mapping", "Mapping", ["path-length-gap"]],
+    ["Pattern design", "Which transformation makes a repeated border by sliding the same tile?", "A slide is a translation.", ["translation", "reflection only", "changing size"], "translation", numbers("Border pattern.", ["tile", "slide"]), "design", "Design", ["transformation-choice-gap"]],
+    ["Layout angle", "Which angle helps plan a square corner?", "Square corners are right angles.", ["90 degrees", "45 degrees", "120 degrees"], "90 degrees", numbers("Layout corner.", ["square corner"]), "layout", "Layout", ["angle-context-gap"]],
+    ["Map coordinate", "Which coordinate marks the library at x=4, y=6?", "Use x then y.", ["(4, 6)", "(6, 4)", "(10, 0)"], "(4, 6)", numbers("Map coordinate.", ["x=4", "y=6"]), "coordinates", "Coordinates", ["coordinate-order-error"]],
+    ["Design symmetry", "Which design choice creates mirror balance?", "Use a line of symmetry.", ["reflect the left side onto the right", "move one side randomly", "make one side larger"], "reflect the left side onto the right", numbers("Symmetric design.", ["left", "mirror", "right"]), "design", "Design", ["symmetry-design-gap"]],
+    ["Practical route", "A path must avoid a pond. Which plan is best?", "Use spatial constraints.", ["route around the pond", "straight through pond", "ignore the map"], "route around the pond", numbers("Map obstacle.", ["pond", "safe route"]), "mapping", "Mapping", ["ignores-constraint"]],
+    ["Scale drawing", "Why use scale in a room plan?", "A plan is smaller than the real room but keeps relationships.", ["to represent real distances on paper", "to remove all measurements", "to change the room"], "to represent real distances on paper", numbers("Scale plan.", ["real room", "paper plan"]), "scale", "Scale", ["scale-purpose-gap"]],
+    ["Layout critique", "A plan puts a door opening into a wall. What should be checked?", "Check the spatial conflict.", ["whether the door path is blocked", "whether the wall is colourful", "whether the map has north"], "whether the door path is blocked", numbers("Door swing plan.", ["door", "wall"]), "layout", "Layout", ["spatial-conflict-gap"]],
+    ["Transformation in design", "Which transformation keeps a logo the same size but turns it?", "Choose rotation.", ["rotation", "enlargement", "stretch"], "rotation", numbers("Logo transformation.", ["turn", "same size"]), "design", "Design", ["transformation-property-gap"]],
+    ["Reasonable map", "Which map claim is suspicious?", "Check scale and distance.", ["1 cm shows 5000 km on a school map", "1 cm shows 5 m on a garden plan", "1 cm shows 1 km on a town map"], "1 cm shows 5000 km on a school map", numbers("Scale reasonableness.", ["school map", "5000 km"]), "spatial-judgement", "Spatial judgement", ["scale-reasonableness-gap"]],
+  ],
+  [
+    ["Coordinate model", "Which model best represents seats in a theatre?", "Use rows and columns.", ["coordinate grid", "capacity jug", "number line only"], "coordinate grid", numbers("Theatre seating.", ["row", "seat"]), "modelling", "Geometric modelling", ["representation-choice-gap"]],
+    ["Transformation model", "A digital image is flipped over a vertical line. Which transformation models it?", "A mirror flip is a reflection.", ["reflection", "translation", "rotation"], "reflection", numbers("Image model.", ["vertical mirror line"]), "transformations", "Transformations", ["reflection-vocabulary-gap"]],
+    ["Scale model", "A model bridge is 1:50. What does this mean?", "Compare model and real lengths.", ["1 unit on model represents 50 real units", "50 model units represent 1 real unit", "the model has 50 bridges"], "1 unit on model represents 50 real units", numbers("Scale ratio.", ["1:50"]), "scale", "Scale", ["scale-direction-error"]],
+    ["Interpret plan", "A plan marks a wall as 4 m and door as 0.8 m. Which conclusion fits?", "Compare dimensions.", ["the door is shorter than the wall", "the door is longer", "they are the same"], "the door is shorter than the wall", numbers("Plan dimensions.", ["wall 4 m", "door 0.8 m"]), "plans", "Plans", ["decimal-comparison-gap"]],
+    ["Geometric constraint", "A ramp needs a gentle angle. Which angle is more suitable?", "Choose the smaller angle.", ["10 degrees", "80 degrees", "120 degrees"], "10 degrees", numbers("Ramp angles.", [10, 80, 120]), "modelling", "Geometric modelling", ["angle-context-gap"]],
+    ["Coordinate distance", "Points (2,3) and (2,8) are how far apart vertically?", "Only y changes.", ["5 units", "2 units", "11 units"], "5 units", numbers("Coordinate distance.", ["(2,3)", "(2,8)"]), "coordinates", "Coordinates", ["coordinate-difference-error"]],
+    ["Model fit", "Which diagram best models a rectangular garden?", "Match the shape to the context.", ["rectangle with labelled sides", "circle only", "random curve"], "rectangle with labelled sides", numbers("Garden model.", ["rectangle", "side labels"]), "modelling", "Geometric modelling", ["model-context-gap"]],
+    ["Interpret transformation", "A shape and its image are same size but opposite orientation across a line. What happened?", "Use transformation properties.", ["reflection", "translation", "enlargement"], "reflection", numbers("Shape image.", ["mirror line"]), "transformations", "Transformations", ["orientation-property-gap"]],
+    ["Graph-space link", "Which coordinate lies on the horizontal line y = 4?", "All points have y value 4.", ["(2, 4)", "(4, 2)", "(2, 5)"], "(2, 4)", numbers("Coordinate line.", ["y=4"]), "coordinates", "Coordinates", ["x-y-confusion"]],
+    ["Useful geometry", "Why use a geometric model before building?", "It helps plan shape, size, and position.", ["to test the spatial plan", "to avoid measurements", "to make all shapes circles"], "to test the spatial plan", numbers("Planning model.", ["draw", "check", "build"]), "modelling", "Geometric modelling", ["model-purpose-gap"]],
+    ["Angle model", "Which relationship helps model a straight path turning at an intersection?", "Use angles on a line.", ["angles on a straight line add to 180 degrees", "all angles are equal", "coordinates never change"], "angles on a straight line add to 180 degrees", numbers("Intersection model.", ["straight line", "180"]), "angle-relationships", "Angle relationships", ["angle-model-gap"]],
+    ["Model critique", "A plan has no scale but claims exact distances. What is missing?", "Scale links the plan to real distances.", ["scale information", "shape colour", "north only"], "scale information", numbers("Plan critique.", ["no scale", "distance claim"]), "spatial-judgement", "Spatial judgement", ["scale-critique-gap"]],
+  ],
+  [
+    ["Misleading diagram", "A triangle looks isosceles but no equal sides are marked. What should you do?", "Do not rely only on appearance.", ["check markings or measurements", "assume it is isosceles", "ignore the diagram"], "check markings or measurements", numbers("Diagram judgement.", ["looks equal", "no marks"]), "judgement", "Spatial judgement", ["visual-assumption-error"]],
+    ["Clear explanation", "Which explanation best proves a square has equal diagonals?", "Use a property-based statement.", ["rectangles have equal diagonals and a square is a rectangle", "it looks neat", "all lines are equal"], "rectangles have equal diagonals and a square is a rectangle", numbers("Proof-style card.", ["square", "rectangle property"]), "explanation", "Geometric explanation", ["appearance-as-proof"]],
+    ["Check coordinate claim", "A learner says (3,7) and (7,3) are the same point. What is wrong?", "Coordinate order matters.", ["the coordinates are in different order", "both use 10", "points have no order"], "the coordinates are in different order", numbers("Coordinate claim.", ["(3,7)", "(7,3)"]), "checking", "Check claims", ["coordinate-order-error"]],
+    ["Critique scale", "A map has a scale but distances were measured from a photo taken at an angle. What is the issue?", "Perspective can distort distances.", ["the image may be distorted", "scale never matters", "angles are not geometry"], "the image may be distorted", numbers("Map critique.", ["photo angle", "distortion"]), "judgement", "Spatial judgement", ["scale-with-distortion-gap"]],
+    ["Transformation explanation", "Which statement clearly describes a transformation?", "Name the action and effect.", ["translated 4 units right, same size", "moved somehow", "became different"], "translated 4 units right, same size", numbers("Transformation explanation.", ["right 4", "same size"]), "explanation", "Geometric explanation", ["vague-transformation-language"]],
+    ["Reasonable claim", "Which spatial claim needs checking?", "Look for a possible conflict.", ["a sofa fits because width is 80 cm and doorway is 75 cm", "a 4 cm map line is longer than 3 cm", "a square has 4 sides"], "a sofa fits because width is 80 cm and doorway is 75 cm", numbers("Fit claim.", ["sofa 80", "door 75"]), "checking", "Check claims", ["constraint-not-checked"]],
+    ["Diagram labels", "Why are labels important in a geometric diagram?", "They show what is known, not guessed.", ["they clarify given information", "they decorate the shape", "they make all lengths equal"], "they clarify given information", numbers("Diagram labels.", ["given", "unknown"]), "communication", "Communication", ["label-purpose-gap"]],
+    ["Counterexample", "Which shape disproves 'all quadrilaterals have four right angles'?", "Find one quadrilateral without right angles.", ["rhombus with slanted sides", "rectangle", "square"], "rhombus with slanted sides", numbers("Quadrilateral examples.", ["rhombus", "rectangle"]), "counterexample", "Counterexamples", ["tests-only-fitting-examples"]],
+    ["Angle check", "A triangle has angles 60, 60, and 80 degrees. What should you notice?", "Triangle angles should add to 180 degrees.", ["the angles add to 200 degrees, so something is wrong", "the triangle is correct", "triangles add to 200"], "the angles add to 200 degrees, so something is wrong", numbers("Triangle angle check.", [60, 60, 80]), "checking", "Check claims", ["angle-sum-not-checked"]],
+    ["Stronger reason", "Which reason is stronger for classifying a shape as a parallelogram?", "Use a defining property.", ["both pairs of opposite sides are parallel", "it is tilted", "it is blue"], "both pairs of opposite sides are parallel", numbers("Parallelogram property.", ["opposite sides parallel"]), "reasoning", "Geometric reasoning", ["appearance-not-property"]],
+    ["Revise explanation", "An explanation says 'these angles match because they look the same'. What would improve it?", "Use a geometric relationship.", ["name the angle relationship used", "make the diagram larger", "remove the labels"], "name the angle relationship used", numbers("Explanation critique.", ["looks same", "need reason"]), "communication", "Communication", ["visual-guess-as-proof"]],
+    ["Final judgement", "Which conclusion is clearest after checking a layout?", "State evidence and decision.", ["The table fits because 85 cm is less than the 90 cm gap", "The table fits because I like it", "The table fits because it is drawn"], "The table fits because 85 cm is less than the 90 cm gap", numbers("Layout conclusion.", ["table 85", "gap 90"]), "communication", "Communication", ["unsupported-spatial-conclusion"]],
+  ],
+];
+
+const GEOMETRY_CASES: GeometryCase[][] = RAW_GEOMETRY_CASES.map((cases) =>
+  cases.map(makeCase),
+);
+
+export const GEOMETRY_SPATIAL_REASONING_STEP_SPECS: GeometrySpatialReasoningStepSpec[] =
+  GEOMETRY_STEP_TITLES.map(
+    ([title, stepKey, stageKey, stageTitle, stepNumber, shortTitle, description], index) => ({
+      order: index + 1,
+      stepNumber,
+      stageKey,
+      stageTitle,
+      stepKey,
+      pathwayStepId: `mathematics::geometry-and-spatial-reasoning::${stageKey}::${stepKey}`,
+      title,
+      shortTitle,
+      description,
+      cases: GEOMETRY_CASES[index],
+    }),
+  );
+
+export const GEOMETRY_SPATIAL_REASONING_STEP_ASSESSMENTS:
+  GeometrySpatialReasoningStepAssessment[] =
+  GEOMETRY_SPATIAL_REASONING_STEP_SPECS.map((spec) => ({
+    key: `geometry-spatial-reasoning-step-${spec.order}-${spec.stepKey}-assessment-v1`,
+    stepNumber: spec.stepNumber,
+    stepKey: spec.stepKey,
+    pathwayStepId: spec.pathwayStepId,
+    title: spec.title,
+    shortTitle: spec.shortTitle,
+    description: spec.description,
+    subjectKey: "mathematics",
+    strandKey: GEOMETRY_SPATIAL_REASONING_STRAND_KEY,
+    stageKey: spec.stageKey,
+    parentBankKey: GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY,
+    parentBankTitle: GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_TITLE,
+    parentItemBankKey: GEOMETRY_SPATIAL_REASONING_ITEM_BANK_KEY,
+    progressionBandKey: GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY,
+    sourceRoute: GEOMETRY_SPATIAL_REASONING_SOURCE_ROUTE,
+    depthOptions: NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
+    items: spec.cases.map((item, index) => makeItem(spec, item, index)),
+  }));
+
+export function getGeometrySpatialReasoningStepAssessmentForPathwayStep(
+  context: StepAssessmentContext,
+) {
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+  const stepKey = safe(context.stepKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+
+  return (
+    GEOMETRY_SPATIAL_REASONING_STEP_ASSESSMENTS.find(
+      (assessment) =>
+        (stepAssessmentKey && assessment.key === stepAssessmentKey) ||
+        (pathwayStepId && assessment.pathwayStepId === pathwayStepId) ||
+        (stepKey && assessment.stepKey === stepKey),
+    ) || null
+  );
+}
+
+export function getGeometrySpatialReasoningStepAssessmentItemsForDepth(
+  assessmentKey: string,
+  depth: NumberStepAssessmentDepth,
+) {
+  const assessment =
+    GEOMETRY_SPATIAL_REASONING_STEP_ASSESSMENTS.find(
+      (candidate) => candidate.key === assessmentKey,
+    ) || null;
+
+  if (!assessment) return [];
+
+  return assessment.items.slice(0, getNumberStepAssessmentDepthItemCount(depth));
+}
