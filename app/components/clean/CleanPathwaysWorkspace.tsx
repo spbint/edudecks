@@ -314,7 +314,11 @@ function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
 }
 
 function getAttemptPrototypeMetadata(attempt: CleanAssessmentAttempt) {
-  const metadata = attempt.summarySnapshot.prototypeMetadata;
+  const summarySnapshot = attempt.summarySnapshot;
+  const metadata =
+    summarySnapshot && typeof summarySnapshot === "object"
+      ? summarySnapshot.prototypeMetadata
+      : null;
   return metadata && typeof metadata === "object" && !Array.isArray(metadata)
     ? (metadata as Record<string, unknown>)
     : null;

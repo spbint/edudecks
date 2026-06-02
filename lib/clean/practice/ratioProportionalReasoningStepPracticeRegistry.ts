@@ -54,38 +54,39 @@ function makePracticeTask(
   index: number,
 ): NumberPracticeTask {
   const item = spec.cases[index];
+  const fallbackTitle = `Practice ${index + 1}`;
 
   return {
     id: `ratio-proportional-reasoning-step-${spec.order}-practice-${String(
       index + 1,
     ).padStart(3, "0")}`,
-    title: item.title,
-    prompt: item.practicePrompt,
+    title: item?.title ?? fallbackTitle,
+    prompt: item?.practicePrompt ?? spec.description,
     taskType: "multiple_choice",
-    options: item.options,
-    expectedAnswer: item.answer,
-    acceptableAnswers: [item.answer],
+    options: item?.options ?? [],
+    expectedAnswer: item?.answer ?? "",
+    acceptableAnswers: item?.answer ? [item.answer] : [],
     supportPrompt:
       "Use the visual first. Compare the two linked quantities, then check whether the same relationship is kept.",
-    workedSolution: `The matching answer is ${item.answer}.`,
-    misconceptionTargets: item.misconceptionTargets,
+    workedSolution: item?.answer ? `The matching answer is ${item.answer}.` : "",
+    misconceptionTargets: item?.misconceptionTargets ?? [],
     relatedAssessmentItemIds: [relatedAssessmentItemId],
-    visualSupport: visual(item.visual),
+    visualSupport: visual(item?.visual ?? spec.description),
   };
 }
 
 export const RATIO_PROPORTIONAL_REASONING_STEP_PRACTICES:
   RatioProportionalReasoningStepPractice[] =
-  RATIO_PROPORTIONAL_REASONING_STEP_SPECS.map((spec) => {
+  RATIO_PROPORTIONAL_REASONING_STEP_SPECS.flatMap((spec) => {
     const assessment = RATIO_PROPORTIONAL_REASONING_STEP_ASSESSMENTS.find(
       (candidate) => candidate.pathwayStepId === spec.pathwayStepId,
     );
 
     if (!assessment) {
-      throw new Error(`Missing Ratio assessment for ${spec.pathwayStepId}.`);
+      return [];
     }
 
-    return {
+    return [{
       key: `ratio-proportional-reasoning-step-${spec.order}-${spec.stepKey}-practice-v1`,
       stepNumber: spec.stepNumber,
       stepKey: spec.stepKey,
@@ -103,7 +104,7 @@ export const RATIO_PROPORTIONAL_REASONING_STEP_PRACTICES:
       tasks: assessment.items.map((assessmentItem, index) =>
         makePracticeTask(spec, assessmentItem.id, index),
       ),
-    };
+    }];
   });
 
 export function getRatioProportionalReasoningStepPracticeForPathwayStep(

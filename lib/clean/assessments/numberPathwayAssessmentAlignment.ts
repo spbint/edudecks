@@ -369,10 +369,16 @@ function getAttemptTime(attempt: CleanAssessmentAttempt) {
 }
 
 function getPrototypeMetadata(attempt: CleanAssessmentAttempt) {
-  return attempt.summarySnapshot.prototypeMetadata &&
-    typeof attempt.summarySnapshot.prototypeMetadata === "object" &&
-    !Array.isArray(attempt.summarySnapshot.prototypeMetadata)
-    ? (attempt.summarySnapshot.prototypeMetadata as Record<string, unknown>)
+  const summarySnapshot = attempt.summarySnapshot;
+  const prototypeMetadata =
+    summarySnapshot && typeof summarySnapshot === "object"
+      ? summarySnapshot.prototypeMetadata
+      : null;
+
+  return prototypeMetadata &&
+    typeof prototypeMetadata === "object" &&
+    !Array.isArray(prototypeMetadata)
+    ? (prototypeMetadata as Record<string, unknown>)
     : null;
 }
 
@@ -417,11 +423,15 @@ function getLatestRelevantAttempt(
 }
 
 function getSubElementStatusesFromSnapshot(
-  snapshot: Record<string, unknown>,
+  snapshot: unknown,
   subElementKeys: string[],
 ) {
-  const mastery = Array.isArray(snapshot.subElementMastery)
-    ? snapshot.subElementMastery
+  const snapshotRecord =
+    snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)
+      ? (snapshot as Record<string, unknown>)
+      : null;
+  const mastery = Array.isArray(snapshotRecord?.subElementMastery)
+    ? snapshotRecord.subElementMastery
     : [];
 
   return mastery
