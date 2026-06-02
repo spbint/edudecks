@@ -187,6 +187,200 @@ type Step1VisualSpec = {
   cards: Step1VisualCard[];
 };
 
+type GeometryShapeKind =
+  | "circle"
+  | "square"
+  | "triangle"
+  | "rectangle"
+  | "oval"
+  | "pentagon"
+  | "hexagon"
+  | "box"
+  | "sphere";
+
+const GEOMETRY_STEP_1_SHAPE_VISUALS: Record<string, GeometryShapeKind[]> = {
+  "geometry-spatial-reasoning-step-1-practice-001": ["circle", "square", "triangle"],
+  "geometry-spatial-reasoning-step-1-practice-002": ["triangle", "rectangle", "circle"],
+  "geometry-spatial-reasoning-step-1-practice-003": ["circle", "rectangle", "sphere"],
+  "geometry-spatial-reasoning-step-1-practice-004": ["square", "triangle", "circle"],
+  "geometry-spatial-reasoning-step-1-practice-005": ["rectangle", "sphere", "circle"],
+  "geometry-spatial-reasoning-step-1-practice-006": ["triangle", "square"],
+  "geometry-spatial-reasoning-step-1-practice-007": ["triangle", "circle"],
+  "geometry-spatial-reasoning-step-1-practice-008": ["circle", "square"],
+  "geometry-spatial-reasoning-step-1-practice-009": ["square", "triangle", "circle"],
+  "geometry-spatial-reasoning-step-1-practice-010": ["square", "circle", "oval"],
+  "geometry-spatial-reasoning-step-1-practice-011": ["rectangle", "box"],
+  "geometry-spatial-reasoning-step-1-practice-012": ["triangle", "circle", "square"],
+};
+
+function normalizeShapeName(value: string): GeometryShapeKind | null {
+  const normalised = value.trim().toLowerCase();
+
+  if (normalised.includes("circle") || normalised === "plate" || normalised === "coin") {
+    return "circle";
+  }
+  if (normalised.includes("square")) return "square";
+  if (normalised.includes("triangle")) return "triangle";
+  if (normalised.includes("rectangle") || normalised === "window" || normalised === "book" || normalised === "door") {
+    return "rectangle";
+  }
+  if (normalised.includes("oval")) return "oval";
+  if (normalised.includes("pentagon")) return "pentagon";
+  if (normalised.includes("hexagon")) return "hexagon";
+  if (normalised.includes("box") || normalised.includes("cereal")) return "box";
+  if (normalised.includes("sphere") || normalised === "ball") return "sphere";
+
+  return null;
+}
+
+function renderGeometryShape(
+  shape: GeometryShapeKind,
+  label: string,
+  selected = false,
+) {
+  const commonStyle: React.CSSProperties = {
+    width: "min(92px, 38vw)",
+    height: 76,
+    margin: "0 auto",
+    display: "block",
+  };
+  const stroke = selected ? "#1d4ed8" : "#334155";
+  const fill = selected ? "#dbeafe" : "#f8fafc";
+
+  if (shape === "triangle") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="50,8 90,72 10,72" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "rectangle") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <rect x="10" y="18" width="80" height="48" rx="4" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "oval") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <ellipse cx="50" cy="41" rx="38" ry="24" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "pentagon") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="50,7 88,34 73,74 27,74 12,34" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "hexagon") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="30,10 70,10 92,41 70,72 30,72 8,41" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "box") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="18,28 50,12 82,28 50,44" fill="#e0f2fe" stroke={stroke} strokeWidth="5" />
+        <polygon points="18,28 50,44 50,76 18,58" fill={fill} stroke={stroke} strokeWidth="5" />
+        <polygon points="82,28 50,44 50,76 82,58" fill="#dbeafe" stroke={stroke} strokeWidth="5" />
+      </svg>
+    );
+  }
+
+  if (shape === "sphere") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <circle cx="50" cy="41" r="31" fill={fill} stroke={stroke} strokeWidth="6" />
+        <path d="M30 28 C42 18, 62 18, 72 32" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (shape === "square") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <rect x="22" y="13" width="56" height="56" rx="4" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+      <circle cx="50" cy="41" r="30" fill={fill} stroke={stroke} strokeWidth="6" />
+    </svg>
+  );
+}
+
+function renderGeometryShapeVisualCard(label: string, selected = false) {
+  const shape = normalizeShapeName(label);
+  if (!shape) return null;
+
+  return (
+    <div style={{ display: "grid", gap: 8, justifyItems: "center" }}>
+      {renderGeometryShape(shape, label, selected)}
+      <span style={{ color: selected ? "#1d4ed8" : "#475569", fontSize: 13, fontWeight: 800 }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function renderGeometryPracticeVisual(taskId: string) {
+  const shapes = GEOMETRY_STEP_1_SHAPE_VISUALS[taskId];
+  if (!shapes) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 16,
+        background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+        Shape cards
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {shapes.map((shape) => (
+          <div
+            key={`${taskId}-${shape}`}
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 14,
+              background: "#ffffff",
+              padding: 8,
+              minHeight: 108,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {renderGeometryShape(shape, shape)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const dot = {
   centre: { x: 50, y: 50 },
   left: { x: 34, y: 50 },
@@ -450,6 +644,9 @@ function parseEarlyNumberVisual(description: string | undefined) {
 }
 
 function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
+  const geometryVisual = renderGeometryPracticeVisual(task.id);
+  if (geometryVisual) return geometryVisual;
+
   const step1Visual = renderStep1PracticeVisual(task.id);
   if (step1Visual) return step1Visual;
 
@@ -870,29 +1067,37 @@ function TaskCard({
       ) : null}
       {task.taskType === "multiple_choice" && task.options?.length ? (
         <div style={{ display: "grid", gap: 6 }}>
-          {task.options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onChange(option)}
-              style={{
-                border:
-                  response.value === option
-                    ? "1px solid #2563eb"
-                    : "1px solid #e2e8f0",
-                borderRadius: 10,
-                background: response.value === option ? "#eff6ff" : "#ffffff",
-                padding: "8px 10px",
-                color: "#334155",
-                textAlign: "left",
-                lineHeight: 1.45,
-                cursor: "pointer",
-                font: "inherit",
-              }}
-            >
-              {option}
-            </button>
-          ))}
+          {task.options.map((option) => {
+            const isSelected = response.value === option;
+            const shapeVisual = task.id.startsWith(
+              "geometry-spatial-reasoning-step-1-",
+            )
+              ? renderGeometryShapeVisualCard(option, isSelected)
+              : null;
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onChange(option)}
+                style={{
+                  border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                  borderRadius: 10,
+                  background: isSelected ? "#eff6ff" : "#ffffff",
+                  padding: "8px 10px",
+                  color: "#334155",
+                  textAlign: "left",
+                  lineHeight: 1.45,
+                  cursor: "pointer",
+                  font: "inherit",
+                  display: "grid",
+                  justifyItems: shapeVisual ? "center" : "stretch",
+                }}
+              >
+                {shapeVisual ?? option}
+              </button>
+            );
+          })}
         </div>
       ) : null}
       {task.taskType === "short_answer" ||

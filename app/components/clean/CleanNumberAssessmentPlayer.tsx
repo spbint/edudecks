@@ -1356,6 +1356,17 @@ type Step1VisualSpec = {
   cards: Step1VisualCard[];
 };
 
+type GeometryShapeKind =
+  | "circle"
+  | "square"
+  | "triangle"
+  | "rectangle"
+  | "oval"
+  | "pentagon"
+  | "hexagon"
+  | "box"
+  | "sphere";
+
 const DOT_POSITIONS = {
   centre: { x: 50, y: 50 },
   left: { x: 34, y: 50 },
@@ -1490,6 +1501,211 @@ const STEP_1_VISUALS: Record<string, Step1VisualSpec> = {
     ],
   },
 };
+
+const GEOMETRY_STEP_1_SHAPE_VISUALS: Record<string, GeometryShapeKind[]> = {
+  "geometry-spatial-reasoning-step-1-assess-001": ["circle", "square", "triangle"],
+  "geometry-spatial-reasoning-step-1-assess-002": ["triangle", "rectangle", "circle"],
+  "geometry-spatial-reasoning-step-1-assess-003": ["circle", "rectangle", "sphere"],
+  "geometry-spatial-reasoning-step-1-assess-004": ["square", "triangle", "circle"],
+  "geometry-spatial-reasoning-step-1-assess-005": ["rectangle", "sphere", "circle"],
+  "geometry-spatial-reasoning-step-1-assess-006": ["triangle", "square"],
+  "geometry-spatial-reasoning-step-1-assess-007": ["triangle", "circle"],
+  "geometry-spatial-reasoning-step-1-assess-008": ["circle", "square"],
+  "geometry-spatial-reasoning-step-1-assess-009": ["square", "triangle", "circle"],
+  "geometry-spatial-reasoning-step-1-assess-010": ["square", "circle", "oval"],
+  "geometry-spatial-reasoning-step-1-assess-011": ["rectangle", "box"],
+  "geometry-spatial-reasoning-step-1-assess-012": ["triangle", "circle", "square"],
+};
+
+function normalizeShapeName(value: string): GeometryShapeKind | null {
+  const normalised = value.trim().toLowerCase();
+
+  if (normalised.includes("circle") || normalised === "plate" || normalised === "coin") {
+    return "circle";
+  }
+  if (normalised.includes("square")) return "square";
+  if (normalised.includes("triangle")) return "triangle";
+  if (normalised.includes("rectangle") || normalised === "window" || normalised === "book" || normalised === "door") {
+    return "rectangle";
+  }
+  if (normalised.includes("oval")) return "oval";
+  if (normalised.includes("pentagon")) return "pentagon";
+  if (normalised.includes("hexagon")) return "hexagon";
+  if (normalised.includes("box") || normalised.includes("cereal")) return "box";
+  if (normalised.includes("sphere") || normalised === "ball") return "sphere";
+
+  return null;
+}
+
+function renderGeometryShape(
+  shape: GeometryShapeKind,
+  label: string,
+  selected = false,
+) {
+  const commonStyle: React.CSSProperties = {
+    width: "min(92px, 38vw)",
+    height: 76,
+    margin: "0 auto",
+    display: "block",
+  };
+  const stroke = selected ? "#1d4ed8" : "#334155";
+  const fill = selected ? "#dbeafe" : "#f8fafc";
+
+  if (shape === "triangle") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="50,8 90,72 10,72" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "rectangle") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <rect x="10" y="18" width="80" height="48" rx="4" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "oval") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <ellipse cx="50" cy="41" rx="38" ry="24" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "pentagon") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="50,7 88,34 73,74 27,74 12,34" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "hexagon") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="30,10 70,10 92,41 70,72 30,72 8,41" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "box") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <polygon points="18,28 50,12 82,28 50,44" fill="#e0f2fe" stroke={stroke} strokeWidth="5" />
+        <polygon points="18,28 50,44 50,76 18,58" fill={fill} stroke={stroke} strokeWidth="5" />
+        <polygon points="82,28 50,44 50,76 82,58" fill="#dbeafe" stroke={stroke} strokeWidth="5" />
+      </svg>
+    );
+  }
+
+  if (shape === "sphere") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <defs>
+          <radialGradient id={`sphere-${label.replace(/\W+/g, "-")}`} cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="55%" stopColor={fill} />
+            <stop offset="100%" stopColor="#93c5fd" />
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="41" r="31" fill={`url(#sphere-${label.replace(/\W+/g, "-")})`} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  if (shape === "square") {
+    return (
+      <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+        <rect x="22" y="13" width="56" height="56" rx="4" fill={fill} stroke={stroke} strokeWidth="6" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 100 82" role="img" aria-label={label} style={commonStyle}>
+      <circle cx="50" cy="41" r="30" fill={fill} stroke={stroke} strokeWidth="6" />
+    </svg>
+  );
+}
+
+function renderGeometryShapeVisualCard(
+  label: string,
+  selected = false,
+  shapeOverride?: GeometryShapeKind,
+) {
+  const shape = shapeOverride ?? normalizeShapeName(label);
+  if (!shape) return null;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 8,
+        justifyItems: "center",
+      }}
+    >
+      {renderGeometryShape(shape, label, selected)}
+      <span
+        style={{
+          color: selected ? "#1d4ed8" : "#475569",
+          fontSize: 13,
+          fontWeight: 800,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function renderGeometryShapeVisual(item: NumberAssessmentBankItem) {
+  const shapes = GEOMETRY_STEP_1_SHAPE_VISUALS[item.id];
+  if (!shapes) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 18,
+        background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+        padding: 14,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+        Shape cards
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {shapes.map((shape) => (
+          <div
+            key={`${item.id}-${shape}`}
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 16,
+              background: "#ffffff",
+              padding: 10,
+              minHeight: 112,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {renderGeometryShape(shape, shape)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function renderStep1Visual(itemId: string) {
   const visual = STEP_1_VISUALS[itemId];
@@ -1650,6 +1866,9 @@ function parseEarlyNumberVisual(description: string | undefined) {
 }
 
 function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
+  const geometryVisual = renderGeometryShapeVisual(item);
+  if (geometryVisual) return geometryVisual;
+
   const step1Visual = renderStep1Visual(item.id);
   if (step1Visual) return step1Visual;
 
@@ -3057,6 +3276,11 @@ function CleanNumberAssessmentPlayerBody() {
         <div style={{ display: "grid", gap: 10 }}>
           {(currentItem.options ?? []).map((option) => {
             const isSelected = currentResponse.response === option;
+            const shapeVisual = currentItem.id.startsWith(
+              "geometry-spatial-reasoning-step-1-",
+            )
+              ? renderGeometryShapeVisualCard(option, isSelected)
+              : null;
 
             return (
               <button
@@ -3070,9 +3294,10 @@ function CleanNumberAssessmentPlayerBody() {
                   boxShadow: isSelected
                     ? "0 10px 22px rgba(59,130,246,0.14)"
                     : "none",
+                  alignItems: shapeVisual ? "center" : optionButtonStyle.alignItems,
                 }}
               >
-                <span>{option}</span>
+                {shapeVisual ?? <span>{option}</span>}
                 {isSelected ? (
                   <span
                     style={{
@@ -4662,7 +4887,9 @@ function CleanNumberAssessmentPlayerBody() {
                             gap: 10,
                           }}
                         >
-                          <div style={eyebrowStyle}>Feedback</div>
+                          <div style={eyebrowStyle}>
+                            {incomingStepAssessment ? "Response saved" : "Feedback"}
+                          </div>
                           <span
                             style={
                               incomingStepAssessment
@@ -4858,13 +5085,31 @@ function CleanNumberAssessmentPlayerBody() {
                     </button>
                   ) : null}
                   {incomingStepAssessment ? (
-                    <button
-                      type="button"
-                      onClick={markCurrentItemNotSure}
-                      style={secondaryButtonStyle}
-                    >
-                      Not sure yet
-                    </button>
+                    (() => {
+                      const notSureSelected =
+                        currentResponse.response === NOT_SURE_RESPONSE;
+
+                      return (
+                        <button
+                          type="button"
+                          onClick={markCurrentItemNotSure}
+                          disabled={notSureSelected}
+                          style={
+                            notSureSelected
+                              ? {
+                                  ...secondaryButtonStyle,
+                                  border: "2px solid #1d4ed8",
+                                  background: "#eff6ff",
+                                  color: "#1d4ed8",
+                                  cursor: "default",
+                                }
+                              : secondaryButtonStyle
+                          }
+                        >
+                          {notSureSelected ? "Not sure saved" : "Not sure yet"}
+                        </button>
+                      );
+                    })()
                   ) : null}
                   <button
                     type="button"
