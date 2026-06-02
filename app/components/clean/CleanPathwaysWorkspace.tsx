@@ -806,6 +806,12 @@ function PathwaysWorkspaceBody() {
       strandKey: selectedSubjectWorkspace.key,
     });
   }, [assessmentAttempts, selectedSubjectKey, selectedSubjectWorkspace]);
+  const currentLearningZoneStartStep =
+    numberPathwayRevealGroups?.currentLearningZone[0] || null;
+  const currentLearningZoneStageTitle =
+    currentLearningZoneStartStep?.stageTitle ||
+    selectedWorkspaceCurrentStage?.title ||
+    "Choose a strand below";
   const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
     ? "Check understanding"
     : selectedWorkspaceSnapshot?.practising || selectedWorkspaceSnapshot?.evidenceStarted
@@ -817,7 +823,7 @@ function PathwaysWorkspaceBody() {
       `${selectedSubject.title} pathways`
     : `${selectedSubject.title} pathways`;
   const selectedSubjectSummaryHelper = selectedSubjectSupportsDetailedPathways
-    ? `Current stage focus: ${selectedWorkspaceCurrentStage?.title || "Choose a strand below"}`
+    ? `Current learning zone begins at: ${currentLearningZoneStageTitle}`
     : selectedSubject.guidance;
   const selectedSubjectStatusLabel = selectedSubjectSupportsDetailedPathways
     ? "Detailed now"
@@ -826,8 +832,11 @@ function PathwaysWorkspaceBody() {
     ? selectedSubjectSummaryTitle
     : "Choose a pathway strand below";
   const topSnapshotStageLabel = selectedStrandIsActive
-    ? selectedWorkspaceCurrentStage?.title || "Choose a strand below"
+    ? currentLearningZoneStageTitle
     : "Select a strand to see the current pathway";
+  const topSnapshotStagePrefix = selectedStrandIsActive
+    ? "Current learning zone begins at: "
+    : "Pathway view: ";
   const topSnapshotNextAction = selectedStrandIsActive
     ? nextActionLabel
     : "Choose a strand";
@@ -1005,7 +1014,9 @@ function PathwaysWorkspaceBody() {
                   {topSnapshotTitle}
                 </strong>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {selectedSubjectSupportsDetailedPathways ? "Current stage focus: " : "Current status: "}
+                  {selectedSubjectSupportsDetailedPathways
+                    ? topSnapshotStagePrefix
+                    : "Current status: "}
                   <strong style={{ color: "#0f172a" }}>
                     {selectedSubjectSupportsDetailedPathways
                       ? topSnapshotStageLabel
@@ -1316,8 +1327,8 @@ function PathwaysWorkspaceBody() {
                   summaryCards={[
                     {
                       label: "Current stage snapshot",
-                      value: selectedWorkspaceCurrentStage?.title || "Current focus",
-                      helper: "Current pathway view for the selected learner's likely stage.",
+                      value: currentLearningZoneStageTitle,
+                      helper: "Based on the first visible step in the current learning zone.",
                     },
                     {
                       label: "Confidence secure",
@@ -1358,7 +1369,7 @@ function PathwaysWorkspaceBody() {
                       title: "What comes next",
                       items: [
                         selectedWorkspaceCurrentStage
-                          ? `Current pathway focus: ${selectedWorkspaceCurrentStage.title}`
+                          ? `Current learning zone begins at: ${currentLearningZoneStageTitle}`
                           : "Current pathway focus will show here.",
                         selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]
                           ? `Next progression: ${selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
