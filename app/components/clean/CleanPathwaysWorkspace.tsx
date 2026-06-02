@@ -506,6 +506,13 @@ function PathwaysWorkspaceBody() {
       DEFAULT_PATHWAY_SUBJECT_KEY
     );
   }, [searchParams]);
+  const initialStrandWasSelected = useMemo(() => {
+    const strandParam = searchParams.get("strandKey");
+    const subjectConfig = DETAILED_SUBJECT_CONFIGS[initialSubjectKey];
+    return Boolean(
+      strandParam && subjectConfig?.domainCards.some((domain) => domain.key === strandParam),
+    );
+  }, [initialSubjectKey, searchParams]);
   const initialStrandKeyBySubject = useMemo(() => {
     const strandParam = searchParams.get("strandKey");
     const subjectConfig = DETAILED_SUBJECT_CONFIGS[initialSubjectKey];
@@ -553,6 +560,10 @@ function PathwaysWorkspaceBody() {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState<PathwaySubjectKey>(
     initialSubjectKey,
   );
+  const [hasExplicitStrandSelection, setHasExplicitStrandSelection] =
+    useState(initialStrandWasSelected);
+  const [strandSelectorExpanded, setStrandSelectorExpanded] =
+    useState(!initialStrandWasSelected);
   const [selectedStrandKeyBySubject, setSelectedStrandKeyBySubject] = useState<
     Partial<Record<PathwaySubjectKey, string>>
   >(() => initialStrandKeyBySubject);
@@ -616,6 +627,8 @@ function PathwaysWorkspaceBody() {
     const buildWorkspace = selectedDetailedSubjectConfig.workspaceBuilders[selectedStrandKey];
     return buildWorkspace ? buildWorkspace(currentLearnerFocusStageKey) : null;
   }, [currentLearnerFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey]);
+  const selectedStrandIsActive =
+    selectedSubjectSupportsDetailedPathways && hasExplicitStrandSelection;
 
   useEffect(() => {
     let active = true;
@@ -809,6 +822,15 @@ function PathwaysWorkspaceBody() {
   const selectedSubjectStatusLabel = selectedSubjectSupportsDetailedPathways
     ? "Detailed now"
     : "Coming gradually";
+  const topSnapshotTitle = selectedStrandIsActive
+    ? selectedSubjectSummaryTitle
+    : "Choose a pathway strand below";
+  const topSnapshotStageLabel = selectedStrandIsActive
+    ? selectedWorkspaceCurrentStage?.title || "Choose a strand below"
+    : "Select a strand to see the current pathway";
+  const topSnapshotNextAction = selectedStrandIsActive
+    ? nextActionLabel
+    : "Choose a strand";
 
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
@@ -833,6 +855,8 @@ function PathwaysWorkspaceBody() {
       DETAILED_SUBJECT_CONFIGS[nextSubjectKey]?.defaultStrandKey ||
       "";
     setSelectedSubjectKey(nextSubjectKey);
+    setHasExplicitStrandSelection(Boolean(nextStrandKey));
+    setStrandSelectorExpanded(!nextStrandKey);
     replacePathwayViewParams(nextSubjectKey, nextStrandKey);
   }
 
@@ -841,6 +865,8 @@ function PathwaysWorkspaceBody() {
       ...current,
       [selectedSubjectKey]: nextStrandKey,
     }));
+    setHasExplicitStrandSelection(true);
+    setStrandSelectorExpanded(false);
     replacePathwayViewParams(selectedSubjectKey, nextStrandKey);
 
     const workspaceEl = pathwayDetailWorkspaceRef.current;
@@ -961,7 +987,7 @@ function PathwaysWorkspaceBody() {
                       Add a learner before building a pathway view.
                     </strong>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      You can still explore the prototype pathway while learner details are
+                      You can still explore the pathway map while learner details are
                       being set up.
                     </div>
                     <div>
@@ -974,15 +1000,15 @@ function PathwaysWorkspaceBody() {
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Current subject focus</div>
+                <div style={eyebrowStyle}>Current pathway view</div>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  {selectedSubjectSummaryTitle}
+                  {topSnapshotTitle}
                 </strong>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                   {selectedSubjectSupportsDetailedPathways ? "Current stage focus: " : "Current status: "}
                   <strong style={{ color: "#0f172a" }}>
                     {selectedSubjectSupportsDetailedPathways
-                      ? selectedWorkspaceCurrentStage?.title || "Choose a strand below"
+                      ? topSnapshotStageLabel
                       : selectedSubjectStatusLabel}
                   </strong>
                 </div>
@@ -1011,9 +1037,11 @@ function PathwaysWorkspaceBody() {
 
               <div style={helperCardStyle}>
                 <div style={eyebrowStyle}>Next action</div>
-                <strong style={{ color: "#0f172a" }}>{nextActionLabel}</strong>
+                <strong style={{ color: "#0f172a" }}>{topSnapshotNextAction}</strong>
                 <div style={{ color: "#475569", lineHeight: 1.5 }}>
-                  Use the current step panel below.
+                  {selectedStrandIsActive
+                    ? "Use the current step panel below."
+                    : "Pick from the pathway strands below."}
                 </div>
               </div>
             </div>
@@ -1096,147 +1124,184 @@ function PathwaysWorkspaceBody() {
         {selectedSubjectSupportsDetailedPathways ? (
           <>
             <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 14 }}>
-                <details>
-                  <summary
+              <div style={{ display: "grid", gap: 10 }}>
+                {selectedStrandIsActive && !strandSelectorExpanded ? (
+                  <div
                     style={{
-                      cursor: "pointer",
-                      color: "#0f172a",
-                      fontWeight: 800,
-                      lineHeight: 1.5,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                      flexWrap: "wrap",
                     }}
                   >
-                    {selectedDetailedSubjectConfig?.overviewTitle}
-                  </summary>
-                  <div style={{ display: "grid", gap: 8, marginTop: 10, maxWidth: 760 }}>
-                    <div style={eyebrowStyle}>{selectedDetailedSubjectConfig?.overviewEyebrow}</div>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      {selectedDetailedSubjectConfig?.overviewDescription}
-                    </p>
-                    <p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>
-                      {selectedDetailedSubjectConfig?.overviewHelper}
-                    </p>
+                    <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
+                      <div style={eyebrowStyle}>Selected strand</div>
+                      <strong style={{ color: "#0f172a", fontSize: 20 }}>
+                        {selectedSubjectDomain.title}
+                      </strong>
+                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                        {selectedSubjectDomain.description}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStrandSelectorExpanded(true)}
+                      style={secondaryButtonStyle}
+                    >
+                      Change strand
+                    </button>
                   </div>
-                </details>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-                  }}
-                >
-                  {selectedSubjectDomainCards.map((domain) => {
-                    const detailed = domain.status !== "coming-later";
-                    const firstDetailed = domain.status === "first-detailed";
-                    const selected = domain.key === selectedStrandKey;
-
-                    return (
-                      <button
-                        key={domain.key}
-                        type="button"
-                        onClick={() => handleSelectSubjectStrand(domain.key)}
-                        aria-pressed={selected}
+                ) : (
+                  <>
+                    <details>
+                      <summary
                         style={{
-                          border: selected
-                            ? "1px solid #3b82f6"
-                            : detailed
-                              ? "1px solid #93c5fd"
-                              : "1px solid #e2e8f0",
-                          borderRadius: 18,
-                          background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
-                          padding: 14,
-                          display: "grid",
-                          gap: 8,
-                          width: "100%",
-                          minWidth: 0,
-                          textAlign: "left",
                           cursor: "pointer",
-                          boxShadow: selected
-                            ? "0 14px 30px rgba(59,130,246,0.14)"
-                            : detailed
-                              ? "0 12px 28px rgba(59,130,246,0.08)"
-                              : "0 6px 18px rgba(15,23,42,0.04)",
-                          transition:
-                            "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
+                          color: "#0f172a",
+                          fontWeight: 800,
+                          lineHeight: 1.5,
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <strong style={{ color: "#0f172a", fontSize: 16, minWidth: 0 }}>
-                            {domain.title}
-                          </strong>
-                          <div
+                        {selectedDetailedSubjectConfig?.overviewTitle}
+                      </summary>
+                      <div style={{ display: "grid", gap: 8, marginTop: 10, maxWidth: 760 }}>
+                        <div style={eyebrowStyle}>
+                          {selectedDetailedSubjectConfig?.overviewEyebrow}
+                        </div>
+                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                          {selectedDetailedSubjectConfig?.overviewDescription}
+                        </p>
+                        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>
+                          {selectedDetailedSubjectConfig?.overviewHelper}
+                        </p>
+                      </div>
+                    </details>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 10,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                      }}
+                    >
+                      {selectedSubjectDomainCards.map((domain) => {
+                        const detailed = domain.status !== "coming-later";
+                        const firstDetailed = domain.status === "first-detailed";
+                        const selected =
+                          hasExplicitStrandSelection && domain.key === selectedStrandKey;
+
+                        return (
+                          <button
+                            key={domain.key}
+                            type="button"
+                            onClick={() => handleSelectSubjectStrand(domain.key)}
+                            aria-pressed={selected}
                             style={{
-                              display: "flex",
+                              border: selected
+                                ? "1px solid #3b82f6"
+                                : detailed
+                                  ? "1px solid #93c5fd"
+                                  : "1px solid #e2e8f0",
+                              borderRadius: 18,
+                              background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
+                              padding: 14,
+                              display: "grid",
                               gap: 8,
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                              justifyContent: "flex-end",
+                              width: "100%",
+                              minWidth: 0,
+                              textAlign: "left",
+                              cursor: "pointer",
+                              boxShadow: selected
+                                ? "0 14px 30px rgba(59,130,246,0.14)"
+                                : detailed
+                                  ? "0 12px 28px rgba(59,130,246,0.08)"
+                                  : "0 6px 18px rgba(15,23,42,0.04)",
+                              transition:
+                                "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
                             }}
                           >
-                            <span
+                            <div
                               style={{
-                                border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                                background: detailed ? "#eff6ff" : "#f8fafc",
-                                color: detailed ? "#1d4ed8" : "#64748b",
-                                borderRadius: 999,
-                                padding: "6px 10px",
-                                fontSize: 12,
-                                fontWeight: 800,
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 10,
+                                alignItems: "center",
+                                flexWrap: "wrap",
                               }}
                             >
-                              {firstDetailed
-                                ? "First detailed strand"
-                                : detailed
-                                  ? "Detailed strand"
-                                  : "Coming later"}
-                            </span>
-                            {selected ? (
-                              <span
+                              <strong style={{ color: "#0f172a", fontSize: 16, minWidth: 0 }}>
+                                {domain.title}
+                              </strong>
+                              <div
                                 style={{
-                                  border: "1px solid #93c5fd",
-                                  background: "#ffffff",
-                                  color: "#1d4ed8",
-                                  borderRadius: 999,
-                                  padding: "6px 10px",
-                                  fontSize: 12,
-                                  fontWeight: 800,
+                                  display: "flex",
+                                  gap: 8,
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                  justifyContent: "flex-end",
                                 }}
                               >
-                                Selected
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div style={{ color: "#475569", lineHeight: 1.5 }}>{domain.description}</div>
-                        <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
-                          {selected
-                            ? "Showing this strand below"
-                            : detailed
-                              ? "Open this detailed strand"
-                              : "Preview this strand"}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                                <span
+                                  style={{
+                                    border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                                    background: detailed ? "#eff6ff" : "#f8fafc",
+                                    color: detailed ? "#1d4ed8" : "#64748b",
+                                    borderRadius: 999,
+                                    padding: "6px 10px",
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {firstDetailed
+                                    ? "First detailed strand"
+                                    : detailed
+                                      ? "Detailed strand"
+                                      : "Coming later"}
+                                </span>
+                                {selected ? (
+                                  <span
+                                    style={{
+                                      border: "1px solid #93c5fd",
+                                      background: "#ffffff",
+                                      color: "#1d4ed8",
+                                      borderRadius: 999,
+                                      padding: "6px 10px",
+                                      fontSize: 12,
+                                      fontWeight: 800,
+                                    }}
+                                  >
+                                    Selected
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                              {domain.description}
+                            </div>
+                            <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
+                              {selected
+                                ? "Showing this strand below"
+                                : detailed
+                                  ? "Open this detailed strand"
+                                  : "Preview this strand"}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
-            <section
-              ref={pathwayDetailWorkspaceRef}
-              tabIndex={-1}
-              style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
-            >
-              {selectedSubjectWorkspace ? (
+            {selectedStrandIsActive ? (
+              <section
+                ref={pathwayDetailWorkspaceRef}
+                tabIndex={-1}
+                style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
+              >
+                {selectedSubjectWorkspace ? (
                 <MathematicsStrandWorkspaceShell
                   eyebrow="Selected strand"
                   title={selectedSubjectWorkspace.title}
@@ -1252,30 +1317,30 @@ function PathwaysWorkspaceBody() {
                     {
                       label: "Current stage snapshot",
                       value: selectedWorkspaceCurrentStage?.title || "Current focus",
-                      helper: "Prototype view for the selected learner's likely pathway stage.",
+                      helper: "Current pathway view for the selected learner's likely stage.",
                     },
                     {
-                      label: "secure steps",
+                      label: "Confidence secure",
                       value: String(selectedWorkspaceSnapshot?.secure || 0),
                       valueColor: "#166534",
                     },
                     {
-                      label: "ready to assess",
+                      label: "Ready to assess",
                       value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
                       valueColor: "#6d28d9",
                     },
                     {
-                      label: "evidence started",
+                      label: "Evidence started",
                       value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
                       valueColor: "#1d4ed8",
                     },
                     {
-                      label: "practising",
+                      label: "Practising",
                       value: String(selectedWorkspaceSnapshot?.practising || 0),
                       valueColor: "#c2410c",
                     },
                     {
-                      label: "not started",
+                      label: "Not started",
                       value: String(selectedWorkspaceSnapshot?.notStarted || 0),
                       valueColor: "#64748b",
                     },
@@ -1356,10 +1421,11 @@ function PathwaysWorkspaceBody() {
                     </div>
                   </details>
                 </MathematicsStrandWorkspaceShell>
-              ) : (
-                <PathwayComingLaterStrandSection domain={selectedSubjectDomain} />
-              )}
-            </section>
+                ) : (
+                  <PathwayComingLaterStrandSection domain={selectedSubjectDomain} />
+                )}
+              </section>
+            ) : null}
           </>
         ) : (
           <PathwaySubjectPlaceholderSection subject={selectedSubject} />
