@@ -1745,8 +1745,8 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
   const colour = getObjectColour(label);
   const stroke = selected ? "#1d4ed8" : "#334155";
   const commonStyle: React.CSSProperties = {
-    width: 58,
-    height: 42,
+    width: 48,
+    height: 34,
     display: "block",
     margin: "0 auto",
   };
@@ -1887,12 +1887,12 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
 
 function renderStatisticsSortingVisualCard(label: string, selected = false) {
   return (
-    <div style={{ display: "grid", gap: 4, justifyItems: "center" }}>
+    <div style={{ display: "grid", gap: 3, justifyItems: "center" }}>
       {renderStatisticsObjectIcon(label, selected)}
       <span
         style={{
           color: selected ? "#1d4ed8" : "#475569",
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 800,
           lineHeight: 1.2,
           textAlign: "center",
@@ -1912,21 +1912,21 @@ function renderStatisticsSortingVisual(item: NumberAssessmentBankItem) {
     <div
       style={{
         border: "1px solid #bfdbfe",
-        borderRadius: 14,
+        borderRadius: 12,
         background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
-        padding: 10,
+        padding: 8,
         display: "grid",
-        gap: 8,
+        gap: 6,
       }}
     >
-      <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 800 }}>
+      <div style={{ color: "#1e3a8a", fontSize: 12, fontWeight: 800 }}>
         Sorting cards
       </div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))",
-          gap: 6,
+          gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))",
+          gap: 5,
         }}
       >
         {labels.map((label) => (
@@ -1934,11 +1934,13 @@ function renderStatisticsSortingVisual(item: NumberAssessmentBankItem) {
             key={`${item.id}-${label}`}
             style={{
               border: "1px solid #dbeafe",
-              borderRadius: 12,
+              borderRadius: 10,
               background: "#ffffff",
-              padding: 6,
-              minHeight: 76,
-              maxWidth: 116,
+              padding: 4,
+              minHeight: 62,
+              maxWidth: 96,
+              width: "100%",
+              justifySelf: "center",
               display: "grid",
               placeItems: "center",
             }}
@@ -3527,9 +3529,9 @@ function CleanNumberAssessmentPlayerBody() {
         <div
           style={{
             display: "grid",
-            gap: statisticsStep1Options ? 8 : 10,
+            gap: statisticsStep1Options ? 6 : 10,
             gridTemplateColumns: statisticsStep1Options
-              ? "repeat(auto-fit, minmax(118px, 1fr))"
+              ? "repeat(auto-fit, minmax(92px, 1fr))"
               : undefined,
           }}
         >
@@ -3564,12 +3566,33 @@ function CleanNumberAssessmentPlayerBody() {
                       : optionButtonStyle.alignItems,
                   justifyContent:
                     statisticsVisual || shapeVisual ? "center" : undefined,
-                  minHeight: statisticsVisual ? 92 : undefined,
-                  padding: statisticsVisual ? "8px 6px" : optionButtonStyle.padding,
+                  minHeight: statisticsVisual ? 70 : undefined,
+                  padding: statisticsVisual ? "6px 4px" : optionButtonStyle.padding,
+                  borderRadius: statisticsVisual ? 12 : optionButtonStyle.borderRadius,
+                  lineHeight: statisticsVisual ? 1.15 : optionButtonStyle.lineHeight,
+                  position: statisticsVisual ? "relative" : undefined,
                 }}
               >
                 {shapeVisual ?? statisticsVisual ?? <span>{option}</span>}
-                {isSelected ? (
+                {statisticsVisual && isSelected ? (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      border: "1px solid #bfdbfe",
+                      background: "#dbeafe",
+                      color: "#1d4ed8",
+                      borderRadius: 999,
+                      padding: "2px 5px",
+                      fontSize: 9,
+                      fontWeight: 800,
+                      lineHeight: 1,
+                    }}
+                  >
+                    Selected
+                  </span>
+                ) : isSelected ? (
                   <span
                     style={{
                       ...chipBaseStyle,

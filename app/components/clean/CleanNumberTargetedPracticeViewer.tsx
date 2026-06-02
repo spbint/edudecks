@@ -419,8 +419,8 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
   const colour = getObjectColour(label);
   const stroke = selected ? "#1d4ed8" : "#334155";
   const commonStyle: React.CSSProperties = {
-    width: 58,
-    height: 42,
+    width: 48,
+    height: 34,
     display: "block",
     margin: "0 auto",
   };
@@ -561,12 +561,12 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
 
 function renderStatisticsSortingVisualCard(label: string, selected = false) {
   return (
-    <div style={{ display: "grid", gap: 4, justifyItems: "center" }}>
+    <div style={{ display: "grid", gap: 3, justifyItems: "center" }}>
       {renderStatisticsObjectIcon(label, selected)}
       <span
         style={{
           color: selected ? "#1d4ed8" : "#475569",
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 800,
           lineHeight: 1.2,
           textAlign: "center",
@@ -586,21 +586,21 @@ function renderStatisticsPracticeVisual(taskId: string) {
     <div
       style={{
         border: "1px solid #bfdbfe",
-        borderRadius: 14,
+        borderRadius: 12,
         background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
-        padding: 10,
+        padding: 8,
         display: "grid",
-        gap: 8,
+        gap: 6,
       }}
     >
-      <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 800 }}>
+      <div style={{ color: "#1e3a8a", fontSize: 12, fontWeight: 800 }}>
         Sorting cards
       </div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))",
-          gap: 6,
+          gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))",
+          gap: 5,
         }}
       >
         {labels.map((label) => (
@@ -608,11 +608,13 @@ function renderStatisticsPracticeVisual(taskId: string) {
             key={`${taskId}-${label}`}
             style={{
               border: "1px solid #dbeafe",
-              borderRadius: 12,
+              borderRadius: 10,
               background: "#ffffff",
-              padding: 6,
-              minHeight: 76,
-              maxWidth: 116,
+              padding: 4,
+              minHeight: 62,
+              maxWidth: 96,
+              width: "100%",
+              justifySelf: "center",
               display: "grid",
               placeItems: "center",
             }}
@@ -1316,9 +1318,9 @@ function TaskCard({
         <div
           style={{
             display: "grid",
-            gap: task.id.startsWith("statistics-data-step-1-") ? 8 : 6,
+            gap: task.id.startsWith("statistics-data-step-1-") ? 6 : 6,
             gridTemplateColumns: task.id.startsWith("statistics-data-step-1-")
-              ? "repeat(auto-fit, minmax(112px, 1fr))"
+              ? "repeat(auto-fit, minmax(92px, 1fr))"
               : undefined,
           }}
         >
@@ -1343,16 +1345,16 @@ function TaskCard({
                   border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
                   borderRadius: 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
-                  padding: statisticsVisual ? "8px 6px" : "8px 10px",
+                  padding: statisticsVisual ? "6px 4px" : "8px 10px",
                   color: "#334155",
                   textAlign: "left",
-                  lineHeight: 1.45,
+                  lineHeight: statisticsVisual ? 1.15 : 1.45,
                   cursor: "pointer",
                   font: "inherit",
                   display: "grid",
                   justifyItems:
                     shapeVisual || statisticsVisual ? "center" : "stretch",
-                  minHeight: statisticsVisual ? 88 : undefined,
+                  minHeight: statisticsVisual ? 68 : undefined,
                 }}
               >
                 {shapeVisual ?? statisticsVisual ?? option}
