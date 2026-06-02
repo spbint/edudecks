@@ -30,6 +30,10 @@ import {
   getStatisticsDataStepPracticeForPathwayStep,
   getStatisticsDataStepPracticeTasksForDepth,
 } from "@/lib/clean/practice/statisticsDataStepPracticeRegistry";
+import {
+  getProbabilityChanceStepPracticeForPathwayStep,
+  getProbabilityChanceStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/probabilityChanceStepPracticeRegistry";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type {
   NumberStepPractice,
@@ -138,6 +142,18 @@ function preferStatisticsData(context: StepPracticeContext) {
   );
 }
 
+function preferProbabilityChance(context: StepPracticeContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepPracticeKey = safe(context.stepPracticeKey);
+
+  return (
+    strandKey === "probability-and-chance" ||
+    pathwayStepId.includes("::probability-and-chance::") ||
+    stepPracticeKey.startsWith("probability-chance-step-")
+  );
+}
+
 export function getStepPracticeForPathwayStep(
   context: StepPracticeContext,
 ): CleanStepPractice | null {
@@ -151,6 +167,7 @@ export function getStepPracticeForPathwayStep(
         getMeasurementStepPracticeForPathwayStep,
         getGeometrySpatialReasoningStepPracticeForPathwayStep,
         getStatisticsDataStepPracticeForPathwayStep,
+        getProbabilityChanceStepPracticeForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -162,6 +179,7 @@ export function getStepPracticeForPathwayStep(
           getMeasurementStepPracticeForPathwayStep,
           getGeometrySpatialReasoningStepPracticeForPathwayStep,
           getStatisticsDataStepPracticeForPathwayStep,
+          getProbabilityChanceStepPracticeForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -173,6 +191,7 @@ export function getStepPracticeForPathwayStep(
             getMeasurementStepPracticeForPathwayStep,
             getGeometrySpatialReasoningStepPracticeForPathwayStep,
             getStatisticsDataStepPracticeForPathwayStep,
+            getProbabilityChanceStepPracticeForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -184,6 +203,7 @@ export function getStepPracticeForPathwayStep(
               getMeasurementStepPracticeForPathwayStep,
               getGeometrySpatialReasoningStepPracticeForPathwayStep,
               getStatisticsDataStepPracticeForPathwayStep,
+              getProbabilityChanceStepPracticeForPathwayStep,
             ]
           : preferMeasurement(context)
             ? [
@@ -195,6 +215,7 @@ export function getStepPracticeForPathwayStep(
                 getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
                 getGeometrySpatialReasoningStepPracticeForPathwayStep,
                 getStatisticsDataStepPracticeForPathwayStep,
+                getProbabilityChanceStepPracticeForPathwayStep,
               ]
             : preferGeometrySpatialReasoning(context)
               ? [
@@ -206,6 +227,7 @@ export function getStepPracticeForPathwayStep(
                   getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
                   getMeasurementStepPracticeForPathwayStep,
                   getStatisticsDataStepPracticeForPathwayStep,
+                  getProbabilityChanceStepPracticeForPathwayStep,
                 ]
               : preferStatisticsData(context)
                 ? [
@@ -217,17 +239,31 @@ export function getStepPracticeForPathwayStep(
                     getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
                     getMeasurementStepPracticeForPathwayStep,
                     getGeometrySpatialReasoningStepPracticeForPathwayStep,
+                    getProbabilityChanceStepPracticeForPathwayStep,
                   ]
-                : [
-                    getNumberStepPracticeForPathwayStep,
-                    getOperationsStepPracticeForPathwayStep,
-                    getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
-                    getRatioProportionalReasoningStepPracticeForPathwayStep,
-                    getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
-                    getMeasurementStepPracticeForPathwayStep,
-                    getGeometrySpatialReasoningStepPracticeForPathwayStep,
-                    getStatisticsDataStepPracticeForPathwayStep,
-                  ];
+                : preferProbabilityChance(context)
+                  ? [
+                      getProbabilityChanceStepPracticeForPathwayStep,
+                      getNumberStepPracticeForPathwayStep,
+                      getOperationsStepPracticeForPathwayStep,
+                      getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                      getRatioProportionalReasoningStepPracticeForPathwayStep,
+                      getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                      getMeasurementStepPracticeForPathwayStep,
+                      getGeometrySpatialReasoningStepPracticeForPathwayStep,
+                      getStatisticsDataStepPracticeForPathwayStep,
+                    ]
+                  : [
+                      getNumberStepPracticeForPathwayStep,
+                      getOperationsStepPracticeForPathwayStep,
+                      getFractionsDecimalsPercentagesStepPracticeForPathwayStep,
+                      getRatioProportionalReasoningStepPracticeForPathwayStep,
+                      getAlgebraPatternsFunctionsStepPracticeForPathwayStep,
+                      getMeasurementStepPracticeForPathwayStep,
+                      getGeometrySpatialReasoningStepPracticeForPathwayStep,
+                      getStatisticsDataStepPracticeForPathwayStep,
+                      getProbabilityChanceStepPracticeForPathwayStep,
+                    ];
 
   for (const getPractice of registries) {
     const practice = getPractice(context);
@@ -279,6 +315,10 @@ export function getStepPracticeTasksForDepth(
 
   if (practice.strandKey === "statistics-and-data") {
     return getStatisticsDataStepPracticeTasksForDepth(practice.key, depth);
+  }
+
+  if (practice.strandKey === "probability-and-chance") {
+    return getProbabilityChanceStepPracticeTasksForDepth(practice.key, depth);
   }
 
   return getNumberStepPracticeTasksForDepth(practice.key, depth);

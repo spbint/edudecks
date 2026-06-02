@@ -231,7 +231,8 @@ function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) 
         strandKey === "algebra-patterns-and-functions" ||
         strandKey === "measurement" ||
         strandKey === "geometry-and-spatial-reasoning" ||
-        strandKey === "statistics-and-data")
+        strandKey === "statistics-and-data" ||
+        strandKey === "probability-and-chance")
     );
 }
 

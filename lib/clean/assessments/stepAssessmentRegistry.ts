@@ -31,6 +31,10 @@ import {
   getStatisticsDataStepAssessmentForPathwayStep,
   getStatisticsDataStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/statisticsDataStepAssessmentRegistry";
+import {
+  getProbabilityChanceStepAssessmentForPathwayStep,
+  getProbabilityChanceStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/probabilityChanceStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -142,6 +146,18 @@ function preferStatisticsData(context: StepAssessmentContext) {
   );
 }
 
+function preferProbabilityChance(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "probability-and-chance" ||
+    pathwayStepId.includes("::probability-and-chance::") ||
+    stepAssessmentKey.startsWith("probability-chance-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
@@ -155,6 +171,7 @@ export function getStepAssessmentForPathwayStep(
         getMeasurementStepAssessmentForPathwayStep,
         getGeometrySpatialReasoningStepAssessmentForPathwayStep,
         getStatisticsDataStepAssessmentForPathwayStep,
+        getProbabilityChanceStepAssessmentForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -166,6 +183,7 @@ export function getStepAssessmentForPathwayStep(
           getMeasurementStepAssessmentForPathwayStep,
           getGeometrySpatialReasoningStepAssessmentForPathwayStep,
           getStatisticsDataStepAssessmentForPathwayStep,
+          getProbabilityChanceStepAssessmentForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -177,6 +195,7 @@ export function getStepAssessmentForPathwayStep(
             getMeasurementStepAssessmentForPathwayStep,
             getGeometrySpatialReasoningStepAssessmentForPathwayStep,
             getStatisticsDataStepAssessmentForPathwayStep,
+            getProbabilityChanceStepAssessmentForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -188,6 +207,7 @@ export function getStepAssessmentForPathwayStep(
               getMeasurementStepAssessmentForPathwayStep,
               getGeometrySpatialReasoningStepAssessmentForPathwayStep,
               getStatisticsDataStepAssessmentForPathwayStep,
+              getProbabilityChanceStepAssessmentForPathwayStep,
             ]
           : preferMeasurement(context)
             ? [
@@ -199,6 +219,7 @@ export function getStepAssessmentForPathwayStep(
                 getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
                 getGeometrySpatialReasoningStepAssessmentForPathwayStep,
                 getStatisticsDataStepAssessmentForPathwayStep,
+                getProbabilityChanceStepAssessmentForPathwayStep,
               ]
             : preferGeometrySpatialReasoning(context)
               ? [
@@ -210,6 +231,7 @@ export function getStepAssessmentForPathwayStep(
                   getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
                   getMeasurementStepAssessmentForPathwayStep,
                   getStatisticsDataStepAssessmentForPathwayStep,
+                  getProbabilityChanceStepAssessmentForPathwayStep,
                 ]
               : preferStatisticsData(context)
                 ? [
@@ -221,17 +243,31 @@ export function getStepAssessmentForPathwayStep(
                     getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
                     getMeasurementStepAssessmentForPathwayStep,
                     getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                    getProbabilityChanceStepAssessmentForPathwayStep,
                   ]
-                : [
-                    getNumberStepAssessmentForPathwayStep,
-                    getOperationsStepAssessmentForPathwayStep,
-                    getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
-                    getRatioProportionalReasoningStepAssessmentForPathwayStep,
-                    getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
-                    getMeasurementStepAssessmentForPathwayStep,
-                    getGeometrySpatialReasoningStepAssessmentForPathwayStep,
-                    getStatisticsDataStepAssessmentForPathwayStep,
-                  ];
+                : preferProbabilityChance(context)
+                  ? [
+                      getProbabilityChanceStepAssessmentForPathwayStep,
+                      getNumberStepAssessmentForPathwayStep,
+                      getOperationsStepAssessmentForPathwayStep,
+                      getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                      getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                      getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+                      getMeasurementStepAssessmentForPathwayStep,
+                      getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                      getStatisticsDataStepAssessmentForPathwayStep,
+                    ]
+                  : [
+                      getNumberStepAssessmentForPathwayStep,
+                      getOperationsStepAssessmentForPathwayStep,
+                      getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                      getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                      getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+                      getMeasurementStepAssessmentForPathwayStep,
+                      getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                      getStatisticsDataStepAssessmentForPathwayStep,
+                      getProbabilityChanceStepAssessmentForPathwayStep,
+                    ];
 
   for (const getAssessment of registries) {
     const assessment = getAssessment(context);
@@ -283,6 +319,10 @@ export function getStepAssessmentItemsForDepth(
 
   if (assessment.strandKey === "statistics-and-data") {
     return getStatisticsDataStepAssessmentItemsForDepth(assessment.key, depth);
+  }
+
+  if (assessment.strandKey === "probability-and-chance") {
+    return getProbabilityChanceStepAssessmentItemsForDepth(assessment.key, depth);
   }
 
   return getNumberStepAssessmentItemsForDepth(assessment.key, depth);
