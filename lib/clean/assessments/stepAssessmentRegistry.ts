@@ -27,6 +27,10 @@ import {
   getGeometrySpatialReasoningStepAssessmentForPathwayStep,
   getGeometrySpatialReasoningStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/geometrySpatialReasoningStepAssessmentRegistry";
+import {
+  getStatisticsDataStepAssessmentForPathwayStep,
+  getStatisticsDataStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/statisticsDataStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -126,6 +130,18 @@ function preferGeometrySpatialReasoning(context: StepAssessmentContext) {
   );
 }
 
+function preferStatisticsData(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "statistics-and-data" ||
+    pathwayStepId.includes("::statistics-and-data::") ||
+    stepAssessmentKey.startsWith("statistics-data-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
@@ -138,6 +154,7 @@ export function getStepAssessmentForPathwayStep(
         getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
         getMeasurementStepAssessmentForPathwayStep,
         getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+        getStatisticsDataStepAssessmentForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
@@ -148,6 +165,7 @@ export function getStepAssessmentForPathwayStep(
           getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
           getMeasurementStepAssessmentForPathwayStep,
           getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+          getStatisticsDataStepAssessmentForPathwayStep,
         ]
       : preferRatioProportionalReasoning(context)
         ? [
@@ -158,6 +176,7 @@ export function getStepAssessmentForPathwayStep(
             getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
             getMeasurementStepAssessmentForPathwayStep,
             getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+            getStatisticsDataStepAssessmentForPathwayStep,
           ]
         : preferAlgebraPatternsFunctions(context)
           ? [
@@ -168,6 +187,7 @@ export function getStepAssessmentForPathwayStep(
               getRatioProportionalReasoningStepAssessmentForPathwayStep,
               getMeasurementStepAssessmentForPathwayStep,
               getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+              getStatisticsDataStepAssessmentForPathwayStep,
             ]
           : preferMeasurement(context)
             ? [
@@ -178,6 +198,7 @@ export function getStepAssessmentForPathwayStep(
                 getRatioProportionalReasoningStepAssessmentForPathwayStep,
                 getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
                 getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                getStatisticsDataStepAssessmentForPathwayStep,
               ]
             : preferGeometrySpatialReasoning(context)
               ? [
@@ -188,16 +209,29 @@ export function getStepAssessmentForPathwayStep(
                   getRatioProportionalReasoningStepAssessmentForPathwayStep,
                   getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
                   getMeasurementStepAssessmentForPathwayStep,
+                  getStatisticsDataStepAssessmentForPathwayStep,
                 ]
-              : [
-                  getNumberStepAssessmentForPathwayStep,
-                  getOperationsStepAssessmentForPathwayStep,
-                  getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
-                  getRatioProportionalReasoningStepAssessmentForPathwayStep,
-                  getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
-                  getMeasurementStepAssessmentForPathwayStep,
-                  getGeometrySpatialReasoningStepAssessmentForPathwayStep,
-                ];
+              : preferStatisticsData(context)
+                ? [
+                    getStatisticsDataStepAssessmentForPathwayStep,
+                    getNumberStepAssessmentForPathwayStep,
+                    getOperationsStepAssessmentForPathwayStep,
+                    getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                    getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                    getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+                    getMeasurementStepAssessmentForPathwayStep,
+                    getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                  ]
+                : [
+                    getNumberStepAssessmentForPathwayStep,
+                    getOperationsStepAssessmentForPathwayStep,
+                    getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+                    getRatioProportionalReasoningStepAssessmentForPathwayStep,
+                    getAlgebraPatternsFunctionsStepAssessmentForPathwayStep,
+                    getMeasurementStepAssessmentForPathwayStep,
+                    getGeometrySpatialReasoningStepAssessmentForPathwayStep,
+                    getStatisticsDataStepAssessmentForPathwayStep,
+                  ];
 
   for (const getAssessment of registries) {
     const assessment = getAssessment(context);
@@ -245,6 +279,10 @@ export function getStepAssessmentItemsForDepth(
       assessment.key,
       depth,
     );
+  }
+
+  if (assessment.strandKey === "statistics-and-data") {
+    return getStatisticsDataStepAssessmentItemsForDepth(assessment.key, depth);
   }
 
   return getNumberStepAssessmentItemsForDepth(assessment.key, depth);

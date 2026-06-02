@@ -230,7 +230,8 @@ function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) 
         strandKey === "ratio-and-proportional-reasoning" ||
         strandKey === "algebra-patterns-and-functions" ||
         strandKey === "measurement" ||
-        strandKey === "geometry-and-spatial-reasoning")
+        strandKey === "geometry-and-spatial-reasoning" ||
+        strandKey === "statistics-and-data")
     );
 }
 
