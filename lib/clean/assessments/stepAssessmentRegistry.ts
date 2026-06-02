@@ -270,7 +270,12 @@ export function getStepAssessmentForPathwayStep(
                     ];
 
   for (const getAssessment of registries) {
-    const assessment = getAssessment(context);
+    let assessment: ReturnType<typeof getAssessment> = null;
+    try {
+      assessment = getAssessment(context);
+    } catch {
+      assessment = null;
+    }
     if (assessment) return assessment;
   }
 

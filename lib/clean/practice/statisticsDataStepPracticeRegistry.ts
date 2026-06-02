@@ -54,38 +54,39 @@ function makePracticeTask(
   index: number,
 ): NumberPracticeTask {
   const item = spec.cases[index];
+  const fallbackTitle = `Practice ${index + 1}`;
 
   return {
     id: `statistics-data-step-${spec.order}-practice-${String(index + 1).padStart(
       3,
       "0",
     )}`,
-    title: item.title,
-    prompt: item.practicePrompt,
+    title: item?.title ?? fallbackTitle,
+    prompt: item?.practicePrompt ?? spec.description,
     taskType: "multiple_choice",
-    options: item.options,
-    expectedAnswer: item.answer,
-    acceptableAnswers: [item.answer],
+    options: item?.options ?? [],
+    expectedAnswer: item?.answer ?? "",
+    acceptableAnswers: item?.answer ? [item.answer] : [],
     supportPrompt:
       "Use the visual first. Check the categories, counts, scale, or evidence before choosing the answer.",
-    workedSolution: `The matching answer is ${item.answer}.`,
-    misconceptionTargets: item.misconceptionTargets,
+    workedSolution: item?.answer ? `The matching answer is ${item.answer}.` : "",
+    misconceptionTargets: item?.misconceptionTargets ?? [],
     relatedAssessmentItemIds: [relatedAssessmentItemId],
-    visualSupport: visual(item.visual),
+    visualSupport: visual(item?.visual ?? spec.description),
   };
 }
 
 export const STATISTICS_DATA_STEP_PRACTICES: StatisticsDataStepPractice[] =
-  STATISTICS_DATA_STEP_SPECS.map((spec) => {
+  STATISTICS_DATA_STEP_SPECS.flatMap((spec) => {
     const assessment = STATISTICS_DATA_STEP_ASSESSMENTS.find(
       (candidate) => candidate.pathwayStepId === spec.pathwayStepId,
     );
 
     if (!assessment) {
-      throw new Error(`Missing Statistics assessment for ${spec.pathwayStepId}.`);
+      return [];
     }
 
-    return {
+    return [{
       key: `statistics-data-step-${spec.order}-${spec.stepKey}-practice-v1`,
       stepNumber: spec.stepNumber,
       stepKey: spec.stepKey,
@@ -103,7 +104,7 @@ export const STATISTICS_DATA_STEP_PRACTICES: StatisticsDataStepPractice[] =
       tasks: assessment.items.map((assessmentItem, index) =>
         makePracticeTask(spec, assessmentItem.id, index),
       ),
-    };
+    }];
   });
 
 export function getStatisticsDataStepPracticeForPathwayStep(

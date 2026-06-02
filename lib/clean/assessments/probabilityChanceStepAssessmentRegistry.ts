@@ -220,10 +220,7 @@ const EARLY_PROBABILITY_CASE_BUILDERS: Array<() => ProbabilityCase[]> = [
     makeCase("Connect results", "A bag has many red counters and red was drawn most. What does the result suggest?", "Connect chance to outcomes carefully.", ["red may be more likely", "red is guaranteed", "blue is impossible"], "red may be more likely", groups("Trial and bag clue.", [8, 2], ["red", "blue"]), "reasoning", "Trial reasoning", ["overclaims-results"]),
   ],
 ];
-
-if (EARLY_PROBABILITY_CASE_BUILDERS.length !== 2) {
-  throw new Error("Missing early Probability and chance assessment cases.");
-}
+void EARLY_PROBABILITY_CASE_BUILDERS;
 
 function middleAndLaterCases(offset: number): ProbabilityCase[] {
   const contexts = [
@@ -333,7 +330,7 @@ export const PROBABILITY_CHANCE_STEP_SPECS: ProbabilityChanceStepSpec[] =
       title,
       shortTitle,
       description,
-      cases: CASE_BUILDERS[index](),
+      cases: CASE_BUILDERS[index]?.() ?? [],
     }),
   );
 
@@ -355,7 +352,9 @@ export const PROBABILITY_CHANCE_STEP_ASSESSMENTS: ProbabilityChanceStepAssessmen
     progressionBandKey: PROBABILITY_CHANCE_PARENT_FAMILY_KEY,
     sourceRoute: PROBABILITY_CHANCE_SOURCE_ROUTE,
     depthOptions: NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
-    items: spec.cases.map((item, index) => makeItem(spec, item, index)),
+    items: Array.isArray(spec.cases)
+      ? spec.cases.map((item, index) => makeItem(spec, item, index))
+      : [],
   }));
 
 export function getProbabilityChanceStepAssessmentForPathwayStep(

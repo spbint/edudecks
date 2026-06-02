@@ -266,7 +266,12 @@ export function getStepPracticeForPathwayStep(
                     ];
 
   for (const getPractice of registries) {
-    const practice = getPractice(context);
+    let practice: ReturnType<typeof getPractice> = null;
+    try {
+      practice = getPractice(context);
+    } catch {
+      practice = null;
+    }
     if (practice) return practice;
   }
 

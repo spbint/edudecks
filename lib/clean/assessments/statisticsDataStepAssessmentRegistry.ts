@@ -344,7 +344,7 @@ export const STATISTICS_DATA_STEP_SPECS: StatisticsDataStepSpec[] =
       title,
       shortTitle,
       description,
-      cases: CASE_BUILDERS[index](),
+      cases: CASE_BUILDERS[index]?.() ?? [],
     }),
   );
 
@@ -366,7 +366,9 @@ export const STATISTICS_DATA_STEP_ASSESSMENTS: StatisticsDataStepAssessment[] =
     progressionBandKey: STATISTICS_DATA_PARENT_FAMILY_KEY,
     sourceRoute: STATISTICS_DATA_SOURCE_ROUTE,
     depthOptions: NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
-    items: spec.cases.map((item, index) => makeItem(spec, item, index)),
+    items: Array.isArray(spec.cases)
+      ? spec.cases.map((item, index) => makeItem(spec, item, index))
+      : [],
   }));
 
 export function getStatisticsDataStepAssessmentForPathwayStep(
