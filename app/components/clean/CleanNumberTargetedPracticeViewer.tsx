@@ -381,6 +381,248 @@ function renderGeometryPracticeVisual(taskId: string) {
   );
 }
 
+function getStatisticsStep1VisualLabels(id: string) {
+  if (!id.startsWith("statistics-data-step-1-")) return null;
+
+  const suffix = id.slice(-3);
+  const cardsBySuffix: Record<string, string[]> = {
+    "001": ["apple", "banana", "ball", "sock"],
+    "002": ["blue car", "red cup", "green leaf"],
+    "003": ["circle button", "square tile", "triangle flag"],
+    "004": ["dog", "bird", "cat", "chair", "spoon"],
+    "005": ["pear", "orange", "truck"],
+    "006": ["red ball", "red hat", "blue book"],
+    "007": ["big button", "small button"],
+    "008": ["snacks", "things with wheels", "things that fly"],
+    "009": ["red blocks", "blue blocks"],
+    "010": ["shells", "stones"],
+    "011": ["toy cars", "toy trains"],
+    "012": ["leaves", "flowers"],
+  };
+
+  return cardsBySuffix[suffix] ?? null;
+}
+
+function getObjectColour(label: string) {
+  const normalised = label.toLowerCase();
+  if (normalised.includes("blue")) return "#2563eb";
+  if (normalised.includes("red")) return "#dc2626";
+  if (normalised.includes("green") || normalised.includes("leaf")) return "#16a34a";
+  if (normalised.includes("orange")) return "#f97316";
+  if (normalised.includes("banana") || normalised.includes("yellow")) return "#facc15";
+  if (normalised.includes("pear")) return "#84cc16";
+  return "#64748b";
+}
+
+function renderStatisticsObjectIcon(label: string, selected = false) {
+  const normalised = label.toLowerCase();
+  const colour = getObjectColour(label);
+  const stroke = selected ? "#1d4ed8" : "#334155";
+  const commonStyle: React.CSSProperties = {
+    width: "min(100px, 40vw)",
+    height: 74,
+    display: "block",
+    margin: "0 auto",
+  };
+
+  if (normalised.includes("car") || normalised.includes("truck") || normalised.includes("wheels")) {
+    const isTruck = normalised.includes("truck");
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <rect x="16" y={isTruck ? 30 : 36} width={isTruck ? 78 : 86} height="24" rx="7" fill={colour} stroke={stroke} strokeWidth="4" />
+        <rect x={isTruck ? 62 : 34} y={isTruck ? 18 : 24} width={isTruck ? 32 : 42} height="20" rx="5" fill="#dbeafe" stroke={stroke} strokeWidth="4" />
+        <circle cx="35" cy="60" r="8" fill="#0f172a" />
+        <circle cx="84" cy="60" r="8" fill="#0f172a" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("cup") || normalised.includes("bowl") || normalised.includes("spoon")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <path d="M30 26 H76 L70 62 H38 Z" fill={colour} stroke={stroke} strokeWidth="4" />
+        <path d="M76 32 H92 C98 32 98 48 90 50 H73" fill="none" stroke={stroke} strokeWidth="4" />
+        <path d="M88 18 C102 28 102 48 88 62" fill="none" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("leaf") || normalised.includes("leaves") || normalised.includes("flower") || normalised.includes("tree")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <path d="M60 62 C22 42 34 14 72 18 C94 36 82 64 60 62 Z" fill={normalised.includes("flower") ? "#f9a8d4" : "#22c55e"} stroke={stroke} strokeWidth="4" />
+        <path d="M36 54 C54 44 70 34 88 20" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" />
+        {normalised.includes("flower") ? <circle cx="60" cy="40" r="9" fill="#facc15" stroke={stroke} strokeWidth="3" /> : null}
+      </svg>
+    );
+  }
+
+  if (normalised.includes("apple") || normalised.includes("pear") || normalised.includes("orange") || normalised.includes("banana") || normalised.includes("fruit") || normalised.includes("snack") || normalised.includes("sandwich")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        {normalised.includes("banana") ? (
+          <path d="M28 48 C48 68 88 66 100 34 C82 50 54 54 34 34" fill="#facc15" stroke={stroke} strokeWidth="4" />
+        ) : normalised.includes("sandwich") ? (
+          <path d="M24 56 L60 18 L96 56 Z" fill="#fde68a" stroke={stroke} strokeWidth="4" />
+        ) : (
+          <>
+            <circle cx="60" cy="44" r={normalised.includes("pear") ? 25 : 24} fill={colour === "#64748b" ? "#ef4444" : colour} stroke={stroke} strokeWidth="4" />
+            <path d="M58 22 C62 14 70 12 78 16" fill="none" stroke="#16a34a" strokeWidth="5" strokeLinecap="round" />
+          </>
+        )}
+      </svg>
+    );
+  }
+
+  if (normalised.includes("ball") || normalised.includes("toy")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <circle cx="60" cy="42" r="28" fill={colour === "#64748b" ? "#f97316" : colour} stroke={stroke} strokeWidth="4" />
+        <path d="M34 42 H86 M60 14 C48 30 48 54 60 70 M60 14 C72 30 72 54 60 70" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("book") || normalised.includes("clothing") || normalised.includes("sock")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        {normalised.includes("sock") || normalised.includes("clothing") ? (
+          <path d="M42 16 H68 V48 C74 48 86 52 86 62 C86 70 76 72 66 68 L42 58 Z" fill={colour === "#64748b" ? "#a78bfa" : colour} stroke={stroke} strokeWidth="4" />
+        ) : (
+          <rect x="32" y="18" width="56" height="48" rx="6" fill={colour} stroke={stroke} strokeWidth="4" />
+        )}
+      </svg>
+    );
+  }
+
+  if (normalised.includes("cat") || normalised.includes("dog") || normalised.includes("bird") || normalised.includes("animal")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <circle cx="60" cy="42" r="25" fill="#fde68a" stroke={stroke} strokeWidth="4" />
+        {normalised.includes("bird") ? (
+          <path d="M44 42 C58 20 82 26 86 48 C70 42 56 44 44 42 Z" fill="#60a5fa" stroke={stroke} strokeWidth="4" />
+        ) : (
+          <>
+            <path d="M40 24 L48 8 L56 26 M64 26 L76 8 L80 30" fill="#fde68a" stroke={stroke} strokeWidth="4" strokeLinejoin="round" />
+            <circle cx="51" cy="40" r="3" fill="#0f172a" />
+            <circle cx="69" cy="40" r="3" fill="#0f172a" />
+          </>
+        )}
+      </svg>
+    );
+  }
+
+  if (normalised.includes("button") || normalised.includes("circle")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <circle cx="60" cy="42" r={normalised.includes("big") ? 30 : 22} fill={colour === "#64748b" ? "#e2e8f0" : colour} stroke={stroke} strokeWidth="4" />
+        <circle cx="52" cy="38" r="4" fill="#ffffff" />
+        <circle cx="68" cy="38" r="4" fill="#ffffff" />
+        <circle cx="52" cy="52" r="4" fill="#ffffff" />
+        <circle cx="68" cy="52" r="4" fill="#ffffff" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("tile") || normalised.includes("square") || normalised.includes("block")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <rect x="34" y="18" width="52" height="52" rx="7" fill={colour === "#64748b" ? "#e0f2fe" : colour} stroke={stroke} strokeWidth="4" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("flag") || normalised.includes("triangle") || normalised.includes("things that fly")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <path d="M36 12 V70" stroke={stroke} strokeWidth="5" strokeLinecap="round" />
+        <path d="M38 14 L92 32 L38 50 Z" fill={colour === "#64748b" ? "#facc15" : colour} stroke={stroke} strokeWidth="4" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("shell") || normalised.includes("stone")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <ellipse cx="60" cy="46" rx="34" ry="22" fill={normalised.includes("shell") ? "#fed7aa" : "#cbd5e1"} stroke={stroke} strokeWidth="4" />
+        <path d="M36 46 H84 M46 32 V62 M60 28 V66 M74 34 V60" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+      <rect x="22" y="18" width="76" height="46" rx="12" fill="#f8fafc" stroke={stroke} strokeWidth="4" />
+      <circle cx="46" cy="41" r="10" fill="#2563eb" />
+      <circle cx="74" cy="41" r="10" fill="#22c55e" />
+    </svg>
+  );
+}
+
+function renderStatisticsSortingVisualCard(label: string, selected = false) {
+  return (
+    <div style={{ display: "grid", gap: 8, justifyItems: "center" }}>
+      {renderStatisticsObjectIcon(label, selected)}
+      <span
+        style={{
+          color: selected ? "#1d4ed8" : "#475569",
+          fontSize: 13,
+          fontWeight: 800,
+          textAlign: "center",
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function renderStatisticsPracticeVisual(taskId: string) {
+  const labels = getStatisticsStep1VisualLabels(taskId);
+  if (!labels) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 16,
+        background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+        Sorting cards
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {labels.map((label) => (
+          <div
+            key={`${taskId}-${label}`}
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 14,
+              background: "#ffffff",
+              padding: 8,
+              minHeight: 112,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {renderStatisticsSortingVisualCard(label)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const dot = {
   centre: { x: 50, y: 50 },
   left: { x: 34, y: 50 },
@@ -646,6 +888,9 @@ function parseEarlyNumberVisual(description: string | undefined) {
 function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
   const geometryVisual = renderGeometryPracticeVisual(task.id);
   if (geometryVisual) return geometryVisual;
+
+  const statisticsVisual = renderStatisticsPracticeVisual(task.id);
+  if (statisticsVisual) return statisticsVisual;
 
   const step1Visual = renderStep1PracticeVisual(task.id);
   if (step1Visual) return step1Visual;
@@ -1074,6 +1319,10 @@ function TaskCard({
             )
               ? renderGeometryShapeVisualCard(option, isSelected)
               : null;
+            const statisticsVisual =
+              !shapeVisual && task.id.startsWith("statistics-data-step-1-")
+                ? renderStatisticsSortingVisualCard(option, isSelected)
+                : null;
 
             return (
               <button
@@ -1091,10 +1340,11 @@ function TaskCard({
                   cursor: "pointer",
                   font: "inherit",
                   display: "grid",
-                  justifyItems: shapeVisual ? "center" : "stretch",
+                  justifyItems:
+                    shapeVisual || statisticsVisual ? "center" : "stretch",
                 }}
               >
-                {shapeVisual ?? option}
+                {shapeVisual ?? statisticsVisual ?? option}
               </button>
             );
           })}
