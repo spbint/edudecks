@@ -1745,8 +1745,8 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
   const colour = getObjectColour(label);
   const stroke = selected ? "#1d4ed8" : "#334155";
   const commonStyle: React.CSSProperties = {
-    width: "min(100px, 40vw)",
-    height: 74,
+    width: 58,
+    height: 42,
     display: "block",
     margin: "0 auto",
   };
@@ -1887,13 +1887,14 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
 
 function renderStatisticsSortingVisualCard(label: string, selected = false) {
   return (
-    <div style={{ display: "grid", gap: 8, justifyItems: "center" }}>
+    <div style={{ display: "grid", gap: 4, justifyItems: "center" }}>
       {renderStatisticsObjectIcon(label, selected)}
       <span
         style={{
           color: selected ? "#1d4ed8" : "#475569",
-          fontSize: 13,
+          fontSize: 11,
           fontWeight: 800,
+          lineHeight: 1.2,
           textAlign: "center",
         }}
       >
@@ -1911,21 +1912,21 @@ function renderStatisticsSortingVisual(item: NumberAssessmentBankItem) {
     <div
       style={{
         border: "1px solid #bfdbfe",
-        borderRadius: 18,
+        borderRadius: 14,
         background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
-        padding: 14,
+        padding: 10,
         display: "grid",
-        gap: 12,
+        gap: 8,
       }}
     >
-      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+      <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 800 }}>
         Sorting cards
       </div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-          gap: 10,
+          gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))",
+          gap: 6,
         }}
       >
         {labels.map((label) => (
@@ -1933,10 +1934,11 @@ function renderStatisticsSortingVisual(item: NumberAssessmentBankItem) {
             key={`${item.id}-${label}`}
             style={{
               border: "1px solid #dbeafe",
-              borderRadius: 16,
+              borderRadius: 12,
               background: "#ffffff",
-              padding: 10,
-              minHeight: 120,
+              padding: 6,
+              minHeight: 76,
+              maxWidth: 116,
               display: "grid",
               placeItems: "center",
             }}
@@ -3517,8 +3519,20 @@ function CleanNumberAssessmentPlayerBody() {
     const structuredResponse = getCurrentStructuredResponse();
 
     if (currentItem.answerType === "multiple_choice") {
+      const statisticsStep1Options = currentItem.id.startsWith(
+        "statistics-data-step-1-",
+      );
+
       return (
-        <div style={{ display: "grid", gap: 10 }}>
+        <div
+          style={{
+            display: "grid",
+            gap: statisticsStep1Options ? 8 : 10,
+            gridTemplateColumns: statisticsStep1Options
+              ? "repeat(auto-fit, minmax(118px, 1fr))"
+              : undefined,
+          }}
+        >
           {(currentItem.options ?? []).map((option) => {
             const isSelected = currentResponse.response === option;
             const shapeVisual = currentItem.id.startsWith(
@@ -3548,6 +3562,10 @@ function CleanNumberAssessmentPlayerBody() {
                     shapeVisual || statisticsVisual
                       ? "center"
                       : optionButtonStyle.alignItems,
+                  justifyContent:
+                    statisticsVisual || shapeVisual ? "center" : undefined,
+                  minHeight: statisticsVisual ? 92 : undefined,
+                  padding: statisticsVisual ? "8px 6px" : optionButtonStyle.padding,
                 }}
               >
                 {shapeVisual ?? statisticsVisual ?? <span>{option}</span>}
