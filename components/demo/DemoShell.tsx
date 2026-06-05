@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import DemoCalendar from "@/components/demo/DemoCalendar";
 import DemoCapture from "@/components/demo/DemoCapture";
@@ -163,6 +164,35 @@ export default function DemoShell() {
         <DemoData onNext={() => nextFrom("data")} />
         <DemoReports onNext={() => nextFrom("reports")} />
         <DemoOutputs />
+
+        <section
+          style={{
+            ...demoCard,
+            display: "grid",
+            gap: 14,
+            background:
+              "linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(124,58,237,0.08) 100%)",
+            border: "1px solid #bfdbfe",
+          }}
+        >
+          <div style={{ color: demoColors.blue, fontWeight: 900, fontSize: 12 }}>
+            NEXT STEP
+          </div>
+          <h2 style={{ margin: 0, fontSize: 30 }}>Want to help shape MyLearna?</h2>
+          <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.7, maxWidth: 820 }}>
+            MyLearna is growing through beta. Explore the demo, try the workflow,
+            and if it could help your homeschool, join the beta and help shape what
+            comes next.
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/beta?source=demo" style={demoButton}>
+              Join the beta
+            </Link>
+            <button type="button" onClick={() => goTo("family")} style={demoSecondaryButton}>
+              Revisit the demo
+            </button>
+          </div>
+        </section>
 
         <footer style={{ color: demoColors.slate, lineHeight: 1.6, fontSize: 13 }}>
           {carterFamilyDemo.family.note} This public simulator uses static fictional data

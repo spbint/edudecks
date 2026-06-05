@@ -25,6 +25,12 @@ const PUBLIC_SITEMAP_PAGES: SitemapEntryConfig[] = [
     priority: 0.9,
   },
   {
+    path: "/demo",
+    sourceFile: "app/demo/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.9,
+  },
+  {
     path: "/pricing",
     sourceFile: "app/pricing/page.tsx",
     changeFrequency: "weekly",

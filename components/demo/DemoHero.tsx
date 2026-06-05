@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { carterFamilyDemo } from "@/lib/demo/carterFamilyDemoData";
-import { demoButton, demoCard, demoColors } from "@/components/demo/DemoShell";
+import {
+  demoButton,
+  demoCard,
+  demoColors,
+  demoSecondaryButton,
+} from "@/components/demo/DemoShell";
 
 export default function DemoHero({ onStart }: { onStart: () => void }) {
   return (
@@ -28,12 +34,15 @@ export default function DemoHero({ onStart }: { onStart: () => void }) {
           Public demo
         </span>
         <h1 style={{ margin: 0, fontSize: "clamp(34px, 7vw, 60px)", lineHeight: 1 }}>
-          The Carter Family homeschool month
+          See how MyLearna works for a homeschool family
         </h1>
         <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.7, fontSize: 17 }}>
-          Explore a fictional U.S. homeschool family using MyLearna to plan
-          learning, follow pathways, capture evidence, build portfolios, review
-          data, and prepare demo-only outputs.
+          Explore a fictional U.S. homeschool family and follow the journey from
+          planning, to evidence, to portfolio, to reports and sample outputs.
+        </p>
+        <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.65, fontSize: 15 }}>
+          Explore a fictional homeschool month and see how MyLearna connects
+          planning, evidence, portfolios and reports.
         </p>
         <p
           style={{
@@ -49,10 +58,13 @@ export default function DemoHero({ onStart }: { onStart: () => void }) {
         >
           This is a fictional demo family using sample data. No account is required.
         </p>
-        <div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" onClick={onStart} style={demoButton}>
-            Start demo
+            Start the demo
           </button>
+          <Link href="/beta?source=demo" style={demoSecondaryButton}>
+            Join the beta
+          </Link>
         </div>
       </div>
 

@@ -1,10 +1,15 @@
+import type { Metadata } from "next";
 import DemoShell from "@/components/demo/DemoShell";
+import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
-export const metadata = {
-  title: "MyLearna Demo | Carter Family",
-  description:
-    "Explore a fictional U.S. homeschool family demo with planning, pathways, evidence, portfolio, data, reports, and sample demo outputs.",
-};
+const demoDescription =
+  "Explore a fictional U.S. homeschool family demo and see how MyLearna connects planning, learning pathways, evidence, portfolios, data, reports and outputs.";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "MyLearna Demo | Homeschool Planning, Evidence and Reports",
+  description: demoDescription,
+  path: "/demo",
+});
 
 export default function DemoPage() {
   return <DemoShell />;

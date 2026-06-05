@@ -107,7 +107,7 @@ export default function HomePage() {
       heroMicrocopy={
         <span>
           Ready to join? Request free beta access. Want to understand the flow first?
-          See how it works.
+          Explore the public demo.
         </span>
       }
       asideTitle=""
@@ -115,11 +115,11 @@ export default function HomePage() {
       asideItems={[]}
       heroAsideVisible={false}
       primaryCta={PRIMARY_CTA}
-      secondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
+      secondaryCta={{ label: "Explore the demo", href: "/demo" }}
       headerAction={{ label: "Sign in", href: "/login" }}
       headerPrimaryAction={HEADER_PRIMARY_CTA}
       footerPrimaryCta={PRIMARY_CTA}
-      footerSecondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
+      footerSecondaryCta={{ label: "Explore the demo", href: "/demo" }}
       showWorkflowStrip={false}
     >
       <section
@@ -147,6 +147,39 @@ export default function HomePage() {
           MyLearna is evolving with feedback from homeschooling families. Help shape the
           homeschool record system we&apos;re building with families.
         </p>
+      </section>
+
+      <section
+        style={{
+          ...publicCardStyle(),
+          marginBottom: isMobile ? 18 : 22,
+          padding: isMobile ? 18 : isTablet ? 22 : 24,
+          display: "grid",
+          gap: 12,
+          border: "1px solid #bfdbfe",
+          background: "#ffffff",
+        }}
+      >
+        <div style={publicPill("#eff6ff", "#1d4ed8")}>Public demo</div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 15,
+            lineHeight: 1.7,
+            color: "#334155",
+            maxWidth: 880,
+            fontWeight: 700,
+          }}
+        >
+          See MyLearna in action with a fictional homeschool family. Explore
+          planning, pathways, evidence, portfolios, data, reports and sample
+          outputs - no account required.
+        </p>
+        <div>
+          <Link href="/demo" style={publicButtonStyle(false)}>
+            Explore the demo
+          </Link>
+        </div>
       </section>
 
       <section

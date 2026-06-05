@@ -36,6 +36,7 @@ type PublicSiteShellProps = {
 
 const NAV_ITEMS = [
   { href: "/#how-it-works", label: "How it works" },
+  { href: "/demo", label: "Demo" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

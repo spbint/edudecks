@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell, {
   publicButtonStyle,
@@ -288,6 +289,44 @@ export default function BetaInterestPage() {
       asideTitle="Who this is for"
       asideText="Families who want a calmer way to plan learning, capture evidence, curate portfolio moments, and build reports over time."
     >
+      <section
+        style={{
+          ...publicCardStyle(),
+          marginBottom: 20,
+          display: "grid",
+          gap: 12,
+          border: "1px solid #bfdbfe",
+          background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 900,
+            color: "#0f172a",
+          }}
+        >
+          Want to see the workflow first?
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 14,
+            lineHeight: 1.65,
+            color: "#475569",
+            maxWidth: 820,
+          }}
+        >
+          Not ready to join yet? Explore the public demo first and see how a
+          fictional homeschool family moves from planning to reports.
+        </p>
+        <div>
+          <Link href="/demo" style={publicButtonStyle(false)}>
+            Explore the demo
+          </Link>
+        </div>
+      </section>
+
       <div
         style={{
           display: "grid",
