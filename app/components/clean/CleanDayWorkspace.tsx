@@ -7,6 +7,7 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import {
   CleanBetaFeedbackPrompt,
+  CleanContinueWhereYouLeftOffCard,
   CleanNextStepCard,
 } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanFamilyWorkspaceProvider, {
@@ -275,6 +276,12 @@ function CleanDayWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-capture"
     : "/my-capture";
+  const pathwaysPathBase = pathname.startsWith("/clean-my-day")
+    ? "/clean-my-pathways"
+    : "/my-pathways";
+  const portfolioPathBase = pathname.startsWith("/clean-my-day")
+    ? "/clean-my-portfolio"
+    : "/my-portfolio";
   const selectedDate = useMemo(() => {
     const candidate = searchParams.get("date");
     return isValidDateValue(candidate) ? candidate : today;
@@ -499,6 +506,56 @@ function CleanDayWorkspaceBody() {
   const nextStepBody = nextStepGuidance
     ? nextStepGuidance.description.replace("&apos;", "'")
     : "Start with today's learning. Plan one block, capture one useful piece of evidence, and let MyLearna begin building the record over time.";
+  const continueActions = useMemo(() => {
+    const pathwayHref = selectedLearnerId
+      ? `${pathwaysPathBase}?learnerId=${encodeURIComponent(selectedLearnerId)}`
+      : pathwaysPathBase;
+    const pathwayLabel = selectedLearnerLabel
+      ? `Open ${selectedLearnerLabel}'s current pathway`
+      : "Open current pathway";
+
+    return [
+      sortedVisibleItems.length
+        ? {
+            href: buildDayPath(selectedDate),
+            label: isViewingToday ? "Review today's learning" : "Review this day",
+            tone: "blue" as const,
+          }
+        : {
+            href: calendarPathBase,
+            label: "Plan this week",
+            tone: "blue" as const,
+          },
+      {
+        href: pathwayHref,
+        label: pathwayLabel,
+        tone: "green" as const,
+      },
+      evidenceEntries.length
+        ? {
+            href: portfolioPathBase,
+            label: "Choose evidence for portfolio",
+            tone: "orange" as const,
+          }
+        : {
+            href: capturePathBase,
+            label: selectedLearnerLabel ? `Capture evidence for ${selectedLearnerLabel}` : "Capture evidence",
+            tone: "orange" as const,
+          },
+    ];
+  }, [
+    buildDayPath,
+    calendarPathBase,
+    capturePathBase,
+    evidenceEntries.length,
+    isViewingToday,
+    pathwaysPathBase,
+    portfolioPathBase,
+    selectedDate,
+    selectedLearnerId,
+    selectedLearnerLabel,
+    sortedVisibleItems.length,
+  ]);
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -793,6 +850,8 @@ function CleanDayWorkspaceBody() {
             </p>
           </div>
         </section>
+
+        <CleanContinueWhereYouLeftOffCard actions={continueActions} />
 
         <CleanNextStepCard
           body={nextStepBody}

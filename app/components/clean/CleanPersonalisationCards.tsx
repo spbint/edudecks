@@ -12,6 +12,17 @@ type CleanBetaFeedbackPromptProps = {
   pageName: string;
 };
 
+export type CleanContinueAction = {
+  href: string;
+  label: string;
+  tone?: "blue" | "green" | "orange";
+};
+
+type CleanContinueWhereYouLeftOffCardProps = {
+  actions: CleanContinueAction[];
+  description?: string;
+};
+
 const cardStyle: React.CSSProperties = {
   border: "1px solid #bfdbfe",
   borderRadius: 18,
@@ -49,6 +60,24 @@ const linkStyle: React.CSSProperties = {
   textDecoration: "none",
 };
 
+const toneStyles: Record<NonNullable<CleanContinueAction["tone"]>, React.CSSProperties> = {
+  blue: {
+    borderColor: "#bfdbfe",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+  },
+  green: {
+    borderColor: "#bbf7d0",
+    background: "#f0fdf4",
+    color: "#15803d",
+  },
+  orange: {
+    borderColor: "#fed7aa",
+    background: "#fff7ed",
+    color: "#c2410c",
+  },
+};
+
 export function CleanNextStepCard({
   actionHref,
   actionLabel,
@@ -66,6 +95,46 @@ export function CleanNextStepCard({
           </Link>
         </div>
       ) : null}
+    </section>
+  );
+}
+
+export function CleanContinueWhereYouLeftOffCard({
+  actions,
+  description = "Pick up from the next useful part of your homeschool record.",
+}: CleanContinueWhereYouLeftOffCardProps) {
+  const visibleActions = actions.filter((action) => action.href && action.label).slice(0, 3);
+
+  if (!visibleActions.length) {
+    return null;
+  }
+
+  return (
+    <section
+      style={{
+        ...cardStyle,
+        borderColor: "#dbeafe",
+        padding: 16,
+      }}
+    >
+      <div style={{ display: "grid", gap: 5 }}>
+        <div style={eyebrowStyle}>Continue where you left off</div>
+        <p style={{ ...textStyle, fontSize: 14 }}>{description}</p>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {visibleActions.map((action, index) => (
+          <Link
+            key={`${action.href}-${index}`}
+            href={action.href}
+            style={{
+              ...linkStyle,
+              ...(action.tone ? toneStyles[action.tone] : null),
+            }}
+          >
+            {action.label}
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
