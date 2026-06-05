@@ -2023,6 +2023,10 @@ function CleanCalendarWorkspaceBody() {
       setPlannerDownloading(false);
     }
   }
+  const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
+  const calendarHeading = familyDisplayName
+    ? `${familyDisplayName} learning week`
+    : "My Calendar";
 
   return (
     <div style={shellStyle}>
@@ -2052,7 +2056,7 @@ function CleanCalendarWorkspaceBody() {
             >
               MyLearna planning
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Calendar</h1>
+            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{calendarHeading}</h1>
             <p style={secondaryTextStyle}>
               Set term dates, keep a reusable master week, and shape the live week when
               you need it.

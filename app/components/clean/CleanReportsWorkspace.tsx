@@ -1109,7 +1109,7 @@ function CleanReportsWorkspaceBody() {
       setSelectedReportId(report.id);
       setMessage(
         status === "ready"
-          ? "Report marked ready."
+          ? "First report preview ready. Your records are beginning to come together."
           : status === "archived"
             ? "Report archived."
             : "Report returned to draft.",

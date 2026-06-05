@@ -597,7 +597,9 @@ function CurriculumWorkspaceBody() {
             <div style={{ display: "grid", gap: 10 }}>
               <div style={eyebrowStyle}>Connected overview</div>
               <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>
-                Learning Intelligence
+                {selectedLearnerDisplayName
+                  ? `Learning Intelligence for ${selectedLearnerDisplayName}`
+                  : "Learning Intelligence"}
               </h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
                 A clear overview of learner progress across pathways, assessment confidence,

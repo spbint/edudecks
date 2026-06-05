@@ -5,6 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
+import {
+  CleanBetaFeedbackPrompt,
+  CleanNextStepCard,
+} from "@/app/components/clean/CleanPersonalisationCards";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -487,6 +491,14 @@ function CleanDayWorkspaceBody() {
   const quickAddLead = isViewingToday
     ? "Add today's learning block here, then capture evidence later when something useful happens. Use My Calendar when you want the fuller planning view."
     : "Add this day's learning block here, then capture evidence later when something useful happens. Use My Calendar when you want the fuller planning view.";
+  const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
+  const familyGreeting = familyDisplayName
+    ? `Welcome back, ${familyDisplayName}.`
+    : "Welcome back.";
+  const nextStepGuidance = openGuidanceCards[0] ?? null;
+  const nextStepBody = nextStepGuidance
+    ? nextStepGuidance.description.replace("&apos;", "'")
+    : "Start with today's learning. Plan one block, capture one useful piece of evidence, and let MyLearna begin building the record over time.";
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -777,10 +789,18 @@ function CleanDayWorkspaceBody() {
               {formatTodayHeading(selectedDate)}
             </p>
             <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
-              See what is planned and what comes next.
+              {familyGreeting} See what is planned and what comes next.
             </p>
           </div>
         </section>
+
+        <CleanNextStepCard
+          body={nextStepBody}
+          actionHref={nextStepGuidance?.actionHref}
+          actionLabel={nextStepGuidance?.actionLabel}
+        />
+
+        <CleanBetaFeedbackPrompt pageName="My Day" />
 
         {workspace.loading ? <section style={cardStyle}>Loading your day...</section> : null}
 

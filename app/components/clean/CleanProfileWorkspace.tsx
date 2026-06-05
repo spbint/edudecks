@@ -207,6 +207,8 @@ function CleanProfileWorkspaceBody() {
       },
     ];
   }, [setupContextReady, workspace.learners.length, workspace.requiresFamilyCreation]);
+  const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
+  const profileHeading = familyDisplayName ? `${familyDisplayName} profile` : "My Profile";
 
   async function handleCreateFamilyProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -394,7 +396,7 @@ function CleanProfileWorkspaceBody() {
             >
               Family details
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Profile</h1>
+            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{profileHeading}</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Keep family details and learner information together here.
             </p>

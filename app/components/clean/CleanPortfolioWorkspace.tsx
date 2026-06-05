@@ -390,7 +390,11 @@ function CleanPortfolioWorkspaceBody() {
           learnerId: item.evidence.learnerId,
           evidenceEntryId: item.evidence.id,
         });
-        setMessage("Added to portfolio.");
+        setMessage(
+          items.some((portfolioItem) => portfolioItem.highlight)
+            ? "Added to portfolio."
+            : "First portfolio item added. You've chosen a meaningful piece of learning evidence.",
+        );
       }
 
       await reloadItems();
@@ -443,6 +447,11 @@ function CleanPortfolioWorkspaceBody() {
 
   const readyForPortfolio =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const selectedLearnerLabel =
+    learnerOptions.find((option) => option.value === selectedLearnerId)?.label || "";
+  const portfolioHeading = selectedLearnerLabel
+    ? `${selectedLearnerLabel}'s portfolio`
+    : "My Portfolio";
 
   return (
     <div style={shellStyle}>
@@ -468,7 +477,7 @@ function CleanPortfolioWorkspaceBody() {
             >
               Choose evidence
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Portfolio</h1>
+            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{portfolioHeading}</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Portfolio is where you choose the strongest examples from your captured evidence.
             </p>
@@ -680,7 +689,9 @@ function CleanPortfolioWorkspaceBody() {
 
               {!itemsLoading && !itemsError && !items.length ? (
                 <p style={{ margin: 0, color: "#475569" }}>
-                  No evidence is ready for the portfolio yet.
+                  {selectedLearnerId
+                    ? `No evidence is ready for ${learnerOptions.find((option) => option.value === selectedLearnerId)?.label || "this learner"}'s portfolio yet. Capture a useful note, observation, or work sample first.`
+                    : "No evidence is ready for the portfolio yet. Capture a useful note, observation, or work sample first."}
                 </p>
               ) : null}
 

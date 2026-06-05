@@ -609,6 +609,8 @@ function CleanSettingsWorkspaceBody() {
       },
     ];
   }, [exampleSetupCopy, myDayContextReady, workspace.requiresFamilyCreation]);
+  const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
+  const settingsHeading = familyDisplayName ? `${familyDisplayName} settings` : "My Settings";
 
   function updateCountry(countryCode: string) {
     setDraft((current) => {
@@ -773,7 +775,7 @@ function CleanSettingsWorkspaceBody() {
             >
               Family settings
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Settings</h1>
+            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{settingsHeading}</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Set your family location, curriculum direction, reporting context, and day-to-day preferences here.
             </p>

@@ -7,6 +7,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
+import { CleanBetaFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
@@ -843,6 +844,9 @@ function PathwaysWorkspaceBody() {
   const topSnapshotNextAction = selectedStrandIsActive
     ? nextActionLabel
     : "Choose a strand";
+  const pathwaysHeading = selectedLearner
+    ? `${selectedLearnerLabel}'s current pathway`
+    : "My Pathways";
 
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
@@ -933,7 +937,7 @@ function PathwaysWorkspaceBody() {
             >
               <div style={{ display: "grid", gap: 8, maxWidth: 720 }}>
                 <div style={eyebrowStyle}>Where is this learner now?</div>
-                <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Pathways</h1>
+                <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>{pathwaysHeading}</h1>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
                   Pick a learner, check the current focus, then choose the next useful action.
                 </p>
@@ -1067,6 +1071,8 @@ function PathwaysWorkspaceBody() {
             </div>
           </div>
         </section>
+
+        <CleanBetaFeedbackPrompt pageName="My Pathways" />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 16 }}>

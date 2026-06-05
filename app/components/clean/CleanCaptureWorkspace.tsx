@@ -672,11 +672,13 @@ function CleanCaptureWorkspaceBody() {
       } else {
         await createCleanEvidenceEntry(workspace.profile.id, payload);
         setMessage(
-          nextPathwayContext
-            ? "Evidence saved for this pathway step."
-            : nextCurriculumContext
-            ? "Evidence saved to My Data."
-            : "Capture note saved.",
+          !entries.length
+            ? "First evidence captured. Your learning record is starting to build."
+            : nextPathwayContext
+              ? "Evidence saved for this pathway step."
+              : nextCurriculumContext
+                ? "Evidence saved to My Data."
+                : "Capture note saved.",
         );
       }
 
@@ -781,6 +783,8 @@ function CleanCaptureWorkspaceBody() {
     ? "What stood out, what support helped, or what could come next? (optional)"
     : "Reflection, next step, or what stood out (optional)";
   const recentNotesPanelId = "clean-capture-recent-notes";
+  const selectedLearnerLabel =
+    learnerOptions.find((option) => option.value === learnerId)?.label || "";
 
   return (
     <div style={shellStyle}>
@@ -1310,7 +1314,9 @@ function CleanCaptureWorkspaceBody() {
 
                   {!entriesLoading && !entriesError && !entries.length ? (
                     <p style={{ margin: 0, color: "#475569" }}>
-                      No capture notes yet.
+                      {selectedLearnerLabel
+                        ? `No evidence captured for ${selectedLearnerLabel} yet. When ${selectedLearnerLabel} completes learning, you can save a note, observation, or work sample here.`
+                        : "No capture notes yet. When learning happens, you can save a note, observation, or work sample here."}
                     </p>
                   ) : null}
 
