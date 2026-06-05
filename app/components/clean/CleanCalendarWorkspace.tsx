@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -24,6 +25,7 @@ import type {
   CleanGeneratedWeekSuggestion,
   CleanGenerationRun,
 } from "@/lib/clean/generation/types";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import {
   listCleanProgramSegments,
@@ -2026,6 +2028,16 @@ function CleanCalendarWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          configs={[
+            PAGE_INTRO_VIDEOS.myCalendarWeeklyPlanner,
+            PAGE_INTRO_VIDEOS.myCalendarTermTimes,
+          ]}
+          promptKey="my-calendar"
+          promptTitle="New to My Calendar?"
+          promptDescription="Watch a quick guide to plan your week or set term times."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>

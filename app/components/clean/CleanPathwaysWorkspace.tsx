@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
@@ -28,6 +29,7 @@ import {
 import {
   getStepPracticeForPathwayStep,
 } from "@/lib/clean/practice/stepPracticeRegistry";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
@@ -904,6 +906,12 @@ function PathwaysWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myPathways}
+          promptTitle="New to My Pathways?"
+          promptDescription="Watch a quick guide to see how pathway steps, practice, assessment and evidence work together."
+        />
 
         <section
           style={{

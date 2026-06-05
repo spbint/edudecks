@@ -5,6 +5,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanBrentEvidencePackPreview from "@/app/components/clean/CleanBrentEvidencePackPreview";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
@@ -27,6 +28,7 @@ import {
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
 import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
   listCleanReportSections,
   listCleanReports,
@@ -910,6 +912,12 @@ function CleanOutputsWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myOutputs}
+          promptTitle="New to My Outputs?"
+          promptDescription="Watch a quick guide to see how to preview and download records, reports and portfolio summaries."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>

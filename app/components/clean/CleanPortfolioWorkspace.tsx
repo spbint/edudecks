@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -23,6 +24,7 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import {
   listCleanProgramSegments,
@@ -446,6 +448,12 @@ function CleanPortfolioWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myPortfolio}
+          promptTitle="New to My Portfolio?"
+          promptDescription="Watch a quick guide to see how to choose strong evidence and build a meaningful learning portfolio over time."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>

@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -15,6 +16,7 @@ import {
   updateCleanEvidenceEntry,
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
   buildCurriculumCaptureContext,
   buildPathwayCaptureContext,
@@ -784,6 +786,12 @@ function CleanCaptureWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myCapture}
+          promptTitle="New to My Capture?"
+          promptDescription="Watch a quick guide to see how to save notes, observations and work samples as learning evidence."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>

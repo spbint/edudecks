@@ -5,6 +5,7 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
@@ -18,6 +19,7 @@ import {
   updateCleanLearner,
 } from "@/lib/clean/learners/client";
 import type { Learner } from "@/lib/clean/learners/types";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -372,6 +374,12 @@ function CleanProfileWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanAppHeader />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myProfile}
+          promptTitle="New to My Profile?"
+          promptDescription="Watch a quick guide to see how family and learner details help MyLearna organise records clearly."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>

@@ -7,6 +7,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanLearningIntelligenceDashboard from "@/app/components/clean/CleanLearningIntelligenceDashboard";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   listCleanAssessmentSkillStatuses,
@@ -23,6 +24,7 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import {
   buildCurriculumCoverageSummary,
@@ -583,6 +585,12 @@ function CurriculumWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myData}
+          promptTitle="New to My Data?"
+          promptDescription="Watch a quick guide to see how learning activity, evidence, strengths, focus areas and reporting readiness come together."
+        />
 
         <section style={{ ...cardStyle, padding: 24 }}>
           <div style={{ display: "grid", gap: 18 }}>

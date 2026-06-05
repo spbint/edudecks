@@ -5,6 +5,7 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
@@ -12,6 +13,7 @@ import {
   updateCleanFamilyProfile,
 } from "@/lib/clean/family/client";
 import type { FamilyProfile } from "@/lib/clean/family/types";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
   BRENT_COUNTRY_CODE,
   BRENT_REPORTING_HELPER_COPY,
@@ -751,6 +753,12 @@ function CleanSettingsWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanAppHeader />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.mySettings}
+          promptTitle="New to My Settings?"
+          promptDescription="Watch a quick guide to see how region, curriculum and reporting settings shape your homeschool context."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>

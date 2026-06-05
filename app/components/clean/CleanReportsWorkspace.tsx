@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
@@ -29,6 +30,7 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { isBrentAuthorityTemplateActive } from "@/lib/clean/authority/brent";
 import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import { listCleanLearningPeriods } from "@/lib/clean/terms/client";
@@ -1173,6 +1175,12 @@ function CleanReportsWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myReports}
+          promptTitle="New to My Reports?"
+          promptDescription="Watch a quick guide to see how reports use planning, evidence and portfolio records."
+        />
 
         <section style={cardStyle}>
             <div style={{ display: "grid", gap: 8 }}>

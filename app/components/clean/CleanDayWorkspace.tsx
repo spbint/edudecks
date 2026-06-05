@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
+import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -18,6 +19,7 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { buildCleanGuidanceCards } from "@/lib/clean/guidance/client";
 import type { CleanGuidanceCard } from "@/lib/clean/guidance/types";
+import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { listCleanPortfolioHighlights } from "@/lib/clean/portfolio/client";
 import {
   listCleanProgramSegments,
@@ -732,6 +734,12 @@ function CleanDayWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanAppHeader />
+
+        <CleanPageIntroVideo
+          config={PAGE_INTRO_VIDEOS.myDay}
+          promptTitle="New to My Day?"
+          promptDescription="Watch a quick guide to see today's learning, add quick blocks and connect daily learning to evidence capture."
+        />
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 10 }}>
