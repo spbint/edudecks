@@ -66,9 +66,12 @@ const inputStyle: React.CSSProperties = {
 const compactInputStyle: React.CSSProperties = {
   ...inputStyle,
   width: "min(260px, 100%)",
+  minHeight: 40,
   padding: "9px 12px",
   fontSize: 13,
   background: "#ffffff",
+  color: "#0f172a",
+  lineHeight: 1.3,
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
@@ -868,7 +871,7 @@ function CleanDayWorkspaceBody() {
                           textTransform: "uppercase",
                         }}
                       >
-                        {isViewingToday ? "Today&apos;s flow" : "Family day"}
+                        {isViewingToday ? "Today’s flow" : "Family day"}
                       </div>
                       <h2
                         style={{
@@ -957,9 +960,15 @@ function CleanDayWorkspaceBody() {
                         onChange={(event) => setSelectedLearnerId(event.target.value)}
                         style={compactInputStyle}
                       >
-                        <option value="">All family</option>
+                        <option value="" style={{ background: "#ffffff", color: "#0f172a" }}>
+                          All family
+                        </option>
                         {learnerOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
+                          <option
+                            key={option.value}
+                            value={option.value}
+                            style={{ background: "#ffffff", color: "#0f172a" }}
+                          >
                             {option.label}
                           </option>
                         ))}
@@ -1009,8 +1018,9 @@ function CleanDayWorkspaceBody() {
                       What to do next
                     </div>
                     <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                      Add today&apos;s learning block, then capture evidence when something useful
-                      happens.
+                      Use My Day for today&apos;s learning. Add a quick block, open My
+                      Calendar for fuller planning, then capture evidence when something
+                      useful happens.
                     </div>
                   </div>
                 </div>
