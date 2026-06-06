@@ -31,6 +31,7 @@ import {
   getStepPracticeForPathwayStep,
 } from "@/lib/clean/practice/stepPracticeRegistry";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
+import { getRegionalStageLabel } from "@/lib/clean/regionalStageLabels";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
@@ -616,6 +617,8 @@ function PathwaysWorkspaceBody() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const regionalStageContext =
+    workspace.profile?.countryCode || workspace.profile?.jurisdictionCode || null;
   const persistedUiState = useMemo(() => readPersistedPathwaysUiState(), []);
   const initialSubjectKey = useMemo(() => {
     const subjectParam = searchParams.get("subjectKey");
@@ -998,7 +1001,7 @@ function PathwaysWorkspaceBody() {
           displayOrder: 0,
           title: step.title,
           stageKey: stage.key,
-          stageTitle: stage.title,
+          stageTitle: getRegionalStageLabel(stage.key, regionalStageContext, stage.title),
           stepKey,
           pathwayStepId,
         };
@@ -1009,12 +1012,19 @@ function PathwaysWorkspaceBody() {
       subjectKey: selectedSubjectKey,
       strandKey: selectedSubjectWorkspace.key,
     });
-  }, [assessmentAttempts, selectedSubjectKey, selectedSubjectWorkspace]);
+  }, [assessmentAttempts, regionalStageContext, selectedSubjectKey, selectedSubjectWorkspace]);
   const currentLearningZoneStartStep =
     numberPathwayRevealGroups?.currentLearningZone[0] || null;
+  const selectedWorkspaceCurrentStageTitle = selectedWorkspaceCurrentStage
+    ? getRegionalStageLabel(
+        selectedWorkspaceCurrentStage.key,
+        regionalStageContext,
+        selectedWorkspaceCurrentStage.title,
+      )
+    : null;
   const currentLearningZoneStageTitle =
     currentLearningZoneStartStep?.stageTitle ||
-    selectedWorkspaceCurrentStage?.title ||
+    selectedWorkspaceCurrentStageTitle ||
     "Choose a strand below";
   const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
     ? "Check understanding"
@@ -1612,7 +1622,11 @@ function PathwaysWorkspaceBody() {
                           ? `Current learning zone begins at: ${currentLearningZoneStageTitle}`
                           : "Current pathway focus will show here.",
                         selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]
-                          ? `Next progression: ${selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
+                          ? `Next progression: ${getRegionalStageLabel(
+                              selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]?.key || "",
+                              regionalStageContext,
+                              selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title,
+                            )}`
                           : "This selected stage is currently the latest detailed progression in this strand.",
                       ],
                     },
@@ -1783,6 +1797,7 @@ function PathwaysWorkspaceBody() {
                               densityMode={densityMode}
                               expandedStepId={expandedStepId}
                               onExpandedStepChange={setExpandedStepId}
+                              regionalStageContext={regionalStageContext}
                             />
                           ))}
                       </div>
@@ -2492,6 +2507,7 @@ function DetailedMathematicsStageCard({
   densityMode,
   expandedStepId,
   onExpandedStepChange,
+  regionalStageContext,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -2511,8 +2527,14 @@ function DetailedMathematicsStageCard({
   densityMode: PathwayDensityMode;
   expandedStepId: string | null;
   onExpandedStepChange: (stepId: string | null) => void;
+  regionalStageContext: string | null;
 }) {
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
+  const stageDisplayTitle = getRegionalStageLabel(
+    stage.key,
+    regionalStageContext,
+    stage.title,
+  );
   const panelId = `${strand.key}-stage-${stage.key}`;
   const summary = buildWorkspaceStageSummaryCounts(
     selectedSubjectKey,
@@ -2594,7 +2616,7 @@ function DetailedMathematicsStageCard({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls={panelId}
-        aria-label={`${isOpen ? "Collapse" : "Expand"} stage ${stage.title}`}
+        aria-label={`${isOpen ? "Collapse" : "Expand"} stage ${stageDisplayTitle}`}
         style={{
           width: "100%",
           border: "none",
@@ -2628,7 +2650,9 @@ function DetailedMathematicsStageCard({
             >
               {tone.badge}
             </span>
-            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 16 }}>{stage.title}</h3>
+            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 16 }}>
+              {stageDisplayTitle}
+            </h3>
           </div>
 
           <div
@@ -2742,7 +2766,7 @@ function DetailedMathematicsStageCard({
             assessmentAttempts={assessmentAttempts}
             isOpen={expandedStepId === detailPanelId || densityMode === "full"}
             onToggle={() =>
-              onExpandedStepChange(expandedStepId === detailPanelId ? null : detailPanelId)
+            onExpandedStepChange(expandedStepId === detailPanelId ? null : detailPanelId)
             }
             densityMode={densityMode}
           />
