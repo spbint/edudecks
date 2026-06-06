@@ -232,6 +232,14 @@ export function isStep23PartitionRegroupActivity(id: string, stepKey?: string | 
   );
 }
 
+export function isStep24ZeroPlaceholderActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "use-zero-as-a-placeholder" ||
+    safe(id).startsWith("number-step-24-assess-") ||
+    safe(id).startsWith("number-step-24-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -4504,6 +4512,214 @@ export function renderStep23WorksheetPromptVisual({
   );
 }
 
+function getStep24PlaceholderNumber(prompt: string, visual: EarlyNumberVisualModel) {
+  const visualNumber = safe(visual.numberCards[0]).replace(/,/g, "");
+  if (/^\d{2,4}$/.test(visualNumber)) return Number(visualNumber);
+
+  const promptNumber = safe(prompt).replace(/,/g, "").match(/\d{2,4}/)?.[0];
+  return promptNumber ? Number(promptNumber) : 0;
+}
+
+function getPlaceValueColumns(value: number) {
+  const thousands = Math.floor(value / 1000);
+  const hundreds = Math.floor((value % 1000) / 100);
+  const tens = Math.floor((value % 100) / 10);
+  const ones = value % 10;
+
+  return value >= 1000
+    ? [
+        { key: "Th", label: "Thousands", digit: thousands, color: "#7c3aed" },
+        { key: "H", label: "Hundreds", digit: hundreds, color: "#2563eb" },
+        { key: "T", label: "Tens", digit: tens, color: "#16a34a" },
+        { key: "O", label: "Ones", digit: ones, color: "#ea580c" },
+      ]
+    : [
+        { key: "H", label: "Hundreds", digit: hundreds, color: "#2563eb" },
+        { key: "T", label: "Tens", digit: tens, color: "#16a34a" },
+        { key: "O", label: "Ones", digit: ones, color: "#ea580c" },
+      ];
+}
+
+function ZeroPlaceholderChart({ value }: { value: number }) {
+  const columns = getPlaceValueColumns(value);
+  const zeroColumns = columns.filter((column) => column.digit === 0);
+  const zeroLabel =
+    zeroColumns.length > 0
+      ? zeroColumns.map((column) => column.label.toLowerCase()).join(", ")
+      : "no";
+
+  return (
+    <div
+      aria-label={`Place-value chart showing ${columns
+        .map((column) => `${column.digit} ${column.label.toLowerCase()}`)
+        .join(", ")}. Zero holds the ${zeroLabel} place.`}
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${columns.length}, minmax(64px, 1fr))`,
+          gap: 8,
+        }}
+      >
+        {columns.map((column) => {
+          const isZero = column.digit === 0;
+          return (
+            <div
+              key={column.key}
+              style={{
+                border: `2px solid ${isZero ? "#f59e0b" : "#dbeafe"}`,
+                borderRadius: 16,
+                background: isZero ? "#fffbeb" : "#f8fafc",
+                minHeight: 104,
+                display: "grid",
+                gridTemplateRows: "auto 1fr auto",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  background: column.color,
+                  color: "#ffffff",
+                  padding: "6px 4px",
+                  fontSize: 12,
+                  fontWeight: 950,
+                  textAlign: "center",
+                }}
+              >
+                {column.key}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  color: isZero ? "#b45309" : "#0f172a",
+                  fontSize: 38,
+                  fontWeight: 950,
+                  lineHeight: 1,
+                }}
+              >
+                {column.digit}
+              </div>
+              <div
+                style={{
+                  borderTop: "1px solid #e2e8f0",
+                  color: isZero ? "#92400e" : "#475569",
+                  padding: "5px 4px",
+                  fontSize: 11,
+                  fontWeight: 850,
+                  textAlign: "center",
+                }}
+              >
+                {isZero ? "holds place" : column.label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ZeroPlaceholderSentence({ value }: { value: number }) {
+  const columns = getPlaceValueColumns(value);
+  return (
+    <div
+      aria-label={`Number sentence ${columns
+        .map((column) => `${column.digit} ${column.label.toLowerCase()}`)
+        .join(", ")} equals ${value.toLocaleString()}`}
+      style={{
+        border: "1px solid #bbf7d0",
+        borderRadius: 18,
+        background: "#f0fdf4",
+        color: "#166534",
+        padding: 12,
+        textAlign: "center",
+        fontSize: 16,
+        fontWeight: 900,
+        lineHeight: 1.45,
+      }}
+    >
+      {columns.map((column) => `${column.digit} ${column.label.toLowerCase()}`).join(" + ")} ={" "}
+      {value.toLocaleString()}
+    </div>
+  );
+}
+
+export function renderStep24WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const value = getStep24PlaceholderNumber(prompt, visual);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Read the place-value chart and notice where zero is holding a place.
+        </div>
+        <span
+          style={{
+            border: "1px solid #fde68a",
+            borderRadius: 999,
+            background: "#fffbeb",
+            color: "#b45309",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Zero placeholder
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <LargeNumberWorksheetCard value={value.toLocaleString()} label="Number" />
+        <ZeroPlaceholderChart value={value} />
+        <ZeroPlaceholderSentence value={value} />
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -4949,6 +5165,67 @@ export function renderStep23WorksheetOptionCard({
       rest={representation.rest}
       selected={selected}
     />
+  );
+}
+
+export function renderStep24WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const isPlaceholder = lower.includes("holds") || lower.includes("place");
+  const isWholeZero = lower.includes("always") || lower.includes("number is 0");
+  const isIgnored = lower.includes("ignored");
+  if (!isPlaceholder && !isWholeZero && !isIgnored) return null;
+
+  const tone = isPlaceholder
+    ? { border: "#bbf7d0", background: "#f0fdf4", color: "#166534", label: "Zero holds the place" }
+    : isWholeZero
+      ? {
+          border: "#fed7aa",
+          background: "#fff7ed",
+          color: "#c2410c",
+          label: "The whole number is not zero",
+        }
+      : {
+          border: "#fde68a",
+          background: "#fffbeb",
+          color: "#b45309",
+          label: "Zero cannot be ignored",
+        };
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : tone.border}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : tone.background,
+        color: tone.color,
+        minHeight: 138,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <strong style={{ fontSize: 18, fontWeight: 950, lineHeight: 1.2 }}>
+        {normalized}
+      </strong>
+      <span style={{ color: tone.color, fontSize: 12, fontWeight: 850, lineHeight: 1.25 }}>
+        {tone.label}
+      </span>
+    </div>
   );
 }
 

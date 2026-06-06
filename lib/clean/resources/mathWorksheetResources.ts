@@ -74,6 +74,8 @@ const HUNDREDS_TENS_ONES_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S022-Understand-Hundreds-Tens-And-Ones.pdf";
 const PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S023-Partition-And-Regroup-Two-And-Three-Digit-Numbers.pdf";
+const ZERO_PLACEHOLDER_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S024-Use-Zero-As-A-Placeholder.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -445,6 +447,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::use-zero-as-a-placeholder",
+    stepKey: "use-zero-as-a-placeholder",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 24,
+    pathwayStepTitle: "Use zero as a placeholder",
+    title: "Use Zero as a Placeholder",
+    concept: "Use zero as a placeholder in hundreds, tens and ones place-value numbers",
+    includesAnswerSheet: false,
+    fileName: ZERO_PLACEHOLDER_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${ZERO_PLACEHOLDER_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
