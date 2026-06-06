@@ -80,6 +80,14 @@ export function isStep2NumberWordActivity(id: string, stepKey?: string | null) {
   );
 }
 
+export function isStep3NumeralActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "identify-numerals-0-10" ||
+    safe(id).startsWith("number-step-3-assess-") ||
+    safe(id).startsWith("number-step-3-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -120,6 +128,32 @@ function getNumberWord(prompt: string, caption: string) {
       return label;
     }
   }
+  return "";
+}
+
+function getTargetNumeral(prompt: string, caption: string) {
+  const source = `${prompt} ${caption}`.toLowerCase();
+  const orderedPatterns = [
+    /\b(?:number|numeral|card|group)\s+(?:is|shows|matches)\s+(10|[0-9]|zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/,
+    /\b(?:choose|find|select)\s+(?:the\s+)?(?:number\s+)?(10|[0-9]|zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/,
+    /\b(?:matches|match)\s+(10|[0-9]|zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/,
+  ];
+
+  for (const pattern of orderedPatterns) {
+    const match = source.match(pattern)?.[1];
+    if (!match) continue;
+    return String(COUNT_WORDS[match] ?? match);
+  }
+
+  const digit = source.match(/\b10\b|\b[0-9]\b/)?.[0];
+  if (digit) return digit;
+
+  for (const [word, count] of Object.entries(COUNT_WORDS)) {
+    if (new RegExp(`\\b${word}\\b`).test(source)) {
+      return String(count);
+    }
+  }
+
   return "";
 }
 
@@ -242,6 +276,59 @@ export function EarlyNumberWorksheetDotCard({
   );
 }
 
+export function EarlyNumberWorksheetNumeralCard({
+  numeral,
+  label,
+  selected = false,
+}: {
+  numeral: string;
+  label?: string;
+  selected?: boolean;
+}) {
+  return (
+    <div
+      aria-label={`Numeral ${numeral}`}
+      style={{
+        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: "#ffffff",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+        padding: "12px 10px",
+        display: "grid",
+        gap: 8,
+        minHeight: 126,
+        placeItems: "center",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          width: "100%",
+          minHeight: 82,
+          borderRadius: 16,
+          border: "1px solid #dbeafe",
+          background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
+          color: "#1d4ed8",
+          display: "grid",
+          placeItems: "center",
+          fontSize: numeral.length > 1 ? 46 : 56,
+          fontWeight: 950,
+          lineHeight: 1,
+        }}
+      >
+        {numeral}
+      </div>
+      {label ? (
+        <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+          {label}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function renderStep2WorksheetPromptVisual({
   prompt,
   visual,
@@ -333,6 +420,105 @@ export function renderStep2WorksheetPromptVisual({
   );
 }
 
+export function renderStep3WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const targetNumeral = getTargetNumeral(prompt, visual.caption);
+  const singleQuantityTarget =
+    !visual.numberCards.length && visual.groupCounts.length === 1
+      ? visual.groupCounts[0]
+      : null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: 10,
+          alignItems: "stretch",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 18,
+            background: "#eff6ff",
+            padding: 12,
+            display: "grid",
+            gap: 8,
+            alignContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              color: "#1d4ed8",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Target numeral
+          </div>
+          {targetNumeral ? (
+            <EarlyNumberWorksheetNumeralCard numeral={targetNumeral} />
+          ) : singleQuantityTarget !== null && singleQuantityTarget !== undefined ? (
+            <EarlyNumberWorksheetDotCard
+              count={singleQuantityTarget}
+              label={visual.labels[0] || `${singleQuantityTarget} counters`}
+            />
+          ) : (
+            <div style={{ color: "#0f172a", fontSize: 18, fontWeight: 850 }}>
+              {visual.caption}
+            </div>
+          )}
+        </div>
+        <div
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 18,
+            background: "#f5f3ff",
+            padding: 14,
+            display: "grid",
+            alignContent: "center",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              color: "#6d28d9",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Look carefully
+          </div>
+          <div style={{ color: "#334155", fontSize: 14, lineHeight: 1.45, fontWeight: 700 }}>
+            Match the same numeral, then choose the card that fits.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -342,6 +528,26 @@ export function renderStep2WorksheetOptionCard({
   visual: EarlyNumberVisualModel | null;
   selected?: boolean;
 }) {
+  const count = getCountFromLabel(option, visual);
+  if (count === null || !Number.isFinite(count)) return null;
+
+  return <EarlyNumberWorksheetDotCard count={count} label={option} selected={selected} />;
+}
+
+export function renderStep3WorksheetOptionCard({
+  option,
+  visual,
+  selected = false,
+}: {
+  option: string;
+  visual: EarlyNumberVisualModel | null;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (/^(10|[0-9])$/.test(normalized)) {
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
+  }
+
   const count = getCountFromLabel(option, visual);
   if (count === null || !Number.isFinite(count)) return null;
 

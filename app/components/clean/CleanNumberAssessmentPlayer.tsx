@@ -12,9 +12,12 @@ import CleanContentIssueReportButton, {
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   isStep2NumberWordActivity,
+  isStep3NumeralActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
+  renderStep3WorksheetOptionCard,
+  renderStep3WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2139,6 +2142,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep3NumeralActivity(item.id, item.progressionStepKey)) {
+    const step3Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep3WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step3Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -3543,7 +3555,14 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step3NumeralOptions = isStep3NumeralActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
+        ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
+        : null;
+      const step3VisualModel = step3NumeralOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
 
@@ -3551,10 +3570,10 @@ function CleanNumberAssessmentPlayerBody() {
         <div
           style={{
             display: "grid",
-            gap: statisticsStep1Options ? 6 : step2NumberWordOptions ? 8 : 10,
+            gap: statisticsStep1Options ? 6 : step2NumberWordOptions || step3NumeralOptions ? 8 : 10,
             gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions
+              : step2NumberWordOptions || step3NumeralOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -3579,7 +3598,15 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
-            const visualOption = shapeVisual ?? statisticsVisual ?? step2Visual;
+            const step3Visual =
+              !shapeVisual && !statisticsVisual && !step2Visual && step3NumeralOptions
+                ? renderStep3WorksheetOptionCard({
+                    option,
+                    visual: step3VisualModel,
+                    selected: isSelected,
+                  })
+                : null;
+            const visualOption = shapeVisual ?? statisticsVisual ?? step2Visual ?? step3Visual;
 
             return (
               <button
@@ -3599,23 +3626,26 @@ function CleanNumberAssessmentPlayerBody() {
                       : optionButtonStyle.alignItems,
                   justifyContent:
                     visualOption ? "center" : undefined,
-                  minHeight: step2Visual ? 150 : statisticsVisual ? 70 : undefined,
-                  padding: step2Visual
+                  minHeight: step2Visual || step3Visual ? 150 : statisticsVisual ? 70 : undefined,
+                  padding: step2Visual || step3Visual
                     ? 4
                     : statisticsVisual
                       ? "6px 4px"
                       : optionButtonStyle.padding,
-                  borderRadius: step2Visual
+                  borderRadius: step2Visual || step3Visual
                     ? 18
                     : statisticsVisual
                       ? 12
                       : optionButtonStyle.borderRadius,
-                  lineHeight: statisticsVisual || step2Visual ? 1.15 : optionButtonStyle.lineHeight,
-                  position: statisticsVisual || step2Visual ? "relative" : undefined,
+                  lineHeight:
+                    statisticsVisual || step2Visual || step3Visual
+                      ? 1.15
+                      : optionButtonStyle.lineHeight,
+                  position: statisticsVisual || step2Visual || step3Visual ? "relative" : undefined,
                 }}
               >
                 {visualOption ?? <span>{option}</span>}
-                {(statisticsVisual || step2Visual) && isSelected ? (
+                {(statisticsVisual || step2Visual || step3Visual) && isSelected ? (
                   <span
                     style={{
                       position: "absolute",

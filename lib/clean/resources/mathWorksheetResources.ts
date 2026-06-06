@@ -30,6 +30,8 @@ const SMALL_QUANTITIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S001-Recognise-Small-Quantities-Without-Counting.pdf";
 const NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S002-Match-Spoken-Number-Names-To-Quantities.pdf";
+const IDENTIFY_NUMERALS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S003-Identify-Numerals-0-10.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -60,6 +62,21 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Match spoken number names to quantities",
     fileName: NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::identify-numerals-0-10",
+    stepKey: "identify-numerals-0-10",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 3,
+    pathwayStepTitle: "Identify numerals 0-10",
+    title: "Identify Numerals 0 to 10",
+    concept: "Recognise numerals from 0 to 10",
+    fileName: IDENTIFY_NUMERALS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${IDENTIFY_NUMERALS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
