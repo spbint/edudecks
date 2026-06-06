@@ -224,6 +224,14 @@ export function isStep22HundredsTensOnesActivity(id: string, stepKey?: string | 
   );
 }
 
+export function isStep23PartitionRegroupActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "partition-and-regroup-two-and-three-digit-numbers" ||
+    safe(id).startsWith("number-step-23-assess-") ||
+    safe(id).startsWith("number-step-23-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -4293,6 +4301,209 @@ export function renderStep22WorksheetPromptVisual({
   );
 }
 
+function parseHundredsAndRestOption(option: string) {
+  const normalized = safe(option).toLowerCase();
+  const match = normalized.match(/(\d+)\s+hundreds?\s+and\s+(\d+)/);
+  if (!match) return null;
+  return {
+    hundreds: Number(match[1]),
+    rest: Number(match[2]),
+  };
+}
+
+function RegroupedPlaceValueChoiceCard({
+  hundreds,
+  rest,
+  selected = false,
+}: {
+  hundreds: number;
+  rest: number;
+  selected?: boolean;
+}) {
+  const number = hundreds * 100 + rest;
+  const tens = Math.floor(rest / 10);
+  const ones = rest % 10;
+  return (
+    <div
+      aria-label={`Choose ${hundreds} hundreds and ${rest}, making ${number}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 160,
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 14,
+            background: "#eff6ff",
+            padding: 8,
+            display: "grid",
+            placeItems: "center",
+            gap: 4,
+          }}
+        >
+          <strong style={{ color: "#1d4ed8", fontSize: 24 }}>{hundreds}</strong>
+          <span style={{ color: "#475569", fontSize: 11, fontWeight: 850 }}>hundreds</span>
+        </div>
+        <span style={{ color: "#64748b", fontSize: 22, fontWeight: 950 }}>+</span>
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 14,
+            background: "#f0fdf4",
+            padding: 8,
+            display: "grid",
+            placeItems: "center",
+            gap: 4,
+          }}
+        >
+          <strong style={{ color: "#166534", fontSize: 24 }}>{rest}</strong>
+          <span style={{ color: "#475569", fontSize: 11, fontWeight: 850 }}>
+            {tens} tens, {ones} ones
+          </span>
+        </div>
+      </div>
+      <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900, textAlign: "center" }}>
+        Same value: {number}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep23WorksheetPromptVisual({
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const hundreds = visual.groupCounts[0] ?? 0;
+  const rest = visual.groupCounts[1] ?? 0;
+  const standardTens = Math.floor(rest / 10);
+  const standardOnes = rest % 10;
+  const number = hundreds * 100 + rest;
+  const regroupedHundreds = Math.max(0, hundreds - 1);
+  const regroupedRest = rest + (hundreds > 0 ? 100 : 0);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Partition the number, then regroup to show the same value another way.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Regrouping
+        </span>
+      </div>
+
+      <div
+        aria-label={`Number ${number} partitioned as ${hundreds} hundreds, ${standardTens} tens and ${standardOnes} ones, regrouped as ${regroupedHundreds} hundreds and ${regroupedRest}`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <LargeNumberWorksheetCard value={String(number)} label="Number" />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(220px, 1fr) auto minmax(220px, 1fr)",
+            gap: 10,
+            alignItems: "stretch",
+          }}
+        >
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+              Standard partition
+            </div>
+            <HTOChart hundreds={hundreds} tens={standardTens} ones={standardOnes} />
+          </div>
+          <div
+            aria-hidden="true"
+            style={{
+              display: "grid",
+              placeItems: "center",
+              color: "#64748b",
+              fontSize: 26,
+              fontWeight: 950,
+            }}
+          >
+            =
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ color: "#6d28d9", fontSize: 12, fontWeight: 900 }}>
+              Regrouped form
+            </div>
+            <RegroupedPlaceValueChoiceCard
+              hundreds={regroupedHundreds}
+              rest={regroupedRest}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 10,
+          }}
+        >
+          <PlaceValueBlockGroup kind="hundred" count={hundreds} />
+          <PlaceValueBlockGroup kind="ten" count={standardTens} />
+          <PlaceValueBlockGroup kind="one" count={standardOnes} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -4717,6 +4928,25 @@ export function renderStep22WorksheetOptionCard({
       hundreds={representation.hundreds}
       tens={representation.tens}
       ones={representation.ones}
+      selected={selected}
+    />
+  );
+}
+
+export function renderStep23WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const representation = parseHundredsAndRestOption(option);
+  if (!representation) return null;
+
+  return (
+    <RegroupedPlaceValueChoiceCard
+      hundreds={representation.hundreds}
+      rest={representation.rest}
       selected={selected}
     />
   );

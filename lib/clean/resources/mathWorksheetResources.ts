@@ -72,6 +72,8 @@ const READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S021-Read-Write-Order-And-Compare-Numbers-To-1000-And-Beyond.pdf";
 const HUNDREDS_TENS_ONES_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S022-Understand-Hundreds-Tens-And-Ones.pdf";
+const PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S023-Partition-And-Regroup-Two-And-Three-Digit-Numbers.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -426,6 +428,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: HUNDREDS_TENS_ONES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${HUNDREDS_TENS_ONES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::partition-and-regroup-two-and-three-digit-numbers",
+    stepKey: "partition-and-regroup-two-and-three-digit-numbers",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 23,
+    pathwayStepTitle: "Partition and regroup two- and three-digit numbers",
+    title: "Partition and Regroup Two- and Three-Digit Numbers",
+    concept: "Partition and regroup two- and three-digit numbers using hundreds, tens and ones",
+    includesAnswerSheet: false,
+    fileName: PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
