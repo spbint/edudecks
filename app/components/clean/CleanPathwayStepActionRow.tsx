@@ -97,19 +97,19 @@ function getResumeIndex(
   return Math.max(0, items.length - 1);
 }
 
+function getCompactWorksheetFileName(fileName: string) {
+  const stepCode = fileName.match(/S\d{3}/i)?.[0];
+  return stepCode ? `${stepCode}.pdf` : fileName;
+}
+
 export default function CleanPathwayStepActionRow({
   activity,
   assessHref,
   captureHref,
   practiceHref,
   practiceTitle,
-  assessmentBankTitle,
   exactAssessmentTitle,
-  autoCheckStatusLabel,
-  autoCheckStatusScope,
-  confidenceStatusLabel,
   isExactStepContext = false,
-  noAssessmentMessage,
   worksheetResource,
 }: CleanPathwayStepActionRowProps) {
   const practiceItems = useMemo(
@@ -208,93 +208,13 @@ export default function CleanPathwayStepActionRow({
 
   return (
     <>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
-        <div
-          style={{
-            flex: "1 1 100%",
-            color: "#334155",
-            fontSize: 13,
-            fontWeight: 800,
-            lineHeight: 1.4,
-          }}
-        >
-          What would you like to do next?
-        </div>
-        {assessmentBankTitle ? (
-          <div
-            style={{
-              flex: "1 1 100%",
-              border: "1px solid #dbeafe",
-              borderRadius: 12,
-              background: "#f8fbff",
-              padding: "9px 11px",
-              display: "grid",
-              gap: 4,
-              color: "#334155",
-              fontSize: 13,
-              lineHeight: 1.45,
-            }}
-          >
-            <div>
-              Auto-check:{" "}
-              <strong style={{ color: "#0f172a" }}>
-                {autoCheckStatusLabel || "Not checked yet"}
-              </strong>
-              {autoCheckStatusScope === "sub-element"
-                ? " for this focus"
-                : autoCheckStatusScope === "bank"
-                  ? " for this bank"
-                  : ""}
-            </div>
-            <div>
-              Confidence:{" "}
-              <strong style={{ color: "#0f172a" }}>
-                {confidenceStatusLabel || "Not saved"}
-              </strong>
-            </div>
-            <div>
-              Auto-checked assessment:{" "}
-              <strong style={{ color: "#0f172a" }}>
-                {exactAssessmentTitle || assessmentBankTitle}
-              </strong>
-            </div>
-            {practiceTitle ? (
-              <div>
-                Practise this skill:{" "}
-                <strong style={{ color: "#0f172a" }}>{practiceTitle}</strong>
-              </div>
-            ) : null}
-            {assessmentBankTitle && exactAssessmentTitle ? (
-              <div>
-                Part of: <strong style={{ color: "#0f172a" }}>{assessmentBankTitle}</strong>
-              </div>
-            ) : null}
-            <div style={{ color: "#64748b" }}>
-              Confidence has not been changed automatically.
-            </div>
-          </div>
-        ) : noAssessmentMessage ? (
-          <div
-            style={{
-              flex: "1 1 100%",
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              background: "#ffffff",
-              padding: "9px 11px",
-              color: "#64748b",
-              fontSize: 13,
-              lineHeight: 1.45,
-            }}
-          >
-            {noAssessmentMessage}
-          </div>
-        ) : null}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {activity ? (
           <>
             {practiceHref ? (
               <Link
                 href={practiceHref}
-                style={{ ...buttonStyle, flex: "1 1 120px" }}
+                style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
                 title={
                   practiceTitle
                     ? `Practise ${practiceTitle}.`
@@ -307,20 +227,20 @@ export default function CleanPathwayStepActionRow({
               <button
                 type="button"
                 onClick={openPracticePlayer}
-                style={{ ...buttonStyle, flex: "1 1 120px" }}
+                style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
                 aria-label="Open practice for this pathway step"
               >
-                {completedPracticeTaskCount ? "Resume practise" : "Practise"}
+                Practise
               </button>
             )}
             {!isExactStepContext ? (
               <button
                 type="button"
                 onClick={openMiniCheckPlayer}
-                style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
+                style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
                 aria-label="Open mini check for this pathway step"
               >
-                {completedMiniCheckCount ? "Resume mini-check" : "Mini-check"}
+                Mini-check
               </button>
             ) : null}
           </>
@@ -328,7 +248,7 @@ export default function CleanPathwayStepActionRow({
           <>
             <Link
               href={practiceHref}
-              style={{ ...buttonStyle, flex: "1 1 120px" }}
+              style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
               title={
                 practiceTitle
                   ? `Practise ${practiceTitle}.`
@@ -340,7 +260,7 @@ export default function CleanPathwayStepActionRow({
             {!isExactStepContext ? (
               <button
                 type="button"
-                style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+                style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
                 disabled
                 title="Mini Check for this pathway step is coming later."
                 aria-label="Mini Check for this pathway step is coming later"
@@ -353,7 +273,7 @@ export default function CleanPathwayStepActionRow({
           <>
             <button
               type="button"
-              style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+              style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
               disabled
               title="Exact practice for this pathway step is coming later."
               aria-label="Exact practice for this pathway step is coming later"
@@ -363,7 +283,7 @@ export default function CleanPathwayStepActionRow({
             {!isExactStepContext ? (
               <button
                 type="button"
-                style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+                style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
                 disabled
                 title="Mini Check for this pathway step is coming later."
                 aria-label="Mini Check for this pathway step is coming later"
@@ -377,53 +297,75 @@ export default function CleanPathwayStepActionRow({
         {assessHref ? (
           <Link
             href={assessHref}
-            style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
+            style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
             title={
               exactAssessmentTitle
                 ? `Uses the ${exactAssessmentTitle} step assessment.`
-                : assessmentBankTitle
-                ? `Uses the ${assessmentBankTitle} assessment family.`
                 : "Check understanding for this pathway step."
             }
             aria-label="Assess this pathway step"
           >
-            {exactAssessmentTitle ? "Assess" : "Check understanding"}
+            {exactAssessmentTitle ? "Assess" : "Check"}
           </Link>
         ) : (
           <button
             type="button"
-            style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+            style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
             disabled
-            title={noAssessmentMessage || "Assessment for this step is coming later."}
-          aria-label="No auto-checked assessment is available for this pathway step"
-        >
+            title="Assessment for this step is coming later."
+            aria-label="No auto-checked assessment is available for this pathway step"
+          >
             Assess
           </button>
         )}
         <Link
           href={captureHref}
-          style={{ ...buttonStyle, flex: "1 1 140px" }}
+          style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
           title="Open My Capture with this pathway step already connected."
           aria-label="Capture evidence for this pathway step"
         >
-          Capture evidence
+          Capture
         </Link>
         {worksheetResource ? (
           <Link
             href={worksheetResource.href}
             target="_blank"
             rel="noreferrer"
-            style={{ ...secondaryButtonStyle, flex: "1 1 150px" }}
-            title="Open printable worksheet PDF in a new tab."
+            style={{
+              ...secondaryButtonStyle,
+              padding: "7px 10px",
+              fontSize: 12,
+              gap: 6,
+            }}
+            title={`Open ${worksheetResource.fileName}`}
             aria-label={`Download worksheet PDF for ${worksheetResource.title}`}
           >
-            Download worksheet
+            <span>Worksheet</span>
+            <span style={{ color: "#64748b", fontWeight: 700 }}>
+              {getCompactWorksheetFileName(worksheetResource.fileName)}
+            </span>
           </Link>
-        ) : null}
+        ) : (
+          <span
+            title="No worksheet PDF is mapped for this step yet."
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 9,
+              background: "#f8fafc",
+              color: "#64748b",
+              padding: "7px 10px",
+              fontSize: 12,
+              fontWeight: 700,
+              lineHeight: 1.2,
+            }}
+          >
+            Worksheet missing
+          </span>
+        )}
       </div>
 
       {activity ? (
-        <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "grid", gap: 6 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span
               style={{

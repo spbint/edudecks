@@ -127,6 +127,48 @@ const EMPTY_STRAND_CARD: SubjectStrandCard = {
   status: "coming-later",
 };
 
+const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
+
+type PathwayZoneViewMode = "current" | "nearby" | "full";
+type PathwayWorksheetFilter = "all" | "with" | "missing";
+type PathwayDensityMode = "compact" | "full";
+
+type PersistedPathwaysUiState = {
+  selectedSubjectKey?: PathwaySubjectKey;
+  selectedStrandKeyBySubject?: Partial<Record<PathwaySubjectKey, string>>;
+  hasExplicitStrandSelection?: boolean;
+  strandSelectorExpanded?: boolean;
+  stageOpenOverrides?: Record<string, boolean>;
+  expandedStepId?: string | null;
+  zoneViewMode?: PathwayZoneViewMode;
+  worksheetFilter?: PathwayWorksheetFilter;
+  densityMode?: PathwayDensityMode;
+  scrollY?: number;
+};
+
+function readPersistedPathwaysUiState(): PersistedPathwaysUiState {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const raw = window.localStorage.getItem(PATHWAYS_UI_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePersistedPathwaysUiState(nextState: PersistedPathwaysUiState) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(PATHWAYS_UI_STORAGE_KEY, JSON.stringify(nextState));
+  } catch {
+    // Persistence is a convenience layer only.
+  }
+}
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
@@ -499,25 +541,96 @@ function buildWorkspaceStageSummaryCounts(
   );
 }
 
+function getStageIsVisibleForZoneMode(
+  stageIndex: number,
+  currentStageIndex: number,
+  zoneViewMode: PathwayZoneViewMode,
+) {
+  if (zoneViewMode === "full") return true;
+  if (zoneViewMode === "nearby") return Math.abs(stageIndex - currentStageIndex) <= 1;
+  return stageIndex === currentStageIndex;
+}
+
+function getDetailedStepCanonicalPathwayStepId({
+  subjectKey,
+  strand,
+  stage,
+  step,
+}: {
+  subjectKey: PathwaySubjectKey;
+  strand: MathematicsDetailedStrandWorkspace;
+  stage: MathematicsDetailedStrandStage;
+  step: MathematicsDetailedStrandStep;
+}) {
+  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  return resolveCanonicalPathwayStepIdFromParts({
+    subjectKey,
+    pathwayKey: strand.key,
+    stageKey: stage.key,
+    stepKey,
+    stepNumber: String(step.id),
+  });
+}
+
+function getDetailedStepWorksheetResource({
+  subjectKey,
+  strand,
+  stage,
+  step,
+}: {
+  subjectKey: PathwaySubjectKey;
+  strand: MathematicsDetailedStrandWorkspace;
+  stage: MathematicsDetailedStrandStage;
+  step: MathematicsDetailedStrandStep;
+}) {
+  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const pathwayStepId = getDetailedStepCanonicalPathwayStepId({
+    subjectKey,
+    strand,
+    stage,
+    step,
+  });
+
+  return getWorksheetResourceForPathwayStep({
+    pathwayStepId,
+    stepKey,
+    subjectKey,
+    strandKey: strand.key,
+    stageKey: stage.key,
+  });
+}
+
+function getStepPassesWorksheetFilter(
+  worksheetResource: ReturnType<typeof getWorksheetResourceForPathwayStep>,
+  worksheetFilter: PathwayWorksheetFilter,
+) {
+  if (worksheetFilter === "with") return Boolean(worksheetResource);
+  if (worksheetFilter === "missing") return !worksheetResource;
+  return true;
+}
+
 function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const persistedUiState = useMemo(() => readPersistedPathwaysUiState(), []);
   const initialSubjectKey = useMemo(() => {
     const subjectParam = searchParams.get("subjectKey");
     return (
       PATHWAY_SUBJECTS.find((subject) => subject.key === subjectParam)?.key ||
+      PATHWAY_SUBJECTS.find((subject) => subject.key === persistedUiState.selectedSubjectKey)
+        ?.key ||
       DEFAULT_PATHWAY_SUBJECT_KEY
     );
-  }, [searchParams]);
+  }, [persistedUiState.selectedSubjectKey, searchParams]);
   const initialStrandWasSelected = useMemo(() => {
     const strandParam = searchParams.get("strandKey");
     const subjectConfig = DETAILED_SUBJECT_CONFIGS[initialSubjectKey];
     return Boolean(
       strandParam && subjectConfig?.domainCards.some((domain) => domain.key === strandParam),
-    );
-  }, [initialSubjectKey, searchParams]);
+    ) || Boolean(persistedUiState.hasExplicitStrandSelection);
+  }, [initialSubjectKey, persistedUiState.hasExplicitStrandSelection, searchParams]);
   const initialStrandKeyBySubject = useMemo(() => {
     const strandParam = searchParams.get("strandKey");
     const subjectConfig = DETAILED_SUBJECT_CONFIGS[initialSubjectKey];
@@ -526,37 +639,45 @@ function PathwaysWorkspaceBody() {
     );
 
     return {
+      ...persistedUiState.selectedStrandKeyBySubject,
       mathematics:
         initialSubjectKey === "mathematics" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS.mathematics?.defaultStrandKey ||
+          : persistedUiState.selectedStrandKeyBySubject?.mathematics ||
+            DETAILED_SUBJECT_CONFIGS.mathematics?.defaultStrandKey ||
             NUMBER_AND_PLACE_VALUE_STRAND_KEY,
       english:
         initialSubjectKey === "english" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS.english?.defaultStrandKey || "",
+          : persistedUiState.selectedStrandKeyBySubject?.english ||
+            DETAILED_SUBJECT_CONFIGS.english?.defaultStrandKey || "",
       science:
         initialSubjectKey === "science" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
+          : persistedUiState.selectedStrandKeyBySubject?.science ||
+            DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
       humanities:
         initialSubjectKey === "humanities" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS.humanities?.defaultStrandKey || "",
+          : persistedUiState.selectedStrandKeyBySubject?.humanities ||
+            DETAILED_SUBJECT_CONFIGS.humanities?.defaultStrandKey || "",
       technologies:
         initialSubjectKey === "technologies" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS.technologies?.defaultStrandKey || "",
+          : persistedUiState.selectedStrandKeyBySubject?.technologies ||
+            DETAILED_SUBJECT_CONFIGS.technologies?.defaultStrandKey || "",
       arts:
         initialSubjectKey === "arts" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS.arts?.defaultStrandKey || "",
+          : persistedUiState.selectedStrandKeyBySubject?.arts ||
+            DETAILED_SUBJECT_CONFIGS.arts?.defaultStrandKey || "",
       "health-pe":
         initialSubjectKey === "health-pe" && queryStrandIsValid
           ? strandParam || ""
-          : DETAILED_SUBJECT_CONFIGS["health-pe"]?.defaultStrandKey || "",
+          : persistedUiState.selectedStrandKeyBySubject?.["health-pe"] ||
+            DETAILED_SUBJECT_CONFIGS["health-pe"]?.defaultStrandKey || "",
     } satisfies Partial<Record<PathwaySubjectKey, string>>;
-  }, [initialSubjectKey, searchParams]);
+  }, [initialSubjectKey, persistedUiState.selectedStrandKeyBySubject, searchParams]);
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState(
     () => searchParams.get("learnerId") || "",
   );
@@ -568,15 +689,81 @@ function PathwaysWorkspaceBody() {
   const [hasExplicitStrandSelection, setHasExplicitStrandSelection] =
     useState(initialStrandWasSelected);
   const [strandSelectorExpanded, setStrandSelectorExpanded] =
-    useState(!initialStrandWasSelected);
+    useState(
+      persistedUiState.strandSelectorExpanded ??
+        (!initialStrandWasSelected && !persistedUiState.hasExplicitStrandSelection),
+    );
   const [selectedStrandKeyBySubject, setSelectedStrandKeyBySubject] = useState<
     Partial<Record<PathwaySubjectKey, string>>
   >(() => initialStrandKeyBySubject);
-  const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
+  const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>(
+    () => persistedUiState.stageOpenOverrides || {},
+  );
+  const [expandedStepId, setExpandedStepId] = useState<string | null>(
+    () => persistedUiState.expandedStepId || null,
+  );
+  const [zoneViewMode, setZoneViewMode] = useState<PathwayZoneViewMode>(
+    () => persistedUiState.zoneViewMode || "current",
+  );
+  const [worksheetFilter, setWorksheetFilter] = useState<PathwayWorksheetFilter>(
+    () => persistedUiState.worksheetFilter || "all",
+  );
+  const [densityMode, setDensityMode] = useState<PathwayDensityMode>(
+    () => persistedUiState.densityMode || "compact",
+  );
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const nextState: PersistedPathwaysUiState = {
+      selectedSubjectKey,
+      selectedStrandKeyBySubject,
+      hasExplicitStrandSelection,
+      strandSelectorExpanded,
+      stageOpenOverrides,
+      expandedStepId,
+      zoneViewMode,
+      worksheetFilter,
+      densityMode,
+      scrollY: typeof window === "undefined" ? 0 : window.scrollY,
+    };
+    writePersistedPathwaysUiState(nextState);
+  }, [
+    densityMode,
+    expandedStepId,
+    hasExplicitStrandSelection,
+    selectedStrandKeyBySubject,
+    selectedSubjectKey,
+    stageOpenOverrides,
+    strandSelectorExpanded,
+    worksheetFilter,
+    zoneViewMode,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const restoreScroll = Number(persistedUiState.scrollY || 0);
+    if (!restoreScroll || searchParams.toString()) return;
+
+    window.requestAnimationFrame(() => window.scrollTo({ top: restoreScroll }));
+  }, [persistedUiState.scrollY, searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function persistScrollPosition() {
+      const current = readPersistedPathwaysUiState();
+      writePersistedPathwaysUiState({
+        ...current,
+        scrollY: window.scrollY,
+      });
+    }
+
+    window.addEventListener("beforeunload", persistScrollPosition);
+    return () => window.removeEventListener("beforeunload", persistScrollPosition);
+  }, []);
 
   const learnerOptions = useMemo(
     () =>
@@ -1207,9 +1394,10 @@ function PathwaysWorkspaceBody() {
 
                     <div
                       style={{
-                        display: "grid",
-                        gap: 10,
-                        gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "stretch",
                       }}
                     >
                       {selectedSubjectDomainCards.map((domain) => {
@@ -1230,89 +1418,57 @@ function PathwaysWorkspaceBody() {
                                 : detailed
                                   ? "1px solid #93c5fd"
                                   : "1px solid #e2e8f0",
-                              borderRadius: 18,
+                              borderRadius: 12,
                               background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
-                              padding: 14,
-                              display: "grid",
+                              padding: "9px 11px",
+                              display: "flex",
                               gap: 8,
-                              width: "100%",
-                              minWidth: 0,
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "auto",
+                              minWidth: "min(100%, 180px)",
                               textAlign: "left",
                               cursor: "pointer",
                               boxShadow: selected
-                                ? "0 14px 30px rgba(59,130,246,0.14)"
+                                ? "0 8px 18px rgba(59,130,246,0.12)"
                                 : detailed
-                                  ? "0 12px 28px rgba(59,130,246,0.08)"
-                                  : "0 6px 18px rgba(15,23,42,0.04)",
+                                  ? "0 5px 14px rgba(59,130,246,0.06)"
+                                  : "0 3px 10px rgba(15,23,42,0.03)",
                               transition:
                                 "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
                             }}
                           >
-                            <div
+                            <strong style={{ color: "#0f172a", fontSize: 13, minWidth: 0 }}>
+                              {domain.title}
+                            </strong>
+                            <span
                               style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 10,
-                                alignItems: "center",
-                                flexWrap: "wrap",
+                                border: selected
+                                  ? "1px solid #93c5fd"
+                                  : detailed
+                                    ? "1px solid #bfdbfe"
+                                    : "1px solid #e2e8f0",
+                                background: selected
+                                  ? "#ffffff"
+                                  : detailed
+                                    ? "#eff6ff"
+                                    : "#f8fafc",
+                                color: detailed ? "#1d4ed8" : "#64748b",
+                                borderRadius: 999,
+                                padding: "4px 7px",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              <strong style={{ color: "#0f172a", fontSize: 16, minWidth: 0 }}>
-                                {domain.title}
-                              </strong>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: 8,
-                                  alignItems: "center",
-                                  flexWrap: "wrap",
-                                  justifyContent: "flex-end",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                                    background: detailed ? "#eff6ff" : "#f8fafc",
-                                    color: detailed ? "#1d4ed8" : "#64748b",
-                                    borderRadius: 999,
-                                    padding: "6px 10px",
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  {firstDetailed
-                                    ? "First detailed strand"
-                                    : detailed
-                                      ? "Detailed strand"
-                                      : "Coming later"}
-                                </span>
-                                {selected ? (
-                                  <span
-                                    style={{
-                                      border: "1px solid #93c5fd",
-                                      background: "#ffffff",
-                                      color: "#1d4ed8",
-                                      borderRadius: 999,
-                                      padding: "6px 10px",
-                                      fontSize: 12,
-                                      fontWeight: 800,
-                                    }}
-                                  >
-                                    Selected
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                            <div style={{ color: "#475569", lineHeight: 1.5 }}>
-                              {domain.description}
-                            </div>
-                            <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
                               {selected
-                                ? "Showing this strand below"
-                                : detailed
-                                  ? "Open this detailed strand"
-                                  : "Preview this strand"}
-                            </div>
+                                ? "Selected"
+                                : firstDetailed
+                                  ? "Detailed"
+                                  : detailed
+                                    ? "Open"
+                                    : "Soon"}
+                            </span>
                           </button>
                         );
                       })}
@@ -1404,6 +1560,107 @@ function PathwaysWorkspaceBody() {
                     />
                   ) : null}
 
+                  <div
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      background: "#ffffff",
+                      padding: 12,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 3 }}>
+                        <div style={eyebrowStyle}>Pathway view</div>
+                        <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.4 }}>
+                          Keep the current learning zone visible and expand only what you need.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDensityMode((current) =>
+                            current === "compact" ? "full" : "compact",
+                          )
+                        }
+                        style={{
+                          ...secondaryButtonStyle,
+                          padding: "7px 10px",
+                          fontSize: 12,
+                        }}
+                      >
+                        {densityMode === "compact" ? "Compact view" : "Full view"}
+                      </button>
+                    </div>
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {([
+                        ["current", "Current zone only"],
+                        ["nearby", "Current + nearby"],
+                        ["full", "Full pathway"],
+                      ] as const).map(([value, label]) => {
+                        const selected = zoneViewMode === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setZoneViewMode(value)}
+                            style={{
+                              border: selected ? "1px solid #1d4ed8" : "1px solid #cbd5e1",
+                              background: selected ? "#eff6ff" : "#ffffff",
+                              color: selected ? "#1d4ed8" : "#0f172a",
+                              borderRadius: 999,
+                              padding: "7px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {([
+                        ["all", "All steps"],
+                        ["with", "With worksheets"],
+                        ["missing", "Missing worksheets"],
+                      ] as const).map(([value, label]) => {
+                        const selected = worksheetFilter === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setWorksheetFilter(value)}
+                            style={{
+                              border: selected ? "1px solid #0f766e" : "1px solid #cbd5e1",
+                              background: selected ? "#f0fdfa" : "#ffffff",
+                              color: selected ? "#0f766e" : "#0f172a",
+                              borderRadius: 999,
+                              padding: "7px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <details open={!numberPathwayRevealGroups?.hasSavedAttempts}>
                     <summary
                       style={{
@@ -1416,35 +1673,48 @@ function PathwaysWorkspaceBody() {
                       Explore all pathway steps
                     </summary>
                     <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                      {selectedSubjectWorkspace.stages.map((stage, stageIndex) => (
-                        <DetailedMathematicsStageCard
-                          key={`${selectedSubjectWorkspace.key}-${stage.key}`}
-                          strand={selectedSubjectWorkspace}
-                          stage={stage}
-                          stageIndex={stageIndex}
-                          currentStageIndex={selectedWorkspaceStageIndex}
-                          unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
-                          selectedSubjectKey={selectedSubject.key}
-                          selectedSubjectTitle={selectedSubject.title}
-                          selectedLearnerId={selectedLearner?.id || ""}
-                          returnPath={pathname}
-                          isOpen={getStageOpenState(
-                            selectedSubjectWorkspace.key,
-                            stage.key,
-                            stage.key === selectedSubjectWorkspace.currentFocusStageKey,
-                          )}
-                          onToggle={() =>
-                            toggleStageOpen(
+                      {selectedSubjectWorkspace.stages
+                        .map((stage, stageIndex) => ({ stage, stageIndex }))
+                        .filter(({ stageIndex }) =>
+                          getStageIsVisibleForZoneMode(
+                            stageIndex,
+                            selectedWorkspaceStageIndex,
+                            zoneViewMode,
+                          ),
+                        )
+                        .map(({ stage, stageIndex }) => (
+                          <DetailedMathematicsStageCard
+                            key={`${selectedSubjectWorkspace.key}-${stage.key}`}
+                            strand={selectedSubjectWorkspace}
+                            stage={stage}
+                            stageIndex={stageIndex}
+                            currentStageIndex={selectedWorkspaceStageIndex}
+                            unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
+                            selectedSubjectKey={selectedSubject.key}
+                            selectedSubjectTitle={selectedSubject.title}
+                            selectedLearnerId={selectedLearner?.id || ""}
+                            returnPath={pathname}
+                            isOpen={getStageOpenState(
                               selectedSubjectWorkspace.key,
                               stage.key,
                               stage.key === selectedSubjectWorkspace.currentFocusStageKey,
-                            )
-                          }
-                          capturePathBase={capturePathBase}
-                          assessPathBase={assessPathBase}
-                          assessmentAttempts={assessmentAttempts}
-                        />
-                      ))}
+                            )}
+                            onToggle={() =>
+                              toggleStageOpen(
+                                selectedSubjectWorkspace.key,
+                                stage.key,
+                                stage.key === selectedSubjectWorkspace.currentFocusStageKey,
+                              )
+                            }
+                            capturePathBase={capturePathBase}
+                            assessPathBase={assessPathBase}
+                            assessmentAttempts={assessmentAttempts}
+                            worksheetFilter={worksheetFilter}
+                            densityMode={densityMode}
+                            expandedStepId={expandedStepId}
+                            onExpandedStepChange={setExpandedStepId}
+                          />
+                        ))}
                     </div>
                   </details>
                 </MathematicsStrandWorkspaceShell>
@@ -2094,6 +2364,10 @@ function DetailedMathematicsStageCard({
   capturePathBase,
   assessPathBase,
   assessmentAttempts,
+  worksheetFilter,
+  densityMode,
+  expandedStepId,
+  onExpandedStepChange,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -2109,6 +2383,10 @@ function DetailedMathematicsStageCard({
   capturePathBase: string;
   assessPathBase: string;
   assessmentAttempts: CleanAssessmentAttempt[];
+  worksheetFilter: PathwayWorksheetFilter;
+  densityMode: PathwayDensityMode;
+  expandedStepId: string | null;
+  onExpandedStepChange: (stepId: string | null) => void;
 }) {
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const panelId = `${strand.key}-stage-${stage.key}`;
@@ -2162,6 +2440,17 @@ function DetailedMathematicsStageCard({
     background: string;
     color: string;
   }>;
+  const filteredSteps = stage.steps.filter((step) =>
+    getStepPassesWorksheetFilter(
+      getDetailedStepWorksheetResource({
+        subjectKey: selectedSubjectKey,
+        strand,
+        stage,
+        step,
+      }),
+      worksheetFilter,
+    ),
+  );
 
   return (
     <section
@@ -2271,6 +2560,22 @@ function DetailedMathematicsStageCard({
                 {chip.label}
               </span>
             ))}
+            {worksheetFilter !== "all" ? (
+              <span
+                style={{
+                  border: "1px solid #ccfbf1",
+                  background: "#f0fdfa",
+                  color: "#0f766e",
+                  borderRadius: 999,
+                  padding: "5px 8px",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  lineHeight: 1.3,
+                }}
+              >
+                {filteredSteps.length} shown
+              </span>
+            ) : null}
           </div>
         </div>
       </button>
@@ -2280,7 +2585,10 @@ function DetailedMathematicsStageCard({
         hidden={!isOpen}
         style={isOpen ? { display: "grid", gap: 10 } : { display: "none" }}
       >
-        {stage.steps.map((step, stepIndex) => (
+        {filteredSteps.length ? filteredSteps.map((step) => {
+          const stepIndex = stage.steps.findIndex((candidate) => candidate.id === step.id);
+          const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
+          return (
           <DetailedMathematicsStepCard
             key={`${stage.key}-${step.id}`}
             strand={strand}
@@ -2297,8 +2605,28 @@ function DetailedMathematicsStageCard({
             capturePathBase={capturePathBase}
             assessPathBase={assessPathBase}
             assessmentAttempts={assessmentAttempts}
+            isOpen={expandedStepId === detailPanelId || densityMode === "full"}
+            onToggle={() =>
+              onExpandedStepChange(expandedStepId === detailPanelId ? null : detailPanelId)
+            }
+            densityMode={densityMode}
           />
-        ))}
+          );
+        }) : (
+          <div
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              background: "#ffffff",
+              padding: 12,
+              color: "#64748b",
+              fontSize: 13,
+              lineHeight: 1.5,
+            }}
+          >
+            No steps match the current worksheet filter in this zone.
+          </div>
+        )}
       </div>
     </section>
   );
@@ -2319,6 +2647,9 @@ function DetailedMathematicsStepCard({
   capturePathBase,
   assessPathBase,
   assessmentAttempts,
+  isOpen,
+  onToggle,
+  densityMode,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -2334,8 +2665,10 @@ function DetailedMathematicsStepCard({
   capturePathBase: string;
   assessPathBase: string;
   assessmentAttempts: CleanAssessmentAttempt[];
+  isOpen: boolean;
+  onToggle: () => void;
+  densityMode: PathwayDensityMode;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const statusState = getWorkspaceDisplayedPathwayStatus(
     selectedSubjectKey,
     strand,
@@ -2598,16 +2931,18 @@ function DetailedMathematicsStepCard({
             },
     [assessmentAttempts, exactStepAssessment, numberAssessmentAlignment],
   );
+  const worksheetStatus = worksheetResource ? "Worksheet attached" : "Worksheet missing";
+  const worksheetFileName = worksheetResource?.fileName || "";
 
   return (
     <article
       style={{
         border: `1px solid ${meta.border}`,
-        borderRadius: 14,
+        borderRadius: 12,
         background: "#ffffff",
-        padding: 12,
+        padding: densityMode === "compact" ? 8 : 12,
         display: "grid",
-        gap: 10,
+        gap: densityMode === "compact" ? 8 : 10,
       }}
     >
       <div
@@ -2615,11 +2950,11 @@ function DetailedMathematicsStepCard({
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
-          alignItems: "flex-start",
+          alignItems: "center",
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
+        <div style={{ display: "grid", gap: 5, maxWidth: 760, minWidth: 0 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span
               style={{
@@ -2634,29 +2969,30 @@ function DetailedMathematicsStepCard({
             >
               Step {displayStepNumber}
             </span>
-            <strong style={{ color: "#0f172a", fontSize: 15 }}>{step.title}</strong>
+            <strong style={{ color: "#0f172a", fontSize: 14, lineHeight: 1.25 }}>
+              {step.title}
+            </strong>
           </div>
           {isOpen ? (
             <div style={{ color: "#475569", lineHeight: 1.5 }}>{step.meaning}</div>
           ) : null}
         </div>
 
-        <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
-          <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <div
               title={
                 exactStepContext
-                  ? `Manual confidence is ${confidenceStatusLabel}.`
+                  ? `Saved confidence is ${confidenceStatusLabel}.`
                   : meta.helper
               }
               style={{
                 border: `1px solid ${statusChipMeta.border}`,
                 borderRadius: 999,
                 background: statusChipMeta.fill,
-                padding: "6px 10px",
+                padding: "5px 8px",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
+                gap: 6,
               }}
             >
               <span
@@ -2670,53 +3006,47 @@ function DetailedMathematicsStepCard({
                 }}
               />
               <strong style={{ color: statusChipMeta.text, fontSize: 12 }}>
-                {exactStepContext ? `Confidence: ${confidenceStatusLabel}` : status}
+                {exactStepContext && confidenceStatusLabel !== "Not saved"
+                  ? confidenceStatusLabel
+                  : status}
               </strong>
             </div>
-            {statusState.fromSavedEvidence ? (
-              <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                Based on linked evidence
-              </div>
-            ) : null}
+
             <div
               style={{
-                display: "grid",
-                gap: 4,
-                justifyItems: "end",
-                color: "#475569",
+                border: `1px solid ${worksheetResource ? "#bbf7d0" : "#e2e8f0"}`,
+                borderRadius: 999,
+                background: worksheetResource ? "#f0fdf4" : "#f8fafc",
+                color: worksheetResource ? "#166534" : "#64748b",
+                padding: "5px 8px",
                 fontSize: 12,
-                lineHeight: 1.4,
+                fontWeight: 800,
+                lineHeight: 1.3,
+              }}
+              title={worksheetFileName || "No mapped worksheet PDF for this step yet."}
+            >
+              {worksheetStatus}
+            </div>
+
+          {evidenceLinkedCount > 0 ? (
+            <span
+              style={{
+                border: "1px solid #bfdbfe",
+                borderRadius: 999,
+                background: "#eff6ff",
+                color: "#1d4ed8",
+                padding: "5px 8px",
+                fontSize: 12,
+                fontWeight: 800,
               }}
             >
-              {exactStepContext ? (
-                <>
-                  <div>
-                    Confidence:{" "}
-                    <strong style={{ color: "#0f172a" }}>{confidenceStatusLabel}</strong>
-                  </div>
-                  <div>
-                    Auto-check:{" "}
-                    <strong style={{ color: "#0f172a" }}>
-                      {autoCheckStatus.status}
-                    </strong>
-                  </div>
-                </>
-              ) : (
-                <div>
-                  Assessment:{" "}
-                  <strong style={{ color: "#0f172a" }}>{confidenceStatusLabel}</strong>
-                </div>
-              )}
-              <div>
-                Evidence linked:{" "}
-                <strong style={{ color: "#0f172a" }}>{evidenceLinkedCount}</strong>
-              </div>
-            </div>
-          </div>
+              {evidenceLinkedCount} evidence
+            </span>
+          ) : null}
 
           <button
             type="button"
-            onClick={() => setIsOpen((current) => !current)}
+            onClick={onToggle}
             aria-expanded={isOpen}
             aria-controls={detailPanelId}
             style={{
@@ -2724,7 +3054,7 @@ function DetailedMathematicsStepCard({
               background: "#ffffff",
               color: "#1d4ed8",
               borderRadius: 999,
-              padding: "6px 10px",
+              padding: "5px 8px",
               fontSize: 12,
               fontWeight: 800,
               cursor: "pointer",
@@ -2733,7 +3063,7 @@ function DetailedMathematicsStepCard({
               gap: 8,
             }}
           >
-            <span>{isOpen ? "Hide guidance" : "View guidance"}</span>
+            <span>{isOpen ? "Hide details" : "Details"}</span>
             <span
               aria-hidden="true"
               style={{
