@@ -9,7 +9,10 @@ export type MathWorksheetResource = {
   strandKey: string;
   stageKey: string;
   stepNumber: number;
+  pathwayStepTitle?: string;
   title: string;
+  curriculumCode?: string;
+  concept?: string;
   fileName: string;
   href: string;
   resourceType: MathWorksheetResourceType;
@@ -25,6 +28,8 @@ export type MathWorksheetStepContext = {
 
 const SMALL_QUANTITIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S001-Recognise-Small-Quantities-Without-Counting.pdf";
+const NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S002-Match-Spoken-Number-Names-To-Quantities.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -35,9 +40,26 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     strandKey: "number-and-place-value",
     stageKey: "foundation-kindergarten",
     stepNumber: 1,
+    pathwayStepTitle: "Recognise small quantities without counting",
     title: "Recognise Small Quantities Without Counting",
     fileName: SMALL_QUANTITIES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${SMALL_QUANTITIES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::match-spoken-number-names-to-quantities",
+    stepKey: "match-spoken-number-names-to-quantities",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 2,
+    pathwayStepTitle: "Match spoken number names to quantities",
+    title: "Match Number Words to Groups",
+    curriculumCode: "AC9MFN02",
+    concept: "Match spoken number names to quantities",
+    fileName: NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
@@ -71,4 +93,3 @@ export function getWorksheetResourceForPathwayStep(
     }) ?? null
   );
 }
-
