@@ -184,6 +184,14 @@ export function isStep17AddSubtractWithin20Activity(id: string, stepKey?: string
   );
 }
 
+export function isStep18SupportedAddSubtractActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "add-and-subtract-one-and-two-digit-numbers-with-support" ||
+    safe(id).startsWith("number-step-18-assess-") ||
+    safe(id).startsWith("number-step-18-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -2639,6 +2647,347 @@ export function renderStep17WorksheetPromptVisual({
   );
 }
 
+function CrossOutOnesVisual({
+  ones,
+  crossedOut,
+}: {
+  ones: number;
+  crossedOut: number;
+}) {
+  return (
+    <div
+      aria-label={`${ones} ones with ${crossedOut} crossed out`}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(5, minmax(18px, 1fr))",
+        gap: 6,
+        justifyItems: "center",
+        alignItems: "center",
+      }}
+    >
+      {Array.from({ length: Math.max(0, ones) }, (_, index) => {
+        const crossed = index < crossedOut;
+        return (
+          <span
+            key={`cross-one-${index}`}
+            aria-hidden="true"
+            style={{
+              position: "relative",
+              width: 18,
+              height: 18,
+              borderRadius: 5,
+              border: `1px solid ${crossed ? "#dc2626" : "#15803d"}`,
+              background: crossed ? "#fee2e2" : "#bbf7d0",
+              boxShadow: "0 5px 10px rgba(15,23,42,0.10)",
+            }}
+          >
+            {crossed ? (
+              <>
+                <span
+                  style={{
+                    position: "absolute",
+                    left: 2,
+                    right: 2,
+                    top: "50%",
+                    height: 2,
+                    borderRadius: 999,
+                    background: "#dc2626",
+                    transform: "rotate(45deg)",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    left: 2,
+                    right: 2,
+                    top: "50%",
+                    height: 2,
+                    borderRadius: 999,
+                    background: "#dc2626",
+                    transform: "rotate(-45deg)",
+                  }}
+                />
+              </>
+            ) : null}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function WorksheetNumberLineJump({
+  start,
+  change,
+  operation,
+}: {
+  start: number;
+  change: number;
+  operation: "add" | "subtract";
+}) {
+  const end = operation === "add" ? start + change : start - change;
+  const min = 0;
+  const max = Math.max(20, start, end);
+  const startPercent = (Math.max(min, Math.min(max, start)) / max) * 100;
+  const endPercent = (Math.max(min, Math.min(max, end)) / max) * 100;
+  const left = Math.min(startPercent, endPercent);
+  const width = Math.max(8, Math.abs(endPercent - startPercent));
+
+  return (
+    <div
+      aria-label={`Number line from zero to ${max} showing a jump from ${start} to ${end}`}
+      style={{
+        border: "1px solid #fed7aa",
+        borderRadius: 16,
+        background: "#fff7ed",
+        padding: "28px 12px 12px",
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div style={{ position: "relative", height: 46 }}>
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 16,
+            height: 3,
+            borderRadius: 999,
+            background: "#fb923c",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: `${left}%`,
+            bottom: 18,
+            width: `${width}%`,
+            height: 24,
+            borderTop: "3px solid #f97316",
+            borderLeft: operation === "subtract" ? "3px solid #f97316" : "none",
+            borderRight: operation === "add" ? "3px solid #f97316" : "none",
+            borderRadius: "999px 999px 0 0",
+          }}
+        />
+        {[0, start, end, max]
+          .filter((value, index, values) => values.indexOf(value) === index)
+          .map((value) => (
+            <div
+              key={`line-${value}`}
+              style={{
+                position: "absolute",
+                left: `${(value / max) * 100}%`,
+                bottom: 0,
+                transform: "translateX(-50%)",
+                display: "grid",
+                justifyItems: "center",
+                gap: 3,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 2,
+                  height: 14,
+                  borderRadius: 999,
+                  background: "#c2410c",
+                }}
+              />
+              <strong style={{ color: "#9a3412", fontSize: 11 }}>{value}</strong>
+            </div>
+          ))}
+      </div>
+      <div style={{ color: "#c2410c", fontSize: 12, fontWeight: 850, lineHeight: 1.4 }}>
+        Start at {start}. Jump {operation === "add" ? "forward" : "back"} {change} to {end}.
+      </div>
+    </div>
+  );
+}
+
+export function renderStep18WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const tens = visual.groupCounts[0];
+  const ones = visual.groupCounts[1];
+  const change = visual.groupCounts[2];
+  if (
+    tens === undefined ||
+    ones === undefined ||
+    change === undefined ||
+    !Number.isFinite(tens) ||
+    !Number.isFinite(ones) ||
+    !Number.isFinite(change)
+  ) {
+    return null;
+  }
+
+  const start = tens * 10 + ones;
+  const operation = getAddSubtractWithin20Operation(prompt);
+  const symbol = operation === "add" ? "+" : "-";
+  const answer = operation === "add" ? start + change : start - change;
+  const tone =
+    operation === "add"
+      ? { border: "#bbf7d0", background: "#f0fdf4", strong: "#166534" }
+      : { border: "#fed7aa", background: "#fff7ed", strong: "#c2410c" };
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use tens, ones, and the number line to solve.
+        </div>
+        <span
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 999,
+            background: tone.background,
+            color: tone.strong,
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {operation === "add" ? "Supported addition" : "Supported subtraction"}
+        </span>
+      </div>
+
+      <div
+        aria-label={
+          operation === "add"
+            ? `${start} plus ${change} shown with ${tens} ten rods, ${ones} ones and ${change} more ones`
+            : `${start} minus ${change} shown with ${tens} ten rods and ${ones} ones, with ${change} ones crossed out`
+        }
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "minmax(0, 1.2fr) auto minmax(0, 0.8fr) auto minmax(84px, 0.55fr)",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 16,
+              background: "#f8fbff",
+              padding: 10,
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+              {start} = {tens} tens and {ones} ones
+            </div>
+            {operation === "subtract" ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)",
+                  gap: 10,
+                  alignItems: "center",
+                }}
+              >
+                <BaseTenRodsAndCubes tens={tens} ones={0} compact />
+                <CrossOutOnesVisual ones={ones} crossedOut={change} />
+              </div>
+            ) : (
+              <BaseTenRodsAndCubes tens={tens} ones={ones} compact />
+            )}
+          </div>
+          <div style={{ color: tone.strong, fontSize: 34, fontWeight: 950 }}>{symbol}</div>
+          <div
+            style={{
+              border: `1px solid ${tone.border}`,
+              borderRadius: 16,
+              background: tone.background,
+              padding: 10,
+              display: "grid",
+              placeItems: "center",
+              gap: 6,
+              minHeight: 104,
+            }}
+          >
+            <strong style={{ color: tone.strong, fontSize: 30 }}>{change}</strong>
+            <span style={{ color: tone.strong, fontSize: 12, fontWeight: 850 }}>
+              {operation === "add" ? "more ones" : "ones crossed out"}
+            </span>
+          </div>
+          <div style={{ color: "#64748b", fontSize: 34, fontWeight: 950 }}>=</div>
+          <div
+            aria-label="Answer box"
+            style={{
+              border: "2px solid #7c3aed",
+              borderRadius: 18,
+              background: "#f5f3ff",
+              color: "#6d28d9",
+              minHeight: 104,
+              display: "grid",
+              placeItems: "center",
+              fontSize: 28,
+              fontWeight: 950,
+              boxShadow: "0 10px 22px rgba(124,58,237,0.14)",
+            }}
+          >
+            __
+          </div>
+        </div>
+
+        <WorksheetNumberLineJump start={start} change={change} operation={operation} />
+        <div
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 16,
+            background: tone.background,
+            color: tone.strong,
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          Think: {start} {symbol} {change} = {answer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -2924,6 +3273,19 @@ export function renderStep16WorksheetOptionCard({
 }
 
 export function renderStep17WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,2}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} />;
+}
+
+export function renderStep18WorksheetOptionCard({
   option,
   selected = false,
 }: {

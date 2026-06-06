@@ -22,6 +22,7 @@ import {
   isStep13SkipCountingActivity,
   isStep16RenameTwoDigitActivity,
   isStep17AddSubtractWithin20Activity,
+  isStep18SupportedAddSubtractActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -49,6 +50,8 @@ import {
   renderStep16WorksheetPromptVisual,
   renderStep17WorksheetOptionCard,
   renderStep17WorksheetPromptVisual,
+  renderStep18WorksheetOptionCard,
+  renderStep18WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1058,6 +1061,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep18SupportedAddSubtractActivity(task.id)) {
+    const step18Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep18WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step18Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1487,6 +1499,7 @@ function TaskCard({
           const step13SkipCountingOptions = isStep13SkipCountingActivity(task.id);
           const step16RenameTwoDigitOptions = isStep16RenameTwoDigitActivity(task.id);
           const step17AddSubtractWithin20Options = isStep17AddSubtractWithin20Activity(task.id);
+          const step18SupportedAddSubtractOptions = isStep18SupportedAddSubtractActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1514,7 +1527,8 @@ function TaskCard({
                   step12ReadWriteOrderOptions ||
                   step13SkipCountingOptions ||
                   step16RenameTwoDigitOptions ||
-                  step17AddSubtractWithin20Options
+                  step17AddSubtractWithin20Options ||
+                  step18SupportedAddSubtractOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1722,6 +1736,28 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step18Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              step18SupportedAddSubtractOptions
+                ? renderStep18WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -1737,7 +1773,8 @@ function TaskCard({
               step12Visual ??
               step13Visual ??
               step16Visual ??
-              step17Visual;
+              step17Visual ??
+              step18Visual;
 
             return (
               <button
@@ -1759,7 +1796,8 @@ function TaskCard({
                     step12Visual ||
                     step13Visual ||
                     step16Visual ||
-                    step17Visual
+                    step17Visual ||
+                    step18Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
