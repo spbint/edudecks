@@ -80,6 +80,8 @@ const ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S025-Add-And-Subtract-Two-And-Three-Digit-Numbers-Using-Place-Value.pdf";
 const MULTIPLICATION_FACTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S026-Recall-And-Apply-Multiplication-Facts.pdf";
+const MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S027-Multiply-And-Divide-Using-Arrays-Grouping-And-Known-Facts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -502,6 +504,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MULTIPLICATION_FACTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${MULTIPLICATION_FACTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::multiply-and-divide-using-arrays-grouping-and-known-facts",
+    stepKey: "multiply-and-divide-using-arrays-grouping-and-known-facts",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 27,
+    pathwayStepTitle: "Multiply and divide using arrays, grouping and known facts",
+    title: "Multiply and Divide Using Arrays, Grouping and Known Facts",
+    concept: "Use arrays, equal groups and known facts to multiply and divide",
+    includesAnswerSheet: false,
+    fileName: MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

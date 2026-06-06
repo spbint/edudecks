@@ -256,6 +256,14 @@ export function isStep26MultiplicationFactsActivity(id: string, stepKey?: string
   );
 }
 
+export function isStep27ArraysGroupingKnownFactsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "multiply-and-divide-using-arrays-grouping-and-known-facts" ||
+    safe(id).startsWith("number-step-27-assess-") ||
+    safe(id).startsWith("number-step-27-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -3470,6 +3478,160 @@ export function renderStep26WorksheetPromptVisual({
   );
 }
 
+export function renderStep27WorksheetPromptVisual({
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const rows = visual.groupCounts[0];
+  const columns = visual.groupCounts[1];
+  if (
+    rows === undefined ||
+    columns === undefined ||
+    !Number.isFinite(rows) ||
+    !Number.isFinite(columns)
+  ) {
+    return null;
+  }
+
+  const total = rows * columns;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use the array, equal groups and known facts to multiply or divide.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Arrays and facts
+        </span>
+      </div>
+
+      <div
+        aria-label={`Array with ${rows} rows and ${columns} columns. ${rows} times ${columns} equals ${total}. ${total} divided by ${rows} equals ${columns}.`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            alignItems: "stretch",
+          }}
+        >
+          <ArrayRowsColumnsVisual rows={rows} columns={columns} />
+          <div
+            style={{
+              border: "1px solid #bfdbfe",
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: 12,
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+              {rows} equal groups of {columns}
+            </div>
+            <EqualGroupsVisual groups={rows} inEachGroup={columns} />
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+            gap: 10,
+          }}
+        >
+          <div
+            aria-label={`Multiplication sentence ${rows} times ${columns} equals ${total}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: "12px 10px",
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: 950,
+            }}
+          >
+            {rows} × {columns} = {total}
+          </div>
+          <div
+            aria-label={`Division fact ${total} divided by ${rows} equals ${columns}`}
+            style={{
+              border: "1px solid #fed7aa",
+              borderRadius: 16,
+              background: "#fff7ed",
+              color: "#c2410c",
+              padding: "12px 10px",
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: 950,
+            }}
+          >
+            {total} ÷ {rows} = {columns}
+          </div>
+          <div
+            aria-label={`Division fact ${total} divided by ${columns} equals ${rows}`}
+            style={{
+              border: "1px solid #ddd6fe",
+              borderRadius: 16,
+              background: "#f5f3ff",
+              color: "#6d28d9",
+              padding: "12px 10px",
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: 950,
+            }}
+          >
+            {total} ÷ {columns} = {rows}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getStep20FractionKind(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("quarter") || lower.includes("quarters") || lower.includes("1/4")) {
@@ -5732,6 +5894,19 @@ export function renderStep26WorksheetOptionCard({
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Product" selected={selected} />;
+}
+
+export function renderStep27WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,3}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({
