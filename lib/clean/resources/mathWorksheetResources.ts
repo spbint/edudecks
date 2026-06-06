@@ -58,6 +58,8 @@ const RENAME_TWO_DIGIT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S016-Rename-Two-Digit-Numbers-In-Different-Ways.pdf";
 const ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S017-Add-And-Subtract-Within-20-Using-Known-Facts.pdf";
+const ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S018-Add-And-Subtract-One-And-Two-Digit-Numbers-With-Support.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -293,6 +295,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::add-and-subtract-one-and-two-digit-numbers-with-support",
+    stepKey: "add-and-subtract-one-and-two-digit-numbers-with-support",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 18,
+    pathwayStepTitle: "Add and subtract one- and two-digit numbers with support",
+    title: "Add and Subtract One- and Two-Digit Numbers",
+    concept: "Add and subtract one- and two-digit numbers using visual support",
+    includesAnswerSheet: false,
+    fileName: ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
