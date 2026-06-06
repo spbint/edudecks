@@ -120,6 +120,14 @@ export function isStep7OrderNumbersActivity(id: string, stepKey?: string | null)
   );
 }
 
+export function isStep8PartWholeActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "partition-and-combine-small-collections-up-to-10" ||
+    safe(id).startsWith("number-step-8-assess-") ||
+    safe(id).startsWith("number-step-8-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -204,6 +212,19 @@ function getStep7TargetIndex(prompt: string, numbers: string[]) {
   }
 
   return Math.max(0, Math.floor(numbers.length / 2));
+}
+
+function parsePartPair(option: string) {
+  const match = safe(option)
+    .toLowerCase()
+    .match(/\b(\d{1,2})\s*(?:and|\+)\s*(\d{1,2})\b/);
+  if (!match) return null;
+
+  const first = Number(match[1]);
+  const second = Number(match[2]);
+  if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+
+  return { first, second };
 }
 
 function getCountFromLabel(label: string, visual: EarlyNumberVisualModel | null) {
@@ -1228,6 +1249,106 @@ export function renderStep7WorksheetPromptVisual({
   );
 }
 
+export function renderStep8WorksheetPromptVisual({
+  visual,
+}: {
+  visual: EarlyNumberVisualModel;
+}) {
+  const whole = visual.groupCounts[0];
+  if (whole === undefined || !Number.isFinite(whole)) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          color: "#1e3a8a",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Start with the whole collection, then choose two parts that make it.
+      </div>
+      <div
+        aria-label={`Number bond showing whole ${whole} with two missing parts`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 14,
+          display: "grid",
+          gap: 12,
+          justifyItems: "center",
+        }}
+      >
+        <EarlyNumberWorksheetDotCard count={whole} label={`Whole ${whole}`} />
+        <div
+          aria-hidden="true"
+          style={{
+            width: "72%",
+            height: 28,
+            borderLeft: "2px solid #93c5fd",
+            borderRight: "2px solid #93c5fd",
+            borderTop: "2px solid #93c5fd",
+            borderRadius: "18px 18px 0 0",
+          }}
+        />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(84px, 1fr))",
+            gap: 12,
+            width: "min(320px, 100%)",
+          }}
+        >
+          {["Part", "Part"].map((label, index) => (
+            <div
+              key={`${label}-${index}`}
+              aria-label={`${label} ${index + 1} missing`}
+              style={{
+                border: "2px dashed #c4b5fd",
+                borderRadius: 18,
+                background: "#f5f3ff",
+                color: "#6d28d9",
+                minHeight: 76,
+                display: "grid",
+                placeItems: "center",
+                fontSize: 16,
+                fontWeight: 900,
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 16,
+          background: "#f0fdf4",
+          color: "#166534",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 800,
+          lineHeight: 1.45,
+        }}
+      >
+        The two parts should combine to make the whole.
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -1319,6 +1440,79 @@ export function renderStep7WorksheetOptionCard({
   if (!/^(10|11|12|13|14|15|16|17|18|19|20|[0-9])$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
+}
+
+export function renderStep8WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const pair = parsePartPair(option);
+  if (!pair) return null;
+
+  return (
+    <div
+      aria-label={`Number bond parts ${pair.first} and ${pair.second}`}
+      style={{
+        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 150,
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 16,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            minHeight: 70,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 34,
+            fontWeight: 950,
+          }}
+        >
+          {pair.first}
+        </div>
+        <div style={{ color: "#64748b", fontSize: 20, fontWeight: 900 }}>+</div>
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 16,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            minHeight: 70,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 34,
+            fontWeight: 950,
+          }}
+        >
+          {pair.second}
+        </div>
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+        {pair.first} and {pair.second}
+      </div>
+    </div>
+  );
 }
 
 export function renderStep3WorksheetOptionCard({

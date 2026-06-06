@@ -40,6 +40,8 @@ const COMPARE_GROUPS_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S006-Compare-Groups-More-Fewer-Or-Same.pdf";
 const ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S007-Order-Numbers-In-A-Short-Sequence.pdf";
+const PARTITION_COMBINE_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S008-Partition-And-Combine-Small-Collections-Up-To-10.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -145,6 +147,21 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Order numbers in a short sequence",
     fileName: ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::partition-and-combine-small-collections-up-to-10",
+    stepKey: "partition-and-combine-small-collections-up-to-10",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 8,
+    pathwayStepTitle: "Partition and combine small collections up to 10",
+    title: "Partition and Combine Small Collections up to 10",
+    concept: "Partition and combine small collections up to 10",
+    fileName: PARTITION_COMBINE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${PARTITION_COMBINE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
