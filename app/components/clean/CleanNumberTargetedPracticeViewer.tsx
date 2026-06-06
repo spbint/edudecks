@@ -10,11 +10,14 @@ import CleanContentIssueReportButton, {
 import {
   isStep2NumberWordActivity,
   isStep3NumeralActivity,
+  isStep4CountingObjectsActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
   renderStep3WorksheetOptionCard,
   renderStep3WorksheetPromptVisual,
+  renderStep4WorksheetOptionCard,
+  renderStep4WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -929,6 +932,14 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep4CountingObjectsActivity(task.id)) {
+    const step4Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep4WorksheetPromptVisual({
+      visual: step4Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1345,6 +1356,7 @@ function TaskCard({
         (() => {
           const step2NumberWordOptions = isStep2NumberWordActivity(task.id);
           const step3NumeralOptions = isStep3NumeralActivity(task.id);
+          const step4CountingObjectOptions = isStep4CountingObjectsActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1360,7 +1372,7 @@ function TaskCard({
             gap: 6,
             gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions || step3NumeralOptions
+              : step2NumberWordOptions || step3NumeralOptions || step4CountingObjectOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1392,7 +1404,19 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
-            const visualOption = shapeVisual ?? statisticsVisual ?? step2Visual ?? step3Visual;
+            const step4Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              step4CountingObjectOptions
+                ? renderStep4WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
+            const visualOption =
+              shapeVisual ?? statisticsVisual ?? step2Visual ?? step3Visual ?? step4Visual;
 
             return (
               <button
@@ -1401,19 +1425,29 @@ function TaskCard({
                 onClick={() => onChange(option)}
                 style={{
                   border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                  borderRadius: step2Visual || step3Visual ? 18 : 10,
+                  borderRadius: step2Visual || step3Visual || step4Visual ? 18 : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
                   padding:
-                    step2Visual || step3Visual ? 4 : statisticsVisual ? "6px 4px" : "8px 10px",
+                    step2Visual || step3Visual || step4Visual
+                      ? 4
+                      : statisticsVisual
+                        ? "6px 4px"
+                        : "8px 10px",
                   color: "#334155",
                   textAlign: "left",
-                  lineHeight: statisticsVisual || step2Visual || step3Visual ? 1.15 : 1.45,
+                  lineHeight:
+                    statisticsVisual || step2Visual || step3Visual || step4Visual ? 1.15 : 1.45,
                   cursor: "pointer",
                   font: "inherit",
                   display: "grid",
                   justifyItems:
                     visualOption ? "center" : "stretch",
-                  minHeight: step2Visual || step3Visual ? 150 : statisticsVisual ? 68 : undefined,
+                  minHeight:
+                    step2Visual || step3Visual || step4Visual
+                      ? 150
+                      : statisticsVisual
+                        ? 68
+                        : undefined,
                 }}
               >
                 {visualOption ?? option}

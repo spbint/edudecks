@@ -88,6 +88,14 @@ export function isStep3NumeralActivity(id: string, stepKey?: string | null) {
   );
 }
 
+export function isStep4CountingObjectsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "count-objects-accurately-to-10" ||
+    safe(id).startsWith("number-step-4-assess-") ||
+    safe(id).startsWith("number-step-4-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -195,6 +203,222 @@ function getDots(count: number) {
       y: rows === 1 ? 50 : 24 + (52 / Math.max(1, rows - 1)) * row,
     };
   });
+}
+
+type CountingObjectKind = "apple" | "star" | "cube" | "fish" | "leaf" | "circle";
+
+const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
+  "apple",
+  "star",
+  "cube",
+  "fish",
+  "leaf",
+  "circle",
+];
+
+function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("apple")) return "apple";
+  if (normalized.includes("star")) return "star";
+  if (normalized.includes("cube")) return "cube";
+  if (normalized.includes("fish")) return "fish";
+  if (normalized.includes("leaf")) return "leaf";
+
+  return COUNTING_OBJECT_KINDS[count % COUNTING_OBJECT_KINDS.length] || "circle";
+}
+
+function getCountingObjectName(kind: CountingObjectKind, count: number) {
+  const plural: Record<CountingObjectKind, string> = {
+    apple: "apples",
+    star: "stars",
+    cube: "cubes",
+    fish: "fish",
+    leaf: "leaves",
+    circle: "objects",
+  };
+  const singular: Record<CountingObjectKind, string> = {
+    apple: "apple",
+    star: "star",
+    cube: "cube",
+    fish: "fish",
+    leaf: "leaf",
+    circle: "object",
+  };
+
+  return count === 1 ? singular[kind] : plural[kind];
+}
+
+function CountingObjectShape({ kind, index }: { kind: CountingObjectKind; index: number }) {
+  const commonStyle: React.CSSProperties = {
+    width: 26,
+    height: 26,
+    display: "inline-block",
+    position: "relative",
+    filter: "drop-shadow(0 4px 8px rgba(15,23,42,0.12))",
+  };
+
+  if (kind === "star") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          background: "#f59e0b",
+          clipPath:
+            "polygon(50% 0%, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%)",
+        }}
+      />
+    );
+  }
+
+  if (kind === "cube") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: 7,
+          background: index % 2 ? "#60a5fa" : "#93c5fd",
+          border: "2px solid #2563eb",
+        }}
+      />
+    );
+  }
+
+  if (kind === "fish") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: 34,
+          borderRadius: "55% 45% 45% 55%",
+          background: "#38bdf8",
+          border: "2px solid #0284c7",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            right: -9,
+            top: 6,
+            width: 0,
+            height: 0,
+            borderTop: "7px solid transparent",
+            borderBottom: "7px solid transparent",
+            borderLeft: "10px solid #0284c7",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "leaf") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "80% 0 80% 0",
+          background: "#22c55e",
+          border: "2px solid #15803d",
+          transform: `rotate(${index % 2 ? -18 : 18}deg)`,
+        }}
+      />
+    );
+  }
+
+  if (kind === "apple") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "55% 55% 48% 48%",
+          background: "#ef4444",
+          border: "2px solid #b91c1c",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: -7,
+            left: 13,
+            width: 5,
+            height: 10,
+            borderRadius: 999,
+            background: "#92400e",
+            transform: "rotate(16deg)",
+          }}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        ...commonStyle,
+        borderRadius: 999,
+        background: "#2563eb",
+        border: "2px solid #1e40af",
+      }}
+    />
+  );
+}
+
+export function EarlyNumberWorksheetObjectGroupCard({
+  count,
+  label,
+  selected = false,
+}: {
+  count: number;
+  label: string;
+  selected?: boolean;
+}) {
+  const kind = getCountingObjectKind(count, label);
+  const objectName = getCountingObjectName(kind, count);
+
+  return (
+    <div
+      aria-label={`Group showing ${count} ${objectName}`}
+      style={{
+        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: "#ffffff",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        minHeight: 150,
+      }}
+    >
+      <div
+        style={{
+          minHeight: 96,
+          borderRadius: 16,
+          border: "1px solid #dbeafe",
+          background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
+          display: "grid",
+          gridTemplateColumns: "repeat(5, minmax(24px, 1fr))",
+          alignItems: "center",
+          justifyItems: "center",
+          gap: 8,
+          padding: 12,
+        }}
+      >
+        {Array.from({ length: Math.max(0, count) }, (_, index) => (
+          <CountingObjectShape key={`${kind}-${index}`} kind={kind} index={index} />
+        ))}
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+        {label}
+      </div>
+    </div>
+  );
 }
 
 export function EarlyNumberWorksheetDotCard({
@@ -519,6 +743,69 @@ export function renderStep3WorksheetPromptVisual({
   );
 }
 
+export function renderStep4WorksheetPromptVisual({
+  visual,
+}: {
+  visual: EarlyNumberVisualModel;
+}) {
+  const count = visual.groupCounts[0];
+  if (count === undefined || !Number.isFinite(count)) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: 10,
+          alignItems: "stretch",
+        }}
+      >
+        <EarlyNumberWorksheetObjectGroupCard
+          count={count}
+          label={visual.labels[0] || visual.caption || `${count} objects`}
+        />
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            padding: 14,
+            display: "grid",
+            alignContent: "center",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              color: "#c2410c",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Count one by one
+          </div>
+          <div style={{ color: "#334155", fontSize: 14, lineHeight: 1.45, fontWeight: 700 }}>
+            Touch each object with your eyes, say one number for each object, then choose the
+            matching numeral.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -532,6 +819,19 @@ export function renderStep2WorksheetOptionCard({
   if (count === null || !Number.isFinite(count)) return null;
 
   return <EarlyNumberWorksheetDotCard count={count} label={option} selected={selected} />;
+}
+
+export function renderStep4WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^(10|[0-9])$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({
