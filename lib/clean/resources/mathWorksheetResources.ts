@@ -42,6 +42,8 @@ const ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S007-Order-Numbers-In-A-Short-Sequence.pdf";
 const PARTITION_COMBINE_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S008-Partition-And-Combine-Small-Collections-Up-To-10.pdf";
+const OBJECT_STORIES_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S009-Represent-Simple-Addition-And-Subtraction-Stories-With-Objects.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -162,6 +164,21 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Partition and combine small collections up to 10",
     fileName: PARTITION_COMBINE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${PARTITION_COMBINE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::represent-simple-addition-and-subtraction-stories-with-objects",
+    stepKey: "represent-simple-addition-and-subtraction-stories-with-objects",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 9,
+    pathwayStepTitle: "Represent simple addition and subtraction stories with objects",
+    title: "Represent Addition and Subtraction Stories with Objects",
+    concept: "Use objects to represent simple addition and subtraction stories",
+    fileName: OBJECT_STORIES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${OBJECT_STORIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

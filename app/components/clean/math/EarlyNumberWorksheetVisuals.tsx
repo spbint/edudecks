@@ -128,6 +128,14 @@ export function isStep8PartWholeActivity(id: string, stepKey?: string | null) {
   );
 }
 
+export function isStep9ObjectStoryActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "represent-simple-addition-and-subtraction-stories-with-objects" ||
+    safe(id).startsWith("number-step-9-assess-") ||
+    safe(id).startsWith("number-step-9-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -225,6 +233,21 @@ function parsePartPair(option: string) {
   if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
 
   return { first, second };
+}
+
+function getStoryOperation(prompt: string) {
+  const source = prompt.toLowerCase();
+  if (
+    source.includes("taken away") ||
+    source.includes("take away") ||
+    source.includes("left") ||
+    source.includes("swim away") ||
+    source.includes("removed")
+  ) {
+    return "subtract" as const;
+  }
+
+  return "add" as const;
 }
 
 function getCountFromLabel(label: string, visual: EarlyNumberVisualModel | null) {
@@ -1349,6 +1372,146 @@ export function renderStep8WorksheetPromptVisual({
   );
 }
 
+export function renderStep9WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const start = visual.groupCounts[0];
+  const change = visual.groupCounts[1];
+  if (
+    start === undefined ||
+    change === undefined ||
+    !Number.isFinite(start) ||
+    !Number.isFinite(change)
+  ) {
+    return null;
+  }
+
+  const operation = getStoryOperation(prompt);
+  const operationSymbol = operation === "add" ? "+" : "-";
+  const operationLabel = operation === "add" ? "Objects join" : "Objects are taken away";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          color: "#1e3a8a",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Show the story with objects: start, change, then result.
+      </div>
+      <div
+        aria-label={`Story visual showing ${start} objects ${operation === "add" ? "plus" : "minus"} ${change} objects`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(104px, 0.8fr)",
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "grid", gap: 6 }}>
+          <div
+            style={{
+              color: "#1d4ed8",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              textAlign: "center",
+            }}
+          >
+            Start
+          </div>
+          <EarlyNumberWorksheetObjectGroupCard count={start} label={`${start} objects`} />
+        </div>
+        <div
+          aria-hidden="true"
+          style={{
+            color: operation === "add" ? "#15803d" : "#c2410c",
+            fontSize: 32,
+            fontWeight: 950,
+            textAlign: "center",
+          }}
+        >
+          {operationSymbol}
+        </div>
+        <div style={{ display: "grid", gap: 6 }}>
+          <div
+            style={{
+              color: operation === "add" ? "#15803d" : "#c2410c",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              textAlign: "center",
+            }}
+          >
+            Change
+          </div>
+          <EarlyNumberWorksheetObjectGroupCard count={change} label={`${change} objects`} />
+        </div>
+        <div
+          aria-hidden="true"
+          style={{ color: "#64748b", fontSize: 32, fontWeight: 950, textAlign: "center" }}
+        >
+          =
+        </div>
+        <div
+          aria-label="Result is missing"
+          style={{
+            border: "2px dashed #c4b5fd",
+            borderRadius: 18,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            minHeight: 122,
+            display: "grid",
+            placeItems: "center",
+            textAlign: "center",
+            padding: 12,
+            fontSize: 18,
+            fontWeight: 900,
+          }}
+        >
+          Result?
+        </div>
+      </div>
+      <div
+        style={{
+          border: `1px solid ${operation === "add" ? "#bbf7d0" : "#fed7aa"}`,
+          borderRadius: 16,
+          background: operation === "add" ? "#f0fdf4" : "#fff7ed",
+          color: operation === "add" ? "#166534" : "#c2410c",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 800,
+          lineHeight: 1.45,
+        }}
+      >
+        {operationLabel}. Choose the result.
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -1513,6 +1676,19 @@ export function renderStep8WorksheetOptionCard({
       </div>
     </div>
   );
+}
+
+export function renderStep9WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^(10|[0-9])$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Result" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

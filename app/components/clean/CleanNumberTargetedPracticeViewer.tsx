@@ -15,6 +15,7 @@ import {
   isStep6CompareGroupsActivity,
   isStep7OrderNumbersActivity,
   isStep8PartWholeActivity,
+  isStep9ObjectStoryActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -28,6 +29,8 @@ import {
   renderStep7WorksheetPromptVisual,
   renderStep8WorksheetOptionCard,
   renderStep8WorksheetPromptVisual,
+  renderStep9WorksheetOptionCard,
+  renderStep9WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -975,6 +978,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep9ObjectStoryActivity(task.id)) {
+    const step9Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep9WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step9Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1397,6 +1409,7 @@ function TaskCard({
           const step6CompareGroupOptions = isStep6CompareGroupsActivity(task.id);
           const step7OrderNumberOptions = isStep7OrderNumbersActivity(task.id);
           const step8PartWholeOptions = isStep8PartWholeActivity(task.id);
+          const step9ObjectStoryOptions = isStep9ObjectStoryActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1417,7 +1430,8 @@ function TaskCard({
                   countingObjectOptions ||
                   step6CompareGroupOptions ||
                   step7OrderNumberOptions ||
-                  step8PartWholeOptions
+                  step8PartWholeOptions ||
+                  step9ObjectStoryOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1499,6 +1513,21 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step9Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              step9ObjectStoryOptions
+                ? renderStep9WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -1507,7 +1536,8 @@ function TaskCard({
               step4Visual ??
               step6Visual ??
               step7Visual ??
-              step8Visual;
+              step8Visual ??
+              step9Visual;
 
             return (
               <button
@@ -1522,7 +1552,8 @@ function TaskCard({
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
@@ -1532,7 +1563,8 @@ function TaskCard({
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -1546,7 +1578,8 @@ function TaskCard({
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -1560,7 +1593,8 @@ function TaskCard({
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? 150
                       : statisticsVisual
                         ? 68

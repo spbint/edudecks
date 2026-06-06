@@ -18,6 +18,7 @@ import {
   isStep6CompareGroupsActivity,
   isStep7OrderNumbersActivity,
   isStep8PartWholeActivity,
+  isStep9ObjectStoryActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -31,6 +32,8 @@ import {
   renderStep7WorksheetPromptVisual,
   renderStep8WorksheetOptionCard,
   renderStep8WorksheetPromptVisual,
+  renderStep9WorksheetOptionCard,
+  renderStep9WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2200,6 +2203,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep9ObjectStoryActivity(item.id, item.progressionStepKey)) {
+    const step9Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep9WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step9Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -3629,6 +3641,10 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step9ObjectStoryOptions = isStep9ObjectStoryActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -3648,7 +3664,8 @@ function CleanNumberAssessmentPlayerBody() {
                     countingObjectOptions ||
                     step6CompareGroupOptions ||
                     step7OrderNumberOptions ||
-                    step8PartWholeOptions
+                    step8PartWholeOptions ||
+                    step9ObjectStoryOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
@@ -3658,7 +3675,8 @@ function CleanNumberAssessmentPlayerBody() {
                   countingObjectOptions ||
                   step6CompareGroupOptions ||
                   step7OrderNumberOptions ||
-                  step8PartWholeOptions
+                  step8PartWholeOptions ||
+                  step9ObjectStoryOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -3741,6 +3759,21 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const step9Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              step9ObjectStoryOptions
+                ? renderStep9WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -3749,7 +3782,8 @@ function CleanNumberAssessmentPlayerBody() {
               step4Visual ??
               step6Visual ??
               step7Visual ??
-              step8Visual;
+              step8Visual ??
+              step9Visual;
 
             return (
               <button
@@ -3775,7 +3809,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? 150
                       : statisticsVisual
                         ? 70
@@ -3786,7 +3821,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                     ? 4
                     : statisticsVisual
                       ? "6px 4px"
@@ -3797,7 +3833,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                     ? 18
                     : statisticsVisual
                       ? 12
@@ -3809,7 +3846,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? 1.15
                       : optionButtonStyle.lineHeight,
                   position:
@@ -3819,7 +3857,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step4Visual ||
                     step6Visual ||
                     step7Visual ||
-                    step8Visual
+                    step8Visual ||
+                    step9Visual
                       ? "relative"
                       : undefined,
                 }}
@@ -3831,7 +3870,8 @@ function CleanNumberAssessmentPlayerBody() {
                   step4Visual ||
                   step6Visual ||
                   step7Visual ||
-                  step8Visual) &&
+                  step8Visual ||
+                  step9Visual) &&
                 isSelected ? (
                   <span
                     style={{
