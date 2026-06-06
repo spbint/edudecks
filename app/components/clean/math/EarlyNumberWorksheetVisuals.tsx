@@ -160,6 +160,14 @@ export function isStep12ReadWriteOrderActivity(id: string, stepKey?: string | nu
   );
 }
 
+export function isStep13SkipCountingActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "skip-count-by-2s-5s-and-10s" ||
+    safe(id).startsWith("number-step-13-assess-") ||
+    safe(id).startsWith("number-step-13-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -293,6 +301,71 @@ function getSequenceDirection(prompt: string) {
   }
 
   return "forward" as const;
+}
+
+function getSkipCountStep(prompt: string) {
+  const source = prompt.toLowerCase();
+  if (/\b10s\b|\bby\s+10\b|\bby\s+tens\b/.test(source)) return 10;
+  if (/\b5s\b|\bby\s+5\b|\bby\s+fives\b/.test(source)) return 5;
+  return 2;
+}
+
+function getSkipCountTone(step: number) {
+  if (step === 5) {
+    return {
+      border: "#bbf7d0",
+      background: "#f0fdf4",
+      strong: "#15803d",
+      soft: "#dcfce7",
+    };
+  }
+
+  if (step === 10) {
+    return {
+      border: "#fed7aa",
+      background: "#fff7ed",
+      strong: "#c2410c",
+      soft: "#ffedd5",
+    };
+  }
+
+  return {
+    border: "#bfdbfe",
+    background: "#eff6ff",
+    strong: "#1d4ed8",
+    soft: "#dbeafe",
+  };
+}
+
+function getSkipCountLabel(step: number) {
+  if (step === 10) return "10s";
+  if (step === 5) return "5s";
+  return "2s";
+}
+
+function getStep13SkipCountSequence(
+  prompt: string,
+  visual: EarlyNumberVisualModel,
+  step: number,
+) {
+  const answer = Number(visual.numberCards[visual.numberCards.length - 1]);
+  const promptNumbers = prompt
+    .match(/\b\d{1,3}\b/g)
+    ?.map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry)) ?? [];
+  const sequenceNumbers = promptNumbers.filter((entry) => entry !== step);
+
+  if (prompt.includes("__") && Number.isFinite(answer)) {
+    return [...sequenceNumbers, answer].map(String);
+  }
+
+  if (Number.isFinite(answer)) {
+    return [answer - step * 3, answer - step * 2, answer - step, answer]
+      .filter((entry) => entry >= 0)
+      .map(String);
+  }
+
+  return visual.numberCards;
 }
 
 function getNumberWordPrompt(prompt: string) {
@@ -1997,6 +2070,126 @@ export function renderStep12WorksheetPromptVisual({
   );
 }
 
+export function renderStep13WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const step = getSkipCountStep(prompt);
+  const numbers = getStep13SkipCountSequence(prompt, visual, step);
+  if (!numbers.length) return null;
+
+  const tone = getSkipCountTone(step);
+  const targetIndex = Math.max(0, numbers.length - 1);
+  const sequenceLabel = numbers
+    .map((number, index) => (index === targetIndex ? "missing number" : number))
+    .join(", ");
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${tone.border}`,
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Follow the skip-counting pattern and choose the missing number.
+        </div>
+        <span
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 999,
+            background: tone.background,
+            color: tone.strong,
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Count by {getSkipCountLabel(step)}
+        </span>
+      </div>
+      <div
+        aria-label={`Skip counting by ${getSkipCountLabel(step)} sequence ${sequenceLabel}`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${Math.max(1, numbers.length)}, minmax(70px, 1fr))`,
+            gap: 8,
+          }}
+        >
+          {numbers.map((number, index) => {
+            const missing = index === targetIndex;
+            return (
+              <div
+                key={`${number}-${index}`}
+                aria-label={missing ? "Missing number box" : `Number ${number}`}
+                style={{
+                  border: `2px solid ${missing ? "#7c3aed" : tone.border}`,
+                  borderRadius: 16,
+                  background: missing ? "#f5f3ff" : tone.background,
+                  color: missing ? "#6d28d9" : tone.strong,
+                  minHeight: 76,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: missing ? 22 : number.length > 2 ? 30 : 36,
+                  fontWeight: 950,
+                  lineHeight: 1,
+                  boxShadow: missing
+                    ? "0 10px 22px rgba(124,58,237,0.14)"
+                    : "0 8px 18px rgba(15,23,42,0.06)",
+                }}
+              >
+                {missing ? "__" : number}
+              </div>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 14,
+            background: tone.soft,
+            color: tone.strong,
+            padding: "9px 10px",
+            fontSize: 12,
+            fontWeight: 850,
+            lineHeight: 1.4,
+          }}
+        >
+          Each jump adds {step}. Keep the same pattern.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -2245,6 +2438,19 @@ export function renderStep12WorksheetOptionCard({
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose numeral" selected={selected} />;
+}
+
+export function renderStep13WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,3}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

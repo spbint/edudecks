@@ -19,6 +19,7 @@ import {
   isStep10EqualSharingActivity,
   isStep11CountingSequenceActivity,
   isStep12ReadWriteOrderActivity,
+  isStep13SkipCountingActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -40,6 +41,8 @@ import {
   renderStep11WorksheetPromptVisual,
   renderStep12WorksheetOptionCard,
   renderStep12WorksheetPromptVisual,
+  renderStep13WorksheetOptionCard,
+  renderStep13WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1023,6 +1026,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep13SkipCountingActivity(task.id)) {
+    const step13Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep13WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step13Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1449,6 +1461,7 @@ function TaskCard({
           const step10EqualSharingOptions = isStep10EqualSharingActivity(task.id);
           const step11CountingSequenceOptions = isStep11CountingSequenceActivity(task.id);
           const step12ReadWriteOrderOptions = isStep12ReadWriteOrderActivity(task.id);
+          const step13SkipCountingOptions = isStep13SkipCountingActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1473,7 +1486,8 @@ function TaskCard({
                   step9ObjectStoryOptions ||
                   step10EqualSharingOptions ||
                   step11CountingSequenceOptions ||
-                  step12ReadWriteOrderOptions
+                  step12ReadWriteOrderOptions ||
+                  step13SkipCountingOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1621,6 +1635,25 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step13Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              step13SkipCountingOptions
+                ? renderStep13WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -1633,7 +1666,8 @@ function TaskCard({
               step9Visual ??
               step10Visual ??
               step11Visual ??
-              step12Visual;
+              step12Visual ??
+              step13Visual;
 
             return (
               <button
@@ -1652,7 +1686,8 @@ function TaskCard({
                     step9Visual ||
                     step10Visual ||
                     step11Visual ||
-                    step12Visual
+                    step12Visual ||
+                    step13Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
@@ -1666,7 +1701,8 @@ function TaskCard({
                     step9Visual ||
                     step10Visual ||
                     step11Visual ||
-                    step12Visual
+                    step12Visual ||
+                    step13Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -1684,7 +1720,8 @@ function TaskCard({
                     step9Visual ||
                     step10Visual ||
                     step11Visual ||
-                    step12Visual
+                    step12Visual ||
+                    step13Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -1702,7 +1739,8 @@ function TaskCard({
                     step9Visual ||
                     step10Visual ||
                     step11Visual ||
-                    step12Visual
+                    step12Visual ||
+                    step13Visual
                       ? 150
                       : statisticsVisual
                         ? 68

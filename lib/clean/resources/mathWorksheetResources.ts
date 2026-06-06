@@ -52,6 +52,8 @@ const COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S011-Count-Forwards-And-Backwards-Within-100-Or-120.pdf";
 const READ_WRITE_ORDER_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S012-Read-Write-And-Order-Numbers-To-100-Or-120.pdf";
+const SKIP_COUNT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S013-Skip-Count-By-2s-5s-And-10s.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -236,6 +238,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: true,
     fileName: READ_WRITE_ORDER_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${READ_WRITE_ORDER_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::skip-count-by-2s-5s-and-10s",
+    stepKey: "skip-count-by-2s-5s-and-10s",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 13,
+    pathwayStepTitle: "Skip count by 2s, 5s and 10s",
+    title: "Skip Count by 2s, 5s and 10s",
+    concept: "Skip count by 2s, 5s and 10s",
+    includesAnswerSheet: true,
+    fileName: SKIP_COUNT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${SKIP_COUNT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
