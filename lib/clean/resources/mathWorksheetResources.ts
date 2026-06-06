@@ -50,6 +50,8 @@ const SHARE_EQUALLY_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S010-Share-Small-Collections-Equally.pdf";
 const COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S011-Count-Forwards-And-Backwards-Within-100-Or-120.pdf";
+const READ_WRITE_ORDER_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S012-Read-Write-And-Order-Numbers-To-100-Or-120.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -217,6 +219,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: true,
     fileName: COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::read-write-and-order-numbers-to-100-or-120",
+    stepKey: "read-write-and-order-numbers-to-100-or-120",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 12,
+    pathwayStepTitle: "Read, write and order numbers to 100 or 120",
+    title: "Read, Write and Order Numbers to 100 or 120",
+    concept: "Read, write and order numbers to 100 or 120",
+    includesAnswerSheet: true,
+    fileName: READ_WRITE_ORDER_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${READ_WRITE_ORDER_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

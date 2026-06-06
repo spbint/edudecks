@@ -152,6 +152,14 @@ export function isStep11CountingSequenceActivity(id: string, stepKey?: string | 
   );
 }
 
+export function isStep12ReadWriteOrderActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "read-write-and-order-numbers-to-100-or-120" ||
+    safe(id).startsWith("number-step-12-assess-") ||
+    safe(id).startsWith("number-step-12-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -285,6 +293,25 @@ function getSequenceDirection(prompt: string) {
   }
 
   return "forward" as const;
+}
+
+function getNumberWordPrompt(prompt: string) {
+  const source = prompt.trim();
+  const lower = source.toLowerCase();
+  if (lower.includes("tens") || lower.includes("ones")) return "";
+  if (lower.includes("smallest") || lower.includes("largest")) return "";
+
+  const match = source.match(/(?:is|matches)\s+(.+?)\??$/i)?.[1];
+  return match ? match.trim() : "";
+}
+
+function getPlaceValueParts(prompt: string) {
+  const match = prompt.match(/(\d+)\s+tens?\s+and\s+(\d+)\s+ones?/i);
+  if (!match) return null;
+  return {
+    tens: Number(match[1]),
+    ones: Number(match[2]),
+  };
 }
 
 function getCountFromLabel(label: string, visual: EarlyNumberVisualModel | null) {
@@ -1838,6 +1865,138 @@ export function renderStep11WorksheetPromptVisual({
   );
 }
 
+export function renderStep12WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const numbers = visual.numberCards;
+  if (!numbers.length) return null;
+
+  const numberWordPrompt = getNumberWordPrompt(prompt);
+  const placeValueParts = getPlaceValueParts(prompt);
+  const asksOrdering = /smallest|largest/i.test(prompt);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          color: "#1e3a8a",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Match the number representation to the correct numeral.
+      </div>
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 14,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        {placeValueParts ? (
+          <div
+            aria-label={`${placeValueParts.tens} tens and ${placeValueParts.ones} ones`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
+            <EarlyNumberWorksheetNumeralCard
+              numeral={String(placeValueParts.tens)}
+              label="tens"
+            />
+            <div style={{ color: "#64748b", fontSize: 24, fontWeight: 950 }}>+</div>
+            <EarlyNumberWorksheetNumeralCard
+              numeral={String(placeValueParts.ones)}
+              label="ones"
+            />
+          </div>
+        ) : numberWordPrompt ? (
+          <div
+            aria-label={`Number word ${numberWordPrompt}`}
+            style={{
+              border: "2px solid #bfdbfe",
+              borderRadius: 18,
+              background: "#eff6ff",
+              color: "#1d4ed8",
+              minHeight: 118,
+              display: "grid",
+              placeItems: "center",
+              textAlign: "center",
+              padding: 16,
+              fontSize: 28,
+              fontWeight: 950,
+              lineHeight: 1.1,
+            }}
+          >
+            {numberWordPrompt}
+          </div>
+        ) : asksOrdering ? (
+          <div
+            aria-label={`Number cards ${numbers.join(", ")}`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${Math.max(1, numbers.length)}, minmax(70px, 1fr))`,
+              gap: 8,
+            }}
+          >
+            {numbers.map((number) => (
+              <EarlyNumberWorksheetNumeralCard key={number} numeral={number} />
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${Math.max(1, numbers.length)}, minmax(70px, 1fr))`,
+              gap: 8,
+            }}
+          >
+            {numbers.map((number) => (
+              <EarlyNumberWorksheetNumeralCard key={number} numeral={number} />
+            ))}
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          border: "1px solid #ddd6fe",
+          borderRadius: 16,
+          background: "#f5f3ff",
+          color: "#6d28d9",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 800,
+          lineHeight: 1.45,
+        }}
+      >
+        {asksOrdering
+          ? "Choose the number that fits the ordering question."
+          : "Choose the numeral that matches."}
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -2073,6 +2232,19 @@ export function renderStep11WorksheetOptionCard({
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} />;
+}
+
+export function renderStep12WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,3}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose numeral" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({
