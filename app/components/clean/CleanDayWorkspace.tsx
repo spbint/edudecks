@@ -8,7 +8,6 @@ import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import {
   CleanBetaFeedbackPrompt,
   CleanContinueWhereYouLeftOffCard,
-  CleanNextStepCard,
 } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -502,10 +501,6 @@ function CleanDayWorkspaceBody() {
   const familyGreeting = familyDisplayName
     ? `Welcome back, ${familyDisplayName}.`
     : "Welcome back.";
-  const nextStepGuidance = openGuidanceCards[0] ?? null;
-  const nextStepBody = nextStepGuidance
-    ? nextStepGuidance.description.replace("&apos;", "'")
-    : "Start with today's learning. Plan one block, capture one useful piece of evidence, and let MyLearna begin building the record over time.";
   const continueActions = useMemo(() => {
     const pathwayHref = selectedLearnerId
       ? `${pathwaysPathBase}?learnerId=${encodeURIComponent(selectedLearnerId)}`
@@ -852,14 +847,6 @@ function CleanDayWorkspaceBody() {
         </section>
 
         <CleanContinueWhereYouLeftOffCard actions={continueActions} />
-
-        <CleanNextStepCard
-          body={nextStepBody}
-          actionHref={nextStepGuidance?.actionHref}
-          actionLabel={nextStepGuidance?.actionLabel}
-        />
-
-        <CleanBetaFeedbackPrompt pageName="My Day" />
 
         {workspace.loading ? <section style={cardStyle}>Loading your day...</section> : null}
 
@@ -1516,6 +1503,8 @@ function CleanDayWorkspaceBody() {
             openGuidanceCards.length ? (
               <CleanGuidanceRibbon cards={openGuidanceCards} compact />
             ) : null}
+
+            <CleanBetaFeedbackPrompt pageName="My Day" />
           </>
         ) : null}
       </div>
