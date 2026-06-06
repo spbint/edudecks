@@ -73,50 +73,51 @@ import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  padding: "clamp(10px, 3vw, 20px) clamp(8px, 3vw, 16px) 36px",
+  boxSizing: "border-box",
 };
 
 const wrapStyle: React.CSSProperties = {
   maxWidth: 1180,
   margin: "0 auto",
   display: "grid",
-  gap: 20,
+  gap: 10,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  borderRadius: 14,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: 12,
+  boxShadow: "0 4px 14px rgba(15,23,42,0.035)",
 };
 
 const compactCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 16,
+  borderRadius: 12,
   background: "#f8fafc",
-  padding: 16,
+  padding: 10,
   display: "grid",
-  gap: 8,
+  gap: 6,
 };
 
 const helperCardStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
-  borderRadius: 16,
+  borderRadius: 12,
   background: "#f8fbff",
-  padding: 16,
+  padding: 10,
   display: "grid",
-  gap: 8,
+  gap: 6,
 };
 
 const summaryCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 16,
+  borderRadius: 12,
   background: "#ffffff",
-  padding: 16,
+  padding: 10,
   display: "grid",
-  gap: 8,
-  boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
+  gap: 6,
+  boxShadow: "0 3px 10px rgba(15,23,42,0.03)",
 };
 
 const EMPTY_STRAND_CARD: SubjectStrandCard = {
@@ -134,6 +135,7 @@ type PathwayWorksheetFilter = "all" | "with" | "missing";
 type PathwayDensityMode = "compact" | "full";
 
 type PersistedPathwaysUiState = {
+  selectedLearnerId?: string;
   selectedSubjectKey?: PathwaySubjectKey;
   selectedStrandKeyBySubject?: Partial<Record<PathwaySubjectKey, string>>;
   hasExplicitStrandSelection?: boolean;
@@ -679,7 +681,7 @@ function PathwaysWorkspaceBody() {
     } satisfies Partial<Record<PathwaySubjectKey, string>>;
   }, [initialSubjectKey, persistedUiState.selectedStrandKeyBySubject, searchParams]);
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState(
-    () => searchParams.get("learnerId") || "",
+    () => searchParams.get("learnerId") || persistedUiState.selectedLearnerId || "",
   );
   // Keep subject and strand selection explicit so later planning, capture, calendar,
   // and reporting can point back to a stable subject -> strand -> stage -> step path.
@@ -793,6 +795,15 @@ function PathwaysWorkspaceBody() {
     () => workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
     [selectedLearnerId, workspace.learners],
   );
+
+  useEffect(() => {
+    if (!selectedLearnerId) return;
+    const current = readPersistedPathwaysUiState();
+    writePersistedPathwaysUiState({
+      ...current,
+      selectedLearnerId,
+    });
+  }, [selectedLearnerId]);
 
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
@@ -1096,24 +1107,45 @@ function PathwaysWorkspaceBody() {
 
   return (
     <div style={shellStyle}>
+      <style jsx global>{`
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+      `}</style>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
 
-        <CleanPageIntroVideo
-          config={PAGE_INTRO_VIDEOS.myPathways}
-          promptTitle="New to My Pathways?"
-          promptDescription="Watch a quick guide to see how pathway steps, practice, assessment and evidence work together."
-        />
+        <details
+          style={{
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+            background: "#ffffff",
+            padding: "8px 10px",
+          }}
+        >
+          <summary style={{ cursor: "pointer", color: "#334155", fontSize: 13, fontWeight: 800 }}>
+            Help and page guide
+          </summary>
+          <div style={{ marginTop: 10 }}>
+            <CleanPageIntroVideo
+              config={PAGE_INTRO_VIDEOS.myPathways}
+              promptTitle="New to My Pathways?"
+              promptDescription="Watch a quick guide to see how pathway steps, practice, assessment and evidence work together."
+            />
+          </div>
+        </details>
 
         <section
           style={{
             ...cardStyle,
-            padding: 18,
+            padding: 10,
             background:
               "linear-gradient(180deg, rgba(248,251,255,1) 0%, rgba(255,255,255,1) 100%)",
           }}
         >
-          <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
                 display: "flex",
@@ -1124,11 +1156,8 @@ function PathwaysWorkspaceBody() {
               }}
             >
               <div style={{ display: "grid", gap: 8, maxWidth: 720 }}>
-                <div style={eyebrowStyle}>Where is this learner now?</div>
-                <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>{pathwaysHeading}</h1>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
-                  Pick a learner, check the current focus, then choose the next useful action.
-                </p>
+                <div style={eyebrowStyle}>Current pathway</div>
+                <h1 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>{pathwaysHeading}</h1>
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -1138,15 +1167,15 @@ function PathwaysWorkspaceBody() {
                     background: "#ffffff",
                     color: "#1d4ed8",
                     borderRadius: 999,
-                    padding: "8px 12px",
-                    fontSize: 13,
+                    padding: "5px 8px",
+                    fontSize: 12,
                     fontWeight: 700,
                     lineHeight: 1.4,
                   }}
                 >
                   Parent pathway map
                 </span>
-                <Link href="/my-settings" style={secondaryButtonStyle}>
+                <Link href="/my-settings" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
                   My Settings
                 </Link>
               </div>
@@ -1155,11 +1184,19 @@ function PathwaysWorkspaceBody() {
             <div
               style={{
                 display: "grid",
-                gap: 10,
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 0,
+                gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                borderTop: "1px solid #e2e8f0",
               }}
             >
-              <div style={compactCardStyle}>
+              <div
+                style={{
+                  padding: "8px 10px 4px 0",
+                  display: "grid",
+                  gap: 4,
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
                 <div style={eyebrowStyle}>Selected learner</div>
                 {workspace.loading ? (
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
@@ -1209,12 +1246,19 @@ function PathwaysWorkspaceBody() {
                 )}
               </div>
 
-              <div style={compactCardStyle}>
+              <div
+                style={{
+                  padding: "8px 10px 4px",
+                  display: "grid",
+                  gap: 4,
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
                 <div style={eyebrowStyle}>Current pathway view</div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                <strong style={{ color: "#0f172a", fontSize: 15 }}>
                   {topSnapshotTitle}
                 </strong>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
                   {selectedSubjectSupportsDetailedPathways
                     ? topSnapshotStagePrefix
                     : "Current status: "}
@@ -1225,20 +1269,27 @@ function PathwaysWorkspaceBody() {
                   </strong>
                 </div>
                 {!selectedSubjectSupportsDetailedPathways ? (
-                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
                     {selectedSubjectSummaryHelper}
                   </div>
                 ) : null}
               </div>
 
-              <div style={compactCardStyle}>
+              <div
+                style={{
+                  padding: "8px 10px 4px",
+                  display: "grid",
+                  gap: 4,
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
                 <div style={eyebrowStyle}>Latest check</div>
-                <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>
                   {latestAssessmentAttempt
                     ? getAssessmentAttemptDisplayTitle(latestAssessmentAttempt)
                     : "No check saved yet"}
                 </strong>
-                <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
                   {latestAssessmentAttempt
                     ? `Saved ${formatAssessmentAttemptSavedAt(
                         latestAssessmentAttempt.completedAt || latestAssessmentAttempt.createdAt,
@@ -1247,10 +1298,17 @@ function PathwaysWorkspaceBody() {
                 </div>
               </div>
 
-              <div style={helperCardStyle}>
+              <div
+                style={{
+                  padding: "8px 0 4px 10px",
+                  display: "grid",
+                  gap: 4,
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
                 <div style={eyebrowStyle}>Next action</div>
                 <strong style={{ color: "#0f172a" }}>{topSnapshotNextAction}</strong>
-                <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.4 }}>
                   {selectedStrandIsActive
                     ? "Use the current step panel below."
                     : "Pick from the pathway strands below."}
@@ -1260,7 +1318,21 @@ function PathwaysWorkspaceBody() {
           </div>
         </section>
 
-        <CleanBetaFeedbackPrompt pageName="My Pathways" />
+        <details
+          style={{
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+            background: "#ffffff",
+            padding: "8px 10px",
+          }}
+        >
+          <summary style={{ cursor: "pointer", color: "#334155", fontSize: 13, fontWeight: 800 }}>
+            Feedback
+          </summary>
+          <div style={{ marginTop: 10 }}>
+            <CleanBetaFeedbackPrompt pageName="My Pathways" />
+          </div>
+        </details>
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 16 }}>
@@ -1491,11 +1563,6 @@ function PathwaysWorkspaceBody() {
                   subtitle={selectedSubjectWorkspace.subtitle}
                   relationshipTitle={selectedSubjectWorkspace.relationshipTitle}
                   relationshipCopy={selectedSubjectWorkspace.relationshipCopy}
-                  stageRailItems={selectedSubjectWorkspace.stages.map((stage, stageIndex) => ({
-                    key: stage.key,
-                    title: stage.title,
-                    tone: getPathwayStageTone(stageIndex, selectedWorkspaceStageIndex),
-                  }))}
                   summaryCards={[
                     {
                       label: "Current stage snapshot",
@@ -1562,12 +1629,15 @@ function PathwaysWorkspaceBody() {
 
                   <div
                     style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
+                      borderTop: "1px solid #e2e8f0",
+                      borderBottom: "1px solid #e2e8f0",
                       background: "#ffffff",
-                      padding: 12,
-                      display: "grid",
-                      gap: 10,
+                      padding: "8px 0",
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
                     }}
                   >
                     <div
@@ -1579,12 +1649,7 @@ function PathwaysWorkspaceBody() {
                         alignItems: "center",
                       }}
                     >
-                      <div style={{ display: "grid", gap: 3 }}>
-                        <div style={eyebrowStyle}>Pathway view</div>
-                        <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.4 }}>
-                          Keep the current learning zone visible and expand only what you need.
-                        </div>
-                      </div>
+                      <div style={{ ...eyebrowStyle, whiteSpace: "nowrap" }}>Pathway view</div>
                       <button
                         type="button"
                         onClick={() =>
@@ -1602,7 +1667,7 @@ function PathwaysWorkspaceBody() {
                       </button>
                     </div>
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {([
                         ["current", "Current zone only"],
                         ["nearby", "Current + nearby"],
@@ -1619,7 +1684,7 @@ function PathwaysWorkspaceBody() {
                               background: selected ? "#eff6ff" : "#ffffff",
                               color: selected ? "#1d4ed8" : "#0f172a",
                               borderRadius: 999,
-                              padding: "7px 10px",
+                              padding: "6px 9px",
                               fontSize: 12,
                               fontWeight: 800,
                               cursor: "pointer",
@@ -1631,7 +1696,7 @@ function PathwaysWorkspaceBody() {
                       })}
                     </div>
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {([
                         ["all", "All steps"],
                         ["with", "With worksheets"],
@@ -1648,7 +1713,7 @@ function PathwaysWorkspaceBody() {
                               background: selected ? "#f0fdfa" : "#ffffff",
                               color: selected ? "#0f766e" : "#0f172a",
                               borderRadius: 999,
-                              padding: "7px 10px",
+                              padding: "6px 9px",
                               fontSize: 12,
                               fontWeight: 800,
                               cursor: "pointer",
@@ -1806,7 +1871,6 @@ function MathematicsStrandWorkspaceShell({
   subtitle,
   relationshipTitle,
   relationshipCopy,
-  stageRailItems,
   summaryCards,
   supportCards,
   children,
@@ -1816,11 +1880,6 @@ function MathematicsStrandWorkspaceShell({
   subtitle: string;
   relationshipTitle: string;
   relationshipCopy: string;
-  stageRailItems: Array<{
-    key: string;
-    title: string;
-    tone: { badge: string; border: string; background: string; shadow: string; text: string };
-  }>;
   summaryCards: Array<{
     label: string;
     value: string;
@@ -1834,27 +1893,31 @@ function MathematicsStrandWorkspaceShell({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div style={{ display: "grid", gap: 10 }}>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          gap: 14,
-          alignItems: "flex-start",
+          gap: 10,
+          alignItems: "center",
           flexWrap: "wrap",
+          borderBottom: "1px solid #e2e8f0",
+          paddingBottom: 8,
         }}
       >
-        <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
+        <div style={{ display: "grid", gap: 3, maxWidth: 760 }}>
           <div style={eyebrowStyle}>{eyebrow}</div>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{title}</h2>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>{subtitle}</p>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>{title}</h2>
+          <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.35 }}>
+            {subtitle}
+          </p>
         </div>
 
-        <details style={{ flex: "1 1 240px", minWidth: 0 }}>
-          <summary style={{ cursor: "pointer", color: "#334155", fontWeight: 800 }}>
+        <details style={{ flex: "0 1 260px", minWidth: 0 }}>
+          <summary style={{ cursor: "pointer", color: "#334155", fontSize: 13, fontWeight: 800 }}>
             {relationshipTitle}
           </summary>
-          <div style={{ color: "#475569", lineHeight: 1.5, marginTop: 8 }}>
+          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 6 }}>
             {relationshipCopy}
           </div>
         </details>
@@ -1863,68 +1926,52 @@ function MathematicsStrandWorkspaceShell({
       <div
         style={{
           display: "flex",
-          gap: 8,
           flexWrap: "wrap",
-          alignItems: "stretch",
-        }}
-      >
-        {stageRailItems.map((stage) => (
-          <div
-            key={`rail-${stage.key}`}
-            style={{
-              border: `1px solid ${stage.tone.border}`,
-              borderRadius: 999,
-              background: stage.tone.background,
-              padding: "8px 11px",
-              display: "grid",
-              gap: 4,
-              boxShadow: stage.tone.shadow,
-            }}
-          >
-            <span
-              style={{
-                color: stage.tone.text,
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}
-            >
-              {stage.tone.badge}
-            </span>
-            <strong style={{ color: "#0f172a", fontSize: 13 }}>{stage.title}</strong>
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gap: 8,
-          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: 6,
+          alignItems: "center",
         }}
       >
         {summaryCards.map((card, index) => (
-          <div key={`${card.label}-${index}`} style={{ ...summaryCardStyle, padding: 12 }}>
-            <div style={eyebrowStyle}>{card.label}</div>
+          <span
+            key={`${card.label}-${index}`}
+            title={card.helper || card.label}
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 999,
+              background: "#ffffff",
+              color: card.valueColor || "#334155",
+              padding: "5px 8px",
+              display: "inline-flex",
+              gap: 6,
+              alignItems: "center",
+              fontSize: 12,
+              fontWeight: 800,
+              lineHeight: 1.2,
+            }}
+          >
+            <span style={{ color: "#64748b", fontWeight: 700 }}>{card.label}</span>
             <strong
               style={{
                 color: card.valueColor || "#0f172a",
-                fontSize: card.valueColor ? 22 : 15,
+                fontSize: 12,
               }}
             >
               {card.value}
             </strong>
-            {card.helper ? (
-              <div style={{ color: "#64748b", lineHeight: 1.4 }}>{card.helper}</div>
-            ) : (
-              <div style={{ color: "#475569" }}>{card.label}</div>
-            )}
-          </div>
+          </span>
         ))}
       </div>
 
-      <details style={helperCardStyle}>
+      {children}
+
+      <details
+        style={{
+          border: "1px solid #e2e8f0",
+          borderRadius: 12,
+          background: "#ffffff",
+          padding: "8px 10px",
+        }}
+      >
         <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
           More pathway support
         </summary>
@@ -1933,11 +1980,19 @@ function MathematicsStrandWorkspaceShell({
             display: "grid",
             gap: 10,
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            marginTop: 12,
+            marginTop: 10,
           }}
         >
           {supportCards.map((card) => (
-            <section key={card.title} style={{ ...compactCardStyle, background: "#ffffff" }}>
+            <section
+              key={card.title}
+              style={{
+                borderTop: "1px solid #e2e8f0",
+                paddingTop: 8,
+                display: "grid",
+                gap: 5,
+              }}
+            >
               <div style={eyebrowStyle}>{card.title}</div>
               <ul
                 style={{
@@ -1957,8 +2012,6 @@ function MathematicsStrandWorkspaceShell({
           ))}
         </div>
       </details>
-
-      {children}
     </div>
   );
 }
@@ -2455,13 +2508,14 @@ function DetailedMathematicsStageCard({
   return (
     <section
       style={{
-        border: `1px solid ${tone.border}`,
-        borderRadius: 16,
-        background: tone.background,
-        padding: 12,
+        border: `1px solid ${isOpen ? tone.border : "#e2e8f0"}`,
+        borderRadius: 12,
+        background: "#ffffff",
+        padding: 0,
         display: "grid",
-        gap: 10,
-        boxShadow: tone.shadow,
+        gap: 0,
+        boxShadow: "none",
+        overflow: "hidden",
       }}
     >
       <button
@@ -2474,11 +2528,11 @@ function DetailedMathematicsStageCard({
           width: "100%",
           border: "none",
           background: "transparent",
-          padding: 0,
+          padding: "8px 10px",
           textAlign: "left",
           cursor: "pointer",
           display: "grid",
-          gap: 8,
+          gap: 6,
           outlineOffset: 3,
         }}
       >
@@ -2495,7 +2549,7 @@ function DetailedMathematicsStageCard({
             <span
               style={{
                 color: tone.text,
-                fontSize: 11,
+              fontSize: 10,
                 fontWeight: 800,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
@@ -2503,16 +2557,16 @@ function DetailedMathematicsStageCard({
             >
               {tone.badge}
             </span>
-            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>{stage.title}</h3>
+            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 16 }}>{stage.title}</h3>
           </div>
 
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 10,
+              gap: 6,
               color: tone.text,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 700,
             }}
           >
@@ -2523,8 +2577,8 @@ function DetailedMathematicsStageCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 26,
-                height: 26,
+                width: 22,
+                height: 22,
                 borderRadius: 999,
                 border: `1px solid ${tone.border}`,
                 background: "#ffffff",
@@ -2538,9 +2592,9 @@ function DetailedMathematicsStageCard({
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "grid", gap: 6 }}>
           {isOpen ? (
-            <div style={{ color: "#475569", lineHeight: 1.5 }}>{stage.helper}</div>
+            <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>{stage.helper}</div>
           ) : null}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             {summaryChips.map((chip) => (
@@ -2551,7 +2605,7 @@ function DetailedMathematicsStageCard({
                   background: chip.background,
                   color: chip.color,
                   borderRadius: 999,
-                  padding: "5px 8px",
+                  padding: "4px 7px",
                   fontSize: 12,
                   fontWeight: 800,
                   lineHeight: 1.3,
@@ -2567,7 +2621,7 @@ function DetailedMathematicsStageCard({
                   background: "#f0fdfa",
                   color: "#0f766e",
                   borderRadius: 999,
-                  padding: "5px 8px",
+                  padding: "4px 7px",
                   fontSize: 12,
                   fontWeight: 800,
                   lineHeight: 1.3,
@@ -2583,7 +2637,15 @@ function DetailedMathematicsStageCard({
       <div
         id={panelId}
         hidden={!isOpen}
-        style={isOpen ? { display: "grid", gap: 10 } : { display: "none" }}
+        style={
+          isOpen
+            ? {
+                display: "grid",
+                gap: 0,
+                borderTop: "1px solid #e2e8f0",
+              }
+            : { display: "none" }
+        }
       >
         {filteredSteps.length ? filteredSteps.map((step) => {
           const stepIndex = stage.steps.findIndex((candidate) => candidate.id === step.id);
@@ -2616,9 +2678,9 @@ function DetailedMathematicsStageCard({
           <div
             style={{
               border: "1px solid #e2e8f0",
-              borderRadius: 12,
+              borderRadius: 0,
               background: "#ffffff",
-              padding: 12,
+              padding: 10,
               color: "#64748b",
               fontSize: 13,
               lineHeight: 1.5,
@@ -2937,48 +2999,49 @@ function DetailedMathematicsStepCard({
   return (
     <article
       style={{
-        border: `1px solid ${meta.border}`,
-        borderRadius: 12,
+        border: "none",
+        borderBottom: "1px solid #e2e8f0",
+        borderRadius: 0,
         background: "#ffffff",
-        padding: densityMode === "compact" ? 8 : 12,
+        padding: densityMode === "compact" ? "7px 10px" : "9px 10px",
         display: "grid",
-        gap: densityMode === "compact" ? 8 : 10,
+        gap: densityMode === "compact" ? 6 : 8,
       }}
     >
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          gap: 12,
+          gap: 8,
           alignItems: "center",
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "grid", gap: 5, maxWidth: 760, minWidth: 0 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "grid", gap: 4, maxWidth: 760, minWidth: 0 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <span
               style={{
                 border: "1px solid #dbeafe",
                 background: "#eff6ff",
                 color: "#1d4ed8",
                 borderRadius: 999,
-                padding: "3px 8px",
+                padding: "2px 7px",
                 fontSize: 11,
                 fontWeight: 800,
               }}
             >
               Step {displayStepNumber}
             </span>
-            <strong style={{ color: "#0f172a", fontSize: 14, lineHeight: 1.25 }}>
+            <strong style={{ color: "#0f172a", fontSize: 13, lineHeight: 1.25 }}>
               {step.title}
             </strong>
           </div>
           {isOpen ? (
-            <div style={{ color: "#475569", lineHeight: 1.5 }}>{step.meaning}</div>
+            <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45 }}>{step.meaning}</div>
           ) : null}
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <div
               title={
                 exactStepContext
@@ -2989,7 +3052,7 @@ function DetailedMathematicsStepCard({
                 border: `1px solid ${statusChipMeta.border}`,
                 borderRadius: 999,
                 background: statusChipMeta.fill,
-                padding: "5px 8px",
+                padding: "4px 7px",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
@@ -3018,7 +3081,7 @@ function DetailedMathematicsStepCard({
                 borderRadius: 999,
                 background: worksheetResource ? "#f0fdf4" : "#f8fafc",
                 color: worksheetResource ? "#166534" : "#64748b",
-                padding: "5px 8px",
+                padding: "4px 7px",
                 fontSize: 12,
                 fontWeight: 800,
                 lineHeight: 1.3,
@@ -3035,7 +3098,7 @@ function DetailedMathematicsStepCard({
                 borderRadius: 999,
                 background: "#eff6ff",
                 color: "#1d4ed8",
-                padding: "5px 8px",
+                padding: "4px 7px",
                 fontSize: 12,
                 fontWeight: 800,
               }}
@@ -3054,7 +3117,7 @@ function DetailedMathematicsStepCard({
               background: "#ffffff",
               color: "#1d4ed8",
               borderRadius: 999,
-              padding: "5px 8px",
+              padding: "4px 7px",
               fontSize: 12,
               fontWeight: 800,
               cursor: "pointer",
@@ -3070,8 +3133,8 @@ function DetailedMathematicsStepCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 22,
-                height: 22,
+                width: 18,
+                height: 18,
                 borderRadius: 999,
                 border: "1px solid #dbeafe",
                 background: "#eff6ff",
@@ -3129,7 +3192,7 @@ function DetailedMathematicsStepCard({
                 border: "1px solid #dbeafe",
                 borderRadius: 14,
                 background: "#f8fbff",
-                padding: 12,
+                padding: 10,
                 display: "grid",
                 gap: 10,
               }

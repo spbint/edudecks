@@ -365,8 +365,12 @@ export default function CleanPathwayStepActionRow({
       </div>
 
       {activity ? (
-        <div style={{ display: "grid", gap: 6 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <details style={{ marginTop: 2 }}>
+          <summary style={{ cursor: "pointer", color: "#64748b", fontSize: 12, fontWeight: 800 }}>
+            Practice progress
+          </summary>
+          <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span
               style={{
                 ...chipStyle,
@@ -406,10 +410,10 @@ export default function CleanPathwayStepActionRow({
                 </strong>
               </span>
             ) : null}
-          </div>
+            </div>
 
-          {hasVisitedMiniCheck ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {hasVisitedMiniCheck ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>
                 Mini Check outcome:
               </span>
@@ -439,9 +443,10 @@ export default function CleanPathwayStepActionRow({
                   </button>
                 );
               })}
-            </div>
-          ) : null}
-        </div>
+              </div>
+            ) : null}
+          </div>
+        </details>
       ) : null}
 
       {activity ? (
