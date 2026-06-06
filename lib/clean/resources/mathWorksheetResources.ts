@@ -56,6 +56,8 @@ const SKIP_COUNT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S013-Skip-Count-By-2s-5s-And-10s.pdf";
 const RENAME_TWO_DIGIT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S016-Rename-Two-Digit-Numbers-In-Different-Ways.pdf";
+const ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S017-Add-And-Subtract-Within-20-Using-Known-Facts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -274,6 +276,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: RENAME_TWO_DIGIT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${RENAME_TWO_DIGIT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::add-and-subtract-within-20-using-known-facts",
+    stepKey: "add-and-subtract-within-20-using-known-facts",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 17,
+    pathwayStepTitle: "Add and subtract within 20 using known facts",
+    title: "Add and Subtract Within 20 Using Known Facts",
+    concept: "Use known facts to add and subtract within 20",
+    includesAnswerSheet: false,
+    fileName: ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

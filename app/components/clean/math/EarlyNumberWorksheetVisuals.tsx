@@ -176,6 +176,14 @@ export function isStep16RenameTwoDigitActivity(id: string, stepKey?: string | nu
   );
 }
 
+export function isStep17AddSubtractWithin20Activity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "add-and-subtract-within-20-using-known-facts" ||
+    safe(id).startsWith("number-step-17-assess-") ||
+    safe(id).startsWith("number-step-17-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -296,6 +304,20 @@ function getStoryOperation(prompt: string) {
     source.includes("left") ||
     source.includes("swim away") ||
     source.includes("removed")
+  ) {
+    return "subtract" as const;
+  }
+
+  return "add" as const;
+}
+
+function getAddSubtractWithin20Operation(prompt: string) {
+  const source = prompt.toLowerCase();
+  if (
+    source.includes("left") ||
+    source.includes("take away") ||
+    source.includes("subtract") ||
+    source.includes("minus")
   ) {
     return "subtract" as const;
   }
@@ -2484,6 +2506,139 @@ export function renderStep16WorksheetPromptVisual({
   );
 }
 
+export function renderStep17WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const start = visual.groupCounts[0];
+  const change = visual.groupCounts[1];
+  if (
+    start === undefined ||
+    change === undefined ||
+    !Number.isFinite(start) ||
+    !Number.isFinite(change)
+  ) {
+    return null;
+  }
+
+  const operation = getAddSubtractWithin20Operation(prompt);
+  const symbol = operation === "add" ? "+" : "-";
+  const tone =
+    operation === "add"
+      ? { border: "#bbf7d0", background: "#f0fdf4", strong: "#166534" }
+      : { border: "#fed7aa", background: "#fff7ed", strong: "#c2410c" };
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use a known fact to solve the equation.
+        </div>
+        <span
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 999,
+            background: tone.background,
+            color: tone.strong,
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {operation === "add" ? "Addition fact" : "Subtraction fact"}
+        </span>
+      </div>
+      <div
+        aria-label={`Equation ${start} ${operation === "add" ? "plus" : "minus"} ${change} equals blank`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(84px, 0.65fr)",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <EarlyNumberWorksheetObjectGroupCard count={start} label={`${start}`} />
+          <div
+            style={{
+              color: tone.strong,
+              fontSize: 34,
+              fontWeight: 950,
+              textAlign: "center",
+            }}
+          >
+            {symbol}
+          </div>
+          <EarlyNumberWorksheetObjectGroupCard count={change} label={`${change}`} />
+          <div style={{ color: "#64748b", fontSize: 34, fontWeight: 950 }}>=</div>
+          <div
+            aria-label="Answer box"
+            style={{
+              border: "2px solid #7c3aed",
+              borderRadius: 18,
+              background: "#f5f3ff",
+              color: "#6d28d9",
+              minHeight: 118,
+              display: "grid",
+              placeItems: "center",
+              fontSize: 28,
+              fontWeight: 950,
+              boxShadow: "0 10px 22px rgba(124,58,237,0.14)",
+            }}
+          >
+            __
+          </div>
+        </div>
+        <div
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 16,
+            background: tone.background,
+            color: tone.strong,
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          Think: {start} {symbol} {change} = ?
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -2766,6 +2921,19 @@ export function renderStep16WorksheetOptionCard({
       compact
     />
   );
+}
+
+export function renderStep17WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,2}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

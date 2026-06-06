@@ -21,6 +21,7 @@ import {
   isStep12ReadWriteOrderActivity,
   isStep13SkipCountingActivity,
   isStep16RenameTwoDigitActivity,
+  isStep17AddSubtractWithin20Activity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -46,6 +47,8 @@ import {
   renderStep13WorksheetPromptVisual,
   renderStep16WorksheetOptionCard,
   renderStep16WorksheetPromptVisual,
+  renderStep17WorksheetOptionCard,
+  renderStep17WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1046,6 +1049,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep17AddSubtractWithin20Activity(task.id)) {
+    const step17Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep17WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step17Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1474,6 +1486,7 @@ function TaskCard({
           const step12ReadWriteOrderOptions = isStep12ReadWriteOrderActivity(task.id);
           const step13SkipCountingOptions = isStep13SkipCountingActivity(task.id);
           const step16RenameTwoDigitOptions = isStep16RenameTwoDigitActivity(task.id);
+          const step17AddSubtractWithin20Options = isStep17AddSubtractWithin20Activity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1500,7 +1513,8 @@ function TaskCard({
                   step11CountingSequenceOptions ||
                   step12ReadWriteOrderOptions ||
                   step13SkipCountingOptions ||
-                  step16RenameTwoDigitOptions
+                  step16RenameTwoDigitOptions ||
+                  step17AddSubtractWithin20Options
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1687,6 +1701,27 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step17Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              step17AddSubtractWithin20Options
+                ? renderStep17WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -1701,7 +1736,8 @@ function TaskCard({
               step11Visual ??
               step12Visual ??
               step13Visual ??
-              step16Visual;
+              step16Visual ??
+              step17Visual;
 
             return (
               <button
@@ -1722,7 +1758,8 @@ function TaskCard({
                     step11Visual ||
                     step12Visual ||
                     step13Visual ||
-                    step16Visual
+                    step16Visual ||
+                    step17Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
@@ -1738,7 +1775,8 @@ function TaskCard({
                     step11Visual ||
                     step12Visual ||
                     step13Visual ||
-                    step16Visual
+                    step16Visual ||
+                    step17Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -1758,7 +1796,8 @@ function TaskCard({
                     step11Visual ||
                     step12Visual ||
                     step13Visual ||
-                    step16Visual
+                    step16Visual ||
+                    step17Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -1778,7 +1817,8 @@ function TaskCard({
                     step11Visual ||
                     step12Visual ||
                     step13Visual ||
-                    step16Visual
+                    step16Visual ||
+                    step17Visual
                       ? 150
                       : statisticsVisual
                         ? 68
