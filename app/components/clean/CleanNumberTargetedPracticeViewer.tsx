@@ -8,6 +8,12 @@ import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import {
+  isStep2NumberWordActivity,
+  parseEarlyNumberVisualDescription,
+  renderStep2WorksheetOptionCard,
+  renderStep2WorksheetPromptVisual,
+} from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
+import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
   getNumberPracticeModuleById,
   type NumberPracticeModule,
@@ -902,6 +908,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
   const visual = parseEarlyNumberVisual(task.visualSupport?.description);
   if (!visual) return null;
 
+  if (isStep2NumberWordActivity(task.id)) {
+    const step2Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep2WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step2Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1315,12 +1330,22 @@ function TaskCard({
         </div>
       ) : null}
       {task.taskType === "multiple_choice" && task.options?.length ? (
+        (() => {
+          const step2NumberWordOptions = isStep2NumberWordActivity(task.id);
+          const step2VisualModel = step2NumberWordOptions
+            ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
+            : null;
+          const statisticsStep1Options = task.id.startsWith("statistics-data-step-1-");
+
+          return (
         <div
           style={{
             display: "grid",
-            gap: task.id.startsWith("statistics-data-step-1-") ? 6 : 6,
-            gridTemplateColumns: task.id.startsWith("statistics-data-step-1-")
+            gap: 6,
+            gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
+              : step2NumberWordOptions
+                ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
         >
@@ -1335,6 +1360,15 @@ function TaskCard({
               !shapeVisual && task.id.startsWith("statistics-data-step-1-")
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
+            const step2Visual =
+              !shapeVisual && !statisticsVisual && step2NumberWordOptions
+                ? renderStep2WorksheetOptionCard({
+                    option,
+                    visual: step2VisualModel,
+                    selected: isSelected,
+                  })
+                : null;
+            const visualOption = shapeVisual ?? statisticsVisual ?? step2Visual;
 
             return (
               <button
@@ -1343,25 +1377,27 @@ function TaskCard({
                 onClick={() => onChange(option)}
                 style={{
                   border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                  borderRadius: 10,
+                  borderRadius: step2Visual ? 18 : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
-                  padding: statisticsVisual ? "6px 4px" : "8px 10px",
+                  padding: step2Visual ? 4 : statisticsVisual ? "6px 4px" : "8px 10px",
                   color: "#334155",
                   textAlign: "left",
-                  lineHeight: statisticsVisual ? 1.15 : 1.45,
+                  lineHeight: statisticsVisual || step2Visual ? 1.15 : 1.45,
                   cursor: "pointer",
                   font: "inherit",
                   display: "grid",
                   justifyItems:
-                    shapeVisual || statisticsVisual ? "center" : "stretch",
-                  minHeight: statisticsVisual ? 68 : undefined,
+                    visualOption ? "center" : "stretch",
+                  minHeight: step2Visual ? 150 : statisticsVisual ? 68 : undefined,
                 }}
               >
-                {shapeVisual ?? statisticsVisual ?? option}
+                {visualOption ?? option}
               </button>
             );
           })}
         </div>
+          );
+        })()
       ) : null}
       {task.taskType === "short_answer" ||
       task.taskType === "numeric" ||

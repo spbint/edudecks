@@ -11,6 +11,12 @@ import CleanContentIssueReportButton, {
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
+  isStep2NumberWordActivity,
+  parseEarlyNumberVisualDescription,
+  renderStep2WorksheetOptionCard,
+  renderStep2WorksheetPromptVisual,
+} from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
+import {
   createAssessmentAttempt,
   createAssessmentAttemptResponses,
 } from "@/lib/clean/assessments/attemptClient";
@@ -2124,6 +2130,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
   const visual = parseEarlyNumberVisual(item.visualSupport?.description);
   if (!visual) return null;
 
+  if (isStep2NumberWordActivity(item.id, item.progressionStepKey)) {
+    const step2Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep2WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step2Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -3524,14 +3539,23 @@ function CleanNumberAssessmentPlayerBody() {
       const statisticsStep1Options = currentItem.id.startsWith(
         "statistics-data-step-1-",
       );
+      const step2NumberWordOptions = isStep2NumberWordActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
+      const step2VisualModel = step2NumberWordOptions
+        ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
+        : null;
 
       return (
         <div
           style={{
             display: "grid",
-            gap: statisticsStep1Options ? 6 : 10,
+            gap: statisticsStep1Options ? 6 : step2NumberWordOptions ? 8 : 10,
             gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
+              : step2NumberWordOptions
+                ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
         >
@@ -3547,6 +3571,15 @@ function CleanNumberAssessmentPlayerBody() {
               currentItem.id.startsWith("statistics-data-step-1-")
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
+            const step2Visual =
+              !shapeVisual && !statisticsVisual && step2NumberWordOptions
+                ? renderStep2WorksheetOptionCard({
+                    option,
+                    visual: step2VisualModel,
+                    selected: isSelected,
+                  })
+                : null;
+            const visualOption = shapeVisual ?? statisticsVisual ?? step2Visual;
 
             return (
               <button
@@ -3561,20 +3594,28 @@ function CleanNumberAssessmentPlayerBody() {
                     ? "0 10px 22px rgba(59,130,246,0.14)"
                     : "none",
                   alignItems:
-                    shapeVisual || statisticsVisual
+                    visualOption
                       ? "center"
                       : optionButtonStyle.alignItems,
                   justifyContent:
-                    statisticsVisual || shapeVisual ? "center" : undefined,
-                  minHeight: statisticsVisual ? 70 : undefined,
-                  padding: statisticsVisual ? "6px 4px" : optionButtonStyle.padding,
-                  borderRadius: statisticsVisual ? 12 : optionButtonStyle.borderRadius,
-                  lineHeight: statisticsVisual ? 1.15 : optionButtonStyle.lineHeight,
-                  position: statisticsVisual ? "relative" : undefined,
+                    visualOption ? "center" : undefined,
+                  minHeight: step2Visual ? 150 : statisticsVisual ? 70 : undefined,
+                  padding: step2Visual
+                    ? 4
+                    : statisticsVisual
+                      ? "6px 4px"
+                      : optionButtonStyle.padding,
+                  borderRadius: step2Visual
+                    ? 18
+                    : statisticsVisual
+                      ? 12
+                      : optionButtonStyle.borderRadius,
+                  lineHeight: statisticsVisual || step2Visual ? 1.15 : optionButtonStyle.lineHeight,
+                  position: statisticsVisual || step2Visual ? "relative" : undefined,
                 }}
               >
-                {shapeVisual ?? statisticsVisual ?? <span>{option}</span>}
-                {statisticsVisual && isSelected ? (
+                {visualOption ?? <span>{option}</span>}
+                {(statisticsVisual || step2Visual) && isSelected ? (
                   <span
                     style={{
                       position: "absolute",
