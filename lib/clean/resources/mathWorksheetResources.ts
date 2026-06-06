@@ -68,6 +68,8 @@ const EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S019-Understand-Simple-Equal-Groups-And-Arrays.pdf";
 const HALVES_QUARTERS_SHARING_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S020-Begin-Halves-Quarters-And-Simple-Sharing.pdf";
+const READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S021-Read-Write-Order-And-Compare-Numbers-To-1000-And-Beyond.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -388,6 +390,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: HALVES_QUARTERS_SHARING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${HALVES_QUARTERS_SHARING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::read-write-order-and-compare-numbers-to-1000-and-beyond",
+    stepKey: "read-write-order-and-compare-numbers-to-1000-and-beyond",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 21,
+    pathwayStepTitle: "Read, write, order and compare numbers to 1000 and beyond",
+    title: "Read, Write, Order and Compare Numbers to 1000 and Beyond",
+    concept: "Read, write, order and compare numbers to 1000 and beyond",
+    includesAnswerSheet: false,
+    fileName: READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

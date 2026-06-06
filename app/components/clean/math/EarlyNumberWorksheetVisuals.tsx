@@ -208,6 +208,14 @@ export function isStep20HalvesQuartersSharingActivity(id: string, stepKey?: stri
   );
 }
 
+export function isStep21LargeNumberCompareActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "read-write-order-and-compare-numbers-to-1000-and-beyond" ||
+    safe(id).startsWith("number-step-21-assess-") ||
+    safe(id).startsWith("number-step-21-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -3594,6 +3602,349 @@ export function renderStep20WorksheetPromptVisual({
   );
 }
 
+function formatLargeNumber(value: string | number) {
+  const normalized = safe(value).replace(/,/g, "");
+  if (!/^-?\d+$/.test(normalized)) return safe(value);
+  return Number(normalized).toLocaleString("en-US");
+}
+
+function getLargeNumberValues(visual: EarlyNumberVisualModel) {
+  return visual.numberCards
+    .map((entry) => safe(entry))
+    .filter(Boolean)
+    .map((entry) => formatLargeNumber(entry));
+}
+
+function largeNumberToWords(value: string) {
+  const number = Number(safe(value).replace(/,/g, ""));
+  if (!Number.isFinite(number)) return safe(value);
+
+  const underTwenty = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+  ];
+  const tensWords = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  const underThousand = (part: number): string => {
+    if (part < 20) return underTwenty[part];
+    if (part < 100) {
+      const tens = Math.floor(part / 10);
+      const ones = part % 10;
+      return ones ? `${tensWords[tens]}-${underTwenty[ones]}` : tensWords[tens];
+    }
+    const hundreds = Math.floor(part / 100);
+    const rest = part % 100;
+    return rest
+      ? `${underTwenty[hundreds]} hundred and ${underThousand(rest)}`
+      : `${underTwenty[hundreds]} hundred`;
+  };
+
+  if (number < 1000) return underThousand(number);
+  const thousands = Math.floor(number / 1000);
+  const rest = number % 1000;
+  return rest ? `${underThousand(thousands)} thousand ${underThousand(rest)}` : `${underThousand(thousands)} thousand`;
+}
+
+function LargeNumberWorksheetCard({
+  value,
+  label = "Number",
+  selected = false,
+}: {
+  value: string;
+  label?: string;
+  selected?: boolean;
+}) {
+  const formatted = formatLargeNumber(value);
+  return (
+    <div
+      aria-label={`${label} ${largeNumberToWords(formatted)}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          color: "#1d4ed8",
+          fontSize: 12,
+          fontWeight: 900,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          color: "#0f172a",
+          fontSize: "clamp(28px, 6vw, 42px)",
+          fontWeight: 950,
+          lineHeight: 1,
+        }}
+      >
+        {formatted}
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, lineHeight: 1.3 }}>
+        {largeNumberToWords(formatted)}
+      </div>
+    </div>
+  );
+}
+
+function LargeNumberOrderingVisual({ values }: { values: string[] }) {
+  const ordered = values
+    .map((value) => Number(value.replace(/,/g, "")))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b)
+    .map((value) => formatLargeNumber(value));
+
+  return (
+    <div
+      aria-label={`Ordering sequence ${ordered.map((value) => largeNumberToWords(value)).join(", ")}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+        Smallest to largest
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        {ordered.map((value, index) => (
+          <React.Fragment key={`large-order-${value}-${index}`}>
+            <span
+              style={{
+                border: "1px solid #bfdbfe",
+                borderRadius: 14,
+                background: "#eff6ff",
+                color: "#1e3a8a",
+                padding: "10px 12px",
+                fontSize: 20,
+                fontWeight: 950,
+              }}
+            >
+              {value}
+            </span>
+            {index < ordered.length - 1 ? (
+              <span aria-hidden="true" style={{ color: "#64748b", fontWeight: 950 }}>
+                &lt;
+              </span>
+            ) : null}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LargeNumberComparisonVisual({ values }: { values: string[] }) {
+  const numbers = values
+    .map((value) => Number(value.replace(/,/g, "")))
+    .filter(Number.isFinite);
+  const left = numbers[0] ?? 742;
+  const right = numbers[1] ?? 724;
+  const symbol = left > right ? ">" : left < right ? "<" : "=";
+
+  return (
+    <div
+      aria-label={`Compare ${largeNumberToWords(formatLargeNumber(left))} with ${largeNumberToWords(formatLargeNumber(right))}`}
+      style={{
+        border: "1px solid #fed7aa",
+        borderRadius: 18,
+        background: "#fff7ed",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ color: "#c2410c", fontSize: 12, fontWeight: 900 }}>
+        Compare numbers
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            border: "1px solid #fdba74",
+            borderRadius: 14,
+            background: "#ffffff",
+            color: "#0f172a",
+            padding: "12px 10px",
+            fontSize: 24,
+            fontWeight: 950,
+            textAlign: "center",
+          }}
+        >
+          {formatLargeNumber(left)}
+        </span>
+        <span
+          style={{
+            border: "1px solid #fdba74",
+            borderRadius: 14,
+            background: "#ffedd5",
+            color: "#c2410c",
+            padding: "8px 12px",
+            fontSize: 28,
+            fontWeight: 950,
+          }}
+        >
+          {symbol}
+        </span>
+        <span
+          style={{
+            border: "1px solid #fdba74",
+            borderRadius: 14,
+            background: "#ffffff",
+            color: "#0f172a",
+            padding: "12px 10px",
+            fontSize: 24,
+            fontWeight: 950,
+            textAlign: "center",
+          }}
+        >
+          {formatLargeNumber(right)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function renderStep21WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = getLargeNumberValues(visual);
+  const lower = prompt.toLowerCase();
+  const isOrdering = lower.includes("smallest") || lower.includes("largest") || lower.includes("order");
+  const isComparing =
+    lower.includes("greater") ||
+    lower.includes("smallest") ||
+    lower.includes("largest") ||
+    lower.includes("between");
+  const focusValue = values[1] ?? values[0] ?? "1,000";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Read the digits by place value, then compare or order the numbers.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Numbers to 1000+
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 12,
+          alignItems: "stretch",
+        }}
+      >
+        <LargeNumberWorksheetCard value={focusValue} label="Numeral" />
+        <div
+          aria-label={`Number word ${largeNumberToWords(focusValue)}`}
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 18,
+            background: "#f5f3ff",
+            color: "#5b21b6",
+            minHeight: 132,
+            padding: 14,
+            display: "grid",
+            placeItems: "center",
+            textAlign: "center",
+            fontSize: 20,
+            fontWeight: 900,
+            lineHeight: 1.25,
+          }}
+        >
+          {largeNumberToWords(focusValue)}
+        </div>
+      </div>
+
+      {isOrdering ? <LargeNumberOrderingVisual values={values} /> : null}
+      {isComparing ? <LargeNumberComparisonVisual values={values} /> : null}
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -3988,6 +4339,19 @@ export function renderStep20WorksheetOptionCard({
       <div style={{ fontSize: 16, fontWeight: 950, lineHeight: 1.2 }}>{normalized}</div>
     </div>
   );
+}
+
+export function renderStep21WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,3}(?:,\d{3})*$|^\d+$/.test(normalized)) return null;
+
+  return <LargeNumberWorksheetCard value={normalized} label="Choose" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

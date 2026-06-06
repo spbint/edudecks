@@ -25,6 +25,7 @@ import {
   isStep18SupportedAddSubtractActivity,
   isStep19EqualGroupsArraysActivity,
   isStep20HalvesQuartersSharingActivity,
+  isStep21LargeNumberCompareActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -58,6 +59,8 @@ import {
   renderStep19WorksheetPromptVisual,
   renderStep20WorksheetOptionCard,
   renderStep20WorksheetPromptVisual,
+  renderStep21WorksheetOptionCard,
+  renderStep21WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1094,6 +1097,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep21LargeNumberCompareActivity(task.id)) {
+    const step21Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep21WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step21Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1526,6 +1538,7 @@ function TaskCard({
           const step18SupportedAddSubtractOptions = isStep18SupportedAddSubtractActivity(task.id);
           const step19EqualGroupsArraysOptions = isStep19EqualGroupsArraysActivity(task.id);
           const step20HalvesQuartersSharingOptions = isStep20HalvesQuartersSharingActivity(task.id);
+          const step21LargeNumberCompareOptions = isStep21LargeNumberCompareActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1556,7 +1569,8 @@ function TaskCard({
                   step17AddSubtractWithin20Options ||
                   step18SupportedAddSubtractOptions ||
                   step19EqualGroupsArraysOptions ||
-                  step20HalvesQuartersSharingOptions
+                  step20HalvesQuartersSharingOptions ||
+                  step21LargeNumberCompareOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1833,6 +1847,31 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step21Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              step21LargeNumberCompareOptions
+                ? renderStep21WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -1851,7 +1890,8 @@ function TaskCard({
               step17Visual ??
               step18Visual ??
               step19Visual ??
-              step20Visual;
+              step20Visual ??
+              step21Visual;
 
             return (
               <button
@@ -1875,7 +1915,9 @@ function TaskCard({
                     step16Visual ||
                     step17Visual ||
                     step18Visual ||
-                    step19Visual
+                    step19Visual ||
+                    step20Visual ||
+                    step21Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
@@ -1895,7 +1937,8 @@ function TaskCard({
                     step17Visual ||
                     step18Visual ||
                     step19Visual ||
-                    step20Visual
+                    step20Visual ||
+                    step21Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -1919,7 +1962,8 @@ function TaskCard({
                     step17Visual ||
                     step18Visual ||
                     step19Visual ||
-                    step20Visual
+                    step20Visual ||
+                    step21Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -1943,7 +1987,8 @@ function TaskCard({
                     step17Visual ||
                     step18Visual ||
                     step19Visual ||
-                    step20Visual
+                    step20Visual ||
+                    step21Visual
                       ? 150
                       : statisticsVisual
                         ? 68
