@@ -216,6 +216,14 @@ export function isStep21LargeNumberCompareActivity(id: string, stepKey?: string 
   );
 }
 
+export function isStep22HundredsTensOnesActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "understand-hundreds-tens-and-ones" ||
+    safe(id).startsWith("number-step-22-assess-") ||
+    safe(id).startsWith("number-step-22-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -3945,6 +3953,346 @@ export function renderStep21WorksheetPromptVisual({
   );
 }
 
+function PlaceValueBlock({
+  kind,
+  index,
+}: {
+  kind: "hundred" | "ten" | "one";
+  index: number;
+}) {
+  if (kind === "hundred") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          width: 58,
+          height: 58,
+          borderRadius: 10,
+          border: "2px solid #1d4ed8",
+          background:
+            "linear-gradient(#dbeafe 1px, transparent 1px), linear-gradient(90deg, #dbeafe 1px, transparent 1px), #bfdbfe",
+          backgroundSize: "10px 10px",
+          boxShadow: "0 8px 16px rgba(15,23,42,0.10)",
+        }}
+      />
+    );
+  }
+
+  if (kind === "ten") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          width: 20,
+          height: 68,
+          borderRadius: 8,
+          border: "2px solid #15803d",
+          background:
+            "linear-gradient(#bbf7d0 1px, transparent 1px), #86efac",
+          backgroundSize: "100% 7px",
+          boxShadow: "0 8px 16px rgba(15,23,42,0.10)",
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        border: "2px solid #ca8a04",
+        background: index % 2 ? "#fef08a" : "#fde68a",
+        boxShadow: "0 6px 12px rgba(15,23,42,0.10)",
+      }}
+    />
+  );
+}
+
+function PlaceValueBlockGroup({
+  kind,
+  count,
+}: {
+  kind: "hundred" | "ten" | "one";
+  count: number;
+}) {
+  const label =
+    kind === "hundred"
+      ? `${count} hundreds flats`
+      : kind === "ten"
+        ? `${count} tens rods`
+        : `${count} ones cubes`;
+
+  return (
+    <div
+      aria-label={label}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 16,
+        background: "#ffffff",
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        alignContent: "start",
+        minHeight: 136,
+      }}
+    >
+      <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+        {kind === "hundred" ? "Hundreds" : kind === "ten" ? "Tens" : "Ones"}: {count}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: kind === "hundred" ? 8 : 6,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {Array.from({ length: Math.max(0, count) }, (_, index) => (
+          <PlaceValueBlock key={`${kind}-${index}`} kind={kind} index={index} />
+        ))}
+        {count === 0 ? (
+          <span
+            style={{
+              border: "1px dashed #cbd5e1",
+              borderRadius: 12,
+              color: "#64748b",
+              padding: "12px 14px",
+              fontSize: 18,
+              fontWeight: 900,
+            }}
+          >
+            0
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function HTOChart({
+  hundreds,
+  tens,
+  ones,
+}: {
+  hundreds: number;
+  tens: number;
+  ones: number;
+}) {
+  return (
+    <div
+      aria-label={`H T O chart showing ${hundreds} hundreds, ${tens} tens and ${ones} ones`}
+      style={{
+        border: "1px solid #ddd6fe",
+        borderRadius: 18,
+        background: "#f5f3ff",
+        padding: 12,
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8,
+        }}
+      >
+        {[
+          ["H", hundreds],
+          ["T", tens],
+          ["O", ones],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            style={{
+              border: "1px solid #c4b5fd",
+              borderRadius: 14,
+              background: "#ffffff",
+              minHeight: 80,
+              display: "grid",
+              placeItems: "center",
+              gap: 4,
+              padding: 8,
+            }}
+          >
+            <span style={{ color: "#6d28d9", fontSize: 12, fontWeight: 950 }}>{label}</span>
+            <strong style={{ color: "#0f172a", fontSize: 30, lineHeight: 1 }}>
+              {value}
+            </strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function parseHundredsTensOnesOption(option: string) {
+  const normalized = safe(option).toLowerCase();
+  const match = normalized.match(
+    /(\d+)\s+hundreds?,\s*(\d+)\s+tens?\s+and\s+(\d+)\s+ones?/,
+  );
+  if (!match) return null;
+  return {
+    hundreds: Number(match[1]),
+    tens: Number(match[2]),
+    ones: Number(match[3]),
+  };
+}
+
+function HundredsTensOnesChoiceCard({
+  hundreds,
+  tens,
+  ones,
+  selected = false,
+}: {
+  hundreds: number;
+  tens: number;
+  ones: number;
+  selected?: boolean;
+}) {
+  const number = hundreds * 100 + tens * 10 + ones;
+  return (
+    <div
+      aria-label={`Choose ${hundreds} hundreds, ${tens} tens and ${ones} ones`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 160,
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <HTOChart hundreds={hundreds} tens={tens} ones={ones} />
+      <div
+        style={{
+          color: "#1d4ed8",
+          fontSize: 12,
+          fontWeight: 900,
+          textAlign: "center",
+        }}
+      >
+        {hundreds} hundreds + {tens} tens + {ones} ones = {number}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep22WorksheetPromptVisual({
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const hundreds = visual.groupCounts[0] ?? 0;
+  const tens = visual.groupCounts[1] ?? 0;
+  const ones = visual.groupCounts[2] ?? 0;
+  const number = hundreds * 100 + tens * 10 + ones;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Build the number from hundreds, tens and ones.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          H / T / O
+        </span>
+      </div>
+
+      <div
+        aria-label={`${hundreds} hundreds, ${tens} tens and ${ones} ones`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <PlaceValueBlockGroup kind="hundred" count={hundreds} />
+          <PlaceValueBlockGroup kind="ten" count={tens} />
+          <PlaceValueBlockGroup kind="one" count={ones} />
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(210px, 0.9fr) minmax(210px, 1fr)",
+            gap: 12,
+            alignItems: "stretch",
+          }}
+        >
+          <HTOChart hundreds={hundreds} tens={tens} ones={ones} />
+          <div
+            aria-label={`Expanded form ${hundreds * 100} plus ${tens * 10} plus ${ones}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 18,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 12,
+              display: "grid",
+              placeItems: "center",
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: 900,
+              lineHeight: 1.3,
+            }}
+          >
+            {number} = {hundreds * 100} + {tens * 10} + {ones}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -4352,6 +4700,26 @@ export function renderStep21WorksheetOptionCard({
   if (!/^\d{1,3}(?:,\d{3})*$|^\d+$/.test(normalized)) return null;
 
   return <LargeNumberWorksheetCard value={normalized} label="Choose" selected={selected} />;
+}
+
+export function renderStep22WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const representation = parseHundredsTensOnesOption(option);
+  if (!representation) return null;
+
+  return (
+    <HundredsTensOnesChoiceCard
+      hundreds={representation.hundreds}
+      tens={representation.tens}
+      ones={representation.ones}
+      selected={selected}
+    />
+  );
 }
 
 export function renderStep3WorksheetOptionCard({

@@ -70,6 +70,8 @@ const HALVES_QUARTERS_SHARING_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S020-Begin-Halves-Quarters-And-Simple-Sharing.pdf";
 const READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S021-Read-Write-Order-And-Compare-Numbers-To-1000-And-Beyond.pdf";
+const HUNDREDS_TENS_ONES_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S022-Understand-Hundreds-Tens-And-Ones.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -407,6 +409,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${READ_WRITE_ORDER_COMPARE_1000_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::understand-hundreds-tens-and-ones",
+    stepKey: "understand-hundreds-tens-and-ones",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 22,
+    pathwayStepTitle: "Understand hundreds, tens and ones",
+    title: "Understand Hundreds, Tens and Ones",
+    concept: "Understand and represent three-digit numbers using hundreds, tens and ones",
+    includesAnswerSheet: false,
+    fileName: HUNDREDS_TENS_ONES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${HUNDREDS_TENS_ONES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
