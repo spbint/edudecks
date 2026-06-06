@@ -112,6 +112,14 @@ export function isStep6CompareGroupsActivity(id: string, stepKey?: string | null
   );
 }
 
+export function isStep7OrderNumbersActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "order-numbers-in-a-short-sequence" ||
+    safe(id).startsWith("number-step-7-assess-") ||
+    safe(id).startsWith("number-step-7-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -179,6 +187,23 @@ function getTargetNumeral(prompt: string, caption: string) {
   }
 
   return "";
+}
+
+function getStep7TargetIndex(prompt: string, numbers: string[]) {
+  const source = prompt.toLowerCase();
+  const referencedNumber = source.match(/\b10\b|\b[0-9]\b/)?.[0];
+
+  if (source.includes("between")) {
+    return Math.max(0, Math.floor(numbers.length / 2));
+  }
+
+  if (referencedNumber) {
+    const index = numbers.indexOf(referencedNumber);
+    if (source.includes("after")) return Math.min(numbers.length - 1, index + 1);
+    if (source.includes("before")) return Math.max(0, index - 1);
+  }
+
+  return Math.max(0, Math.floor(numbers.length / 2));
 }
 
 function getCountFromLabel(label: string, visual: EarlyNumberVisualModel | null) {
@@ -1082,6 +1107,127 @@ export function renderStep6WorksheetPromptVisual({
   );
 }
 
+export function renderStep7WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const numbers = visual.numberCards;
+  if (!numbers.length) return null;
+
+  const targetIndex = getStep7TargetIndex(prompt, numbers);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          color: "#1e3a8a",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Use the number cards from left to right.
+      </div>
+      <div
+        aria-label={`Ordered sequence ${numbers.join(", ")}`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${Math.max(1, numbers.length)}, minmax(56px, 1fr))`,
+            gap: 8,
+            alignItems: "stretch",
+          }}
+        >
+          {numbers.map((number, index) => {
+            const isTarget = index === targetIndex;
+            return (
+              <div
+                key={`${number}-${index}`}
+                aria-label={
+                  isTarget
+                    ? `Target slot in sequence, number ${number}`
+                    : `Number card ${number}`
+                }
+                style={{
+                  border: `2px solid ${isTarget ? "#7c3aed" : "#bfdbfe"}`,
+                  borderRadius: 18,
+                  background: isTarget ? "#f5f3ff" : "#eff6ff",
+                  color: isTarget ? "#6d28d9" : "#1d4ed8",
+                  minHeight: 86,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: number.length > 1 ? 36 : 44,
+                  fontWeight: 950,
+                  lineHeight: 1,
+                  boxShadow: isTarget
+                    ? "0 10px 22px rgba(124,58,237,0.14)"
+                    : "0 8px 18px rgba(15,23,42,0.06)",
+                }}
+              >
+                {isTarget ? "?" : number}
+              </div>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            color: "#64748b",
+            fontSize: 12,
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          <span>Smallest</span>
+          <span aria-hidden="true" style={{ color: "#2563eb", fontSize: 18 }}>
+            &rarr;
+          </span>
+          <span>Largest</span>
+        </div>
+      </div>
+      <div
+        style={{
+          border: "1px solid #ddd6fe",
+          borderRadius: 16,
+          background: "#f5f3ff",
+          color: "#6d28d9",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 800,
+          lineHeight: 1.45,
+        }}
+      >
+        Choose the number that belongs in the question mark slot.
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -1160,6 +1306,19 @@ export function renderStep6WorksheetOptionCard({
       {display}
     </div>
   );
+}
+
+export function renderStep7WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^(10|11|12|13|14|15|16|17|18|19|20|[0-9])$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

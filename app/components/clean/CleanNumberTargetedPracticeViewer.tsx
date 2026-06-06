@@ -13,6 +13,7 @@ import {
   isStep4CountingObjectsActivity,
   isStep5CountingObjectsActivity,
   isStep6CompareGroupsActivity,
+  isStep7OrderNumbersActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -22,6 +23,8 @@ import {
   renderStep4WorksheetPromptVisual,
   renderStep6WorksheetOptionCard,
   renderStep6WorksheetPromptVisual,
+  renderStep7WorksheetOptionCard,
+  renderStep7WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -952,6 +955,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep7OrderNumbersActivity(task.id)) {
+    const step7Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep7WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step7Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1372,6 +1384,7 @@ function TaskCard({
           const step5CountingObjectOptions = isStep5CountingObjectsActivity(task.id);
           const countingObjectOptions = step4CountingObjectOptions || step5CountingObjectOptions;
           const step6CompareGroupOptions = isStep6CompareGroupsActivity(task.id);
+          const step7OrderNumberOptions = isStep7OrderNumbersActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1390,7 +1403,8 @@ function TaskCard({
               : step2NumberWordOptions ||
                   step3NumeralOptions ||
                   countingObjectOptions ||
-                  step6CompareGroupOptions
+                  step6CompareGroupOptions ||
+                  step7OrderNumberOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1445,13 +1459,27 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step7Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              step7OrderNumberOptions
+                ? renderStep7WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
               step2Visual ??
               step3Visual ??
               step4Visual ??
-              step6Visual;
+              step6Visual ??
+              step7Visual;
 
             return (
               <button
@@ -1461,10 +1489,12 @@ function TaskCard({
                 style={{
                   border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
                   borderRadius:
-                    step2Visual || step3Visual || step4Visual || step6Visual ? 18 : 10,
+                    step2Visual || step3Visual || step4Visual || step6Visual || step7Visual
+                      ? 18
+                      : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
                   padding:
-                    step2Visual || step3Visual || step4Visual || step6Visual
+                    step2Visual || step3Visual || step4Visual || step6Visual || step7Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -1472,7 +1502,12 @@ function TaskCard({
                   color: "#334155",
                   textAlign: "left",
                   lineHeight:
-                    statisticsVisual || step2Visual || step3Visual || step4Visual || step6Visual
+                    statisticsVisual ||
+                    step2Visual ||
+                    step3Visual ||
+                    step4Visual ||
+                    step6Visual ||
+                    step7Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -1481,7 +1516,7 @@ function TaskCard({
                   justifyItems:
                     visualOption ? "center" : "stretch",
                   minHeight:
-                    step2Visual || step3Visual || step4Visual || step6Visual
+                    step2Visual || step3Visual || step4Visual || step6Visual || step7Visual
                       ? 150
                       : statisticsVisual
                         ? 68

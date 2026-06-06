@@ -38,6 +38,8 @@ const COUNT_OBJECTS_TO_20_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S005-Count-Objects-Accurately-To-20.pdf";
 const COMPARE_GROUPS_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S006-Compare-Groups-More-Fewer-Or-Same.pdf";
+const ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S007-Order-Numbers-In-A-Short-Sequence.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -128,6 +130,21 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Compare groups as more, fewer or the same",
     fileName: COMPARE_GROUPS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${COMPARE_GROUPS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::order-numbers-in-a-short-sequence",
+    stepKey: "order-numbers-in-a-short-sequence",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 7,
+    pathwayStepTitle: "Order numbers in a short sequence",
+    title: "Order Numbers in a Short Sequence",
+    concept: "Order numbers in a short sequence",
+    fileName: ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
