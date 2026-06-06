@@ -104,6 +104,14 @@ export function isStep5CountingObjectsActivity(id: string, stepKey?: string | nu
   );
 }
 
+export function isStep6CompareGroupsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "compare-groups-as-more-fewer-or-same" ||
+    safe(id).startsWith("number-step-6-assess-") ||
+    safe(id).startsWith("number-step-6-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -958,6 +966,122 @@ export function renderStep4WorksheetPromptVisual({
   );
 }
 
+export function renderStep6WorksheetPromptVisual({
+  visual,
+}: {
+  visual: EarlyNumberVisualModel;
+}) {
+  const firstCount = visual.groupCounts[0];
+  const secondCount = visual.groupCounts[1];
+  if (
+    firstCount === undefined ||
+    secondCount === undefined ||
+    !Number.isFinite(firstCount) ||
+    !Number.isFinite(secondCount)
+  ) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          color: "#1e3a8a",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Compare the first group with the second group.
+      </div>
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+          gap: 10,
+          alignItems: "stretch",
+          padding: 10,
+        }}
+      >
+        <div aria-label={`First group showing ${firstCount} objects`} style={{ display: "grid" }}>
+          <div
+            style={{
+              color: "#1d4ed8",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              textAlign: "center",
+              marginBottom: 8,
+            }}
+          >
+            First group
+          </div>
+          <EarlyNumberWorksheetObjectGroupCard
+            count={firstCount}
+            label={visual.labels[0] || "First group"}
+          />
+        </div>
+        <div
+          aria-hidden="true"
+          style={{
+            width: 2,
+            borderRadius: 999,
+            background: "linear-gradient(180deg, #bfdbfe 0%, #93c5fd 100%)",
+            alignSelf: "stretch",
+            margin: "26px 0 4px",
+          }}
+        />
+        <div aria-label={`Second group showing ${secondCount} objects`} style={{ display: "grid" }}>
+          <div
+            style={{
+              color: "#6d28d9",
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              textAlign: "center",
+              marginBottom: 8,
+            }}
+          >
+            Second group
+          </div>
+          <EarlyNumberWorksheetObjectGroupCard
+            count={secondCount}
+            label={visual.labels[1] || "Second group"}
+          />
+        </div>
+      </div>
+      <div
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 16,
+          background: "#f0fdf4",
+          color: "#166534",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 800,
+          lineHeight: 1.45,
+        }}
+      >
+        Choose the statement that matches the comparison.
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -984,6 +1108,58 @@ export function renderStep4WorksheetOptionCard({
   if (!/^(10|[0-9])$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
+}
+
+export function renderStep6WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const isSame = lower.includes("same");
+  const isMore = lower.includes("more");
+  const isFewer = lower.includes("fewer");
+  if (!isSame && !isMore && !isFewer) return null;
+
+  const display = normalized
+    .replace("Card A", "First group")
+    .replace("Card B", "Second group")
+    .replace("They are", "Groups are");
+  const tone = isSame
+    ? { border: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" }
+    : isMore
+      ? { border: "#bbf7d0", background: "#f0fdf4", color: "#15803d" }
+      : { border: "#fed7aa", background: "#fff7ed", color: "#c2410c" };
+
+  return (
+    <div
+      aria-label={display}
+      style={{
+        border: `2px solid ${selected ? "#1d4ed8" : tone.border}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : tone.background,
+        color: tone.color,
+        minHeight: 116,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        textAlign: "center",
+        fontSize: 18,
+        fontWeight: 900,
+        lineHeight: 1.18,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      {display}
+    </div>
+  );
 }
 
 export function renderStep3WorksheetOptionCard({

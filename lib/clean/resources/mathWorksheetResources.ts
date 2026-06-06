@@ -36,6 +36,8 @@ const COUNT_OBJECTS_TO_10_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S004-Count-Objects-Accurately-To-10.pdf";
 const COUNT_OBJECTS_TO_20_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S005-Count-Objects-Accurately-To-20.pdf";
+const COMPARE_GROUPS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S006-Compare-Groups-More-Fewer-Or-Same.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -111,6 +113,21 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Count objects accurately to 20",
     fileName: COUNT_OBJECTS_TO_20_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${COUNT_OBJECTS_TO_20_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::compare-groups-as-more-fewer-or-same",
+    stepKey: "compare-groups-as-more-fewer-or-same",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 6,
+    pathwayStepTitle: "Compare groups as more, fewer or same",
+    title: "Compare Groups: More, Fewer or Same",
+    concept: "Compare groups as more, fewer or the same",
+    fileName: COMPARE_GROUPS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${COMPARE_GROUPS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

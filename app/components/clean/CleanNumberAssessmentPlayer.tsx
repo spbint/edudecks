@@ -15,6 +15,7 @@ import {
   isStep3NumeralActivity,
   isStep4CountingObjectsActivity,
   isStep5CountingObjectsActivity,
+  isStep6CompareGroupsActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -22,6 +23,8 @@ import {
   renderStep3WorksheetPromptVisual,
   renderStep4WorksheetOptionCard,
   renderStep4WorksheetPromptVisual,
+  renderStep6WorksheetOptionCard,
+  renderStep6WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2166,6 +2169,14 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep6CompareGroupsActivity(item.id, item.progressionStepKey)) {
+    const step6Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep6WorksheetPromptVisual({
+      visual: step6Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -3583,6 +3594,10 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.progressionStepKey,
       );
       const countingObjectOptions = step4CountingObjectOptions || step5CountingObjectOptions;
+      const step6CompareGroupOptions = isStep6CompareGroupsActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -3597,12 +3612,18 @@ function CleanNumberAssessmentPlayerBody() {
             gap:
               statisticsStep1Options
                 ? 6
-                : step2NumberWordOptions || step3NumeralOptions || countingObjectOptions
+                : step2NumberWordOptions ||
+                    step3NumeralOptions ||
+                    countingObjectOptions ||
+                    step6CompareGroupOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions || step3NumeralOptions || countingObjectOptions
+              : step2NumberWordOptions ||
+                  step3NumeralOptions ||
+                  countingObjectOptions ||
+                  step6CompareGroupOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -3646,8 +3667,25 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const step6Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              step6CompareGroupOptions
+                ? renderStep6WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
-              shapeVisual ?? statisticsVisual ?? step2Visual ?? step3Visual ?? step4Visual;
+              shapeVisual ??
+              statisticsVisual ??
+              step2Visual ??
+              step3Visual ??
+              step4Visual ??
+              step6Visual;
 
             return (
               <button
@@ -3668,33 +3706,33 @@ function CleanNumberAssessmentPlayerBody() {
                   justifyContent:
                     visualOption ? "center" : undefined,
                   minHeight:
-                    step2Visual || step3Visual || step4Visual
+                    step2Visual || step3Visual || step4Visual || step6Visual
                       ? 150
                       : statisticsVisual
                         ? 70
                         : undefined,
-                  padding: step2Visual || step3Visual || step4Visual
+                  padding: step2Visual || step3Visual || step4Visual || step6Visual
                     ? 4
                     : statisticsVisual
                       ? "6px 4px"
                       : optionButtonStyle.padding,
-                  borderRadius: step2Visual || step3Visual || step4Visual
+                  borderRadius: step2Visual || step3Visual || step4Visual || step6Visual
                     ? 18
                     : statisticsVisual
                       ? 12
                       : optionButtonStyle.borderRadius,
                   lineHeight:
-                    statisticsVisual || step2Visual || step3Visual || step4Visual
+                    statisticsVisual || step2Visual || step3Visual || step4Visual || step6Visual
                       ? 1.15
                       : optionButtonStyle.lineHeight,
                   position:
-                    statisticsVisual || step2Visual || step3Visual || step4Visual
+                    statisticsVisual || step2Visual || step3Visual || step4Visual || step6Visual
                       ? "relative"
                       : undefined,
                 }}
               >
                 {visualOption ?? <span>{option}</span>}
-                {(statisticsVisual || step2Visual || step3Visual || step4Visual) &&
+                {(statisticsVisual || step2Visual || step3Visual || step4Visual || step6Visual) &&
                 isSelected ? (
                   <span
                     style={{
