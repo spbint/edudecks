@@ -272,6 +272,14 @@ export function isStep28EstimateReasonablenessActivity(id: string, stepKey?: str
   );
 }
 
+export function isStep29UnitSimpleFractionsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "recognise-and-represent-unit-fractions-and-simple-fractions" ||
+    safe(id).startsWith("number-step-29-assess-") ||
+    safe(id).startsWith("number-step-29-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -3868,6 +3876,175 @@ export function renderStep28WorksheetPromptVisual({
   );
 }
 
+function parseFractionNotation(value: string) {
+  const match = safe(value).match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!match) return null;
+  return {
+    numerator: Number(match[1]),
+    denominator: Number(match[2]),
+  };
+}
+
+function denominatorFromWord(word: string) {
+  const normalized = word.toLowerCase();
+  if (normalized.startsWith("two")) return 2;
+  if (normalized.startsWith("three")) return 3;
+  if (normalized.startsWith("four")) return 4;
+  if (normalized.startsWith("five")) return 5;
+  if (normalized.startsWith("six")) return 6;
+  if (normalized.startsWith("eight")) return 8;
+  return null;
+}
+
+function inferStep29FractionFromPrompt(prompt: string) {
+  const lower = prompt.toLowerCase();
+  const shadedOutOf = lower.match(/(\d{1,2})\s+parts?\s+shaded\s+out\s+of\s+(\d{1,2})/);
+  if (shadedOutOf) {
+    return {
+      numerator: Number(shadedOutOf[1]),
+      denominator: Number(shadedOutOf[2]),
+    };
+  }
+
+  const wordOutOf = lower.match(/\b(one|two|three|four)\s+out\s+of\s+(two|three|four|five|six|eight)/);
+  if (wordOutOf) {
+    const numerator = denominatorFromWord(wordOutOf[1]) ?? 1;
+    const denominator = denominatorFromWord(wordOutOf[2]) ?? 2;
+    return { numerator, denominator };
+  }
+
+  if (lower.includes("unit fraction")) return { numerator: 1, denominator: 6 };
+  if (lower.includes("same as one half")) return { numerator: 1, denominator: 2 };
+  if (lower.includes("whole")) return { numerator: 4, denominator: 4 };
+
+  return { numerator: 1, denominator: 2 };
+}
+
+function fractionWords(numerator: number, denominator: number) {
+  const denominatorWords: Record<number, string> = {
+    2: "halves",
+    3: "thirds",
+    4: "quarters",
+    5: "fifths",
+    6: "sixths",
+    8: "eighths",
+  };
+  const numeratorWords: Record<number, string> = {
+    1: "one",
+    2: "two",
+    3: "three",
+    4: "four",
+  };
+  if (numerator === 1 && denominator === 2) return "one half";
+  return `${numeratorWords[numerator] ?? numerator} ${
+    numerator === 1
+      ? (denominatorWords[denominator] ?? "parts").replace(/s$/, "")
+      : denominatorWords[denominator] ?? "parts"
+  }`;
+}
+
+export function renderStep29WorksheetPromptVisual({
+  prompt,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const fraction = inferStep29FractionFromPrompt(prompt);
+  const isUnit = fraction.numerator === 1;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Count the shaded equal parts, then match the fraction notation.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {isUnit ? "Unit fraction" : "Simple fraction"}
+        </span>
+      </div>
+
+      <div
+        aria-label={`${fraction.numerator} out of ${fraction.denominator} equal parts shaded`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            alignItems: "stretch",
+          }}
+        >
+          <FractionShapeVisual
+            numerator={fraction.numerator}
+            denominator={fraction.denominator}
+            label={`${fraction.numerator}/${fraction.denominator}`}
+          />
+          <div
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 18,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 14,
+              display: "grid",
+              placeItems: "center",
+              gap: 8,
+              textAlign: "center",
+              fontWeight: 900,
+            }}
+          >
+            <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Fraction words
+            </span>
+            <strong style={{ fontSize: 22 }}>{fractionWords(fraction.numerator, fraction.denominator)}</strong>
+            <span style={{ fontSize: 13, lineHeight: 1.35 }}>
+              {fraction.numerator} shaded part{fraction.numerator === 1 ? "" : "s"} out of{" "}
+              {fraction.denominator} equal parts.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getStep20FractionKind(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("quarter") || lower.includes("quarters") || lower.includes("1/4")) {
@@ -3913,19 +4090,34 @@ function getStep20ShareDetails(prompt: string) {
 
 function FractionShapeVisual({
   denominator,
+  numerator = 1,
   selected = false,
+  label,
+  shape = "auto",
 }: {
   denominator: number;
+  numerator?: number;
   selected?: boolean;
+  label?: string;
+  shape?: "auto" | "circle" | "rectangle" | "grid";
 }) {
-  const isQuarter = denominator === 4;
+  const displayLabel = label ?? `${numerator}/${denominator}`;
+  const modelShape =
+    shape === "auto"
+      ? denominator === 3
+        ? "circle"
+        : denominator >= 5
+          ? "grid"
+          : "rectangle"
+      : shape;
+  const shadedParts = Math.max(0, Math.min(denominator, numerator));
+  const gridColumns =
+    denominator === 3 ? 3 : denominator === 4 ? 2 : denominator === 6 ? 3 : denominator === 8 ? 4 : denominator;
+  const gridRows = Math.ceil(denominator / gridColumns);
+
   return (
     <div
-      aria-label={
-        isQuarter
-          ? "Square split into four equal parts with one quarter shaded"
-          : "Rectangle split into two equal parts with one half shaded"
-      }
+      aria-label={`${modelShape} split into ${denominator} equal parts with ${shadedParts} shaded`}
       style={{
         border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
         borderRadius: 18,
@@ -3940,16 +4132,20 @@ function FractionShapeVisual({
       }}
     >
       <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
-        {isQuarter ? "One quarter" : "One half"}
+        {displayLabel}
       </div>
       <div
         style={{
           border: "2px solid #1d4ed8",
-          borderRadius: isQuarter ? 16 : 999,
+          borderRadius: modelShape === "circle" ? 999 : 16,
           overflow: "hidden",
           display: "grid",
-          gridTemplateColumns: isQuarter ? "repeat(2, 1fr)" : "repeat(2, 1fr)",
-          gridTemplateRows: isQuarter ? "repeat(2, 1fr)" : "1fr",
+          gridTemplateColumns:
+            modelShape === "rectangle"
+              ? `repeat(${denominator}, 1fr)`
+              : `repeat(${gridColumns}, 1fr)`,
+          gridTemplateRows:
+            modelShape === "rectangle" ? "1fr" : `repeat(${gridRows}, 1fr)`,
           minHeight: 84,
           background: "#ffffff",
         }}
@@ -3959,10 +4155,19 @@ function FractionShapeVisual({
             key={`fraction-part-${denominator}-${index}`}
             aria-hidden="true"
             style={{
-              background: index === 0 ? "#bfdbfe" : "#ffffff",
-              borderRight: !isQuarter && index === 0 ? "2px solid #1d4ed8" : undefined,
-              borderLeft: isQuarter && index % 2 === 1 ? "2px solid #1d4ed8" : undefined,
-              borderTop: isQuarter && index >= 2 ? "2px solid #1d4ed8" : undefined,
+              background: index < shadedParts ? "#bfdbfe" : "#ffffff",
+              borderLeft:
+                modelShape === "rectangle"
+                  ? index > 0
+                    ? "2px solid #1d4ed8"
+                    : undefined
+                  : index % gridColumns !== 0
+                    ? "2px solid #1d4ed8"
+                    : undefined,
+              borderTop:
+                modelShape !== "rectangle" && index >= gridColumns
+                  ? "2px solid #1d4ed8"
+                  : undefined,
             }}
           />
         ))}
@@ -6156,6 +6361,54 @@ export function renderStep28WorksheetOptionCard({
   if (!/^\d{1,4}$/.test(normalized)) return null;
 
   return <LargeNumberWorksheetCard value={normalized} label="Estimate" selected={selected} />;
+}
+
+export function renderStep29WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  const fraction = parseFractionNotation(normalized);
+  if (!fraction) return null;
+
+  return (
+    <div
+      aria-label={`Choose ${fractionWords(fraction.numerator, fraction.denominator)}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 158,
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <FractionShapeVisual
+        denominator={fraction.denominator}
+        numerator={fraction.numerator}
+        label={normalized}
+        selected={selected}
+      />
+      <div
+        style={{
+          color: "#475569",
+          fontSize: 12,
+          fontWeight: 850,
+          textAlign: "center",
+          lineHeight: 1.25,
+        }}
+      >
+        {fractionWords(fraction.numerator, fraction.denominator)}
+      </div>
+    </div>
+  );
 }
 
 export function renderStep3WorksheetOptionCard({

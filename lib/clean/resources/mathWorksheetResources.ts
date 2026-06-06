@@ -84,6 +84,8 @@ const MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S027-Multiply-And-Divide-Using-Arrays-Grouping-And-Known-Facts.pdf";
 const ESTIMATE_REASONABLENESS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S028-Estimate-And-Check-Reasonableness.pdf";
+const UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S029-Recognise-And-Represent-Unit-Fractions-And-Simple-Fractions.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -540,6 +542,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ESTIMATE_REASONABLENESS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${ESTIMATE_REASONABLENESS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::recognise-and-represent-unit-fractions-and-simple-fractions",
+    stepKey: "recognise-and-represent-unit-fractions-and-simple-fractions",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 29,
+    pathwayStepTitle: "Recognise and represent unit fractions and simple fractions",
+    title: "Recognise and Represent Unit Fractions and Simple Fractions",
+    concept:
+      "Recognise, write and represent unit fractions and simple fractions using shaded shapes and fraction words",
+    includesAnswerSheet: false,
+    fileName: UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
