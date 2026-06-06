@@ -192,6 +192,14 @@ export function isStep18SupportedAddSubtractActivity(id: string, stepKey?: strin
   );
 }
 
+export function isStep19EqualGroupsArraysActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "understand-simple-equal-groups-and-arrays" ||
+    safe(id).startsWith("number-step-19-assess-") ||
+    safe(id).startsWith("number-step-19-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -2988,6 +2996,262 @@ export function renderStep18WorksheetPromptVisual({
   );
 }
 
+function EqualGroupsVisual({
+  groups,
+  inEachGroup,
+}: {
+  groups: number;
+  inEachGroup: number;
+}) {
+  const kind = getCountingObjectKind(inEachGroup + groups, "cubes");
+
+  return (
+    <div
+      aria-label={`${groups} equal groups with ${inEachGroup} objects in each group`}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))",
+        gap: 8,
+      }}
+    >
+      {Array.from({ length: Math.max(0, groups) }, (_, groupIndex) => (
+        <div
+          key={`equal-group-${groupIndex}`}
+          style={{
+            border: "2px solid #bfdbfe",
+            borderRadius: "50%",
+            background: "#f8fbff",
+            minHeight: 92,
+            padding: 10,
+            display: "grid",
+            placeItems: "center",
+            boxShadow: "0 8px 18px rgba(15,23,42,0.06)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: 5,
+              flexWrap: "wrap",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {Array.from({ length: Math.max(0, inEachGroup) }, (_, itemIndex) => (
+              <CountingObjectShape
+                key={`equal-group-${groupIndex}-${itemIndex}`}
+                kind={kind}
+                index={itemIndex}
+                size={22}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ArrayRowsColumnsVisual({
+  rows,
+  columns,
+}: {
+  rows: number;
+  columns: number;
+}) {
+  const total = rows * columns;
+
+  return (
+    <div
+      aria-label={`Array with ${rows} rows and ${columns} columns, showing ${total} objects`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 8,
+          flexWrap: "wrap",
+          color: "#1d4ed8",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        <span>{rows} rows across</span>
+        <span>{columns} columns down</span>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(18px, 1fr))`,
+          gap: 7,
+          justifyItems: "center",
+          alignItems: "center",
+          width: "min(100%, 280px)",
+          margin: "0 auto",
+        }}
+      >
+        {Array.from({ length: Math.max(0, total) }, (_, index) => (
+          <span
+            key={`array-dot-${index}`}
+            aria-hidden="true"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              background: index % 2 ? "#bfdbfe" : "#bbf7d0",
+              border: `1px solid ${index % 2 ? "#1d4ed8" : "#15803d"}`,
+              boxShadow: "0 5px 10px rgba(15,23,42,0.10)",
+            }}
+          />
+        ))}
+      </div>
+      <div
+        style={{
+          border: "1px solid #ccfbf1",
+          borderRadius: 14,
+          background: "#f0fdfa",
+          color: "#0f766e",
+          padding: "8px 10px",
+          fontSize: 12,
+          fontWeight: 850,
+          lineHeight: 1.4,
+          textAlign: "center",
+        }}
+      >
+        Rows go across. Columns go down. Same total: {total}.
+      </div>
+    </div>
+  );
+}
+
+export function renderStep19WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const groups = visual.groupCounts[0];
+  const inEachGroup = visual.groupCounts[1];
+  if (
+    groups === undefined ||
+    inEachGroup === undefined ||
+    !Number.isFinite(groups) ||
+    !Number.isFinite(inEachGroup)
+  ) {
+    return null;
+  }
+
+  const total = groups * inEachGroup;
+  const isArrayPrompt =
+    prompt.toLowerCase().includes("rows") ||
+    prompt.toLowerCase().includes("array") ||
+    visual.labels.some((label) => label.toLowerCase().includes("row"));
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Equal groups have the same number in each group.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Groups and arrays
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            alignItems: "stretch",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: 12,
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+              {groups} equal groups of {inEachGroup}
+            </div>
+            <EqualGroupsVisual groups={groups} inEachGroup={inEachGroup} />
+          </div>
+          <ArrayRowsColumnsVisual rows={groups} columns={inEachGroup} />
+        </div>
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 16,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {isArrayPrompt
+            ? `${groups} rows with ${inEachGroup} in each row shows ${total} altogether.`
+            : `${groups} equal groups with ${inEachGroup} in each group shows ${total} altogether.`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -3296,6 +3560,19 @@ export function renderStep18WorksheetOptionCard({
   if (!/^\d{1,2}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} />;
+}
+
+export function renderStep19WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,2}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

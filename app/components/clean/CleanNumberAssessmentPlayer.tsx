@@ -26,6 +26,7 @@ import {
   isStep16RenameTwoDigitActivity,
   isStep17AddSubtractWithin20Activity,
   isStep18SupportedAddSubtractActivity,
+  isStep19EqualGroupsArraysActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -55,6 +56,8 @@ import {
   renderStep17WorksheetPromptVisual,
   renderStep18WorksheetOptionCard,
   renderStep18WorksheetPromptVisual,
+  renderStep19WorksheetOptionCard,
+  renderStep19WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2295,6 +2298,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep19EqualGroupsArraysActivity(item.id, item.progressionStepKey)) {
+    const step19Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep19WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step19Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -3756,6 +3768,10 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step19EqualGroupsArraysOptions = isStep19EqualGroupsArraysActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -3783,7 +3799,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step13SkipCountingOptions ||
                     step16RenameTwoDigitOptions ||
                     step17AddSubtractWithin20Options ||
-                    step18SupportedAddSubtractOptions
+                    step18SupportedAddSubtractOptions ||
+                    step19EqualGroupsArraysOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
@@ -3801,7 +3818,8 @@ function CleanNumberAssessmentPlayerBody() {
                   step13SkipCountingOptions ||
                   step16RenameTwoDigitOptions ||
                   step17AddSubtractWithin20Options ||
-                  step18SupportedAddSubtractOptions
+                  step18SupportedAddSubtractOptions ||
+                  step19EqualGroupsArraysOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -4032,6 +4050,29 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const step19Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              step19EqualGroupsArraysOptions
+                ? renderStep19WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -4048,7 +4089,8 @@ function CleanNumberAssessmentPlayerBody() {
               step13Visual ??
               step16Visual ??
               step17Visual ??
-              step18Visual;
+              step18Visual ??
+              step19Visual;
 
             return (
               <button

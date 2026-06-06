@@ -64,6 +64,8 @@ const ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S017-Add-And-Subtract-Within-20-Using-Known-Facts.pdf";
 const ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S018-Add-And-Subtract-One-And-Two-Digit-Numbers-With-Support.pdf";
+const EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S019-Understand-Simple-Equal-Groups-And-Arrays.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -350,6 +352,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::understand-simple-equal-groups-and-arrays",
+    stepKey: "understand-simple-equal-groups-and-arrays",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 19,
+    pathwayStepTitle: "Understand simple equal groups and arrays",
+    title: "Understand Simple Equal Groups and Arrays",
+    concept: "Recognise equal groups and simple arrays as structured collections",
+    includesAnswerSheet: false,
+    fileName: EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
