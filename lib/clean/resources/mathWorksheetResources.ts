@@ -76,6 +76,8 @@ const PARTITION_REGROUP_TWO_THREE_DIGIT_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S023-Partition-And-Regroup-Two-And-Three-Digit-Numbers.pdf";
 const ZERO_PLACEHOLDER_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S024-Use-Zero-As-A-Placeholder.pdf";
+const ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S025-Add-And-Subtract-Two-And-Three-Digit-Numbers-Using-Place-Value.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -464,6 +466,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ZERO_PLACEHOLDER_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${ZERO_PLACEHOLDER_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::add-and-subtract-two-and-three-digit-numbers-using-place-value",
+    stepKey: "add-and-subtract-two-and-three-digit-numbers-using-place-value",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 25,
+    pathwayStepTitle: "Add and subtract two- and three-digit numbers using place value",
+    title: "Add and Subtract Two- and Three-Digit Numbers Using Place Value",
+    concept: "Use place value to add and subtract two- and three-digit numbers",
+    includesAnswerSheet: false,
+    fileName: ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

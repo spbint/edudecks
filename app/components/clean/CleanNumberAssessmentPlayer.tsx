@@ -32,6 +32,7 @@ import {
   isStep22HundredsTensOnesActivity,
   isStep23PartitionRegroupActivity,
   isStep24ZeroPlaceholderActivity,
+  isStep25PlaceValueAddSubtractActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -73,6 +74,8 @@ import {
   renderStep23WorksheetPromptVisual,
   renderStep24WorksheetOptionCard,
   renderStep24WorksheetPromptVisual,
+  renderStep25WorksheetOptionCard,
+  renderStep25WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2367,6 +2370,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep25PlaceValueAddSubtractActivity(item.id, item.progressionStepKey)) {
+    const step25Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep25WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step25Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -3852,6 +3864,10 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step25PlaceValueAddSubtractOptions = isStep25PlaceValueAddSubtractActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -3885,7 +3901,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step21LargeNumberCompareOptions ||
                     step22HundredsTensOnesOptions ||
                     step23PartitionRegroupOptions ||
-                    step24ZeroPlaceholderOptions
+                    step24ZeroPlaceholderOptions ||
+                    step25PlaceValueAddSubtractOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
@@ -3909,7 +3926,8 @@ function CleanNumberAssessmentPlayerBody() {
                   step21LargeNumberCompareOptions ||
                   step22HundredsTensOnesOptions ||
                   step23PartitionRegroupOptions ||
-                  step24ZeroPlaceholderOptions
+                  step24ZeroPlaceholderOptions ||
+                  step25PlaceValueAddSubtractOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -4293,6 +4311,35 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const step25Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              step25PlaceValueAddSubtractOptions
+                ? renderStep25WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -4315,7 +4362,8 @@ function CleanNumberAssessmentPlayerBody() {
               step21Visual ??
               step22Visual ??
               step23Visual ??
-              step24Visual;
+              step24Visual ??
+              step25Visual;
 
             return (
               <button
@@ -4355,7 +4403,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step21Visual ||
                     step22Visual ||
                     step23Visual ||
-                    step24Visual
+                    step24Visual ||
+                    step25Visual
                       ? 150
                       : statisticsVisual
                         ? 70
@@ -4380,7 +4429,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step21Visual ||
                     step22Visual ||
                     step23Visual ||
-                    step24Visual
+                    step24Visual ||
+                    step25Visual
                     ? 4
                     : statisticsVisual
                       ? "6px 4px"
@@ -4405,7 +4455,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step21Visual ||
                     step22Visual ||
                     step23Visual ||
-                    step24Visual
+                    step24Visual ||
+                    step25Visual
                     ? 18
                     : statisticsVisual
                       ? 12
@@ -4431,7 +4482,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step21Visual ||
                     step22Visual ||
                     step23Visual ||
-                    step24Visual
+                    step24Visual ||
+                    step25Visual
                       ? 1.15
                       : optionButtonStyle.lineHeight,
                   position:
@@ -4455,7 +4507,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step21Visual ||
                     step22Visual ||
                     step23Visual ||
-                    step24Visual
+                    step24Visual ||
+                    step25Visual
                       ? "relative"
                       : undefined,
                 }}
@@ -4481,7 +4534,8 @@ function CleanNumberAssessmentPlayerBody() {
                   step21Visual ||
                   step22Visual ||
                   step23Visual ||
-                  step24Visual) &&
+                  step24Visual ||
+                  step25Visual) &&
                 isSelected ? (
                   <span
                     style={{

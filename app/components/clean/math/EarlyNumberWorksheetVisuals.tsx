@@ -240,6 +240,14 @@ export function isStep24ZeroPlaceholderActivity(id: string, stepKey?: string | n
   );
 }
 
+export function isStep25PlaceValueAddSubtractActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "add-and-subtract-two-and-three-digit-numbers-using-place-value" ||
+    safe(id).startsWith("number-step-25-assess-") ||
+    safe(id).startsWith("number-step-25-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -4720,6 +4728,307 @@ export function renderStep24WorksheetPromptVisual({
   );
 }
 
+function parseStep25Equation(prompt: string) {
+  const match = safe(prompt)
+    .replace(/,/g, "")
+    .match(/(\d{2,4})\s*([+-])\s*(\d{1,4})/);
+  if (!match) return null;
+
+  const start = Number(match[1]);
+  const symbol = match[2] as "+" | "-";
+  const change = Number(match[3]);
+  return {
+    start,
+    change,
+    symbol,
+    answer: symbol === "+" ? start + change : start - change,
+  };
+}
+
+function getHundredsTensOnes(value: number) {
+  const hundreds = Math.floor((value % 1000) / 100);
+  const tens = Math.floor((value % 100) / 10);
+  const ones = value % 10;
+  return { hundreds, tens, ones };
+}
+
+function PlaceValueCalculationBlocks({
+  value,
+  label,
+  crossed,
+}: {
+  value: number;
+  label: string;
+  crossed?: boolean;
+}) {
+  const parts = getHundredsTensOnes(value);
+  const blockKinds: Array<["hundred" | "ten" | "one", number]> = [
+    ["hundred", parts.hundreds],
+    ["ten", parts.tens],
+    ["one", parts.ones],
+  ];
+
+  return (
+    <div
+      aria-label={`${label}: ${parts.hundreds} hundreds, ${parts.tens} tens and ${parts.ones} ones${
+        crossed ? " crossed out" : ""
+      }`}
+      style={{
+        border: `1px solid ${crossed ? "#fed7aa" : "#dbeafe"}`,
+        borderRadius: 18,
+        background: crossed ? "#fff7ed" : "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+        minHeight: 180,
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <strong style={{ color: crossed ? "#c2410c" : "#1d4ed8", fontSize: 13 }}>
+          {label}
+        </strong>
+        <span
+          style={{
+            border: `1px solid ${crossed ? "#fed7aa" : "#bfdbfe"}`,
+            borderRadius: 999,
+            background: crossed ? "#ffedd5" : "#eff6ff",
+            color: crossed ? "#c2410c" : "#1d4ed8",
+            padding: "3px 7px",
+            fontSize: 12,
+            fontWeight: 900,
+          }}
+        >
+          {value}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: 8,
+        }}
+      >
+        {blockKinds.map(([kind, count]) => (
+          <div
+            key={kind}
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              background: "#f8fafc",
+              padding: 8,
+              display: "grid",
+              gap: 6,
+              alignContent: "start",
+              minHeight: 118,
+              opacity: crossed ? 0.72 : 1,
+            }}
+          >
+            <span style={{ color: "#475569", fontSize: 11, fontWeight: 900 }}>
+              {kind === "hundred" ? "H" : kind === "ten" ? "T" : "O"}: {count}
+            </span>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+                position: "relative",
+              }}
+            >
+              {Array.from({ length: Math.max(0, count) }, (_, index) => (
+                <span
+                  key={`${kind}-${index}`}
+                  style={{ position: "relative", display: "inline-grid", placeItems: "center" }}
+                >
+                  <PlaceValueBlock kind={kind} index={index} />
+                  {crossed ? (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        width: kind === "hundred" ? 64 : 28,
+                        height: 3,
+                        borderRadius: 999,
+                        background: "#dc2626",
+                        transform: "rotate(-35deg)",
+                      }}
+                    />
+                  ) : null}
+                </span>
+              ))}
+              {count === 0 ? (
+                <span
+                  style={{
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 10,
+                    color: "#64748b",
+                    padding: "8px 10px",
+                    fontSize: 16,
+                    fontWeight: 900,
+                  }}
+                >
+                  0
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep25WorksheetPromptVisual({
+  prompt,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const equation = parseStep25Equation(prompt);
+  if (!equation) return null;
+
+  const operation = equation.symbol === "+" ? "addition" : "subtraction";
+  const tone =
+    equation.symbol === "+"
+      ? { border: "#bbf7d0", background: "#f0fdf4", strong: "#166534" }
+      : { border: "#fed7aa", background: "#fff7ed", strong: "#c2410c" };
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use hundreds, tens and ones to solve the calculation.
+        </div>
+        <span
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 999,
+            background: tone.background,
+            color: tone.strong,
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Place-value {operation}
+        </span>
+      </div>
+
+      <div
+        aria-label={
+          equation.symbol === "+"
+            ? `${equation.start} plus ${equation.change} shown with place-value blocks`
+            : `${equation.start} minus ${equation.change} shown with place-value blocks crossed out`
+        }
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(220px, 1fr) auto minmax(220px, 1fr)",
+            gap: 10,
+            alignItems: "stretch",
+          }}
+        >
+          <PlaceValueCalculationBlocks value={equation.start} label="Start" />
+          <div
+            style={{
+              color: tone.strong,
+              fontSize: 34,
+              fontWeight: 950,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {equation.symbol}
+          </div>
+          <PlaceValueCalculationBlocks
+            value={equation.change}
+            label={equation.symbol === "+" ? "Add" : "Subtract"}
+            crossed={equation.symbol === "-"}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(180px, 1fr) auto minmax(120px, 0.7fr)",
+            gap: 10,
+            alignItems: "stretch",
+          }}
+        >
+          <HTOChart {...getHundredsTensOnes(equation.answer)} />
+          <div
+            aria-hidden="true"
+            style={{
+              color: "#64748b",
+              fontSize: 28,
+              fontWeight: 950,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            =
+          </div>
+          <div
+            aria-label="Answer box"
+            style={{
+              border: "2px solid #7c3aed",
+              borderRadius: 18,
+              background: "#f5f3ff",
+              color: "#6d28d9",
+              minHeight: 116,
+              display: "grid",
+              placeItems: "center",
+              fontSize: 32,
+              fontWeight: 950,
+              boxShadow: "0 10px 22px rgba(124,58,237,0.14)",
+            }}
+          >
+            __
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -5227,6 +5536,19 @@ export function renderStep24WorksheetOptionCard({
       </span>
     </div>
   );
+}
+
+export function renderStep25WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,4}$/.test(normalized)) return null;
+
+  return <LargeNumberWorksheetCard value={normalized} label="Answer" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({
