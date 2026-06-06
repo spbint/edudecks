@@ -66,6 +66,8 @@ const ADD_SUBTRACT_WITH_SUPPORT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S018-Add-And-Subtract-One-And-Two-Digit-Numbers-With-Support.pdf";
 const EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S019-Understand-Simple-Equal-Groups-And-Arrays.pdf";
+const HALVES_QUARTERS_SHARING_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S020-Begin-Halves-Quarters-And-Simple-Sharing.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -369,6 +371,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${EQUAL_GROUPS_ARRAYS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::begin-halves-quarters-and-simple-sharing",
+    stepKey: "begin-halves-quarters-and-simple-sharing",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 20,
+    pathwayStepTitle: "Begin halves, quarters and simple sharing",
+    title: "Begin Halves, Quarters and Simple Sharing",
+    concept: "Recognise halves and quarters and share small collections equally",
+    includesAnswerSheet: false,
+    fileName: HALVES_QUARTERS_SHARING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${HALVES_QUARTERS_SHARING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

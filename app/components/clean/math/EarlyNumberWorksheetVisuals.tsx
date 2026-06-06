@@ -200,6 +200,14 @@ export function isStep19EqualGroupsArraysActivity(id: string, stepKey?: string |
   );
 }
 
+export function isStep20HalvesQuartersSharingActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "begin-halves-quarters-and-simple-sharing" ||
+    safe(id).startsWith("number-step-20-assess-") ||
+    safe(id).startsWith("number-step-20-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
