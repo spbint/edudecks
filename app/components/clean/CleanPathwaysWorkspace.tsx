@@ -81,7 +81,7 @@ const wrapStyle: React.CSSProperties = {
   maxWidth: 1180,
   margin: "0 auto",
   display: "grid",
-  gap: 10,
+  gap: 24,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -713,6 +713,7 @@ function PathwaysWorkspaceBody() {
   const [densityMode, setDensityMode] = useState<PathwayDensityMode>(
     () => persistedUiState.densityMode || "compact",
   );
+  const [exploreStepsOpen, setExploreStepsOpen] = useState(false);
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
@@ -1565,32 +1566,32 @@ function PathwaysWorkspaceBody() {
                   relationshipCopy={selectedSubjectWorkspace.relationshipCopy}
                   summaryCards={[
                     {
-                      label: "Current stage snapshot",
+                      label: "Zone",
                       value: currentLearningZoneStageTitle,
                       helper: "Based on the first visible step in the current learning zone.",
                     },
                     {
-                      label: "Confidence secure",
+                      label: "Secure",
                       value: String(selectedWorkspaceSnapshot?.secure || 0),
                       valueColor: "#166534",
                     },
                     {
-                      label: "Ready to assess",
+                      label: "Assess",
                       value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
                       valueColor: "#6d28d9",
                     },
                     {
-                      label: "Evidence started",
+                      label: "Evidence",
                       value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
                       valueColor: "#1d4ed8",
                     },
                     {
-                      label: "Practising",
+                      label: "Practice",
                       value: String(selectedWorkspaceSnapshot?.practising || 0),
                       valueColor: "#c2410c",
                     },
                     {
-                      label: "Not started",
+                      label: "New",
                       value: String(selectedWorkspaceSnapshot?.notStarted || 0),
                       valueColor: "#64748b",
                     },
@@ -1726,7 +1727,10 @@ function PathwaysWorkspaceBody() {
                     </div>
                   </div>
 
-                  <details open={!numberPathwayRevealGroups?.hasSavedAttempts}>
+                  <details
+                    open={exploreStepsOpen}
+                    onToggle={(event) => setExploreStepsOpen(event.currentTarget.open)}
+                  >
                     <summary
                       style={{
                         cursor: "pointer",
@@ -1737,50 +1741,52 @@ function PathwaysWorkspaceBody() {
                     >
                       Explore all pathway steps
                     </summary>
-                    <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                      {selectedSubjectWorkspace.stages
-                        .map((stage, stageIndex) => ({ stage, stageIndex }))
-                        .filter(({ stageIndex }) =>
-                          getStageIsVisibleForZoneMode(
-                            stageIndex,
-                            selectedWorkspaceStageIndex,
-                            zoneViewMode,
-                          ),
-                        )
-                        .map(({ stage, stageIndex }) => (
-                          <DetailedMathematicsStageCard
-                            key={`${selectedSubjectWorkspace.key}-${stage.key}`}
-                            strand={selectedSubjectWorkspace}
-                            stage={stage}
-                            stageIndex={stageIndex}
-                            currentStageIndex={selectedWorkspaceStageIndex}
-                            unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
-                            selectedSubjectKey={selectedSubject.key}
-                            selectedSubjectTitle={selectedSubject.title}
-                            selectedLearnerId={selectedLearner?.id || ""}
-                            returnPath={pathname}
-                            isOpen={getStageOpenState(
-                              selectedSubjectWorkspace.key,
-                              stage.key,
-                              stage.key === selectedSubjectWorkspace.currentFocusStageKey,
-                            )}
-                            onToggle={() =>
-                              toggleStageOpen(
+                    {exploreStepsOpen ? (
+                      <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
+                        {selectedSubjectWorkspace.stages
+                          .map((stage, stageIndex) => ({ stage, stageIndex }))
+                          .filter(({ stageIndex }) =>
+                            getStageIsVisibleForZoneMode(
+                              stageIndex,
+                              selectedWorkspaceStageIndex,
+                              zoneViewMode,
+                            ),
+                          )
+                          .map(({ stage, stageIndex }) => (
+                            <DetailedMathematicsStageCard
+                              key={`${selectedSubjectWorkspace.key}-${stage.key}`}
+                              strand={selectedSubjectWorkspace}
+                              stage={stage}
+                              stageIndex={stageIndex}
+                              currentStageIndex={selectedWorkspaceStageIndex}
+                              unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
+                              selectedSubjectKey={selectedSubject.key}
+                              selectedSubjectTitle={selectedSubject.title}
+                              selectedLearnerId={selectedLearner?.id || ""}
+                              returnPath={pathname}
+                              isOpen={getStageOpenState(
                                 selectedSubjectWorkspace.key,
                                 stage.key,
                                 stage.key === selectedSubjectWorkspace.currentFocusStageKey,
-                              )
-                            }
-                            capturePathBase={capturePathBase}
-                            assessPathBase={assessPathBase}
-                            assessmentAttempts={assessmentAttempts}
-                            worksheetFilter={worksheetFilter}
-                            densityMode={densityMode}
-                            expandedStepId={expandedStepId}
-                            onExpandedStepChange={setExpandedStepId}
-                          />
-                        ))}
-                    </div>
+                              )}
+                              onToggle={() =>
+                                toggleStageOpen(
+                                  selectedSubjectWorkspace.key,
+                                  stage.key,
+                                  stage.key === selectedSubjectWorkspace.currentFocusStageKey,
+                                )
+                              }
+                              capturePathBase={capturePathBase}
+                              assessPathBase={assessPathBase}
+                              assessmentAttempts={assessmentAttempts}
+                              worksheetFilter={worksheetFilter}
+                              densityMode={densityMode}
+                              expandedStepId={expandedStepId}
+                              onExpandedStepChange={setExpandedStepId}
+                            />
+                          ))}
+                      </div>
+                    ) : null}
                   </details>
                 </MathematicsStrandWorkspaceShell>
                 ) : (
@@ -1927,20 +1933,25 @@ function MathematicsStrandWorkspaceShell({
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: 6,
+          gap: 8,
           alignItems: "center",
+          border: "1px solid #e2e8f0",
+          borderRadius: 12,
+          background: "#ffffff",
+          padding: "8px 10px",
         }}
       >
+        <span style={{ ...eyebrowStyle, marginRight: 2 }}>Progress summary</span>
         {summaryCards.map((card, index) => (
           <span
             key={`${card.label}-${index}`}
             title={card.helper || card.label}
             style={{
-              border: "1px solid #e2e8f0",
+              border: "none",
               borderRadius: 999,
-              background: "#ffffff",
+              background: card.valueColor ? "#f8fafc" : "transparent",
               color: card.valueColor || "#334155",
-              padding: "5px 8px",
+              padding: "3px 6px",
               display: "inline-flex",
               gap: 6,
               alignItems: "center",
@@ -2053,11 +2064,13 @@ function NumberRevealStepCard({
   learnerId,
   returnPath,
   compact = false,
+  primary = false,
 }: {
   step: NumberPathwayRevealStep;
   learnerId: string;
   returnPath: string;
   compact?: boolean;
+  primary?: boolean;
 }) {
   const tone = getAutoCheckTone(step.autoCheck.status);
   const pathwayStepStrandKey = getStrandKeyFromPathwayStepId(step.pathwayStepId);
@@ -2125,10 +2138,10 @@ function NumberRevealStepCard({
       style={{
         border: `1px solid ${tone.border}`,
         borderRadius: 12,
-        background: compact ? "#ffffff" : tone.background,
-        padding: compact ? "9px 10px" : 12,
+        background: primary ? "#ffffff" : compact ? "#ffffff" : tone.background,
+        padding: primary ? 12 : compact ? "9px 10px" : 12,
         display: "grid",
-        gap: 7,
+        gap: primary ? 10 : 7,
         opacity: compact && step.autoCheck.status !== "Not checked yet" ? 0.86 : 1,
       }}
     >
@@ -2160,7 +2173,14 @@ function NumberRevealStepCard({
           {step.autoCheck.status}
         </span>
       </div>
-      <div style={{ color: "#0f172a", fontWeight: 800, lineHeight: 1.35 }}>
+      <div
+        style={{
+          color: "#0f172a",
+          fontWeight: 800,
+          lineHeight: 1.25,
+          fontSize: primary ? "clamp(16px, 2vw, 20px)" : 14,
+        }}
+      >
         {step.title}
       </div>
       <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
@@ -2193,7 +2213,7 @@ function NumberRevealStepCard({
                 fontSize: 12,
               }}
             >
-              {exactStepAssessment ? "Assess" : "Check understanding"}
+              {exactStepAssessment ? "Assess" : "Check"}
             </Link>
           ) : null}
           {worksheetResource ? (
@@ -2209,7 +2229,7 @@ function NumberRevealStepCard({
               }}
               aria-label={`Download worksheet PDF for ${worksheetResource.title}`}
             >
-              Download worksheet
+              Worksheet
             </Link>
           ) : null}
         </div>
@@ -2255,8 +2275,8 @@ function NumberRevealStepList({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: 10,
+        gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: compact ? 8 : 16,
       }}
     >
       {steps.map((step) => (
@@ -2269,6 +2289,47 @@ function NumberRevealStepList({
         />
       ))}
     </div>
+  );
+}
+
+function NumberRevealLazyStepSection({
+  title,
+  steps,
+  learnerId,
+  returnPath,
+  compact,
+}: {
+  title: string;
+  steps: NumberPathwayRevealStep[];
+  learnerId: string;
+  returnPath: string;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <details
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      style={{
+        borderTop: "1px solid #e2e8f0",
+        paddingTop: 8,
+      }}
+    >
+      <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
+        {title} ({steps.length})
+      </summary>
+      {open ? (
+        <div style={{ marginTop: 12 }}>
+          <NumberRevealStepList
+            steps={steps}
+            learnerId={learnerId}
+            returnPath={returnPath}
+            compact={compact}
+          />
+        </div>
+      ) : null}
+    </details>
   );
 }
 
@@ -2291,49 +2352,68 @@ function NumberPathwayRevealPanel({
   return (
     <section
       style={{
-        border: "1px solid #bfdbfe",
-        borderRadius: 16,
-        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
-        padding: 14,
+        border: "none",
+        borderRadius: 0,
+        background: "transparent",
+        padding: 0,
         display: "grid",
-        gap: 12,
+        gap: 16,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "grid", gap: 5, maxWidth: 720 }}>
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={eyebrowStyle}>Individualised pathway</div>
-          <h3 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-            {groups.hasSavedAttempts
-              ? `${learnerLabel}'s current learning zone`
-              : `Start with a ${strandTitle} check`}
-          </h3>
-          <div style={{ color: "#475569", lineHeight: 1.55 }}>
-            {groups.hasSavedAttempts
-              ? `Based on saved auto-checked ${strandTitle} attempts. Confidence, evidence, portfolio and reports have not been changed automatically.`
-              : "Start with a pre-test or choose a pathway step to check understanding. Results will reveal what is secure, what needs polish and where to work next."}
-          </div>
+          <span
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 999,
+              background: "#eff6ff",
+              color: "#1d4ed8",
+              padding: "4px 8px",
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            {getRevealFocusLabel(currentStartStep, groups)}
+          </span>
         </div>
-        <div
+        <h3
           style={{
-            border: "1px solid #dbeafe",
-            borderRadius: 12,
-            background: "#ffffff",
-            padding: "9px 11px",
-            color: "#1d4ed8",
-            fontWeight: 800,
-            height: "fit-content",
+            margin: 0,
+            color: "#0f172a",
+            fontSize: "clamp(18px, 2vw, 22px)",
           }}
         >
-          {getRevealFocusLabel(currentStartStep, groups)}
-        </div>
+          {groups.hasSavedAttempts
+            ? `${learnerLabel}'s next focus`
+            : `Start with a ${strandTitle} check`}
+        </h3>
       </div>
+
+      {currentStartStep ? (
+        <div
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 14,
+            background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+            padding: 12,
+          }}
+        >
+          <NumberRevealStepCard
+            step={currentStartStep}
+            learnerId={learnerId}
+            returnPath={returnPath}
+            primary
+          />
+        </div>
+      ) : null}
 
       {groups.hasSavedAttempts ? (
         <>
           {groups.needsPolish.length ? (
-            <div style={compactCardStyle}>
+            <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
               <div style={eyebrowStyle}>Needs polish</div>
-              <div style={{ color: "#475569", lineHeight: 1.5 }}>
+              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
                 Earlier checked steps that were developing or needed support stay visible here.
               </div>
               <NumberRevealStepList
@@ -2341,62 +2421,53 @@ function NumberPathwayRevealPanel({
                 learnerId={learnerId}
                 returnPath={returnPath}
               />
-            </div>
+            </section>
           ) : null}
 
-          <div style={compactCardStyle}>
+          <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
             <div style={eyebrowStyle}>Current learning zone</div>
-            <div style={{ color: "#475569", lineHeight: 1.5 }}>
+            <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
               These are the steps to work on now.
             </div>
             <NumberRevealStepList
-              steps={groups.currentLearningZone}
+              steps={groups.currentLearningZone.filter(
+                (step) => step.pathwayStepId !== currentStartStep?.pathwayStepId,
+              )}
               learnerId={learnerId}
               returnPath={returnPath}
             />
-          </div>
+          </section>
 
-          <details style={compactCardStyle}>
-            <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
-              Secure history ({groups.secureHistory.length})
-            </summary>
-            <div style={{ marginTop: 10 }}>
-              <NumberRevealStepList
-                steps={groups.secureHistory}
-                learnerId={learnerId}
-                returnPath={returnPath}
-                compact
-              />
-            </div>
-          </details>
-
-          <details style={compactCardStyle}>
-            <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
-              Later pathway ({groups.laterPathway.length})
-            </summary>
-            <div style={{ marginTop: 10 }}>
-              <NumberRevealStepList
-                steps={groups.laterPathway}
-                learnerId={learnerId}
-                returnPath={returnPath}
-                compact
-              />
-            </div>
-          </details>
+          <NumberRevealLazyStepSection
+            title="Secure history"
+            steps={groups.secureHistory}
+            learnerId={learnerId}
+            returnPath={returnPath}
+            compact
+          />
+          <NumberRevealLazyStepSection
+            title="Later pathway"
+            steps={groups.laterPathway}
+            learnerId={learnerId}
+            returnPath={returnPath}
+            compact
+          />
         </>
       ) : (
-        <div style={compactCardStyle}>
+        <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
           <div style={eyebrowStyle}>Starter guidance</div>
-          <div style={{ color: "#475569", lineHeight: 1.5 }}>
+          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
             No saved auto-checked {strandTitle} attempt is available for this learner yet.
             Choose one of these early pathway checks or open the full pathway below.
           </div>
           <NumberRevealStepList
-            steps={starterSteps}
+            steps={starterSteps.filter(
+              (step) => step.pathwayStepId !== currentStartStep?.pathwayStepId,
+            )}
             learnerId={learnerId}
             returnPath={returnPath}
           />
-        </div>
+        </section>
       )}
     </section>
   );
@@ -2641,8 +2712,10 @@ function DetailedMathematicsStageCard({
           isOpen
             ? {
                 display: "grid",
-                gap: 0,
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 16,
                 borderTop: "1px solid #e2e8f0",
+                padding: 12,
               }
             : { display: "none" }
         }
@@ -2999,11 +3072,10 @@ function DetailedMathematicsStepCard({
   return (
     <article
       style={{
-        border: "none",
-        borderBottom: "1px solid #e2e8f0",
-        borderRadius: 0,
+        border: "1px solid #e2e8f0",
+        borderRadius: 12,
         background: "#ffffff",
-        padding: densityMode === "compact" ? "7px 10px" : "9px 10px",
+        padding: densityMode === "compact" ? 8 : 12,
         display: "grid",
         gap: densityMode === "compact" ? 6 : 8,
       }}
