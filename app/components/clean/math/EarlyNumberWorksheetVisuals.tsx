@@ -168,6 +168,14 @@ export function isStep13SkipCountingActivity(id: string, stepKey?: string | null
   );
 }
 
+export function isStep16RenameTwoDigitActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "rename-two-digit-numbers-in-different-ways" ||
+    safe(id).startsWith("number-step-16-assess-") ||
+    safe(id).startsWith("number-step-16-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -265,6 +273,19 @@ function parsePartPair(option: string) {
   if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
 
   return { first, second };
+}
+
+function parseTensOnesRepresentation(value: string) {
+  const match = safe(value)
+    .toLowerCase()
+    .match(/\b(\d{1,2})\s+tens?\s+and\s+(\d{1,2})\s+ones?\b/);
+  if (!match) return null;
+
+  const tens = Number(match[1]);
+  const ones = Number(match[2]);
+  if (!Number.isFinite(tens) || !Number.isFinite(ones)) return null;
+
+  return { tens, ones, total: tens * 10 + ones };
 }
 
 function getStoryOperation(prompt: string) {
@@ -861,6 +882,165 @@ export function EarlyNumberWorksheetDotCard({
       </div>
       <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
         {label}
+      </div>
+    </div>
+  );
+}
+
+function BaseTenRodsAndCubes({
+  tens,
+  ones,
+  compact = false,
+}: {
+  tens: number;
+  ones: number;
+  compact?: boolean;
+}) {
+  const rodHeight = compact ? 48 : 68;
+  const cubeSize = compact ? 12 : 15;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)",
+        gap: compact ? 6 : 10,
+        alignItems: "center",
+      }}
+    >
+      <div
+        aria-label={`${tens} tens`}
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: compact ? 4 : 6,
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: compact ? 54 : 76,
+        }}
+      >
+        {Array.from({ length: Math.max(0, tens) }, (_, index) => (
+          <span
+            key={`ten-rod-${index}`}
+            aria-hidden="true"
+            style={{
+              width: compact ? 12 : 16,
+              height: rodHeight,
+              borderRadius: 7,
+              border: "2px solid #1d4ed8",
+              background:
+                "repeating-linear-gradient(to bottom, #bfdbfe 0 8%, #93c5fd 8% 10%)",
+              boxShadow: "0 8px 16px rgba(37,99,235,0.12)",
+            }}
+          />
+        ))}
+      </div>
+      <div
+        aria-label={`${ones} ones`}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, minmax(10px, 1fr))",
+          gap: compact ? 3 : 5,
+          justifyItems: "center",
+          alignItems: "center",
+          minHeight: compact ? 54 : 76,
+        }}
+      >
+        {Array.from({ length: Math.max(0, ones) }, (_, index) => (
+          <span
+            key={`one-cube-${index}`}
+            aria-hidden="true"
+            style={{
+              width: cubeSize,
+              height: cubeSize,
+              borderRadius: 4,
+              border: "1px solid #15803d",
+              background: "#bbf7d0",
+              boxShadow: "0 5px 10px rgba(21,128,61,0.12)",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TensOnesRepresentationCard({
+  tens,
+  ones,
+  label,
+  selected = false,
+  compact = false,
+}: {
+  tens: number;
+  ones: number;
+  label: string;
+  selected?: boolean;
+  compact?: boolean;
+}) {
+  const total = tens * 10 + ones;
+
+  return (
+    <div
+      aria-label={`${label}: ${tens} tens and ${ones} ones, showing ${total}`}
+      style={{
+        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: compact ? 140 : 178,
+        padding: compact ? 9 : 12,
+        display: "grid",
+        gap: 8,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            color: "#1d4ed8",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 999,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "4px 7px",
+            fontSize: 11,
+            fontWeight: 850,
+          }}
+        >
+          {total}
+        </span>
+      </div>
+      <BaseTenRodsAndCubes tens={tens} ones={ones} compact={compact} />
+      <div
+        style={{
+          color: "#334155",
+          fontSize: compact ? 12 : 14,
+          fontWeight: 850,
+          textAlign: "center",
+          lineHeight: 1.35,
+        }}
+      >
+        {tens} {tens === 1 ? "ten" : "tens"} and {ones} {ones === 1 ? "one" : "ones"}
       </div>
     </div>
   );
@@ -2190,6 +2370,120 @@ export function renderStep13WorksheetPromptVisual({
   );
 }
 
+export function renderStep16WorksheetPromptVisual({
+  visual,
+}: {
+  visual: EarlyNumberVisualModel;
+}) {
+  const tens = visual.groupCounts[0];
+  const ones = visual.groupCounts[1];
+  if (
+    tens === undefined ||
+    ones === undefined ||
+    !Number.isFinite(tens) ||
+    !Number.isFinite(ones)
+  ) {
+    return null;
+  }
+
+  const total = tens * 10 + ones;
+  const renamedTens = Math.max(0, tens - 1);
+  const renamedOnes = ones + (tens > 0 ? 10 : 0);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Trade one ten for ten ones. The total stays the same.
+        </div>
+        <div
+          aria-label={`Number ${total}`}
+          style={{
+            border: "2px solid #bfdbfe",
+            borderRadius: 18,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            minWidth: 82,
+            minHeight: 62,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 36,
+            fontWeight: 950,
+          }}
+        >
+          {total}
+        </div>
+      </div>
+      <div
+        aria-label={`Number ${total} shown as ${tens} tens and ${ones} ones, and also as ${renamedTens} tens and ${renamedOnes} ones`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+            gap: 10,
+            alignItems: "stretch",
+          }}
+        >
+          <TensOnesRepresentationCard tens={tens} ones={ones} label="Way 1" />
+          <div
+            aria-hidden="true"
+            style={{
+              borderLeft: "2px dotted #93c5fd",
+              minHeight: "100%",
+            }}
+          />
+          <TensOnesRepresentationCard
+            tens={renamedTens}
+            ones={renamedOnes}
+            label="Way 2"
+          />
+        </div>
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 16,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {tens} tens and {ones} ones is the same number as {renamedTens} tens and{" "}
+          {renamedOnes} ones.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -2451,6 +2745,27 @@ export function renderStep13WorksheetOptionCard({
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} />;
+}
+
+export function renderStep16WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const representation = parseTensOnesRepresentation(option);
+  if (!representation) return null;
+
+  return (
+    <TensOnesRepresentationCard
+      tens={representation.tens}
+      ones={representation.ones}
+      label="Rename"
+      selected={selected}
+      compact
+    />
+  );
 }
 
 export function renderStep3WorksheetOptionCard({

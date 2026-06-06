@@ -54,6 +54,8 @@ const READ_WRITE_ORDER_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S012-Read-Write-And-Order-Numbers-To-100-Or-120.pdf";
 const SKIP_COUNT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S013-Skip-Count-By-2s-5s-And-10s.pdf";
+const RENAME_TWO_DIGIT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S016-Rename-Two-Digit-Numbers-In-Different-Ways.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -255,6 +257,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: true,
     fileName: SKIP_COUNT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${SKIP_COUNT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::rename-two-digit-numbers-in-different-ways",
+    stepKey: "rename-two-digit-numbers-in-different-ways",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 16,
+    pathwayStepTitle: "Rename two-digit numbers in different ways",
+    title: "Rename Two-Digit Numbers in Different Ways",
+    concept: "Rename two-digit numbers using different tens-and-ones combinations",
+    includesAnswerSheet: false,
+    fileName: RENAME_TWO_DIGIT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${RENAME_TWO_DIGIT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
