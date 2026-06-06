@@ -3260,6 +3260,340 @@ export function renderStep19WorksheetPromptVisual({
   );
 }
 
+function getStep20FractionKind(text: string) {
+  const lower = text.toLowerCase();
+  if (lower.includes("quarter") || lower.includes("quarters") || lower.includes("1/4")) {
+    return { denominator: 4, label: "one quarter", partsLabel: "quarters" };
+  }
+
+  return { denominator: 2, label: "one half", partsLabel: "halves" };
+}
+
+function getStep20ShareDetails(prompt: string) {
+  const lower = prompt.toLowerCase();
+  const shareMatch = lower.match(/\bshare\s+(\d{1,2}).*?(?:between|into)\s+(\d{1,2})/);
+  if (shareMatch) {
+    const total = Number(shareMatch[1]);
+    const groups = Number(shareMatch[2]);
+    return {
+      total,
+      groups,
+      each: groups > 0 ? Math.floor(total / groups) : 0,
+    };
+  }
+
+  const halfOfMatch = lower.match(/\bhalf\s+of\s+(\d{1,2})/);
+  if (halfOfMatch) {
+    const total = Number(halfOfMatch[1]);
+    return { total, groups: 2, each: Math.floor(total / 2) };
+  }
+
+  const quarterOfMatch = lower.match(/\bquarter\s+of\s+(\d{1,2})/);
+  if (quarterOfMatch) {
+    const total = Number(quarterOfMatch[1]);
+    return { total, groups: 4, each: Math.floor(total / 4) };
+  }
+
+  const fraction = getStep20FractionKind(prompt);
+  const total = fraction.denominator === 4 ? 8 : 6;
+  return {
+    total,
+    groups: fraction.denominator,
+    each: Math.floor(total / fraction.denominator),
+  };
+}
+
+function FractionShapeVisual({
+  denominator,
+  selected = false,
+}: {
+  denominator: number;
+  selected?: boolean;
+}) {
+  const isQuarter = denominator === 4;
+  return (
+    <div
+      aria-label={
+        isQuarter
+          ? "Square split into four equal parts with one quarter shaded"
+          : "Rectangle split into two equal parts with one half shaded"
+      }
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+        minHeight: 138,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+        {isQuarter ? "One quarter" : "One half"}
+      </div>
+      <div
+        style={{
+          border: "2px solid #1d4ed8",
+          borderRadius: isQuarter ? 16 : 999,
+          overflow: "hidden",
+          display: "grid",
+          gridTemplateColumns: isQuarter ? "repeat(2, 1fr)" : "repeat(2, 1fr)",
+          gridTemplateRows: isQuarter ? "repeat(2, 1fr)" : "1fr",
+          minHeight: 84,
+          background: "#ffffff",
+        }}
+      >
+        {Array.from({ length: denominator }, (_, index) => (
+          <span
+            key={`fraction-part-${denominator}-${index}`}
+            aria-hidden="true"
+            style={{
+              background: index === 0 ? "#bfdbfe" : "#ffffff",
+              borderRight: !isQuarter && index === 0 ? "2px solid #1d4ed8" : undefined,
+              borderLeft: isQuarter && index % 2 === 1 ? "2px solid #1d4ed8" : undefined,
+              borderTop: isQuarter && index >= 2 ? "2px solid #1d4ed8" : undefined,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FractionOfSetVisual({
+  total,
+  denominator,
+  selected = false,
+}: {
+  total: number;
+  denominator: number;
+  selected?: boolean;
+}) {
+  const highlighted = Math.max(1, Math.floor(total / denominator));
+  return (
+    <div
+      aria-label={`${total} stars split into ${denominator} equal groups with ${highlighted} highlighted as ${denominator === 4 ? "one quarter" : "one half"}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bbf7d0"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#f0fdf4",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+        minHeight: 138,
+      }}
+    >
+      <div style={{ color: "#166534", fontSize: 12, fontWeight: 900 }}>
+        {denominator === 4 ? "Quarter of a set" : "Half of a set"}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(30px, 1fr))",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        {Array.from({ length: total }, (_, index) => {
+          const isHighlighted = index < highlighted;
+          return (
+            <span
+              key={`fraction-set-${index}`}
+              style={{
+                border: `2px solid ${isHighlighted ? "#16a34a" : "#cbd5e1"}`,
+                borderRadius: 999,
+                background: isHighlighted ? "#dcfce7" : "#ffffff",
+                width: 34,
+                height: 34,
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <CountingObjectShape kind="star" index={index} size={18} />
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SimpleSharingContainersVisual({
+  total,
+  groups,
+  each,
+}: {
+  total: number;
+  groups: number;
+  each: number;
+}) {
+  const safeGroups = Math.max(1, Math.min(groups, 4));
+  const safeEach = Math.max(0, Math.min(each, 6));
+  return (
+    <div
+      aria-label={`${total} cookies shared equally between ${safeGroups} plates, ${safeEach} cookies on each plate`}
+      style={{
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {Array.from({ length: safeGroups }, (_, groupIndex) => (
+          <div
+            key={`share-container-${groupIndex}`}
+            style={{
+              border: "2px solid #fdba74",
+              borderRadius: "50%",
+              background: "#fff7ed",
+              minHeight: 94,
+              padding: 10,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+            }}
+          >
+            {Array.from({ length: safeEach }, (_, itemIndex) => (
+              <CountingObjectShape
+                key={`share-object-${groupIndex}-${itemIndex}`}
+                kind="heart"
+                index={groupIndex * safeEach + itemIndex}
+                size={20}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          border: "1px solid #fed7aa",
+          borderRadius: 14,
+          background: "#fff7ed",
+          color: "#c2410c",
+          padding: "8px 10px",
+          fontSize: 12,
+          fontWeight: 850,
+          textAlign: "center",
+        }}
+      >
+        {safeGroups} equal shares. Each share has {safeEach}.
+      </div>
+    </div>
+  );
+}
+
+export function renderStep20WorksheetPromptVisual({
+  prompt,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const fraction = getStep20FractionKind(prompt);
+  const sharing = getStep20ShareDetails(prompt);
+  const lower = prompt.toLowerCase();
+  const isSharingPrompt =
+    lower.includes("share") ||
+    lower.includes("fair") ||
+    lower.includes("half of") ||
+    lower.includes("quarter of");
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Look for equal parts and fair sharing.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Halves and quarters
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gap: 12,
+            alignItems: "stretch",
+          }}
+        >
+          <FractionShapeVisual denominator={fraction.denominator} />
+          <FractionOfSetVisual total={sharing.total} denominator={fraction.denominator} />
+        </div>
+        {isSharingPrompt ? (
+          <SimpleSharingContainersVisual
+            total={sharing.total}
+            groups={sharing.groups}
+            each={sharing.each}
+          />
+        ) : null}
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 16,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {fraction.label} means one of {fraction.denominator} equal parts.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -3581,6 +3915,79 @@ export function renderStep19WorksheetOptionCard({
   if (!/^\d{1,2}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} />;
+}
+
+export function renderStep20WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  if (/^\d{1,2}$/.test(normalized)) {
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose" selected={selected} />;
+  }
+
+  const lower = normalized.toLowerCase();
+  const mentionsQuarter = lower.includes("quarter") || lower.includes("1/4");
+  const mentionsHalf = lower.includes("half") || lower.includes("halves") || lower.includes("1/2");
+  const mentionsWhole = lower.includes("whole");
+  const mentionsEqual = lower.includes("equal") || lower.includes("same amount") || lower.includes("fair");
+  const mentionsUnequal =
+    lower.includes("unequal") || lower.includes("different sizes") || lower.includes("not fair");
+
+  const tone = mentionsUnequal
+    ? { border: "#fed7aa", background: "#fff7ed", color: "#c2410c" }
+    : mentionsQuarter
+      ? { border: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" }
+      : mentionsHalf || mentionsEqual
+        ? { border: "#bfdbfe", background: "#eff6ff", color: "#1d4ed8" }
+        : { border: "#e2e8f0", background: "#ffffff", color: "#334155" };
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : tone.border}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : tone.background,
+        color: tone.color,
+        minHeight: 144,
+        padding: 12,
+        display: "grid",
+        gap: 9,
+        alignItems: "center",
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      {mentionsQuarter || mentionsHalf ? (
+        <FractionShapeVisual denominator={mentionsQuarter ? 4 : 2} selected={selected} />
+      ) : (
+        <div
+          aria-hidden="true"
+          style={{
+            border: `1px solid ${tone.border}`,
+            borderRadius: 16,
+            background: "#ffffff",
+            minHeight: 70,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 24,
+            fontWeight: 950,
+          }}
+        >
+          {mentionsWhole ? "1 whole" : mentionsUnequal ? "Not equal" : mentionsEqual ? "Equal" : "Choice"}
+        </div>
+      )}
+      <div style={{ fontSize: 16, fontWeight: 950, lineHeight: 1.2 }}>{normalized}</div>
+    </div>
+  );
 }
 
 export function renderStep3WorksheetOptionCard({
