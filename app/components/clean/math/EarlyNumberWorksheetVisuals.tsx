@@ -264,6 +264,14 @@ export function isStep27ArraysGroupingKnownFactsActivity(id: string, stepKey?: s
   );
 }
 
+export function isStep28EstimateReasonablenessActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "estimate-and-check-reasonableness" ||
+    safe(id).startsWith("number-step-28-assess-") ||
+    safe(id).startsWith("number-step-28-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -3632,6 +3640,234 @@ export function renderStep27WorksheetPromptVisual({
   );
 }
 
+function parseEstimatePrompt(prompt: string, visual: EarlyNumberVisualModel) {
+  const match = safe(prompt)
+    .replace(/,/g, "")
+    .match(/(\d{1,4})\s*([+-])\s*(\d{1,4})/);
+  if (match) {
+    const a = Number(match[1]);
+    const symbol = match[2] as "+" | "-";
+    const b = Number(match[3]);
+    return {
+      a,
+      b,
+      symbol,
+    };
+  }
+
+  const a = Number(safe(visual.numberCards[0]).replace(/,/g, ""));
+  const b = Number(safe(visual.numberCards[1]).replace(/,/g, ""));
+  if (Number.isFinite(a) && Number.isFinite(b)) {
+    return { a, b, symbol: "+" as const };
+  }
+
+  return null;
+}
+
+function roundForEstimate(value: number, place: 10 | 100) {
+  return Math.round(value / place) * place;
+}
+
+export function renderStep28WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const equation = parseEstimatePrompt(prompt, visual);
+  if (!equation) return null;
+
+  const place: 10 | 100 = Math.max(equation.a, equation.b) >= 100 ? 100 : 10;
+  const roundedA = roundForEstimate(equation.a, place);
+  const roundedB = roundForEstimate(equation.b, place);
+  const estimate = equation.symbol === "+" ? roundedA + roundedB : roundedA - roundedB;
+  const symbolWord = equation.symbol === "+" ? "plus" : "minus";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Estimate first, then check whether the exact answer is reasonable.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 999,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Estimate and check
+        </span>
+      </div>
+
+      <div
+        aria-label={`Estimate ${equation.a} ${symbolWord} ${equation.b} by rounding to the nearest ${place}`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 18,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: 14,
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr auto minmax(80px, 0.7fr)",
+            gap: 10,
+            alignItems: "center",
+            textAlign: "center",
+            fontWeight: 950,
+          }}
+        >
+          <strong style={{ fontSize: 30 }}>{equation.a}</strong>
+          <span style={{ fontSize: 28 }}>{equation.symbol}</span>
+          <strong style={{ fontSize: 30 }}>{equation.b}</strong>
+          <span style={{ fontSize: 28 }}>=</span>
+          <span
+            style={{
+              border: "2px solid #7c3aed",
+              borderRadius: 16,
+              background: "#ffffff",
+              color: "#6d28d9",
+              padding: "10px 8px",
+              fontSize: 24,
+            }}
+          >
+            about?
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+            gap: 10,
+          }}
+        >
+          <div
+            aria-label={`${equation.a} rounds to ${roundedA} and ${equation.b} rounds to ${roundedB}`}
+            style={{
+              border: "1px solid #fed7aa",
+              borderRadius: 16,
+              background: "#fff7ed",
+              color: "#c2410c",
+              padding: 12,
+              display: "grid",
+              gap: 8,
+              textAlign: "center",
+              fontWeight: 900,
+            }}
+          >
+            <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Round to nearest {place}
+            </span>
+            <strong style={{ fontSize: 20 }}>
+              {equation.a} → {roundedA}
+            </strong>
+            <strong style={{ fontSize: 20 }}>
+              {equation.b} → {roundedB}
+            </strong>
+          </div>
+
+          <div
+            aria-label={`Rounded estimate ${roundedA} ${symbolWord} ${roundedB} equals ${estimate}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 12,
+              display: "grid",
+              placeItems: "center",
+              gap: 8,
+              textAlign: "center",
+              fontWeight: 950,
+            }}
+          >
+            <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Estimate
+            </span>
+            <strong style={{ fontSize: 24 }}>
+              {roundedA} {equation.symbol} {roundedB} = {estimate}
+            </strong>
+          </div>
+
+          <div
+            aria-label={`Exact answer box. The exact answer should be close to ${estimate}.`}
+            style={{
+              border: "1px solid #ddd6fe",
+              borderRadius: 16,
+              background: "#f5f3ff",
+              color: "#6d28d9",
+              padding: 12,
+              display: "grid",
+              placeItems: "center",
+              gap: 8,
+              textAlign: "center",
+              fontWeight: 900,
+            }}
+          >
+            <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Exact check
+            </span>
+            <strong style={{ fontSize: 18 }}>
+              Exact answer should be close to {estimate}
+            </strong>
+          </div>
+        </div>
+
+        <div
+          aria-label={`Reasonableness check. An exact answer is reasonable when it is close to ${estimate}.`}
+          style={{
+            border: "1px solid #ccfbf1",
+            borderRadius: 16,
+            background: "#f0fdfa",
+            color: "#0f766e",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+            textAlign: "center",
+          }}
+        >
+          Reasonable answers are close to the estimate.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getStep20FractionKind(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("quarter") || lower.includes("quarters") || lower.includes("1/4")) {
@@ -5907,6 +6143,19 @@ export function renderStep27WorksheetOptionCard({
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} />;
+}
+
+export function renderStep28WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,4}$/.test(normalized)) return null;
+
+  return <LargeNumberWorksheetCard value={normalized} label="Estimate" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

@@ -82,6 +82,8 @@ const MULTIPLICATION_FACTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S026-Recall-And-Apply-Multiplication-Facts.pdf";
 const MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S027-Multiply-And-Divide-Using-Arrays-Grouping-And-Known-Facts.pdf";
+const ESTIMATE_REASONABLENESS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S028-Estimate-And-Check-Reasonableness.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -521,6 +523,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${MULTIPLY_DIVIDE_ARRAYS_GROUPING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::estimate-and-check-reasonableness",
+    stepKey: "estimate-and-check-reasonableness",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 28,
+    pathwayStepTitle: "Estimate and check reasonableness",
+    title: "Estimate and Check Reasonableness",
+    concept: "Estimate using rounding and check whether exact answers are reasonable",
+    includesAnswerSheet: false,
+    fileName: ESTIMATE_REASONABLENESS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${ESTIMATE_REASONABLENESS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
