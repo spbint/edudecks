@@ -12,6 +12,7 @@ import {
   type PracticeOutcome,
   type PracticePlayerTaskItem,
 } from "@/lib/clean/pathways/practiceActivities";
+import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
 type CleanPathwayStepActionRowProps = {
   activity: PathwayPracticeActivity | null;
@@ -26,6 +27,7 @@ type CleanPathwayStepActionRowProps = {
   confidenceStatusLabel?: string | null;
   isExactStepContext?: boolean;
   noAssessmentMessage?: string | null;
+  worksheetResource?: MathWorksheetResource | null;
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -108,6 +110,7 @@ export default function CleanPathwayStepActionRow({
   confidenceStatusLabel,
   isExactStepContext = false,
   noAssessmentMessage,
+  worksheetResource,
 }: CleanPathwayStepActionRowProps) {
   const practiceItems = useMemo(
     () => (activity ? buildPracticePlayerItems(activity) : []),
@@ -405,6 +408,18 @@ export default function CleanPathwayStepActionRow({
         >
           Capture evidence
         </Link>
+        {worksheetResource ? (
+          <Link
+            href={worksheetResource.href}
+            target="_blank"
+            rel="noreferrer"
+            style={{ ...secondaryButtonStyle, flex: "1 1 150px" }}
+            title="Open printable worksheet PDF in a new tab."
+            aria-label={`Download worksheet PDF for ${worksheetResource.title}`}
+          >
+            Download worksheet
+          </Link>
+        ) : null}
       </div>
 
       {activity ? (

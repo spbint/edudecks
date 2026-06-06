@@ -50,6 +50,7 @@ import {
 import {
   getPathwayPracticeActivityByStepId,
 } from "@/lib/clean/pathways/practiceActivities";
+import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import {
   buildUnifiedPathwayStepStateIndex,
   getUnifiedPathwayStepState,
@@ -1747,6 +1748,13 @@ function NumberRevealStepCard({
     stepKey: step.stepKey,
     strandKey: pathwayStepStrandKey,
   });
+  const worksheetResource = getWorksheetResourceForPathwayStep({
+    pathwayStepId: step.pathwayStepId,
+    stepKey: step.stepKey,
+    subjectKey: "mathematics",
+    strandKey: pathwayStepStrandKey,
+    stageKey: step.stageKey,
+  });
   const stepStrandKey = exactStepAssessment?.strandKey ??
     exactStepPractice?.strandKey ??
     pathwayStepStrandKey;
@@ -1837,7 +1845,7 @@ function NumberRevealStepCard({
         {step.alignment ? ` / ${step.alignment.bank.shortTitle}` : ""}
         {step.autoCheck.scope === "sub-element" ? " / focus-level signal" : ""}
       </div>
-      {assessmentHref || practiceHref ? (
+      {assessmentHref || practiceHref || worksheetResource ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {practiceHref ? (
             <Link
@@ -1863,6 +1871,22 @@ function NumberRevealStepCard({
               }}
             >
               {exactStepAssessment ? "Assess" : "Check understanding"}
+            </Link>
+          ) : null}
+          {worksheetResource ? (
+            <Link
+              href={worksheetResource.href}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                ...secondaryButtonStyle,
+                width: "fit-content",
+                padding: "7px 10px",
+                fontSize: 12,
+              }}
+              aria-label={`Download worksheet PDF for ${worksheetResource.title}`}
+            >
+              Download worksheet
             </Link>
           ) : null}
         </div>
@@ -2404,6 +2428,17 @@ function DetailedMathematicsStepCard({
       }),
     [canonicalPathwayStepId, canonicalStepKey, strand.key],
   );
+  const worksheetResource = useMemo(
+    () =>
+      getWorksheetResourceForPathwayStep({
+        pathwayStepId: canonicalPathwayStepId,
+        stepKey: canonicalStepKey,
+        subjectKey: selectedSubjectKey,
+        strandKey: strand.key,
+        stageKey: stage.key,
+      }),
+    [canonicalPathwayStepId, canonicalStepKey, selectedSubjectKey, stage.key, strand.key],
+  );
   const captureHref = useMemo(() => {
     const params = buildPathwayCaptureSearchParams(
       {
@@ -2752,6 +2787,7 @@ function DetailedMathematicsStepCard({
             ? "Exact assessment is coming next for this step."
             : null
         }
+        worksheetResource={worksheetResource}
       />
 
       <div
