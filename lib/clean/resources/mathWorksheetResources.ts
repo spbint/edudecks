@@ -54,6 +54,10 @@ const READ_WRITE_ORDER_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S012-Read-Write-And-Order-Numbers-To-100-Or-120.pdf";
 const SKIP_COUNT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S013-Skip-Count-By-2s-5s-And-10s.pdf";
+const TEN_ONES_MAKE_TEN_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S014-Understand-That-Ten-Ones-Make-One-Ten.pdf";
+const PARTITION_TWO_DIGIT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S015-Partition-Two-Digit-Numbers-Into-Tens-And-Ones.pdf";
 const RENAME_TWO_DIGIT_WORKSHEET_FILE =
   "MYL-MATH-NPV-LP-S016-Rename-Two-Digit-Numbers-In-Different-Ways.pdf";
 const ADD_SUBTRACT_WITHIN_20_WORKSHEET_FILE =
@@ -261,6 +265,40 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: true,
     fileName: SKIP_COUNT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${SKIP_COUNT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::understand-that-ten-ones-make-one-ten",
+    stepKey: "understand-that-ten-ones-make-one-ten",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 14,
+    pathwayStepTitle: "Understand that ten ones make one ten",
+    title: "Understand that Ten Ones Make One Ten",
+    concept: "Understand that 10 ones can be grouped as 1 ten",
+    includesAnswerSheet: false,
+    fileName: TEN_ONES_MAKE_TEN_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${TEN_ONES_MAKE_TEN_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::partition-two-digit-numbers-into-tens-and-ones",
+    stepKey: "partition-two-digit-numbers-into-tens-and-ones",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 15,
+    pathwayStepTitle: "Partition two-digit numbers into tens and ones",
+    title: "Partition Two-Digit Numbers into Tens and Ones",
+    concept: "Partition two-digit numbers into tens and ones",
+    includesAnswerSheet: false,
+    fileName: PARTITION_TWO_DIGIT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${PARTITION_TWO_DIGIT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
