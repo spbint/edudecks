@@ -248,6 +248,14 @@ export function isStep25PlaceValueAddSubtractActivity(id: string, stepKey?: stri
   );
 }
 
+export function isStep26MultiplicationFactsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "recall-and-apply-multiplication-facts" ||
+    safe(id).startsWith("number-step-26-assess-") ||
+    safe(id).startsWith("number-step-26-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -3300,6 +3308,168 @@ export function renderStep19WorksheetPromptVisual({
   );
 }
 
+function parseMultiplicationFactPrompt(prompt: string) {
+  const match = safe(prompt).match(/(\d{1,2})\s*(?:x|×|\*)\s*(\d{1,2})/i);
+  if (!match) return null;
+  return {
+    groups: Number(match[1]),
+    inEachGroup: Number(match[2]),
+  };
+}
+
+export function renderStep26WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const parsed = parseMultiplicationFactPrompt(prompt);
+  const groups = parsed?.groups ?? visual.groupCounts[0];
+  const inEachGroup = parsed?.inEachGroup ?? visual.groupCounts[1];
+  if (
+    groups === undefined ||
+    inEachGroup === undefined ||
+    !Number.isFinite(groups) ||
+    !Number.isFinite(inEachGroup)
+  ) {
+    return null;
+  }
+
+  const total = groups * inEachGroup;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Recall the multiplication fact, then check it with groups and an array.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 999,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Multiplication fact
+        </span>
+      </div>
+
+      <div
+        aria-label={`Equation ${groups} times ${inEachGroup} equals blank. ${groups} equal groups with ${inEachGroup} in each group.`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 18,
+            background: "#f5f3ff",
+            color: "#5b21b6",
+            minHeight: 104,
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr auto minmax(80px, 0.7fr)",
+            gap: 10,
+            alignItems: "center",
+            padding: 14,
+            textAlign: "center",
+          }}
+        >
+          <strong style={{ fontSize: 36, fontWeight: 950 }}>{groups}</strong>
+          <span style={{ fontSize: 30, fontWeight: 950 }}>×</span>
+          <strong style={{ fontSize: 36, fontWeight: 950 }}>{inEachGroup}</strong>
+          <span style={{ fontSize: 30, fontWeight: 950 }}>=</span>
+          <span
+            aria-label="Missing product box"
+            style={{
+              border: "2px solid #7c3aed",
+              borderRadius: 16,
+              background: "#ffffff",
+              padding: "12px 10px",
+              fontSize: 28,
+              fontWeight: 950,
+            }}
+          >
+            __
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            alignItems: "stretch",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid #bfdbfe",
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: 12,
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
+              {groups} equal groups of {inEachGroup}
+            </div>
+            <EqualGroupsVisual groups={groups} inEachGroup={inEachGroup} />
+          </div>
+          <ArrayRowsColumnsVisual rows={groups} columns={inEachGroup} />
+        </div>
+
+        <div
+          aria-label={`Multiplication sentence ${groups} times ${inEachGroup} equals ${total}`}
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 16,
+            background: "#fff7ed",
+            color: "#c2410c",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+            textAlign: "center",
+          }}
+        >
+          {groups} groups of {inEachGroup} means {groups} × {inEachGroup} = {total}.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getStep20FractionKind(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("quarter") || lower.includes("quarters") || lower.includes("1/4")) {
@@ -5549,6 +5719,19 @@ export function renderStep25WorksheetOptionCard({
   if (!/^\d{1,4}$/.test(normalized)) return null;
 
   return <LargeNumberWorksheetCard value={normalized} label="Answer" selected={selected} />;
+}
+
+export function renderStep26WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,3}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Product" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

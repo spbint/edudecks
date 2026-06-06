@@ -78,6 +78,8 @@ const ZERO_PLACEHOLDER_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S024-Use-Zero-As-A-Placeholder.pdf";
 const ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S025-Add-And-Subtract-Two-And-Three-Digit-Numbers-Using-Place-Value.pdf";
+const MULTIPLICATION_FACTS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S026-Recall-And-Apply-Multiplication-Facts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -483,6 +485,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${ADD_SUBTRACT_PLACE_VALUE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::recall-and-apply-multiplication-facts",
+    stepKey: "recall-and-apply-multiplication-facts",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 26,
+    pathwayStepTitle: "Recall and apply multiplication facts",
+    title: "Recall and Apply Multiplication Facts",
+    concept: "Recall and apply multiplication facts in equations, groups and word problems",
+    includesAnswerSheet: false,
+    fileName: MULTIPLICATION_FACTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${MULTIPLICATION_FACTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
