@@ -136,6 +136,14 @@ export function isStep9ObjectStoryActivity(id: string, stepKey?: string | null) 
   );
 }
 
+export function isStep10EqualSharingActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "share-small-collections-equally" ||
+    safe(id).startsWith("number-step-10-assess-") ||
+    safe(id).startsWith("number-step-10-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -248,6 +256,13 @@ function getStoryOperation(prompt: string) {
   }
 
   return "add" as const;
+}
+
+function getSharingGroupCount(prompt: string) {
+  const source = prompt.toLowerCase();
+  const match = source.match(/\bbetween\s+(\d{1,2})\b/)?.[1];
+  const count = Number(match);
+  return Number.isFinite(count) && count > 0 ? count : 2;
 }
 
 function getCountFromLabel(label: string, visual: EarlyNumberVisualModel | null) {
@@ -1512,6 +1527,178 @@ export function renderStep9WorksheetPromptVisual({
   );
 }
 
+export function renderStep10WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const total = visual.groupCounts[0];
+  if (total === undefined || !Number.isFinite(total)) return null;
+
+  const groupCount = getSharingGroupCount(prompt);
+  const canShareEqually = total % groupCount === 0;
+  const eachGroupCount = canShareEqually ? total / groupCount : null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          color: "#1e3a8a",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Share the whole collection fairly into equal groups.
+      </div>
+      <div
+        aria-label={
+          canShareEqually && eachGroupCount !== null
+            ? `${total} objects shared equally between ${groupCount} groups, with ${eachGroupCount} in each group`
+            : `${total} objects to try sharing equally between ${groupCount} groups`
+        }
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "grid", gap: 6 }}>
+            <div
+              style={{
+                color: "#1d4ed8",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                textAlign: "center",
+              }}
+            >
+              Total collection
+            </div>
+            <EarlyNumberWorksheetObjectGroupCard count={total} label={`${total} objects`} />
+          </div>
+          <div
+            aria-hidden="true"
+            style={{
+              color: "#15803d",
+              fontSize: 26,
+              fontWeight: 950,
+              textAlign: "center",
+            }}
+          >
+            &rarr;
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <div
+              style={{
+                color: "#15803d",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                textAlign: "center",
+              }}
+            >
+              {groupCount} equal groups
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${Math.min(groupCount, 4)}, minmax(76px, 1fr))`,
+                gap: 8,
+              }}
+            >
+              {Array.from({ length: groupCount }, (_, index) => (
+                <div
+                  key={`sharing-group-${index}`}
+                  style={{
+                    border: "2px solid #bbf7d0",
+                    borderRadius: 18,
+                    background: "#f0fdf4",
+                    minHeight: 118,
+                    padding: 8,
+                    display: "grid",
+                    gap: 6,
+                    alignContent: "center",
+                    justifyItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#166534",
+                      fontSize: 11,
+                      fontWeight: 900,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Group {index + 1}
+                  </div>
+                  {eachGroupCount !== null ? (
+                    <EarlyNumberWorksheetObjectGroupCard
+                      count={eachGroupCount}
+                      label={`${eachGroupCount} each`}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        color: "#166534",
+                        fontSize: 30,
+                        fontWeight: 950,
+                        minHeight: 66,
+                        display: "grid",
+                        placeItems: "center",
+                      }}
+                    >
+                      ?
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        style={{
+          border: "1px solid #ddd6fe",
+          borderRadius: 16,
+          background: "#f5f3ff",
+          color: "#6d28d9",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 800,
+          lineHeight: 1.45,
+        }}
+      >
+        Each group should have the same amount.
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -1689,6 +1876,51 @@ export function renderStep9WorksheetOptionCard({
   if (!/^(10|[0-9])$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Result" selected={selected} />;
+}
+
+export function renderStep10WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  const eachMatch = normalized.match(/^(\d{1,2})\s+each$/i)?.[1];
+  if (eachMatch) {
+    return (
+      <EarlyNumberWorksheetNumeralCard numeral={eachMatch} label="Each group" selected={selected} />
+    );
+  }
+
+  if (/^(Fair|Not fair)$/i.test(normalized)) {
+    const isFair = normalized.toLowerCase() === "fair";
+    return (
+      <div
+        aria-label={isFair ? "This can be shared fairly" : "This cannot be shared fairly"}
+        style={{
+          border: `2px solid ${selected ? "#1d4ed8" : isFair ? "#bbf7d0" : "#fed7aa"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : isFair ? "#f0fdf4" : "#fff7ed",
+          color: isFair ? "#166534" : "#c2410c",
+          minHeight: 126,
+          padding: 12,
+          display: "grid",
+          placeItems: "center",
+          textAlign: "center",
+          fontSize: 22,
+          fontWeight: 950,
+          boxShadow: selected
+            ? "0 10px 22px rgba(37,99,235,0.18)"
+            : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        {normalized}
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function renderStep3WorksheetOptionCard({

@@ -44,6 +44,8 @@ const PARTITION_COMBINE_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S008-Partition-And-Combine-Small-Collections-Up-To-10.pdf";
 const OBJECT_STORIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S009-Represent-Simple-Addition-And-Subtraction-Stories-With-Objects.pdf";
+const SHARE_EQUALLY_WORKSHEET_FILE =
+  "MYL-MATH-NPV-F-S010-Share-Small-Collections-Equally.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -179,6 +181,21 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Use objects to represent simple addition and subtraction stories",
     fileName: OBJECT_STORIES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${OBJECT_STORIES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::foundation-kindergarten::share-small-collections-equally",
+    stepKey: "share-small-collections-equally",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "foundation-kindergarten",
+    stepNumber: 10,
+    pathwayStepTitle: "Share small collections equally",
+    title: "Share Small Collections Equally",
+    concept: "Share small collections equally into groups",
+    fileName: SHARE_EQUALLY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${SHARE_EQUALLY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
