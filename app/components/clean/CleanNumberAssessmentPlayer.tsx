@@ -14,6 +14,7 @@ import {
   isStep2NumberWordActivity,
   isStep3NumeralActivity,
   isStep4CountingObjectsActivity,
+  isStep5CountingObjectsActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -2154,7 +2155,10 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
-  if (isStep4CountingObjectsActivity(item.id, item.progressionStepKey)) {
+  if (
+    isStep4CountingObjectsActivity(item.id, item.progressionStepKey) ||
+    isStep5CountingObjectsActivity(item.id, item.progressionStepKey)
+  ) {
     const step4Visual =
       parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
     return renderStep4WorksheetPromptVisual({
@@ -3574,6 +3578,11 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step5CountingObjectOptions = isStep5CountingObjectsActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
+      const countingObjectOptions = step4CountingObjectOptions || step5CountingObjectOptions;
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -3588,12 +3597,12 @@ function CleanNumberAssessmentPlayerBody() {
             gap:
               statisticsStep1Options
                 ? 6
-                : step2NumberWordOptions || step3NumeralOptions || step4CountingObjectOptions
+                : step2NumberWordOptions || step3NumeralOptions || countingObjectOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions || step3NumeralOptions || step4CountingObjectOptions
+              : step2NumberWordOptions || step3NumeralOptions || countingObjectOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -3631,7 +3640,7 @@ function CleanNumberAssessmentPlayerBody() {
               !statisticsVisual &&
               !step2Visual &&
               !step3Visual &&
-              step4CountingObjectOptions
+              countingObjectOptions
                 ? renderStep4WorksheetOptionCard({
                     option,
                     selected: isSelected,

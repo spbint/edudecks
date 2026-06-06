@@ -11,6 +11,7 @@ import {
   isStep2NumberWordActivity,
   isStep3NumeralActivity,
   isStep4CountingObjectsActivity,
+  isStep5CountingObjectsActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -932,7 +933,7 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
-  if (isStep4CountingObjectsActivity(task.id)) {
+  if (isStep4CountingObjectsActivity(task.id) || isStep5CountingObjectsActivity(task.id)) {
     const step4Visual =
       parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
     return renderStep4WorksheetPromptVisual({
@@ -1357,6 +1358,8 @@ function TaskCard({
           const step2NumberWordOptions = isStep2NumberWordActivity(task.id);
           const step3NumeralOptions = isStep3NumeralActivity(task.id);
           const step4CountingObjectOptions = isStep4CountingObjectsActivity(task.id);
+          const step5CountingObjectOptions = isStep5CountingObjectsActivity(task.id);
+          const countingObjectOptions = step4CountingObjectOptions || step5CountingObjectOptions;
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1372,7 +1375,7 @@ function TaskCard({
             gap: 6,
             gridTemplateColumns: statisticsStep1Options
               ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions || step3NumeralOptions || step4CountingObjectOptions
+              : step2NumberWordOptions || step3NumeralOptions || countingObjectOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -1409,7 +1412,7 @@ function TaskCard({
               !statisticsVisual &&
               !step2Visual &&
               !step3Visual &&
-              step4CountingObjectOptions
+              countingObjectOptions
                 ? renderStep4WorksheetOptionCard({
                     option,
                     selected: isSelected,

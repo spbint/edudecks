@@ -96,6 +96,14 @@ export function isStep4CountingObjectsActivity(id: string, stepKey?: string | nu
   );
 }
 
+export function isStep5CountingObjectsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "count-objects-accurately-to-20" ||
+    safe(id).startsWith("number-step-5-assess-") ||
+    safe(id).startsWith("number-step-5-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -205,7 +213,17 @@ function getDots(count: number) {
   });
 }
 
-type CountingObjectKind = "apple" | "star" | "cube" | "fish" | "leaf" | "circle";
+type CountingObjectKind =
+  | "apple"
+  | "star"
+  | "cube"
+  | "fish"
+  | "leaf"
+  | "flower"
+  | "heart"
+  | "sun"
+  | "triangle"
+  | "circle";
 
 const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
   "apple",
@@ -213,6 +231,10 @@ const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
   "cube",
   "fish",
   "leaf",
+  "flower",
+  "heart",
+  "sun",
+  "triangle",
   "circle",
 ];
 
@@ -223,6 +245,10 @@ function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
   if (normalized.includes("cube")) return "cube";
   if (normalized.includes("fish")) return "fish";
   if (normalized.includes("leaf")) return "leaf";
+  if (normalized.includes("flower")) return "flower";
+  if (normalized.includes("heart")) return "heart";
+  if (normalized.includes("sun")) return "sun";
+  if (normalized.includes("triangle")) return "triangle";
 
   return COUNTING_OBJECT_KINDS[count % COUNTING_OBJECT_KINDS.length] || "circle";
 }
@@ -234,6 +260,10 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     cube: "cubes",
     fish: "fish",
     leaf: "leaves",
+    flower: "flowers",
+    heart: "hearts",
+    sun: "suns",
+    triangle: "triangles",
     circle: "objects",
   };
   const singular: Record<CountingObjectKind, string> = {
@@ -242,16 +272,28 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     cube: "cube",
     fish: "fish",
     leaf: "leaf",
+    flower: "flower",
+    heart: "heart",
+    sun: "sun",
+    triangle: "triangle",
     circle: "object",
   };
 
   return count === 1 ? singular[kind] : plural[kind];
 }
 
-function CountingObjectShape({ kind, index }: { kind: CountingObjectKind; index: number }) {
+function CountingObjectShape({
+  kind,
+  index,
+  size,
+}: {
+  kind: CountingObjectKind;
+  index: number;
+  size: number;
+}) {
   const commonStyle: React.CSSProperties = {
-    width: 26,
-    height: 26,
+    width: size,
+    height: size,
     display: "inline-block",
     position: "relative",
     filter: "drop-shadow(0 4px 8px rgba(15,23,42,0.12))",
@@ -291,7 +333,7 @@ function CountingObjectShape({ kind, index }: { kind: CountingObjectKind; index:
         aria-hidden="true"
         style={{
           ...commonStyle,
-          width: 34,
+          width: Math.round(size * 1.3),
           borderRadius: "55% 45% 45% 55%",
           background: "#38bdf8",
           border: "2px solid #0284c7",
@@ -300,13 +342,13 @@ function CountingObjectShape({ kind, index }: { kind: CountingObjectKind; index:
         <span
           style={{
             position: "absolute",
-            right: -9,
-            top: 6,
+            right: Math.round(size * -0.32),
+            top: Math.round(size * 0.23),
             width: 0,
             height: 0,
-            borderTop: "7px solid transparent",
-            borderBottom: "7px solid transparent",
-            borderLeft: "10px solid #0284c7",
+            borderTop: `${Math.round(size * 0.27)}px solid transparent`,
+            borderBottom: `${Math.round(size * 0.27)}px solid transparent`,
+            borderLeft: `${Math.round(size * 0.38)}px solid #0284c7`,
           }}
         />
       </span>
@@ -342,16 +384,119 @@ function CountingObjectShape({ kind, index }: { kind: CountingObjectKind; index:
         <span
           style={{
             position: "absolute",
-            top: -7,
-            left: 13,
-            width: 5,
-            height: 10,
+            top: Math.round(size * -0.27),
+            left: Math.round(size * 0.5),
+            width: Math.max(4, Math.round(size * 0.19)),
+            height: Math.max(7, Math.round(size * 0.38)),
             borderRadius: 999,
             background: "#92400e",
             transform: "rotate(16deg)",
           }}
         />
       </span>
+    );
+  }
+
+  if (kind === "flower") {
+    return (
+      <span aria-hidden="true" style={{ ...commonStyle }}>
+        {[0, 1, 2, 3, 4].map((petal) => (
+          <span
+            key={petal}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              width: Math.round(size * 0.44),
+              height: Math.round(size * 0.44),
+              borderRadius: 999,
+              background: "#f472b6",
+              transform: `translate(-50%, -50%) rotate(${petal * 72}deg) translateY(${Math.round(
+                size * -0.28,
+              )}px)`,
+            }}
+          />
+        ))}
+        <span
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: Math.round(size * 0.38),
+            height: Math.round(size * 0.38),
+            borderRadius: 999,
+            background: "#facc15",
+            transform: "translate(-50%, -50%)",
+            border: "1px solid #ca8a04",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "heart") {
+    return (
+      <span aria-hidden="true" style={{ ...commonStyle, transform: "rotate(-45deg)" }}>
+        <span
+          style={{
+            position: "absolute",
+            inset: "28% 12% 10% 12%",
+            background: "#fb7185",
+            borderRadius: 4,
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            left: "12%",
+            top: "10%",
+            width: "42%",
+            height: "42%",
+            borderRadius: 999,
+            background: "#fb7185",
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            right: "12%",
+            top: "10%",
+            width: "42%",
+            height: "42%",
+            borderRadius: 999,
+            background: "#fb7185",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "sun") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: 999,
+          background: "#facc15",
+          border: "2px solid #eab308",
+          boxShadow: `0 0 0 ${Math.max(3, Math.round(size * 0.15))}px #fef3c7`,
+        }}
+      />
+    );
+  }
+
+  if (kind === "triangle") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          background: "#a78bfa",
+          clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
+          borderRadius: 4,
+        }}
+      />
     );
   }
 
@@ -379,6 +524,8 @@ export function EarlyNumberWorksheetObjectGroupCard({
 }) {
   const kind = getCountingObjectKind(count, label);
   const objectName = getCountingObjectName(kind, count);
+  const largeGroup = count > 10;
+  const objectSize = largeGroup ? 20 : 26;
 
   return (
     <div
@@ -393,12 +540,12 @@ export function EarlyNumberWorksheetObjectGroupCard({
         padding: 10,
         display: "grid",
         gap: 8,
-        minHeight: 150,
+        minHeight: largeGroup ? 188 : 150,
       }}
     >
       <div
         style={{
-          minHeight: 96,
+          minHeight: largeGroup ? 142 : 96,
           borderRadius: 16,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
@@ -406,12 +553,17 @@ export function EarlyNumberWorksheetObjectGroupCard({
           gridTemplateColumns: "repeat(5, minmax(24px, 1fr))",
           alignItems: "center",
           justifyItems: "center",
-          gap: 8,
-          padding: 12,
+          gap: largeGroup ? 6 : 8,
+          padding: largeGroup ? 10 : 12,
         }}
       >
         {Array.from({ length: Math.max(0, count) }, (_, index) => (
-          <CountingObjectShape key={`${kind}-${index}`} kind={kind} index={index} />
+          <CountingObjectShape
+            key={`${kind}-${index}`}
+            kind={kind}
+            index={index}
+            size={objectSize}
+          />
         ))}
       </div>
       <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
