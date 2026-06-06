@@ -144,6 +144,14 @@ export function isStep10EqualSharingActivity(id: string, stepKey?: string | null
   );
 }
 
+export function isStep11CountingSequenceActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "count-forwards-and-backwards-within-100-or-120" ||
+    safe(id).startsWith("number-step-11-assess-") ||
+    safe(id).startsWith("number-step-11-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -263,6 +271,20 @@ function getSharingGroupCount(prompt: string) {
   const match = source.match(/\bbetween\s+(\d{1,2})\b/)?.[1];
   const count = Number(match);
   return Number.isFinite(count) && count > 0 ? count : 2;
+}
+
+function getSequenceDirection(prompt: string) {
+  const source = prompt.toLowerCase();
+  if (
+    source.includes("before") ||
+    source.includes("back") ||
+    source.includes("backwards") ||
+    source.includes("count back")
+  ) {
+    return "backward" as const;
+  }
+
+  return "forward" as const;
 }
 
 function getCountFromLabel(label: string, visual: EarlyNumberVisualModel | null) {
@@ -1699,6 +1721,123 @@ export function renderStep10WorksheetPromptVisual({
   );
 }
 
+export function renderStep11WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const numbers = visual.numberCards;
+  if (!numbers.length) return null;
+
+  const direction = getSequenceDirection(prompt);
+  const targetIndex = Math.max(0, Math.floor(numbers.length / 2));
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Follow the number sequence and choose the missing number.
+        </div>
+        <span
+          style={{
+            border: `1px solid ${direction === "forward" ? "#bbf7d0" : "#fed7aa"}`,
+            borderRadius: 999,
+            background: direction === "forward" ? "#f0fdf4" : "#fff7ed",
+            color: direction === "forward" ? "#166534" : "#c2410c",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Count {direction === "forward" ? "forwards" : "backwards"}
+        </span>
+      </div>
+      <div
+        aria-label={`${direction === "forward" ? "Forward" : "Backward"} counting sequence ${numbers.join(", ")}`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${Math.max(1, numbers.length)}, minmax(70px, 1fr))`,
+            gap: 8,
+          }}
+        >
+          {numbers.map((number, index) => {
+            const missing = index === targetIndex;
+            return (
+              <div
+                key={`${number}-${index}`}
+                aria-label={missing ? "Missing number box" : `Number ${number}`}
+                style={{
+                  border: `2px solid ${missing ? "#7c3aed" : "#bfdbfe"}`,
+                  borderRadius: 16,
+                  background: missing ? "#f5f3ff" : "#eff6ff",
+                  color: missing ? "#6d28d9" : "#1d4ed8",
+                  minHeight: 76,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: missing ? 22 : number.length > 2 ? 30 : 36,
+                  fontWeight: 950,
+                  lineHeight: 1,
+                  boxShadow: missing
+                    ? "0 10px 22px rgba(124,58,237,0.14)"
+                    : "0 8px 18px rgba(15,23,42,0.06)",
+                }}
+              >
+                {missing ? "__" : number}
+              </div>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: direction === "forward" ? "flex-start" : "flex-end",
+            color: "#64748b",
+            fontSize: 12,
+            fontWeight: 850,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          <span aria-hidden="true">
+            {direction === "forward" ? "left to right ->" : "<- right to left"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep2WorksheetOptionCard({
   option,
   visual,
@@ -1921,6 +2060,19 @@ export function renderStep10WorksheetOptionCard({
   }
 
   return null;
+}
+
+export function renderStep11WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,3}$/.test(normalized)) return null;
+
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

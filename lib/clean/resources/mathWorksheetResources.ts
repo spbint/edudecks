@@ -8,11 +8,13 @@ export type MathWorksheetResource = {
   subjectKey: PathwaySubjectKey;
   strandKey: string;
   stageKey: string;
+  stageDisplay?: string;
   stepNumber: number;
   pathwayStepTitle?: string;
   title: string;
   curriculumCode?: string;
   concept?: string;
+  includesAnswerSheet?: boolean;
   fileName: string;
   href: string;
   resourceType: MathWorksheetResourceType;
@@ -46,6 +48,8 @@ const OBJECT_STORIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S009-Represent-Simple-Addition-And-Subtraction-Stories-With-Objects.pdf";
 const SHARE_EQUALLY_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S010-Share-Small-Collections-Equally.pdf";
+const COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LP-S011-Count-Forwards-And-Backwards-Within-100-Or-120.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -196,6 +200,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     concept: "Share small collections equally into groups",
     fileName: SHARE_EQUALLY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/foundation/${SHARE_EQUALLY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-primary::count-forwards-and-backwards-within-100-or-120",
+    stepKey: "count-forwards-and-backwards-within-100-or-120",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 11,
+    pathwayStepTitle: "Count forwards and backwards within 100 or 120",
+    title: "Count Forwards and Backwards",
+    concept: "Count forwards and backwards within 120",
+    includesAnswerSheet: true,
+    fileName: COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-primary/${COUNT_FORWARDS_BACKWARDS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
