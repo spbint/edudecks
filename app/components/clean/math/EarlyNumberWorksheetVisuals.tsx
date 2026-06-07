@@ -320,6 +320,14 @@ export function isStep34CompareOrderDecimalsActivity(id: string, stepKey?: strin
   );
 }
 
+export function isStep35EquivalentFractionsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "compare-order-and-generate-equivalent-fractions" ||
+    safe(id).startsWith("number-step-35-assess-") ||
+    safe(id).startsWith("number-step-35-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -5803,6 +5811,225 @@ export function renderStep34WorksheetPromptVisual({
   );
 }
 
+function getFractionValue(fraction: { numerator: number; denominator: number }) {
+  return fraction.denominator ? fraction.numerator / fraction.denominator : 0;
+}
+
+function FractionNotationCard({
+  value,
+  selected = false,
+  label = "Fraction",
+}: {
+  value: string;
+  selected?: boolean;
+  label?: string;
+}) {
+  const fraction = parseFractionNotation(value);
+  if (!fraction) return null;
+
+  return (
+    <div
+      aria-label={`${label} ${fraction.numerator} over ${fraction.denominator}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 150,
+        padding: 10,
+        display: "grid",
+        gap: 8,
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <FractionShapeVisual
+        denominator={fraction.denominator}
+        numerator={fraction.numerator}
+        label={value}
+        selected={selected}
+      />
+      <div style={{ color: "#475569", fontSize: 12, fontWeight: 850, textAlign: "center" }}>
+        {fractionWords(fraction.numerator, fraction.denominator)}
+      </div>
+    </div>
+  );
+}
+
+function EquivalentFractionPanel({ left, right }: { left: string; right: string }) {
+  const leftFraction = parseFractionNotation(left) ?? { numerator: 1, denominator: 2 };
+  const rightFraction = parseFractionNotation(right) ?? { numerator: 2, denominator: 4 };
+  const symbol =
+    getFractionValue(leftFraction) > getFractionValue(rightFraction)
+      ? ">"
+      : getFractionValue(leftFraction) < getFractionValue(rightFraction)
+        ? "<"
+        : "=";
+  const ordered = [left, right].sort((a, b) => {
+    const fractionA = parseFractionNotation(a);
+    const fractionB = parseFractionNotation(b);
+    if (!fractionA || !fractionB) return 0;
+    return getFractionValue(fractionA) - getFractionValue(fractionB);
+  });
+
+  return (
+    <div
+      aria-label={`Compare fractions ${left} and ${right}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(130px, 1fr) auto minmax(130px, 1fr)",
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
+        <FractionNotationCard value={left} label="First fraction" />
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            minWidth: 52,
+            minHeight: 52,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 28,
+            fontWeight: 950,
+          }}
+        >
+          {symbol}
+        </span>
+        <FractionNotationCard value={right} label="Equivalent fraction" />
+      </div>
+      <div
+        aria-label={`Fraction ordering strip ${ordered.join(", ")}`}
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 16,
+          background: "#f0fdf4",
+          color: "#166534",
+          padding: 10,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          justifyContent: "center",
+          alignItems: "center",
+          fontWeight: 950,
+        }}
+      >
+        <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Smallest to largest
+        </span>
+        {ordered.map((value, index) => (
+          <React.Fragment key={`fraction-order-${value}-${index}`}>
+            <span
+              style={{
+                border: "1px solid #86efac",
+                borderRadius: 12,
+                background: "#ffffff",
+                padding: "8px 10px",
+              }}
+            >
+              {value}
+            </span>
+            {index < ordered.length - 1 ? <span aria-hidden="true">&lt;</span> : null}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep35WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const left = safe(visual.numberCards[0]) || safe(prompt.match(/\d+\/\d+/)?.[0]) || "1/2";
+  const right = safe(visual.numberCards[1]) || "2/4";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Compare the shaded fraction bars and look for equivalent fractions.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Equivalent fractions
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <EquivalentFractionPanel left={left} right={right} />
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -7673,6 +7900,19 @@ export function renderStep34WorksheetOptionCard({
   }
 
   return null;
+}
+
+export function renderStep35WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!parseFractionNotation(normalized)) return null;
+
+  return <FractionNotationCard value={normalized} label="Choose fraction" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

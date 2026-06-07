@@ -98,6 +98,8 @@ const EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S033-Extend-Place-Value-To-Decimals.pdf";
 const COMPARE_ORDER_DECIMALS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S034-Compare-And-Order-Decimals.pdf";
+const COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S035-Compare-Order-And-Generate-Equivalent-Fractions.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -662,6 +664,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: COMPARE_ORDER_DECIMALS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${COMPARE_ORDER_DECIMALS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::compare-order-and-generate-equivalent-fractions",
+    stepKey: "compare-order-and-generate-equivalent-fractions",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 35,
+    pathwayStepTitle: "Compare, order and generate equivalent fractions",
+    title: "Compare, Order and Generate Equivalent Fractions",
+    concept:
+      "Compare, order and generate equivalent fractions using fraction notation and simple fraction reasoning",
+    includesAnswerSheet: false,
+    fileName: COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
