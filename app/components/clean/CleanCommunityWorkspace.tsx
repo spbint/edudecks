@@ -165,6 +165,45 @@ const SUGGEST_FEEDBACK_LABELS: Record<SuggestFeedbackType, string> = {
   "general-feedback": "General feedback",
 };
 
+const FORUM_ROOM_DETAILS: Record<
+  CommunityCategory,
+  {
+    title: string;
+    description: string;
+  }
+> = {
+  general: {
+    title: "General Homeschool Discussion",
+    description:
+      "For everyday homeschool questions, encouragement, routines, weekly rhythm, and family learning life.",
+  },
+  resources: {
+    title: "Resources",
+    description:
+      "For books, websites, printables, learning tools, groups, and low-cost resource ideas.",
+  },
+  curriculum: {
+    title: "Curriculum & Resources",
+    description:
+      "For programs, curriculum ideas, subject balance, affordable materials, and learning adjustments.",
+  },
+  reporting: {
+    title: "Evidence, Portfolios & Reporting",
+    description:
+      "For capturing learning, record keeping, portfolios, samples, and report preparation.",
+  },
+  "state-country": {
+    title: "State / Country Questions",
+    description:
+      "For general discussion about regional expectations, registration, reporting, and homeschool requirements.",
+  },
+  "mylearna-suggestions": {
+    title: "MyLearna Suggestions",
+    description:
+      "For feedback, feature ideas, beta suggestions, and improvements to the app.",
+  },
+};
+
 function buildReactionTargetKey(
   targetType: CommunityReactionTargetType,
   targetId: string,
@@ -1058,6 +1097,17 @@ export default function CleanCommunityWorkspace() {
     });
   }
 
+  function focusStartDiscussion() {
+    setSelectedThreadId(null);
+    window.setTimeout(() => {
+      threadTitleInputRef.current?.focus();
+      threadTitleInputRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    }, 0);
+  }
+
   function openThreadEdit(thread: CommunityThread) {
     setThreadEditTitle(thread.title);
     setThreadEditCategory(thread.category);
@@ -1322,12 +1372,8 @@ export default function CleanCommunityWorkspace() {
             <div style={{ display: "grid", gap: 8 }}>
               <h1 style={{ margin: 0, fontSize: 32, color: "#0f172a" }}>MyLearna Community</h1>
               <p style={{ margin: 0, color: "#475569", fontSize: 16, lineHeight: 1.7 }}>
-                A place for homeschool families to share ideas, resources, reporting questions,
-                and suggestions for MyLearna.
-              </p>
-              <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
-                Early-access families help shape MyLearna through practical discussion and
-                collaborative suggestions.
+                A calm forum for homeschool families to ask questions, share resources, talk
+                about planning and reporting, and help shape MyLearna.
               </p>
               <p
                 style={{
@@ -1345,6 +1391,11 @@ export default function CleanCommunityWorkspace() {
                 Starter discussions are included to help early-access families begin the
                 conversation. Add your own experience, question, or suggestion.
               </p>
+              <div>
+                <button type="button" onClick={focusStartDiscussion} style={buttonStyle}>
+                  Start a discussion
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -1353,20 +1404,19 @@ export default function CleanCommunityWorkspace() {
           style={{
             display: "grid",
             gap: 20,
-            gridTemplateColumns: isWideScreen ? "minmax(0, 1fr) 320px" : "1fr",
+            gridTemplateColumns: "1fr",
             alignItems: "start",
           }}
         >
           <section style={{ ...cardStyle, display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gap: 10 }}>
-              <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>Browse discussions</h2>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                }}
-              >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "end" }}>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>Forum rooms</h2>
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
+                    Choose a room to browse related conversations, or view every discussion below.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setSelectedCategory("all")}
@@ -1376,14 +1426,27 @@ export default function CleanCommunityWorkspace() {
                     borderColor: selectedCategory === "all" ? "#1d4ed8" : "#cbd5e1",
                     background: selectedCategory === "all" ? "#eff6ff" : "#ffffff",
                     color: selectedCategory === "all" ? "#1d4ed8" : "#0f172a",
-                    padding: "8px 12px",
-                    fontSize: 13,
                   }}
                 >
                   All discussions
                 </button>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isWideScreen
+                    ? "repeat(3, minmax(0, 1fr))"
+                    : "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: 12,
+                }}
+              >
                 {COMMUNITY_CATEGORIES.map((category) => {
                   const active = selectedCategory === category;
+                  const roomThreads = displayThreads.filter(
+                    (thread) => thread.category === category,
+                  );
+                  const latestThread = roomThreads[0] ?? null;
+                  const roomDetails = FORUM_ROOM_DETAILS[category];
 
                   return (
                     <button
@@ -1392,15 +1455,52 @@ export default function CleanCommunityWorkspace() {
                       onClick={() => setSelectedCategory(category)}
                       aria-pressed={active}
                       style={{
-                        ...secondaryButtonStyle,
-                        borderColor: active ? "#1d4ed8" : "#cbd5e1",
+                        border: active ? "1px solid #1d4ed8" : "1px solid #dbeafe",
                         background: active ? "#eff6ff" : "#ffffff",
                         color: active ? "#1d4ed8" : "#0f172a",
-                        padding: "8px 12px",
-                        fontSize: 13,
+                        borderRadius: 18,
+                        padding: 16,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "grid",
+                        gap: 10,
+                        boxShadow: active ? "0 12px 26px rgba(29,78,216,0.08)" : "none",
                       }}
                     >
-                      {COMMUNITY_CATEGORY_LABELS[category]}
+                      <span style={{ color: "#0f172a", fontSize: 16, fontWeight: 800 }}>
+                        {roomDetails.title}
+                      </span>
+                      <span style={{ color: "#475569", fontSize: 13, lineHeight: 1.6, fontWeight: 500 }}>
+                        {roomDetails.description}
+                      </span>
+                      <span
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "center",
+                          color: "#64748b",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span>{roomThreads.length} discussions</span>
+                        <span>{active ? "Viewing room" : "Open room"}</span>
+                      </span>
+                      {latestThread ? (
+                        <span
+                          style={{
+                            borderTop: "1px solid #e2e8f0",
+                            paddingTop: 10,
+                            color: "#334155",
+                            fontSize: 13,
+                            lineHeight: 1.5,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Latest: {latestThread.title}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -1447,22 +1547,27 @@ export default function CleanCommunityWorkspace() {
                 style={{
                   display: "grid",
                   gap: 18,
-                  gridTemplateColumns: isWideScreen
-                    ? "320px minmax(0, 1fr)"
-                    : "repeat(auto-fit, minmax(280px, 1fr))",
+                  gridTemplateColumns: "1fr",
                   alignItems: "start",
                 }}
               >
+                {!selectedThread ? (
                 <div
                   style={{
                     display: "grid",
-                    gap: 10,
+                    gap: 14,
                     alignContent: "start",
-                    maxHeight: isWideScreen ? "min(78vh, 920px)" : undefined,
-                    overflowY: isWideScreen ? "auto" : undefined,
-                    paddingRight: isWideScreen ? 4 : 0,
                   }}
                 >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>
+                      Latest discussions
+                    </h2>
+                    <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
+                      Real family posts appear first. Starter prompts stay visible below them so
+                      new beta users have useful places to begin.
+                    </p>
+                  </div>
                   {threadsLoading ? (
                     <div style={{ color: "#64748b", fontSize: 14 }}>Loading community threads...</div>
                   ) : filteredThreads.length ? (
@@ -1493,7 +1598,7 @@ export default function CleanCommunityWorkspace() {
                                 ? "#f8fbff"
                                 : "#ffffff",
                             borderRadius: 16,
-                            padding: 16,
+                            padding: isWideScreen ? 20 : 16,
                             textAlign: "left",
                             cursor: "pointer",
                             display: "grid",
@@ -1571,7 +1676,9 @@ export default function CleanCommunityWorkspace() {
                             <span>{authorLabel}</span>
                             <span>
                               {formatReplyCount(replyCount)}
-                              {active ? " | Selected" : ""}
+                            </span>
+                            <span style={{ color: "#1d4ed8", fontWeight: 800 }}>
+                              Open discussion
                             </span>
                           </div>
                         </button>
@@ -1590,25 +1697,40 @@ export default function CleanCommunityWorkspace() {
                     >
                       {threads.length
                         ? "No threads match this category yet."
-                        : "No threads yet. Start the first discussion from the panel on the right."}
+                        : "No threads yet. Start the first discussion using the form below."}
                     </div>
                   )}
                 </div>
+                ) : null}
 
+                {selectedThread ? (
                 <div style={{ display: "grid", gap: 16 }}>
-                  {selectedThread ? (
                     <section
                       style={{
                         border: "1px solid #e2e8f0",
                         borderRadius: 18,
                         background: "#ffffff",
-                        padding: 20,
+                        padding: isWideScreen ? 28 : 18,
                         display: "grid",
                         gap: 16,
-                        maxHeight: isWideScreen ? "min(78vh, 920px)" : undefined,
-                        overflowY: isWideScreen ? "auto" : undefined,
                       }}
                     >
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedThreadId(null);
+                            setReplyMessage(null);
+                            setReplyError(null);
+                            setReportMessage(null);
+                            setReportError(null);
+                            setReportTarget(null);
+                          }}
+                          style={subtleButtonStyle}
+                        >
+                          Back to discussions
+                        </button>
+                      </div>
                       <div style={{ display: "grid", gap: 14 }}>
                         {selectedThreadIsStarter ? (
                           <div
@@ -2337,12 +2459,7 @@ export default function CleanCommunityWorkspace() {
                             paddingTop: 16,
                             display: "grid",
                             gap: 10,
-                            position: isWideScreen ? "sticky" : "static",
-                            bottom: isWideScreen ? 0 : undefined,
                             background: "#ffffff",
-                            boxShadow: isWideScreen
-                              ? "0 -12px 24px rgba(15,23,42,0.06)"
-                              : "none",
                           }}
                         >
                           <label style={{ display: "grid", gap: 6 }}>
@@ -2400,23 +2517,8 @@ export default function CleanCommunityWorkspace() {
                         </form>
                       </div>
                     </section>
-                  ) : (
-                    <section
-                      style={{
-                        border: "1px dashed #cbd5e1",
-                        borderRadius: 18,
-                        padding: 20,
-                        color: "#475569",
-                        fontSize: 14,
-                        lineHeight: 1.7,
-                      }}
-                    >
-                      {threads.length
-                        ? "Choose a thread to read the full discussion and reply."
-                        : "Community conversations will appear here once the first thread is posted."}
-                    </section>
-                  )}
                 </div>
+                ) : null}
               </div>
             )}
           </section>
@@ -2426,11 +2528,9 @@ export default function CleanCommunityWorkspace() {
               display: "grid",
               gap: 20,
               alignContent: "start",
-              position: isWideScreen ? "sticky" : "static",
-              top: isWideScreen ? 24 : undefined,
             }}
           >
-            <section style={cardStyle}>
+            <section style={{ ...cardStyle, order: 2 }}>
               <div style={{ display: "grid", gap: 10 }}>
                 <h2 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Community guidelines</h2>
                 <ul style={{ margin: 0, paddingLeft: 18, color: "#475569", fontSize: 14, lineHeight: 1.8 }}>
@@ -2442,7 +2542,7 @@ export default function CleanCommunityWorkspace() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section style={{ ...cardStyle, order: 1 }}>
               <form onSubmit={(event) => void handleCreateThread(event)} style={{ display: "grid", gap: 12 }}>
                 {showSuggestionDraftHelper ? (
                   <div
@@ -2480,7 +2580,12 @@ export default function CleanCommunityWorkspace() {
                 ) : null}
 
                 <div style={{ display: "grid", gap: 6 }}>
-                  <h2 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Start a thread</h2>
+                  <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>Start a discussion</h2>
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
+                    Start a practical discussion for other homeschool families. Ask a question,
+                    share an idea, suggest a resource, or tell us what would make MyLearna easier
+                    to use.
+                  </p>
                   <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                     Text-only for now. Media sharing and direct messages are not part of Community.
                   </p>
