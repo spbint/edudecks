@@ -109,6 +109,20 @@ function trackBetaEvent(
   });
 }
 
+async function notifyOwnerOfBetaSignup(payload: Record<string, unknown>) {
+  try {
+    await fetch("/api/beta-interest/notify-owner", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.error("Could not request beta signup owner notification.", error);
+  }
+}
+
 export default function BetaInterestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -235,6 +249,7 @@ export default function BetaInterestPage() {
         currently_homeschooling: yesNoLabel(values.currentlyHomeschooling),
         willing_to_test_free_beta: values.willingToTestFreeBeta,
         source: source || null,
+        submitted_at: new Date().toISOString(),
       };
 
       const { error } = await supabase.from("beta_interest").insert(payload);
@@ -242,6 +257,8 @@ export default function BetaInterestPage() {
       if (error) {
         throw error;
       }
+
+      await notifyOwnerOfBetaSignup(payload);
 
       trackBetaEvent("beta_submit_success", {
         source: source || undefined,
