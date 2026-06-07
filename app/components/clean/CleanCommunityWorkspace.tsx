@@ -4,6 +4,15 @@ import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import {
+  COMMUNITY_STARTER_THREADS,
+  getStarterPostAuthorLabel,
+  getStarterRepliesForThread,
+  getStarterThreadBadge,
+  isStarterCommunityPostId,
+  isStarterCommunityThreadId,
+  STARTER_COMMUNITY_LOCAL_REPLY_PREFIX,
+} from "@/lib/clean/community/communityStarterThreads";
+import {
   COMMUNITY_NOT_AVAILABLE_MESSAGE,
   createCommunityPost,
   createCommunityThread,
@@ -382,6 +391,21 @@ function getAuthorLabel(authorUserId: string, currentUserId: string | null) {
   return "Community member";
 }
 
+function getCommunityThreadAuthorLabel(thread: CommunityThread, currentUserId: string | null) {
+  if (isStarterCommunityThreadId(thread.id)) {
+    return "MyLearna Team";
+  }
+
+  return getAuthorLabel(thread.authorUserId, currentUserId);
+}
+
+function getCommunityPostAuthorLabel(reply: CommunityPost, currentUserId: string | null) {
+  const starterLabel = getStarterPostAuthorLabel(reply.id);
+  if (starterLabel) return starterLabel;
+
+  return getAuthorLabel(reply.authorUserId, currentUserId);
+}
+
 function buildEmptyReactionCounts() {
   return {
     like: { count: 0, reacted: false },
@@ -561,6 +585,7 @@ export default function CleanCommunityWorkspace() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("all");
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [replies, setReplies] = useState<CommunityPost[]>([]);
+  const [starterLocalReplies, setStarterLocalReplies] = useState<Record<string, CommunityPost[]>>({});
   const [threadsLoading, setThreadsLoading] = useState(true);
   const [threadsError, setThreadsError] = useState<string | null>(null);
   const [repliesLoading, setRepliesLoading] = useState(false);
@@ -628,10 +653,15 @@ export default function CleanCommunityWorkspace() {
   const threadEditBodyPlaceholder = getThreadBodyPlaceholder(threadEditCategory);
   const threadEditLinkPreview = getSafeHttpUrl(threadEditLinkUrl);
 
+  const displayThreads = useMemo(
+    () => [...threads, ...COMMUNITY_STARTER_THREADS],
+    [threads],
+  );
+
   const filteredThreads = useMemo(() => {
-    if (selectedCategory === "all") return threads;
-    return threads.filter((thread) => thread.category === selectedCategory);
-  }, [selectedCategory, threads]);
+    if (selectedCategory === "all") return displayThreads;
+    return displayThreads.filter((thread) => thread.category === selectedCategory);
+  }, [displayThreads, selectedCategory]);
 
   const selectedThread = useMemo(
     () => filteredThreads.find((thread) => thread.id === selectedThreadId) ?? null,
@@ -639,11 +669,30 @@ export default function CleanCommunityWorkspace() {
   );
 
   const communityUnavailable = threadsError === COMMUNITY_NOT_AVAILABLE_MESSAGE;
+  const selectedThreadIsStarter = Boolean(
+    selectedThread && isStarterCommunityThreadId(selectedThread.id),
+  );
   const canEditSelectedThread = Boolean(
     selectedThread &&
+      !selectedThreadIsStarter &&
       currentUserId &&
       safe(selectedThread.authorUserId) === safe(currentUserId),
   );
+  const selectedStarterReplies = selectedThreadIsStarter && selectedThread
+    ? [
+        ...getStarterRepliesForThread(selectedThread.id),
+        ...(starterLocalReplies[selectedThread.id] ?? []),
+      ]
+    : [];
+  const displayReplies = selectedThreadIsStarter ? selectedStarterReplies : replies;
+
+  function getDisplayReplyCount(threadId: string) {
+    if (isStarterCommunityThreadId(threadId)) {
+      return getStarterRepliesForThread(threadId).length + (starterLocalReplies[threadId]?.length ?? 0);
+    }
+
+    return replyCounts[threadId] ?? 0;
+  }
 
   async function loadThreads() {
     setThreadsLoading(true);
@@ -798,6 +847,14 @@ export default function CleanCommunityWorkspace() {
         return;
       }
 
+      if (isStarterCommunityThreadId(selectedThreadId)) {
+        setReplies([]);
+        setRepliesError(null);
+        setReplyReactionSummary({});
+        setRepliesLoading(false);
+        return;
+      }
+
       setRepliesLoading(true);
       setRepliesError(null);
 
@@ -904,6 +961,27 @@ export default function CleanCommunityWorkspace() {
     setReplySubmitting(true);
     setReplyError(null);
     setReplyMessage(null);
+
+    if (isStarterCommunityThreadId(selectedThread.id)) {
+      const createdReply: CommunityPost = {
+        id: `${STARTER_COMMUNITY_LOCAL_REPLY_PREFIX}${selectedThread.id}:${Date.now()}`,
+        threadId: selectedThread.id,
+        authorUserId: currentUserId ?? "starter-local-user",
+        body,
+        status: "open",
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      };
+
+      setStarterLocalReplies((current) => ({
+        ...current,
+        [selectedThread.id]: [...(current[selectedThread.id] ?? []), createdReply],
+      }));
+      setReplyBody("");
+      setReplyMessage("Reply added to this starter discussion.");
+      setReplySubmitting(false);
+      return;
+    }
 
     try {
       const createdReply = await createCommunityPost(selectedThread.id, { body });
@@ -1244,6 +1322,22 @@ export default function CleanCommunityWorkspace() {
                 Early-access families help shape MyLearna through practical discussion and
                 collaborative suggestions.
               </p>
+              <p
+                style={{
+                  margin: 0,
+                  border: "1px solid #dbeafe",
+                  borderRadius: 14,
+                  background: "#f8fbff",
+                  color: "#1e3a8a",
+                  padding: "10px 12px",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  fontWeight: 700,
+                }}
+              >
+                Starter discussions are included to help early-access families begin the
+                conversation. Add your own experience, question, or suggestion.
+              </p>
             </div>
           </div>
         </section>
@@ -1367,9 +1461,10 @@ export default function CleanCommunityWorkspace() {
                   ) : filteredThreads.length ? (
                     filteredThreads.map((thread) => {
                       const active = thread.id === selectedThreadId;
-                      const replyCount = replyCounts[thread.id] ?? 0;
-                      const authorLabel = getAuthorLabel(thread.authorUserId, currentUserId);
+                      const replyCount = getDisplayReplyCount(thread.id);
+                      const authorLabel = getCommunityThreadAuthorLabel(thread, currentUserId);
                       const hasSharedResource = Boolean(getSafeHttpUrl(thread.linkUrl));
+                      const starterBadge = getStarterThreadBadge(thread.id);
 
                       return (
                         <button
@@ -1415,6 +1510,23 @@ export default function CleanCommunityWorkspace() {
                             >
                               {COMMUNITY_CATEGORY_LABELS[thread.category]}
                             </span>
+                            {starterBadge ? (
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  padding: "6px 10px",
+                                  borderRadius: 999,
+                                  background: "#f0fdf4",
+                                  border: "1px solid #bbf7d0",
+                                  color: "#166534",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {starterBadge}
+                              </span>
+                            ) : null}
                             <span style={{ color: "#64748b", fontSize: 12, whiteSpace: "nowrap" }}>
                               {formatDateLabel(thread.createdAt)}
                             </span>
@@ -1491,6 +1603,23 @@ export default function CleanCommunityWorkspace() {
                       }}
                     >
                       <div style={{ display: "grid", gap: 14 }}>
+                        {selectedThreadIsStarter ? (
+                          <div
+                            style={{
+                              border: "1px solid #bbf7d0",
+                              borderRadius: 16,
+                              background: "#f0fdf4",
+                              color: "#166534",
+                              padding: 12,
+                              fontSize: 13,
+                              fontWeight: 800,
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            This is a clearly labelled starter discussion from MyLearna. Add your own
+                            experience, question, or suggestion below.
+                          </div>
+                        ) : null}
                         <div
                           style={{
                             display: "flex",
@@ -1528,8 +1657,25 @@ export default function CleanCommunityWorkspace() {
                                 border: "1px solid #e2e8f0",
                               }}
                             >
-                              {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
+                              {formatReplyCount(getDisplayReplyCount(selectedThread.id))}
                             </span>
+                            {getStarterThreadBadge(selectedThread.id) ? (
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  padding: "6px 10px",
+                                  borderRadius: 999,
+                                  background: "#f0fdf4",
+                                  color: "#166534",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                  border: "1px solid #bbf7d0",
+                                }}
+                              >
+                                {getStarterThreadBadge(selectedThread.id)}
+                              </span>
+                            ) : null}
                           </div>
                           <div
                             style={{
@@ -1588,7 +1734,7 @@ export default function CleanCommunityWorkspace() {
                             }}
                           >
                             <span style={{ color: "#0f172a", fontWeight: 700 }}>
-                              {getAuthorLabel(selectedThread.authorUserId, currentUserId)}
+                              {getCommunityThreadAuthorLabel(selectedThread, currentUserId)}
                             </span>
                             <span aria-hidden="true">|</span>
                             <span>{formatDateTimeLabel(selectedThread.createdAt)}</span>
@@ -1745,15 +1891,17 @@ export default function CleanCommunityWorkspace() {
                               {selectedThread.body}
                             </div>
                             <CommunitySharedLinkCard url={selectedThread.linkUrl} />
-                            <CommunityReactionBar
-                              targetType="thread"
-                              targetId={selectedThread.id}
-                              summary={threadReactionSummary}
-                              busyKey={reactionBusyKey}
-                              errorKey={reactionErrorKey}
-                              errorMessage={reactionError}
-                              onToggle={handleToggleReaction}
-                            />
+                            {!selectedThreadIsStarter ? (
+                              <CommunityReactionBar
+                                targetType="thread"
+                                targetId={selectedThread.id}
+                                summary={threadReactionSummary}
+                                busyKey={reactionBusyKey}
+                                errorKey={reactionErrorKey}
+                                errorMessage={reactionError}
+                                onToggle={handleToggleReaction}
+                              />
+                            ) : null}
                           </div>
                         )}
                       </div>
@@ -1828,7 +1976,7 @@ export default function CleanCommunityWorkspace() {
                             }}
                           >
                             <span style={{ color: "#64748b", fontSize: 13 }}>
-                              {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
+                              {formatReplyCount(getDisplayReplyCount(selectedThread.id))}
                             </span>
                             <button type="button" onClick={focusReplyComposer} style={smallButtonStyle}>
                               Jump to reply box
@@ -1844,15 +1992,19 @@ export default function CleanCommunityWorkspace() {
 
                         {repliesLoading ? (
                           <div style={{ color: "#64748b", fontSize: 14 }}>Loading replies...</div>
-                        ) : replies.length ? (
+                        ) : displayReplies.length ? (
                           <div style={{ display: "grid", gap: 14 }}>
-                            {replies.map((reply, index) => {
+                            {displayReplies.map((reply, index) => {
                               const isOriginalPoster =
                                 reply.authorUserId === selectedThread.authorUserId;
+                              const replyIsStarter = isStarterCommunityPostId(reply.id);
                               const canEditReply = Boolean(
-                                currentUserId && safe(reply.authorUserId) === safe(currentUserId),
+                                !replyIsStarter &&
+                                  currentUserId &&
+                                  safe(reply.authorUserId) === safe(currentUserId),
                               );
                               const replyIsEditing = editingReplyId === reply.id;
+                              const starterAuthorLabel = getStarterPostAuthorLabel(reply.id);
 
                               return (
                                 <article
@@ -1881,7 +2033,7 @@ export default function CleanCommunityWorkspace() {
                                         marginTop: 4,
                                       }}
                                     />
-                                    {index < replies.length - 1 ? (
+                                    {index < displayReplies.length - 1 ? (
                                       <span
                                         style={{
                                           width: 2,
@@ -1946,6 +2098,23 @@ export default function CleanCommunityWorkspace() {
                                               Original poster
                                             </span>
                                           ) : null}
+                                          {starterAuthorLabel ? (
+                                            <span
+                                              style={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                padding: "5px 9px",
+                                                borderRadius: 999,
+                                                background: "#f0fdf4",
+                                                border: "1px solid #bbf7d0",
+                                                color: "#166534",
+                                                fontSize: 11,
+                                                fontWeight: 800,
+                                              }}
+                                            >
+                                              Starter reply
+                                            </span>
+                                          ) : null}
                                         </div>
                                         <div
                                           style={{
@@ -1958,7 +2127,7 @@ export default function CleanCommunityWorkspace() {
                                           }}
                                         >
                                           <span style={{ color: "#0f172a", fontWeight: 700 }}>
-                                            {getAuthorLabel(reply.authorUserId, currentUserId)}
+                                            {getCommunityPostAuthorLabel(reply, currentUserId)}
                                           </span>
                                           <span aria-hidden="true">|</span>
                                           <span>{formatDateTimeLabel(reply.createdAt)}</span>
@@ -1994,15 +2163,17 @@ export default function CleanCommunityWorkspace() {
                                             </button>
                                           </>
                                         ) : null}
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            openReportForm({ id: reply.id, type: "post" })
-                                          }
-                                          style={subtleButtonStyle}
-                                        >
-                                          Report reply
-                                        </button>
+                                        {!replyIsStarter ? (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              openReportForm({ id: reply.id, type: "post" })
+                                            }
+                                            style={subtleButtonStyle}
+                                          >
+                                            Report reply
+                                          </button>
+                                        ) : null}
                                       </div>
                                     </div>
 
@@ -2069,15 +2240,17 @@ export default function CleanCommunityWorkspace() {
                                       </div>
                                     )}
 
-                                    <CommunityReactionBar
-                                      targetType="post"
-                                      targetId={reply.id}
-                                      summary={replyReactionSummary}
-                                      busyKey={reactionBusyKey}
-                                      errorKey={reactionErrorKey}
-                                      errorMessage={reactionError}
-                                      onToggle={handleToggleReaction}
-                                    />
+                                    {!replyIsStarter ? (
+                                      <CommunityReactionBar
+                                        targetType="post"
+                                        targetId={reply.id}
+                                        summary={replyReactionSummary}
+                                        busyKey={reactionBusyKey}
+                                        errorKey={reactionErrorKey}
+                                        errorMessage={reactionError}
+                                        onToggle={handleToggleReaction}
+                                      />
+                                    ) : null}
 
                                     {reportTarget?.type === "post" && reportTarget.id === reply.id ? (
                                       <form
