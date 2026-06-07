@@ -43,6 +43,9 @@ export const metadata: Metadata = {
       "MyLearna helps homeschooling families plan learning, capture evidence, build portfolios, and prepare homeschool reports from connected learning records.",
     path: "/",
   }),
+  other: {
+    "p:domain_verify": "98533292cbf37d9ea909b51a3bf70309",
+  },
 };
 
 export const viewport: Viewport = {
