@@ -64,6 +64,10 @@ const SERVICES = [
     name: "Google Analytics",
     text: "used for basic website usage analytics such as page views and referral sources",
   },
+  {
+    name: "Meta Pixel",
+    text: "used on public pages to understand visits and measure beta signup effectiveness",
+  },
 ] as const;
 
 const sectionStyle: CSSProperties = {
@@ -282,6 +286,14 @@ export default function PrivacyPage() {
               We use Google Analytics in a minimal way to understand basic website usage,
               such as page visits and how people found MyLearna. We do not use it for ads
               personalization, remarketing, or session replay.
+            </p>
+            <p style={paragraphStyle}>
+              We may use privacy-conscious analytics and advertising tools, such as website
+              pixels or similar technologies, to understand visits to our public pages, measure
+              the effectiveness of our communications, and improve MyLearna. These tools may
+              collect information such as page visits, device or browser information, and
+              referral source. We do not use these tools to publish private family learning
+              records.
             </p>
           </div>
         </section>

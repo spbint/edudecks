@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { AuthUserProvider } from "@/app/components/AuthUserProvider";
 import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTracker";
+import MetaPixel from "@/app/components/MetaPixel";
 import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZENKS";
@@ -94,6 +95,9 @@ export default function RootLayout({
           }}
         />
         <GoogleAnalyticsPageTracker />
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
         <AuthUserProvider>
           <Suspense fallback={<div />}>{children}</Suspense>
         </AuthUserProvider>
