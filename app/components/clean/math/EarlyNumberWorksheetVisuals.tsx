@@ -288,6 +288,14 @@ export function isStep30PracticalMoneyActivity(id: string, stepKey?: string | nu
   );
 }
 
+export function isStep31ExtendedPlaceValueActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "extend-place-value-to-larger-numbers" ||
+    safe(id).startsWith("number-step-31-assess-") ||
+    safe(id).startsWith("number-step-31-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -4905,6 +4913,235 @@ function LargeNumberComparisonVisual({ values }: { values: string[] }) {
   );
 }
 
+function getExtendedPlaceValueDigits(value: string | number) {
+  const normalized = safe(value).replace(/,/g, "");
+  const padded = normalized.padStart(6, "0");
+  const recentSix = padded.slice(-6);
+  return recentSix.split("").map((digit) => Number(digit));
+}
+
+function getExpandedLargeNumber(value: string | number) {
+  const normalized = safe(value).replace(/,/g, "");
+  if (!/^\d+$/.test(normalized)) return [];
+
+  return normalized
+    .split("")
+    .map((digit, index, digits) => {
+      const place = digits.length - index - 1;
+      const amount = Number(digit) * 10 ** place;
+      return amount;
+    })
+    .filter((amount) => amount > 0);
+}
+
+function ExtendedPlaceValueChart({
+  value,
+  underlinedIndex,
+}: {
+  value: string | number;
+  underlinedIndex?: number;
+}) {
+  const columns = ["HTh", "TTh", "Th", "H", "T", "O"];
+  const labels = ["Hundred thousands", "Ten thousands", "Thousands", "Hundreds", "Tens", "Ones"];
+  const digits = getExtendedPlaceValueDigits(value);
+
+  return (
+    <div
+      aria-label={`Extended place value chart showing ${largeNumberToWords(formatLargeNumber(value))}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(6, minmax(44px, 1fr))",
+          gap: 6,
+        }}
+      >
+        {columns.map((column, index) => (
+          <div
+            key={`extended-pv-${column}`}
+            style={{
+              border: "1px solid #bfdbfe",
+              borderRadius: 12,
+              overflow: "hidden",
+              background: "#eff6ff",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                background: index < 3 ? "#dbeafe" : "#f0fdf4",
+                color: index < 3 ? "#1d4ed8" : "#166534",
+                padding: "7px 4px",
+                fontSize: 11,
+                fontWeight: 950,
+              }}
+              title={labels[index]}
+            >
+              {column}
+            </div>
+            <div
+              style={{
+                background: "#ffffff",
+                color: "#0f172a",
+                padding: "10px 4px",
+                minHeight: 46,
+                display: "grid",
+                placeItems: "center",
+                fontSize: 26,
+                fontWeight: 950,
+                textDecoration: underlinedIndex === index ? "underline" : undefined,
+                textDecorationColor: "#7c3aed",
+                textDecorationThickness: underlinedIndex === index ? 4 : undefined,
+                textUnderlineOffset: underlinedIndex === index ? 5 : undefined,
+              }}
+            >
+              {digits[index]}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LargeNumberExpandedFormVisual({ value }: { value: string | number }) {
+  const parts = getExpandedLargeNumber(value);
+  return (
+    <div
+      aria-label={`Expanded form ${parts.map(formatLargeNumber).join(" plus ")}`}
+      style={{
+        border: "1px solid #bbf7d0",
+        borderRadius: 18,
+        background: "#f0fdf4",
+        color: "#166534",
+        padding: 12,
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        Expanded form
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        {parts.map((part, index) => (
+          <React.Fragment key={`expanded-large-${part}-${index}`}>
+            <span
+              style={{
+                border: "1px solid #86efac",
+                borderRadius: 12,
+                background: "#ffffff",
+                padding: "8px 10px",
+                fontSize: 17,
+                fontWeight: 950,
+              }}
+            >
+              {formatLargeNumber(part)}
+            </span>
+            {index < parts.length - 1 ? (
+              <span aria-hidden="true" style={{ fontWeight: 950 }}>
+                +
+              </span>
+            ) : null}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep31WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = getLargeNumberValues(visual);
+  const focusValue = values[1] ?? values[0] ?? "120,045";
+  const lower = prompt.toLowerCase();
+  const isComparing =
+    lower.includes("compare") ||
+    lower.includes("greater") ||
+    lower.includes("less") ||
+    lower.includes("largest") ||
+    lower.includes("smallest");
+  const isDigitValue = lower.includes("value") || lower.includes("digit") || lower.includes("place");
+  const digits = getExtendedPlaceValueDigits(focusValue);
+  const firstNonZero = Math.max(0, digits.findIndex((digit) => digit > 0));
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Read each digit by its place, then match the larger number.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Extended place value
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <LargeNumberWorksheetCard value={focusValue} label="Large number" />
+        <ExtendedPlaceValueChart
+          value={focusValue}
+          underlinedIndex={isDigitValue ? firstNonZero : undefined}
+        />
+        {isComparing && values.length >= 2 ? (
+          <LargeNumberComparisonVisual values={[values[0] ?? focusValue, focusValue]} />
+        ) : (
+          <LargeNumberExpandedFormVisual value={focusValue} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -6694,6 +6931,19 @@ export function renderStep30WorksheetOptionCard({
       </div>
     </div>
   );
+}
+
+export function renderStep31WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,7}(?:,\d{3})*$|^\d+$/.test(normalized)) return null;
+
+  return <LargeNumberWorksheetCard value={normalized} label="Standard form" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

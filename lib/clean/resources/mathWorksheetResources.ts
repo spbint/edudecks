@@ -90,6 +90,8 @@ const UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S029-Recognise-And-Represent-Unit-Fractions-And-Simple-Fractions.pdf";
 const PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S030-Solve-Practical-Number-Problems-Including-Money.pdf";
+const EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S031-Extend-Place-Value-To-Larger-Numbers.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -584,6 +586,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     containsRegionalMoneyPages: true,
     fileName: PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::extend-place-value-to-larger-numbers",
+    stepKey: "extend-place-value-to-larger-numbers",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 31,
+    pathwayStepTitle: "Extend place value to larger numbers",
+    title: "Extend Place Value to Larger Numbers",
+    concept:
+      "Read, write, compare, round and build larger numbers using extended place value",
+    includesAnswerSheet: false,
+    fileName: EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
