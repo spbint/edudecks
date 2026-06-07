@@ -100,6 +100,8 @@ const COMPARE_ORDER_DECIMALS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S034-Compare-And-Order-Decimals.pdf";
 const COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S035-Compare-Order-And-Generate-Equivalent-Fractions.pdf";
+const ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S036-Add-And-Subtract-Fractions-With-Related-Denominators.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -682,6 +684,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::add-and-subtract-fractions-with-related-denominators",
+    stepKey: "add-and-subtract-fractions-with-related-denominators",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 36,
+    pathwayStepTitle: "Add and subtract fractions with related denominators",
+    title: "Add and Subtract Fractions with Related Denominators",
+    concept:
+      "Add and subtract fractions with related denominators, simplify answers, and solve fraction word problems",
+    includesAnswerSheet: false,
+    fileName: ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
