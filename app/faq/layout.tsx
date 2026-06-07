@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Homeschool Record Keeping FAQ | MyLearna",
+  title: "MyLearna FAQ | Homeschool Planning, Portfolios and Reports",
   description:
-    "Answers to common questions about MyLearna, including homeschool record keeping, evidence tracking, reporting, privacy, and flexible learning styles.",
+    "Answers to common questions about MyLearna, including homeschool planning, portfolios, learning evidence, reports, worksheets and beta access.",
   path: "/faq",
 });
 

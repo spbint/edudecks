@@ -31,6 +31,42 @@ const PUBLIC_SITEMAP_PAGES: SitemapEntryConfig[] = [
     priority: 0.9,
   },
   {
+    path: "/homeschool-maths-worksheets",
+    sourceFile: "app/homeschool-maths-worksheets/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.85,
+  },
+  {
+    path: "/homeschool-planning",
+    sourceFile: "app/homeschool-planning/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.85,
+  },
+  {
+    path: "/homeschool-record-keeping",
+    sourceFile: "app/homeschool-record-keeping/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.85,
+  },
+  {
+    path: "/homeschool-portfolio",
+    sourceFile: "app/homeschool-portfolio/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.85,
+  },
+  {
+    path: "/homeschool-reporting",
+    sourceFile: "app/homeschool-reporting/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.85,
+  },
+  {
+    path: "/homeschool-learning-evidence",
+    sourceFile: "app/homeschool-learning-evidence/page.tsx",
+    changeFrequency: "weekly",
+    priority: 0.85,
+  },
+  {
     path: "/pricing",
     sourceFile: "app/pricing/page.tsx",
     changeFrequency: "weekly",
