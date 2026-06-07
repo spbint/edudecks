@@ -7,7 +7,6 @@ import type {
 export const STARTER_COMMUNITY_AUTHOR_ID = "starter:mylearna-team";
 export const STARTER_COMMUNITY_THREAD_PREFIX = "starter-thread:";
 export const STARTER_COMMUNITY_POST_PREFIX = "starter-post:";
-export const STARTER_COMMUNITY_LOCAL_REPLY_PREFIX = "starter-local-reply:";
 
 export type StarterCommunityThread = CommunityThread & {
   starterBadge: "Starter discussion" | "MyLearna prompt";
@@ -250,10 +249,7 @@ export function isStarterCommunityThreadId(threadId: string) {
 }
 
 export function isStarterCommunityPostId(postId: string) {
-  return (
-    postId.startsWith(STARTER_COMMUNITY_POST_PREFIX) ||
-    postId.startsWith(STARTER_COMMUNITY_LOCAL_REPLY_PREFIX)
-  );
+  return postId.startsWith(STARTER_COMMUNITY_POST_PREFIX);
 }
 
 export function getStarterThreadBadge(threadId: string) {

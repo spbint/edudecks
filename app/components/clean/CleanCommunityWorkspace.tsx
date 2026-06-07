@@ -10,7 +10,6 @@ import {
   getStarterThreadBadge,
   isStarterCommunityPostId,
   isStarterCommunityThreadId,
-  STARTER_COMMUNITY_LOCAL_REPLY_PREFIX,
 } from "@/lib/clean/community/communityStarterThreads";
 import {
   COMMUNITY_NOT_AVAILABLE_MESSAGE,
@@ -585,7 +584,6 @@ export default function CleanCommunityWorkspace() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("all");
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [replies, setReplies] = useState<CommunityPost[]>([]);
-  const [starterLocalReplies, setStarterLocalReplies] = useState<Record<string, CommunityPost[]>>({});
   const [threadsLoading, setThreadsLoading] = useState(true);
   const [threadsError, setThreadsError] = useState<string | null>(null);
   const [repliesLoading, setRepliesLoading] = useState(false);
@@ -679,16 +677,13 @@ export default function CleanCommunityWorkspace() {
       safe(selectedThread.authorUserId) === safe(currentUserId),
   );
   const selectedStarterReplies = selectedThreadIsStarter && selectedThread
-    ? [
-        ...getStarterRepliesForThread(selectedThread.id),
-        ...(starterLocalReplies[selectedThread.id] ?? []),
-      ]
+    ? getStarterRepliesForThread(selectedThread.id)
     : [];
   const displayReplies = selectedThreadIsStarter ? selectedStarterReplies : replies;
 
   function getDisplayReplyCount(threadId: string) {
     if (isStarterCommunityThreadId(threadId)) {
-      return getStarterRepliesForThread(threadId).length + (starterLocalReplies[threadId]?.length ?? 0);
+      return getStarterRepliesForThread(threadId).length;
     }
 
     return replyCounts[threadId] ?? 0;
@@ -963,23 +958,35 @@ export default function CleanCommunityWorkspace() {
     setReplyMessage(null);
 
     if (isStarterCommunityThreadId(selectedThread.id)) {
-      const createdReply: CommunityPost = {
-        id: `${STARTER_COMMUNITY_LOCAL_REPLY_PREFIX}${selectedThread.id}:${Date.now()}`,
-        threadId: selectedThread.id,
-        authorUserId: currentUserId ?? "starter-local-user",
-        body,
-        status: "open",
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-      };
+      try {
+        const createdThread = await createCommunityThread({
+          category: selectedThread.category,
+          title: `Response to: ${selectedThread.title}`,
+          body: [
+            `In response to starter discussion: ${selectedThread.title}`,
+            "",
+            "Starter prompt:",
+            selectedThread.body,
+            "",
+            "My response:",
+            body,
+          ].join("\n"),
+          linkUrl: null,
+        });
 
-      setStarterLocalReplies((current) => ({
-        ...current,
-        [selectedThread.id]: [...(current[selectedThread.id] ?? []), createdReply],
-      }));
-      setReplyBody("");
-      setReplyMessage("Reply added to this starter discussion.");
-      setReplySubmitting(false);
+        setThreads((current) => [createdThread, ...current]);
+        setReplyCounts((current) => ({ ...current, [createdThread.id]: 0 }));
+        setSelectedCategory("all");
+        setSelectedThreadId(createdThread.id);
+        setReplyBody("");
+        setReplyMessage("Your response was saved as a real community thread.");
+      } catch (nextError) {
+        setReplyError(
+          messageFromError(nextError, "We could not start a thread from this prompt."),
+        );
+      } finally {
+        setReplySubmitting(false);
+      }
       return;
     }
 
@@ -1686,7 +1693,7 @@ export default function CleanCommunityWorkspace() {
                             }}
                           >
                             <button type="button" onClick={focusReplyComposer} style={smallButtonStyle}>
-                              Reply
+                              {selectedThreadIsStarter ? "Start from this prompt" : "Reply"}
                             </button>
                             {canEditSelectedThread ? (
                               <>
@@ -1707,15 +1714,17 @@ export default function CleanCommunityWorkspace() {
                                 </button>
                               </>
                             ) : null}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openReportForm({ id: selectedThread.id, type: "thread" })
-                              }
-                              style={subtleButtonStyle}
-                            >
-                              Report thread
-                            </button>
+                            {!selectedThreadIsStarter ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openReportForm({ id: selectedThread.id, type: "thread" })
+                                }
+                                style={subtleButtonStyle}
+                              >
+                                Report thread
+                              </button>
+                            ) : null}
                           </div>
                         </div>
 
@@ -1979,7 +1988,7 @@ export default function CleanCommunityWorkspace() {
                               {formatReplyCount(getDisplayReplyCount(selectedThread.id))}
                             </span>
                             <button type="button" onClick={focusReplyComposer} style={smallButtonStyle}>
-                              Jump to reply box
+                              {selectedThreadIsStarter ? "Start from this prompt" : "Jump to reply box"}
                             </button>
                           </div>
                         </div>
@@ -2338,14 +2347,35 @@ export default function CleanCommunityWorkspace() {
                         >
                           <label style={{ display: "grid", gap: 6 }}>
                             <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
-                              Add a reply
+                              {selectedThreadIsStarter ? "Start a real thread from this prompt" : "Add a reply"}
                             </span>
+                            {selectedThreadIsStarter ? (
+                              <span
+                                style={{
+                                  border: "1px solid #dbeafe",
+                                  borderRadius: 14,
+                                  background: "#f8fbff",
+                                  color: "#1e3a8a",
+                                  padding: "10px 12px",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  lineHeight: 1.6,
+                                }}
+                              >
+                                Starter discussions are prompts. Your response will be saved as a
+                                real community thread so other families can see and reply.
+                              </span>
+                            ) : null}
                             <textarea
                               ref={replyComposerRef}
                               value={replyBody}
                               onChange={(event) => setReplyBody(event.target.value)}
                               style={{ ...textareaStyle, minHeight: 110 }}
-                              placeholder="Share a practical response for other homeschool families."
+                              placeholder={
+                                selectedThreadIsStarter
+                                  ? "Share your response. We will save it as a new community thread linked to this prompt."
+                                  : "Share a practical response for other homeschool families."
+                              }
                             />
                           </label>
                           {replyError ? (
@@ -2360,7 +2390,11 @@ export default function CleanCommunityWorkspace() {
                           ) : null}
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <button type="submit" disabled={replySubmitting} style={buttonStyle}>
-                              {replySubmitting ? "Posting..." : "Post reply"}
+                              {replySubmitting
+                                ? "Posting..."
+                                : selectedThreadIsStarter
+                                  ? "Start real thread"
+                                  : "Post reply"}
                             </button>
                           </div>
                         </form>
