@@ -280,6 +280,14 @@ export function isStep29UnitSimpleFractionsActivity(id: string, stepKey?: string
   );
 }
 
+export function isStep30PracticalMoneyActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "solve-practical-number-problems-including-money" ||
+    safe(id).startsWith("number-step-30-assess-") ||
+    safe(id).startsWith("number-step-30-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -4045,6 +4053,246 @@ export function renderStep29WorksheetPromptVisual({
   );
 }
 
+function parseMoneyAmount(value: string) {
+  const match = safe(value).match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function formatMoneyAmount(amount: number) {
+  if (Number.isInteger(amount)) return `$${amount}`;
+  return `$${amount.toFixed(2)}`;
+}
+
+function getStep30MoneyDetails(prompt: string, visual: EarlyNumberVisualModel) {
+  const visualAmounts = visual.numberCards
+    .map(parseMoneyAmount)
+    .filter((amount): amount is number => amount !== null);
+  const promptAmounts =
+    prompt
+      .match(/\$\s*\d+(?:\.\d{1,2})?|\b\d+(?:\.\d{1,2})?\b/g)
+      ?.map(parseMoneyAmount)
+      .filter((amount): amount is number => amount !== null) ?? [];
+  const amounts = visualAmounts.length >= 2 ? visualAmounts : promptAmounts;
+  const first = amounts[0] ?? 10;
+  const second = amounts[1] ?? 4;
+  const lower = prompt.toLowerCase();
+  const isChange =
+    lower.includes("spend") ||
+    lower.includes("left") ||
+    lower.includes("change") ||
+    lower.includes("pay with") ||
+    lower.includes("paid with");
+  const answer = amounts[2] ?? (isChange ? first - second : first + second);
+
+  return {
+    first,
+    second,
+    answer,
+    mode: isChange ? ("change" as const) : ("total" as const),
+  };
+}
+
+function MoneyToken({
+  amount,
+  tone = "note",
+}: {
+  amount: number;
+  tone?: "note" | "coin";
+}) {
+  const isCoin = tone === "coin" || amount < 1;
+  return (
+    <span
+      aria-label={`${formatMoneyAmount(amount)} ${isCoin ? "coin" : "note"}`}
+      style={{
+        border: `2px solid ${isCoin ? "#d97706" : "#15803d"}`,
+        borderRadius: isCoin ? 999 : 12,
+        background: isCoin ? "#fef3c7" : "#dcfce7",
+        color: isCoin ? "#92400e" : "#166534",
+        minWidth: isCoin ? 58 : 82,
+        minHeight: isCoin ? 58 : 46,
+        padding: isCoin ? 8 : "9px 12px",
+        display: "inline-grid",
+        placeItems: "center",
+        fontSize: isCoin ? 17 : 20,
+        fontWeight: 950,
+        boxShadow: "0 8px 18px rgba(15,23,42,0.10)",
+      }}
+    >
+      {formatMoneyAmount(amount)}
+    </span>
+  );
+}
+
+function MoneyPanel({
+  label,
+  amount,
+  tone,
+}: {
+  label: string;
+  amount: number;
+  tone: "price" | "paid" | "change";
+}) {
+  const toneMap = {
+    price: { border: "#bfdbfe", background: "#eff6ff", color: "#1d4ed8" },
+    paid: { border: "#bbf7d0", background: "#f0fdf4", color: "#166534" },
+    change: { border: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" },
+  }[tone];
+
+  return (
+    <div
+      aria-label={`${label} ${formatMoneyAmount(amount)}`}
+      style={{
+        border: `1px solid ${toneMap.border}`,
+        borderRadius: 18,
+        background: toneMap.background,
+        padding: 12,
+        display: "grid",
+        gap: 8,
+        justifyItems: "center",
+        textAlign: "center",
+      }}
+    >
+      <span
+        style={{
+          color: toneMap.color,
+          fontSize: 12,
+          fontWeight: 900,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {label}
+      </span>
+      <MoneyToken amount={amount} />
+    </div>
+  );
+}
+
+export function renderStep30WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const details = getStep30MoneyDetails(prompt, visual);
+  const isChange = details.mode === "change";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use the money cards to work out the total or the change.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 999,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {isChange ? "Find change" : "Find total"}
+        </span>
+      </div>
+
+      <div
+        aria-label={
+          isChange
+            ? `${formatMoneyAmount(details.first)} paid, ${formatMoneyAmount(details.second)} spent, find the money left`
+            : `${formatMoneyAmount(details.first)} plus ${formatMoneyAmount(details.second)}, find the total`
+        }
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+            alignItems: "stretch",
+          }}
+        >
+          <MoneyPanel
+            label={isChange ? "Start with" : "Price 1"}
+            amount={details.first}
+            tone={isChange ? "paid" : "price"}
+          />
+          <MoneyPanel
+            label={isChange ? "Spend" : "Price 2"}
+            amount={details.second}
+            tone="price"
+          />
+          <div
+            aria-label={isChange ? "Change answer box" : "Total answer box"}
+            style={{
+              border: "2px dashed #7c3aed",
+              borderRadius: 18,
+              background: "#faf5ff",
+              color: "#6d28d9",
+              minHeight: 104,
+              display: "grid",
+              placeItems: "center",
+              textAlign: "center",
+              padding: 12,
+              fontWeight: 950,
+            }}
+          >
+            <span style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {isChange ? "Money left" : "Total"}
+            </span>
+            <strong style={{ fontSize: 32 }}>__</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getStep20FractionKind(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("quarter") || lower.includes("quarters") || lower.includes("1/4")) {
@@ -6406,6 +6654,43 @@ export function renderStep29WorksheetOptionCard({
         }}
       >
         {fractionWords(fraction.numerator, fraction.denominator)}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep30WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const amount = parseMoneyAmount(option);
+  if (amount === null) return null;
+
+  return (
+    <div
+      aria-label={`Choose ${formatMoneyAmount(amount)}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bbf7d0"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#f0fdf4",
+        color: "#166534",
+        minHeight: 148,
+        padding: 12,
+        display: "grid",
+        gap: 9,
+        placeItems: "center",
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <MoneyToken amount={amount} />
+      <div style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        Money answer
       </div>
     </div>
   );

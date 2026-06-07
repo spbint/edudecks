@@ -15,6 +15,8 @@ export type MathWorksheetResource = {
   curriculumCode?: string;
   concept?: string;
   includesAnswerSheet?: boolean;
+  regionalVariants?: string[];
+  containsRegionalMoneyPages?: boolean;
   fileName: string;
   href: string;
   resourceType: MathWorksheetResourceType;
@@ -86,6 +88,8 @@ const ESTIMATE_REASONABLENESS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S028-Estimate-And-Check-Reasonableness.pdf";
 const UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S029-Recognise-And-Represent-Unit-Fractions-And-Simple-Fractions.pdf";
+const PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-MP-S030-Solve-Practical-Number-Problems-Including-Money.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -560,6 +564,26 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${UNIT_SIMPLE_FRACTIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::solve-practical-number-problems-including-money",
+    stepKey: "solve-practical-number-problems-including-money",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 30,
+    pathwayStepTitle: "Solve practical number problems including money",
+    title: "Solve Practical Number Problems Including Money",
+    concept:
+      "Solve practical number problems involving money, totals, change and multi-step contexts",
+    includesAnswerSheet: false,
+    regionalVariants: ["US", "AU"],
+    containsRegionalMoneyPages: true,
+    fileName: PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/middle-primary/${PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
