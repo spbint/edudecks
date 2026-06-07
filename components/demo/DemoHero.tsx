@@ -34,7 +34,7 @@ export default function DemoHero({ onStart }: { onStart: () => void }) {
           Public demo
         </span>
         <h1 style={{ margin: 0, fontSize: "clamp(34px, 7vw, 60px)", lineHeight: 1 }}>
-          See how MyLearna works for a homeschool family
+          See how MyLearna works
         </h1>
         <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.7, fontSize: 17 }}>
           Explore a fictional U.S. homeschool family and follow the journey from

@@ -77,7 +77,7 @@ export default function ContactPage() {
   return (
     <PublicSiteShell
       eyebrow="Stay close to the launch"
-      heroTitle="Join the waitlist. Share your needs. Help shape the product."
+      heroTitle="Contact MyLearna"
       heroText="MyLearna is being built for homeschool families who want a calmer, stronger system for record keeping, portfolios, planning, and reporting."
       heroBadges={["Waitlist", "Early access", "Feedback welcome", "Beta interest"]}
       primaryCta={{ label: "Start Free", href: "/capture" }}

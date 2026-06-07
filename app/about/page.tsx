@@ -12,7 +12,7 @@ export default function AboutPage() {
   return (
     <PublicSiteShell
       eyebrow="Why MyLearna exists"
-      heroTitle="A calmer way to keep homeschool records and learning plans connected."
+      heroTitle="About MyLearna"
       heroText="MyLearna is being built for families who want a more connected way to capture learning, track evidence, plan intentionally, and prepare homeschool reports without turning home into school."
       heroBadges={["Calm", "Evidence-led", "Family-first", "Built to grow"]}
       primaryCta={{ label: "Join the free beta", href: "/beta" }}
