@@ -296,6 +296,14 @@ export function isStep31ExtendedPlaceValueActivity(id: string, stepKey?: string 
   );
 }
 
+export function isStep32RoundEstimateLargerNumbersActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "round-and-estimate-with-larger-numbers" ||
+    safe(id).startsWith("number-step-32-assess-") ||
+    safe(id).startsWith("number-step-32-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -5142,6 +5150,190 @@ export function renderStep31WorksheetPromptVisual({
   );
 }
 
+function roundToPlace(value: number, place: number) {
+  return Math.round(value / place) * place;
+}
+
+function getStep32RoundingDetails(visual: EarlyNumberVisualModel) {
+  const value = Number(safe(visual.numberCards[0]).replace(/,/g, ""));
+  const answer = Number(safe(visual.numberCards[1]).replace(/,/g, ""));
+  const safeValue = Number.isFinite(value) ? value : 1482;
+  const safeAnswer = Number.isFinite(answer) ? answer : roundToPlace(safeValue, 100);
+  const places = [10, 100, 1000, 10000, 100000, 1000000];
+  const matchingPlace =
+    places.find((place) => roundToPlace(safeValue, place) === safeAnswer) ??
+    (safeValue >= 100000 ? 10000 : safeValue >= 10000 ? 1000 : safeValue >= 1000 ? 100 : 10);
+
+  return {
+    value: safeValue,
+    answer: safeAnswer,
+    place: matchingPlace,
+  };
+}
+
+function formatPlaceLabel(place: number) {
+  if (place === 10) return "nearest 10";
+  if (place === 100) return "nearest 100";
+  if (place === 1000) return "nearest 1,000";
+  if (place === 10000) return "nearest 10,000";
+  if (place === 100000) return "nearest 100,000";
+  return "nearest 1,000,000";
+}
+
+function LargeNumberRoundingTable({ value, focusPlace }: { value: number; focusPlace: number }) {
+  const places = [10, 100, 1000, 10000, 100000].filter(
+    (place) => place <= Math.max(1000, value * 10),
+  );
+
+  return (
+    <div
+      aria-label={`Rounding table for ${largeNumberToWords(formatLargeNumber(value))}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(120px, 1fr) minmax(120px, 1fr)",
+          background: "#eff6ff",
+          color: "#1d4ed8",
+          fontSize: 12,
+          fontWeight: 950,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+        }}
+      >
+        <span style={{ padding: 10, borderRight: "1px solid #bfdbfe" }}>Round to</span>
+        <span style={{ padding: 10 }}>Estimate</span>
+      </div>
+      {places.map((place) => {
+        const isFocus = place === focusPlace;
+        return (
+          <div
+            key={`rounding-row-${place}`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(120px, 1fr) minmax(120px, 1fr)",
+              borderTop: "1px solid #dbeafe",
+              background: isFocus ? "#f5f3ff" : "#ffffff",
+              color: isFocus ? "#6d28d9" : "#0f172a",
+              fontWeight: isFocus ? 950 : 850,
+            }}
+          >
+            <span style={{ padding: 10, borderRight: "1px solid #dbeafe" }}>
+              {formatPlaceLabel(place)}
+            </span>
+            <span style={{ padding: 10 }}>{formatLargeNumber(roundToPlace(value, place))}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function renderStep32WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const details = getStep32RoundingDetails(visual);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Round the larger number to a useful place value, then choose the best estimate.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {formatPlaceLabel(details.place)}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <LargeNumberWorksheetCard value={String(details.value)} label="Number to round" />
+        <LargeNumberRoundingTable value={details.value} focusPlace={details.place} />
+        <div
+          aria-label={`Estimate answer box ${formatLargeNumber(details.answer)}`}
+          style={{
+            border: "2px dashed #7c3aed",
+            borderRadius: 18,
+            background: "#faf5ff",
+            color: "#6d28d9",
+            minHeight: 82,
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 10,
+            alignItems: "center",
+            padding: 12,
+            fontWeight: 950,
+          }}
+        >
+          <span>Best estimate</span>
+          <strong style={{ fontSize: 28 }}>__</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -6944,6 +7136,19 @@ export function renderStep31WorksheetOptionCard({
   if (!/^\d{1,7}(?:,\d{3})*$|^\d+$/.test(normalized)) return null;
 
   return <LargeNumberWorksheetCard value={normalized} label="Standard form" selected={selected} />;
+}
+
+export function renderStep32WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d{1,7}(?:,\d{3})*$|^\d+$/.test(normalized)) return null;
+
+  return <LargeNumberWorksheetCard value={normalized} label="Estimate" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

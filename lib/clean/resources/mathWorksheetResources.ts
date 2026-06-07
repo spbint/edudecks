@@ -92,6 +92,8 @@ const PRACTICAL_MONEY_PROBLEMS_WORKSHEET_FILE =
   "MYL-MATH-NPV-MP-S030-Solve-Practical-Number-Problems-Including-Money.pdf";
 const EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S031-Extend-Place-Value-To-Larger-Numbers.pdf";
+const ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S032-Round-And-Estimate-With-Larger-Numbers.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -604,6 +606,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::round-and-estimate-with-larger-numbers",
+    stepKey: "round-and-estimate-with-larger-numbers",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 32,
+    pathwayStepTitle: "Round and estimate with larger numbers",
+    title: "Round and Estimate with Larger Numbers",
+    concept:
+      "Round larger numbers to different place values and use estimation to solve and check problems",
+    includesAnswerSheet: false,
+    fileName: ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

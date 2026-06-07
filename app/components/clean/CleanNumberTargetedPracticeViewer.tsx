@@ -36,6 +36,7 @@ import {
   isStep29UnitSimpleFractionsActivity,
   isStep30PracticalMoneyActivity,
   isStep31ExtendedPlaceValueActivity,
+  isStep32RoundEstimateLargerNumbersActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -91,6 +92,8 @@ import {
   renderStep30WorksheetPromptVisual,
   renderStep31WorksheetOptionCard,
   renderStep31WorksheetPromptVisual,
+  renderStep32WorksheetOptionCard,
+  renderStep32WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1226,6 +1229,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep32RoundEstimateLargerNumbersActivity(task.id)) {
+    const step32Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep32WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step32Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1669,6 +1681,7 @@ function TaskCard({
           const step29UnitSimpleFractionsOptions = isStep29UnitSimpleFractionsActivity(task.id);
           const step30PracticalMoneyOptions = isStep30PracticalMoneyActivity(task.id);
           const step31ExtendedPlaceValueOptions = isStep31ExtendedPlaceValueActivity(task.id);
+          const step32RoundEstimateLargerNumbersOptions = isStep32RoundEstimateLargerNumbersActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1710,7 +1723,8 @@ function TaskCard({
                   step28EstimateReasonablenessOptions ||
                   step29UnitSimpleFractionsOptions ||
                   step30PracticalMoneyOptions ||
-                  step31ExtendedPlaceValueOptions
+                  step31ExtendedPlaceValueOptions ||
+                  step32RoundEstimateLargerNumbersOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -2317,6 +2331,42 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step32Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              step32RoundEstimateLargerNumbersOptions
+                ? renderStep32WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -2346,7 +2396,8 @@ function TaskCard({
               step28Visual ??
               step29Visual ??
               step30Visual ??
-              step31Visual;
+              step31Visual ??
+              step32Visual;
 
             return (
               <button
@@ -2382,7 +2433,8 @@ function TaskCard({
                     step28Visual ||
                     step29Visual ||
                     step30Visual ||
-                    step31Visual
+                    step31Visual ||
+                    step32Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
@@ -2413,7 +2465,8 @@ function TaskCard({
                     step28Visual ||
                     step29Visual ||
                     step30Visual ||
-                    step31Visual
+                    step31Visual ||
+                    step32Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -2448,7 +2501,8 @@ function TaskCard({
                     step28Visual ||
                     step29Visual ||
                     step30Visual ||
-                    step31Visual
+                    step31Visual ||
+                    step32Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -2483,7 +2537,8 @@ function TaskCard({
                     step28Visual ||
                     step29Visual ||
                     step30Visual ||
-                    step31Visual
+                    step31Visual ||
+                    step32Visual
                       ? 150
                       : statisticsVisual
                         ? 68
