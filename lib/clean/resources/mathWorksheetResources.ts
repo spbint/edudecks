@@ -106,6 +106,8 @@ const MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S037-Multiply-And-Divide-Larger-Whole-Numbers-Using-Efficient-Strategies.pdf";
 const INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S038-Interpret-Remainders-In-Context.pdf";
+const CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S039-Connect-Fractions-Decimals-And-Percentages.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -742,6 +744,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::connect-fractions-decimals-and-percentages",
+    stepKey: "connect-fractions-decimals-and-percentages",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 39,
+    pathwayStepTitle: "Connect fractions, decimals and percentages",
+    title: "Connect Fractions, Decimals and Percentages",
+    concept:
+      "Connect equivalent fractions, decimals and percentages using tables, visual models and real-world problems",
+    includesAnswerSheet: false,
+    fileName: CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

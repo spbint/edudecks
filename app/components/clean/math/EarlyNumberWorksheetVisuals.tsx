@@ -352,6 +352,14 @@ export function isStep38RemaindersContextActivity(id: string, stepKey?: string |
   );
 }
 
+export function isStep39FractionDecimalPercentActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "connect-fractions-decimals-and-percentages" ||
+    safe(id).startsWith("number-step-39-assess-") ||
+    safe(id).startsWith("number-step-39-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -6511,6 +6519,234 @@ function DivisionRemainderPanel({ total, groupSize }: { total: number; groupSize
   );
 }
 
+function parseFractionDecimalPercentSet(value: string) {
+  const parts = safe(value)
+    .split(",")
+    .map((part) => safe(part));
+  const fraction = parts.find((part) => Boolean(parseFractionNotation(part))) ?? "";
+  const decimal = parts.find((part) => /^0?\.\d+$|^1(?:\.0+)?$/.test(part)) ?? "";
+  const percent = parts.find((part) => part.endsWith("%")) ?? "";
+
+  return {
+    fraction,
+    decimal,
+    percent,
+  };
+}
+
+function percentToShadedCount(percent: string, fallbackFraction: string) {
+  const percentValue = Number(safe(percent).replace("%", ""));
+  if (Number.isFinite(percentValue)) {
+    return Math.max(0, Math.min(100, Math.round(percentValue)));
+  }
+
+  const fraction = parseFractionNotation(fallbackFraction);
+  if (!fraction || !fraction.denominator) return 50;
+  return Math.max(0, Math.min(100, Math.round((fraction.numerator / fraction.denominator) * 100)));
+}
+
+function PercentGridModel({
+  percent,
+  fraction,
+  selected = false,
+}: {
+  percent: string;
+  fraction: string;
+  selected?: boolean;
+}) {
+  const shaded = percentToShadedCount(percent, fraction);
+
+  return (
+    <div
+      aria-label={`${shaded} out of 100 squares shaded`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 16,
+        background: "#ffffff",
+        padding: 10,
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(10, 1fr)",
+          gap: 2,
+          maxWidth: 150,
+          margin: "0 auto",
+        }}
+      >
+        {Array.from({ length: 100 }, (_, index) => (
+          <span
+            key={`percent-grid-${index}`}
+            aria-hidden="true"
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 2,
+              background: index < shaded ? "#38bdf8" : "#e0f2fe",
+              border: "1px solid #bae6fd",
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ color: "#0369a1", fontSize: 12, fontWeight: 900, textAlign: "center" }}>
+        {shaded}/100 shaded
+      </div>
+    </div>
+  );
+}
+
+function FdpConversionTable({
+  fraction,
+  decimal,
+  percent,
+  selected = false,
+}: {
+  fraction: string;
+  decimal: string;
+  percent: string;
+  selected?: boolean;
+}) {
+  const rows = [
+    ["Fraction", fraction],
+    ["Decimal", decimal],
+    ["Percentage", percent],
+  ];
+
+  return (
+    <div
+      aria-label={`Equivalent values ${fraction}, ${decimal}, ${percent}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        overflow: "hidden",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      {rows.map(([label, value], index) => (
+        <div
+          key={`fdp-row-${label}`}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(84px, 0.9fr) minmax(96px, 1.1fr)",
+            borderTop: index === 0 ? "none" : "1px solid #dbeafe",
+          }}
+        >
+          <div
+            style={{
+              background: index === 0 ? "#eff6ff" : index === 1 ? "#f0fdf4" : "#fff7ed",
+              color: index === 0 ? "#1d4ed8" : index === 1 ? "#166534" : "#9a3412",
+              padding: "9px 10px",
+              fontSize: 12,
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            {label}
+          </div>
+          <div
+            style={{
+              color: "#0f172a",
+              padding: "9px 10px",
+              fontSize: 20,
+              fontWeight: 950,
+              lineHeight: 1.1,
+              display: "grid",
+              placeItems: "center",
+              textAlign: "center",
+              minHeight: 44,
+            }}
+          >
+            {value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FractionDecimalPercentPanel({
+  fraction,
+  decimal,
+  percent,
+}: {
+  fraction: string;
+  decimal: string;
+  percent: string;
+}) {
+  const safeFraction = fraction || "1/2";
+  const safeDecimal = decimal || "0.5";
+  const safePercent = percent || "50%";
+
+  return (
+    <div
+      aria-label={`Fraction decimal percentage equivalence ${safeFraction}, ${safeDecimal}, ${safePercent}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: 10,
+          alignItems: "stretch",
+        }}
+      >
+        <FractionNotationCard value={safeFraction} label="Fraction benchmark" />
+        <PercentGridModel percent={safePercent} fraction={safeFraction} />
+        <FdpConversionTable
+          fraction={safeFraction}
+          decimal={safeDecimal}
+          percent={safePercent}
+        />
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {[
+          ["Fraction", "Shows equal parts of one whole."],
+          ["Decimal", "Shows the same amount using place value."],
+          ["Percentage", "Shows the amount out of 100."],
+        ].map(([label, text]) => (
+          <div
+            key={`fdp-helper-${label}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 11,
+              fontSize: 13,
+              fontWeight: 850,
+              lineHeight: 1.45,
+            }}
+          >
+            <strong>{label}</strong>
+            <br />
+            {text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function renderStep35WorksheetPromptVisual({
   prompt,
   visual,
@@ -6837,6 +7073,87 @@ export function renderStep38WorksheetPromptVisual({
           {prompt}
         </div>
         <DivisionRemainderPanel total={safeTotal} groupSize={safeGroupSize} />
+      </div>
+    </div>
+  );
+}
+
+export function renderStep39WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const fraction = safe(visual.numberCards[0]) || "1/2";
+  const decimal = safe(visual.numberCards[1]) || "0.5";
+  const percent = safe(visual.numberCards[2]) || "50%";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Match the fraction, decimal and percentage that show the same amount.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Equivalent values
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <FractionDecimalPercentPanel fraction={fraction} decimal={decimal} percent={percent} />
       </div>
     </div>
   );
@@ -8841,6 +9158,49 @@ export function renderStep38WorksheetOptionCard({
         }}
       >
         {parsed.remainder} left over
+      </div>
+    </div>
+  );
+}
+
+export function renderStep39WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  const parsed = parseFractionDecimalPercentSet(normalized);
+  if (!parsed.fraction || !parsed.decimal || !parsed.percent) return null;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 8,
+        minHeight: 150,
+      }}
+    >
+      <FdpConversionTable
+        fraction={parsed.fraction}
+        decimal={parsed.decimal}
+        percent={parsed.percent}
+        selected={selected}
+      />
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+          textAlign: "center",
+        }}
+      >
+        Fraction - decimal - percentage
       </div>
     </div>
   );
