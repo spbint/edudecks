@@ -102,6 +102,8 @@ const COMPARE_ORDER_EQUIVALENT_FRACTIONS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S035-Compare-Order-And-Generate-Equivalent-Fractions.pdf";
 const ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S036-Add-And-Subtract-Fractions-With-Related-Denominators.pdf";
+const MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S037-Multiply-And-Divide-Larger-Whole-Numbers-Using-Efficient-Strategies.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -702,6 +704,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::multiply-and-divide-larger-whole-numbers-using-efficient-strategies",
+    stepKey: "multiply-and-divide-larger-whole-numbers-using-efficient-strategies",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 37,
+    pathwayStepTitle: "Multiply and divide larger whole numbers using efficient strategies",
+    title: "Multiply and Divide Larger Whole Numbers Using Efficient Strategies",
+    concept:
+      "Use efficient strategies such as partitioning, known facts, place value and grouping to multiply and divide larger whole numbers",
+    includesAnswerSheet: false,
+    fileName: MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

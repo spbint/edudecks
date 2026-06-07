@@ -336,6 +336,14 @@ export function isStep36FractionAddSubtractActivity(id: string, stepKey?: string
   );
 }
 
+export function isStep37EfficientStrategiesActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "multiply-and-divide-larger-whole-numbers-using-efficient-strategies" ||
+    safe(id).startsWith("number-step-37-assess-") ||
+    safe(id).startsWith("number-step-37-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -6102,6 +6110,185 @@ function FractionEquationPanel({ equation, answer }: { equation: string; answer:
   );
 }
 
+function getStep37Operation(
+  first: number,
+  second: number,
+  answer: number,
+  prompt: string,
+) {
+  const normalizedPrompt = safe(prompt).toLowerCase();
+  if (normalizedPrompt.includes(" x ") || normalizedPrompt.includes("multiply")) {
+    return "multiply";
+  }
+  if (normalizedPrompt.includes("divide") || normalizedPrompt.includes("/")) {
+    return "divide";
+  }
+  if (first * second === answer) return "multiply";
+  if (second !== 0 && first / second === answer) return "divide";
+  return answer > first ? "multiply" : "divide";
+}
+
+function StrategyNumberCard({ value, label }: { value: number; label: string }) {
+  return (
+    <div
+      aria-label={`${label} ${value}`}
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 16,
+        background: "#eff6ff",
+        color: "#1e3a8a",
+        padding: 12,
+        display: "grid",
+        gap: 5,
+        textAlign: "center",
+        minHeight: 92,
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 30, fontWeight: 950, lineHeight: 1 }}>{value.toLocaleString()}</span>
+    </div>
+  );
+}
+
+function EfficientStrategyPanel({
+  first,
+  second,
+  answer,
+  prompt,
+}: {
+  first: number;
+  second: number;
+  answer: number;
+  prompt: string;
+}) {
+  const operation = getStep37Operation(first, second, answer, prompt);
+  const isMultiply = operation === "multiply";
+  const symbol = isMultiply ? "x" : "/";
+  const tens = Math.floor(first / 10) * 10;
+  const ones = first - tens;
+  const multiplicationHelper =
+    ones > 0
+      ? `Break apart ${first} into ${tens} and ${ones}.`
+      : `Use place value and known facts for ${first}.`;
+  const divisionHelper =
+    second > 0
+      ? `Partition ${first} into parts that divide by ${second}.`
+      : `Use grouping to divide the total.`;
+
+  return (
+    <div
+      aria-label={`${isMultiply ? "Multiplication" : "Division"} strategy card for ${first} ${symbol} ${second}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(110px, 1fr) auto minmax(110px, 1fr) auto minmax(110px, 1fr)",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        <StrategyNumberCard value={first} label={isMultiply ? "Factor" : "Total"} />
+        <span
+          aria-hidden="true"
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 999,
+            background: "#fff7ed",
+            color: "#9a3412",
+            minWidth: 46,
+            minHeight: 46,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 26,
+            fontWeight: 950,
+          }}
+        >
+          {symbol}
+        </span>
+        <StrategyNumberCard value={second} label={isMultiply ? "Factor" : "Group size"} />
+        <span
+          aria-hidden="true"
+          style={{
+            color: "#1e3a8a",
+            fontSize: 28,
+            fontWeight: 950,
+            textAlign: "center",
+          }}
+        >
+          =
+        </span>
+        <div
+          aria-label="Answer box"
+          style={{
+            border: "2px dashed #93c5fd",
+            borderRadius: 16,
+            background: "#f8fbff",
+            color: "#1e3a8a",
+            padding: 12,
+            display: "grid",
+            placeItems: "center",
+            minHeight: 92,
+            fontSize: 18,
+            fontWeight: 950,
+            textAlign: "center",
+          }}
+        >
+          choose answer
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {(isMultiply
+          ? [
+              ["Break apart", multiplicationHelper],
+              ["Known facts", `Use facts for ${second}, then adjust if needed.`],
+              ["Place value", `Multiply each place-value part by ${second}.`],
+            ]
+          : [
+              ["Partition", divisionHelper],
+              ["Known facts", `Use multiplication facts for ${second}.`],
+              ["Grouping", `Think how many groups of ${second} fit into ${first}.`],
+            ]
+        ).map(([label, text]) => (
+          <div
+            key={`${label}-${text}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 11,
+              fontSize: 13,
+              fontWeight: 850,
+              lineHeight: 1.45,
+            }}
+          >
+            <strong>{label}</strong>
+            <br />
+            {text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function renderStep35WorksheetPromptVisual({
   prompt,
   visual,
@@ -6257,6 +6444,95 @@ export function renderStep36WorksheetPromptVisual({
           {prompt}
         </div>
         <FractionEquationPanel equation={equation} answer={answer} />
+      </div>
+    </div>
+  );
+}
+
+export function renderStep37WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const first = Number(safe(visual.numberCards[0]));
+  const second = Number(safe(visual.numberCards[1]));
+  const answer = Number(safe(visual.numberCards[2]));
+  const safeFirst = Number.isFinite(first) && first > 0 ? first : 24;
+  const safeSecond = Number.isFinite(second) && second > 0 ? second : 5;
+  const safeAnswer = Number.isFinite(answer) && answer > 0 ? answer : safeFirst * safeSecond;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Choose an efficient strategy: break apart, use known facts, place value, or grouping.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Efficient strategy
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <EfficientStrategyPanel
+          first={safeFirst}
+          second={safeSecond}
+          answer={safeAnswer}
+          prompt={prompt}
+        />
       </div>
     </div>
   );
@@ -8158,6 +8434,56 @@ export function renderStep36WorksheetOptionCard({
   if (!parseFractionNotation(normalized)) return null;
 
   return <FractionNotationCard value={normalized} label="Choose answer fraction" selected={selected} />;
+}
+
+export function renderStep37WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  const value = Number(normalized.replace(/,/g, ""));
+  if (!Number.isFinite(value)) return null;
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: 34, fontWeight: 950, lineHeight: 1 }}>
+        {value.toLocaleString()}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 999,
+          background: "#f0fdf4",
+          color: "#166534",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        Answer choice
+      </div>
+    </div>
+  );
 }
 
 export function renderStep3WorksheetOptionCard({
