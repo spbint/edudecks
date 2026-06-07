@@ -304,6 +304,14 @@ export function isStep32RoundEstimateLargerNumbersActivity(id: string, stepKey?:
   );
 }
 
+export function isStep33DecimalPlaceValueActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "extend-place-value-to-decimals" ||
+    safe(id).startsWith("number-step-33-assess-") ||
+    safe(id).startsWith("number-step-33-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -5334,6 +5342,279 @@ export function renderStep32WorksheetPromptVisual({
   );
 }
 
+function parseDecimalValue(value: string | number) {
+  const normalized = safe(value);
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
+  const [ones = "0", decimal = ""] = normalized.split(".");
+  const tenths = decimal[0] ?? "0";
+  const hundredths = decimal[1] ?? "0";
+  return {
+    raw: normalized,
+    ones: Number(ones),
+    tenths: Number(tenths),
+    hundredths: Number(hundredths),
+  };
+}
+
+function decimalWords(value: string | number) {
+  const decimal = parseDecimalValue(value);
+  if (!decimal) return safe(value);
+  const parts = [`${decimal.ones} ones`, `${decimal.tenths} tenths`];
+  if (safe(decimal.raw).includes(".") && safe(decimal.raw).split(".")[1]?.length > 1) {
+    parts.push(`${decimal.hundredths} hundredths`);
+  }
+  return parts.join(", ");
+}
+
+function DecimalNumberCard({
+  value,
+  label = "Decimal",
+  selected = false,
+}: {
+  value: string;
+  label?: string;
+  selected?: boolean;
+}) {
+  return (
+    <div
+      aria-label={`${label} ${decimalWords(value)}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          color: "#1d4ed8",
+          fontSize: 12,
+          fontWeight: 900,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          color: "#0f172a",
+          fontSize: 40,
+          fontWeight: 950,
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, lineHeight: 1.3 }}>
+        {decimalWords(value)}
+      </div>
+    </div>
+  );
+}
+
+function DecimalPlaceValueChart({ value }: { value: string }) {
+  const decimal = parseDecimalValue(value) ?? { raw: value, ones: 0, tenths: 0, hundredths: 0 };
+  const columns = [
+    { key: "ones", label: "Ones", value: decimal.ones, color: "#1d4ed8", background: "#eff6ff" },
+    { key: "point", label: ".", value: ".", color: "#64748b", background: "#f8fafc" },
+    { key: "tenths", label: "Tenths", value: decimal.tenths, color: "#166534", background: "#f0fdf4" },
+    { key: "hundredths", label: "Hundredths", value: decimal.hundredths, color: "#6d28d9", background: "#f5f3ff" },
+  ];
+
+  return (
+    <div
+      aria-label={`Decimal place value chart showing ${decimalWords(value)}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 44px 1fr 1fr",
+          gap: 6,
+        }}
+      >
+        {columns.map((column) => (
+          <div
+            key={`decimal-column-${column.key}`}
+            style={{
+              border: "1px solid #bfdbfe",
+              borderRadius: 12,
+              overflow: "hidden",
+              textAlign: "center",
+              background: column.background,
+            }}
+          >
+            <div
+              style={{
+                color: column.color,
+                padding: "7px 4px",
+                fontSize: 11,
+                fontWeight: 950,
+                textTransform: column.key === "point" ? undefined : "uppercase",
+                letterSpacing: column.key === "point" ? undefined : "0.04em",
+              }}
+            >
+              {column.label}
+            </div>
+            <div
+              style={{
+                background: "#ffffff",
+                color: column.color,
+                padding: "10px 4px",
+                minHeight: 48,
+                display: "grid",
+                placeItems: "center",
+                fontSize: column.key === "point" ? 34 : 28,
+                fontWeight: 950,
+              }}
+            >
+              {column.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DecimalPartitionPanel({ value }: { value: string }) {
+  const decimal = parseDecimalValue(value) ?? { raw: value, ones: 0, tenths: 0, hundredths: 0 };
+  const hasHundredths = safe(value).includes(".") && safe(value).split(".")[1]?.length > 1;
+
+  return (
+    <div
+      aria-label={`Partition ${value} as ${decimalWords(value)}`}
+      style={{
+        border: "1px solid #bbf7d0",
+        borderRadius: 18,
+        background: "#f0fdf4",
+        color: "#166534",
+        padding: 12,
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        Partition
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        <span style={{ border: "1px solid #86efac", borderRadius: 12, background: "#ffffff", padding: "8px 10px", fontWeight: 950 }}>
+          {decimal.ones} ones
+        </span>
+        <span aria-hidden="true" style={{ fontWeight: 950 }}>+</span>
+        <span style={{ border: "1px solid #86efac", borderRadius: 12, background: "#ffffff", padding: "8px 10px", fontWeight: 950 }}>
+          {decimal.tenths} tenths
+        </span>
+        {hasHundredths ? (
+          <>
+            <span aria-hidden="true" style={{ fontWeight: 950 }}>+</span>
+            <span style={{ border: "1px solid #86efac", borderRadius: 12, background: "#ffffff", padding: "8px 10px", fontWeight: 950 }}>
+              {decimal.hundredths} hundredths
+            </span>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep33WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const focusValue = safe(visual.numberCards[0]) || safe(prompt.match(/\d+(?:\.\d+)?/)?.[0]) || "3.25";
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Read the decimal using ones, tenths and hundredths.
+        </div>
+        <span
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 999,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Decimal place value
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <DecimalNumberCard value={focusValue} label="Decimal number" />
+        <DecimalPlaceValueChart value={focusValue} />
+        <DecimalPartitionPanel value={focusValue} />
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -7149,6 +7430,19 @@ export function renderStep32WorksheetOptionCard({
   if (!/^\d{1,7}(?:,\d{3})*$|^\d+$/.test(normalized)) return null;
 
   return <LargeNumberWorksheetCard value={normalized} label="Estimate" selected={selected} />;
+}
+
+export function renderStep33WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
+
+  return <DecimalNumberCard value={normalized} label="Choose decimal" selected={selected} />;
 }
 
 export function renderStep3WorksheetOptionCard({

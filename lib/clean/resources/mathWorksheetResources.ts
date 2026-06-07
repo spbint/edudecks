@@ -94,6 +94,8 @@ const EXTEND_PLACE_VALUE_LARGER_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S031-Extend-Place-Value-To-Larger-Numbers.pdf";
 const ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S032-Round-And-Estimate-With-Larger-Numbers.pdf";
+const EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S033-Extend-Place-Value-To-Decimals.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -624,6 +626,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::extend-place-value-to-decimals",
+    stepKey: "extend-place-value-to-decimals",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 33,
+    pathwayStepTitle: "Extend place value to decimals",
+    title: "Extend Place Value to Decimals",
+    concept: "Read, partition, compare, order and solve problems using decimals",
+    includesAnswerSheet: false,
+    fileName: EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
