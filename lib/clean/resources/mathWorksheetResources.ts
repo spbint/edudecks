@@ -104,6 +104,8 @@ const ADD_SUBTRACT_FRACTIONS_RELATED_DENOMINATORS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S036-Add-And-Subtract-Fractions-With-Related-Denominators.pdf";
 const MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S037-Multiply-And-Divide-Larger-Whole-Numbers-Using-Efficient-Strategies.pdf";
+const INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S038-Interpret-Remainders-In-Context.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -722,6 +724,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${MULTIPLY_DIVIDE_LARGER_WHOLE_NUMBERS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::interpret-remainders-in-context",
+    stepKey: "interpret-remainders-in-context",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 38,
+    pathwayStepTitle: "Interpret remainders in context",
+    title: "Interpret Remainders in Context",
+    concept:
+      "Solve division problems with remainders and interpret what the remainder means in real-world contexts",
+    includesAnswerSheet: false,
+    fileName: INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

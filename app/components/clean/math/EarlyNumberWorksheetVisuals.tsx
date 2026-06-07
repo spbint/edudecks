@@ -344,6 +344,14 @@ export function isStep37EfficientStrategiesActivity(id: string, stepKey?: string
   );
 }
 
+export function isStep38RemaindersContextActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "interpret-remainders-in-context" ||
+    safe(id).startsWith("number-step-38-assess-") ||
+    safe(id).startsWith("number-step-38-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -6289,6 +6297,220 @@ function EfficientStrategyPanel({
   );
 }
 
+function parseRemainderAnswer(value: string) {
+  const match = safe(value).match(/(\d+)\s*(?:remainder|R)\s*(\d+)/i);
+  if (!match) return null;
+  return {
+    quotient: Number(match[1]),
+    remainder: Number(match[2]),
+  };
+}
+
+function RemainderBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      aria-label={`${label} ${value}`}
+      style={{
+        border: "2px dashed #93c5fd",
+        borderRadius: 16,
+        background: "#f8fbff",
+        color: "#1e3a8a",
+        padding: 12,
+        minHeight: 88,
+        display: "grid",
+        placeItems: "center",
+        gap: 5,
+        textAlign: "center",
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 24, fontWeight: 950, lineHeight: 1 }}>{value}</span>
+    </div>
+  );
+}
+
+function GroupsAndLeftoversVisual({ total, groupSize }: { total: number; groupSize: number }) {
+  const quotient = groupSize > 0 ? Math.floor(total / groupSize) : 0;
+  const remainder = groupSize > 0 ? total % groupSize : 0;
+  const groupsToShow = Math.min(quotient, 6);
+
+  return (
+    <div
+      aria-label={`${total} items grouped in groups of ${groupSize}, with ${remainder} left over`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 16,
+        background: "#ffffff",
+        padding: 10,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {Array.from({ length: groupsToShow }, (_, groupIndex) => (
+          <div
+            key={`remainder-group-${groupIndex}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 999,
+              background: "#f0fdf4",
+              minHeight: 72,
+              padding: 8,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 4,
+              alignContent: "center",
+              justifyContent: "center",
+            }}
+          >
+            {Array.from({ length: Math.min(groupSize, 10) }, (_, dotIndex) => (
+              <span
+                key={`remainder-dot-${groupIndex}-${dotIndex}`}
+                aria-hidden="true"
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 999,
+                  background: "#22c55e",
+                  border: "1px solid #16a34a",
+                }}
+              />
+            ))}
+          </div>
+        ))}
+        {quotient > groupsToShow ? (
+          <div
+            style={{
+              border: "1px solid #bfdbfe",
+              borderRadius: 16,
+              background: "#eff6ff",
+              color: "#1e3a8a",
+              minHeight: 72,
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 900,
+              textAlign: "center",
+              padding: 8,
+            }}
+          >
+            + {quotient - groupsToShow} more full groups
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #fed7aa",
+          borderRadius: 16,
+          background: "#fff7ed",
+          color: "#9a3412",
+          padding: 10,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          fontWeight: 900,
+        }}
+      >
+        <span>Left over</span>
+        {Array.from({ length: Math.min(remainder, 12) }, (_, index) => (
+          <span
+            key={`remainder-leftover-${index}`}
+            aria-hidden="true"
+            style={{
+              width: 11,
+              height: 11,
+              borderRadius: 999,
+              background: "#f97316",
+              border: "1px solid #ea580c",
+            }}
+          />
+        ))}
+        <span>{remainder}</span>
+      </div>
+    </div>
+  );
+}
+
+function DivisionRemainderPanel({ total, groupSize }: { total: number; groupSize: number }) {
+  return (
+    <div
+      aria-label={`Division sentence ${total} divided by ${groupSize} equals quotient remainder`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(90px, 1fr) auto minmax(90px, 1fr) auto minmax(90px, 1fr) minmax(90px, 1fr)",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        <StrategyNumberCard value={total} label="Total" />
+        <span aria-hidden="true" style={{ color: "#1e3a8a", fontSize: 28, fontWeight: 950 }}>
+          /
+        </span>
+        <StrategyNumberCard value={groupSize} label="Group size" />
+        <span aria-hidden="true" style={{ color: "#1e3a8a", fontSize: 28, fontWeight: 950 }}>
+          =
+        </span>
+        <RemainderBox label="Quotient" value="__" />
+        <RemainderBox label="Remainder" value="R __" />
+      </div>
+
+      <GroupsAndLeftoversVisual total={total} groupSize={groupSize} />
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {[
+          ["Full groups", "The quotient tells how many complete groups are made."],
+          ["Remainder", "The remainder tells what is left over or needs a context decision."],
+          ["Context", "Decide whether leftovers stay out, need another group, or form a partial group."],
+        ].map(([label, text]) => (
+          <div
+            key={`remainder-meaning-${label}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 11,
+              fontSize: 13,
+              fontWeight: 850,
+              lineHeight: 1.45,
+            }}
+          >
+            <strong>{label}</strong>
+            <br />
+            {text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function renderStep35WorksheetPromptVisual({
   prompt,
   visual,
@@ -6533,6 +6755,88 @@ export function renderStep37WorksheetPromptVisual({
           answer={safeAnswer}
           prompt={prompt}
         />
+      </div>
+    </div>
+  );
+}
+
+export function renderStep38WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const total = Number(visual.groupCounts[0] ?? visual.numberCards[0]);
+  const groupSize = Number(visual.groupCounts[1] ?? visual.numberCards[1]);
+  const safeTotal = Number.isFinite(total) && total > 0 ? total : 25;
+  const safeGroupSize = Number.isFinite(groupSize) && groupSize > 0 ? groupSize : 4;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Solve the division, then decide what the remainder means in the situation.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Remainder context
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <DivisionRemainderPanel total={safeTotal} groupSize={safeGroupSize} />
       </div>
     </div>
   );
@@ -8481,6 +8785,62 @@ export function renderStep37WorksheetOptionCard({
         }}
       >
         Answer choice
+      </div>
+    </div>
+  );
+}
+
+export function renderStep38WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  const parsed = parseRemainderAnswer(normalized);
+  if (!parsed) return null;
+
+  return (
+    <div
+      aria-label={`Choose ${parsed.quotient} remainder ${parsed.remainder}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        gap: 10,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
+        }}
+      >
+        <RemainderBox label="Quotient" value={String(parsed.quotient)} />
+        <RemainderBox label="Remainder" value={`R ${parsed.remainder}`} />
+      </div>
+      <div
+        style={{
+          border: "1px solid #fed7aa",
+          borderRadius: 999,
+          background: "#fff7ed",
+          color: "#9a3412",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {parsed.remainder} left over
       </div>
     </div>
   );
