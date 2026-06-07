@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { AuthUserProvider } from "@/app/components/AuthUserProvider";
 import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTracker";
+import GoogleAdsTag from "@/app/components/GoogleAdsTag";
 import MetaPixel from "@/app/components/MetaPixel";
 import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
@@ -95,6 +96,7 @@ export default function RootLayout({
           }}
         />
         <GoogleAnalyticsPageTracker />
+        <GoogleAdsTag />
         <Suspense fallback={null}>
           <MetaPixel />
         </Suspense>
