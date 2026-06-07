@@ -360,6 +360,14 @@ export function isStep39FractionDecimalPercentActivity(id: string, stepKey?: str
   );
 }
 
+export function isStep40FinancialModellingActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "use-mathematical-modelling-in-financial-and-real-world-contexts" ||
+    safe(id).startsWith("number-step-40-assess-") ||
+    safe(id).startsWith("number-step-40-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -6747,6 +6755,172 @@ function FractionDecimalPercentPanel({
   );
 }
 
+function parseMoneyNumber(value: string) {
+  const parsed = Number(safe(value).replace(/[$,]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatWholeMoney(value: number) {
+  return `$${Math.round(value).toLocaleString()}`;
+}
+
+function FinancialModelTable({
+  start,
+  change,
+  isSpend,
+}: {
+  start: number;
+  change: number;
+  isSpend: boolean;
+}) {
+  const rows = [
+    ["Starting amount", formatWholeMoney(start)],
+    [isSpend ? "Spend" : "Change amount", `${isSpend ? "-" : "+"}${formatWholeMoney(Math.abs(change))}`],
+    ["Model", isSpend ? `${formatWholeMoney(start)} - ${formatWholeMoney(Math.abs(change))}` : `${formatWholeMoney(start)} + ${formatWholeMoney(change)}`],
+    ["Answer", "choose amount"],
+  ];
+
+  return (
+    <div
+      aria-label="Financial model table"
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        overflow: "hidden",
+      }}
+    >
+      {rows.map(([label, value], index) => (
+        <div
+          key={`financial-row-${label}`}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(120px, 0.9fr) minmax(130px, 1.1fr)",
+            borderTop: index === 0 ? "none" : "1px solid #dbeafe",
+          }}
+        >
+          <div
+            style={{
+              background: index % 2 === 0 ? "#eff6ff" : "#f0fdf4",
+              color: index % 2 === 0 ? "#1d4ed8" : "#166534",
+              padding: "10px 12px",
+              fontSize: 12,
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            {label}
+          </div>
+          <div
+            style={{
+              color: "#0f172a",
+              padding: "10px 12px",
+              fontSize: index === 2 ? 18 : 20,
+              fontWeight: 950,
+              textAlign: "center",
+              display: "grid",
+              placeItems: "center",
+              minHeight: 48,
+            }}
+          >
+            {value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FinancialModelPanel({
+  start,
+  change,
+  prompt,
+}: {
+  start: number;
+  change: number;
+  prompt: string;
+}) {
+  const isSpend = change < 0 || safe(prompt).toLowerCase().includes("spend");
+  const displayChange = isSpend ? Math.abs(change) : change;
+  const actionLabel = isSpend ? "subtract spending" : displayChange > 10 ? "add or compare" : "multiply or scale";
+
+  return (
+    <div
+      aria-label={`Financial modelling card with ${formatWholeMoney(start)} and ${formatWholeMoney(displayChange)}`}
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#ffffff",
+        padding: 12,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 16,
+            background: "#eff6ff",
+            color: "#1e3a8a",
+            padding: 12,
+            display: "grid",
+            gap: 8,
+            minHeight: 118,
+          }}
+        >
+          <strong style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Model first
+          </strong>
+          <span style={{ fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+            Identify the starting amount, the change, and the operation before choosing an answer.
+          </span>
+        </div>
+        <FinancialModelTable start={start} change={isSpend ? -displayChange : displayChange} isSpend={isSpend} />
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {[
+          ["Table", "Organise amounts before calculating."],
+          ["Equation", `Use a model to ${actionLabel}.`],
+          ["Check", "Compare the answer with the context."],
+        ].map(([label, text]) => (
+          <div
+            key={`financial-helper-${label}`}
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              color: "#166534",
+              padding: 11,
+              fontSize: 13,
+              fontWeight: 850,
+              lineHeight: 1.45,
+            }}
+          >
+            <strong>{label}</strong>
+            <br />
+            {text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function renderStep35WorksheetPromptVisual({
   prompt,
   visual,
@@ -7154,6 +7328,86 @@ export function renderStep39WorksheetPromptVisual({
           {prompt}
         </div>
         <FractionDecimalPercentPanel fraction={fraction} decimal={decimal} percent={percent} />
+      </div>
+    </div>
+  );
+}
+
+export function renderStep40WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const start = parseMoneyNumber(visual.numberCards[0]) || 25;
+  const change = parseMoneyNumber(visual.numberCards[1]) || 18;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Build a model with a table or equation, then use it to solve the real-world problem.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Financial model
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <FinancialModelPanel start={start} change={change} prompt={prompt} />
       </div>
     </div>
   );
@@ -9201,6 +9455,56 @@ export function renderStep39WorksheetOptionCard({
         }}
       >
         Fraction - decimal - percentage
+      </div>
+    </div>
+  );
+}
+
+export function renderStep40WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  const amount = parseMoneyNumber(normalized);
+  if (!normalized.startsWith("$") || !Number.isFinite(amount)) return null;
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: 34, fontWeight: 950, lineHeight: 1 }}>
+        {formatWholeMoney(amount)}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 999,
+          background: "#f0fdf4",
+          color: "#166534",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        Model result
       </div>
     </div>
   );

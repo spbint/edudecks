@@ -108,6 +108,8 @@ const INTERPRET_REMAINDERS_CONTEXT_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S038-Interpret-Remainders-In-Context.pdf";
 const CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S039-Connect-Fractions-Decimals-And-Percentages.pdf";
+const MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S040-Use-Mathematical-Modelling-In-Financial-And-Real-World-Contexts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -762,6 +764,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::use-mathematical-modelling-in-financial-and-real-world-contexts",
+    stepKey: "use-mathematical-modelling-in-financial-and-real-world-contexts",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 40,
+    pathwayStepTitle: "Use mathematical modelling in financial and real-world contexts",
+    title: "Use Mathematical Modelling in Financial and Real-World Contexts",
+    concept:
+      "Use mathematical models such as tables, diagrams and equations to solve financial and real-world problems",
+    includesAnswerSheet: false,
+    fileName: MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
