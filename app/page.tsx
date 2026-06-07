@@ -101,7 +101,7 @@ export default function HomePage() {
     <PublicSiteShell
       title="MyLearna"
       eyebrow=""
-      heroTitle="Plan the week. Capture learning. Build records over time."
+      heroTitle="Homeschool planning, portfolios and reports made simpler"
       heroText="MyLearna helps homeschool families organise the week, capture learning as it happens, choose portfolio evidence, and prepare reports from real records."
       heroBadges={[...HERO_PILLS]}
       heroMicrocopy={

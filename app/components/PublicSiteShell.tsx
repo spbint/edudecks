@@ -442,12 +442,13 @@ export default function PublicSiteShell({
                   />
                 </div>
 
-                <div
+                <h1
                   style={{
                     fontSize: compactHero ? (isMobile ? 28 : 36) : isMobile ? 32 : 44,
                     lineHeight: 1.02,
                     fontWeight: 900,
                     color: C.textStrong,
+                    marginTop: 0,
                     marginBottom: compactHero ? 10 : isMobile ? 12 : 14,
                     maxWidth: 820,
                     marginLeft: "auto",
@@ -457,7 +458,7 @@ export default function PublicSiteShell({
                   }}
                 >
                   {heroTitle}
-                </div>
+                </h1>
 
                 <div
                   style={{
