@@ -96,6 +96,8 @@ const ROUND_ESTIMATE_LARGER_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S032-Round-And-Estimate-With-Larger-Numbers.pdf";
 const EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S033-Extend-Place-Value-To-Decimals.pdf";
+const COMPARE_ORDER_DECIMALS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-UP-S034-Compare-And-Order-Decimals.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -643,6 +645,23 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${EXTEND_PLACE_VALUE_DECIMALS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::upper-primary::compare-and-order-decimals",
+    stepKey: "compare-and-order-decimals",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 34,
+    pathwayStepTitle: "Compare and order decimals",
+    title: "Compare and Order Decimals",
+    concept: "Compare decimals, order decimals and solve decimal comparison problems",
+    includesAnswerSheet: false,
+    fileName: COMPARE_ORDER_DECIMALS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${COMPARE_ORDER_DECIMALS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

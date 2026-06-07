@@ -312,6 +312,14 @@ export function isStep33DecimalPlaceValueActivity(id: string, stepKey?: string |
   );
 }
 
+export function isStep34CompareOrderDecimalsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "compare-and-order-decimals" ||
+    safe(id).startsWith("number-step-34-assess-") ||
+    safe(id).startsWith("number-step-34-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -5615,6 +5623,186 @@ export function renderStep33WorksheetPromptVisual({
   );
 }
 
+function compareDecimalValues(left: string, right: string) {
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  if (!Number.isFinite(leftNumber) || !Number.isFinite(rightNumber)) return "=";
+  if (leftNumber > rightNumber) return ">";
+  if (leftNumber < rightNumber) return "<";
+  return "=";
+}
+
+function DecimalComparisonPanel({ left, right }: { left: string; right: string }) {
+  const symbol = compareDecimalValues(left, right);
+  return (
+    <div
+      aria-label={`Compare decimal ${left} with decimal ${right}`}
+      style={{
+        border: "1px solid #fed7aa",
+        borderRadius: 18,
+        background: "#fff7ed",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ color: "#c2410c", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        Compare aligned decimals
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(110px, 1fr) auto minmax(110px, 1fr)",
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
+        <DecimalPlaceValueChart value={left} />
+        <span
+          style={{
+            border: "1px solid #fdba74",
+            borderRadius: 999,
+            background: "#ffedd5",
+            color: "#c2410c",
+            minWidth: 52,
+            minHeight: 52,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 28,
+            fontWeight: 950,
+          }}
+        >
+          {symbol}
+        </span>
+        <DecimalPlaceValueChart value={right} />
+      </div>
+      <div
+        style={{
+          border: "1px solid #fdba74",
+          borderRadius: 14,
+          background: "#ffffff",
+          color: "#9a3412",
+          padding: "9px 10px",
+          fontSize: 13,
+          fontWeight: 850,
+          textAlign: "center",
+        }}
+      >
+        Compare ones first, then tenths, then hundredths. A trailing zero can hold a decimal place.
+      </div>
+    </div>
+  );
+}
+
+export function renderStep34WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const left = safe(visual.numberCards[0]) || "0.6";
+  const right = safe(visual.numberCards[1]) || "0.45";
+  const ordered = [left, right].sort((a, b) => Number(a) - Number(b));
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Line up the decimal places, then choose the larger decimal or decide if they are equal.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Decimal comparison
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #ddd6fe",
+            borderRadius: 18,
+            background: "#f5f3ff",
+            color: "#6d28d9",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <DecimalComparisonPanel left={left} right={right} />
+        <div
+          aria-label={`Decimals ordered from smallest to largest: ${ordered.join(", ")}`}
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 18,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: 12,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 950,
+          }}
+        >
+          <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Smallest to largest
+          </span>
+          {ordered.map((value, index) => (
+            <React.Fragment key={`decimal-order-${value}-${index}`}>
+              <span style={{ border: "1px solid #86efac", borderRadius: 12, background: "#ffffff", padding: "8px 10px" }}>
+                {value}
+              </span>
+              {index < ordered.length - 1 ? <span aria-hidden="true">&lt;</span> : null}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -7443,6 +7631,48 @@ export function renderStep33WorksheetOptionCard({
   if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
 
   return <DecimalNumberCard value={normalized} label="Choose decimal" selected={selected} />;
+}
+
+export function renderStep34WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (/^\d+(?:\.\d+)?$/.test(normalized)) {
+    return <DecimalNumberCard value={normalized} label="Greater decimal" selected={selected} />;
+  }
+
+  if (normalized.toLowerCase().includes("equal")) {
+    return (
+      <div
+        aria-label="Choose they are equal"
+        style={{
+          border: `2px solid ${selected ? "#2563eb" : "#ddd6fe"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : "#f5f3ff",
+          color: "#6d28d9",
+          minHeight: 132,
+          padding: 12,
+          display: "grid",
+          placeItems: "center",
+          gap: 8,
+          textAlign: "center",
+          boxShadow: selected
+            ? "0 10px 22px rgba(37,99,235,0.18)"
+            : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        <div style={{ fontSize: 42, fontWeight: 950, lineHeight: 1 }}>=</div>
+        <div style={{ fontSize: 16, fontWeight: 950 }}>{normalized}</div>
+        <div style={{ fontSize: 12, fontWeight: 850 }}>Equivalent decimals</div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function renderStep3WorksheetOptionCard({
