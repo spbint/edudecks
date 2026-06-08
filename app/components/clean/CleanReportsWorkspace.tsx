@@ -1529,6 +1529,7 @@ function CleanReportsWorkspaceBody() {
                   emphasis
                 >
                   <div
+                    data-guidance-id="reports-preview"
                     ref={reportPreviewRef}
                     style={{
                       display: "grid",
@@ -1909,67 +1910,69 @@ function CleanReportsWorkspaceBody() {
                   </div>
                 </ReportBuildStepCard>
 
-                <ReportBuildStepCard
-                  stepNumber={3}
-                  title={selectedReport.status === "ready" ? "Send to My Outputs" : "Prepare for My Outputs"}
-                  helperText={
-                    selectedReport.status === "ready"
-                      ? "Open My Outputs when you want to export PDF or work with the finished learning record."
-                      : "Preview the learning record, then send it to My Outputs when you are ready."
-                  }
-                  completionTone={step3Tone}
-                  completionText={step3Text}
-                  emphasis={selectedReport.status === "ready" || reportCanMoveToOutput}
-                  action={
-                    selectedReport.status !== "ready" && reportCanPreview ? (
-                      <button type="button" style={buttonStyle} onClick={openPreview}>
-                        Preview learning record
-                      </button>
-                    ) : undefined
-                  }
-                  secondaryAction={
-                    selectedReport.status === "ready" ? (
-                      <Link
-                        href={outputsPathBase}
-                        style={{
-                          ...buttonStyle,
-                          textDecoration: "none",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        Go to My Outputs
-                      </Link>
-                    ) : reportCanMoveToOutput ? (
-                      <button
-                        type="button"
-                        style={successButtonStyle}
-                        onClick={() => void handleSendToOutputs()}
-                        disabled={submitting}
-                      >
-                        Send to My Outputs
-                      </button>
-                    ) : undefined
-                  }
-                >
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>
-                      {selectedReport.status === "ready"
-                        ? "This learning record is already available in My Outputs."
-                        : reportCanMoveToOutput
-                          ? "The learning record is ready for the output step."
-                          : "Finish the current learning record details first."}
-                    </strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      {selectedReport.status === "ready"
-                        ? "Go to My Outputs when you want to work with the finished learning record, or return the report to draft if you need more edits."
-                        : reportCanMoveToOutput
-                          ? "Use the preview one last time if you want, then send this learning record to My Outputs."
-                          : "Choose the learner and current learning year first, then return here to move into output."}
-                    </p>
-                  </div>
-                </ReportBuildStepCard>
+                <div data-guidance-id="reports-generate-output">
+                  <ReportBuildStepCard
+                    stepNumber={3}
+                    title={selectedReport.status === "ready" ? "Send to My Outputs" : "Prepare for My Outputs"}
+                    helperText={
+                      selectedReport.status === "ready"
+                        ? "Open My Outputs when you want to export PDF or work with the finished learning record."
+                        : "Preview the learning record, then send it to My Outputs when you are ready."
+                    }
+                    completionTone={step3Tone}
+                    completionText={step3Text}
+                    emphasis={selectedReport.status === "ready" || reportCanMoveToOutput}
+                    action={
+                      selectedReport.status !== "ready" && reportCanPreview ? (
+                        <button type="button" style={buttonStyle} onClick={openPreview}>
+                          Preview learning record
+                        </button>
+                      ) : undefined
+                    }
+                    secondaryAction={
+                      selectedReport.status === "ready" ? (
+                        <Link
+                          href={outputsPathBase}
+                          style={{
+                            ...buttonStyle,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          Go to My Outputs
+                        </Link>
+                      ) : reportCanMoveToOutput ? (
+                        <button
+                          type="button"
+                          style={successButtonStyle}
+                          onClick={() => void handleSendToOutputs()}
+                          disabled={submitting}
+                        >
+                          Send to My Outputs
+                        </button>
+                      ) : undefined
+                    }
+                  >
+                    <div style={helperCardStyle}>
+                      <strong style={{ color: "#0f172a" }}>
+                        {selectedReport.status === "ready"
+                          ? "This learning record is already available in My Outputs."
+                          : reportCanMoveToOutput
+                            ? "The learning record is ready for the output step."
+                            : "Finish the current learning record details first."}
+                      </strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        {selectedReport.status === "ready"
+                          ? "Go to My Outputs when you want to work with the finished learning record, or return the report to draft if you need more edits."
+                          : reportCanMoveToOutput
+                            ? "Use the preview one last time if you want, then send this learning record to My Outputs."
+                            : "Choose the learner and current learning year first, then return here to move into output."}
+                      </p>
+                    </div>
+                  </ReportBuildStepCard>
+                </div>
 
                 <section
                   ref={activeReportRef}

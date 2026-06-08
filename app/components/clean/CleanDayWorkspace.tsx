@@ -13,7 +13,10 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidanceGettingStartedCard,
+  GuidancePageAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   createCleanCalendarItem,
   listCleanCalendarItems,
@@ -806,7 +809,7 @@ function CleanDayWorkspaceBody() {
           promptDescription="Watch a quick guide to see today's learning, add quick blocks and connect daily learning to evidence capture."
         />
 
-        <section data-guidance-id="my-day-today-plan" style={cardStyle}>
+        <section data-guidance-id="my-day-header" style={cardStyle}>
           <div style={{ display: "grid", gap: 10 }}>
             <div
               style={{
@@ -845,12 +848,16 @@ function CleanDayWorkspaceBody() {
               {familyGreeting} See what is planned and what comes next.
             </p>
             <div>
-              <GuidancePageAction anchorId="my-day-today-plan" />
+              <GuidancePageAction tourId="my-day" />
             </div>
           </div>
         </section>
 
-        <CleanContinueWhereYouLeftOffCard actions={continueActions} />
+        <GuidanceGettingStartedCard />
+
+        <div data-guidance-id="my-day-next-steps">
+          <CleanContinueWhereYouLeftOffCard actions={continueActions} />
+        </div>
 
         {workspace.loading ? <section style={cardStyle}>Loading your day...</section> : null}
 
@@ -1463,7 +1470,10 @@ function CleanDayWorkspaceBody() {
                                 Evidence captured
                               </div>
                             ) : null}
-                            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                            <div
+                              data-guidance-id="my-day-capture-evidence"
+                              style={{ display: "flex", gap: 14, flexWrap: "wrap" }}
+                            >
                               {capturedEvidence ? (
                                 <Link
                                   href={buildCaptureHref(item, capturedEvidence.id)}

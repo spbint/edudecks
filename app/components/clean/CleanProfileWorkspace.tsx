@@ -482,7 +482,7 @@ function CleanProfileWorkspaceBody() {
               </div>
             </section>
 
-            <section data-guidance-id="profile-family-setup" style={cardStyle}>
+            <section data-guidance-id="profile-learner-details" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners</h2>
               {workspace.learners.length ? (
                 <div id="learners" style={{ display: "grid", gap: 12 }}>

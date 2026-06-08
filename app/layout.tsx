@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
+import "driver.js/dist/driver.css";
 import "./globals.css";
 
 import { AuthUserProvider } from "@/app/components/AuthUserProvider";
@@ -7,7 +8,7 @@ import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTrac
 import GoogleAdsTag from "@/app/components/GoogleAdsTag";
 import MetaPixel from "@/app/components/MetaPixel";
 import { GuidanceProvider } from "@/app/components/clean/guidance/GuidanceProvider";
-import GuidedWalkthrough from "@/app/components/clean/guidance/GuidedWalkthrough";
+import { GuidanceWelcomePrompt } from "@/app/components/clean/guidance/GuidanceToggle";
 import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZENKS";
@@ -105,7 +106,7 @@ export default function RootLayout({
         <AuthUserProvider>
           <GuidanceProvider>
             <Suspense fallback={<div />}>{children}</Suspense>
-            <GuidedWalkthrough />
+            <GuidanceWelcomePrompt />
           </GuidanceProvider>
         </AuthUserProvider>
       </body>

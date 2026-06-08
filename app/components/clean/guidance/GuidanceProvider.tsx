@@ -1,16 +1,13 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import {
-  getWelcomeTourStepIndexForAnchor,
-  WELCOME_TOUR_ID,
-  WELCOME_TOUR_STEPS,
-  type GuidanceTourStep,
-} from "@/app/components/clean/guidance/guidanceTours";
+import type { GuidanceTourId } from "@/app/components/clean/guidance/guidanceTours";
 
 const GUIDANCE_ENABLED_KEY = "mylearna.guidance.enabled";
-const WELCOME_TOUR_COMPLETED_KEY = "mylearna.guidance.welcomeTourCompleted";
+const WELCOME_SEEN_KEY = "mylearna.guidance.welcomeSeen";
+const LEGACY_WELCOME_COMPLETED_KEY = "mylearna.guidance.welcomeTourCompleted";
+const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
 
 const GUIDANCE_ROUTE_PREFIXES = [
@@ -35,22 +32,20 @@ const GUIDANCE_ROUTE_PREFIXES = [
 ];
 
 type GuidanceContextValue = {
-  activeStep: GuidanceTourStep | null;
-  activeStepIndex: number;
+  completedTours: string[];
   dismissedTips: string[];
   enabled: boolean;
   hydrated: boolean;
   isGuidanceRoute: boolean;
   showWelcomePrompt: boolean;
-  welcomeTourCompleted: boolean;
+  welcomeSeen: boolean;
   dismissTip: (tipId: string) => void;
-  finishWelcomeTour: () => void;
-  goToStep: (stepIndex: number) => void;
+  markTourCompleted: (tourId: string) => void;
   resetDismissedTips: () => void;
-  restartWelcomeTour: () => void;
+  restartGuidance: () => void;
   setGuidanceEnabled: (nextEnabled: boolean) => void;
-  skipWelcomeTour: () => void;
-  startWelcomeTour: (anchorId?: string) => void;
+  skipWelcomeGuidance: () => void;
+  startWelcomeGuidance: () => void;
 };
 
 const GuidanceContext = createContext<GuidanceContextValue | null>(null);
@@ -67,9 +62,9 @@ function writeBooleanStorage(key: string, value: boolean) {
   window.localStorage.setItem(key, value ? "true" : "false");
 }
 
-function readDismissedTips() {
+function readStringArrayStorage(key: string) {
   if (typeof window === "undefined") return [];
-  const value = window.localStorage.getItem(DISMISSED_TIPS_KEY);
+  const value = window.localStorage.getItem(key);
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
@@ -79,9 +74,9 @@ function readDismissedTips() {
   }
 }
 
-function writeDismissedTips(tipIds: string[]) {
+function writeStringArrayStorage(key: string, values: string[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(tipIds));
+  window.localStorage.setItem(key, JSON.stringify(values));
 }
 
 function matchesGuidanceRoute(pathname: string) {
@@ -90,25 +85,32 @@ function matchesGuidanceRoute(pathname: string) {
   );
 }
 
+function getCleanMyDayPath(pathname: string) {
+  return pathname.startsWith("/clean-my-") ? "/clean-my-day" : "/my-day";
+}
+
 export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
+  const router = useRouter();
   const isGuidanceRoute = matchesGuidanceRoute(pathname);
   const [hydrated, setHydrated] = useState(false);
   const [enabled, setEnabled] = useState(true);
-  const [welcomeTourCompleted, setWelcomeTourCompleted] = useState(false);
+  const [welcomeSeen, setWelcomeSeen] = useState(false);
+  const [completedTours, setCompletedTours] = useState<string[]>([]);
   const [dismissedTips, setDismissedTips] = useState<string[]>([]);
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false);
-  const [activeTourId, setActiveTourId] = useState<string | null>(null);
-  const [activeStepIndex, setActiveStepIndex] = useState(0);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const storedEnabled = readBooleanStorage(GUIDANCE_ENABLED_KEY, true);
-      const storedCompleted = readBooleanStorage(WELCOME_TOUR_COMPLETED_KEY, false);
+      const storedWelcomeSeen =
+        readBooleanStorage(WELCOME_SEEN_KEY, false) ||
+        readBooleanStorage(LEGACY_WELCOME_COMPLETED_KEY, false);
       setEnabled(storedEnabled);
-      setWelcomeTourCompleted(storedCompleted);
-      setDismissedTips(readDismissedTips());
-      setShowWelcomePrompt(storedEnabled && !storedCompleted && isGuidanceRoute);
+      setWelcomeSeen(storedWelcomeSeen);
+      setCompletedTours(readStringArrayStorage(COMPLETED_TOURS_KEY));
+      setDismissedTips(readStringArrayStorage(DISMISSED_TIPS_KEY));
+      setShowWelcomePrompt(storedEnabled && !storedWelcomeSeen && isGuidanceRoute);
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timeoutId);
@@ -117,130 +119,102 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     const timeoutId = window.setTimeout(() => {
-      if (!isGuidanceRoute) {
+      if (!enabled || !isGuidanceRoute || welcomeSeen) {
         setShowWelcomePrompt(false);
-        setActiveTourId(null);
         return;
       }
-      if (!enabled) {
-        setShowWelcomePrompt(false);
-        setActiveTourId(null);
-        return;
-      }
-      if (!welcomeTourCompleted && !activeTourId) {
-        setShowWelcomePrompt(true);
-      }
+      setShowWelcomePrompt(true);
     }, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [activeTourId, enabled, hydrated, isGuidanceRoute, welcomeTourCompleted]);
+  }, [enabled, hydrated, isGuidanceRoute, welcomeSeen]);
 
-  const startWelcomeTour = useCallback(
-    (anchorId?: string) => {
-      if (!isGuidanceRoute) return;
-      const stepIndex = anchorId ? getWelcomeTourStepIndexForAnchor(anchorId) : 0;
-      setShowWelcomePrompt(false);
-      setActiveStepIndex(stepIndex);
-      setActiveTourId(WELCOME_TOUR_ID);
-    },
-    [isGuidanceRoute],
-  );
-
-  const skipWelcomeTour = useCallback(() => {
-    setActiveTourId(null);
-    setShowWelcomePrompt(false);
-    setWelcomeTourCompleted(true);
-    writeBooleanStorage(WELCOME_TOUR_COMPLETED_KEY, true);
-  }, []);
-
-  const finishWelcomeTour = useCallback(() => {
-    setActiveTourId(null);
-    setShowWelcomePrompt(false);
-    setWelcomeTourCompleted(true);
-    writeBooleanStorage(WELCOME_TOUR_COMPLETED_KEY, true);
-  }, []);
-
-  const restartWelcomeTour = useCallback(() => {
-    setWelcomeTourCompleted(false);
-    writeBooleanStorage(WELCOME_TOUR_COMPLETED_KEY, false);
-    setEnabled(true);
-    writeBooleanStorage(GUIDANCE_ENABLED_KEY, true);
-    setShowWelcomePrompt(false);
-    setActiveStepIndex(0);
-    setActiveTourId(WELCOME_TOUR_ID);
-  }, []);
-
-  const setGuidanceEnabled = useCallback(
-    (nextEnabled: boolean) => {
-      setEnabled(nextEnabled);
-      writeBooleanStorage(GUIDANCE_ENABLED_KEY, nextEnabled);
-      if (!nextEnabled) {
-        setShowWelcomePrompt(false);
-        setActiveTourId(null);
-      } else if (isGuidanceRoute && !welcomeTourCompleted) {
-        setShowWelcomePrompt(true);
-      }
-    },
-    [isGuidanceRoute, welcomeTourCompleted],
-  );
-
-  const goToStep = useCallback((stepIndex: number) => {
-    const boundedIndex = Math.min(Math.max(stepIndex, 0), WELCOME_TOUR_STEPS.length - 1);
-    setActiveStepIndex(boundedIndex);
+  const markTourCompleted = useCallback((tourId: string) => {
+    setCompletedTours((current) => {
+      if (current.includes(tourId)) return current;
+      const next = [...current, tourId];
+      writeStringArrayStorage(COMPLETED_TOURS_KEY, next);
+      return next;
+    });
   }, []);
 
   const dismissTip = useCallback((tipId: string) => {
     setDismissedTips((current) => {
       if (current.includes(tipId)) return current;
       const next = [...current, tipId];
-      writeDismissedTips(next);
+      writeStringArrayStorage(DISMISSED_TIPS_KEY, next);
       return next;
     });
   }, []);
 
   const resetDismissedTips = useCallback(() => {
     setDismissedTips([]);
-    writeDismissedTips([]);
+    writeStringArrayStorage(DISMISSED_TIPS_KEY, []);
   }, []);
 
-  const activeStep =
-    activeTourId === WELCOME_TOUR_ID ? WELCOME_TOUR_STEPS[activeStepIndex] ?? null : null;
+  const skipWelcomeGuidance = useCallback(() => {
+    setWelcomeSeen(true);
+    setShowWelcomePrompt(false);
+    writeBooleanStorage(WELCOME_SEEN_KEY, true);
+  }, []);
+
+  const startWelcomeGuidance = useCallback(() => {
+    setWelcomeSeen(true);
+    setShowWelcomePrompt(false);
+    writeBooleanStorage(WELCOME_SEEN_KEY, true);
+    router.push(getCleanMyDayPath(pathname));
+  }, [pathname, router]);
+
+  const restartGuidance = useCallback(() => {
+    setEnabled(true);
+    writeBooleanStorage(GUIDANCE_ENABLED_KEY, true);
+    setWelcomeSeen(false);
+    writeBooleanStorage(WELCOME_SEEN_KEY, false);
+    setCompletedTours([]);
+    writeStringArrayStorage(COMPLETED_TOURS_KEY, []);
+    setShowWelcomePrompt(isGuidanceRoute);
+  }, [isGuidanceRoute]);
+
+  const setGuidanceEnabled = useCallback(
+    (nextEnabled: boolean) => {
+      setEnabled(nextEnabled);
+      writeBooleanStorage(GUIDANCE_ENABLED_KEY, nextEnabled);
+      setShowWelcomePrompt(nextEnabled && isGuidanceRoute && !welcomeSeen);
+    },
+    [isGuidanceRoute, welcomeSeen],
+  );
 
   const value = useMemo<GuidanceContextValue>(
     () => ({
-      activeStep,
-      activeStepIndex,
+      completedTours,
       dismissedTips,
       enabled,
       hydrated,
       isGuidanceRoute,
       showWelcomePrompt,
-      welcomeTourCompleted,
+      welcomeSeen,
       dismissTip,
-      finishWelcomeTour,
-      goToStep,
+      markTourCompleted,
       resetDismissedTips,
-      restartWelcomeTour,
+      restartGuidance,
       setGuidanceEnabled,
-      skipWelcomeTour,
-      startWelcomeTour,
+      skipWelcomeGuidance,
+      startWelcomeGuidance,
     }),
     [
-      activeStep,
-      activeStepIndex,
+      completedTours,
       dismissedTips,
       dismissTip,
       enabled,
-      finishWelcomeTour,
-      goToStep,
       hydrated,
       isGuidanceRoute,
+      markTourCompleted,
       resetDismissedTips,
-      restartWelcomeTour,
+      restartGuidance,
       setGuidanceEnabled,
       showWelcomePrompt,
-      skipWelcomeTour,
-      startWelcomeTour,
-      welcomeTourCompleted,
+      skipWelcomeGuidance,
+      startWelcomeGuidance,
+      welcomeSeen,
     ],
   );
 
@@ -254,3 +228,5 @@ export function useGuidance() {
   }
   return context;
 }
+
+export type { GuidanceTourId };

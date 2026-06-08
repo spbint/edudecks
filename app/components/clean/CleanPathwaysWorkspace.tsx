@@ -1191,7 +1191,7 @@ function PathwaysWorkspaceBody() {
                 <Link href="/my-settings" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
                   My Settings
                 </Link>
-                <GuidancePageAction anchorId="pathways-current-step" />
+                <GuidancePageAction tourId="my-pathways" />
               </div>
             </div>
 
@@ -1646,6 +1646,7 @@ function PathwaysWorkspaceBody() {
                   ) : null}
 
                   <div
+                    data-guidance-id="pathways-stage-filter"
                     style={{
                       borderTop: "1px solid #e2e8f0",
                       borderBottom: "1px solid #e2e8f0",

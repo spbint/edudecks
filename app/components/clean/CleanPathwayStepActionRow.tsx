@@ -208,7 +208,10 @@ export default function CleanPathwayStepActionRow({
 
   return (
     <>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      <div
+        data-guidance-id="pathways-practise-assess"
+        style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
+      >
         {activity ? (
           <>
             {practiceHref ? (
@@ -328,6 +331,7 @@ export default function CleanPathwayStepActionRow({
         </Link>
         {worksheetResource ? (
           <Link
+            data-guidance-id="pathways-worksheet-button"
             href={worksheetResource.href}
             target="_blank"
             rel="noreferrer"
@@ -347,6 +351,7 @@ export default function CleanPathwayStepActionRow({
           </Link>
         ) : (
           <span
+            data-guidance-id="pathways-worksheet-button"
             title="No worksheet PDF is mapped for this step yet."
             style={{
               border: "1px solid #e2e8f0",

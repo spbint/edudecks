@@ -3592,7 +3592,7 @@ function CleanCalendarWorkspaceBody() {
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <div data-guidance-id="calendar-add-plan" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <button
                           type="button"
                           style={buttonStyle}

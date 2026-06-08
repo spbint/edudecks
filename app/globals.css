@@ -292,3 +292,62 @@ a:hover {
 *::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.35);
 }
+
+.mylearna-driver-popover {
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  box-shadow: 0 22px 56px rgba(15, 23, 42, 0.18);
+  color: #475569;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  max-width: min(380px, calc(100vw - 28px));
+  padding: 18px;
+}
+
+.mylearna-driver-popover .driver-popover-title {
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.mylearna-driver-popover .driver-popover-description {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.mylearna-driver-popover .driver-popover-progress-text {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mylearna-driver-popover .driver-popover-next-btn,
+.mylearna-driver-popover .driver-popover-prev-btn {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 12px;
+  text-shadow: none;
+}
+
+.mylearna-driver-popover .driver-popover-next-btn {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.mylearna-driver-popover .driver-popover-prev-btn {
+  background: #ffffff;
+  color: #1d4ed8;
+}
+
+.mylearna-driver-popover .driver-popover-close-btn {
+  color: #64748b;
+  font-size: 20px;
+}
+
+.driver-active .driver-active-element {
+  border-radius: 14px;
+}

@@ -817,7 +817,7 @@ function CleanCaptureWorkspaceBody() {
               belongs in the portfolio.
             </p>
             <div>
-              <GuidancePageAction anchorId="capture-add-evidence" />
+              <GuidancePageAction tourId="my-capture" />
             </div>
           </div>
         </section>
@@ -1072,12 +1072,14 @@ function CleanCaptureWorkspaceBody() {
                   </label>
                 ) : null}
 
-                <input
-                  value={learningArea}
-                  onChange={(event) => setLearningArea(event.target.value)}
-                  placeholder="Learning area (optional)"
-                  style={inputStyle}
-                />
+                <div data-guidance-id="capture-learning-area">
+                  <input
+                    value={learningArea}
+                    onChange={(event) => setLearningArea(event.target.value)}
+                    placeholder="Learning area (optional)"
+                    style={inputStyle}
+                  />
+                </div>
 
                 <div
                   style={{
@@ -1114,7 +1116,7 @@ function CleanCaptureWorkspaceBody() {
                   </label>
                 </div>
 
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button type="submit" style={buttonStyle} disabled={submitting}>
                     {submitting ? "Saving..." : "Save capture"}
                   </button>
