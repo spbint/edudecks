@@ -10,6 +10,7 @@ import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCleanReportPdfFilename,
@@ -936,6 +937,9 @@ function CleanOutputsWorkspaceBody() {
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Choose a ready report, review the learning record, and download a PDF when you are ready to keep this version.
             </p>
+            <div>
+              <GuidancePageAction tourId="my-outputs" />
+            </div>
           </div>
         </section>
 

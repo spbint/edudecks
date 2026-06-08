@@ -3099,6 +3099,7 @@ function DetailedMathematicsStepCard({
 
   return (
     <article
+      data-guidance-id="pathways-step-card"
       style={{
         border: "1px solid #e2e8f0",
         borderRadius: 12,
@@ -3143,6 +3144,7 @@ function DetailedMathematicsStepCard({
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <div
+              data-guidance-id="pathways-progress-status"
               title={
                 exactStepContext
                   ? `Saved confidence is ${confidenceStatusLabel}.`

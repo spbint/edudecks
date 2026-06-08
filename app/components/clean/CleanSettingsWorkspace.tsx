@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
@@ -7,7 +8,10 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
-import { GuidanceSettingsCard } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidancePageAction,
+  GuidanceSettingsCard,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -783,6 +787,9 @@ function CleanSettingsWorkspaceBody() {
             <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
               My Profile stays focused on family and learner details.
             </p>
+            <div>
+              <GuidancePageAction tourId="my-settings" />
+            </div>
           </div>
         </section>
 
@@ -895,7 +902,7 @@ function CleanSettingsWorkspaceBody() {
                 </p>
 
                 <form onSubmit={handleSave} style={{ display: "grid", gap: 18 }}>
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div data-guidance-id="settings-country-region" style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
                       Country / region
                     </label>
@@ -914,7 +921,7 @@ function CleanSettingsWorkspaceBody() {
                     </select>
                   </div>
 
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div data-guidance-id="settings-country-region" style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
                       {countryIsUnitedKingdom ? "Nation" : "State / jurisdiction"}
                     </label>
@@ -996,7 +1003,7 @@ function CleanSettingsWorkspaceBody() {
                     </div>
                   ) : null}
 
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div data-guidance-id="settings-curriculum" style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
                       Curriculum framework
                     </label>
@@ -1021,7 +1028,7 @@ function CleanSettingsWorkspaceBody() {
                     </select>
                   </div>
 
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div data-guidance-id="settings-reporting-context" style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
                       {countryIsUnitedKingdom ? "Reporting pathway" : "Reporting mode"}
                     </label>
@@ -1135,7 +1142,7 @@ function CleanSettingsWorkspaceBody() {
                       gap: 16,
                     }}
                   >
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div data-guidance-id="settings-week-start" style={{ display: "grid", gap: 8 }}>
                       <label style={{ color: "#334155", fontWeight: 700 }}>Week start</label>
                       <select
                         value={draft.weekStart}
@@ -1202,7 +1209,7 @@ function CleanSettingsWorkspaceBody() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div data-guidance-id="settings-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button type="submit" style={buttonStyle} disabled={saving}>
                       {saving ? "Saving..." : "Save settings"}
                     </button>
@@ -1235,6 +1242,16 @@ function CleanSettingsWorkspaceBody() {
                     : "Finish country, state or jurisdiction, and curriculum settings to complete this part of setup."}
                 </p>
               )}
+            </section>
+
+            <section data-guidance-id="settings-next-calendar" style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Calendar</h2>
+              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                After your settings are saved, create a simple weekly plan in My Calendar.
+              </p>
+              <Link href="/my-calendar" style={buttonStyle}>
+                Open My Calendar
+              </Link>
             </section>
           </>
         ) : null}

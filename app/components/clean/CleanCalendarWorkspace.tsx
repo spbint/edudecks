@@ -9,6 +9,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   createCleanCalendarItem,
   deleteCleanCalendarItem,
@@ -2043,7 +2044,7 @@ function CleanCalendarWorkspaceBody() {
           promptDescription="Watch a quick guide to plan your week or set term times."
         />
 
-        <section data-guidance-id="calendar-week-plan" style={cardStyle}>
+        <section data-guidance-id="calendar-week-view" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -2061,6 +2062,9 @@ function CleanCalendarWorkspaceBody() {
               Set term dates, keep a reusable master week, and shape the live week when
               you need it.
             </p>
+            <div>
+              <GuidancePageAction tourId="my-calendar" />
+            </div>
           </div>
         </section>
 
@@ -3601,6 +3605,7 @@ function CleanCalendarWorkspaceBody() {
                           Plan this week using master
                         </button>
                         <button
+                          data-guidance-id="calendar-save-plan"
                           type="button"
                           style={mutedButtonStyle}
                           onClick={() => void handleApplyGeneratedWeek()}
@@ -3876,7 +3881,7 @@ function CleanCalendarWorkspaceBody() {
                         <p style={{ margin: 0, color: "#b91c1c" }}>{setupError}</p>
                       ) : null}
 
-                      <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                      <div data-guidance-id="calendar-learning-block" style={{ overflowX: "auto", paddingBottom: 4 }}>
                         <div
                           style={{
                             display: "grid",
@@ -4111,6 +4116,17 @@ function CleanCalendarWorkspaceBody() {
                   </div>
                 )}
               </div>
+            </section>
+
+            <section data-guidance-id="calendar-next-day" style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Day</h2>
+              <p style={secondaryTextStyle}>
+                Once your week has a simple shape, open My Day to focus on today&apos;s
+                learning.
+              </p>
+              <Link href="/my-day" style={buttonStyle}>
+                Open My Day
+              </Link>
             </section>
           </>
         ) : null}

@@ -55,6 +55,7 @@ export function useDriverTour() {
         popoverClass: "mylearna-driver-popover",
         popoverOffset: 12,
         prevBtnText: "Back",
+        progressText: "Step {{current}} of {{total}}",
         showButtons: ["next", "previous", "close"],
         showProgress: true,
         smoothScroll: true,

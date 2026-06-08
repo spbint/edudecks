@@ -9,6 +9,8 @@ const WELCOME_SEEN_KEY = "mylearna.guidance.welcomeSeen";
 const LEGACY_WELCOME_COMPLETED_KEY = "mylearna.guidance.welcomeTourCompleted";
 const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
+const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
+const CURRENT_SETUP_STEP_KEY = "mylearna.guidance.currentSetupStep";
 
 const GUIDANCE_ROUTE_PREFIXES = [
   "/my-profile",
@@ -38,14 +40,19 @@ type GuidanceContextValue = {
   hydrated: boolean;
   isGuidanceRoute: boolean;
   showWelcomePrompt: boolean;
+  setupChecklist: string[];
+  currentSetupStep: string;
   welcomeSeen: boolean;
   dismissTip: (tipId: string) => void;
   markTourCompleted: (tourId: string) => void;
   resetDismissedTips: () => void;
+  resetSetupChecklist: () => void;
   restartGuidance: () => void;
   setGuidanceEnabled: (nextEnabled: boolean) => void;
+  setCurrentSetupStep: (stepId: string) => void;
   skipWelcomeGuidance: () => void;
   startWelcomeGuidance: () => void;
+  toggleSetupStepComplete: (stepId: string) => void;
 };
 
 const GuidanceContext = createContext<GuidanceContextValue | null>(null);
@@ -85,8 +92,8 @@ function matchesGuidanceRoute(pathname: string) {
   );
 }
 
-function getCleanMyDayPath(pathname: string) {
-  return pathname.startsWith("/clean-my-") ? "/clean-my-day" : "/my-day";
+function getCleanMyProfilePath(pathname: string) {
+  return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
 }
 
 export function GuidanceProvider({ children }: { children: React.ReactNode }) {
@@ -98,6 +105,8 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const [welcomeSeen, setWelcomeSeen] = useState(false);
   const [completedTours, setCompletedTours] = useState<string[]>([]);
   const [dismissedTips, setDismissedTips] = useState<string[]>([]);
+  const [setupChecklist, setSetupChecklist] = useState<string[]>([]);
+  const [currentSetupStep, setCurrentSetupStepState] = useState("profile");
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false);
 
   useEffect(() => {
@@ -110,6 +119,8 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setWelcomeSeen(storedWelcomeSeen);
       setCompletedTours(readStringArrayStorage(COMPLETED_TOURS_KEY));
       setDismissedTips(readStringArrayStorage(DISMISSED_TIPS_KEY));
+      setSetupChecklist(readStringArrayStorage(SETUP_CHECKLIST_KEY));
+      setCurrentSetupStepState(window.localStorage.getItem(CURRENT_SETUP_STEP_KEY) || "profile");
       setShowWelcomePrompt(storedEnabled && !storedWelcomeSeen && isGuidanceRoute);
       setHydrated(true);
     }, 0);
@@ -137,6 +148,27 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setCurrentSetupStep = useCallback((stepId: string) => {
+    setCurrentSetupStepState(stepId);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CURRENT_SETUP_STEP_KEY, stepId);
+    }
+  }, []);
+
+  const toggleSetupStepComplete = useCallback(
+    (stepId: string) => {
+      setSetupChecklist((current) => {
+        const next = current.includes(stepId)
+          ? current.filter((item) => item !== stepId)
+          : [...current, stepId];
+        writeStringArrayStorage(SETUP_CHECKLIST_KEY, next);
+        return next;
+      });
+      setCurrentSetupStep(stepId);
+    },
+    [setCurrentSetupStep],
+  );
+
   const dismissTip = useCallback((tipId: string) => {
     setDismissedTips((current) => {
       if (current.includes(tipId)) return current;
@@ -149,7 +181,15 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const resetDismissedTips = useCallback(() => {
     setDismissedTips([]);
     writeStringArrayStorage(DISMISSED_TIPS_KEY, []);
+    setCompletedTours([]);
+    writeStringArrayStorage(COMPLETED_TOURS_KEY, []);
   }, []);
+
+  const resetSetupChecklist = useCallback(() => {
+    setSetupChecklist([]);
+    writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
+    setCurrentSetupStep("profile");
+  }, [setCurrentSetupStep]);
 
   const skipWelcomeGuidance = useCallback(() => {
     setWelcomeSeen(true);
@@ -161,7 +201,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     setWelcomeSeen(true);
     setShowWelcomePrompt(false);
     writeBooleanStorage(WELCOME_SEEN_KEY, true);
-    router.push(getCleanMyDayPath(pathname));
+    router.push(getCleanMyProfilePath(pathname));
   }, [pathname, router]);
 
   const restartGuidance = useCallback(() => {
@@ -171,8 +211,11 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeBooleanStorage(WELCOME_SEEN_KEY, false);
     setCompletedTours([]);
     writeStringArrayStorage(COMPLETED_TOURS_KEY, []);
+    setSetupChecklist([]);
+    writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
+    setCurrentSetupStep("profile");
     setShowWelcomePrompt(isGuidanceRoute);
-  }, [isGuidanceRoute]);
+  }, [isGuidanceRoute, setCurrentSetupStep]);
 
   const setGuidanceEnabled = useCallback(
     (nextEnabled: boolean) => {
@@ -186,22 +229,28 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GuidanceContextValue>(
     () => ({
       completedTours,
+      currentSetupStep,
       dismissedTips,
       enabled,
       hydrated,
       isGuidanceRoute,
       showWelcomePrompt,
+      setupChecklist,
       welcomeSeen,
       dismissTip,
       markTourCompleted,
       resetDismissedTips,
+      resetSetupChecklist,
       restartGuidance,
+      setCurrentSetupStep,
       setGuidanceEnabled,
       skipWelcomeGuidance,
       startWelcomeGuidance,
+      toggleSetupStepComplete,
     }),
     [
       completedTours,
+      currentSetupStep,
       dismissedTips,
       dismissTip,
       enabled,
@@ -209,11 +258,15 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       isGuidanceRoute,
       markTourCompleted,
       resetDismissedTips,
+      resetSetupChecklist,
       restartGuidance,
+      setCurrentSetupStep,
       setGuidanceEnabled,
       showWelcomePrompt,
+      setupChecklist,
       skipWelcomeGuidance,
       startWelcomeGuidance,
+      toggleSetupStepComplete,
       welcomeSeen,
     ],
   );

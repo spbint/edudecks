@@ -8,6 +8,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import {
@@ -1199,6 +1200,9 @@ function CleanReportsWorkspaceBody() {
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                 Your report brings together selected portfolio evidence and written reflections for this learner.
               </p>
+              <div>
+                <GuidancePageAction tourId="my-reports" />
+              </div>
             </div>
           </section>
 
@@ -1324,7 +1328,7 @@ function CleanReportsWorkspaceBody() {
                 </button>
               }
             >
-              <div ref={reportSetupRef} style={{ display: "grid", gap: 16 }}>
+              <div data-guidance-id="reports-date-range" ref={reportSetupRef} style={{ display: "grid", gap: 16 }}>
                 {selectedReport ? (
                   <div
                     style={{
@@ -1704,8 +1708,9 @@ function CleanReportsWorkspaceBody() {
                         </div>
                       </header>
 
-                      <section
-                        style={{
+                          <section
+                            data-guidance-id="reports-evidence-summary"
+                            style={{
                           display: "grid",
                           gap: 12,
                           padding: 18,

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
@@ -875,7 +876,7 @@ function CleanCaptureWorkspaceBody() {
                 }}
               >
                 <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Text capture</h2>
+                  <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a" }}>Text capture</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
                     Save is always explicit. Write what happened, keep the useful links, and
                     decide later what belongs in the portfolio.
@@ -992,18 +993,20 @@ function CleanCaptureWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   }}
                 >
-                  <select
-                    value={learnerId}
-                    onChange={(event) => setLearnerId(event.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">Select learner</option>
-                    {learnerOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div data-guidance-id="capture-learner-select">
+                    <select
+                      value={learnerId}
+                      onChange={(event) => setLearnerId(event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Select learner</option>
+                      {learnerOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <label style={{ display: "grid", gap: 6 }}>
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>Date of learning</span>
                     <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
@@ -1029,12 +1032,14 @@ function CleanCaptureWorkspaceBody() {
                   style={inputStyle}
                 />
 
-                <textarea
-                  value={whatHappened}
-                  onChange={(event) => setWhatHappened(event.target.value)}
-                  placeholder={curriculumWhatHappenedPlaceholder}
-                  style={textAreaStyle}
-                />
+                <div data-guidance-id="capture-note-field">
+                  <textarea
+                    value={whatHappened}
+                    onChange={(event) => setWhatHappened(event.target.value)}
+                    placeholder={curriculumWhatHappenedPlaceholder}
+                    style={textAreaStyle}
+                  />
+                </div>
                 {curriculumCaptureActive ? (
                   <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                     What does this learning show?
@@ -1236,6 +1241,17 @@ function CleanCaptureWorkspaceBody() {
                   </div>
                 ))}
               </div>
+            </section>
+
+            <section data-guidance-id="capture-next-portfolio" style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Portfolio</h2>
+              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                After you capture useful evidence, review it in My Portfolio and choose
+                what should support reporting later.
+              </p>
+              <Link href="/my-portfolio" style={buttonStyle}>
+                Open My Portfolio
+              </Link>
             </section>
 
             <section style={cardStyle}>

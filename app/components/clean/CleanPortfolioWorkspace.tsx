@@ -8,6 +8,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
@@ -481,6 +482,9 @@ function CleanPortfolioWorkspaceBody() {
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Portfolio is where you choose the strongest examples from your captured evidence.
             </p>
+            <div>
+              <GuidancePageAction tourId="my-portfolio" />
+            </div>
           </div>
         </section>
 
@@ -554,7 +558,7 @@ function CleanPortfolioWorkspaceBody() {
               </div>
             </section>
 
-            <section data-guidance-id="portfolio-evidence-list" style={cardStyle}>
+            <section data-guidance-id="portfolio-filter-learner" style={cardStyle}>
               <div
                 style={{
                   display: "flex",
@@ -666,7 +670,7 @@ function CleanPortfolioWorkspaceBody() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section data-guidance-id="portfolio-evidence-list" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
               <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
                 Unselected evidence is shown first so you can choose what belongs in the
@@ -728,6 +732,7 @@ function CleanPortfolioWorkspaceBody() {
 
                     return (
                       <div
+                        data-guidance-id="portfolio-evidence-card"
                         key={item.evidence.id}
                         style={{
                           border: item.isHighlighted
@@ -811,7 +816,7 @@ function CleanPortfolioWorkspaceBody() {
                             {linkedCalendarItem ? `Block: ${linkedCalendarItem.title}` : ""}
                           </div>
                         ) : null}
-                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <div data-guidance-id="portfolio-reflection-note" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                           <button
                             type="button"
                             style={{
@@ -832,6 +837,7 @@ function CleanPortfolioWorkspaceBody() {
                           </Link>
                           {item.isHighlighted ? (
                             <Link
+                              data-guidance-id="portfolio-next-reports"
                               href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`}
                               style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
                             >

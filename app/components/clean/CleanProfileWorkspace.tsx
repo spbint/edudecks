@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
@@ -7,6 +8,10 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
+import {
+  GuidanceGettingStartedCard,
+  GuidancePageAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   createCleanFamilyProfile,
@@ -400,8 +405,13 @@ function CleanProfileWorkspaceBody() {
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Keep family details and learner information together here.
             </p>
+            <div>
+              <GuidancePageAction tourId="my-profile" />
+            </div>
           </div>
         </section>
+
+        <GuidanceGettingStartedCard />
 
         <CleanPageGuidance
           title="Set up the family basics once, then let the rest of MyLearna build from there"
@@ -432,22 +442,28 @@ function CleanProfileWorkspaceBody() {
         ) : null}
 
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
-          <section id="create-family-profile" data-guidance-id="profile-family-setup" style={cardStyle}>
+          <section
+            id="create-family-profile"
+            data-guidance-id="profile-family-details"
+            style={cardStyle}
+          >
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile</h2>
             <p style={{ color: "#475569", lineHeight: 1.6 }}>
               No family profile exists yet. Start with a simple family name so MyLearna has a shared home for learners and records.
             </p>
             <form onSubmit={handleCreateFamilyProfile} style={{ display: "grid", gap: 12 }}>
-              <input
-                value={familyName}
-                onChange={(event) => setFamilyName(event.target.value)}
-                placeholder="Example: Smith family"
-                style={inputStyle}
-              />
+              <div data-guidance-id="profile-family-name">
+                <input
+                  value={familyName}
+                  onChange={(event) => setFamilyName(event.target.value)}
+                  placeholder="Example: Smith family"
+                  style={inputStyle}
+                />
+              </div>
               <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
                 Keep this practical. You can change it later if you want a different family label.
               </p>
-              <div>
+              <div data-guidance-id="profile-save-profile">
                 <button type="submit" style={buttonStyle} disabled={submitting}>
                   {submitting ? "Creating..." : "Create family profile"}
                 </button>
@@ -458,7 +474,7 @@ function CleanProfileWorkspaceBody() {
 
         {!workspace.loading && !workspace.schemaMissing && workspace.profile ? (
           <>
-            <section style={cardStyle}>
+            <section data-guidance-id="profile-family-details" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Family profile</h2>
               <div style={{ display: "grid", gap: 8, color: "#334155" }}>
                 <div>
@@ -669,7 +685,7 @@ function CleanProfileWorkspaceBody() {
               )}
             </section>
 
-            <section id="add-learner" style={cardStyle}>
+            <section id="add-learner" data-guidance-id="profile-add-learner" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add learner</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                 Add only what helps right now. A first name is enough to begin planning.
@@ -693,12 +709,23 @@ function CleanProfileWorkspaceBody() {
                   placeholder="Example: Year 4 / Grade 3"
                   style={inputStyle}
                 />
-                <div>
+                <div data-guidance-id="profile-save-profile">
                   <button type="submit" style={buttonStyle} disabled={submitting}>
                     {submitting ? "Saving..." : "Add learner"}
                   </button>
                 </div>
               </form>
+            </section>
+
+            <section data-guidance-id="profile-next-settings" style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Settings</h2>
+              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                After your profile is ready, choose your country, curriculum and reporting
+                context in My Settings.
+              </p>
+              <Link href="/my-settings" style={buttonStyle}>
+                Open My Settings
+              </Link>
             </section>
           </>
         ) : null}

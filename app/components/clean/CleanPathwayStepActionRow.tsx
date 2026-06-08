@@ -216,6 +216,7 @@ export default function CleanPathwayStepActionRow({
           <>
             {practiceHref ? (
               <Link
+                data-guidance-id="pathways-practise-button"
                 href={practiceHref}
                 style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
                 title={
@@ -228,6 +229,7 @@ export default function CleanPathwayStepActionRow({
               </Link>
             ) : (
               <button
+                data-guidance-id="pathways-practise-button"
                 type="button"
                 onClick={openPracticePlayer}
                 style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
@@ -250,6 +252,7 @@ export default function CleanPathwayStepActionRow({
         ) : practiceHref ? (
           <>
             <Link
+              data-guidance-id="pathways-practise-button"
               href={practiceHref}
               style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
               title={
@@ -299,6 +302,7 @@ export default function CleanPathwayStepActionRow({
 
         {assessHref ? (
           <Link
+            data-guidance-id="pathways-assess-button"
             href={assessHref}
             style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
             title={
@@ -312,6 +316,7 @@ export default function CleanPathwayStepActionRow({
           </Link>
         ) : (
           <button
+            data-guidance-id="pathways-assess-button"
             type="button"
             style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
             disabled
@@ -322,6 +327,7 @@ export default function CleanPathwayStepActionRow({
           </button>
         )}
         <Link
+          data-guidance-id="pathways-next-capture"
           href={captureHref}
           style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
           title="Open My Capture with this pathway step already connected."

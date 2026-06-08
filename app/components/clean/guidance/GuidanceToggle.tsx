@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React from "react";
 import { useGuidance, type GuidanceTourId } from "@/app/components/clean/guidance/GuidanceProvider";
 import { useDriverTour } from "@/app/components/clean/guidance/useDriverTour";
@@ -82,7 +83,13 @@ export function GuidanceWelcomePrompt() {
 }
 
 export function GuidanceSettingsCard() {
-  const { enabled, resetDismissedTips, restartGuidance, setGuidanceEnabled } = useGuidance();
+  const {
+    enabled,
+    resetDismissedTips,
+    resetSetupChecklist,
+    restartGuidance,
+    setGuidanceEnabled,
+  } = useGuidance();
 
   return (
     <section
@@ -101,8 +108,9 @@ export function GuidanceSettingsCard() {
           Guidance and walkthroughs
         </h2>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-          Guidance tips help new users understand each part of MyLearna. Turn them off
-          when you feel confident, or turn them back on any time.
+          Guidance helps new users get MyLearna ready for their family. You can
+          follow the setup steps, restart guidance, or turn tips off when you feel
+          confident.
         </p>
       </div>
       <label
@@ -124,10 +132,13 @@ export function GuidanceSettingsCard() {
       </label>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={restartGuidance} style={secondaryButtonStyle}>
-          Restart guide
+          Restart welcome guidance
+        </button>
+        <button type="button" onClick={resetSetupChecklist} style={secondaryButtonStyle}>
+          Restart setup checklist
         </button>
         <button type="button" onClick={resetDismissedTips} style={secondaryButtonStyle}>
-          Reset dismissed guidance
+          Reset completed guidance
         </button>
       </div>
     </section>
@@ -160,20 +171,60 @@ export function GuidancePageAction({ tourId }: { tourId: GuidanceTourId }) {
   );
 }
 
-const checklistItems = [
-  { label: "Set up family profile", href: "/my-profile" },
-  { label: "Choose settings", href: "/my-settings" },
-  { label: "Plan the week", href: "/my-calendar" },
-  { label: "Open a pathway", href: "/my-pathways" },
-  { label: "Capture evidence", href: "/my-capture" },
-  { label: "Review portfolio", href: "/my-portfolio" },
-  { label: "Preview reports", href: "/my-reports" },
+type SetupChecklistItem = {
+  id: string;
+  label: string;
+  href: string;
+  tourId: GuidanceTourId;
+};
+
+const checklistItems: SetupChecklistItem[] = [
+  { id: "profile", label: "Set up family profile", href: "/my-profile", tourId: "my-profile" },
+  { id: "settings", label: "Choose learning settings", href: "/my-settings", tourId: "my-settings" },
+  { id: "calendar", label: "Plan your week", href: "/my-calendar", tourId: "my-calendar" },
+  { id: "day", label: "Review My Day", href: "/my-day", tourId: "my-day" },
+  { id: "pathways", label: "Explore My Pathways", href: "/my-pathways", tourId: "my-pathways" },
+  { id: "capture", label: "Capture first evidence", href: "/my-capture", tourId: "my-capture" },
+  { id: "portfolio", label: "Review portfolio", href: "/my-portfolio", tourId: "my-portfolio" },
+  { id: "reports", label: "Preview reports and outputs", href: "/my-reports", tourId: "my-reports" },
 ];
 
+function getChecklistStatus(
+  item: SetupChecklistItem,
+  completedIds: string[],
+  currentSetupStep: string,
+) {
+  if (completedIds.includes(item.id)) return "complete";
+  if (currentSetupStep === item.id) return "current";
+  return "not started";
+}
+
+function getStatusStyles(status: string): React.CSSProperties {
+  if (status === "complete") {
+    return { background: "#ecfdf5", borderColor: "#bbf7d0", color: "#166534" };
+  }
+  if (status === "current") {
+    return { background: "#eff6ff", borderColor: "#bfdbfe", color: "#1d4ed8" };
+  }
+  return { background: "#f8fafc", borderColor: "#e2e8f0", color: "#64748b" };
+}
+
 export function GuidanceGettingStartedCard() {
-  const { enabled, hydrated, isGuidanceRoute } = useGuidance();
+  const {
+    currentSetupStep,
+    enabled,
+    hydrated,
+    isGuidanceRoute,
+    setCurrentSetupStep,
+    setupChecklist,
+    toggleSetupStepComplete,
+  } = useGuidance();
+  const pathname = usePathname() || "";
+  const startTour = useDriverTour();
 
   if (!hydrated || !enabled || !isGuidanceRoute) return null;
+
+  const completedCount = setupChecklist.length;
 
   return (
     <section
@@ -199,39 +250,77 @@ export function GuidanceGettingStartedCard() {
           Getting started
         </div>
         <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-          Follow the MyLearna flow
+          Let&apos;s set up MyLearna
         </h2>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-          Work through these steps at your own pace. Each page can guide you through
-          its main actions.
+          Follow these steps to get MyLearna ready for your family. You can skip
+          this and come back any time from My Settings.
+        </p>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+          {completedCount} of {checklistItems.length} setup steps complete
         </p>
       </div>
       <div
         style={{
           display: "grid",
           gap: 10,
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
         }}
       >
         {checklistItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
+          <div
+            key={item.id}
             style={{
               border: "1px solid #e2e8f0",
               borderRadius: 14,
               color: "#0f172a",
               display: "grid",
-              gap: 4,
+              gap: 10,
               padding: 12,
-              textDecoration: "none",
             }}
           >
-            <span style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900 }}>
-              Open
-            </span>
-            <strong>{item.label}</strong>
-          </Link>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <strong>{item.label}</strong>
+              <span
+                style={{
+                  border: "1px solid",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  padding: "4px 7px",
+                  whiteSpace: "nowrap",
+                  ...getStatusStyles(getChecklistStatus(item, setupChecklist, currentSetupStep)),
+                }}
+              >
+                {getChecklistStatus(item, setupChecklist, currentSetupStep)}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                href={item.href}
+                onClick={() => setCurrentSetupStep(item.id)}
+                style={{ ...secondaryButtonStyle, textDecoration: "none", padding: "8px 11px" }}
+              >
+                Open
+              </Link>
+              {pathname === item.href ? (
+                <button
+                  type="button"
+                  onClick={() => startTour(item.tourId)}
+                  style={{ ...primaryButtonStyle, padding: "8px 11px" }}
+                >
+                  Guide me
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => toggleSetupStepComplete(item.id)}
+                style={{ ...secondaryButtonStyle, padding: "8px 11px" }}
+              >
+                {setupChecklist.includes(item.id) ? "Mark incomplete" : "Mark complete"}
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </section>

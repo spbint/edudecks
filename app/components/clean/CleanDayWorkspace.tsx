@@ -916,6 +916,7 @@ function CleanDayWorkspaceBody() {
             ) : null}
 
             <section
+              data-guidance-id="my-day-today-plan"
               style={{
                 ...cardStyle,
                 padding: 18,
@@ -977,6 +978,7 @@ function CleanDayWorkspaceBody() {
                       </p>
                     </div>
                     <div
+                      data-guidance-id="my-day-progress-summary"
                       style={{
                         display: "grid",
                         gap: 8,
