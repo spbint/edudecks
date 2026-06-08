@@ -13,6 +13,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   createCleanCalendarItem,
   listCleanCalendarItems,
@@ -805,7 +806,7 @@ function CleanDayWorkspaceBody() {
           promptDescription="Watch a quick guide to see today's learning, add quick blocks and connect daily learning to evidence capture."
         />
 
-        <section style={cardStyle}>
+        <section data-guidance-id="my-day-today-plan" style={cardStyle}>
           <div style={{ display: "grid", gap: 10 }}>
             <div
               style={{
@@ -843,6 +844,9 @@ function CleanDayWorkspaceBody() {
             <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
               {familyGreeting} See what is planned and what comes next.
             </p>
+            <div>
+              <GuidancePageAction anchorId="my-day-today-plan" />
+            </div>
           </div>
         </section>
 

@@ -2043,7 +2043,7 @@ function CleanCalendarWorkspaceBody() {
           promptDescription="Watch a quick guide to plan your week or set term times."
         />
 
-        <section style={cardStyle}>
+        <section data-guidance-id="calendar-week-plan" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{

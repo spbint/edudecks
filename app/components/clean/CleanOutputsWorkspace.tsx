@@ -919,7 +919,7 @@ function CleanOutputsWorkspaceBody() {
           promptDescription="Watch a quick guide to see how to preview and download records, reports and portfolio summaries."
         />
 
-        <section style={cardStyle}>
+        <section data-guidance-id="outputs-download-share" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{

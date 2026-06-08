@@ -6,6 +6,8 @@ import { AuthUserProvider } from "@/app/components/AuthUserProvider";
 import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTracker";
 import GoogleAdsTag from "@/app/components/GoogleAdsTag";
 import MetaPixel from "@/app/components/MetaPixel";
+import { GuidanceProvider } from "@/app/components/clean/guidance/GuidanceProvider";
+import GuidedWalkthrough from "@/app/components/clean/guidance/GuidedWalkthrough";
 import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZENKS";
@@ -101,7 +103,10 @@ export default function RootLayout({
           <MetaPixel />
         </Suspense>
         <AuthUserProvider>
-          <Suspense fallback={<div />}>{children}</Suspense>
+          <GuidanceProvider>
+            <Suspense fallback={<div />}>{children}</Suspense>
+            <GuidedWalkthrough />
+          </GuidanceProvider>
         </AuthUserProvider>
       </body>
     </html>

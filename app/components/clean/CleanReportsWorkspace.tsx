@@ -1182,7 +1182,7 @@ function CleanReportsWorkspaceBody() {
           promptDescription="Watch a quick guide to see how reports use planning, evidence and portfolio records."
         />
 
-        <section style={cardStyle}>
+        <section data-guidance-id="reports-preview-output" style={cardStyle}>
             <div style={{ display: "grid", gap: 8 }}>
               <div
                 style={{

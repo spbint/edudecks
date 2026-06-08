@@ -432,7 +432,7 @@ function CleanProfileWorkspaceBody() {
         ) : null}
 
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
-          <section id="create-family-profile" style={cardStyle}>
+          <section id="create-family-profile" data-guidance-id="profile-family-setup" style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile</h2>
             <p style={{ color: "#475569", lineHeight: 1.6 }}>
               No family profile exists yet. Start with a simple family name so MyLearna has a shared home for learners and records.
@@ -482,7 +482,7 @@ function CleanProfileWorkspaceBody() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section data-guidance-id="profile-family-setup" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners</h2>
               {workspace.learners.length ? (
                 <div id="learners" style={{ display: "grid", gap: 12 }}>

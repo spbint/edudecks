@@ -526,7 +526,7 @@ function CleanPortfolioWorkspaceBody() {
 
         {readyForPortfolio && workspace.profile && workspace.learners.length ? (
           <>
-            <section style={cardStyle}>
+            <section data-guidance-id="portfolio-review-evidence" style={cardStyle}>
               <div
                 style={{
                   display: "grid",

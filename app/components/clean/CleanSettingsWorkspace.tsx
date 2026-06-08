@@ -7,6 +7,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
+import { GuidanceSettingsCard } from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -880,8 +881,14 @@ function CleanSettingsWorkspaceBody() {
               </div>
             </section>
 
+            <GuidanceSettingsCard />
+
             {draft ? (
-              <section id="edit-family-settings" style={cardStyle}>
+              <section
+                id="edit-family-settings"
+                data-guidance-id="settings-region-curriculum"
+                style={cardStyle}
+              >
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>Edit family settings</h2>
                 <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                   Keep this simple: choose your family context, how you want weeks to start, and how MyLearna should frame reports.

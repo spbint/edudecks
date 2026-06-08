@@ -7,6 +7,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
@@ -815,6 +816,9 @@ function CleanCaptureWorkspaceBody() {
               Save a simple learning record from today&apos;s blocks, then decide later what
               belongs in the portfolio.
             </p>
+            <div>
+              <GuidancePageAction anchorId="capture-add-evidence" />
+            </div>
           </div>
         </section>
 
@@ -860,7 +864,7 @@ function CleanCaptureWorkspaceBody() {
 
         {readyForCapture && workspace.profile && workspace.learners.length ? (
           <>
-            <section style={cardStyle}>
+            <section data-guidance-id="capture-add-evidence" style={cardStyle}>
             <div
               style={{
                 display: "flex",

@@ -10,6 +10,7 @@ import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import { CleanBetaFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
@@ -1149,6 +1150,7 @@ function PathwaysWorkspaceBody() {
         </details>
 
         <section
+          data-guidance-id="pathways-current-step"
           style={{
             ...cardStyle,
             padding: 10,
@@ -1189,6 +1191,7 @@ function PathwaysWorkspaceBody() {
                 <Link href="/my-settings" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
                   My Settings
                 </Link>
+                <GuidancePageAction anchorId="pathways-current-step" />
               </div>
             </div>
 
