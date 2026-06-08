@@ -5,6 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useGuidance, type GuidanceTourId } from "@/app/components/clean/guidance/GuidanceProvider";
 import { useDriverTour } from "@/app/components/clean/guidance/useDriverTour";
+import {
+  BLOCKED_SETUP_ROUTE_KEY,
+  CLEAN_SETUP_STEPS,
+  type CleanSetupStepId,
+  getSetupStep,
+  getSetupStepNumber,
+} from "@/lib/clean/setup/setupFlow";
 
 const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 
@@ -311,24 +318,79 @@ export function GuidanceSetupNextAction({
   );
 }
 
+export function GuidanceSetupProgress({
+  stepId,
+  title,
+  body,
+}: {
+  stepId: string;
+  title: string;
+  body: string;
+}) {
+  const { enabled, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
+  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus !== "active") return null;
+
+  const step = getSetupStep(stepId);
+  const stepNumber = getSetupStepNumber(stepId);
+
+  return (
+    <section
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 18,
+        background: "#eff6ff",
+        padding: 18,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          color: "#1d4ed8",
+          fontSize: 12,
+          fontWeight: 900,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+        }}
+      >
+        Getting started: Step {stepNumber} of {CLEAN_SETUP_STEPS.length}
+      </div>
+      <div style={{ display: "grid", gap: 6 }}>
+        <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{title}</h2>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{body}</p>
+      </div>
+      <p style={{ margin: 0, color: "#334155", fontWeight: 800 }}>
+        Task: {step.requirement}
+      </p>
+    </section>
+  );
+}
+
 type SetupChecklistItem = {
-  id: string;
+  id: CleanSetupStepId;
   label: string;
   href: string;
   tourId: GuidanceTourId;
 };
 
-const checklistItems: SetupChecklistItem[] = [
-  { id: "profile", label: "Set up family profile", href: "/my-profile", tourId: "my-profile" },
-  { id: "settings", label: "Choose learning settings", href: "/my-settings", tourId: "my-settings" },
-  { id: "calendar", label: "Plan your week", href: "/my-calendar", tourId: "my-calendar" },
-  { id: "day", label: "Review My Day", href: "/my-day", tourId: "my-day" },
-  { id: "pathways", label: "Explore My Pathways", href: "/my-pathways", tourId: "my-pathways" },
-  { id: "capture", label: "Capture first evidence", href: "/my-capture", tourId: "my-capture" },
-  { id: "portfolio", label: "Review portfolio", href: "/my-portfolio", tourId: "my-portfolio" },
-  { id: "reports", label: "Preview reports", href: "/my-reports", tourId: "my-reports" },
-  { id: "outputs", label: "Prepare and download outputs", href: "/my-outputs", tourId: "my-outputs" },
-];
+const setupTourIds: Record<CleanSetupStepId, GuidanceTourId> = {
+  profile: "my-profile",
+  settings: "my-settings",
+  calendar: "my-calendar",
+  day: "my-day",
+  pathways: "my-pathways",
+  capture: "my-capture",
+  portfolio: "my-portfolio",
+  reports: "my-reports",
+  outputs: "my-outputs",
+};
+
+const checklistItems: SetupChecklistItem[] = CLEAN_SETUP_STEPS.map((step) => ({
+  id: step.id,
+  label: step.id === "profile" ? "Set up family profile" : step.requirement,
+  href: step.route,
+  tourId: setupTourIds[step.id],
+}));
 
 function getChecklistStatus(
   item: SetupChecklistItem,
@@ -487,6 +549,11 @@ export function GuidancePendingTourLauncher() {
 
   useEffect(() => {
     if (!hydrated || !enabled || !isGuidanceRoute || typeof window === "undefined") {
+      return;
+    }
+
+    const blockedRoute = window.localStorage.getItem(BLOCKED_SETUP_ROUTE_KEY);
+    if (blockedRoute === pathname) {
       return;
     }
 

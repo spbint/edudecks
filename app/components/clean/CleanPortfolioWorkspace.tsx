@@ -6,10 +6,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
@@ -461,6 +463,12 @@ function CleanPortfolioWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <CleanFirstRunSetupGate currentStep="portfolio" />
+        <GuidanceSetupProgress
+          stepId="portfolio"
+          title="Review captured evidence."
+          body="See how captured learning can become a clearer portfolio over time."
+        />
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myPortfolio}

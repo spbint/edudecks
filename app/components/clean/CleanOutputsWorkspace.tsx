@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanBrentEvidencePackPreview from "@/app/components/clean/CleanBrentEvidencePackPreview";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -12,6 +13,7 @@ import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
@@ -916,6 +918,12 @@ function CleanOutputsWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <CleanFirstRunSetupGate currentStep="outputs" />
+        <GuidanceSetupProgress
+          stepId="outputs"
+          title="Prepare and download outputs."
+          body="This is where ready records can become downloadable outputs and PDFs."
+        />
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myOutputs}

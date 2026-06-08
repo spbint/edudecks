@@ -5,6 +5,7 @@ import {
   getPageIntroVideoEmbedUrl,
   type PageIntroVideoConfig,
 } from "@/lib/clean/pageIntroVideos";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 
 type CleanPageIntroVideoProps = {
   className?: string;
@@ -90,6 +91,7 @@ export default function CleanPageIntroVideo({
   promptTitle,
   variant = "compact",
 }: CleanPageIntroVideoProps) {
+  const { enabled, hydrated, setupStatus } = useGuidance();
   const availableConfigs = useMemo(
     () => getAvailableConfigs(configs ?? (config ? [config] : [])),
     [config, configs],
@@ -123,6 +125,7 @@ export default function CleanPageIntroVideo({
   }, [openConfig]);
 
   if (!availableConfigs.length) return null;
+  if (hydrated && enabled && setupStatus === "active") return null;
 
   function markDismissed() {
     if (!resolvedPromptKey) return;

@@ -6,10 +6,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
@@ -1179,6 +1181,12 @@ function CleanReportsWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <CleanFirstRunSetupGate currentStep="reports" />
+        <GuidanceSetupProgress
+          stepId="reports"
+          title="Preview records and reporting."
+          body="See how planning, evidence and portfolio items can become clearer records."
+        />
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myReports}

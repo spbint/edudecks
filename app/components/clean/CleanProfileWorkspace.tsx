@@ -11,6 +11,7 @@ import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
@@ -463,6 +464,12 @@ function CleanProfileWorkspaceBody() {
             </div>
           </div>
         </section>
+
+        <GuidanceSetupProgress
+          stepId="profile"
+          title="Let's get MyLearna ready for your family."
+          body="Start by adding your family and learner details. MyLearna uses this to organise your plans, evidence, portfolio and reports."
+        />
 
         {!firstSetupMode ? <GuidanceGettingStartedCard /> : null}
 

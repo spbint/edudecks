@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import {
   CleanBetaFeedbackPrompt,
@@ -16,6 +17,7 @@ import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import {
@@ -806,6 +808,12 @@ function CleanDayWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanAppHeader />
+        <CleanFirstRunSetupGate currentStep="day" />
+        <GuidanceSetupProgress
+          stepId="day"
+          title="Review today."
+          body="Use My Day to see what is planned now and what may need attention."
+        />
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myDay}

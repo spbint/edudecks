@@ -6,12 +6,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import { CleanBetaFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
@@ -1131,6 +1133,12 @@ function PathwaysWorkspaceBody() {
       `}</style>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <CleanFirstRunSetupGate currentStep="pathways" />
+        <GuidanceSetupProgress
+          stepId="pathways"
+          title="Explore learning pathways."
+          body="See learning steps, worksheets, practise and assess options without treating progress as pressure."
+        />
 
         <details
           style={{

@@ -12,6 +12,7 @@ import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   GuidancePageAction,
   GuidanceSettingsCard,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
@@ -836,6 +837,12 @@ function CleanSettingsWorkspaceBody() {
             </div>
           </div>
         </section>
+
+        <GuidanceSetupProgress
+          stepId="settings"
+          title="Choose your learning settings."
+          body="Set your country, region, curriculum and reporting preferences so MyLearna can organise plans and records correctly."
+        />
 
         {!firstSetupMode ? (
           <CleanPageGuidance

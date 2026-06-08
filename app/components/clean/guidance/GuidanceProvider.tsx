@@ -3,6 +3,12 @@
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { GuidanceTourId } from "@/app/components/clean/guidance/guidanceTours";
+import {
+  CURRENT_SETUP_STEP_KEY,
+  SETUP_STATUS_KEY,
+  getNextSetupStep,
+  getSetupRoute,
+} from "@/lib/clean/setup/setupFlow";
 
 const GUIDANCE_ENABLED_KEY = "mylearna.guidance.enabled";
 const WELCOME_SEEN_KEY = "mylearna.guidance.welcomeSeen";
@@ -10,24 +16,10 @@ const LEGACY_WELCOME_COMPLETED_KEY = "mylearna.guidance.welcomeTourCompleted";
 const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
 const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
-const CURRENT_SETUP_STEP_KEY = "mylearna.guidance.currentSetupStep";
 const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 const SETUP_ACTIVE_KEY = "mylearna.guidance.setupActive";
-const SETUP_STATUS_KEY = "mylearna.guidance.setupStatus";
 
 type SetupStatus = "not_started" | "active" | "skipped" | "completed";
-
-const SETUP_SEQUENCE = [
-  { id: "profile", tourId: "my-profile" },
-  { id: "settings", tourId: "my-settings" },
-  { id: "calendar", tourId: "my-calendar" },
-  { id: "day", tourId: "my-day" },
-  { id: "pathways", tourId: "my-pathways" },
-  { id: "capture", tourId: "my-capture" },
-  { id: "portfolio", tourId: "my-portfolio" },
-  { id: "reports", tourId: "my-reports" },
-  { id: "outputs", tourId: "my-outputs" },
-] as const satisfies Array<{ id: string; tourId: GuidanceTourId }>;
 
 const GUIDANCE_ROUTE_PREFIXES = [
   "/my-profile",
@@ -144,17 +136,6 @@ function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
 }
 
-function getSetupPath(stepId: string, pathname: string) {
-  const prefix = pathname.startsWith("/clean-my-") ? "/clean-my-" : "/my-";
-  if (stepId === "day") return `${prefix}day`;
-  return `${prefix}${stepId}`;
-}
-
-function getNextSetupItem(stepId: string) {
-  const setupIndex = SETUP_SEQUENCE.findIndex((item) => item.id === stepId);
-  return setupIndex >= 0 ? SETUP_SEQUENCE[setupIndex + 1] : null;
-}
-
 function writePendingTour(tourId: GuidanceTourId) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
@@ -203,7 +184,10 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       if (setupStatus === "active") {
-        const setupPath = getSetupPath(currentSetupStep || "profile", pathname);
+        const setupPath = getSetupRoute(
+          currentSetupStep || "profile",
+          pathname.startsWith("/clean-my-"),
+        );
         if (pathname !== setupPath) {
           setShowWelcomePrompt(false);
           router.replace(setupPath);
@@ -269,7 +253,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
 
-    const nextSetupItem = getNextSetupItem(stepId);
+    const nextSetupItem = getNextSetupStep(stepId);
     if (nextSetupItem) {
       setCurrentSetupStep(nextSetupItem.id);
     } else {

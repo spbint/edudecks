@@ -6,10 +6,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
@@ -795,6 +797,12 @@ function CleanCaptureWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <CleanFirstRunSetupGate currentStep="capture" />
+        <GuidanceSetupProgress
+          stepId="capture"
+          title="Capture first learning evidence."
+          body="Add a note, work sample or observation when meaningful learning happens, or skip this setup step for now."
+        />
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myCapture}

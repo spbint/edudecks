@@ -8,9 +8,11 @@ import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
+  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import {
@@ -2036,6 +2038,12 @@ function CleanCalendarWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <CleanFirstRunSetupGate currentStep="calendar" />
+        <GuidanceSetupProgress
+          stepId="calendar"
+          title="Plan your first week."
+          body="Create a simple weekly plan, or skip this for now and return when you are ready."
+        />
 
         <CleanPageIntroVideo
           configs={[
