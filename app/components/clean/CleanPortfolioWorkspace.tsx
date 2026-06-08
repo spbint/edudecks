@@ -837,7 +837,6 @@ function CleanPortfolioWorkspaceBody() {
                           </Link>
                           {item.isHighlighted ? (
                             <Link
-                              data-guidance-id="portfolio-next-reports"
                               href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`}
                               style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
                             >
@@ -867,6 +866,17 @@ function CleanPortfolioWorkspaceBody() {
                   })}
                 </div>
               ) : null}
+            </section>
+
+            <section data-guidance-id="portfolio-next-reports" style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Reports</h2>
+              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                When portfolio evidence is ready, preview how it can become a clearer
+                learning record in My Reports.
+              </p>
+              <Link href={reportsPathBase} style={buttonStyle}>
+                Open My Reports
+              </Link>
             </section>
           </>
         ) : null}

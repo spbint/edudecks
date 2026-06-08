@@ -11,6 +11,7 @@ const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
 const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
 const CURRENT_SETUP_STEP_KEY = "mylearna.guidance.currentSetupStep";
+const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 
 const GUIDANCE_ROUTE_PREFIXES = [
   "/my-profile",
@@ -94,6 +95,11 @@ function matchesGuidanceRoute(pathname: string) {
 
 function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
+}
+
+function writePendingTour(tourId: GuidanceTourId) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
 }
 
 export function GuidanceProvider({ children }: { children: React.ReactNode }) {
@@ -201,21 +207,25 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     setWelcomeSeen(true);
     setShowWelcomePrompt(false);
     writeBooleanStorage(WELCOME_SEEN_KEY, true);
+    setCurrentSetupStep("profile");
+    writePendingTour("my-profile");
     router.push(getCleanMyProfilePath(pathname));
-  }, [pathname, router]);
+  }, [pathname, router, setCurrentSetupStep]);
 
   const restartGuidance = useCallback(() => {
     setEnabled(true);
     writeBooleanStorage(GUIDANCE_ENABLED_KEY, true);
-    setWelcomeSeen(false);
-    writeBooleanStorage(WELCOME_SEEN_KEY, false);
+    setWelcomeSeen(true);
+    writeBooleanStorage(WELCOME_SEEN_KEY, true);
     setCompletedTours([]);
     writeStringArrayStorage(COMPLETED_TOURS_KEY, []);
     setSetupChecklist([]);
     writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
     setCurrentSetupStep("profile");
-    setShowWelcomePrompt(isGuidanceRoute);
-  }, [isGuidanceRoute, setCurrentSetupStep]);
+    writePendingTour("my-profile");
+    setShowWelcomePrompt(false);
+    router.push(getCleanMyProfilePath(pathname));
+  }, [pathname, router, setCurrentSetupStep]);
 
   const setGuidanceEnabled = useCallback(
     (nextEnabled: boolean) => {

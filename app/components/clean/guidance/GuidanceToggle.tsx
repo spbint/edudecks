@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useGuidance, type GuidanceTourId } from "@/app/components/clean/guidance/GuidanceProvider";
 import { useDriverTour } from "@/app/components/clean/guidance/useDriverTour";
+
+const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 
 const secondaryButtonStyle: React.CSSProperties = {
   border: "1px solid #bfdbfe",
@@ -63,16 +65,16 @@ export function GuidanceWelcomePrompt() {
           Guidance
         </div>
         <h2 id="guidance-welcome-heading" style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-          Welcome to MyLearna
+          Let&apos;s get MyLearna ready for your family.
         </h2>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-          Would you like help getting started? Guidance can show you around key pages
-          and help you understand the MyLearna flow.
+          Start with your family profile, then move through settings, planning,
+          pathways, capture, portfolios, reports and outputs.
         </p>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={startWelcomeGuidance} style={primaryButtonStyle}>
-          Guide me
+          Start setup
         </button>
         <button type="button" onClick={skipWelcomeGuidance} style={secondaryButtonStyle}>
           Skip for now
@@ -90,6 +92,27 @@ export function GuidanceSettingsCard() {
     restartGuidance,
     setGuidanceEnabled,
   } = useGuidance();
+  const [confirmDisable, setConfirmDisable] = useState(false);
+
+  function handleToggle(nextEnabled: boolean) {
+    if (!nextEnabled) {
+      setConfirmDisable(true);
+      return;
+    }
+
+    setConfirmDisable(false);
+    setGuidanceEnabled(true);
+  }
+
+  function turnGuidanceOff() {
+    setConfirmDisable(false);
+    setGuidanceEnabled(false);
+  }
+
+  function restartSetupJourney() {
+    resetSetupChecklist();
+    restartGuidance();
+  }
 
   return (
     <section
@@ -125,16 +148,42 @@ export function GuidanceSettingsCard() {
         <input
           type="checkbox"
           checked={enabled}
-          onChange={(event) => setGuidanceEnabled(event.target.checked)}
+          onChange={(event) => handleToggle(event.target.checked)}
           style={{ width: 18, height: 18 }}
         />
         Show guidance tips
       </label>
+      {confirmDisable ? (
+        <div
+          role="alertdialog"
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 14,
+            background: "#fff7ed",
+            padding: 14,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <p style={{ margin: 0, color: "#7c2d12", lineHeight: 1.6, fontWeight: 700 }}>
+            Are you sure you want to turn off guidance? You can restart the setup
+            journey any time from My Settings.
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => setConfirmDisable(false)} style={primaryButtonStyle}>
+              Keep guidance on
+            </button>
+            <button type="button" onClick={turnGuidanceOff} style={secondaryButtonStyle}>
+              Turn guidance off
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={restartGuidance} style={secondaryButtonStyle}>
           Restart welcome guidance
         </button>
-        <button type="button" onClick={resetSetupChecklist} style={secondaryButtonStyle}>
+        <button type="button" onClick={restartSetupJourney} style={secondaryButtonStyle}>
           Restart setup checklist
         </button>
         <button type="button" onClick={resetDismissedTips} style={secondaryButtonStyle}>
@@ -186,7 +235,8 @@ const checklistItems: SetupChecklistItem[] = [
   { id: "pathways", label: "Explore My Pathways", href: "/my-pathways", tourId: "my-pathways" },
   { id: "capture", label: "Capture first evidence", href: "/my-capture", tourId: "my-capture" },
   { id: "portfolio", label: "Review portfolio", href: "/my-portfolio", tourId: "my-portfolio" },
-  { id: "reports", label: "Preview reports and outputs", href: "/my-reports", tourId: "my-reports" },
+  { id: "reports", label: "Preview reports", href: "/my-reports", tourId: "my-reports" },
+  { id: "outputs", label: "Prepare and download outputs", href: "/my-outputs", tourId: "my-outputs" },
 ];
 
 function getChecklistStatus(
@@ -325,4 +375,36 @@ export function GuidanceGettingStartedCard() {
       </div>
     </section>
   );
+}
+
+function tourMatchesPathname(tourId: GuidanceTourId, pathname: string) {
+  const item = checklistItems.find((candidate) => candidate.tourId === tourId);
+  if (!item) return false;
+
+  const cleanHref = item.href.replace("/my-", "/clean-my-");
+  return pathname === item.href || pathname === cleanHref;
+}
+
+export function GuidancePendingTourLauncher() {
+  const { enabled, hydrated, isGuidanceRoute } = useGuidance();
+  const pathname = usePathname() || "";
+  const startTour = useDriverTour();
+
+  useEffect(() => {
+    if (!hydrated || !enabled || !isGuidanceRoute || typeof window === "undefined") {
+      return;
+    }
+
+    const pendingTour = window.localStorage.getItem(PENDING_TOUR_KEY) as GuidanceTourId | null;
+    if (!pendingTour || !tourMatchesPathname(pendingTour, pathname)) {
+      return;
+    }
+
+    window.localStorage.removeItem(PENDING_TOUR_KEY);
+    const timeoutId = window.setTimeout(() => startTour(pendingTour), 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [enabled, hydrated, isGuidanceRoute, pathname, startTour]);
+
+  return null;
 }
