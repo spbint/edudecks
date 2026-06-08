@@ -75,7 +75,7 @@ export async function sendOwnerBetaSignupNotification(
     body: JSON.stringify({
       from: fromEmail,
       to: ownerEmail,
-      subject: `New MyLearna beta signup — ${subjectName}`,
+      subject: `New MyLearna beta signup - ${subjectName}`,
       text: buildPlainTextBody(input),
     }),
   });

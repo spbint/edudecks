@@ -71,12 +71,28 @@ const SIGNUP_FIRST_STEPS = [
   },
 ] as const;
 
+const BETA_PREFILL_STORAGE_KEY = "mylearna.beta.prefill";
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe(value));
+}
+
+function readBetaPrefillEmail() {
+  if (typeof window === "undefined") return "";
+
+  try {
+    const raw = window.localStorage.getItem(BETA_PREFILL_STORAGE_KEY);
+    if (!raw) return "";
+
+    const parsed = JSON.parse(raw) as { email?: unknown };
+    return safe(parsed.email).toLowerCase();
+  } catch {
+    return "";
+  }
 }
 
 function authErrorMessage(error: unknown, mode: EmailAuthPageMode) {
@@ -356,6 +372,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const [statusTitle, setStatusTitle] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const redirectStarted = useRef(false);
+  const betaPrefillChecked = useRef(false);
 
   const isSignup = mode === "signup";
   const defaultNextPath = isSignup ? "/my-profile" : "/my-day";
@@ -392,6 +409,18 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     setStatusTitle(nextTitle);
     setMessage(nextMessage);
   }
+
+  useEffect(() => {
+    if (betaPrefillChecked.current) return;
+    betaPrefillChecked.current = true;
+
+    if (isSignup && !email) {
+      const prefillEmail = readBetaPrefillEmail();
+      if (prefillEmail) {
+        setEmail(prefillEmail);
+      }
+    }
+  }, [email, isSignup]);
 
   useEffect(() => {
     if (!hasSupabaseEnv) {

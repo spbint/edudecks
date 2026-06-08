@@ -8,11 +8,6 @@ import PublicSiteShell, {
   publicCardStyle,
 } from "@/app/components/PublicSiteShell";
 import useIsMobile from "@/app/components/useIsMobile";
-import {
-  hasSupabaseEnv,
-  MISSING_PUBLIC_SUPABASE_ENV_MESSAGE,
-  supabase,
-} from "@/lib/supabaseClient";
 
 type SubmitState = "idle" | "saving" | "error";
 
@@ -22,13 +17,49 @@ type FormValues = {
   country: string;
   stateOrRegion: string;
   numberOfChildren: string;
-  biggestHomeschoolChallenge: string;
+  selectedChallenges: string[];
+  challengeDetails: string;
   currentlyHomeschooling: "" | "yes" | "no";
   willingToTestFreeBeta: boolean;
   companyWebsite: string;
 };
 
 type FormErrors = Partial<Record<keyof Omit<FormValues, "companyWebsite">, string>>;
+
+type BetaInterestResponse = {
+  ok?: boolean;
+  status?:
+    | "created"
+    | "updated"
+    | "already_exists"
+    | "validation_error"
+    | "server_error";
+  reason?: string;
+};
+
+const BETA_PREFILL_STORAGE_KEY = "mylearna.beta.prefill";
+
+const CHALLENGE_OPTIONS = [
+  "Planning the week",
+  "Staying consistent",
+  "Finding the right resources",
+  "Choosing curriculum",
+  "Teaching confidence / subject knowledge",
+  "Keeping children motivated",
+  "Supporting different ages or levels",
+  "Learning evidence",
+  "Portfolios",
+  "Reports and records",
+  "Assessment / knowing progress",
+  "Maths support",
+  "Reading or writing support",
+  "Time management",
+  "Cost / budget",
+  "Community or social opportunities",
+  "Special learning needs / extra support",
+  "Technology / organising tools",
+  "Other",
+] as const;
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -85,6 +116,40 @@ function yesNoLabel(value: FormValues["currentlyHomeschooling"]) {
   return null;
 }
 
+function buildChallengeSummary(selectedChallenges: string[], details: string) {
+  const selected = selectedChallenges.map(safe).filter(Boolean).join("; ");
+  const extra = safe(details);
+
+  if (selected && extra) {
+    return `${selected}. Details: ${extra}`;
+  }
+
+  return selected || extra;
+}
+
+function storeBetaPrefill(values: FormValues, source: string) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(
+      BETA_PREFILL_STORAGE_KEY,
+      JSON.stringify({
+        name: safe(values.name),
+        email: safe(values.email).toLowerCase(),
+        country: safe(values.country),
+        state_or_region: safe(values.stateOrRegion),
+        number_of_children: values.numberOfChildren ? Number(values.numberOfChildren) : null,
+        currently_homeschooling: values.currentlyHomeschooling,
+        selected_challenges: values.selectedChallenges,
+        source: source || null,
+        submitted_at: new Date().toISOString(),
+      }),
+    );
+  } catch (error) {
+    console.warn("Could not store beta signup prefill locally.", error);
+  }
+}
+
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
@@ -92,7 +157,11 @@ declare global {
 }
 
 function trackBetaEvent(
-  eventName: "beta_page_view" | "beta_submit" | "beta_submit_success" | "beta_submit_error",
+  eventName:
+    | "beta_page_view"
+    | "beta_form_submit_attempt"
+    | "beta_form_submit_success"
+    | "beta_form_submit_failure",
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") {
@@ -109,20 +178,6 @@ function trackBetaEvent(
   });
 }
 
-async function notifyOwnerOfBetaSignup(payload: Record<string, unknown>) {
-  try {
-    await fetch("/api/beta-interest/notify-owner", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    console.error("Could not request beta signup owner notification.", error);
-  }
-}
-
 export default function BetaInterestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -130,6 +185,7 @@ export default function BetaInterestPage() {
   const isCompact = useIsMobile(560);
   const [state, setState] = useState<SubmitState>("idle");
   const [feedback, setFeedback] = useState("");
+  const [showContactLink, setShowContactLink] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [values, setValues] = useState<FormValues>({
     name: "",
@@ -137,7 +193,8 @@ export default function BetaInterestPage() {
     country: "",
     stateOrRegion: "",
     numberOfChildren: "",
-    biggestHomeschoolChallenge: "",
+    selectedChallenges: [],
+    challengeDetails: "",
     currentlyHomeschooling: "",
     willingToTestFreeBeta: false,
     companyWebsite: "",
@@ -159,6 +216,7 @@ export default function BetaInterestPage() {
     setValues((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
     setFeedback("");
+    setShowContactLink(false);
     setState("idle");
   }
 
@@ -184,9 +242,9 @@ export default function BetaInterestPage() {
       }
     }
 
-    if (!safe(values.biggestHomeschoolChallenge)) {
-      nextErrors.biggestHomeschoolChallenge =
-        "Please tell us a little about your biggest homeschool challenge right now.";
+    if (!values.selectedChallenges.length) {
+      nextErrors.selectedChallenges =
+        "Please choose at least one homeschool challenge.";
     }
 
     if (!values.currentlyHomeschooling) {
@@ -210,11 +268,8 @@ export default function BetaInterestPage() {
       return;
     }
 
-    trackBetaEvent("beta_submit", {
+    trackBetaEvent("beta_form_submit_attempt", {
       source: source || undefined,
-      country: safe(values.country) || undefined,
-      currently_homeschooling: values.currentlyHomeschooling || undefined,
-      willing_to_test_free_beta: values.willingToTestFreeBeta ? "yes" : "no",
     });
 
     const nextErrors = validateForm();
@@ -222,12 +277,7 @@ export default function BetaInterestPage() {
       setErrors(nextErrors);
       setState("error");
       setFeedback("Please check the highlighted fields and try again.");
-      return;
-    }
-
-    if (!hasSupabaseEnv) {
-      setState("error");
-      setFeedback(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      setShowContactLink(false);
       return;
     }
 
@@ -245,27 +295,40 @@ export default function BetaInterestPage() {
         country: safe(values.country),
         state_or_region: safe(values.stateOrRegion) || null,
         number_of_children: numberOfChildren,
-        biggest_homeschool_challenge: safe(values.biggestHomeschoolChallenge),
+        biggest_homeschool_challenge: buildChallengeSummary(
+          values.selectedChallenges,
+          values.challengeDetails,
+        ),
         currently_homeschooling: yesNoLabel(values.currentlyHomeschooling),
         willing_to_test_free_beta: values.willingToTestFreeBeta,
         source: source || null,
-        submitted_at: new Date().toISOString(),
+        company_website: safe(values.companyWebsite),
       };
 
-      const { error } = await supabase.from("beta_interest").insert(payload);
+      const response = await fetch("/api/beta-interest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      if (error) {
-        throw error;
+      const result = (await response.json().catch(() => ({}))) as BetaInterestResponse;
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.reason || result.status || "server_error");
       }
 
-      await notifyOwnerOfBetaSignup(payload);
-
-      trackBetaEvent("beta_submit_success", {
+      storeBetaPrefill(values, source);
+      trackBetaEvent("beta_form_submit_success", {
         source: source || undefined,
-        country: safe(values.country) || undefined,
-        currently_homeschooling: values.currentlyHomeschooling || undefined,
-        willing_to_test_free_beta: values.willingToTestFreeBeta ? "yes" : "no",
       });
+
+      if (result.status === "updated" || result.status === "already_exists") {
+        router.replace("/beta/thanks?status=already");
+        return;
+      }
+
       router.replace("/beta/thanks");
     } catch (error) {
       const rawMessage = safe((error as { message?: unknown })?.message).toLowerCase();
@@ -274,16 +337,14 @@ export default function BetaInterestPage() {
         rawMessage.includes("network") ||
         rawMessage.includes("fetch")
           ? "We could not reach the beta sign-up service just now. Please try again in a moment."
-          : "We could not save your beta interest just yet. Please try again in a moment.";
+          : "We couldn't save your beta interest just now. Please try again. If it keeps happening, contact us through the MyLearna contact page.";
 
-      trackBetaEvent("beta_submit_error", {
+      trackBetaEvent("beta_form_submit_failure", {
         source: source || undefined,
-        country: safe(values.country) || undefined,
-        currently_homeschooling: values.currentlyHomeschooling || undefined,
-        willing_to_test_free_beta: values.willingToTestFreeBeta ? "yes" : "no",
       });
       setState("error");
       setFeedback(message);
+      setShowContactLink(true);
     }
   }
 
@@ -534,25 +595,73 @@ export default function BetaInterestPage() {
             </div>
 
             <div>
-              <label style={labelStyle()}>Biggest homeschool challenge</label>
+              <label style={labelStyle()}>Biggest homeschool challenges</label>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))",
+                }}
+              >
+                {CHALLENGE_OPTIONS.map((option) => {
+                  const checked = values.selectedChallenges.includes(option);
+
+                  return (
+                    <label
+                      key={option}
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "flex-start",
+                        border: `1px solid ${checked ? "#93c5fd" : "#e5e7eb"}`,
+                        borderRadius: 14,
+                        padding: 12,
+                        background: checked ? "#eff6ff" : "#ffffff",
+                        color: "#0f172a",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        lineHeight: 1.45,
+                        cursor: state === "saving" ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={state === "saving"}
+                        onChange={(event) => {
+                          const next = event.target.checked
+                            ? [...values.selectedChallenges, option]
+                            : values.selectedChallenges.filter((item) => item !== option);
+                          updateField("selectedChallenges", next);
+                        }}
+                        style={{ marginTop: 2 }}
+                      />
+                      <span>{option}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {errors.selectedChallenges ? (
+                <div style={errorTextStyle()}>{errors.selectedChallenges}</div>
+              ) : (
+                <div style={helperStyle()}>
+                  Choose more than one if needed. Keep this high-level and avoid private
+                  child, medical, or identifying details.
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label style={labelStyle()}>Anything else you&apos;d like to tell us?</label>
               <textarea
-                rows={5}
-                value={values.biggestHomeschoolChallenge}
-                onChange={(event) =>
-                  updateField("biggestHomeschoolChallenge", event.target.value)
-                }
-                placeholder="What feels hardest to manage right now?"
+                rows={4}
+                value={values.challengeDetails}
+                onChange={(event) => updateField("challengeDetails", event.target.value)}
+                placeholder="Optional extra context"
                 style={{ ...inputStyle(), resize: "vertical" }}
                 disabled={state === "saving"}
               />
-              {errors.biggestHomeschoolChallenge ? (
-                <div style={errorTextStyle()}>{errors.biggestHomeschoolChallenge}</div>
-              ) : (
-                <div style={helperStyle()}>
-                  Keep this high-level. Please do not include private child, medical, or
-                  identifying details.
-                </div>
-              )}
+              <div style={helperStyle()}>Optional. Please keep private learner details out of this field.</div>
             </div>
 
             <label
@@ -616,6 +725,14 @@ export default function BetaInterestPage() {
                 role="alert"
               >
                 {feedback}
+                {showContactLink ? (
+                  <>
+                    {" "}
+                    <Link href="/contact" style={{ color: "#9f1239", textDecoration: "underline" }}>
+                      Contact MyLearna
+                    </Link>
+                  </>
+                ) : null}
               </div>
             ) : null}
 

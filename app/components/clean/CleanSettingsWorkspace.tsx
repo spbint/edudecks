@@ -54,6 +54,28 @@ type SettingsDraft = {
   exportStyle: string;
 };
 
+type BetaPrefill = {
+  country?: string;
+  state_or_region?: string;
+  selected_challenges?: string[];
+};
+
+const BETA_PREFILL_STORAGE_KEY = "mylearna.beta.prefill";
+
+function readBetaPrefill(): BetaPrefill | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(BETA_PREFILL_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as BetaPrefill;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
@@ -482,6 +504,11 @@ function CleanSettingsWorkspaceBody() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [betaPrefill, setBetaPrefill] = useState<BetaPrefill | null>(null);
+
+  useEffect(() => {
+    setBetaPrefill(readBetaPrefill());
+  }, []);
 
   useEffect(() => {
     if (!workspace.profile) {
@@ -889,6 +916,33 @@ function CleanSettingsWorkspaceBody() {
             </section>
 
             <GuidanceSettingsCard />
+
+            {betaPrefill && !safe(workspace.profile.countryCode) ? (
+              <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Beta signup context</h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  You shared this during beta signup. Use it as a guide when choosing your
+                  country, region and reporting context below.
+                </p>
+                <div style={{ display: "grid", gap: 8, marginTop: 12, color: "#334155" }}>
+                  {betaPrefill.country ? (
+                    <div>
+                      <strong>Country:</strong> {betaPrefill.country}
+                    </div>
+                  ) : null}
+                  {betaPrefill.state_or_region ? (
+                    <div>
+                      <strong>State or region:</strong> {betaPrefill.state_or_region}
+                    </div>
+                  ) : null}
+                  {betaPrefill.selected_challenges?.length ? (
+                    <div>
+                      <strong>Challenges:</strong> {betaPrefill.selected_challenges.join(", ")}
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
 
             {draft ? (
               <section

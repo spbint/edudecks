@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -101,6 +101,34 @@ type LearnerDraft = {
   notes: string;
 };
 
+type BetaPrefill = {
+  name?: string;
+  email?: string;
+  country?: string;
+  state_or_region?: string;
+  number_of_children?: number | null;
+  currently_homeschooling?: string;
+  selected_challenges?: string[];
+  source?: string | null;
+  submitted_at?: string;
+};
+
+const BETA_PREFILL_STORAGE_KEY = "mylearna.beta.prefill";
+
+function readBetaPrefill(): BetaPrefill | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(BETA_PREFILL_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as BetaPrefill;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildLearnerDraft(learner: Learner): LearnerDraft {
   return {
     firstName: learner.firstName,
@@ -129,6 +157,24 @@ function CleanProfileWorkspaceBody() {
   const [editingLearnerId, setEditingLearnerId] = useState<string | null>(null);
   const [editingLearnerDraft, setEditingLearnerDraft] = useState<LearnerDraft | null>(null);
   const [learnerActionId, setLearnerActionId] = useState<string | null>(null);
+  const [betaPrefill, setBetaPrefill] = useState<BetaPrefill | null>(null);
+  const betaPrefillApplied = useRef(false);
+
+  useEffect(() => {
+    const prefill = readBetaPrefill();
+    setBetaPrefill(prefill);
+
+    if (betaPrefillApplied.current) return;
+
+    if (
+      prefill?.name &&
+      workspace.requiresFamilyCreation &&
+      !familyName.trim()
+    ) {
+      betaPrefillApplied.current = true;
+      setFamilyName(`${prefill.name}'s family`);
+    }
+  }, [familyName, workspace.requiresFamilyCreation]);
 
   const defaultLearnerLabel = useMemo(() => {
     if (!workspace.profile?.defaultLearnerId) return null;
@@ -418,6 +464,26 @@ function CleanProfileWorkspaceBody() {
           copy="My Profile is where you make the learner list feel clear and usable before you start planning, capturing evidence, or building reports."
           items={guidanceItems}
         />
+
+        {betaPrefill &&
+        !workspace.loading &&
+        !workspace.schemaMissing &&
+        (!workspace.profile || !workspace.learners.length) ? (
+          <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
+            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Beta signup details noted</h2>
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              We can use your beta signup details to make setup easier, but MyLearna will not
+              create learner records automatically.
+            </p>
+            {typeof betaPrefill.number_of_children === "number" && betaPrefill.number_of_children > 0 ? (
+              <p style={{ margin: "10px 0 0", color: "#1d4ed8", fontWeight: 800, lineHeight: 1.6 }}>
+                You told us you have {betaPrefill.number_of_children}{" "}
+                {betaPrefill.number_of_children === 1 ? "child" : "children"}. Add each
+                learner when you are ready.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
 
         {workspace.loading ? (
           <section style={cardStyle}>Loading clean family workspace...</section>

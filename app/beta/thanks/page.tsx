@@ -37,13 +37,28 @@ function primaryButtonStyle(): CSSProperties {
   };
 }
 
-export default function BetaThanksPage() {
+type BetaThanksPageProps = {
+  searchParams?: Promise<{
+    status?: string;
+  }>;
+};
+
+export default async function BetaThanksPage({ searchParams }: BetaThanksPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const alreadyRecorded = params.status === "already";
+  const heroTitle = alreadyRecorded
+    ? "You're already on the MyLearna beta list"
+    : "Thanks for joining the MyLearna Beta";
+  const heroText = alreadyRecorded
+    ? "You're already on the beta list. We've got your interest recorded, and we'll contact you when a suitable beta place opens."
+    : "Thanks - your beta interest has been recorded. We're inviting families gradually so we can learn from real use without overwhelming the experience.";
+
   return (
     <PublicSiteShell
-      title="Thanks for joining the MyLearna Beta"
-      eyebrow="Beta interest received"
-      heroTitle="Thanks for joining the MyLearna Beta"
-      heroText="Thanks - you're on the MyLearna beta list. We're inviting families gradually so we can learn from real use without overwhelming the experience. The beta is free, and your feedback will help shape MyLearna before a wider rollout."
+      title={heroTitle}
+      eyebrow={alreadyRecorded ? "Beta interest already recorded" : "Beta interest received"}
+      heroTitle={heroTitle}
+      heroText={heroText}
       heroBadges={["Free beta", "Gradual invites", "Family feedback", "You're on the list"]}
       navItems={[]}
       primaryCta={null}
@@ -73,7 +88,9 @@ export default function BetaThanksPage() {
               marginBottom: 10,
             }}
           >
-            You&apos;re on the beta list
+            {alreadyRecorded
+              ? "You're already on the beta list"
+              : "Thanks - your beta interest has been recorded"}
           </div>
 
           <div
@@ -84,9 +101,9 @@ export default function BetaThanksPage() {
               marginBottom: 18,
             }}
           >
-            We are opening the beta carefully so we can learn from real families, fix the
-            rough edges, and keep the experience calm. When a place opens, we&apos;ll contact
-            you with the next step.
+            {alreadyRecorded
+              ? "We've got your interest recorded. You do not need to submit the form again."
+              : "We are opening the beta carefully so we can learn from real families, fix the rough edges, and keep the experience calm. When a place opens, we'll contact you with the next step."}
           </div>
 
           <div
@@ -106,8 +123,8 @@ export default function BetaThanksPage() {
             need to do right now.
           </div>
 
-          <Link href="/" style={primaryButtonStyle()}>
-            Back to home
+          <Link href="/signup?next=/my-day" style={primaryButtonStyle()}>
+            Create your MyLearna account
           </Link>
         </div>
       </section>
