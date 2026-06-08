@@ -7,7 +7,7 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import {
-  CleanBetaFeedbackPrompt,
+  CleanFeedbackPrompt,
   CleanContinueWhereYouLeftOffCard,
 } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanFamilyWorkspaceProvider, {
@@ -1557,7 +1557,7 @@ function CleanDayWorkspaceBody() {
               </div>
             </section>
 
-            <CleanBetaFeedbackPrompt pageName="My Day" />
+            <CleanFeedbackPrompt pageName="My Day" />
           </>
         ) : null}
       </div>

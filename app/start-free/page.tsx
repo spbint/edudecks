@@ -1,8 +1,96 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { saveSignupPrefill, type SignupPrefill } from "@/lib/signupPrefill";
+
+const COUNTRY_OPTIONS = [
+  { value: "AU", label: "Australia" },
+  { value: "US", label: "United States" },
+  { value: "UK", label: "United Kingdom" },
+  { value: "INTL", label: "Other / International" },
+];
+
+const AUSTRALIA_JURISDICTIONS = [
+  { value: "ACT", label: "ACT" },
+  { value: "NSW", label: "NSW" },
+  { value: "NT", label: "NT" },
+  { value: "QLD", label: "QLD" },
+  { value: "SA", label: "SA" },
+  { value: "TAS", label: "TAS" },
+  { value: "VIC", label: "VIC" },
+  { value: "WA", label: "WA" },
+];
+
+const UNITED_STATES_JURISDICTIONS = [
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+].map((value) => ({ value, label: value }));
+
+const UNITED_KINGDOM_NATIONS = [
+  { value: "england", label: "England" },
+  { value: "scotland", label: "Scotland" },
+  { value: "wales", label: "Wales" },
+  { value: "northern-ireland", label: "Northern Ireland" },
+];
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe(value));
+}
 
 function cardStyle(): React.CSSProperties {
   return {
@@ -14,407 +102,267 @@ function cardStyle(): React.CSSProperties {
   };
 }
 
-function stepCardStyle(tone: "blue" | "green" | "amber" | "violet"): React.CSSProperties {
-  const tones = {
-    blue: {
-      border: "#bfdbfe",
-      bg: "#eff6ff",
-      fg: "#1d4ed8",
-    },
-    green: {
-      border: "#bbf7d0",
-      bg: "#f0fdf4",
-      fg: "#166534",
-    },
-    amber: {
-      border: "#fed7aa",
-      bg: "#fff7ed",
-      fg: "#9a3412",
-    },
-    violet: {
-      border: "#ddd6fe",
-      bg: "#f5f3ff",
-      fg: "#6d28d9",
-    },
-  };
-
-  const t = tones[tone];
-
+function labelStyle(): React.CSSProperties {
   return {
-    border: `1px solid ${t.border}`,
-    borderRadius: 18,
-    background: t.bg,
-    padding: 18,
-    color: t.fg,
-  };
-}
-
-function primaryButtonStyle(): React.CSSProperties {
-  return {
-    minHeight: 48,
-    padding: "0 18px",
-    borderRadius: 14,
-    border: "1px solid #2563eb",
-    background: "#2563eb",
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: 800,
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-}
-
-function secondaryButtonStyle(): React.CSSProperties {
-  return {
-    minHeight: 48,
-    padding: "0 18px",
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 15,
-    fontWeight: 800,
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-}
-
-function infoRowStyle(): React.CSSProperties {
-  return {
-    border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    background: "#f8fafc",
-    padding: "12px 14px",
-    fontSize: 14,
-    lineHeight: 1.6,
     color: "#334155",
-    fontWeight: 700,
+    display: "block",
+    fontSize: 13,
+    fontWeight: 800,
+    marginBottom: 6,
+  };
+}
+
+function inputStyle(invalid = false): React.CSSProperties {
+  return {
+    width: "100%",
+    minHeight: 48,
+    border: `1px solid ${invalid ? "#fca5a5" : "#d1d5db"}`,
+    borderRadius: 14,
+    padding: "0 14px",
+    fontSize: 14,
+    color: "#0f172a",
+    background: "#ffffff",
+  };
+}
+
+const buttonStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: 50,
+  borderRadius: 14,
+  border: "1px solid #2563eb",
+  background: "#2563eb",
+  color: "#ffffff",
+  fontSize: 15,
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+function errorTextStyle(): React.CSSProperties {
+  return {
+    color: "#b91c1c",
+    fontSize: 12,
+    lineHeight: 1.5,
+    marginTop: 6,
   };
 }
 
 export default function StartFreePage() {
-  const [sourceQuery, setSourceQuery] = React.useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const source = safe(searchParams.get("source"));
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("");
+  const [stateOrRegion, setStateOrRegion] = useState("");
+  const [numberOfChildren, setNumberOfChildren] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const source = params.get("source");
-    setSourceQuery(source ? `?source=${encodeURIComponent(source)}` : "");
-  }, []);
+  const jurisdictionOptions = useMemo(() => {
+    if (country === "AU") return AUSTRALIA_JURISDICTIONS;
+    if (country === "US") return UNITED_STATES_JURISDICTIONS;
+    if (country === "UK") return UNITED_KINGDOM_NATIONS;
+    return [];
+  }, [country]);
 
-  const signupHref = `/signup${sourceQuery}`;
-  const loginHref = `/login${sourceQuery}`;
+  const emailValid = isValidEmail(email);
+  const formValid =
+    safe(fullName) &&
+    emailValid &&
+    safe(country) &&
+    (country === "INTL" || safe(stateOrRegion)) &&
+    safe(numberOfChildren);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitted(true);
+    if (!formValid) return;
+
+    const prefill: SignupPrefill = {
+      version: 1,
+      fullName: safe(fullName),
+      email: safe(email).toLowerCase(),
+      country: safe(country),
+      stateOrRegion: safe(stateOrRegion),
+      jurisdiction: safe(stateOrRegion),
+      numberOfChildren: Number(numberOfChildren),
+      source: source || "start-free",
+      createdAt: new Date().toISOString(),
+    };
+
+    saveSignupPrefill(prefill);
+    const params = new URLSearchParams();
+    params.set("next", "/my-profile");
+    params.set("source", prefill.source ?? "start-free");
+    router.push(`/signup?${params.toString()}`);
+  }
 
   return (
     <PublicSiteShell
       eyebrow="Start free"
-      heroTitle="Start free with a calmer homeschool record system."
-      heroText="MyLearna is designed so families can start with one child and one learning moment, not a full system on day one. You can grow into stronger records, portfolio choices, and reports over time."
-      heroBadges={["Start free", "No pressure", "Family-first", "Build over time"]}
-      primaryCta={{ label: "Create free account", href: signupHref }}
-      secondaryCta={{ label: "I already have an account", href: loginHref }}
-      asideTitle="A calm way to begin"
-      asideText="You do not need a polished setup, perfect evidence, or a complete plan before you begin. MyLearna is built to grow with your family."
+      heroTitle="Start using MyLearna"
+      heroText="Create your account with your email. We will use a few setup details to prefill your family profile so you do not have to enter them again later."
+      heroBadges={["Email sign-in", "Profile prefill", "Start with family setup"]}
+      primaryCta={null}
+      secondaryCta={{ label: "Already have an account?", href: "/login" }}
+      asideTitle="What happens next"
+      asideText="After email sign-in, MyLearna takes you to My Profile first so you can review and save your family setup."
+      compactHero
     >
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0,1.05fr) minmax(320px,0.95fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
           gap: 22,
           alignItems: "start",
-          marginBottom: 22,
         }}
       >
         <div style={cardStyle()}>
-          <div
-            style={{
-              fontSize: 28,
-              lineHeight: 1.1,
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: 10,
-            }}
-          >
-            What happens after you start free
-          </div>
-
-          <div
-            style={{
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: "#475569",
-              marginBottom: 18,
-              maxWidth: 760,
-            }}
-          >
-            The first goal is not to build everything. It is simply to begin.
-            MyLearna helps you capture one useful learning moment, then build
-            from there with clarity and confidence.
-          </div>
-
-          <div style={{ display: "grid", gap: 14 }}>
-            <div style={stepCardStyle("blue")}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: 1.05,
-                  textTransform: "uppercase",
-                  marginBottom: 6,
-                }}
-              >
-                Step 1
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.2,
-                  fontWeight: 900,
-                  marginBottom: 8,
-                  color: "#0f172a",
-                }}
-              >
-                Create your free account
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  color: "#334155",
-                }}
-              >
-                Start with a simple family account so MyLearna can save your
-                child records, portfolio moments, and reporting progress over
-                time.
-              </div>
+          <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 26 }}>
+            Start with email
+          </h2>
+          <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.7 }}>
+            Enter a few basic setup details. You can edit them later in My Profile
+            and My Settings.
+          </p>
+          <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16 }}>
+            <div>
+              <label style={labelStyle()}>Name</label>
+              <input
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="Your name"
+                autoComplete="name"
+                style={inputStyle(submitted && !safe(fullName))}
+              />
+              {submitted && !safe(fullName) ? (
+                <div style={errorTextStyle()}>Please enter your name.</div>
+              ) : null}
             </div>
 
-            <div style={stepCardStyle("green")}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: 1.05,
-                  textTransform: "uppercase",
-                  marginBottom: 6,
-                }}
-              >
-                Step 2
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.2,
-                  fontWeight: 900,
-                  marginBottom: 8,
-                  color: "#0f172a",
-                }}
-              >
-                Add your first child
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  color: "#334155",
-                }}
-              >
-                One child profile is enough to begin. You do not need your full
-                family structure perfectly set up before the system becomes
-                useful.
-              </div>
+            <div>
+              <label style={labelStyle()}>Email</label>
+              <input
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                inputMode="email"
+                style={inputStyle(submitted && !emailValid)}
+              />
+              {submitted && !emailValid ? (
+                <div style={errorTextStyle()}>Please enter your email.</div>
+              ) : null}
             </div>
 
-            <div style={stepCardStyle("amber")}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: 1.05,
-                  textTransform: "uppercase",
-                  marginBottom: 6,
+            <div>
+              <label style={labelStyle()}>Country</label>
+              <select
+                value={country}
+                onChange={(event) => {
+                  setCountry(event.target.value);
+                  setStateOrRegion("");
                 }}
+                style={inputStyle(submitted && !safe(country))}
               >
-                Step 3
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.2,
-                  fontWeight: 900,
-                  marginBottom: 8,
-                  color: "#0f172a",
-                }}
-              >
-                Capture one learning moment
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  color: "#334155",
-                }}
-              >
-                A short note about something your child did, understood, or
-                improved is enough to start building a real learning record.
-              </div>
+                <option value="">Choose country</option>
+                {COUNTRY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {submitted && !safe(country) ? (
+                <div style={errorTextStyle()}>Please choose your country.</div>
+              ) : null}
             </div>
 
-            <div style={stepCardStyle("violet")}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: 1.05,
-                  textTransform: "uppercase",
-                  marginBottom: 6,
-                }}
-              >
-                Step 4
+            {country ? (
+              <div>
+                <label style={labelStyle()}>
+                  {country === "UK" ? "Nation" : "State or region"}
+                </label>
+                {jurisdictionOptions.length ? (
+                  <select
+                    value={stateOrRegion}
+                    onChange={(event) => setStateOrRegion(event.target.value)}
+                    style={inputStyle(
+                      submitted && country !== "INTL" && !safe(stateOrRegion),
+                    )}
+                  >
+                    <option value="">
+                      {country === "UK" ? "Choose nation" : "Choose state or region"}
+                    </option>
+                    {jurisdictionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={stateOrRegion}
+                    onChange={(event) => setStateOrRegion(event.target.value)}
+                    placeholder="Optional region"
+                    style={inputStyle(false)}
+                  />
+                )}
+                {submitted && country !== "INTL" && !safe(stateOrRegion) ? (
+                  <div style={errorTextStyle()}>Please choose your state or region.</div>
+                ) : null}
               </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.2,
-                  fontWeight: 900,
-                  marginBottom: 8,
-                  color: "#0f172a",
-                }}
-              >
-                Grow into portfolio and reports later
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  color: "#334155",
-                }}
-              >
-                As evidence grows, MyLearna helps you organise it, shape it into
-                calm reports, and eventually move into stronger authority-ready
-                workflows.
-              </div>
-            </div>
-          </div>
+            ) : null}
 
-          <div
-            style={{
-              marginTop: 18,
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <Link href={signupHref} style={primaryButtonStyle()}>
-              Create free account
+            <div>
+              <label style={labelStyle()}>Number of children</label>
+              <select
+                value={numberOfChildren}
+                onChange={(event) => setNumberOfChildren(event.target.value)}
+                style={inputStyle(submitted && !safe(numberOfChildren))}
+              >
+                <option value="">Choose number</option>
+                {Array.from({ length: 8 }, (_, index) => index + 1).map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+                <option value="9">9 or more</option>
+              </select>
+              {submitted && !safe(numberOfChildren) ? (
+                <div style={errorTextStyle()}>
+                  Please choose the number of children.
+                </div>
+              ) : null}
+            </div>
+
+            <button type="submit" style={buttonStyle}>
+              Continue with email
+            </button>
+          </form>
+          <p style={{ margin: "14px 0 0", color: "#64748b", lineHeight: 1.6 }}>
+            Already have an account?{" "}
+            <Link href="/login" style={{ color: "#2563eb", fontWeight: 800 }}>
+              Sign in with your email
             </Link>
-            <Link href={loginHref} style={secondaryButtonStyle()}>
-              I already have an account
-            </Link>
-          </div>
-
-          <div
-            style={{
-              marginTop: 12,
-              fontSize: 12,
-              lineHeight: 1.6,
-              color: "#64748b",
-              fontWeight: 700,
-            }}
-          >
-            No credit card required. Start free and build from there.
-          </div>
+            .
+          </p>
         </div>
 
-        <div style={{ display: "grid", gap: 18 }}>
-          <div style={cardStyle()}>
-            <div
-              style={{
-                fontSize: 12,
-                lineHeight: 1.2,
-                fontWeight: 800,
-                letterSpacing: 1.05,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 8,
-              }}
-            >
-              Why families start here
-            </div>
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={infoRowStyle()}>
-                You do not need perfect evidence before the system becomes useful.
-              </div>
-              <div style={infoRowStyle()}>
-                You do not need to think like a teacher to get started.
-              </div>
-              <div style={infoRowStyle()}>
-                You do not need a full-year plan before capturing real learning.
-              </div>
-              <div style={infoRowStyle()}>
-                You remain in control of what is recorded, curated, and reported.
-              </div>
-            </div>
-          </div>
-
-          <div style={cardStyle()}>
-            <div
-              style={{
-                fontSize: 18,
-                lineHeight: 1.2,
-                fontWeight: 900,
-                color: "#0f172a",
-                marginBottom: 10,
-              }}
-            >
-              This is the best first move if you are just getting started
-            </div>
-
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-              }}
-            >
-              MyLearna works best when families begin with real learning rather
-              than trying to set up everything perfectly first. Start free, add
-              one child, and capture one useful moment. The rest can grow later.
-            </div>
-          </div>
-
-          <div style={cardStyle()}>
-            <div
-              style={{
-                fontSize: 18,
-                lineHeight: 1.2,
-                fontWeight: 900,
-                color: "#0f172a",
-                marginBottom: 10,
-              }}
-            >
-              Already started with MyLearna?
-            </div>
-
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-                marginBottom: 14,
-              }}
-            >
-              Sign back in to continue from your family dashboard, saved reports,
-              and next recommended steps.
-            </div>
-
-            <Link href={loginHref} style={secondaryButtonStyle()}>
-              Go to sign in
-            </Link>
+        <div style={cardStyle()}>
+          <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 22 }}>
+            Why we ask for these details
+          </h2>
+          <div style={{ display: "grid", gap: 12, color: "#475569", lineHeight: 1.7 }}>
+            <p style={{ margin: 0 }}>
+              Name and email help create your account.
+            </p>
+            <p style={{ margin: 0 }}>
+              Country and region help prefill My Settings so reports and records
+              use the right context.
+            </p>
+            <p style={{ margin: 0 }}>
+              Number of children is used only as a setup prompt. MyLearna will not
+              create child records until you choose to add them.
+            </p>
           </div>
         </div>
       </section>

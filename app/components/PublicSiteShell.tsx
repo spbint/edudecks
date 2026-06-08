@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import BetaV1Badge from "@/app/components/BetaV1Badge";
+import PreviewBadge from "@/app/components/PreviewBadge";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import useIsMobile from "@/app/components/useIsMobile";
 
@@ -320,7 +320,7 @@ export default function PublicSiteShell({
                   paddingRight: isMobile ? 0 : 6,
                 }}
               />
-              <BetaV1Badge compact={isMobile} />
+              <PreviewBadge compact={isMobile} />
             </div>
 
             <div

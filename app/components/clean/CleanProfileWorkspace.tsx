@@ -20,6 +20,7 @@ import {
   createCleanFamilyProfile,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { readSignupPrefill, type SignupPrefill } from "@/lib/signupPrefill";
 import {
   createCleanLearner,
   deleteCleanLearner,
@@ -104,34 +105,6 @@ type LearnerDraft = {
   notes: string;
 };
 
-type BetaPrefill = {
-  name?: string;
-  email?: string;
-  country?: string;
-  state_or_region?: string;
-  number_of_children?: number | null;
-  currently_homeschooling?: string;
-  selected_challenges?: string[];
-  source?: string | null;
-  submitted_at?: string;
-};
-
-const BETA_PREFILL_STORAGE_KEY = "mylearna.beta.prefill";
-
-function readBetaPrefill(): BetaPrefill | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.localStorage.getItem(BETA_PREFILL_STORAGE_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as BetaPrefill;
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
 function buildLearnerDraft(learner: Learner): LearnerDraft {
   return {
     firstName: learner.firstName,
@@ -161,22 +134,22 @@ function CleanProfileWorkspaceBody() {
   const [editingLearnerId, setEditingLearnerId] = useState<string | null>(null);
   const [editingLearnerDraft, setEditingLearnerDraft] = useState<LearnerDraft | null>(null);
   const [learnerActionId, setLearnerActionId] = useState<string | null>(null);
-  const [betaPrefill, setBetaPrefill] = useState<BetaPrefill | null>(null);
-  const betaPrefillApplied = useRef(false);
+  const [signupPrefill, setSignupPrefill] = useState<SignupPrefill | null>(null);
+  const signupPrefillApplied = useRef(false);
 
   useEffect(() => {
-    const prefill = readBetaPrefill();
-    setBetaPrefill(prefill);
+    const prefill = readSignupPrefill();
+    setSignupPrefill(prefill);
 
-    if (betaPrefillApplied.current) return;
+    if (signupPrefillApplied.current) return;
 
     if (
-      prefill?.name &&
+      prefill?.fullName &&
       workspace.requiresFamilyCreation &&
       !familyName.trim()
     ) {
-      betaPrefillApplied.current = true;
-      setFamilyName(`${prefill.name}'s family`);
+      signupPrefillApplied.current = true;
+      setFamilyName(`${prefill.fullName}'s family`);
     }
   }, [familyName, workspace.requiresFamilyCreation]);
 
@@ -481,20 +454,20 @@ function CleanProfileWorkspaceBody() {
           />
         ) : null}
 
-        {betaPrefill &&
+        {signupPrefill &&
         !workspace.loading &&
         !workspace.schemaMissing &&
         (!workspace.profile || !workspace.learners.length) ? (
           <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
-            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Beta signup details noted</h2>
+            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Signup details noted</h2>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              We can use your beta signup details to make setup easier, but MyLearna will not
+              We can use your signup details to make setup easier, but MyLearna will not
               create learner records automatically.
             </p>
-            {typeof betaPrefill.number_of_children === "number" && betaPrefill.number_of_children > 0 ? (
+            {typeof signupPrefill.numberOfChildren === "number" && signupPrefill.numberOfChildren > 0 ? (
               <p style={{ margin: "10px 0 0", color: "#1d4ed8", fontWeight: 800, lineHeight: 1.6 }}>
-                You told us you have {betaPrefill.number_of_children}{" "}
-                {betaPrefill.number_of_children === 1 ? "child" : "children"}. Add each
+                You told us you have {signupPrefill.numberOfChildren}{" "}
+                {signupPrefill.numberOfChildren === 1 ? "child" : "children"}. Add each
                 learner when you are ready.
               </p>
             ) : null}

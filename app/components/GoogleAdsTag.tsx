@@ -9,7 +9,6 @@ const GOOGLE_ADS_ID =
 const PUBLIC_EXACT_PATHS = new Set([
   "/",
   "/about",
-  "/beta",
   "/compare",
   "/contact",
   "/demo",

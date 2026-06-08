@@ -1,5 +1,6 @@
 import { buildAuthCallbackUrl, normalizeNextPath } from "@/lib/authRedirect";
 import { supabase } from "@/lib/supabaseClient";
+import { buildSignupPrefillMetadata, type SignupPrefill } from "@/lib/signupPrefill";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -286,6 +287,7 @@ export async function sendMagicLink(input: {
   mode: MagicLinkMode;
   nextPath: string;
   source: string;
+  signupPrefill?: SignupPrefill | null;
 }) {
   const normalizedEmail = normalizeMagicLinkEmail(input.email);
 
@@ -322,6 +324,7 @@ export async function sendMagicLink(input: {
 
   try {
     const shouldCreateUser = input.mode === "signup";
+    const signupPrefillMetadata = buildSignupPrefillMetadata(input.signupPrefill ?? null);
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
@@ -332,6 +335,7 @@ export async function sendMagicLink(input: {
               data: {
                 user_type: "family",
                 onboarding_state: "new",
+                ...signupPrefillMetadata,
               },
             }
           : {}),

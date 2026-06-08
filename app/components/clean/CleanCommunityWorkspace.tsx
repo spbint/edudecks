@@ -200,7 +200,7 @@ const FORUM_ROOM_DETAILS: Record<
   "mylearna-suggestions": {
     title: "MyLearna Suggestions",
     description:
-      "For feedback, feature ideas, beta suggestions, and improvements to the app.",
+      "For feedback, feature ideas, product suggestions, and improvements to the app.",
   },
 };
 
@@ -1565,7 +1565,7 @@ export default function CleanCommunityWorkspace() {
                     </h2>
                     <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
                       Real family posts appear first. Starter prompts stay visible below them so
-                      new beta users have useful places to begin.
+                      new users have useful places to begin.
                     </p>
                   </div>
                   {threadsLoading ? (

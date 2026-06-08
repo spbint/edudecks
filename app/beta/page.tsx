@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Start with MyLearna",
 };
 
-type BetaRedirectPageProps = {
+type StaleEntryRedirectPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
@@ -16,7 +16,7 @@ function firstParam(value: string | string[] | undefined) {
 
 function buildStartFreeRedirect(searchParams: Record<string, string | string[] | undefined>) {
   const params = new URLSearchParams();
-  const source = firstParam(searchParams.source).trim() || "beta-redirect";
+  const source = firstParam(searchParams.source).trim() || "stale-entry-redirect";
 
   params.set("source", source);
 
@@ -32,6 +32,6 @@ function buildStartFreeRedirect(searchParams: Record<string, string | string[] |
   return `/start-free?${params.toString()}`;
 }
 
-export default async function BetaPage({ searchParams }: BetaRedirectPageProps) {
+export default async function StaleEntryRedirectPage({ searchParams }: StaleEntryRedirectPageProps) {
   redirect(buildStartFreeRedirect((await searchParams) ?? {}));
 }

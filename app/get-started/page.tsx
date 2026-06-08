@@ -71,7 +71,7 @@ export default function GetStartedPage() {
       primaryCta={{ label: "Start with MyLearna", href: "/start-free?source=get-started-primary" }}
       secondaryCta={{ label: "Back home", href: "/" }}
       asideTitle="Best first move"
-      asideText="One captured learning moment is enough to begin once beta access opens for your family."
+      asideText="Create your account with email, then begin with one useful family setup step."
     >
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div

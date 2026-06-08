@@ -21,6 +21,11 @@ import {
   normalizeCleanErrorMessage,
   updateCleanFamilyProfile,
 } from "@/lib/clean/family/client";
+import {
+  clearSignupPrefill,
+  readSignupPrefill,
+  type SignupPrefill,
+} from "@/lib/signupPrefill";
 import type { FamilyProfile } from "@/lib/clean/family/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
@@ -57,28 +62,6 @@ type SettingsDraft = {
   privacyDefault: string;
   exportStyle: string;
 };
-
-type BetaPrefill = {
-  country?: string;
-  state_or_region?: string;
-  selected_challenges?: string[];
-};
-
-const BETA_PREFILL_STORAGE_KEY = "mylearna.beta.prefill";
-
-function readBetaPrefill(): BetaPrefill | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.localStorage.getItem(BETA_PREFILL_STORAGE_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as BetaPrefill;
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return null;
-  }
-}
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -514,10 +497,10 @@ function CleanSettingsWorkspaceBody() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [betaPrefill, setBetaPrefill] = useState<BetaPrefill | null>(null);
+  const [signupPrefill, setSignupPrefill] = useState<SignupPrefill | null>(null);
 
   useEffect(() => {
-    setBetaPrefill(readBetaPrefill());
+    setSignupPrefill(readSignupPrefill());
   }, []);
 
   useEffect(() => {
@@ -526,7 +509,16 @@ function CleanSettingsWorkspaceBody() {
       return;
     }
 
-    setDraft(buildDraft(workspace.profile));
+    const nextDraft = buildDraft(workspace.profile);
+    const prefill = readSignupPrefill();
+    if (prefill && !workspace.profile.countryCode) {
+      nextDraft.countryCode = prefill.country ?? nextDraft.countryCode;
+      nextDraft.jurisdictionCode =
+        prefill.country === BRENT_COUNTRY_CODE && prefill.jurisdiction
+          ? encodeUnitedKingdomJurisdictionCode(prefill.jurisdiction, "")
+          : prefill.jurisdiction || prefill.stateOrRegion || nextDraft.jurisdictionCode;
+    }
+    setDraft(nextDraft);
   }, [workspace.profile]);
 
   const jurisdictionOptions = useMemo(
@@ -783,6 +775,7 @@ function CleanSettingsWorkspaceBody() {
           : "Family settings updated.",
       );
       await workspace.reload();
+      clearSignupPrefill();
       if (setupStatus === "active") {
         completeSetupStep("settings");
         router.push("/my-calendar");
@@ -943,27 +936,22 @@ function CleanSettingsWorkspaceBody() {
 
             {!firstSetupMode ? <GuidanceSettingsCard /> : null}
 
-            {betaPrefill && !safe(workspace.profile.countryCode) ? (
+            {signupPrefill && !safe(workspace.profile.countryCode) ? (
               <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
-                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Beta signup context</h2>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Signup context</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  You shared this during beta signup. Use it as a guide when choosing your
+                  You shared this while starting your account. Use it as a guide when choosing your
                   country, region and reporting context below.
                 </p>
                 <div style={{ display: "grid", gap: 8, marginTop: 12, color: "#334155" }}>
-                  {betaPrefill.country ? (
+                  {signupPrefill.country ? (
                     <div>
-                      <strong>Country:</strong> {betaPrefill.country}
+                      <strong>Country:</strong> {signupPrefill.country}
                     </div>
                   ) : null}
-                  {betaPrefill.state_or_region ? (
+                  {signupPrefill.stateOrRegion ? (
                     <div>
-                      <strong>State or region:</strong> {betaPrefill.state_or_region}
-                    </div>
-                  ) : null}
-                  {betaPrefill.selected_challenges?.length ? (
-                    <div>
-                      <strong>Challenges:</strong> {betaPrefill.selected_challenges.join(", ")}
+                      <strong>State or region:</strong> {signupPrefill.stateOrRegion}
                     </div>
                   ) : null}
                 </div>

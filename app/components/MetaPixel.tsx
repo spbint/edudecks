@@ -9,7 +9,6 @@ const META_PIXEL_ID = "833692524078029";
 const PUBLIC_EXACT_PATHS = new Set([
   "/",
   "/about",
-  "/beta",
   "/compare",
   "/contact",
   "/demo",

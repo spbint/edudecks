@@ -8,7 +8,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
-import { CleanBetaFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
+import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
@@ -1362,7 +1362,7 @@ function PathwaysWorkspaceBody() {
             Feedback
           </summary>
           <div style={{ marginTop: 10 }}>
-            <CleanBetaFeedbackPrompt pageName="My Pathways" />
+            <CleanFeedbackPrompt pageName="My Pathways" />
           </div>
         </details>
 
@@ -1894,7 +1894,7 @@ function PathwaySubjectPlaceholderSection({
           </section>
 
           <section style={summaryCardStyle}>
-            <div style={eyebrowStyle}>Current beta note</div>
+            <div style={eyebrowStyle}>Current note</div>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>{subject.placeholderNote}</div>
             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
               Mathematics, English, Science, Humanities & Social Sciences, Technologies,

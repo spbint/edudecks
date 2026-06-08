@@ -17,7 +17,7 @@ export default async function SignupPage() {
     const user = await getAuthenticatedRouteUser();
 
     if (user) {
-      redirect("/my-day");
+      redirect("/my-profile");
     }
   } catch (error) {
     const message = String((error as { message?: unknown })?.message ?? "").trim();

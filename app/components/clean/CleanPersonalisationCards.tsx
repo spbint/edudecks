@@ -8,7 +8,7 @@ type CleanNextStepCardProps = {
   title?: string;
 };
 
-type CleanBetaFeedbackPromptProps = {
+type CleanFeedbackPromptProps = {
   pageName: string;
 };
 
@@ -139,7 +139,7 @@ export function CleanContinueWhereYouLeftOffCard({
   );
 }
 
-export function CleanBetaFeedbackPrompt({ pageName }: CleanBetaFeedbackPromptProps) {
+export function CleanFeedbackPrompt({ pageName }: CleanFeedbackPromptProps) {
   return (
     <section
       style={{

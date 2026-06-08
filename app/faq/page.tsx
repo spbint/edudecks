@@ -13,7 +13,7 @@ type FAQCategory =
   | "Portfolios"
   | "Reporting"
   | "Worksheets"
-  | "Beta";
+  | "Accounts";
 
 type FAQItem = {
   answer: string;
@@ -71,16 +71,16 @@ const FAQS: FAQItem[] = [
       "MyLearna includes maths worksheet resources inside the learning workflow. Public SEO pages may describe worksheet topics, but they do not expose full worksheet PDF downloads.",
   },
   {
-    category: "Beta",
-    question: "Is MyLearna in beta?",
+    category: "Accounts",
+    question: "How do I start using MyLearna?",
     answer:
-      "Yes. MyLearna is opening gradually through beta so real homeschool families can test the workflow and help shape what comes next.",
+      "Start with your email. MyLearna asks for a few setup details so My Profile and My Settings can be easier to complete after sign-in.",
   },
   {
-    category: "Beta",
-    question: "How do I join the beta?",
+    category: "Accounts",
+    question: "Do I need approval before using MyLearna?",
     answer:
-      "You can join the beta list from the MyLearna beta page. Beta access is opened gradually so the product can improve with practical family feedback.",
+      "No approval step is required in the public signup flow. Create your account with email, then begin with My Profile.",
   },
 ];
 
@@ -91,7 +91,7 @@ const CATEGORY_ORDER: Array<"All" | FAQCategory> = [
   "Portfolios",
   "Reporting",
   "Worksheets",
-  "Beta",
+  "Accounts",
 ];
 
 const RELATED_GUIDES = [
@@ -118,7 +118,7 @@ export default function FAQPage() {
     <PublicSiteShell
       eyebrow="Trust starts with clarity"
       heroTitle="MyLearna FAQ"
-      heroText="Answers to common questions about homeschool planning, portfolios, learning evidence, reports, worksheets and beta access."
+      heroText="Answers to common questions about homeschool planning, portfolios, learning evidence, reports, worksheets and account setup."
       heroBadges={[
         "Planning",
         "Evidence",

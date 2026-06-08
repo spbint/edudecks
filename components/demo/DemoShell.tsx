@@ -180,13 +180,12 @@ export default function DemoShell() {
           </div>
           <h2 style={{ margin: 0, fontSize: 30 }}>Want to help shape MyLearna?</h2>
           <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.7, maxWidth: 820 }}>
-            MyLearna is growing through beta. Explore the demo, try the workflow,
-            and if it could help your homeschool, join the beta and help shape what
-            comes next.
+            MyLearna is growing with homeschool families. Explore the demo, try the workflow,
+            and if it could help your homeschool, start free with your email.
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/beta?source=demo" style={demoButton}>
-              Join the beta
+            <Link href="/start-free?source=demo" style={demoButton}>
+              Start free
             </Link>
             <button type="button" onClick={() => goTo("family")} style={demoSecondaryButton}>
               Revisit the demo

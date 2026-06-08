@@ -62,8 +62,8 @@ export default function DemoHero({ onStart }: { onStart: () => void }) {
           <button type="button" onClick={onStart} style={demoButton}>
             Start the demo
           </button>
-          <Link href="/beta?source=demo" style={demoSecondaryButton}>
-            Join the beta
+          <Link href="/start-free?source=demo" style={demoSecondaryButton}>
+            Start free
           </Link>
         </div>
       </div>

@@ -59,9 +59,7 @@ export default function ContactPage() {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       setState("success");
-      setFeedback(
-        "You’re on the list. Thanks for your interest in MyLearna."
-      );
+      setFeedback("Thanks. Your message has been noted.");
 
       setName("");
       setEmail("");
@@ -79,8 +77,8 @@ export default function ContactPage() {
       eyebrow="Stay close to the launch"
       heroTitle="Contact MyLearna"
       heroText="MyLearna is being built for homeschool families who want a calmer, stronger system for record keeping, portfolios, planning, and reporting."
-      heroBadges={["Waitlist", "Early access", "Feedback welcome", "Beta interest"]}
-      primaryCta={{ label: "Start Free", href: "/capture" }}
+      heroBadges={["Questions", "Feedback", "Homeschool support", "Product ideas"]}
+      primaryCta={{ label: "Start free", href: "/start-free?source=contact-primary" }}
       secondaryCta={{ label: "View Pricing", href: "/pricing" }}
       asideTitle="Best fit"
       asideText="Families who want a homeschool workflow that feels calmer than school software and more useful than scattered notes."
@@ -104,7 +102,7 @@ export default function ContactPage() {
               marginBottom: 8,
             }}
           >
-            Join the waitlist
+            Contact MyLearna
           </div>
 
           <div
@@ -180,7 +178,7 @@ export default function ContactPage() {
                 type="button"
                 disabled={state === "saving"}
               >
-                {state === "saving" ? "Submitting…" : "Join Waitlist"}
+                {state === "saving" ? "Submitting..." : "Send message"}
               </button>
 
               <Link href="/pricing" style={publicButtonStyle(false)}>
@@ -206,10 +204,10 @@ export default function ContactPage() {
 
             <div style={{ display: "grid", gap: 10 }}>
               {[
-                "Stay informed as the workflow expands",
+                "Ask a practical product question",
                 "Signal what matters most to your family",
-                "Raise your hand for beta access",
-                "Help shape the product early",
+                "Share what would make records easier",
+                "Suggest improvements for homeschool families",
               ].map((item) => (
                 <div
                   key={item}
@@ -296,8 +294,8 @@ export default function ContactPage() {
             See How It Works
           </Link>
 
-          <Link href="/capture" style={publicButtonStyle(false)}>
-            Try Quick Capture
+          <Link href="/start-free?source=contact-final" style={publicButtonStyle(false)}>
+            Start free
           </Link>
         </div>
       </section>

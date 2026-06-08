@@ -2,21 +2,18 @@
 
 import React from "react";
 
-type BetaV1BadgeProps = {
+type PreviewBadgeProps = {
   compact?: boolean;
   style?: React.CSSProperties;
 };
 
-const LABEL = "MyLearna is in early access and evolving with family feedback.";
+const LABEL = "MyLearna is evolving with family feedback.";
 
-export default function BetaV1Badge({
-  compact = false,
-  style,
-}: BetaV1BadgeProps) {
+export default function PreviewBadge({ compact = false, style }: PreviewBadgeProps) {
   return (
     <span
       title={LABEL}
-      aria-label={`Beta v1. ${LABEL}`}
+      aria-label={`Preview. ${LABEL}`}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -36,7 +33,7 @@ export default function BetaV1Badge({
         ...style,
       }}
     >
-      Beta v1
+      Preview
     </span>
   );
 }

@@ -29,7 +29,11 @@ export function normalizeAuthNextPath(
     normalized === "/signup" ||
     normalized.startsWith("/signup?") ||
     normalized === "/auth/callback" ||
-    normalized.startsWith("/auth/callback?")
+    normalized.startsWith("/auth/callback?") ||
+    normalized === "/beta" ||
+    normalized.startsWith("/beta?") ||
+    normalized === "/beta/thanks" ||
+    normalized.startsWith("/beta/thanks?")
   ) {
     return normalizedFallback;
   }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import BetaV1Badge from "@/app/components/BetaV1Badge";
+import PreviewBadge from "@/app/components/PreviewBadge";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import CleanPageFeedbackWidget from "@/app/components/clean/CleanPageFeedbackWidget";
@@ -201,7 +201,7 @@ export default function CleanAppHeader() {
                   }}
                 />
               </Link>
-              <BetaV1Badge compact />
+              <PreviewBadge compact />
             </div>
 
             <div

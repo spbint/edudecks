@@ -88,10 +88,10 @@ export const COMMUNITY_STARTER_THREADS: StarterCommunityThread[] = [
     "Different countries, states, and regions ask homeschool families to keep different records. What part of the reporting or registration process feels hardest to understand?",
   ),
   starterThread(
-    "simpler-before-beta",
+    "simpler-before-wider-use",
     "mylearna-suggestions",
-    "What should MyLearna make simpler before beta opens wider?",
-    "As an early-access family, your feedback can shape MyLearna. What should be simpler, clearer, smaller, faster, or easier to understand before more families start using it?",
+    "What should MyLearna make simpler for new families?",
+    "Your feedback can shape MyLearna. What should be simpler, clearer, smaller, faster, or easier to understand for families starting out?",
     "MyLearna prompt",
   ),
   starterThread(
@@ -183,13 +183,13 @@ export const COMMUNITY_STARTER_REPLIES: StarterCommunityPost[] = [
     "It can help to know what other families track across the year, even when the exact rules differ.",
   ),
   starterReply(
-    "simpler-before-beta",
+    "simpler-before-wider-use",
     1,
     "Example response",
     "It would help if the next step was always obvious after adding a plan, capturing evidence, or previewing a report.",
   ),
   starterReply(
-    "simpler-before-beta",
+    "simpler-before-wider-use",
     2,
     "MyLearna Team",
     "Practical suggestions are very welcome, especially anything that reduces overwhelm for new families.",
