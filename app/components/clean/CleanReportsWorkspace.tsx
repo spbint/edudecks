@@ -8,7 +8,10 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidancePageAction,
+  GuidanceSetupNextAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import {
@@ -1976,6 +1979,13 @@ function CleanReportsWorkspaceBody() {
                             : "Choose the learner and current learning year first, then return here to move into output."}
                       </p>
                     </div>
+                    <GuidanceSetupNextAction
+                      stepId="reports"
+                      nextHref={outputsPathBase}
+                      label="Continue to My Outputs"
+                      skipLabel="Skip reports for now"
+                      helperText="You have seen how reports are previewed. Continue to outputs when you are ready."
+                    />
                   </ReportBuildStepCard>
                 </div>
 

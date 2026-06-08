@@ -8,7 +8,10 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidancePageAction,
+  GuidanceSetupNextAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
@@ -1249,6 +1252,13 @@ function CleanCaptureWorkspaceBody() {
                 After you capture useful evidence, review it in My Portfolio and choose
                 what should support reporting later.
               </p>
+              <GuidanceSetupNextAction
+                stepId="capture"
+                nextHref="/my-portfolio"
+                label="Continue to My Portfolio"
+                skipLabel="Skip capture for now"
+                helperText="Capture an evidence item if you can, or skip this setup step and return later."
+              />
               <Link href="/my-portfolio" style={buttonStyle}>
                 Open My Portfolio
               </Link>

@@ -577,10 +577,11 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         return;
       }
 
+      const resolvedPath = await resolveFirstAppPath(nextPath);
       await redirectAfterSession(
         "Signed in",
         "Signed in. Taking you to MyLearna...",
-        nextPath,
+        resolvedPath,
       );
     } catch (error) {
       setIsRedirecting(false);

@@ -10,7 +10,10 @@ import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidancePageAction,
+  GuidanceSetupNextAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCleanReportPdfFilename,
@@ -940,6 +943,12 @@ function CleanOutputsWorkspaceBody() {
             <div>
               <GuidancePageAction tourId="my-outputs" />
             </div>
+            <GuidanceSetupNextAction
+              stepId="outputs"
+              label="Finish setup"
+              helperText="You have reached the output stage. Finish setup when you are ready to use MyLearna normally."
+              finish
+            />
           </div>
         </section>
 

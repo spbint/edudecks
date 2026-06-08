@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
@@ -11,7 +12,9 @@ import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   GuidancePageAction,
   GuidanceSettingsCard,
+  GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -500,6 +503,12 @@ function hasMyDayContext(profile: FamilyProfile | null) {
 
 function CleanSettingsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const router = useRouter();
+  const {
+    completeSetupStep,
+    enabled: guidanceEnabled,
+    setupStatus,
+  } = useGuidance();
   const [draft, setDraft] = useState<SettingsDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -643,6 +652,8 @@ function CleanSettingsWorkspaceBody() {
   }, [exampleSetupCopy, myDayContextReady, workspace.requiresFamilyCreation]);
   const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
   const settingsHeading = familyDisplayName ? `${familyDisplayName} settings` : "My Settings";
+  const firstSetupMode =
+    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
 
   function updateCountry(countryCode: string) {
     setDraft((current) => {
@@ -771,6 +782,10 @@ function CleanSettingsWorkspaceBody() {
           : "Family settings updated.",
       );
       await workspace.reload();
+      if (setupStatus === "active") {
+        completeSetupStep("settings");
+        router.push("/my-calendar");
+      }
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(
@@ -788,11 +803,13 @@ function CleanSettingsWorkspaceBody() {
       <div style={wrapStyle}>
         <CleanAppHeader />
 
-        <CleanPageIntroVideo
-          config={PAGE_INTRO_VIDEOS.mySettings}
-          promptTitle="New to My Settings?"
-          promptDescription="Watch a quick guide to see how region, curriculum and reporting settings shape your homeschool context."
-        />
+        {!firstSetupMode ? (
+          <CleanPageIntroVideo
+            config={PAGE_INTRO_VIDEOS.mySettings}
+            promptTitle="New to My Settings?"
+            promptDescription="Watch a quick guide to see how region, curriculum and reporting settings shape your homeschool context."
+          />
+        ) : null}
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
@@ -815,16 +832,18 @@ function CleanSettingsWorkspaceBody() {
               My Profile stays focused on family and learner details.
             </p>
             <div>
-              <GuidancePageAction tourId="my-settings" />
+              {!firstSetupMode ? <GuidancePageAction tourId="my-settings" /> : null}
             </div>
           </div>
         </section>
 
-        <CleanPageGuidance
-          title="Set the family context once, then let planning and reporting feel more natural"
-          copy="My Settings is where you tell MyLearna which family context to use before it helps you plan weeks, frame evidence, and build reports."
-          items={guidanceItems}
-        />
+        {!firstSetupMode ? (
+          <CleanPageGuidance
+            title="Set the family context once, then let planning and reporting feel more natural"
+            copy="My Settings is where you tell MyLearna which family context to use before it helps you plan weeks, frame evidence, and build reports."
+            items={guidanceItems}
+          />
+        ) : null}
 
         {workspace.loading ? <section style={cardStyle}>Loading family settings...</section> : null}
 
@@ -915,7 +934,7 @@ function CleanSettingsWorkspaceBody() {
               </div>
             </section>
 
-            <GuidanceSettingsCard />
+            {!firstSetupMode ? <GuidanceSettingsCard /> : null}
 
             {betaPrefill && !safe(workspace.profile.countryCode) ? (
               <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
@@ -1303,10 +1322,22 @@ function CleanSettingsWorkspaceBody() {
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                 After your settings are saved, create a simple weekly plan in My Calendar.
               </p>
-              <Link href="/my-calendar" style={buttonStyle}>
-                Open My Calendar
-              </Link>
+              {setupStatus === "active" ? (
+                <GuidanceSetupNextAction
+                  stepId="settings"
+                  nextHref="/my-calendar"
+                  label="Save settings and continue to Calendar"
+                  helperText="Settings are ready when country, region, curriculum and reporting mode are saved."
+                  disabled={!myDayContextReady}
+                  disabledText="Save country, region, curriculum and reporting settings first."
+                />
+              ) : (
+                <Link href="/my-calendar" style={buttonStyle}>
+                  Open My Calendar
+                </Link>
+              )}
             </section>
+            {firstSetupMode ? <GuidanceSettingsCard /> : null}
           </>
         ) : null}
 

@@ -16,6 +16,7 @@ import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
+  GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   createCleanCalendarItem,
@@ -1535,6 +1536,12 @@ function CleanDayWorkspaceBody() {
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                     When you are ready, use My Pathways to find the next learning step, worksheet, practise or assess option.
                   </p>
+                  <GuidanceSetupNextAction
+                    stepId="day"
+                    nextHref="/my-pathways"
+                    label="Continue to My Pathways"
+                    helperText="My Day has been reviewed. Continue to explore learning pathways."
+                  />
                 </div>
                 <Link href={currentPathwayHref} style={{ ...secondaryButtonStyle, textDecoration: "none" }}>
                   Open My Pathways

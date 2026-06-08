@@ -9,7 +9,10 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidancePageAction,
+  GuidanceSetupNextAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import {
   createCleanCalendarItem,
   deleteCleanCalendarItem,
@@ -4124,6 +4127,13 @@ function CleanCalendarWorkspaceBody() {
                 Once your week has a simple shape, open My Day to focus on today&apos;s
                 learning.
               </p>
+              <GuidanceSetupNextAction
+                stepId="calendar"
+                nextHref="/my-day"
+                label="Continue to My Day"
+                skipLabel="Skip planning for now"
+                helperText="You can plan a simple week now, or skip this setup step and return to the calendar later."
+              />
               <Link href="/my-day" style={buttonStyle}>
                 Open My Day
               </Link>

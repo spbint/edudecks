@@ -11,7 +11,9 @@ import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
+  GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   createCleanFamilyProfile,
@@ -147,6 +149,7 @@ function formatLearnerDisplayName(learner: Learner) {
 
 function CleanProfileWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
   const [familyName, setFamilyName] = useState("");
   const [learnerFirstName, setLearnerFirstName] = useState("");
   const [learnerPreferredName, setLearnerPreferredName] = useState("");
@@ -260,6 +263,8 @@ function CleanProfileWorkspaceBody() {
   }, [setupContextReady, workspace.learners.length, workspace.requiresFamilyCreation]);
   const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
   const profileHeading = familyDisplayName ? `${familyDisplayName} profile` : "My Profile";
+  const firstSetupMode =
+    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
 
   async function handleCreateFamilyProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -428,11 +433,13 @@ function CleanProfileWorkspaceBody() {
       <div style={wrapStyle}>
         <CleanAppHeader />
 
-        <CleanPageIntroVideo
-          config={PAGE_INTRO_VIDEOS.myProfile}
-          promptTitle="New to My Profile?"
-          promptDescription="Watch a quick guide to see how family and learner details help MyLearna organise records clearly."
-        />
+        {!firstSetupMode ? (
+          <CleanPageIntroVideo
+            config={PAGE_INTRO_VIDEOS.myProfile}
+            promptTitle="New to My Profile?"
+            promptDescription="Watch a quick guide to see how family and learner details help MyLearna organise records clearly."
+          />
+        ) : null}
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
@@ -452,18 +459,20 @@ function CleanProfileWorkspaceBody() {
               Keep family details and learner information together here.
             </p>
             <div>
-              <GuidancePageAction tourId="my-profile" />
+              {!firstSetupMode ? <GuidancePageAction tourId="my-profile" /> : null}
             </div>
           </div>
         </section>
 
-        <GuidanceGettingStartedCard />
+        {!firstSetupMode ? <GuidanceGettingStartedCard /> : null}
 
-        <CleanPageGuidance
-          title="Set up the family basics once, then let the rest of MyLearna build from there"
-          copy="My Profile is where you make the learner list feel clear and usable before you start planning, capturing evidence, or building reports."
-          items={guidanceItems}
-        />
+        {!firstSetupMode ? (
+          <CleanPageGuidance
+            title="Set up the family basics once, then let the rest of MyLearna build from there"
+            copy="My Profile is where you make the learner list feel clear and usable before you start planning, capturing evidence, or building reports."
+            items={guidanceItems}
+          />
+        ) : null}
 
         {betaPrefill &&
         !workspace.loading &&
@@ -789,9 +798,18 @@ function CleanProfileWorkspaceBody() {
                 After your profile is ready, choose your country, curriculum and reporting
                 context in My Settings.
               </p>
-              <Link href="/my-settings" style={buttonStyle}>
-                Open My Settings
-              </Link>
+              {setupStatus === "active" ? (
+                <GuidanceSetupNextAction
+                  stepId="profile"
+                  nextHref="/my-settings"
+                  label="Save profile and continue to Settings"
+                  helperText="Family profile is started. Continue when you are ready to choose your learning settings."
+                />
+              ) : (
+                <Link href="/my-settings" style={buttonStyle}>
+                  Open My Settings
+                </Link>
+              )}
             </section>
           </>
         ) : null}

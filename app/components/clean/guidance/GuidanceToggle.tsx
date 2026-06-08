@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useGuidance, type GuidanceTourId } from "@/app/components/clean/guidance/GuidanceProvider";
 import { useDriverTour } from "@/app/components/clean/guidance/useDriverTour";
@@ -195,10 +195,10 @@ export function GuidanceSettingsCard() {
 }
 
 export function GuidancePageAction({ tourId }: { tourId: GuidanceTourId }) {
-  const { enabled, hydrated, isGuidanceRoute } = useGuidance();
+  const { enabled, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
   const startTour = useDriverTour();
 
-  if (!hydrated || !enabled || !isGuidanceRoute) return null;
+  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus === "active") return null;
 
   return (
     <button
@@ -217,6 +217,97 @@ export function GuidancePageAction({ tourId }: { tourId: GuidanceTourId }) {
     >
       Guide me through this page
     </button>
+  );
+}
+
+type GuidanceSetupNextActionProps = {
+  stepId: string;
+  nextHref?: string;
+  label: string;
+  helperText?: string;
+  disabled?: boolean;
+  disabledText?: string;
+  skipLabel?: string;
+  finish?: boolean;
+};
+
+export function GuidanceSetupNextAction({
+  stepId,
+  nextHref,
+  label,
+  helperText,
+  disabled = false,
+  disabledText,
+  skipLabel,
+  finish = false,
+}: GuidanceSetupNextActionProps) {
+  const {
+    completeSetupStep,
+    enabled,
+    hydrated,
+    isGuidanceRoute,
+    setupStatus,
+    skipSetupStep,
+  } = useGuidance();
+  const router = useRouter();
+
+  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus !== "active") return null;
+
+  function continueSetup() {
+    if (disabled) return;
+    completeSetupStep(stepId);
+    if (nextHref) router.push(nextHref);
+  }
+
+  function skipSetup() {
+    skipSetupStep(stepId);
+    if (nextHref) router.push(nextHref);
+  }
+
+  return (
+    <section
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 16,
+        background: "#eff6ff",
+        padding: 16,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "grid", gap: 4 }}>
+        <strong style={{ color: "#0f172a" }}>
+          {finish ? "Finish setup" : "Next setup step"}
+        </strong>
+        {helperText ? (
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{helperText}</p>
+        ) : null}
+        {disabled && disabledText ? (
+          <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6, fontWeight: 700 }}>
+            {disabledText}
+          </p>
+        ) : null}
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={continueSetup}
+          disabled={disabled}
+          style={{
+            ...primaryButtonStyle,
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.55 : 1,
+          }}
+        >
+          {label}
+        </button>
+        {skipLabel ? (
+          <button type="button" onClick={skipSetup} style={secondaryButtonStyle}>
+            {skipLabel}
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -268,7 +359,6 @@ export function GuidanceGettingStartedCard() {
     setCurrentSetupStep,
     setupStatus,
     setupChecklist,
-    toggleSetupStepComplete,
   } = useGuidance();
   const pathname = usePathname() || "";
   const startTour = useDriverTour();
@@ -365,15 +455,6 @@ export function GuidanceGettingStartedCard() {
                   style={{ ...primaryButtonStyle, padding: "8px 11px" }}
                 >
                   Guide me
-                </button>
-              ) : null}
-              {currentSetupStep !== item.id ? (
-                <button
-                  type="button"
-                  onClick={() => toggleSetupStepComplete(item.id)}
-                  style={{ ...secondaryButtonStyle, padding: "8px 11px", opacity: 0.75 }}
-                >
-                  {setupChecklist.includes(item.id) ? "Mark incomplete" : "Mark complete"}
                 </button>
               ) : null}
             </div>

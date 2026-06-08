@@ -8,7 +8,10 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
+import {
+  GuidancePageAction,
+  GuidanceSetupNextAction,
+} from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
@@ -874,6 +877,12 @@ function CleanPortfolioWorkspaceBody() {
                 When portfolio evidence is ready, preview how it can become a clearer
                 learning record in My Reports.
               </p>
+              <GuidanceSetupNextAction
+                stepId="portfolio"
+                nextHref={reportsPathBase}
+                label="Continue to My Reports"
+                helperText="You have reviewed how portfolio evidence is gathered. Continue to report preview."
+              />
               <Link href={reportsPathBase} style={buttonStyle}>
                 Open My Reports
               </Link>

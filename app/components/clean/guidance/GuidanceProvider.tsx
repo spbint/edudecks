@@ -63,6 +63,7 @@ type GuidanceContextValue = {
   currentSetupStep: string;
   welcomeSeen: boolean;
   dismissTip: (tipId: string) => void;
+  completeSetupStep: (stepId: string) => void;
   markTourCompleted: (tourId: string) => void;
   resetDismissedTips: () => void;
   resetSetupChecklist: () => void;
@@ -72,6 +73,7 @@ type GuidanceContextValue = {
   setSetupActive: (active: boolean) => void;
   setSetupStatus: (status: SetupStatus) => void;
   skipWelcomeGuidance: () => void;
+  skipSetupStep: (stepId: string) => void;
   startWelcomeGuidance: () => void;
   toggleSetupStepComplete: (stepId: string) => void;
 };
@@ -142,6 +144,17 @@ function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
 }
 
+function getSetupPath(stepId: string, pathname: string) {
+  const prefix = pathname.startsWith("/clean-my-") ? "/clean-my-" : "/my-";
+  if (stepId === "day") return `${prefix}day`;
+  return `${prefix}${stepId}`;
+}
+
+function getNextSetupItem(stepId: string) {
+  const setupIndex = SETUP_SEQUENCE.findIndex((item) => item.id === stepId);
+  return setupIndex >= 0 ? SETUP_SEQUENCE[setupIndex + 1] : null;
+}
+
 function writePendingTour(tourId: GuidanceTourId) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
@@ -185,7 +198,19 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     const timeoutId = window.setTimeout(() => {
-      if (!enabled || !isGuidanceRoute || setupStatus !== "not_started") {
+      if (!enabled || !isGuidanceRoute) {
+        setShowWelcomePrompt(false);
+        return;
+      }
+      if (setupStatus === "active") {
+        const setupPath = getSetupPath(currentSetupStep || "profile", pathname);
+        if (pathname !== setupPath) {
+          setShowWelcomePrompt(false);
+          router.replace(setupPath);
+        }
+        return;
+      }
+      if (setupStatus !== "not_started") {
         setShowWelcomePrompt(false);
         return;
       }
@@ -198,7 +223,15 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setShowWelcomePrompt(true);
     }, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [enabled, hydrated, isGuidanceRoute, pathname, router, setupStatus]);
+  }, [
+    currentSetupStep,
+    enabled,
+    hydrated,
+    isGuidanceRoute,
+    pathname,
+    router,
+    setupStatus,
+  ]);
 
   const setSetupActive = useCallback((active: boolean) => {
     setSetupActiveState(active);
@@ -227,19 +260,16 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       writeStringArrayStorage(COMPLETED_TOURS_KEY, next);
       return next;
     });
+  }, []);
 
-    const setupIndex = SETUP_SEQUENCE.findIndex((item) => item.tourId === tourId);
-    if (setupIndex === -1) return;
-
-    const setupId = SETUP_SEQUENCE[setupIndex].id;
-    const nextSetupItem = SETUP_SEQUENCE[setupIndex + 1];
-
+  const completeSetupStep = useCallback((stepId: string) => {
     setSetupChecklist((current) => {
-      const next = current.includes(setupId) ? current : [...current, setupId];
+      const next = current.includes(stepId) ? current : [...current, stepId];
       writeStringArrayStorage(SETUP_CHECKLIST_KEY, next);
       return next;
     });
 
+    const nextSetupItem = getNextSetupItem(stepId);
     if (nextSetupItem) {
       setCurrentSetupStep(nextSetupItem.id);
     } else {
@@ -247,6 +277,13 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setSetupStatus("completed");
     }
   }, [setCurrentSetupStep, setSetupStatus]);
+
+  const skipSetupStep = useCallback(
+    (stepId: string) => {
+      completeSetupStep(stepId);
+    },
+    [completeSetupStep],
+  );
 
   const toggleSetupStepComplete = useCallback(
     (stepId: string) => {
@@ -332,6 +369,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GuidanceContextValue>(
     () => ({
       completedTours,
+      completeSetupStep,
       currentSetupStep,
       dismissedTips,
       enabled,
@@ -351,12 +389,14 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setSetupActive,
       setSetupStatus,
       setGuidanceEnabled,
+      skipSetupStep,
       skipWelcomeGuidance,
       startWelcomeGuidance,
       toggleSetupStepComplete,
     }),
     [
       completedTours,
+      completeSetupStep,
       currentSetupStep,
       dismissedTips,
       dismissTip,
@@ -371,6 +411,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setSetupActive,
       setSetupStatus,
       setGuidanceEnabled,
+      skipSetupStep,
       showWelcomePrompt,
       setupChecklist,
       setupActive,
