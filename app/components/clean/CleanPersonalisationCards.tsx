@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import React from "react";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 
 type CleanNextStepCardProps = {
   actionHref?: string;
@@ -140,6 +143,12 @@ export function CleanContinueWhereYouLeftOffCard({
 }
 
 export function CleanFeedbackPrompt({ pageName }: CleanFeedbackPromptProps) {
+  const { enabled, setupStatus } = useGuidance();
+
+  if (enabled && setupStatus === "active") {
+    return null;
+  }
+
   return (
     <section
       style={{

@@ -20,7 +20,12 @@ import {
   createCleanFamilyProfile,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
-import { readSignupPrefill, type SignupPrefill } from "@/lib/signupPrefill";
+import {
+  getSignupCountryLabel,
+  getSignupJurisdictionLabel,
+  readSignupPrefill,
+  type SignupPrefill,
+} from "@/lib/signupPrefill";
 import {
   createCleanLearner,
   deleteCleanLearner,
@@ -121,6 +126,23 @@ function formatLearnerDisplayName(learner: Learner) {
   return surname ? `${givenName} ${surname}` : givenName;
 }
 
+function formatLearnerYearLevel(yearLevel: string | null | undefined) {
+  const clean = String(yearLevel ?? "").trim();
+  if (!clean) return "";
+  if (/^(year|grade)\b/i.test(clean)) return clean;
+  return `Year/Grade ${clean}`;
+}
+
+function titleCaseSlug(value: string | null | undefined) {
+  const clean = String(value ?? "").trim();
+  if (!clean) return "Not set";
+  return clean
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function CleanProfileWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const { enabled: guidanceEnabled, setupStatus } = useGuidance();
@@ -135,6 +157,7 @@ function CleanProfileWorkspaceBody() {
   const [editingLearnerDraft, setEditingLearnerDraft] = useState<LearnerDraft | null>(null);
   const [learnerActionId, setLearnerActionId] = useState<string | null>(null);
   const [signupPrefill, setSignupPrefill] = useState<SignupPrefill | null>(null);
+  const [showExtraLearnerForm, setShowExtraLearnerForm] = useState(false);
   const signupPrefillApplied = useRef(false);
 
   useEffect(() => {
@@ -164,6 +187,19 @@ function CleanProfileWorkspaceBody() {
   const setupContextReady = Boolean(
     workspace.profile?.countryCode && workspace.profile?.curriculumFrameworkId,
   );
+  const expectedLearnerCount =
+    typeof signupPrefill?.numberOfChildren === "number" && signupPrefill.numberOfChildren > 0
+      ? signupPrefill.numberOfChildren
+      : null;
+  const learnerTargetMet = Boolean(
+    expectedLearnerCount && workspace.learners.length >= expectedLearnerCount,
+  );
+  const shouldShowAddLearnerForm = !learnerTargetMet || showExtraLearnerForm;
+  const suggestedDefaultLearner =
+    workspace.learners.length && !workspace.profile?.defaultLearnerId
+      ? workspace.learners[0]
+      : null;
+  const showDeveloperDetails = process.env.NODE_ENV !== "production";
 
   const guidanceItems = useMemo(() => {
     if (workspace.requiresFamilyCreation) {
@@ -275,15 +311,23 @@ function CleanProfileWorkspaceBody() {
     setError(null);
 
     try {
-      await createCleanLearner(workspace.profile.id, {
+      const createdLearner = await createCleanLearner(workspace.profile.id, {
         firstName: learnerFirstName,
         preferredName: learnerPreferredName || null,
         yearLevel: learnerYearLevel || null,
       });
+      if (!workspace.profile.defaultLearnerId) {
+        await setDefaultCleanLearner(workspace.profile.id, createdLearner.id);
+      }
       setLearnerFirstName("");
       setLearnerPreferredName("");
       setLearnerYearLevel("");
-      setMessage("Learner added to the clean family workspace.");
+      setShowExtraLearnerForm(false);
+      setMessage(
+        workspace.profile.defaultLearnerId
+          ? "Learner added to the clean family workspace."
+          : "Learner added and set as the default learner.",
+      );
       await workspace.reload();
     } catch (nextError) {
       setError(
@@ -464,11 +508,32 @@ function CleanProfileWorkspaceBody() {
               We can use your signup details to make setup easier, but MyLearna will not
               create learner records automatically.
             </p>
+            {signupPrefill.country || signupPrefill.stateOrRegion ? (
+              <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.6 }}>
+                {signupPrefill.country ? (
+                  <>
+                    <strong>Country:</strong> {getSignupCountryLabel(signupPrefill.country)}
+                  </>
+                ) : null}
+                {signupPrefill.country && signupPrefill.stateOrRegion ? " · " : ""}
+                {signupPrefill.stateOrRegion ? (
+                  <>
+                    <strong>State or region:</strong>{" "}
+                    {getSignupJurisdictionLabel(
+                      signupPrefill.country,
+                      signupPrefill.stateOrRegion,
+                    )}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
             {typeof signupPrefill.numberOfChildren === "number" && signupPrefill.numberOfChildren > 0 ? (
               <p style={{ margin: "10px 0 0", color: "#1d4ed8", fontWeight: 800, lineHeight: 1.6 }}>
-                You told us you have {signupPrefill.numberOfChildren}{" "}
-                {signupPrefill.numberOfChildren === 1 ? "child" : "children"}. Add each
-                learner when you are ready.
+                {workspace.learners.length >= signupPrefill.numberOfChildren
+                  ? `You've added ${workspace.learners.length} of ${signupPrefill.numberOfChildren} learners.`
+                  : `You told us you have ${signupPrefill.numberOfChildren} ${
+                      signupPrefill.numberOfChildren === 1 ? "child" : "children"
+                    }. Add each learner when you are ready.`}
               </p>
             ) : null}
           </section>
@@ -536,25 +601,61 @@ function CleanProfileWorkspaceBody() {
                   <strong>Name:</strong> {workspace.profile.displayName}
                 </div>
                 <div>
-                  <strong>Family ID:</strong> {workspace.profile.id}
+                  <strong>Reporting mode:</strong>{" "}
+                  {titleCaseSlug(workspace.profile.reportingMode)}
                 </div>
                 <div>
-                  <strong>Reporting mode:</strong> {workspace.profile.reportingMode}
+                  <strong>Week start:</strong> {titleCaseSlug(workspace.profile.weekStart)}
                 </div>
                 <div>
-                  <strong>Week start:</strong> {workspace.profile.weekStart}
-                </div>
-                <div>
-                  <strong>Default learner:</strong> {defaultLearnerLabel || "Not set"}
-                </div>
-                <div>
-                  <strong>Members loaded:</strong> {workspace.members.length}
+                  <strong>Default learner:</strong>{" "}
+                  {defaultLearnerLabel ||
+                    (workspace.learners.length
+                      ? "Choose one learner below to make planning quicker."
+                      : "Add a learner first.")}
                 </div>
               </div>
             </section>
 
             <section data-guidance-id="profile-learner-details" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners</h2>
+              {expectedLearnerCount ? (
+                <p style={{ marginTop: 0, color: "#1d4ed8", fontWeight: 800, lineHeight: 1.6 }}>
+                  {learnerTargetMet
+                    ? `You've added ${workspace.learners.length} of ${expectedLearnerCount} learners.`
+                    : `You've added ${workspace.learners.length} of ${expectedLearnerCount} learners.`}
+                </p>
+              ) : null}
+              {suggestedDefaultLearner ? (
+                <div
+                  style={{
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 14,
+                    background: "#eff6ff",
+                    padding: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ color: "#0f172a" }}>Choose a default learner</strong>
+                    <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                      This makes planning and evidence forms quicker to use.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    style={secondaryButtonStyle}
+                    disabled={submitting}
+                    onClick={() => void handleSetDefaultLearner(suggestedDefaultLearner.id)}
+                  >
+                    Set {formatLearnerDisplayName(suggestedDefaultLearner)} as default
+                  </button>
+                </div>
+              ) : null}
               {workspace.learners.length ? (
                 <div id="learners" style={{ display: "grid", gap: 12 }}>
                   {workspace.learners.map((learner) => {
@@ -577,7 +678,10 @@ function CleanProfileWorkspaceBody() {
                           <div>
                             <strong>{formatLearnerDisplayName(learner)}</strong>
                             {learner.yearLevel ? (
-                              <span style={{ color: "#64748b" }}> - {learner.yearLevel}</span>
+                              <span style={{ color: "#64748b" }}>
+                                {" "}
+                                - {formatLearnerYearLevel(learner.yearLevel)}
+                              </span>
                             ) : null}
                           </div>
                         </div>
@@ -704,6 +808,7 @@ function CleanProfileWorkspaceBody() {
                               )}
                             </div>
 
+                            {showDeveloperDetails ? (
                             <details>
                               <summary style={{ color: "#64748b", fontSize: 12, cursor: "pointer" }}>
                                 Debug details
@@ -712,6 +817,7 @@ function CleanProfileWorkspaceBody() {
                                 Learner ID: {learner.id}
                               </div>
                             </details>
+                            ) : null}
                           </>
                         )}
                       </div>
@@ -740,6 +846,7 @@ function CleanProfileWorkspaceBody() {
               )}
             </section>
 
+            {shouldShowAddLearnerForm ? (
             <section id="add-learner" data-guidance-id="profile-add-learner" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add learner</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -771,6 +878,22 @@ function CleanProfileWorkspaceBody() {
                 </div>
               </form>
             </section>
+            ) : (
+              <section id="add-learner" data-guidance-id="profile-add-learner" style={cardStyle}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners are ready for now</h2>
+                <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                  You&apos;ve added the number of learners you told us about. You can add another
+                  learner later if your setup changes.
+                </p>
+                <button
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => setShowExtraLearnerForm(true)}
+                >
+                  Add another learner if needed
+                </button>
+              </section>
+            )}
 
             <section data-guidance-id="profile-next-settings" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Settings</h2>

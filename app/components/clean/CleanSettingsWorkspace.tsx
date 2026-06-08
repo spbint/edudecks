@@ -23,6 +23,8 @@ import {
 } from "@/lib/clean/family/client";
 import {
   clearSignupPrefill,
+  getSignupCountryLabel,
+  getSignupJurisdictionLabel,
   readSignupPrefill,
   type SignupPrefill,
 } from "@/lib/signupPrefill";
@@ -946,12 +948,16 @@ function CleanSettingsWorkspaceBody() {
                 <div style={{ display: "grid", gap: 8, marginTop: 12, color: "#334155" }}>
                   {signupPrefill.country ? (
                     <div>
-                      <strong>Country:</strong> {signupPrefill.country}
+                      <strong>Country:</strong> {getSignupCountryLabel(signupPrefill.country)}
                     </div>
                   ) : null}
                   {signupPrefill.stateOrRegion ? (
                     <div>
-                      <strong>State or region:</strong> {signupPrefill.stateOrRegion}
+                      <strong>State or region:</strong>{" "}
+                      {getSignupJurisdictionLabel(
+                        signupPrefill.country,
+                        signupPrefill.stateOrRegion,
+                      )}
                     </div>
                   ) : null}
                 </div>
@@ -1332,7 +1338,16 @@ function CleanSettingsWorkspaceBody() {
                 </Link>
               )}
             </section>
-            {firstSetupMode ? <GuidanceSettingsCard /> : null}
+            {firstSetupMode ? (
+              <details style={cardStyle}>
+                <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
+                  Guidance controls
+                </summary>
+                <div style={{ marginTop: 14 }}>
+                  <GuidanceSettingsCard />
+                </div>
+              </details>
+            ) : null}
           </>
         ) : null}
 

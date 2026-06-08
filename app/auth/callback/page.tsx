@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
+import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
 
 type CallbackErrorKind = "none" | "missing-pkce" | "expired-link" | "generic";
 
@@ -84,6 +85,8 @@ function isExpiredOrUsedLinkError(error: unknown) {
 function isProtectedMyLearnaPath(path: string) {
   return (
     path === "/my-day" ||
+    path === "/home" ||
+    path === "/dashboard" ||
     path === "/my-profile" ||
     path === "/my-settings" ||
     path.startsWith("/my-") ||
@@ -123,11 +126,12 @@ function AuthCallbackPageContent() {
   const [errorKind, setErrorKind] = useState<CallbackErrorKind>("none");
   const redirectInProgress = useRef(false);
   const callbackHandled = useRef(false);
+  const resolvedNextPathRef = useRef("/my-profile");
 
   const requestedNextPath = useMemo(() => {
-    const fallback = normalizeAuthNextPath("/my-day", "/my-day");
+    const fallback = normalizeAuthNextPath("/my-profile", "/my-profile");
     const candidate = searchParams.get("next");
-    return normalizeAuthNextPath(candidate || fallback, "/my-day");
+    return normalizeAuthNextPath(candidate || fallback, "/my-profile");
   }, [searchParams]);
 
   const errorParam = useMemo(() => safe(searchParams.get("error")), [searchParams]);
@@ -220,11 +224,13 @@ function AuthCallbackPageContent() {
         const user = userData.user;
         let resolvedNextPath = requestedNextPath;
         let hasCleanFamilyProfile = false;
+        let hasCleanLearningSettings = false;
 
         if (user?.id) {
           try {
             const familyState = await withTimeout(loadCleanFamilyProfile(), 1200);
             hasCleanFamilyProfile = Boolean(familyState.profile);
+            hasCleanLearningSettings = hasRequiredLearningSettings(familyState.profile);
           } catch (familyError) {
             console.error("[auth] callback clean family lookup failed", familyError);
           }
@@ -272,6 +278,14 @@ function AuthCallbackPageContent() {
 
           if (!hasCleanFamilyProfile && isProtectedMyLearnaPath(requestedNextPath)) {
             resolvedNextPath = "/my-profile";
+          } else if (
+            hasCleanFamilyProfile &&
+            !hasCleanLearningSettings &&
+            isProtectedMyLearnaPath(requestedNextPath) &&
+            requestedNextPath !== "/my-profile" &&
+            requestedNextPath !== "/my-settings"
+          ) {
+            resolvedNextPath = "/my-settings";
           }
         }
 
@@ -291,6 +305,7 @@ function AuthCallbackPageContent() {
               : "You're signed in. Taking you back to MyLearna...",
         );
         setErrorKind("none");
+        resolvedNextPathRef.current = resolvedNextPath;
 
         if (redirectInProgress.current) return;
         redirectInProgress.current = true;
@@ -340,7 +355,7 @@ function AuthCallbackPageContent() {
   function handleManualContinue() {
     if (redirectInProgress.current) return;
     redirectInProgress.current = true;
-    router.replace(requestedNextPath);
+    router.replace(resolvedNextPathRef.current);
   }
 
   return (

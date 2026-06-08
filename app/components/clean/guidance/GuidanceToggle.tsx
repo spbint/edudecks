@@ -328,7 +328,14 @@ export function GuidanceSetupProgress({
   body: string;
 }) {
   const { enabled, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
+  const pathname = usePathname();
+  const blockedByPrerequisite =
+    hydrated &&
+    typeof window !== "undefined" &&
+    window.localStorage.getItem(BLOCKED_SETUP_ROUTE_KEY) === pathname;
+
   if (!hydrated || !enabled || !isGuidanceRoute || setupStatus !== "active") return null;
+  if (blockedByPrerequisite) return null;
 
   const step = getSetupStep(stepId);
   const stepNumber = getSetupStepNumber(stepId);

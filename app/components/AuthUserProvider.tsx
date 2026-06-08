@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { readSignupPrefill } from "@/lib/signupPrefill";
 
 type ProfileRow = {
   is_admin?: boolean | null;
@@ -73,7 +74,12 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
       if (!notifiedUserIds.current.has(nextUser.id)) {
         notifiedUserIds.current.add(nextUser.id);
         const searchParams = new URLSearchParams(window.location.search);
-        const source = searchParams.get("source") || searchParams.get("utm_source") || null;
+        const signupPrefill = readSignupPrefill();
+        const source =
+          searchParams.get("source") ||
+          searchParams.get("utm_source") ||
+          signupPrefill?.source ||
+          null;
 
         fetch("/api/internal/new-user-notification", {
           method: "POST",

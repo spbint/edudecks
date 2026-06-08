@@ -4,85 +4,12 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
-import { saveSignupPrefill, type SignupPrefill } from "@/lib/signupPrefill";
-
-const COUNTRY_OPTIONS = [
-  { value: "AU", label: "Australia" },
-  { value: "US", label: "United States" },
-  { value: "UK", label: "United Kingdom" },
-  { value: "INTL", label: "Other / International" },
-];
-
-const AUSTRALIA_JURISDICTIONS = [
-  { value: "ACT", label: "ACT" },
-  { value: "NSW", label: "NSW" },
-  { value: "NT", label: "NT" },
-  { value: "QLD", label: "QLD" },
-  { value: "SA", label: "SA" },
-  { value: "TAS", label: "TAS" },
-  { value: "VIC", label: "VIC" },
-  { value: "WA", label: "WA" },
-];
-
-const UNITED_STATES_JURISDICTIONS = [
-  "AL",
-  "AK",
-  "AZ",
-  "AR",
-  "CA",
-  "CO",
-  "CT",
-  "DE",
-  "FL",
-  "GA",
-  "HI",
-  "ID",
-  "IL",
-  "IN",
-  "IA",
-  "KS",
-  "KY",
-  "LA",
-  "ME",
-  "MD",
-  "MA",
-  "MI",
-  "MN",
-  "MS",
-  "MO",
-  "MT",
-  "NE",
-  "NV",
-  "NH",
-  "NJ",
-  "NM",
-  "NY",
-  "NC",
-  "ND",
-  "OH",
-  "OK",
-  "OR",
-  "PA",
-  "RI",
-  "SC",
-  "SD",
-  "TN",
-  "TX",
-  "UT",
-  "VT",
-  "VA",
-  "WA",
-  "WV",
-  "WI",
-  "WY",
-].map((value) => ({ value, label: value }));
-
-const UNITED_KINGDOM_NATIONS = [
-  { value: "england", label: "England" },
-  { value: "scotland", label: "Scotland" },
-  { value: "wales", label: "Wales" },
-  { value: "northern-ireland", label: "Northern Ireland" },
-];
+import {
+  getSignupJurisdictionOptions,
+  saveSignupPrefill,
+  SIGNUP_COUNTRY_OPTIONS,
+  type SignupPrefill,
+} from "@/lib/signupPrefill";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -157,12 +84,7 @@ export default function StartFreePage() {
   const [numberOfChildren, setNumberOfChildren] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const jurisdictionOptions = useMemo(() => {
-    if (country === "AU") return AUSTRALIA_JURISDICTIONS;
-    if (country === "US") return UNITED_STATES_JURISDICTIONS;
-    if (country === "UK") return UNITED_KINGDOM_NATIONS;
-    return [];
-  }, [country]);
+  const jurisdictionOptions = useMemo(() => getSignupJurisdictionOptions(country), [country]);
 
   const emailValid = isValidEmail(email);
   const formValid =
@@ -265,7 +187,7 @@ export default function StartFreePage() {
                 style={inputStyle(submitted && !safe(country))}
               >
                 <option value="">Choose country</option>
-                {COUNTRY_OPTIONS.map((option) => (
+                {SIGNUP_COUNTRY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

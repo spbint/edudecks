@@ -74,6 +74,10 @@ import {
   buildCleanWeeklyPlannerPdfFilename,
   generateCleanWeeklyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
+import {
+  getSignupCountryLabel,
+  getSignupJurisdictionLabel,
+} from "@/lib/signupPrefill";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -795,7 +799,7 @@ function CleanCalendarWorkspaceBody() {
   const [yearTitle, setYearTitle] = useState("");
   const [yearStartsOn, setYearStartsOn] = useState(getWeekStart());
   const [yearEndsOn, setYearEndsOn] = useState(addDays(getWeekStart(), 83));
-  const [yearCountryCode, setYearCountryCode] = useState("AU");
+  const [yearCountryCode, setYearCountryCode] = useState("");
   const [yearJurisdictionCode, setYearJurisdictionCode] = useState("");
 
   const [periodTitle, setPeriodTitle] = useState("");
@@ -1305,6 +1309,23 @@ function CleanCalendarWorkspaceBody() {
     workspace.profile,
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
+  ]);
+
+  useEffect(() => {
+    if (!workspace.profile) return;
+    const savedCountryCode = String(workspace.profile.countryCode ?? "").trim();
+    const savedJurisdictionCode = String(workspace.profile.jurisdictionCode ?? "").trim();
+
+    if (savedCountryCode && !yearCountryCode) {
+      setYearCountryCode(savedCountryCode);
+    }
+    if (savedJurisdictionCode && !yearJurisdictionCode) {
+      setYearJurisdictionCode(savedJurisdictionCode);
+    }
+  }, [
+    workspace.profile,
+    yearCountryCode,
+    yearJurisdictionCode,
   ]);
 
   useEffect(() => {
@@ -2041,8 +2062,8 @@ function CleanCalendarWorkspaceBody() {
         <CleanFirstRunSetupGate currentStep="calendar" />
         <GuidanceSetupProgress
           stepId="calendar"
-          title="Plan your first week."
-          body="Create a simple weekly plan, or skip this for now and return when you are ready."
+          title="Set your learning year and first term."
+          body="Choose the date range MyLearna should plan inside. You can adjust this later."
         />
 
         <CleanPageIntroVideo
@@ -2250,20 +2271,40 @@ function CleanCalendarWorkspaceBody() {
                             placeholder="2026 learning year"
                             style={inputStyle}
                           />
-                          <input
-                            value={yearCountryCode}
-                            onChange={(event) =>
-                              setYearCountryCode(event.target.value.toUpperCase())
-                            }
-                            placeholder="Country code"
-                            style={inputStyle}
-                          />
-                          <input
-                            value={yearJurisdictionCode}
-                            onChange={(event) => setYearJurisdictionCode(event.target.value)}
-                            placeholder="State or region"
-                            style={inputStyle}
-                          />
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              Country
+                            </label>
+                            <input
+                              value={yearCountryCode}
+                              onChange={(event) =>
+                                setYearCountryCode(event.target.value.toUpperCase())
+                              }
+                              placeholder="Country"
+                              style={inputStyle}
+                            />
+                            {yearCountryCode ? (
+                              <span style={{ color: "#64748b", fontSize: 12 }}>
+                                {getSignupCountryLabel(yearCountryCode)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              State or region
+                            </label>
+                            <input
+                              value={yearJurisdictionCode}
+                              onChange={(event) => setYearJurisdictionCode(event.target.value)}
+                              placeholder="State or region"
+                              style={inputStyle}
+                            />
+                            {yearJurisdictionCode ? (
+                              <span style={{ color: "#64748b", fontSize: 12 }}>
+                                {getSignupJurisdictionLabel(yearCountryCode, yearJurisdictionCode)}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                         <div
                           style={{
