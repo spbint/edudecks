@@ -45,7 +45,7 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
 
     let active = true;
 
-    async function applySession(nextUser: User | null) {
+    async function applySession(nextUser: User | null, accessToken?: string | null) {
       if (!active) return;
 
       setUser(nextUser);
@@ -79,6 +79,7 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           },
           body: JSON.stringify({
             source,
@@ -93,7 +94,7 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
     async function hydrate() {
       try {
         const { data } = await supabase.auth.getSession();
-        await applySession(data.session?.user ?? null);
+        await applySession(data.session?.user ?? null, data.session?.access_token ?? null);
       } catch (error) {
         console.error("AuthUserProvider session hydrate failed", error);
         if (!active) return;
@@ -108,7 +109,7 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session?.user ?? null);
+      void applySession(session?.user ?? null, session?.access_token ?? null);
     });
 
     return () => {

@@ -13,6 +13,9 @@ const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
 const CURRENT_SETUP_STEP_KEY = "mylearna.guidance.currentSetupStep";
 const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 const SETUP_ACTIVE_KEY = "mylearna.guidance.setupActive";
+const SETUP_STATUS_KEY = "mylearna.guidance.setupStatus";
+
+type SetupStatus = "not_started" | "active" | "skipped" | "completed";
 
 const SETUP_SEQUENCE = [
   { id: "profile", tourId: "my-profile" },
@@ -56,6 +59,7 @@ type GuidanceContextValue = {
   showWelcomePrompt: boolean;
   setupChecklist: string[];
   setupActive: boolean;
+  setupStatus: SetupStatus;
   currentSetupStep: string;
   welcomeSeen: boolean;
   dismissTip: (tipId: string) => void;
@@ -66,6 +70,7 @@ type GuidanceContextValue = {
   setGuidanceEnabled: (nextEnabled: boolean) => void;
   setCurrentSetupStep: (stepId: string) => void;
   setSetupActive: (active: boolean) => void;
+  setSetupStatus: (status: SetupStatus) => void;
   skipWelcomeGuidance: () => void;
   startWelcomeGuidance: () => void;
   toggleSetupStepComplete: (stepId: string) => void;
@@ -102,6 +107,31 @@ function writeStringArrayStorage(key: string, values: string[]) {
   window.localStorage.setItem(key, JSON.stringify(values));
 }
 
+function readSetupStatus() {
+  if (typeof window === "undefined") return "not_started" as SetupStatus;
+  const value = window.localStorage.getItem(SETUP_STATUS_KEY);
+  if (
+    value === "not_started" ||
+    value === "active" ||
+    value === "skipped" ||
+    value === "completed"
+  ) {
+    return value;
+  }
+
+  if (readBooleanStorage(SETUP_ACTIVE_KEY, false)) {
+    return "active";
+  }
+
+  return "not_started";
+}
+
+function writeSetupStatus(status: SetupStatus) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SETUP_STATUS_KEY, status);
+  writeBooleanStorage(SETUP_ACTIVE_KEY, status === "active");
+}
+
 function matchesGuidanceRoute(pathname: string) {
   return GUIDANCE_ROUTE_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -128,6 +158,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const [dismissedTips, setDismissedTips] = useState<string[]>([]);
   const [setupChecklist, setSetupChecklist] = useState<string[]>([]);
   const [setupActive, setSetupActiveState] = useState(false);
+  const [setupStatus, setSetupStatusState] = useState<SetupStatus>("not_started");
   const [currentSetupStep, setCurrentSetupStepState] = useState("profile");
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false);
 
@@ -142,7 +173,9 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setCompletedTours(readStringArrayStorage(COMPLETED_TOURS_KEY));
       setDismissedTips(readStringArrayStorage(DISMISSED_TIPS_KEY));
       setSetupChecklist(readStringArrayStorage(SETUP_CHECKLIST_KEY));
-      setSetupActiveState(readBooleanStorage(SETUP_ACTIVE_KEY, false));
+      const storedSetupStatus = readSetupStatus();
+      setSetupStatusState(storedSetupStatus);
+      setSetupActiveState(storedSetupStatus === "active");
       setCurrentSetupStepState(window.localStorage.getItem(CURRENT_SETUP_STEP_KEY) || "profile");
       setHydrated(true);
     }, 0);
@@ -152,7 +185,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     const timeoutId = window.setTimeout(() => {
-      if (!enabled || !isGuidanceRoute || welcomeSeen) {
+      if (!enabled || !isGuidanceRoute || setupStatus !== "not_started") {
         setShowWelcomePrompt(false);
         return;
       }
@@ -165,11 +198,19 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setShowWelcomePrompt(true);
     }, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [enabled, hydrated, isGuidanceRoute, pathname, router, welcomeSeen]);
+  }, [enabled, hydrated, isGuidanceRoute, pathname, router, setupStatus]);
 
   const setSetupActive = useCallback((active: boolean) => {
     setSetupActiveState(active);
-    writeBooleanStorage(SETUP_ACTIVE_KEY, active);
+    const nextStatus = active ? "active" : "skipped";
+    setSetupStatusState(nextStatus);
+    writeSetupStatus(nextStatus);
+  }, []);
+
+  const setSetupStatus = useCallback((status: SetupStatus) => {
+    setSetupStatusState(status);
+    setSetupActiveState(status === "active");
+    writeSetupStatus(status);
   }, []);
 
   const setCurrentSetupStep = useCallback((stepId: string) => {
@@ -203,9 +244,9 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setCurrentSetupStep(nextSetupItem.id);
     } else {
       setCurrentSetupStep("outputs");
-      setSetupActive(false);
+      setSetupStatus("completed");
     }
-  }, [setCurrentSetupStep, setSetupActive]);
+  }, [setCurrentSetupStep, setSetupStatus]);
 
   const toggleSetupStepComplete = useCallback(
     (stepId: string) => {
@@ -242,26 +283,26 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
     setCompletedTours([]);
     writeStringArrayStorage(COMPLETED_TOURS_KEY, []);
-    setSetupActive(true);
+    setSetupStatus("active");
     setCurrentSetupStep("profile");
-  }, [setCurrentSetupStep, setSetupActive]);
+  }, [setCurrentSetupStep, setSetupStatus]);
 
   const skipWelcomeGuidance = useCallback(() => {
     setWelcomeSeen(true);
     setShowWelcomePrompt(false);
-    setSetupActive(false);
+    setSetupStatus("skipped");
     writeBooleanStorage(WELCOME_SEEN_KEY, true);
-  }, [setSetupActive]);
+  }, [setSetupStatus]);
 
   const startWelcomeGuidance = useCallback(() => {
     setWelcomeSeen(true);
     setShowWelcomePrompt(false);
     writeBooleanStorage(WELCOME_SEEN_KEY, true);
-    setSetupActive(true);
+    setSetupStatus("active");
     setCurrentSetupStep("profile");
     writePendingTour("my-profile");
     router.push(getCleanMyProfilePath(pathname));
-  }, [pathname, router, setCurrentSetupStep, setSetupActive]);
+  }, [pathname, router, setCurrentSetupStep, setSetupStatus]);
 
   const restartGuidance = useCallback(() => {
     setEnabled(true);
@@ -272,12 +313,12 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeStringArrayStorage(COMPLETED_TOURS_KEY, []);
     setSetupChecklist([]);
     writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
-    setSetupActive(true);
+    setSetupStatus("active");
     setCurrentSetupStep("profile");
     writePendingTour("my-profile");
     setShowWelcomePrompt(false);
     router.push(getCleanMyProfilePath(pathname));
-  }, [pathname, router, setCurrentSetupStep, setSetupActive]);
+  }, [pathname, router, setCurrentSetupStep, setSetupStatus]);
 
   const setGuidanceEnabled = useCallback(
     (nextEnabled: boolean) => {
@@ -299,6 +340,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       showWelcomePrompt,
       setupActive,
       setupChecklist,
+      setupStatus,
       welcomeSeen,
       dismissTip,
       markTourCompleted,
@@ -307,6 +349,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       restartGuidance,
       setCurrentSetupStep,
       setSetupActive,
+      setSetupStatus,
       setGuidanceEnabled,
       skipWelcomeGuidance,
       startWelcomeGuidance,
@@ -326,10 +369,12 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       restartGuidance,
       setCurrentSetupStep,
       setSetupActive,
+      setSetupStatus,
       setGuidanceEnabled,
       showWelcomePrompt,
       setupChecklist,
       setupActive,
+      setupStatus,
       skipWelcomeGuidance,
       startWelcomeGuidance,
       toggleSetupStepComplete,

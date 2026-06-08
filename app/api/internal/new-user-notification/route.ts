@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getAuthenticatedRouteUser } from "@/lib/auth/serverRouteAuth";
 import { sendNewUserNotification } from "@/lib/newUserNotification";
+import { createServerSupabaseClient } from "@/lib/supabaseClient";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,20 @@ function createAdminClient() {
 }
 
 export async function POST(request: Request) {
-  const user = await getAuthenticatedRouteUser();
+  let user = await getAuthenticatedRouteUser();
+
+  if (!user) {
+    const authHeader = request.headers.get("authorization") ?? "";
+    const token = authHeader.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+
+    if (token) {
+      const tokenClient = createServerSupabaseClient(token);
+      const tokenUser = await tokenClient.auth.getUser();
+      user = tokenUser.data.user ?? null;
+    }
+  }
 
   if (!user) {
     return NextResponse.json({ ok: false, status: "unauthenticated" }, { status: 401 });

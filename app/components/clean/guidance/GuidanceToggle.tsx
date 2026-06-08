@@ -266,13 +266,14 @@ export function GuidanceGettingStartedCard() {
     hydrated,
     isGuidanceRoute,
     setCurrentSetupStep,
+    setupStatus,
     setupChecklist,
     toggleSetupStepComplete,
   } = useGuidance();
   const pathname = usePathname() || "";
   const startTour = useDriverTour();
 
-  if (!hydrated || !enabled || !isGuidanceRoute) return null;
+  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus !== "active") return null;
 
   const completedCount = setupChecklist.length;
 
@@ -349,9 +350,13 @@ export function GuidanceGettingStartedCard() {
               <Link
                 href={item.href}
                 onClick={() => setCurrentSetupStep(item.id)}
-                style={{ ...secondaryButtonStyle, textDecoration: "none", padding: "8px 11px" }}
+                style={{
+                  ...(currentSetupStep === item.id ? primaryButtonStyle : secondaryButtonStyle),
+                  textDecoration: "none",
+                  padding: "8px 11px",
+                }}
               >
-                Open
+                {currentSetupStep === item.id ? "Continue" : "Open"}
               </Link>
               {pathname === item.href ? (
                 <button
@@ -362,13 +367,15 @@ export function GuidanceGettingStartedCard() {
                   Guide me
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={() => toggleSetupStepComplete(item.id)}
-                style={{ ...secondaryButtonStyle, padding: "8px 11px" }}
-              >
-                {setupChecklist.includes(item.id) ? "Mark incomplete" : "Mark complete"}
-              </button>
+              {currentSetupStep !== item.id ? (
+                <button
+                  type="button"
+                  onClick={() => toggleSetupStepComplete(item.id)}
+                  style={{ ...secondaryButtonStyle, padding: "8px 11px", opacity: 0.75 }}
+                >
+                  {setupChecklist.includes(item.id) ? "Mark incomplete" : "Mark complete"}
+                </button>
+              ) : null}
             </div>
           </div>
         ))}
