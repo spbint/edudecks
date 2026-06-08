@@ -386,7 +386,14 @@ function tourMatchesPathname(tourId: GuidanceTourId, pathname: string) {
 }
 
 export function GuidancePendingTourLauncher() {
-  const { enabled, hydrated, isGuidanceRoute } = useGuidance();
+  const {
+    completedTours,
+    currentSetupStep,
+    enabled,
+    hydrated,
+    isGuidanceRoute,
+    setupActive,
+  } = useGuidance();
   const pathname = usePathname() || "";
   const startTour = useDriverTour();
 
@@ -396,15 +403,35 @@ export function GuidancePendingTourLauncher() {
     }
 
     const pendingTour = window.localStorage.getItem(PENDING_TOUR_KEY) as GuidanceTourId | null;
-    if (!pendingTour || !tourMatchesPathname(pendingTour, pathname)) {
+    const activeSetupItem = checklistItems.find((item) => item.id === currentSetupStep);
+    const tourToStart =
+      pendingTour && tourMatchesPathname(pendingTour, pathname)
+        ? pendingTour
+        : setupActive &&
+            activeSetupItem &&
+            tourMatchesPathname(activeSetupItem.tourId, pathname) &&
+            !completedTours.includes(activeSetupItem.tourId)
+          ? activeSetupItem.tourId
+          : null;
+
+    if (!tourToStart) {
       return;
     }
 
     window.localStorage.removeItem(PENDING_TOUR_KEY);
-    const timeoutId = window.setTimeout(() => startTour(pendingTour), 350);
+    const timeoutId = window.setTimeout(() => startTour(tourToStart), 550);
 
     return () => window.clearTimeout(timeoutId);
-  }, [enabled, hydrated, isGuidanceRoute, pathname, startTour]);
+  }, [
+    completedTours,
+    currentSetupStep,
+    enabled,
+    hydrated,
+    isGuidanceRoute,
+    pathname,
+    setupActive,
+    startTour,
+  ]);
 
   return null;
 }

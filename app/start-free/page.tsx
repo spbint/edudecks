@@ -97,14 +97,25 @@ function infoRowStyle(): React.CSSProperties {
 }
 
 export default function StartFreePage() {
+  const [sourceQuery, setSourceQuery] = React.useState("");
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get("source");
+    setSourceQuery(source ? `?source=${encodeURIComponent(source)}` : "");
+  }, []);
+
+  const signupHref = `/signup${sourceQuery}`;
+  const loginHref = `/login${sourceQuery}`;
+
   return (
     <PublicSiteShell
       eyebrow="Start free"
       heroTitle="Start free with a calmer homeschool record system."
       heroText="MyLearna is designed so families can start with one child and one learning moment, not a full system on day one. You can grow into stronger records, portfolio choices, and reports over time."
       heroBadges={["Start free", "No pressure", "Family-first", "Build over time"]}
-      primaryCta={{ label: "Create free account", href: "/signup" }}
-      secondaryCta={{ label: "I already have an account", href: "/login" }}
+      primaryCta={{ label: "Create free account", href: signupHref }}
+      secondaryCta={{ label: "I already have an account", href: loginHref }}
       asideTitle="A calm way to begin"
       asideText="You do not need a polished setup, perfect evidence, or a complete plan before you begin. MyLearna is built to grow with your family."
     >
@@ -297,10 +308,10 @@ export default function StartFreePage() {
               flexWrap: "wrap",
             }}
           >
-            <Link href="/signup" style={primaryButtonStyle()}>
+            <Link href={signupHref} style={primaryButtonStyle()}>
               Create free account
             </Link>
-            <Link href="/login" style={secondaryButtonStyle()}>
+            <Link href={loginHref} style={secondaryButtonStyle()}>
               I already have an account
             </Link>
           </div>
@@ -401,7 +412,7 @@ export default function StartFreePage() {
               and next recommended steps.
             </div>
 
-            <Link href="/login" style={secondaryButtonStyle()}>
+            <Link href={loginHref} style={secondaryButtonStyle()}>
               Go to sign in
             </Link>
           </div>

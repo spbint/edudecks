@@ -264,7 +264,7 @@ function AuthCallbackPageContent() {
               !profileAndRouting.onboardingComplete &&
               profileAndRouting.linkedChildrenCount === 0
             ) {
-              resolvedNextPath = "/welcome";
+              resolvedNextPath = "/my-profile";
             }
           } catch (profileError) {
             console.error("[auth] callback profile hydration failed", profileError);
@@ -286,7 +286,7 @@ function AuthCallbackPageContent() {
         setMessage(
           resolvedNextPath === "/my-day"
             ? "You're signed in. Returning you to your learning record..."
-            : resolvedNextPath === "/welcome"
+            : resolvedNextPath === "/my-profile"
               ? "You're signed in. Getting your first step ready..."
               : "You're signed in. Taking you back to MyLearna...",
         );

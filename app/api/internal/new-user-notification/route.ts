@@ -36,10 +36,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, status: "unauthenticated" }, { status: 401 });
   }
 
-  if (user.app_metadata?.mylearna_signup_notification_sent_at) {
-    return NextResponse.json({ ok: true, status: "already_sent" });
-  }
-
   const admin = createAdminClient();
   if (!admin) {
     console.error("new_user_notification_failed", { reason: "missing_admin_env" });
@@ -50,6 +46,23 @@ export async function POST(request: Request) {
       },
     });
     return NextResponse.json({ ok: false, status: "configuration_error" }, { status: 500 });
+  }
+
+  const latestUser = await admin.auth.admin.getUserById(user.id);
+  if (latestUser.error) {
+    console.error("new_user_notification_failed", { reason: "admin_user_lookup_failed" });
+    Sentry.captureException(latestUser.error, {
+      tags: {
+        feature: "new-user-notification",
+        reason: "admin_user_lookup_failed",
+      },
+    });
+    return NextResponse.json({ ok: false, status: "lookup_failed" }, { status: 500 });
+  }
+
+  const latestAppMetadata = latestUser.data.user?.app_metadata ?? {};
+  if (latestAppMetadata.mylearna_signup_notification_sent_at) {
+    return NextResponse.json({ ok: true, status: "already_sent" });
   }
 
   let body: Record<string, unknown> = {};
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
     const sentAt = new Date().toISOString();
     const { error } = await admin.auth.admin.updateUserById(user.id, {
       app_metadata: {
-        ...user.app_metadata,
+        ...latestAppMetadata,
         mylearna_signup_notification_sent_at: sentAt,
       },
     });

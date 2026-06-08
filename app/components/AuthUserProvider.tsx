@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type ProfileRow = {
@@ -35,6 +35,7 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const notifiedUserIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!hasSupabaseEnv) {
@@ -67,6 +68,25 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
         if (active) {
           setLoading(false);
         }
+      }
+
+      if (!notifiedUserIds.current.has(nextUser.id)) {
+        notifiedUserIds.current.add(nextUser.id);
+        const searchParams = new URLSearchParams(window.location.search);
+        const source = searchParams.get("source") || searchParams.get("utm_source") || null;
+
+        fetch("/api/internal/new-user-notification", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            source,
+            referrer: document.referrer || null,
+          }),
+        }).catch(() => {
+          console.warn("Could not check new user notification status.");
+        });
       }
     }
 

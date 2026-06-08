@@ -7,7 +7,6 @@ import { AuthUserProvider } from "@/app/components/AuthUserProvider";
 import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTracker";
 import GoogleAdsTag from "@/app/components/GoogleAdsTag";
 import MetaPixel from "@/app/components/MetaPixel";
-import NewUserNotificationPing from "@/app/components/clean/NewUserNotificationPing";
 import { GuidanceProvider } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   GuidancePendingTourLauncher,
@@ -110,9 +109,6 @@ export default function RootLayout({
         <AuthUserProvider>
           <GuidanceProvider>
             <Suspense fallback={<div />}>{children}</Suspense>
-            <Suspense fallback={null}>
-              <NewUserNotificationPing />
-            </Suspense>
             <GuidancePendingTourLauncher />
             <GuidanceWelcomePrompt />
           </GuidanceProvider>
