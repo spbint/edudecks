@@ -96,11 +96,11 @@ export default function TermsPage() {
           .
         </span>
       }
-      primaryCta={{ label: "Join the free beta", href: "/beta" }}
+      primaryCta={{ label: "Start with MyLearna", href: "/start-free?source=terms-primary" }}
       secondaryCta={{ label: "Contact", href: "/contact" }}
       headerAction={{ label: "Sign in", href: "/login" }}
-      headerPrimaryAction={{ label: "Join beta", href: "/beta" }}
-      footerPrimaryCta={{ label: "Join the free beta", href: "/beta" }}
+      headerPrimaryAction={{ label: "Get started", href: "/start-free?source=terms-header" }}
+      footerPrimaryCta={{ label: "Start with MyLearna", href: "/start-free?source=terms-footer" }}
       footerSecondaryCta={{ label: "Contact", href: "/contact" }}
       compactHero
     >

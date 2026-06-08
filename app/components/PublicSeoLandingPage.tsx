@@ -30,7 +30,7 @@ type PublicSeoLandingPageProps = {
 export default function PublicSeoLandingPage({
   badges,
   ctaHref,
-  ctaLabel = "Join the MyLearna beta",
+  ctaLabel = "Start with MyLearna",
   heroText,
   relatedLinks,
   sections,
@@ -45,7 +45,7 @@ export default function PublicSeoLandingPage({
       primaryCta={{ label: ctaLabel, href: ctaHref }}
       secondaryCta={{ label: "Read the FAQ", href: "/faq" }}
       headerAction={{ label: "Sign in", href: "/login" }}
-      headerPrimaryAction={{ label: "Join beta", href: "/beta" }}
+      headerPrimaryAction={{ label: "Get started", href: "/start-free?source=seo-header" }}
       footerPrimaryCta={{ label: ctaLabel, href: ctaHref }}
       footerSecondaryCta={{ label: "Explore the demo", href: "/demo" }}
       compactHero

@@ -125,7 +125,7 @@ export default function FAQPage() {
         "Portfolios",
         "Reports",
       ]}
-      primaryCta={{ label: "Join the MyLearna beta", href: "/beta?source=seo-faq" }}
+      primaryCta={{ label: "Start with MyLearna", href: "/start-free?source=seo-faq" }}
       secondaryCta={{ label: "Explore the demo", href: "/demo" }}
       asideTitle="What matters most"
       asideText="MyLearna helps families organise records. It does not replace local homeschool requirements."
@@ -240,23 +240,23 @@ export default function FAQPage() {
         }}
       >
         <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 10 }}>
-          Join the beta and help shape MyLearna
+          Start with MyLearna
         </div>
 
         <div style={{ marginBottom: 16, lineHeight: 1.7 }}>
-          MyLearna is growing with early homeschool families. Join the beta list
-          and tell us what would make planning, records and reporting easier.
+          Create your MyLearna account and begin with a simple family record,
+          planning flow and first learning moment.
         </div>
 
         <Link
-          href="/beta?source=seo-faq"
+          href="/start-free?source=seo-faq"
           style={{
             ...publicButtonStyle(true),
             background: "#ffffff",
             color: "#2563eb",
           }}
         >
-          Join the MyLearna beta
+          Create your MyLearna account
         </Link>
       </section>
 

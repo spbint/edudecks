@@ -15,7 +15,7 @@ export default function HomeschoolLearningEvidencePage() {
       title="What Counts as Homeschool Learning Evidence?"
       heroText="Learning evidence can be practical, ordinary and meaningful. MyLearna helps families notice, capture and organise evidence from real homeschool life."
       badges={["Photos", "Notes", "Work samples", "Real-world learning"]}
-      ctaHref="/beta?source=seo-learning-evidence"
+      ctaHref="/start-free?source=seo-learning-evidence"
       sections={[
         {
           title: "Photos",

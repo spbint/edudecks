@@ -15,7 +15,7 @@ export default function HomeschoolMathsWorksheetsPage() {
       title="Homeschool Maths Worksheets"
       heroText="Explore how MyLearna supports step-by-step maths practice, parent observations and useful learning evidence without turning worksheets into busywork."
       badges={["Maths practice", "Learning evidence", "Portfolio-ready", "Parent notes"]}
-      ctaHref="/beta?source=seo-maths-worksheets"
+      ctaHref="/start-free?source=seo-maths-worksheets"
       sections={[
         {
           title: "Step-by-step maths practice",

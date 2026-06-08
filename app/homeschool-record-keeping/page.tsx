@@ -15,7 +15,7 @@ export default function HomeschoolRecordKeepingPage() {
       title="Homeschool Record Keeping Made Easier"
       heroText="Keep homeschool records in a calmer flow by connecting learning notes, work samples, observations, portfolio choices and future reports."
       badges={["Simple records", "Work samples", "Parent notes", "Less scramble"]}
-      ctaHref="/beta?source=seo-record-keeping"
+      ctaHref="/start-free?source=seo-record-keeping"
       sections={[
         {
           title: "Simple records",

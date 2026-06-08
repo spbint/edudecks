@@ -15,7 +15,7 @@ export default function HomeschoolPlanningPage() {
       title="Homeschool Planning Made Simpler"
       heroText="MyLearna helps families shape a clear homeschool week while leaving room for real life, flexible routines and learning that changes as children grow."
       badges={["Weekly planning", "Flexible routines", "Learning goals", "Connected records"]}
-      ctaHref="/beta?source=seo-homeschool-planning"
+      ctaHref="/start-free?source=seo-homeschool-planning"
       sections={[
         {
           title: "Weekly planning",

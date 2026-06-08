@@ -10,7 +10,6 @@ const PUBLIC_EXACT_PATHS = new Set([
   "/",
   "/about",
   "/beta",
-  "/beta/thanks",
   "/compare",
   "/contact",
   "/demo",
@@ -43,7 +42,6 @@ export default function MetaPixel() {
   const searchParams = useSearchParams();
   const [pixelReady, setPixelReady] = useState(false);
   const lastPageViewKey = useRef("");
-  const leadTracked = useRef(false);
 
   const shouldTrack = isPublicTrackedPath(pathname);
   const trackingKey = useMemo(() => {
@@ -61,10 +59,6 @@ export default function MetaPixel() {
       lastPageViewKey.current = trackingKey;
     }
 
-    if (pathname === "/beta/thanks" && !leadTracked.current) {
-      window.fbq("track", "Lead");
-      leadTracked.current = true;
-    }
   }, [pathname, pixelReady, shouldTrack, trackingKey]);
 
   if (!shouldTrack) {

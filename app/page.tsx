@@ -10,13 +10,13 @@ import PublicSiteShell, {
 import useIsMobile from "@/app/components/useIsMobile";
 
 const PRIMARY_CTA = {
-  label: "Join the free beta",
-  href: "/beta",
+  label: "Start with MyLearna",
+  href: "/start-free?source=home-primary",
 } as const;
 
 const HEADER_PRIMARY_CTA = {
-  label: "Join beta",
-  href: "/beta",
+  label: "Get started",
+  href: "/start-free?source=home-header",
 } as const;
 
 const LIFECYCLE_STEPS = [
@@ -106,7 +106,7 @@ export default function HomePage() {
       heroBadges={[...HERO_PILLS]}
       heroMicrocopy={
         <span>
-          Ready to join? Request free beta access. Want to understand the flow first?
+          Ready to start? Create your MyLearna account. Want to understand the flow first?
           Explore the public demo.
         </span>
       }

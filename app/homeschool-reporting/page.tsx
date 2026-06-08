@@ -15,7 +15,7 @@ export default function HomeschoolReportingPage() {
       title="Homeschool Reporting Support for Families"
       heroText="MyLearna helps families prepare clearer homeschool records and summaries by connecting planning, evidence, portfolios and learning notes."
       badges={["Reporting support", "Evidence", "Portfolio prep", "Clearer summaries"]}
-      ctaHref="/beta?source=seo-homeschool-reporting"
+      ctaHref="/start-free?source=seo-homeschool-reporting"
       sections={[
         {
           title: "Planning ahead for reporting",
