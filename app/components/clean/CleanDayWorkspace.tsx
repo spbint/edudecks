@@ -505,10 +505,14 @@ function CleanDayWorkspaceBody() {
   const familyGreeting = familyDisplayName
     ? `Welcome back, ${familyDisplayName}.`
     : "Welcome back.";
+  const currentPathwayHref = useMemo(
+    () =>
+      selectedLearnerId
+        ? `${pathwaysPathBase}?learnerId=${encodeURIComponent(selectedLearnerId)}`
+        : pathwaysPathBase,
+    [pathwaysPathBase, selectedLearnerId],
+  );
   const continueActions = useMemo(() => {
-    const pathwayHref = selectedLearnerId
-      ? `${pathwaysPathBase}?learnerId=${encodeURIComponent(selectedLearnerId)}`
-      : pathwaysPathBase;
     const pathwayLabel = selectedLearnerLabel
       ? `Open ${selectedLearnerLabel}'s current pathway`
       : "Open current pathway";
@@ -524,9 +528,9 @@ function CleanDayWorkspaceBody() {
             href: calendarPathBase,
             label: "Plan this week",
             tone: "blue" as const,
-          },
+      },
       {
-        href: pathwayHref,
+        href: currentPathwayHref,
         label: pathwayLabel,
         tone: "green" as const,
       },
@@ -546,12 +550,11 @@ function CleanDayWorkspaceBody() {
     buildDayPath,
     calendarPathBase,
     capturePathBase,
+    currentPathwayHref,
     evidenceEntries.length,
     isViewingToday,
-    pathwaysPathBase,
     portfolioPathBase,
     selectedDate,
-    selectedLearnerId,
     selectedLearnerLabel,
     sortedVisibleItems.length,
   ]);
@@ -1519,6 +1522,25 @@ function CleanDayWorkspaceBody() {
             openGuidanceCards.length ? (
               <CleanGuidanceRibbon cards={openGuidanceCards} compact />
             ) : null}
+
+            <section data-guidance-id="my-day-next-pathways" style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ display: "grid", gap: 6, maxWidth: 620 }}>
+                  <p style={{ margin: 0, color: "#2563eb", fontWeight: 800, fontSize: 13 }}>
+                    Next step
+                  </p>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
+                    Explore My Pathways
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    When you are ready, use My Pathways to find the next learning step, worksheet, practise or assess option.
+                  </p>
+                </div>
+                <Link href={currentPathwayHref} style={{ ...secondaryButtonStyle, textDecoration: "none" }}>
+                  Open My Pathways
+                </Link>
+              </div>
+            </section>
 
             <CleanBetaFeedbackPrompt pageName="My Day" />
           </>

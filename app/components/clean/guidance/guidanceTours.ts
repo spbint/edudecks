@@ -30,14 +30,19 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         body: "Add the basic family details first. This helps MyLearna organise planning, evidence, portfolios and reports.",
       },
       {
-        guidanceId: "profile-add-learner",
-        title: "Add a learner",
-        body: "Add your child or learner so plans and evidence can be connected to the right person.",
+        guidanceId: "profile-family-name",
+        title: "Name your family workspace",
+        body: "Use a simple family name so your workspace feels recognisable across planning, capture and reports.",
       },
       {
         guidanceId: "profile-learner-details",
-        title: "Add learner details",
+        title: "Review learner details",
         body: "Keep this simple. You can add age, year level, stage or other useful context where available.",
+      },
+      {
+        guidanceId: "profile-add-learner",
+        title: "Add a learner",
+        body: "Add your child or learner so plans and evidence can be connected to the right person.",
       },
       {
         guidanceId: "profile-save-profile",
@@ -54,6 +59,11 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
   "my-settings": {
     id: "my-settings",
     steps: [
+      {
+        guidanceId: "settings-guidance-toggle",
+        title: "Control guidance",
+        body: "Guidance can be turned on or off here whenever you feel confident.",
+      },
       {
         guidanceId: "settings-country-region",
         title: "Choose your country or region",
@@ -73,11 +83,6 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         guidanceId: "settings-week-start",
         title: "Choose planning preferences",
         body: "Set the week start and simple planning preferences so My Calendar and My Day feel natural.",
-      },
-      {
-        guidanceId: "settings-guidance-toggle",
-        title: "Control guidance",
-        body: "Guidance can be turned on or off here whenever you feel confident.",
       },
       {
         guidanceId: "settings-save",
@@ -105,19 +110,19 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         body: "Start with one or two learning blocks. You do not need to plan the whole week perfectly.",
       },
       {
-        guidanceId: "calendar-learning-block",
-        title: "Keep the week flexible",
-        body: "Learning blocks are small pieces of the week. Move or adjust them when real life changes.",
-      },
-      {
         guidanceId: "calendar-save-plan",
         title: "Save the plan",
         body: "Save the useful parts of your plan so My Day can help you focus on what is happening now.",
       },
       {
+        guidanceId: "calendar-learning-block",
+        title: "Keep the week flexible",
+        body: "Learning blocks are small pieces of the week. Move or adjust them when real life changes.",
+      },
+      {
         guidanceId: "calendar-next-day",
         title: "Next step: check My Day",
-        body: "Once a simple plan exists, open My Day to see today’s learning view.",
+        body: "Once a simple plan exists, open My Day to see today's learning view.",
       },
     ],
   },
@@ -127,12 +132,7 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
       {
         guidanceId: "my-day-header",
         title: "My Day shows what matters today",
-        body: "This is the calm daily view for today’s plan, useful next actions and evidence capture.",
-      },
-      {
-        guidanceId: "my-day-today-plan",
-        title: "Review today’s plan",
-        body: "Use this area to see the blocks planned for today and what might need attention.",
+        body: "This is the calm daily view for today's plan, useful next actions and evidence capture.",
       },
       {
         guidanceId: "my-day-next-steps",
@@ -140,14 +140,24 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         body: "These shortcuts help you move into planning, pathways or evidence capture without hunting around.",
       },
       {
-        guidanceId: "my-day-capture-evidence",
-        title: "Capture meaningful learning",
-        body: "When something useful happens, capture it so it can support portfolios and reports later.",
+        guidanceId: "my-day-today-plan",
+        title: "Review today's plan",
+        body: "Use this area to see the blocks planned for today and what might need attention.",
       },
       {
         guidanceId: "my-day-progress-summary",
         title: "Use My Day gently",
         body: "My Day is a guide, not pressure. Use it to decide what matters now and what can wait.",
+      },
+      {
+        guidanceId: "my-day-capture-evidence",
+        title: "Capture meaningful learning",
+        body: "When something useful happens, capture it so it can support portfolios and reports later.",
+      },
+      {
+        guidanceId: "my-day-next-pathways",
+        title: "Next step: explore pathways",
+        body: "When the day is clear, use My Pathways to find the next learning step, worksheet, practise or assess option.",
       },
     ],
   },
@@ -170,6 +180,11 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         body: "Each step card shows the learning focus, evidence ideas and available actions.",
       },
       {
+        guidanceId: "pathways-progress-status",
+        title: "Progress is a guide",
+        body: "Status labels are there to help you make decisions, not to create pressure.",
+      },
+      {
         guidanceId: "pathways-worksheet-button",
         title: "Open worksheets",
         body: "Some steps include printable worksheets connected to the learning goal.",
@@ -183,11 +198,6 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         guidanceId: "pathways-assess-button",
         title: "Use assess when ready",
         body: "Assessment is available for some steps when you want a clearer check of understanding.",
-      },
-      {
-        guidanceId: "pathways-progress-status",
-        title: "Progress is a guide",
-        body: "Status labels are there to help you make decisions, not to create pressure.",
       },
       {
         guidanceId: "pathways-next-capture",
@@ -205,24 +215,24 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         body: "Use this form when you want to record something meaningful that happened during learning.",
       },
       {
-        guidanceId: "capture-learner-select",
-        title: "Choose the learner",
-        body: "Choose the learner so this evidence is connected to the right child.",
-      },
-      {
-        guidanceId: "capture-learning-area",
-        title: "Connect the learning",
-        body: "Link evidence to a learning area so it becomes easier to find later.",
-      },
-      {
         guidanceId: "capture-evidence-type",
         title: "Choose the kind of evidence",
         body: "Keep it simple. A note, observation or work sample is enough to start building records.",
       },
       {
+        guidanceId: "capture-learner-select",
+        title: "Choose the learner",
+        body: "Choose the learner so this evidence is connected to the right child.",
+      },
+      {
         guidanceId: "capture-note-field",
         title: "Add a short note",
         body: "Write what happened, what you noticed, or what the learner may need next.",
+      },
+      {
+        guidanceId: "capture-learning-area",
+        title: "Connect the learning",
+        body: "Link evidence to a learning area so it becomes easier to find later.",
       },
       {
         guidanceId: "capture-save",
@@ -245,14 +255,14 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
         body: "Portfolio is where captured evidence becomes a clearer story of progress.",
       },
       {
-        guidanceId: "portfolio-evidence-list",
-        title: "Review captured evidence",
-        body: "Look through evidence and choose the strongest examples for portfolio and reporting.",
-      },
-      {
         guidanceId: "portfolio-filter-learner",
         title: "Filter by learner or learning area",
         body: "Filters help you find the right evidence as your records grow.",
+      },
+      {
+        guidanceId: "portfolio-evidence-list",
+        title: "Review captured evidence",
+        body: "Look through evidence and choose the strongest examples for portfolio and reporting.",
       },
       {
         guidanceId: "portfolio-evidence-card",
