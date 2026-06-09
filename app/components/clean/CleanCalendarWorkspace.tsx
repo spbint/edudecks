@@ -163,6 +163,12 @@ const secondaryTextStyle: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
+const MASTER_WEEK_SKIP_KEY_PREFIX = "mylearna.calendar.masterWeekTemplateSkipped";
+
+function getMasterWeekSkipKey(familyId?: string | null) {
+  return familyId ? `${MASTER_WEEK_SKIP_KEY_PREFIX}.${familyId}` : MASTER_WEEK_SKIP_KEY_PREFIX;
+}
+
 const subtleFieldCardStyle: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   borderRadius: 12,
@@ -892,6 +898,7 @@ function CleanCalendarWorkspaceBody() {
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
+  const [masterWeekSkipped, setMasterWeekSkipped] = useState(false);
   const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
   const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
@@ -993,6 +1000,31 @@ function CleanCalendarWorkspaceBody() {
     () => visibleLearningPeriods.filter((period) => !isBreakLearningPeriod(period)),
     [visibleLearningPeriods],
   );
+  const breakPeriodsForSelectedYear = useMemo(
+    () => visibleLearningPeriods.filter((period) => isBreakLearningPeriod(period)),
+    [visibleLearningPeriods],
+  );
+  const hasLearningYear = academicYears.length > 0;
+  const hasRealLearningPeriod = learningTermsForSelectedYear.length > 0;
+  const hasMasterWeekTemplate = masterTemplates.length > 0;
+  const masterWeekTemplateReady = hasMasterWeekTemplate || masterWeekSkipped;
+  const calendarSetupReady = hasRealLearningPeriod && masterWeekTemplateReady;
+  const calendarSetupTask = !hasLearningYear
+    ? "Set your learning year"
+    : !hasRealLearningPeriod
+      ? "Add your first learning period"
+      : !masterWeekTemplateReady
+        ? "Create your master week template"
+        : "Continue to My Day";
+  const calendarHandoffState = !hasLearningYear
+    ? "year"
+    : !hasRealLearningPeriod
+      ? breakPeriodsForSelectedYear.length
+        ? "period-after-break"
+        : "period"
+      : !masterWeekTemplateReady
+        ? "master-week"
+        : "ready";
 
   const selectedWeekInsideLearningYear = useMemo(
     () =>
@@ -1426,6 +1458,17 @@ function CleanCalendarWorkspaceBody() {
   ]);
 
   useEffect(() => {
+    if (!workspace.profile || typeof window === "undefined") {
+      setMasterWeekSkipped(false);
+      return;
+    }
+
+    setMasterWeekSkipped(
+      window.localStorage.getItem(getMasterWeekSkipKey(workspace.profile.id)) === "true",
+    );
+  }, [workspace.profile]);
+
+  useEffect(() => {
     void reloadTemplateBlocks();
   }, [reloadTemplateBlocks]);
 
@@ -1636,6 +1679,46 @@ function CleanCalendarWorkspaceBody() {
 
   function clearCalendarHandoff() {
     router.replace(pathname);
+  }
+
+  function scrollToCalendarSection(sectionId: string) {
+    window.requestAnimationFrame(() => {
+      document.getElementById(sectionId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
+  function focusLearningYearSetup() {
+    setShowYearComposer(true);
+    scrollToCalendarSection("learning-year-setup");
+  }
+
+  function focusLearningPeriodSetup() {
+    openLearningPeriodComposer("term");
+    scrollToCalendarSection("learning-period-setup");
+  }
+
+  function focusMasterWeekTemplate() {
+    setPlanningView("master");
+    setShowTemplateComposer(true);
+    setMasterWeekSkipped(false);
+    setMessage(null);
+    setActionError(null);
+    if (workspace.profile && typeof window !== "undefined") {
+      window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
+    }
+    scrollToCalendarSection("master-week-template");
+  }
+
+  function skipMasterWeekTemplate() {
+    if (workspace.profile && typeof window !== "undefined") {
+      window.localStorage.setItem(getMasterWeekSkipKey(workspace.profile.id), "true");
+    }
+    setMasterWeekSkipped(true);
+    setMessage("You can create a master week later. Continue to My Day when you are ready.");
+    setActionError(null);
   }
 
   function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
@@ -1953,6 +2036,10 @@ function CleanCalendarWorkspaceBody() {
 
       setSelectedTemplateId(created.id);
       setShowTemplateComposer(false);
+      setMasterWeekSkipped(false);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
+      }
       setMessage("Master week saved.");
       setTemplateTitle("");
       setTemplateDescription("");
@@ -2310,7 +2397,7 @@ function CleanCalendarWorkspaceBody() {
     guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
   const shouldShowTermSetup = !firstSetupMode || academicYears.length > 0;
   const shouldShowWeeklyPlanner = !firstSetupMode || learningTermsForSelectedYear.length > 0;
-  const shouldShowCalendarNextStep = !firstSetupMode || learningTermsForSelectedYear.length > 0;
+  const shouldShowCalendarNextStep = !firstSetupMode || calendarSetupReady;
 
   return (
     <div style={shellStyle}>
@@ -2321,6 +2408,7 @@ function CleanCalendarWorkspaceBody() {
           stepId="calendar"
           title="Set your learning year and first term."
           body="Choose the date range MyLearna should plan inside. You can adjust this later."
+          task={calendarSetupTask}
         />
 
         {!firstSetupMode ? (
@@ -2473,6 +2561,7 @@ function CleanCalendarWorkspaceBody() {
                   }}
                 >
                   <div
+                    id="learning-year-setup"
                     data-guidance-id="calendar-learning-year"
                     style={{
                       ...subCardStyle,
@@ -2704,6 +2793,7 @@ function CleanCalendarWorkspaceBody() {
 
                   {shouldShowTermSetup ? (
                   <div
+                    id="learning-period-setup"
                     data-guidance-id="calendar-first-term"
                     style={{
                       ...subCardStyle,
@@ -3246,6 +3336,101 @@ function CleanCalendarWorkspaceBody() {
               </div>
             </section>
 
+            {firstSetupMode ? (
+              <section data-guidance-id="calendar-next-day" style={cardStyle}>
+                {calendarHandoffState === "year" ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div>
+                      <h2 style={{ margin: 0, color: "#0f172a" }}>Set your learning year</h2>
+                      <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                        Choose the date range MyLearna should plan inside.
+                      </p>
+                    </div>
+                    <div>
+                      <button type="button" style={buttonStyle} onClick={focusLearningYearSetup}>
+                        Save learning year
+                      </button>
+                    </div>
+                  </div>
+                ) : calendarHandoffState === "period" ||
+                  calendarHandoffState === "period-after-break" ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div>
+                      <h2 style={{ margin: 0, color: "#0f172a" }}>
+                        Add your first learning period
+                      </h2>
+                      <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                        {calendarHandoffState === "period-after-break"
+                          ? "You've added a break or holiday. Now add the first learning period where regular learning will happen."
+                          : "Add the first term or learning period inside your learning year. Breaks and holidays can be added afterwards, but they do not replace a learning period."}
+                      </p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        style={buttonStyle}
+                        onClick={focusLearningPeriodSetup}
+                      >
+                        Add learning period
+                      </button>
+                    </div>
+                  </div>
+                ) : calendarHandoffState === "master-week" ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div>
+                      <h2 style={{ margin: 0, color: "#0f172a" }}>
+                        Create your master week template
+                      </h2>
+                      <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                        Set up a simple weekly rhythm that MyLearna can use to help organise
+                        your learning days. You can adjust it later.
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        style={buttonStyle}
+                        onClick={focusMasterWeekTemplate}
+                      >
+                        Create master week template
+                      </button>
+                      <button
+                        type="button"
+                        style={mutedButtonStyle}
+                        onClick={skipMasterWeekTemplate}
+                      >
+                        Skip for now
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div>
+                      <h2 style={{ margin: 0, color: "#0f172a" }}>
+                        Calendar setup is ready
+                      </h2>
+                      <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                        Your learning year and first learning period are in place. You can now
+                        review today&apos;s learning.
+                      </p>
+                    </div>
+                    {setupStatus === "active" ? (
+                      <GuidanceSetupNextAction
+                        stepId="calendar"
+                        nextHref="/my-day"
+                        label="Continue to My Day"
+                        helperText="Your Calendar setup is ready enough to continue."
+                      />
+                    ) : (
+                      <Link href="/my-day" style={buttonStyle}>
+                        Continue to My Day
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </section>
+            ) : null}
+
             {shouldShowWeeklyPlanner ? (
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 18 }}>
@@ -3310,7 +3495,7 @@ function CleanCalendarWorkspaceBody() {
 
                 {planningView === "master" ? (
                   <div style={{ display: "grid", gap: 16 }}>
-                    <div style={subCardStyle}>
+                    <div id="master-week-template" style={subCardStyle}>
                       <div
                         style={{
                           display: "flex",
@@ -4536,7 +4721,7 @@ function CleanCalendarWorkspaceBody() {
             </section>
             ) : null}
 
-            {shouldShowCalendarNextStep ? (
+            {!firstSetupMode && shouldShowCalendarNextStep ? (
             <section data-guidance-id="calendar-next-day" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Day</h2>
               <p style={secondaryTextStyle}>
