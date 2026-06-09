@@ -252,7 +252,7 @@ function hasGuidanceContext(profile: {
 
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
-  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
+  const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -284,6 +284,9 @@ function CleanDayWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-capture"
     : "/my-capture";
+  const assessmentsPathBase = pathname.startsWith("/clean-my-day")
+    ? "/clean-my-assessments"
+    : "/my-assessments";
   const pathwaysPathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-pathways"
     : "/my-pathways";
@@ -761,6 +764,13 @@ function CleanDayWorkspaceBody() {
     setQuickAddError(null);
   }
 
+  function skipPlacementCheckForNow() {
+    if (setupStatus === "active") {
+      completeSetupStep("day");
+    }
+    router.push(pathwaysPathBase);
+  }
+
   async function handleQuickAddSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -825,6 +835,34 @@ function CleanDayWorkspaceBody() {
           promptTitle="New to My Day?"
           promptDescription="Watch a quick guide to see today's learning, add quick blocks and connect daily learning to evidence capture."
         />
+
+        {firstSetupMode ? (
+          <section style={cardStyle}>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                  Next: take a first placement check
+                </h2>
+                <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.7 }}>
+                  A quick assessment helps MyLearna find a sensible starting point for
+                  your learner and begin shaping their pathway.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href={assessmentsPathBase} style={primaryButtonStyle}>
+                  Start first placement check
+                </Link>
+                <button
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={skipPlacementCheckForNow}
+                >
+                  Skip for now
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section data-guidance-id="my-day-header" style={cardStyle}>
           <div style={{ display: "grid", gap: 10 }}>

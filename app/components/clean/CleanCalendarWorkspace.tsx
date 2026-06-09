@@ -812,7 +812,7 @@ function CleanRhythmBlockPopover({
 
 function CleanCalendarWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
-  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
+  const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -899,6 +899,7 @@ function CleanCalendarWorkspaceBody() {
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
   const [masterWeekSkipped, setMasterWeekSkipped] = useState(false);
+  const [showMasterBlockHandoff, setShowMasterBlockHandoff] = useState(false);
   const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
   const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
@@ -1006,14 +1007,14 @@ function CleanCalendarWorkspaceBody() {
   );
   const hasLearningYear = academicYears.length > 0;
   const hasRealLearningPeriod = learningTermsForSelectedYear.length > 0;
-  const hasMasterWeekTemplate = masterTemplates.length > 0;
-  const masterWeekTemplateReady = hasMasterWeekTemplate || masterWeekSkipped;
-  const calendarSetupReady = hasRealLearningPeriod && masterWeekTemplateReady;
+  const hasMasterWeekBlock = templateBlocks.length > 0;
+  const masterWeekStartedEnough = hasMasterWeekBlock || masterWeekSkipped;
+  const calendarSetupReady = hasRealLearningPeriod && masterWeekStartedEnough;
   const calendarSetupTask = !hasLearningYear
     ? "Set your learning year"
     : !hasRealLearningPeriod
       ? "Add your first learning period"
-      : !masterWeekTemplateReady
+      : !masterWeekStartedEnough
         ? "Create your master week template"
         : "Continue to My Day";
   const calendarHandoffState = !hasLearningYear
@@ -1022,7 +1023,7 @@ function CleanCalendarWorkspaceBody() {
       ? breakPeriodsForSelectedYear.length
         ? "period-after-break"
         : "period"
-      : !masterWeekTemplateReady
+      : !masterWeekStartedEnough
         ? "master-week"
         : "ready";
 
@@ -1704,6 +1705,7 @@ function CleanCalendarWorkspaceBody() {
     setPlanningView("master");
     setShowTemplateComposer(true);
     setMasterWeekSkipped(false);
+    setShowMasterBlockHandoff(false);
     setMessage(null);
     setActionError(null);
     if (workspace.profile && typeof window !== "undefined") {
@@ -1717,8 +1719,26 @@ function CleanCalendarWorkspaceBody() {
       window.localStorage.setItem(getMasterWeekSkipKey(workspace.profile.id), "true");
     }
     setMasterWeekSkipped(true);
+    setShowMasterBlockHandoff(false);
     setMessage("You can create a master week later. Continue to My Day when you are ready.");
     setActionError(null);
+  }
+
+  function continueToMyDayFromCalendar() {
+    if (setupStatus === "active") {
+      completeSetupStep("calendar");
+    }
+    router.push("/my-day");
+  }
+
+  function addAnotherMasterBlock() {
+    setPlanningView("master");
+    setShowMasterBlockHandoff(false);
+    scrollToCalendarSection("master-week-template");
+    window.requestAnimationFrame(() => {
+      const firstDay = visibleMasterDays[0]?.value ?? 1;
+      openCreateRhythmPopover(firstDay);
+    });
   }
 
   function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
@@ -2094,6 +2114,13 @@ function CleanCalendarWorkspaceBody() {
       }
 
       closeRhythmPopover();
+      setMasterWeekSkipped(false);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
+      }
+      if (firstSetupMode) {
+        setShowMasterBlockHandoff(true);
+      }
       setMessage("Master block saved.");
       await reloadTemplateBlocks();
     } catch (error) {
@@ -3414,18 +3441,13 @@ function CleanCalendarWorkspaceBody() {
                         review today&apos;s learning.
                       </p>
                     </div>
-                    {setupStatus === "active" ? (
-                      <GuidanceSetupNextAction
-                        stepId="calendar"
-                        nextHref="/my-day"
-                        label="Continue to My Day"
-                        helperText="Your Calendar setup is ready enough to continue."
-                      />
-                    ) : (
-                      <Link href="/my-day" style={buttonStyle}>
-                        Continue to My Day
-                      </Link>
-                    )}
+                    <button
+                      type="button"
+                      style={buttonStyle}
+                      onClick={continueToMyDayFromCalendar}
+                    >
+                      Continue to My Day
+                    </button>
                   </div>
                 )}
               </section>
@@ -3672,6 +3694,45 @@ function CleanCalendarWorkspaceBody() {
                             onClick={clearCalendarHandoff}
                           >
                             Clear handoff
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {firstSetupMode && showMasterBlockHandoff && hasMasterWeekBlock ? (
+                      <div
+                        style={{
+                          border: "1px solid #bbf7d0",
+                          borderRadius: 16,
+                          padding: 16,
+                          background: "#f0fdf4",
+                          display: "grid",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                            Master block saved
+                          </strong>
+                          <p style={secondaryTextStyle}>
+                            Your reusable week has started. You can add more blocks now, or
+                            continue to My Day and come back later.
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            style={buttonStyle}
+                            onClick={addAnotherMasterBlock}
+                          >
+                            Add another block
+                          </button>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={continueToMyDayFromCalendar}
+                          >
+                            Continue to My Day
                           </button>
                         </div>
                       </div>
