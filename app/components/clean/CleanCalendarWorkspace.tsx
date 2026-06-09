@@ -15,6 +15,7 @@ import {
   GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   createCleanCalendarItem,
   deleteCleanCalendarItem,
@@ -771,6 +772,7 @@ function CleanRhythmBlockPopover({
 
 function CleanCalendarWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2054,11 +2056,15 @@ function CleanCalendarWorkspaceBody() {
   const calendarHeading = familyDisplayName
     ? `${familyDisplayName} learning week`
     : "My Calendar";
+  const firstSetupMode =
+    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
+  const shouldShowTermSetup = !firstSetupMode || academicYears.length > 0;
+  const shouldShowCalendarNextStep = !firstSetupMode || visibleLearningPeriods.length > 0;
 
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanWorkflowRibbon />
+        {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
         <CleanFirstRunSetupGate currentStep="calendar" />
         <GuidanceSetupProgress
           stepId="calendar"
@@ -2066,6 +2072,7 @@ function CleanCalendarWorkspaceBody() {
           body="Choose the date range MyLearna should plan inside. You can adjust this later."
         />
 
+        {!firstSetupMode ? (
         <CleanPageIntroVideo
           configs={[
             PAGE_INTRO_VIDEOS.myCalendarWeeklyPlanner,
@@ -2075,6 +2082,7 @@ function CleanCalendarWorkspaceBody() {
           promptTitle="New to My Calendar?"
           promptDescription="Watch a quick guide to plan your week or set term times."
         />
+        ) : null}
 
         <section data-guidance-id="calendar-week-view" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
@@ -2095,20 +2103,20 @@ function CleanCalendarWorkspaceBody() {
               you need it.
             </p>
             <div>
-              <GuidancePageAction tourId="my-calendar" />
+              {!firstSetupMode ? <GuidancePageAction tourId="my-calendar" /> : null}
             </div>
           </div>
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading your clean planning space...</section>
+          <section style={cardStyle}>Loading your planning space...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Planning setup not ready yet</h2>
             <p style={secondaryTextStyle}>
-              The clean planning tables are not installed yet, so this page cannot load.
+              The planning tools are not ready on this install yet, so this page cannot load.
             </p>
           </section>
         ) : null}
@@ -2142,6 +2150,7 @@ function CleanCalendarWorkspaceBody() {
 
         {readyForCalendar && workspace.profile && workspace.learners.length ? (
           <>
+            {!firstSetupMode ? (
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 14 }}>
                 <div>
@@ -2193,6 +2202,7 @@ function CleanCalendarWorkspaceBody() {
                 </div>
               </div>
             </section>
+            ) : null}
 
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 16 }}>
@@ -2212,6 +2222,7 @@ function CleanCalendarWorkspaceBody() {
                   }}
                 >
                   <div
+                    data-guidance-id="calendar-learning-year"
                     style={{
                       ...subCardStyle,
                       gap: 12,
@@ -2265,25 +2276,41 @@ function CleanCalendarWorkspaceBody() {
                             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                           }}
                         >
-                          <input
-                            value={yearTitle}
-                            onChange={(event) => setYearTitle(event.target.value)}
-                            placeholder="2026 learning year"
-                            style={inputStyle}
-                          />
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              Learning year name
+                            </label>
+                            <input
+                              value={yearTitle}
+                              onChange={(event) => setYearTitle(event.target.value)}
+                              placeholder="2026 learning year"
+                              style={inputStyle}
+                            />
+                          </div>
                           <div style={{ display: "grid", gap: 6 }}>
                             <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
                               Country
                             </label>
-                            <input
-                              value={yearCountryCode}
-                              onChange={(event) =>
-                                setYearCountryCode(event.target.value.toUpperCase())
-                              }
-                              placeholder="Country"
-                              style={inputStyle}
-                            />
-                            {yearCountryCode ? (
+                            {firstSetupMode ? (
+                              <div style={subtleFieldCardStyle}>
+                                <strong style={{ color: "#0f172a" }}>
+                                  {getSignupCountryLabel(yearCountryCode) || "Not set"}
+                                </strong>
+                                <span style={{ color: "#64748b", fontSize: 12 }}>
+                                  From My Settings
+                                </span>
+                              </div>
+                            ) : (
+                              <input
+                                value={yearCountryCode}
+                                onChange={(event) =>
+                                  setYearCountryCode(event.target.value.toUpperCase())
+                                }
+                                placeholder="Country"
+                                style={inputStyle}
+                              />
+                            )}
+                            {yearCountryCode && !firstSetupMode ? (
                               <span style={{ color: "#64748b", fontSize: 12 }}>
                                 {getSignupCountryLabel(yearCountryCode)}
                               </span>
@@ -2293,13 +2320,27 @@ function CleanCalendarWorkspaceBody() {
                             <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
                               State or region
                             </label>
-                            <input
-                              value={yearJurisdictionCode}
-                              onChange={(event) => setYearJurisdictionCode(event.target.value)}
-                              placeholder="State or region"
-                              style={inputStyle}
-                            />
-                            {yearJurisdictionCode ? (
+                            {firstSetupMode ? (
+                              <div style={subtleFieldCardStyle}>
+                                <strong style={{ color: "#0f172a" }}>
+                                  {getSignupJurisdictionLabel(
+                                    yearCountryCode,
+                                    yearJurisdictionCode,
+                                  ) || "Not set"}
+                                </strong>
+                                <span style={{ color: "#64748b", fontSize: 12 }}>
+                                  From My Settings
+                                </span>
+                              </div>
+                            ) : (
+                              <input
+                                value={yearJurisdictionCode}
+                                onChange={(event) => setYearJurisdictionCode(event.target.value)}
+                                placeholder="State or region"
+                                style={inputStyle}
+                              />
+                            )}
+                            {yearJurisdictionCode && !firstSetupMode ? (
                               <span style={{ color: "#64748b", fontSize: 12 }}>
                                 {getSignupJurisdictionLabel(yearCountryCode, yearJurisdictionCode)}
                               </span>
@@ -2400,7 +2441,9 @@ function CleanCalendarWorkspaceBody() {
                     )}
                   </div>
 
+                  {shouldShowTermSetup ? (
                   <div
+                    data-guidance-id="calendar-first-term"
                     style={{
                       ...subCardStyle,
                       flex: "1.45 1 520px",
@@ -2892,6 +2935,22 @@ function CleanCalendarWorkspaceBody() {
                       </p>
                     ) : null}
                   </div>
+                  ) : (
+                    <div
+                      data-guidance-id="calendar-first-term"
+                      style={{
+                        ...subCardStyle,
+                        flex: "1.45 1 520px",
+                        minWidth: 0,
+                        background: "#f8fafc",
+                      }}
+                    >
+                      <strong style={{ color: "#0f172a" }}>Next: add the first term</strong>
+                      <p style={secondaryTextStyle}>
+                        Save the learning year first. Then MyLearna will show the first term setup.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -4170,23 +4229,27 @@ function CleanCalendarWorkspaceBody() {
               </div>
             </section>
 
+            {shouldShowCalendarNextStep ? (
             <section data-guidance-id="calendar-next-day" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Day</h2>
               <p style={secondaryTextStyle}>
-                Once your week has a simple shape, open My Day to focus on today&apos;s
-                learning.
+                Once your learning year and first term are started, open My Day to focus on
+                today&apos;s learning.
               </p>
-              <GuidanceSetupNextAction
-                stepId="calendar"
-                nextHref="/my-day"
-                label="Continue to My Day"
-                skipLabel="Skip planning for now"
-                helperText="You can plan a simple week now, or skip this setup step and return to the calendar later."
-              />
-              <Link href="/my-day" style={buttonStyle}>
-                Open My Day
-              </Link>
+              {setupStatus === "active" ? (
+                <GuidanceSetupNextAction
+                  stepId="calendar"
+                  nextHref="/my-day"
+                  label="Continue to My Day"
+                  helperText="Your learning year and first term are ready enough to continue."
+                />
+              ) : (
+                <Link href="/my-day" style={buttonStyle}>
+                  Open My Day
+                </Link>
+              )}
             </section>
+            ) : null}
           </>
         ) : null}
 

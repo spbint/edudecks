@@ -447,7 +447,7 @@ function getReportingModeLabel(
 
 function getReportingModeDescription(reportingMode: string) {
   if (reportingMode === "family-summary") {
-    return "Family summary gives a quick overview across the family's records.";
+    return "Family summary gives a quick overview across the family’s records.";
   }
 
   if (reportingMode === "progress-review") {
@@ -855,7 +855,7 @@ function CleanSettingsWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              This settings editor only uses the clean family profile fields.
+              This settings editor uses your saved family profile fields.
             </p>
           </section>
         ) : null}
@@ -1285,16 +1285,22 @@ function CleanSettingsWorkspaceBody() {
 
                   <div data-guidance-id="settings-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button type="submit" style={buttonStyle} disabled={saving}>
-                      {saving ? "Saving..." : "Save settings"}
+                      {saving
+                        ? "Saving..."
+                        : firstSetupMode
+                          ? "Save settings and continue to Calendar"
+                          : "Save settings"}
                     </button>
-                    <button
-                      type="button"
-                      style={secondaryButtonStyle}
-                      disabled={saving}
-                      onClick={resetDraft}
-                    >
-                      Reset
-                    </button>
+                    {!firstSetupMode ? (
+                      <button
+                        type="button"
+                        style={secondaryButtonStyle}
+                        disabled={saving}
+                        onClick={resetDraft}
+                      >
+                        Reset
+                      </button>
+                    ) : null}
                   </div>
                 </form>
               </section>
@@ -1318,6 +1324,7 @@ function CleanSettingsWorkspaceBody() {
               )}
             </section>
 
+            {!firstSetupMode ? (
             <section data-guidance-id="settings-next-calendar" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Calendar</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -1338,6 +1345,7 @@ function CleanSettingsWorkspaceBody() {
                 </Link>
               )}
             </section>
+            ) : null}
             {firstSetupMode ? (
               <details style={cardStyle}>
                 <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>

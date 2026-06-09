@@ -322,10 +322,12 @@ export function GuidanceSetupProgress({
   stepId,
   title,
   body,
+  task,
 }: {
   stepId: string;
   title: string;
   body: string;
+  task?: string;
 }) {
   const { enabled, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
   const pathname = usePathname();
@@ -367,7 +369,7 @@ export function GuidanceSetupProgress({
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{body}</p>
       </div>
       <p style={{ margin: 0, color: "#334155", fontWeight: 800 }}>
-        Task: {step.requirement}
+        Task: {task || step.requirement}
       </p>
     </section>
   );

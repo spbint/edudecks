@@ -711,7 +711,7 @@ function CurriculumWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Data uses the clean family workspace and evidence records.
+              My Data uses your family workspace and evidence records.
             </p>
           </section>
         ) : null}

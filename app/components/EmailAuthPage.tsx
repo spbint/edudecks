@@ -16,6 +16,7 @@ import {
   sendMagicLink,
 } from "@/lib/authMagicLink";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
+import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
 import { readSignupPrefill } from "@/lib/signupPrefill";
 
 export type EmailAuthPageMode = "login" | "signup";
@@ -286,7 +287,15 @@ function nextPathLabel(nextPath: string) {
 async function resolveFirstAppPath(requestedNextPath: string) {
   try {
     const familyState = await loadCleanFamilyProfile();
-    return familyState.profile ? requestedNextPath : "/my-profile";
+    if (!familyState.profile) return "/my-profile";
+    if (
+      !hasRequiredLearningSettings(familyState.profile) &&
+      requestedNextPath !== "/my-profile" &&
+      requestedNextPath !== "/my-settings"
+    ) {
+      return "/my-settings";
+    }
+    return requestedNextPath;
   } catch {
     return "/my-profile";
   }

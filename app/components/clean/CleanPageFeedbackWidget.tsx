@@ -9,6 +9,7 @@ import {
   submitCleanPageFeedback,
 } from "@/lib/clean/pageFeedback/client";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 
 type FeedbackPage = {
   key: string;
@@ -85,6 +86,7 @@ function getFriendlyErrorMessage(error: unknown) {
 
 export default function CleanPageFeedbackWidget() {
   const pathname = usePathname();
+  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
   const page = useMemo(() => getFeedbackPage(pathname), [pathname]);
   const [open, setOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -120,7 +122,7 @@ export default function CleanPageFeedbackWidget() {
 
   const remainingCharacters = PAGE_FEEDBACK_MAX_LENGTH - feedbackText.length;
 
-  if (!page || !hasSupabaseEnv) {
+  if (!page || !hasSupabaseEnv || (guidanceEnabled && setupStatus === "active")) {
     return null;
   }
 

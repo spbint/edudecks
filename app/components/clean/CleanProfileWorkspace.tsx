@@ -200,6 +200,13 @@ function CleanProfileWorkspaceBody() {
       ? workspace.learners[0]
       : null;
   const showDeveloperDetails = process.env.NODE_ENV !== "production";
+  const profileSetupTask = workspace.requiresFamilyCreation
+    ? "Create family profile"
+    : learnerTargetMet
+      ? "Review learners and continue to Settings"
+      : workspace.learners.length
+        ? "Continue to Settings"
+        : "Add your first learner";
 
   const guidanceItems = useMemo(() => {
     if (workspace.requiresFamilyCreation) {
@@ -287,13 +294,13 @@ function CleanProfileWorkspaceBody() {
         displayName: familyName,
       });
       setFamilyName("");
-      setMessage("Clean family profile created.");
+      setMessage("Family profile created.");
       await workspace.reload();
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(
           nextError,
-          "We could not create the clean family profile.",
+          "We could not create your family profile.",
         ),
       );
     } finally {
@@ -325,7 +332,7 @@ function CleanProfileWorkspaceBody() {
       setShowExtraLearnerForm(false);
       setMessage(
         workspace.profile.defaultLearnerId
-          ? "Learner added to the clean family workspace."
+          ? "Learner added to your family."
           : "Learner added and set as the default learner.",
       );
       await workspace.reload();
@@ -333,7 +340,7 @@ function CleanProfileWorkspaceBody() {
       setError(
         normalizeCleanErrorMessage(
           nextError,
-          "We could not add the learner to the clean family workspace.",
+          "We could not add the learner to your family.",
         ),
       );
     } finally {
@@ -415,7 +422,7 @@ function CleanProfileWorkspaceBody() {
     if (!workspace.profile) return;
 
     const confirmed = window.confirm(
-      "Delete this learner? This may also remove this learner's clean programs, calendar items, evidence, portfolio highlights, and reports. This cannot be undone.",
+      "Delete this learner? This may also remove this learner's programs, calendar items, evidence, portfolio highlights, and reports. This cannot be undone.",
     );
 
     if (!confirmed) return;
@@ -486,6 +493,7 @@ function CleanProfileWorkspaceBody() {
           stepId="profile"
           title="Let's get MyLearna ready for your family."
           body="Start by adding your family and learner details. MyLearna uses this to organise your plans, evidence, portfolio and reports."
+          task={profileSetupTask}
         />
 
         {!firstSetupMode ? <GuidanceGettingStartedCard /> : null}
@@ -540,7 +548,7 @@ function CleanProfileWorkspaceBody() {
         ) : null}
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading clean family workspace...</section>
+          <section style={cardStyle}>Loading your family workspace...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
@@ -836,7 +844,7 @@ function CleanProfileWorkspaceBody() {
                 >
                   <strong style={{ color: "#0f172a" }}>Start with one learner</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    No learners exist yet in the clean workspace. Add one first name now, then
+                    No learners exist yet. Add one first name now, then
                     come back later for extra detail only if it helps.
                   </p>
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
@@ -853,25 +861,45 @@ function CleanProfileWorkspaceBody() {
                 Add only what helps right now. A first name is enough to begin planning.
               </p>
               <form onSubmit={handleAddLearner} style={{ display: "grid", gap: 12 }}>
-                <input
-                  value={learnerFirstName}
-                  onChange={(event) => setLearnerFirstName(event.target.value)}
-                  placeholder="Example: Maya"
-                  style={inputStyle}
-                />
-                <input
-                  value={learnerPreferredName}
-                  onChange={(event) => setLearnerPreferredName(event.target.value)}
-                  placeholder="Preferred name, if different"
-                  style={inputStyle}
-                />
-                <input
-                  value={learnerYearLevel}
-                  onChange={(event) => setLearnerYearLevel(event.target.value)}
-                  placeholder="Example: Year 4 / Grade 3"
-                  style={inputStyle}
-                />
-                <div data-guidance-id="profile-save-profile">
+                <div data-guidance-id="profile-learner-first-name" style={{ display: "grid", gap: 6 }}>
+                  <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                    Learner first name
+                  </label>
+                  <input
+                    value={learnerFirstName}
+                    onChange={(event) => {
+                      setLearnerFirstName(event.target.value);
+                      if (error?.toLowerCase().includes("learner first name")) {
+                        setError(null);
+                      }
+                    }}
+                    placeholder="Example: Maya"
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                    Preferred name, if different
+                  </label>
+                  <input
+                    value={learnerPreferredName}
+                    onChange={(event) => setLearnerPreferredName(event.target.value)}
+                    placeholder="Preferred name, if different"
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                    Year / grade level
+                  </label>
+                  <input
+                    value={learnerYearLevel}
+                    onChange={(event) => setLearnerYearLevel(event.target.value)}
+                    placeholder="Example: Year 4 / Grade 3"
+                    style={inputStyle}
+                  />
+                </div>
+                <div data-guidance-id="profile-add-learner-button">
                   <button type="submit" style={buttonStyle} disabled={submitting}>
                     {submitting ? "Saving..." : "Add learner"}
                   </button>
