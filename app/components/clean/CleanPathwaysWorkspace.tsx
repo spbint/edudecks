@@ -53,6 +53,7 @@ import {
 } from "@/lib/clean/pathways/detailedSubjectConfigs";
 import {
   buildPathwayRegistryStepKey,
+  getAllPathwaySteps,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
   getPathwayPracticeActivityByStepId,
@@ -70,6 +71,7 @@ import {
   type PathwaySubjectDefinition,
   type PathwaySubjectKey,
 } from "@/lib/clean/pathways/pathwaySubjects";
+import { readPathwayPlacement } from "@/lib/clean/pathways/pathwayPlacement";
 import type {
   MathematicsDetailedStrandStage,
   MathematicsDetailedStrandStep,
@@ -1070,6 +1072,47 @@ function PathwaysWorkspaceBody() {
   const assessPathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-assessments"
     : "/my-assessments";
+  const pathwaysPathBase = pathname.startsWith("/clean-my-pathways")
+    ? "/clean-my-pathways"
+    : "/my-pathways";
+  const placementPathBase = `${pathwaysPathBase}/placement`;
+  const requestedPathwayStepId = searchParams.get("pathwayStepId") || "";
+  const selectedPlacement = useMemo(() => {
+    if (!selectedLearner || !selectedStrandKey) return null;
+    return readPathwayPlacement(
+      selectedLearner.id,
+      selectedSubjectKey,
+      selectedStrandKey,
+    );
+  }, [selectedLearner, selectedStrandKey, selectedSubjectKey]);
+  const selectedPlacementStep = useMemo(() => {
+    const focusStepId = requestedPathwayStepId || selectedPlacement?.pathwayStepId || "";
+    if (!focusStepId) return null;
+    return getAllPathwaySteps().find((step) => step.id === focusStepId) || null;
+  }, [requestedPathwayStepId, selectedPlacement?.pathwayStepId]);
+  const placementEntryHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedLearnerId) {
+      params.set("learnerId", selectedLearnerId);
+    }
+    params.set("subjectKey", selectedSubjectKey);
+    if (selectedStrandKey) {
+      params.set("strandKey", selectedStrandKey);
+    }
+    return `${placementPathBase}?${params.toString()}`;
+  }, [placementPathBase, selectedLearnerId, selectedStrandKey, selectedSubjectKey]);
+  const manualPlacementEntryHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedLearnerId) {
+      params.set("learnerId", selectedLearnerId);
+    }
+    params.set("subjectKey", selectedSubjectKey);
+    if (selectedStrandKey) {
+      params.set("strandKey", selectedStrandKey);
+    }
+    params.set("mode", "manual");
+    return `${placementPathBase}?${params.toString()}`;
+  }, [placementPathBase, selectedLearnerId, selectedStrandKey, selectedSubjectKey]);
 
   function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -1348,6 +1391,83 @@ function PathwaysWorkspaceBody() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section style={cardStyle}>
+          {!selectedLearner ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Pathway starting point</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
+                Choose a learner to begin
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Add or choose a learner before finding a pathway starting point.
+              </p>
+              <div>
+                <Link href="/my-profile" style={secondaryButtonStyle}>
+                  Open My Profile
+                </Link>
+              </div>
+            </div>
+          ) : selectedPlacementStep ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Starting point selected</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
+                {selectedLearnerLabel} is starting in {selectedPlacementStep.strandTitle}
+              </h2>
+              <div
+                style={{
+                  border: "1px solid #bfdbfe",
+                  borderRadius: 12,
+                  background: "#eff6ff",
+                  padding: 12,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>
+                  {selectedPlacementStep.stepTitle}
+                </strong>
+                <span style={{ color: "#1d4ed8", fontWeight: 800 }}>
+                  {selectedPlacementStep.stageTitle}
+                </span>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {selectedPlacementStep.stepDescription}
+                </p>
+              </div>
+              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                This is a starting point, not a grade label. Use the pathway actions
+                below to practise, open a worksheet, assess or capture evidence later.
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
+                  Adjust starting point
+                </Link>
+                <Link href={placementEntryHref} style={secondaryButtonStyle}>
+                  Check another strand
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Pathway starting point</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
+                Find a starting point for {selectedLearnerLabel}
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Choose one subject and strand first. MyLearna can then help you pick
+                a sensible place to begin.
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href={placementEntryHref} style={buttonStyle}>
+                  Start placement check
+                </Link>
+                <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
+                  Choose manually
+                </Link>
+              </div>
+            </div>
+          )}
         </section>
 
         <details

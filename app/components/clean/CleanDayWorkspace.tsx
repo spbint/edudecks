@@ -47,6 +47,7 @@ import {
   listCleanAcademicYears,
   listCleanLearningPeriods,
 } from "@/lib/clean/terms/client";
+import { hasAnyPathwayPlacementForLearner } from "@/lib/clean/pathways/pathwayPlacement";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -275,6 +276,7 @@ function CleanDayWorkspaceBody() {
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [quickAddError, setQuickAddError] = useState<string | null>(null);
   const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
+  const [hasPlacementForPromptLearner, setHasPlacementForPromptLearner] = useState(false);
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
@@ -284,12 +286,10 @@ function CleanDayWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-capture"
     : "/my-capture";
-  const assessmentsPathBase = pathname.startsWith("/clean-my-day")
-    ? "/clean-my-assessments"
-    : "/my-assessments";
   const pathwaysPathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-pathways"
     : "/my-pathways";
+  const placementPathBase = `${pathwaysPathBase}/placement`;
   const portfolioPathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-portfolio"
     : "/my-portfolio";
@@ -515,6 +515,27 @@ function CleanDayWorkspaceBody() {
     : "Welcome back.";
   const firstSetupMode =
     guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
+  const placementPromptLearnerId = useMemo(() => {
+    if (selectedLearnerId) return selectedLearnerId;
+    if (workspace.learners.length === 1) return workspace.learners[0]?.id || "";
+    return "";
+  }, [selectedLearnerId, workspace.learners]);
+  const placementPromptHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (placementPromptLearnerId) {
+      params.set("learnerId", placementPromptLearnerId);
+    }
+    const query = params.toString();
+    return query ? `${placementPathBase}?${query}` : placementPathBase;
+  }, [placementPathBase, placementPromptLearnerId]);
+  const manualPlacementPromptHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (placementPromptLearnerId) {
+      params.set("learnerId", placementPromptLearnerId);
+    }
+    params.set("mode", "manual");
+    return `${placementPathBase}?${params.toString()}`;
+  }, [placementPathBase, placementPromptLearnerId]);
   const currentPathwayHref = useMemo(
     () =>
       selectedLearnerId
@@ -522,6 +543,9 @@ function CleanDayWorkspaceBody() {
         : pathwaysPathBase,
     [pathwaysPathBase, selectedLearnerId],
   );
+  const shouldShowPlacementPrompt =
+    firstSetupMode ||
+    (workspace.learners.length > 0 && !hasPlacementForPromptLearner);
   const continueActions = useMemo(() => {
     const pathwayLabel = selectedLearnerLabel
       ? `Open ${selectedLearnerLabel}'s current pathway`
@@ -584,6 +608,17 @@ function CleanDayWorkspaceBody() {
       return "";
     });
   }, [workspace.learners]);
+
+  useEffect(() => {
+    if (!placementPromptLearnerId) {
+      setHasPlacementForPromptLearner(false);
+      return;
+    }
+
+    setHasPlacementForPromptLearner(
+      hasAnyPathwayPlacementForLearner(placementPromptLearnerId),
+    );
+  }, [placementPromptLearnerId]);
 
   useEffect(() => {
     setExpandedItemIds([]);
@@ -836,29 +871,34 @@ function CleanDayWorkspaceBody() {
           promptDescription="Watch a quick guide to see today's learning, add quick blocks and connect daily learning to evidence capture."
         />
 
-        {firstSetupMode ? (
+        {shouldShowPlacementPrompt ? (
           <section style={cardStyle}>
             <div style={{ display: "grid", gap: 12 }}>
               <div>
                 <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                  Next: take a first placement check
+                  Find a starting point
                 </h2>
                 <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.7 }}>
-                  A quick assessment helps MyLearna find a sensible starting point for
-                  your learner and begin shaping their pathway.
+                  A short placement check helps MyLearna suggest where your learner
+                  should begin.
                 </p>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link href={assessmentsPathBase} style={primaryButtonStyle}>
+                <Link href={placementPromptHref} style={primaryButtonStyle}>
                   Start first placement check
                 </Link>
-                <button
-                  type="button"
-                  style={secondaryButtonStyle}
-                  onClick={skipPlacementCheckForNow}
-                >
-                  Skip for now
-                </button>
+                <Link href={manualPlacementPromptHref} style={secondaryButtonStyle}>
+                  Choose manually instead
+                </Link>
+                {firstSetupMode ? (
+                  <button
+                    type="button"
+                    style={secondaryButtonStyle}
+                    onClick={skipPlacementCheckForNow}
+                  >
+                    Skip for now
+                  </button>
+                ) : null}
               </div>
             </div>
           </section>
