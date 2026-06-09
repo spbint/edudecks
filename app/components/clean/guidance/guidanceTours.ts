@@ -160,34 +160,19 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
     id: "my-pathways",
     steps: [
       {
-        guidanceId: "pathways-stage-filter",
-        title: "Choose the learning stage",
-        body: "Use the stage controls to focus on the part of the pathway that matters now.",
-      },
-      {
         guidanceId: "pathways-current-step",
-        title: "Review the current pathway step",
-        body: "Pathways show possible next learning steps. Use them gently as a guide, not as pressure.",
+        title: "Start with the next step",
+        body: "This is the learner's next pathway step. Start here, then adjust if it feels too easy or too hard.",
       },
       {
         guidanceId: "pathways-step-card",
-        title: "Open a step card",
-        body: "Each step card shows the learning focus, evidence ideas and available actions.",
+        title: "Work on the step",
+        body: "Use practise, assess or worksheet actions to work on this step when they are available.",
       },
       {
-        guidanceId: "pathways-worksheet-button",
-        title: "Open worksheets",
-        body: "Some steps include printable worksheets connected to the learning goal.",
-      },
-      {
-        guidanceId: "pathways-practise-button",
-        title: "Use practise for supported learning",
-        body: "Practise activities help the learner work with a skill before you decide whether to check understanding.",
-      },
-      {
-        guidanceId: "pathways-assess-button",
-        title: "Use assess when ready",
-        body: "Assessment is available for some steps when you want a clearer check of understanding.",
+        guidanceId: "pathways-stage-filter",
+        title: "Move forward or back",
+        body: "Move forward or back at any time. This is a starting point, not a fixed grade label.",
       },
       {
         guidanceId: "pathways-progress-status",

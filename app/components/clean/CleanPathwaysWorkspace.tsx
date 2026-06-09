@@ -14,7 +14,6 @@ import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
-  GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
@@ -142,6 +141,7 @@ const EMPTY_STRAND_CARD: SubjectStrandCard = {
 };
 
 const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
+const PATHWAYS_INTERACTION_STORAGE_KEY = "mylearna:clean-pathways-interaction:v1";
 
 type PathwayZoneViewMode = "current" | "nearby" | "full";
 type PathwayWorksheetFilter = "all" | "with" | "missing";
@@ -276,6 +276,61 @@ type StageSummaryCounts = {
 function getLearnerLabel(learner: Learner | null) {
   if (!learner) return "No learner selected";
   return learner.preferredName || learner.firstName;
+}
+
+function getPathwayInteractionKey(
+  learnerId: string,
+  subjectKey: PathwaySubjectKey,
+  strandKey: string,
+) {
+  return [learnerId, subjectKey, strandKey].map((value) => String(value ?? "").trim()).join("::");
+}
+
+function readPathwayInteractionStarted(
+  learnerId: string,
+  subjectKey: PathwaySubjectKey,
+  strandKey: string,
+) {
+  if (typeof window === "undefined") return false;
+  const key = getPathwayInteractionKey(learnerId, subjectKey, strandKey);
+  if (!key.replace(/:/g, "")) return false;
+
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(PATHWAYS_INTERACTION_STORAGE_KEY) || "{}",
+    );
+    return Boolean(parsed && typeof parsed === "object" && parsed[key]);
+  } catch {
+    return false;
+  }
+}
+
+function writePathwayInteractionStarted(
+  learnerId: string,
+  subjectKey: PathwaySubjectKey,
+  strandKey: string,
+) {
+  if (typeof window === "undefined") return;
+  const key = getPathwayInteractionKey(learnerId, subjectKey, strandKey);
+  if (!key.replace(/:/g, "")) return;
+
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(PATHWAYS_INTERACTION_STORAGE_KEY) || "{}",
+    );
+    window.localStorage.setItem(
+      PATHWAYS_INTERACTION_STORAGE_KEY,
+      JSON.stringify({
+        ...(parsed && typeof parsed === "object" ? parsed : {}),
+        [key]: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    window.localStorage.setItem(
+      PATHWAYS_INTERACTION_STORAGE_KEY,
+      JSON.stringify({ [key]: new Date().toISOString() }),
+    );
+  }
 }
 
 function isNumberPathwayContext(subjectKey: string, strandKey: string) {
@@ -728,6 +783,7 @@ function PathwaysWorkspaceBody() {
   const [densityMode, setDensityMode] = useState<PathwayDensityMode>(
     () => persistedUiState.densityMode || "compact",
   );
+  const [pathwayInteractionVersion, setPathwayInteractionVersion] = useState(0);
   const [exploreStepsOpen, setExploreStepsOpen] = useState(false);
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
@@ -1049,10 +1105,10 @@ function PathwaysWorkspaceBody() {
       `${selectedSubject.title} pathways`
     : `${selectedSubject.title} pathways`;
   const selectedSubjectSummaryHelper = selectedSubjectSupportsDetailedPathways
-    ? `Current learning zone begins at: ${currentLearningZoneStageTitle}`
+    ? `Pathway map band: ${currentLearningZoneStageTitle}. This is not a grade label.`
     : selectedSubject.guidance;
   const selectedSubjectStatusLabel = selectedSubjectSupportsDetailedPathways
-    ? "Detailed now"
+    ? "View details"
     : "Coming gradually";
   const topSnapshotTitle = selectedStrandIsActive
     ? selectedSubjectSummaryTitle
@@ -1061,7 +1117,7 @@ function PathwaysWorkspaceBody() {
     ? currentLearningZoneStageTitle
     : "Select a strand to see the current pathway";
   const topSnapshotStagePrefix = selectedStrandIsActive
-    ? "Current learning zone begins at: "
+    ? "Pathway map band: "
     : "Pathway view: ";
   const topSnapshotNextAction = selectedStrandIsActive
     ? nextActionLabel
@@ -1172,6 +1228,14 @@ function PathwaysWorkspaceBody() {
         stageKey: selectedPlacementStep.stageKey,
       })
     : null;
+  const selectedPlacementHasInteraction =
+    selectedPlacementStep && selectedLearner
+      ? readPathwayInteractionStarted(
+          selectedLearner.id,
+          selectedPlacementStep.subjectKey,
+          selectedPlacementStep.strandKey,
+        ) || pathwayInteractionVersion > 0
+      : false;
   const selectedPlacementPracticeHref = selectedPlacementPractice
     ? (() => {
         const params = new URLSearchParams();
@@ -1209,6 +1273,12 @@ function PathwaysWorkspaceBody() {
     method: PathwayPlacementMethod,
   ) {
     if (!nextStep || !selectedLearner) return;
+    writePathwayInteractionStarted(
+      selectedLearner.id,
+      nextStep.subjectKey,
+      nextStep.strandKey,
+    );
+    setPathwayInteractionVersion((current) => current + 1);
 
     savePathwayPlacement({
       learnerId: selectedLearner.id,
@@ -1228,10 +1298,28 @@ function PathwaysWorkspaceBody() {
   }
 
   function scrollToCurrentStepPanel() {
+    if (selectedPlacementStep && selectedLearner) {
+      writePathwayInteractionStarted(
+        selectedLearner.id,
+        selectedPlacementStep.subjectKey,
+        selectedPlacementStep.strandKey,
+      );
+      setPathwayInteractionVersion((current) => current + 1);
+    }
     const workspaceEl = pathwayDetailWorkspaceRef.current;
     if (!workspaceEl) return;
     workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
     workspaceEl.focus({ preventScroll: true });
+  }
+
+  function markSelectedPathwayInteraction() {
+    if (!selectedPlacementStep || !selectedLearner) return;
+    writePathwayInteractionStarted(
+      selectedLearner.id,
+      selectedPlacementStep.subjectKey,
+      selectedPlacementStep.strandKey,
+    );
+    setPathwayInteractionVersion((current) => current + 1);
   }
 
   function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
@@ -1325,6 +1413,207 @@ function PathwaysWorkspaceBody() {
 
         <section
           data-guidance-id="pathways-current-step"
+          style={{
+            ...cardStyle,
+            padding: 18,
+            border: selectedPlacementStep ? "1px solid #bfdbfe" : cardStyle.border,
+            background: selectedPlacementStep
+              ? "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)"
+              : "#ffffff",
+          }}
+        >
+          {!selectedLearner ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Pathway starting point</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                Choose a learner to begin
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Add or choose a learner before finding a pathway starting point.
+              </p>
+              <div>
+                <Link href="/my-profile" style={secondaryButtonStyle}>
+                  Open My Profile
+                </Link>
+              </div>
+            </div>
+          ) : selectedPlacementStep ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={eyebrowStyle}>Current step</div>
+                <h1 style={{ margin: 0, color: "#0f172a", fontSize: 30, lineHeight: 1.1 }}>
+                  {selectedLearnerLabel}&apos;s next step
+                </h1>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {selectedPlacementStep.subjectTitle} / {selectedPlacementStep.strandTitle}
+                </p>
+              </div>
+              <div
+                style={{
+                  border: "1px solid #bfdbfe",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 16,
+                  display: "grid",
+                  gap: 8,
+                  boxShadow: "0 8px 22px rgba(37,99,235,0.08)",
+                }}
+              >
+                <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
+                  Current step
+                </div>
+                <strong style={{ color: "#0f172a", fontSize: 22, lineHeight: 1.2 }}>
+                  {selectedPlacementStep.stepTitle}
+                </strong>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {selectedPlacementStep.stepDescription}
+                </p>
+                <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                  We&apos;ll start gently. This is a starting point, not a grade label.
+                </p>
+              </div>
+              <p style={{ margin: 0, color: "#334155", lineHeight: 1.6, fontWeight: 700 }}>
+                Start here. If this feels too easy or too hard, you can move forward
+                or try an earlier step.
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
+                  Start this step
+                </button>
+                {selectedPlacementPracticeHref ? (
+                  <Link
+                    href={selectedPlacementPracticeHref}
+                    onClick={markSelectedPathwayInteraction}
+                    style={secondaryButtonStyle}
+                  >
+                    Practise
+                  </Link>
+                ) : null}
+                {selectedPlacementAssessmentHref ? (
+                  <Link
+                    href={selectedPlacementAssessmentHref}
+                    onClick={markSelectedPathwayInteraction}
+                    style={secondaryButtonStyle}
+                  >
+                    Assess
+                  </Link>
+                ) : (
+                  <span
+                    style={{
+                      ...secondaryButtonStyle,
+                      color: "#64748b",
+                      cursor: "default",
+                    }}
+                  >
+                    Quick check not connected yet
+                  </span>
+                )}
+                {selectedPlacementWorksheet ? (
+                  <Link
+                    href={selectedPlacementWorksheet.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={markSelectedPathwayInteraction}
+                    style={secondaryButtonStyle}
+                  >
+                    Worksheet
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={!nextPlacementStep}
+                  onClick={() => updateCurrentPathwayStep(nextPlacementStep, "moved_forward")}
+                  style={{
+                    ...secondaryButtonStyle,
+                    opacity: nextPlacementStep ? 1 : 0.55,
+                  }}
+                >
+                  Too easy - move forward
+                </button>
+                <button
+                  type="button"
+                  disabled={!previousPlacementStep}
+                  onClick={() => updateCurrentPathwayStep(previousPlacementStep, "moved_back")}
+                  style={{
+                    ...secondaryButtonStyle,
+                    opacity: previousPlacementStep ? 1 : 0.55,
+                  }}
+                >
+                  Too hard - try an earlier step
+                </button>
+                <Link
+                  href={manualPlacementEntryHref}
+                  onClick={markSelectedPathwayInteraction}
+                  style={secondaryButtonStyle}
+                >
+                  Choose a different step
+                </Link>
+              </div>
+              {!nextPlacementStep && selectedPlacementStepIndex >= 0 ? (
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                  You&apos;re at the end of this strand for now.
+                </p>
+              ) : null}
+              {!previousPlacementStep && selectedPlacementStepIndex >= 0 ? (
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                  This is the first step in this strand.
+                </p>
+              ) : null}
+              {selectedPlacementHasInteraction ? (
+                <div
+                  style={{
+                    border: "1px solid #bbf7d0",
+                    borderRadius: 14,
+                    background: "#f0fdf4",
+                    padding: 14,
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <strong style={{ color: "#166534" }}>Pathway started</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    You&apos;ve started this pathway step. Next, you can capture evidence
+                    or keep practising.
+                  </p>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link href={capturePathBase} style={buttonStyle}>
+                      Continue to My Capture
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={scrollToCurrentStepPanel}
+                      style={secondaryButtonStyle}
+                    >
+                      Keep working on this pathway
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Pathway starting point</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                Start a pathway for {selectedLearnerLabel}
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Choose one subject and strand. MyLearna will suggest a starting step,
+                then you can practise, check, move forward, or move back.
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href={placementEntryHref} style={buttonStyle}>
+                  Start a pathway
+                </Link>
+                <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
+                  Choose manually
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section
+          data-guidance-id="pathways-context-summary"
           style={{
             ...cardStyle,
             padding: 10,
@@ -1501,161 +1790,9 @@ function PathwaysWorkspaceBody() {
                     ? "Use the current step panel below."
                     : "Pick from the pathway strands below."}
                 </div>
-                <GuidanceSetupNextAction
-                  stepId="pathways"
-                  nextHref="/my-capture"
-                  label="Continue to My Capture"
-                  skipLabel="Skip pathways for now"
-                  helperText="After you have seen how pathways work, continue to capturing learning evidence."
-                />
               </div>
             </div>
           </div>
-        </section>
-
-        <section style={cardStyle}>
-          {!selectedLearner ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Pathway starting point</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-                Choose a learner to begin
-              </h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Add or choose a learner before finding a pathway starting point.
-              </p>
-              <div>
-                <Link href="/my-profile" style={secondaryButtonStyle}>
-                  Open My Profile
-                </Link>
-              </div>
-            </div>
-          ) : selectedPlacementStep ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Current step</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-                {selectedLearnerLabel}&apos;s next step
-              </h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                {selectedPlacementStep.subjectTitle} / {selectedPlacementStep.strandTitle}
-              </p>
-              <div
-                style={{
-                  border: "1px solid #bfdbfe",
-                  borderRadius: 12,
-                  background: "#eff6ff",
-                  padding: 12,
-                  display: "grid",
-                  gap: 6,
-                }}
-              >
-                <strong style={{ color: "#0f172a" }}>
-                  {selectedPlacementStep.stepTitle}
-                </strong>
-                <span style={{ color: "#1d4ed8", fontWeight: 800 }}>
-                  {selectedPlacementStep.stageTitle}
-                </span>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  {selectedPlacementStep.stepDescription}
-                </p>
-              </div>
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Start here. Try this step. If it feels too easy or too hard, you can
-                move forward or try an earlier step.
-              </p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
-                  Start this step
-                </button>
-                {selectedPlacementPracticeHref ? (
-                  <Link href={selectedPlacementPracticeHref} style={secondaryButtonStyle}>
-                    Practise this step
-                  </Link>
-                ) : null}
-                {selectedPlacementAssessmentHref ? (
-                  <Link href={selectedPlacementAssessmentHref} style={secondaryButtonStyle}>
-                    Take a quick check
-                  </Link>
-                ) : (
-                  <span
-                    style={{
-                      ...secondaryButtonStyle,
-                      color: "#64748b",
-                      cursor: "default",
-                    }}
-                  >
-                    Quick check not connected yet
-                  </span>
-                )}
-                {selectedPlacementWorksheet ? (
-                  <Link
-                    href={selectedPlacementWorksheet.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={secondaryButtonStyle}
-                  >
-                    Open worksheet
-                  </Link>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={!nextPlacementStep}
-                  onClick={() => updateCurrentPathwayStep(nextPlacementStep, "moved_forward")}
-                  style={{
-                    ...secondaryButtonStyle,
-                    opacity: nextPlacementStep ? 1 : 0.55,
-                  }}
-                >
-                  Too easy - move forward
-                </button>
-                <button
-                  type="button"
-                  disabled={!previousPlacementStep}
-                  onClick={() => updateCurrentPathwayStep(previousPlacementStep, "moved_back")}
-                  style={{
-                    ...secondaryButtonStyle,
-                    opacity: previousPlacementStep ? 1 : 0.55,
-                  }}
-                >
-                  Too hard - try an earlier step
-                </button>
-                <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
-                  Choose a different step
-                </Link>
-                <Link href={placementEntryHref} style={secondaryButtonStyle}>
-                  Choose another strand
-                </Link>
-              </div>
-              {!nextPlacementStep && selectedPlacementStepIndex >= 0 ? (
-                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
-                  You&apos;re at the end of this strand for now.
-                </p>
-              ) : null}
-              {!previousPlacementStep && selectedPlacementStepIndex >= 0 ? (
-                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
-                  This is the first step in this strand.
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Pathway starting point</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-                Start a pathway for {selectedLearnerLabel}
-              </h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Choose one subject and strand. MyLearna will suggest a starting step,
-                then you can practise, check, move forward, or move back.
-              </p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link href={placementEntryHref} style={buttonStyle}>
-                  Start a pathway
-                </Link>
-                <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
-                  Choose manually
-                </Link>
-              </div>
-            </div>
-          )}
         </section>
 
         <details
@@ -1905,32 +2042,32 @@ function PathwaysWorkspaceBody() {
                   relationshipCopy={selectedSubjectWorkspace.relationshipCopy}
                   summaryCards={[
                     {
-                      label: "Zone",
+                      label: "Step band",
                       value: currentLearningZoneStageTitle,
-                      helper: "Based on the first visible step in the current learning zone.",
+                      helper: "A pathway map label, not a grade judgement.",
                     },
                     {
-                      label: "Secure",
+                      label: "Secure steps",
                       value: String(selectedWorkspaceSnapshot?.secure || 0),
                       valueColor: "#166534",
                     },
                     {
-                      label: "Assess",
+                      label: "Checks ready",
                       value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
                       valueColor: "#6d28d9",
                     },
                     {
-                      label: "Evidence",
+                      label: "Evidence examples",
                       value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
                       valueColor: "#1d4ed8",
                     },
                     {
-                      label: "Practice",
+                      label: "Practice activities",
                       value: String(selectedWorkspaceSnapshot?.practising || 0),
                       valueColor: "#c2410c",
                     },
                     {
-                      label: "New",
+                      label: "Other steps",
                       value: String(selectedWorkspaceSnapshot?.notStarted || 0),
                       valueColor: "#64748b",
                     },
@@ -1948,7 +2085,7 @@ function PathwaysWorkspaceBody() {
                       title: "What comes next",
                       items: [
                         selectedWorkspaceCurrentStage
-                          ? `Current learning zone begins at: ${currentLearningZoneStageTitle}`
+                          ? `Pathway map band: ${currentLearningZoneStageTitle}. This is not a grade label.`
                           : "Current pathway focus will show here.",
                         selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]
                           ? `Next progression: ${getRegionalStageLabel(
