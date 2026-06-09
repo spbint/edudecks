@@ -71,7 +71,11 @@ import {
   type PathwaySubjectDefinition,
   type PathwaySubjectKey,
 } from "@/lib/clean/pathways/pathwaySubjects";
-import { readPathwayPlacement } from "@/lib/clean/pathways/pathwayPlacement";
+import {
+  readPathwayPlacement,
+  savePathwayPlacement,
+  type PathwayPlacementMethod,
+} from "@/lib/clean/pathways/pathwayPlacement";
 import type {
   MathematicsDetailedStrandStage,
   MathematicsDetailedStrandStep,
@@ -1090,6 +1094,29 @@ function PathwaysWorkspaceBody() {
     if (!focusStepId) return null;
     return getAllPathwaySteps().find((step) => step.id === focusStepId) || null;
   }, [requestedPathwayStepId, selectedPlacement?.pathwayStepId]);
+  const selectedPlacementStrandSteps = useMemo(
+    () =>
+      selectedPlacementStep
+        ? getAllPathwaySteps().filter(
+            (step) =>
+              step.subjectKey === selectedPlacementStep.subjectKey &&
+              step.strandKey === selectedPlacementStep.strandKey,
+          )
+        : [],
+    [selectedPlacementStep],
+  );
+  const selectedPlacementStepIndex = selectedPlacementStep
+    ? selectedPlacementStrandSteps.findIndex((step) => step.id === selectedPlacementStep.id)
+    : -1;
+  const previousPlacementStep =
+    selectedPlacementStepIndex > 0
+      ? selectedPlacementStrandSteps[selectedPlacementStepIndex - 1]
+      : null;
+  const nextPlacementStep =
+    selectedPlacementStepIndex >= 0 &&
+    selectedPlacementStepIndex < selectedPlacementStrandSteps.length - 1
+      ? selectedPlacementStrandSteps[selectedPlacementStepIndex + 1]
+      : null;
   const placementEntryHref = useMemo(() => {
     const params = new URLSearchParams();
     if (selectedLearnerId) {
@@ -1113,6 +1140,99 @@ function PathwaysWorkspaceBody() {
     params.set("mode", "manual");
     return `${placementPathBase}?${params.toString()}`;
   }, [placementPathBase, selectedLearnerId, selectedStrandKey, selectedSubjectKey]);
+  const selectedPlacementReturnHref = selectedPlacementStep
+    ? buildPathwayStepReturnHref({
+        pathname,
+        subjectKey: selectedPlacementStep.subjectKey,
+        strandKey: selectedPlacementStep.strandKey,
+        learnerId: selectedLearnerId,
+        detailPanelId: `pathway-step-${selectedPlacementStep.strandKey}-${selectedPlacementStep.stageKey}-${selectedPlacementStep.stepKey}`,
+      })
+    : pathname;
+  const selectedPlacementPractice = selectedPlacementStep
+    ? getStepPracticeForPathwayStep({
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
+        strandKey: selectedPlacementStep.strandKey,
+      })
+    : null;
+  const selectedPlacementAssessment = selectedPlacementStep
+    ? getStepAssessmentForPathwayStep({
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
+        strandKey: selectedPlacementStep.strandKey,
+      })
+    : null;
+  const selectedPlacementWorksheet = selectedPlacementStep
+    ? getWorksheetResourceForPathwayStep({
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
+        subjectKey: selectedPlacementStep.subjectKey,
+        strandKey: selectedPlacementStep.strandKey,
+        stageKey: selectedPlacementStep.stageKey,
+      })
+    : null;
+  const selectedPlacementPracticeHref = selectedPlacementPractice
+    ? (() => {
+        const params = new URLSearchParams();
+        params.set("stepPracticeKey", selectedPlacementPractice.key);
+        params.set("subjectKey", selectedPlacementPractice.subjectKey);
+        params.set("strandKey", selectedPlacementPractice.strandKey);
+        params.set("stageKey", selectedPlacementPractice.stageKey);
+        params.set("pathwayStepId", selectedPlacementPractice.pathwayStepId);
+        params.set("stepKey", selectedPlacementStep?.stepKey || selectedPlacementPractice.stepKey);
+        params.set("returnTo", selectedPlacementReturnHref);
+        if (selectedLearnerId) params.set("learnerId", selectedLearnerId);
+        return `/practice/number-targeted?${params.toString()}`;
+      })()
+    : "";
+  const selectedPlacementAssessmentHref = selectedPlacementAssessment
+    ? (() => {
+        const params = new URLSearchParams();
+        params.set("source", "my-pathways");
+        params.set("stepAssessmentKey", selectedPlacementAssessment.key);
+        params.set("subjectKey", selectedPlacementAssessment.subjectKey);
+        params.set("strandKey", selectedPlacementAssessment.strandKey);
+        params.set("stageKey", selectedPlacementAssessment.stageKey);
+        params.set("pathwayStepId", selectedPlacementAssessment.pathwayStepId);
+        params.set("stepKey", selectedPlacementStep?.stepKey || selectedPlacementAssessment.stepKey);
+        params.set("returnTo", selectedPlacementReturnHref);
+        params.set("progressionBandKey", selectedPlacementAssessment.progressionBandKey);
+        params.set("itemBankKey", selectedPlacementAssessment.parentItemBankKey);
+        if (selectedLearnerId) params.set("learnerId", selectedLearnerId);
+        return `/assessments/number?${params.toString()}`;
+      })()
+    : "";
+
+  function updateCurrentPathwayStep(
+    nextStep: typeof selectedPlacementStep,
+    method: PathwayPlacementMethod,
+  ) {
+    if (!nextStep || !selectedLearner) return;
+
+    savePathwayPlacement({
+      learnerId: selectedLearner.id,
+      subjectKey: nextStep.subjectKey,
+      strandKey: nextStep.strandKey,
+      pathwayStepId: nextStep.id,
+      method,
+    });
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("learnerId", selectedLearner.id);
+    params.set("subjectKey", nextStep.subjectKey);
+    params.set("strandKey", nextStep.strandKey);
+    params.set("pathwayStepId", nextStep.id);
+    params.set("placement", "1");
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function scrollToCurrentStepPanel() {
+    const workspaceEl = pathwayDetailWorkspaceRef.current;
+    if (!workspaceEl) return;
+    workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    workspaceEl.focus({ preventScroll: true });
+  }
 
   function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -1411,10 +1531,13 @@ function PathwaysWorkspaceBody() {
             </div>
           ) : selectedPlacementStep ? (
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Starting point selected</div>
+              <div style={eyebrowStyle}>Current step</div>
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-                {selectedLearnerLabel} is starting in {selectedPlacementStep.strandTitle}
+                {selectedLearnerLabel}&apos;s next step
               </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                {selectedPlacementStep.subjectTitle} / {selectedPlacementStep.strandTitle}
+              </p>
               <div
                 style={{
                   border: "1px solid #bfdbfe",
@@ -1436,31 +1559,96 @@ function PathwaysWorkspaceBody() {
                 </p>
               </div>
               <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                This is a starting point, not a grade label. Use the pathway actions
-                below to practise, open a worksheet, assess or capture evidence later.
+                Start here. Try this step. If it feels too easy or too hard, you can
+                move forward or try an earlier step.
               </p>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
+                  Start this step
+                </button>
+                {selectedPlacementPracticeHref ? (
+                  <Link href={selectedPlacementPracticeHref} style={secondaryButtonStyle}>
+                    Practise this step
+                  </Link>
+                ) : null}
+                {selectedPlacementAssessmentHref ? (
+                  <Link href={selectedPlacementAssessmentHref} style={secondaryButtonStyle}>
+                    Take a quick check
+                  </Link>
+                ) : (
+                  <span
+                    style={{
+                      ...secondaryButtonStyle,
+                      color: "#64748b",
+                      cursor: "default",
+                    }}
+                  >
+                    Quick check not connected yet
+                  </span>
+                )}
+                {selectedPlacementWorksheet ? (
+                  <Link
+                    href={selectedPlacementWorksheet.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={secondaryButtonStyle}
+                  >
+                    Open worksheet
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={!nextPlacementStep}
+                  onClick={() => updateCurrentPathwayStep(nextPlacementStep, "moved_forward")}
+                  style={{
+                    ...secondaryButtonStyle,
+                    opacity: nextPlacementStep ? 1 : 0.55,
+                  }}
+                >
+                  Too easy - move forward
+                </button>
+                <button
+                  type="button"
+                  disabled={!previousPlacementStep}
+                  onClick={() => updateCurrentPathwayStep(previousPlacementStep, "moved_back")}
+                  style={{
+                    ...secondaryButtonStyle,
+                    opacity: previousPlacementStep ? 1 : 0.55,
+                  }}
+                >
+                  Too hard - try an earlier step
+                </button>
                 <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
-                  Adjust starting point
+                  Choose a different step
                 </Link>
                 <Link href={placementEntryHref} style={secondaryButtonStyle}>
-                  Check another strand
+                  Choose another strand
                 </Link>
               </div>
+              {!nextPlacementStep && selectedPlacementStepIndex >= 0 ? (
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                  You&apos;re at the end of this strand for now.
+                </p>
+              ) : null}
+              {!previousPlacementStep && selectedPlacementStepIndex >= 0 ? (
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                  This is the first step in this strand.
+                </p>
+              ) : null}
             </div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               <div style={eyebrowStyle}>Pathway starting point</div>
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-                Find a starting point for {selectedLearnerLabel}
+                Start a pathway for {selectedLearnerLabel}
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Choose one subject and strand first. MyLearna can then help you pick
-                a sensible place to begin.
+                Choose one subject and strand. MyLearna will suggest a starting step,
+                then you can practise, check, move forward, or move back.
               </p>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Link href={placementEntryHref} style={buttonStyle}>
-                  Start placement check
+                  Start a pathway
                 </Link>
                 <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
                   Choose manually

@@ -876,19 +876,19 @@ function CleanDayWorkspaceBody() {
             <div style={{ display: "grid", gap: 12 }}>
               <div>
                 <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                  Find a starting point
+                  Start a learning pathway
                 </h2>
                 <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.7 }}>
-                  A short placement check helps MyLearna suggest where your learner
-                  should begin.
+                  Choose one learner and one strand. MyLearna will suggest a starting
+                  step, then you can practise, check, move forward, or move back.
                 </p>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Link href={placementPromptHref} style={primaryButtonStyle}>
-                  Start first placement check
+                  Start a pathway
                 </Link>
                 <Link href={manualPlacementPromptHref} style={secondaryButtonStyle}>
-                  Choose manually instead
+                  Choose manually
                 </Link>
                 {firstSetupMode ? (
                   <button

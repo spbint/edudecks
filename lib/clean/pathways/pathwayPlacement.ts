@@ -1,6 +1,11 @@
 import type { PathwaySubjectKey } from "@/lib/clean/pathways/pathwaySubjects";
 
-export type PathwayPlacementMethod = "placement_check" | "manual";
+export type PathwayPlacementMethod =
+  | "suggested"
+  | "manual"
+  | "moved_forward"
+  | "moved_back"
+  | "placement_check";
 
 export type PathwayPlacement = {
   learnerId: string;

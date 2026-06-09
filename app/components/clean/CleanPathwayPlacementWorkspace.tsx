@@ -89,7 +89,7 @@ const eyebrowStyle: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
-type PlacementStep = "learner" | "subject" | "strand" | "check" | "manual" | "recommendation";
+type PlacementStep = "learner" | "subject" | "strand" | "manual" | "recommendation";
 
 function getLearnerLabel(learner: Learner | null) {
   if (!learner) return "No learner selected";
@@ -206,6 +206,11 @@ function CleanPathwayPlacementWorkspaceBody() {
     searchParams.get("mode") === "manual" ? "manual" : "learner",
   );
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [selectionSource, setSelectionSource] = useState<
+    "suggested" | "manual" | "moved_forward" | "moved_back"
+  >(
+    searchParams.get("mode") === "manual" ? "manual" : "suggested",
+  );
 
   const effectiveSelectedLearnerId =
     selectedLearnerId || (workspace.learners.length === 1 ? workspace.learners[0]?.id || "" : "");
@@ -241,6 +246,14 @@ function CleanPathwayPlacementWorkspaceBody() {
   const canContinueSubject = Boolean(selectedSubject);
   const canContinueStrand = Boolean(selectedStrand);
   const canSavePlacement = Boolean(selectedLearner && selectedStrand && selectedPathwayStep);
+  const selectedStepIndex = pathwaySteps.findIndex(
+    (candidate) => candidate.id === (selectedPathwayStep?.id || selectedStepId),
+  );
+  const previousPathwayStep = selectedStepIndex > 0 ? pathwaySteps[selectedStepIndex - 1] : null;
+  const nextPathwayStep =
+    selectedStepIndex >= 0 && selectedStepIndex < pathwaySteps.length - 1
+      ? pathwaySteps[selectedStepIndex + 1]
+      : null;
   const targetPathwaysHref = buildPathwaysHref(pathwaysPathBase, {
     learnerId: selectedLearner?.id || "",
     subjectKey: selectedSubjectKey,
@@ -258,14 +271,16 @@ function CleanPathwayPlacementWorkspaceBody() {
     setStep("strand");
   }
 
-  function startPlacementShell() {
+  function showSuggestedStep() {
     if (!canContinueStrand) return;
     setSelectedStepId((current) => current || gentleStartingStep?.id || "");
-    setStep("check");
+    setSelectionSource("suggested");
+    setStep("recommendation");
   }
 
   function openManualChoice() {
     setSelectedStepId((current) => current || gentleStartingStep?.id || "");
+    setSelectionSource("manual");
     setStep("manual");
   }
 
@@ -283,13 +298,9 @@ function CleanPathwayPlacementWorkspaceBody() {
       subjectKey: selectedSubjectKey,
       strandKey: selectedStrand.key,
       pathwayStepId: selectedPathwayStep.id,
-      method: "manual",
+      method: selectionSource,
     });
     setSavedMessage("Starting point saved.");
-  }
-
-  function acceptStartingPoint() {
-    saveAndContinue();
   }
 
   function continueToPathways() {
@@ -303,19 +314,29 @@ function CleanPathwayPlacementWorkspaceBody() {
     setStep("strand");
   }
 
+  function moveToAdjacentStep(
+    nextStep: PathwayStepRegistryItem | null,
+    source: "moved_forward" | "moved_back",
+  ) {
+    if (!nextStep) return;
+    setSelectedStepId(nextStep.id);
+    setSelectionSource(source);
+    setSavedMessage(null);
+  }
+
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanAppHeader />
 
         <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
-          <div style={eyebrowStyle}>First placement check</div>
+          <div style={eyebrowStyle}>Pathway entry</div>
           <h1 style={{ margin: 0, color: "#0f172a", fontSize: 30 }}>
-            Find a starting point
+            Start a learning pathway
           </h1>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, maxWidth: 720 }}>
-            Start with one learner, one subject and one strand. This is a starting point,
-            not a grade label, and you can adjust it if needed.
+            Choose one learner and one strand. MyLearna will suggest a starting step,
+            then you can move forward, try an earlier step, or choose manually.
           </p>
         </section>
 
@@ -353,10 +374,10 @@ function CleanPathwayPlacementWorkspaceBody() {
               <section style={{ ...cardStyle, display: "grid", gap: 14 }}>
                 <div style={{ display: "grid", gap: 6 }}>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>
-                    Who is this placement check for?
+                    Who are we starting with?
                   </h2>
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    Choose one learner. You can check other learners later.
+                    Choose one learner. You can start other learners later.
                   </p>
                 </div>
                 <div style={optionGridStyle}>
@@ -428,10 +449,10 @@ function CleanPathwayPlacementWorkspaceBody() {
               <section style={{ ...cardStyle, display: "grid", gap: 14 }}>
                 <div style={{ display: "grid", gap: 6 }}>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>
-                    Choose a strand to check first
+                    Choose a strand
                   </h2>
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    Start with one strand. You can check other strands later.
+                    Start with one strand. You can come back and choose another later.
                   </p>
                 </div>
                 <div style={optionGridStyle}>
@@ -494,50 +515,11 @@ function CleanPathwayPlacementWorkspaceBody() {
                   <button type="button" onClick={() => setStep("subject")} style={secondaryButtonStyle}>
                     Back
                   </button>
-                  <button type="button" onClick={startPlacementShell} style={primaryButtonStyle}>
-                    Start placement check
+                  <button type="button" onClick={showSuggestedStep} style={primaryButtonStyle}>
+                    Show starting step
                   </button>
                   <button type="button" onClick={openManualChoice} style={secondaryButtonStyle}>
-                    Choose starting point manually
-                  </button>
-                </div>
-              </section>
-            ) : null}
-
-            {step === "check" ? (
-              <section style={{ ...cardStyle, display: "grid", gap: 14 }}>
-                <div style={eyebrowStyle}>Placement check shell</div>
-                <h2 style={{ margin: 0, color: "#0f172a" }}>
-                  {selectedStrand?.title || "Selected strand"}
-                </h2>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  This placement check will help MyLearna find a sensible starting point.
-                  The question set for this strand still needs to be connected, so this
-                  pass will not fake a test or create assessment results.
-                </p>
-                {gentleStartingStep ? (
-                  <div
-                    style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      background: "#f8fafc",
-                      padding: 14,
-                    }}
-                  >
-                    <strong style={{ color: "#0f172a" }}>
-                      Parent-review starting point available
-                    </strong>
-                    <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                      MyLearna can open a manual review at a sensible place in this strand.
-                    </p>
-                  </div>
-                ) : null}
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="button" onClick={() => setStep("strand")} style={secondaryButtonStyle}>
-                    Back
-                  </button>
-                  <button type="button" onClick={openManualChoice} style={primaryButtonStyle}>
-                    Choose starting point manually
+                    Choose a step manually
                   </button>
                 </div>
               </section>
@@ -578,7 +560,10 @@ function CleanPathwayPlacementWorkspaceBody() {
                   <button
                     type="button"
                     disabled={!selectedStepId}
-                    onClick={showRecommendation}
+                    onClick={() => {
+                      setSelectionSource("manual");
+                      showRecommendation();
+                    }}
                     style={{
                       ...primaryButtonStyle,
                       opacity: selectedStepId ? 1 : 0.55,
@@ -592,13 +577,13 @@ function CleanPathwayPlacementWorkspaceBody() {
 
             {step === "recommendation" ? (
               <section style={{ ...cardStyle, display: "grid", gap: 14 }}>
-                <div style={eyebrowStyle}>Suggested starting point</div>
+                <div style={eyebrowStyle}>Start here</div>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>
-                  Suggested starting point
+                  Start here
                 </h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  For {selectedLearnerLabel} in {selectedStrand?.title || "this strand"},
-                  MyLearna suggests starting at:
+                  Based on the learner profile and this strand, this is a sensible
+                  place to begin. You can move forward or back at any time.
                 </p>
                 {selectedPathwayStep ? (
                   <div
@@ -623,7 +608,8 @@ function CleanPathwayPlacementWorkspaceBody() {
                   </div>
                 ) : null}
                 <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                  This is a starting point, not a grade label. You can adjust it if needed.
+                  This is a starting point, not a grade label. Start here, try this,
+                  and adjust as you go.
                 </p>
                 {savedMessage ? (
                   <div role="status" style={{ color: "#166534", fontWeight: 800 }}>
@@ -634,32 +620,53 @@ function CleanPathwayPlacementWorkspaceBody() {
                   <button
                     type="button"
                     disabled={!canSavePlacement}
-                    onClick={acceptStartingPoint}
+                    onClick={continueToPathways}
                     style={{
                       ...primaryButtonStyle,
                       opacity: canSavePlacement ? 1 : 0.55,
                     }}
                   >
-                    Accept starting point
+                    Start this step
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!nextPathwayStep}
+                    onClick={() => moveToAdjacentStep(nextPathwayStep, "moved_forward")}
+                    style={{
+                      ...secondaryButtonStyle,
+                      opacity: nextPathwayStep ? 1 : 0.55,
+                    }}
+                  >
+                    Too easy - move forward
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!previousPathwayStep}
+                    onClick={() => moveToAdjacentStep(previousPathwayStep, "moved_back")}
+                    style={{
+                      ...secondaryButtonStyle,
+                      opacity: previousPathwayStep ? 1 : 0.55,
+                    }}
+                  >
+                    Too hard - try an earlier step
                   </button>
                   <button type="button" onClick={openManualChoice} style={secondaryButtonStyle}>
                     Choose a different step
                   </button>
                   <button type="button" onClick={checkAnotherStrand} style={secondaryButtonStyle}>
-                    Check another strand
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!canSavePlacement}
-                    onClick={continueToPathways}
-                    style={{
-                      ...secondaryButtonStyle,
-                      opacity: canSavePlacement ? 1 : 0.55,
-                    }}
-                  >
-                    Continue to My Pathways
+                    Choose another strand
                   </button>
                 </div>
+                {!nextPathwayStep && selectedStepIndex >= 0 ? (
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                    You&apos;re at the end of this strand for now.
+                  </p>
+                ) : null}
+                {!previousPathwayStep && selectedStepIndex >= 0 ? (
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                    This is the first step in this strand.
+                  </p>
+                ) : null}
               </section>
             ) : null}
           </>
