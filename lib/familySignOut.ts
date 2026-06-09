@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { clearLocalSessionForAccountSwitch } from "@/lib/authSessionEscape";
 
 const FAMILY_SIGN_OUT_EVENT = "edudecks:auth-signed-out";
 
@@ -78,6 +79,7 @@ async function requestSupabaseSignOut() {
 
 export async function completeFamilySignOut() {
   await requestSupabaseSignOut();
+  clearLocalSessionForAccountSwitch();
   resetAuthClientStateImmediately();
 }
 

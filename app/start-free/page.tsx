@@ -4,6 +4,10 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
+import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
+import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
+import { completeFamilySignOut } from "@/lib/familySignOut";
 import {
   getSignupJurisdictionOptions,
   saveSignupPrefill,
@@ -64,6 +68,13 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const secondaryButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  borderColor: "#d1d5db",
+  background: "#ffffff",
+  color: "#0f172a",
+};
+
 function errorTextStyle(): React.CSSProperties {
   return {
     color: "#b91c1c",
@@ -76,6 +87,7 @@ function errorTextStyle(): React.CSSProperties {
 export default function StartFreePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuthUser();
   const source = safe(searchParams.get("source"));
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -83,6 +95,8 @@ export default function StartFreePage() {
   const [stateOrRegion, setStateOrRegion] = useState("");
   const [numberOfChildren, setNumberOfChildren] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [sessionActionBusy, setSessionActionBusy] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   const jurisdictionOptions = useMemo(() => getSignupJurisdictionOptions(country), [country]);
 
@@ -118,6 +132,45 @@ export default function StartFreePage() {
     router.push(`/signup?${params.toString()}`);
   }
 
+  async function resolveSignedInDestination() {
+    try {
+      const familyState = await loadCleanFamilyProfile();
+      if (!familyState.profile) return "/my-profile";
+      if (!hasRequiredLearningSettings(familyState.profile)) return "/my-settings";
+      return "/my-day";
+    } catch {
+      return "/my-profile";
+    }
+  }
+
+  async function handleContinueSignedIn() {
+    if (sessionActionBusy) return;
+    setSessionActionBusy(true);
+    setSessionError(null);
+
+    try {
+      router.push(await resolveSignedInDestination());
+    } catch {
+      setSessionError("We could not open MyLearna just now. Please try again.");
+      setSessionActionBusy(false);
+    }
+  }
+
+  async function handleSignOutForDifferentEmail() {
+    if (sessionActionBusy) return;
+    setSessionActionBusy(true);
+    setSessionError(null);
+
+    try {
+      await completeFamilySignOut();
+      router.replace("/start-free");
+      router.refresh();
+    } catch {
+      setSessionError("We could not sign you out just yet. Please try again.");
+      setSessionActionBusy(false);
+    }
+  }
+
   return (
     <PublicSiteShell
       eyebrow="Start free"
@@ -130,6 +183,60 @@ export default function StartFreePage() {
       asideText="After email sign-in, MyLearna takes you to My Profile first so you can review and save your family setup."
       compactHero
     >
+      {authLoading ? (
+        <section style={cardStyle()}>
+          <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 24 }}>
+            Checking your session...
+          </h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+            MyLearna is checking whether this browser is already signed in.
+          </p>
+        </section>
+      ) : user ? (
+        <section style={{ maxWidth: 680 }}>
+          <div style={cardStyle()}>
+            <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 26 }}>
+              You&apos;re already signed in
+            </h2>
+            <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.7 }}>
+              You&apos;re signed in as:
+            </p>
+            <div
+              style={{
+                border: "1px solid #dbeafe",
+                borderRadius: 16,
+                background: "#eff6ff",
+                color: "#0f172a",
+                fontWeight: 800,
+                padding: 14,
+                marginBottom: 18,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {user.email || "This MyLearna account"}
+            </div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <button
+                type="button"
+                style={buttonStyle}
+                onClick={() => void handleContinueSignedIn()}
+                disabled={sessionActionBusy}
+              >
+                {sessionActionBusy ? "Opening MyLearna..." : "Continue to MyLearna"}
+              </button>
+              <button
+                type="button"
+                style={secondaryButtonStyle}
+                onClick={() => void handleSignOutForDifferentEmail()}
+                disabled={sessionActionBusy}
+              >
+                Sign out and use a different email
+              </button>
+            </div>
+            {sessionError ? <div style={errorTextStyle()}>{sessionError}</div> : null}
+          </div>
+        </section>
+      ) : (
       <section
         style={{
           display: "grid",
@@ -288,6 +395,7 @@ export default function StartFreePage() {
           </div>
         </div>
       </section>
+      )}
     </PublicSiteShell>
   );
 }

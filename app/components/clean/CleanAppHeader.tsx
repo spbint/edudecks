@@ -9,6 +9,7 @@ import PreviewBadge from "@/app/components/PreviewBadge";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import CleanPageFeedbackWidget from "@/app/components/clean/CleanPageFeedbackWidget";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 
 type HeaderNavItem = {
   label: string;
@@ -91,6 +92,7 @@ function clamp(value: number, min: number, max: number) {
 
 export default function CleanAppHeader() {
   const pathname = usePathname();
+  const { user } = useAuthUser();
   const [outputsOpen, setOutputsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 220 });
   const outputsRef = useRef<HTMLDivElement | null>(null);
@@ -215,7 +217,7 @@ export default function CleanAppHeader() {
               }}
             >
               <CleanCommunityNotificationsMenu />
-              <CleanAccountMenu />
+              <CleanAccountMenu email={user?.email ?? null} redirectTo="/start-free" />
             </div>
           </div>
 

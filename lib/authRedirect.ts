@@ -28,6 +28,8 @@ export function normalizeAuthNextPath(
     normalized.startsWith("/login?") ||
     normalized === "/signup" ||
     normalized.startsWith("/signup?") ||
+    normalized === "/start-free" ||
+    normalized.startsWith("/start-free?") ||
     normalized === "/auth/callback" ||
     normalized.startsWith("/auth/callback?") ||
     normalized === "/beta" ||

@@ -16,8 +16,10 @@ function buildInitials(email?: string | null) {
 
 export default function CleanAccountMenu({
   email,
+  redirectTo = "/start-free",
 }: {
   email?: string | null;
+  redirectTo?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -56,7 +58,7 @@ export default function CleanAccountMenu({
 
     try {
       await completeFamilySignOut();
-      window.location.replace("/login?authMessage=You%20have%20been%20signed%20out.");
+      window.location.replace(redirectTo);
     } catch (nextError) {
       console.warn("[auth] sign-out failed", {
         message: safe((nextError as { message?: unknown })?.message),

@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import {
   hasSupabaseEnv,
   MISSING_PUBLIC_SUPABASE_ENV_MESSAGE,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/authMagicLink";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
+import { completeFamilySignOut } from "@/lib/familySignOut";
 import { readSignupPrefill } from "@/lib/signupPrefill";
 
 export type EmailAuthPageMode = "login" | "signup";
@@ -357,6 +359,7 @@ export default function EmailAuthPage({ mode = "login" }: EmailAuthPageProps) {
 function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authUserLoading } = useAuthUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -365,6 +368,8 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const [message, setMessage] = useState("");
   const [statusTitle, setStatusTitle] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [sessionSwitchBusy, setSessionSwitchBusy] = useState(false);
+  const [sessionSwitchError, setSessionSwitchError] = useState<string | null>(null);
   const redirectStarted = useRef(false);
   const signupPrefillChecked = useRef(false);
 
@@ -523,6 +528,34 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     if (redirectStarted.current) return;
     redirectStarted.current = true;
     router.replace(targetPath);
+  }
+
+  async function handleContinueExistingSession() {
+    if (sessionSwitchBusy) return;
+    setSessionSwitchBusy(true);
+    setSessionSwitchError(null);
+
+    try {
+      router.replace(await resolveFirstAppPath(nextPath));
+    } catch {
+      setSessionSwitchError("We could not open MyLearna just now. Please try again.");
+      setSessionSwitchBusy(false);
+    }
+  }
+
+  async function handleSignOutForDifferentEmail() {
+    if (sessionSwitchBusy) return;
+    setSessionSwitchBusy(true);
+    setSessionSwitchError(null);
+
+    try {
+      await completeFamilySignOut();
+      router.replace("/start-free");
+      router.refresh();
+    } catch {
+      setSessionSwitchError("We could not sign you out just yet. Please try again.");
+      setSessionSwitchBusy(false);
+    }
   }
 
   async function handlePasswordSignIn() {
@@ -805,6 +838,90 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     : { label: "Back to login", href: "/login" };
   const passwordStatusActive = authAction === "password" || authAction === "password-reset";
   const showPasswordFallbackUi = false;
+
+  if (authUserLoading) {
+    return (
+      <PublicSiteShell
+        title="MyLearna"
+        eyebrow="Checking session"
+        heroTitle={heroTitle}
+        heroText="MyLearna is checking whether this browser is already signed in."
+        primaryCta={null}
+        secondaryCta={null}
+        compactHero
+      >
+        <section style={cardStyle()}>
+          <div style={sectionLabelStyle()}>Account</div>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26 }}>
+            Checking your session...
+          </h2>
+        </section>
+      </PublicSiteShell>
+    );
+  }
+
+  if (user) {
+    return (
+      <PublicSiteShell
+        title="MyLearna"
+        eyebrow="Already signed in"
+        heroTitle="You're already signed in"
+        heroText="Continue to MyLearna, or sign out first if you want to use a different email."
+        primaryCta={null}
+        secondaryCta={null}
+        compactHero
+      >
+        <section style={{ maxWidth: 680 }}>
+          <div style={cardStyle()}>
+            <div style={sectionLabelStyle()}>Account</div>
+            <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26 }}>
+              You&apos;re already signed in
+            </h2>
+            <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.7 }}>
+              You&apos;re currently signed in as:
+            </p>
+            <div
+              style={{
+                border: "1px solid #dbeafe",
+                borderRadius: 16,
+                background: "#eff6ff",
+                color: "#0f172a",
+                fontWeight: 800,
+                padding: 14,
+                margin: "14px 0 18px",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {user.email || "This MyLearna account"}
+            </div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <button
+                type="button"
+                style={primaryButtonStyle(sessionSwitchBusy)}
+                disabled={sessionSwitchBusy}
+                onClick={() => void handleContinueExistingSession()}
+              >
+                {sessionSwitchBusy ? "Opening MyLearna..." : "Continue to MyLearna"}
+              </button>
+              <button
+                type="button"
+                style={secondaryButtonStyle(sessionSwitchBusy)}
+                disabled={sessionSwitchBusy}
+                onClick={() => void handleSignOutForDifferentEmail()}
+              >
+                Sign out and use a different email
+              </button>
+            </div>
+            {sessionSwitchError ? (
+              <div style={{ marginTop: 12, color: "#b91c1c", fontSize: 13, lineHeight: 1.5 }}>
+                {sessionSwitchError}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </PublicSiteShell>
+    );
+  }
 
   const statusCard = message ? (
     <div style={statusCardStyle(saveState)} role={saveState === "error" ? "alert" : "status"}>
