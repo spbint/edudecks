@@ -20,6 +20,7 @@ import {
   GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
+import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   createCleanCalendarItem,
   listCleanCalendarItems,
@@ -251,6 +252,7 @@ function hasGuidanceContext(profile: {
 
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -508,6 +510,8 @@ function CleanDayWorkspaceBody() {
   const familyGreeting = familyDisplayName
     ? `Welcome back, ${familyDisplayName}.`
     : "Welcome back.";
+  const firstSetupMode =
+    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
   const currentPathwayHref = useMemo(
     () =>
       selectedLearnerId
@@ -521,7 +525,7 @@ function CleanDayWorkspaceBody() {
       : "Open current pathway";
 
     return [
-      sortedVisibleItems.length
+      sortedVisibleItems.length || firstSetupMode
         ? {
             href: buildDayPath(selectedDate),
             label: isViewingToday ? "Review today's learning" : "Review this day",
@@ -555,6 +559,7 @@ function CleanDayWorkspaceBody() {
     capturePathBase,
     currentPathwayHref,
     evidenceEntries.length,
+    firstSetupMode,
     isViewingToday,
     portfolioPathBase,
     selectedDate,

@@ -278,6 +278,40 @@ function doDateRangesOverlap(
   return startsOn <= otherEndsOn && endsOn >= otherStartsOn;
 }
 
+function dateRangeContains(
+  outerStartsOn: string,
+  outerEndsOn: string,
+  innerStartsOn: string,
+  innerEndsOn: string,
+) {
+  return innerStartsOn >= outerStartsOn && innerEndsOn <= outerEndsOn;
+}
+
+function dateRangeCoversWeek(
+  startsOn: string,
+  endsOn: string,
+  weekStartsOn: string,
+  weekEndsOn: string,
+) {
+  return startsOn <= weekStartsOn && endsOn >= weekEndsOn;
+}
+
+function isBreakLearningPeriod(period: Pick<CleanLearningPeriod, "isBreak" | "periodType">) {
+  return period.isBreak || period.periodType === "break";
+}
+
+function getLearningYearNameSuggestion(startsOn: string, endsOn: string) {
+  const startYear = new Date(`${startsOn}T00:00:00`).getFullYear();
+  const endYear = new Date(`${endsOn}T00:00:00`).getFullYear();
+
+  if (!Number.isFinite(startYear) || !Number.isFinite(endYear)) {
+    return "2026-2027 Learning Year";
+  }
+
+  if (startYear === endYear) return `${startYear} Learning Year`;
+  return `${startYear}-${endYear} Learning Year`;
+}
+
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -805,6 +839,7 @@ function CleanCalendarWorkspaceBody() {
   const [yearJurisdictionCode, setYearJurisdictionCode] = useState("");
 
   const [periodTitle, setPeriodTitle] = useState("");
+  const [periodNotes, setPeriodNotes] = useState("");
   const [periodStartsOn, setPeriodStartsOn] = useState(getWeekStart());
   const [periodEndsOn, setPeriodEndsOn] = useState(addDays(getWeekStart(), 13));
   const [periodType, setPeriodType] = useState<CleanLearningPeriodType>("term");
@@ -953,6 +988,66 @@ function CleanCalendarWorkspaceBody() {
     if (!selectedAcademicYearId) return learningPeriods;
     return learningPeriods.filter((period) => period.academicYearId === selectedAcademicYearId);
   }, [learningPeriods, selectedAcademicYearId]);
+
+  const learningTermsForSelectedYear = useMemo(
+    () => visibleLearningPeriods.filter((period) => !isBreakLearningPeriod(period)),
+    [visibleLearningPeriods],
+  );
+
+  const selectedWeekInsideLearningYear = useMemo(
+    () =>
+      selectedAcademicYear
+        ? dateRangeCoversWeek(
+            selectedAcademicYear.startsOn,
+            selectedAcademicYear.endsOn,
+            selectedWeekStart,
+            selectedWeekEnd,
+          )
+        : false,
+    [selectedAcademicYear, selectedWeekEnd, selectedWeekStart],
+  );
+
+  const weeklySelectableLearningPeriods = useMemo(
+    () =>
+      learningTermsForSelectedYear.filter((period) =>
+        dateRangeCoversWeek(period.startsOn, period.endsOn, selectedWeekStart, selectedWeekEnd),
+      ),
+    [learningTermsForSelectedYear, selectedWeekEnd, selectedWeekStart],
+  );
+
+  const selectedWeekBreak = useMemo(
+    () =>
+      visibleLearningPeriods.find(
+        (period) =>
+          isBreakLearningPeriod(period) &&
+          doDateRangesOverlap(
+            period.startsOn,
+            period.endsOn,
+            selectedWeekStart,
+            selectedWeekEnd,
+          ),
+      ) ?? null,
+    [selectedWeekEnd, selectedWeekStart, visibleLearningPeriods],
+  );
+
+  const selectedWeekPlanningMessage = useMemo(() => {
+    if (!selectedAcademicYear) return "Add a learning year before planning weeks.";
+    if (!selectedWeekInsideLearningYear) {
+      return "This week sits outside your learning year. Choose a week inside your learning year or adjust your learning year dates.";
+    }
+    if (selectedWeekBreak) {
+      return "This week is marked as a break / holiday. Regular planning is paused.";
+    }
+    if (!weeklySelectableLearningPeriods.length) {
+      return "No learning period covers this week yet. Add a term or choose a week inside an existing term.";
+    }
+    return "";
+  }, [
+    selectedAcademicYear,
+    selectedWeekBreak,
+    selectedWeekInsideLearningYear,
+    weeklySelectableLearningPeriods.length,
+  ]);
 
   const visibleComposerPeriodTypes = useMemo(
     () => PERIOD_TYPES.filter((option) => option !== "break"),
@@ -1359,6 +1454,15 @@ function CleanCalendarWorkspaceBody() {
 
   useEffect(() => {
     if (
+      selectedLearningPeriodId &&
+      !weeklySelectableLearningPeriods.some((period) => period.id === selectedLearningPeriodId)
+    ) {
+      setSelectedLearningPeriodId("");
+    }
+  }, [selectedLearningPeriodId, weeklySelectableLearningPeriods]);
+
+  useEffect(() => {
+    if (
       editingLearningPeriodId &&
       !visibleLearningPeriods.some((period) => period.id === editingLearningPeriodId)
     ) {
@@ -1545,13 +1649,19 @@ function CleanCalendarWorkspaceBody() {
     event.preventDefault();
     if (!workspace.profile) return;
 
+    if (yearStartsOn > yearEndsOn) {
+      setActionError("The learning year end date must be after the start date.");
+      setMessage(null);
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
 
     try {
       const created = await createCleanAcademicYear(workspace.profile.id, {
-        title: yearTitle,
+        title: yearTitle || getLearningYearNameSuggestion(yearStartsOn, yearEndsOn),
         startsOn: yearStartsOn,
         endsOn: yearEndsOn,
         countryCode: yearCountryCode || null,
@@ -1581,6 +1691,59 @@ function CleanCalendarWorkspaceBody() {
     event.preventDefault();
     if (!workspace.profile) return;
 
+    if (!selectedAcademicYear) {
+      setActionError("Choose a learning year before adding a learning period.");
+      setMessage(null);
+      return;
+    }
+
+    if (periodStartsOn > periodEndsOn) {
+      setActionError(
+        periodIsBreak
+          ? "The break end date must be after the start date."
+          : "The learning period end date must be after the start date.",
+      );
+      setMessage(null);
+      return;
+    }
+
+    if (
+      !dateRangeContains(
+        selectedAcademicYear.startsOn,
+        selectedAcademicYear.endsOn,
+        periodStartsOn,
+        periodEndsOn,
+      )
+    ) {
+      setActionError(
+        periodIsBreak
+          ? `This break must sit inside the learning year: ${formatWeekRangeLabel(
+              selectedAcademicYear.startsOn,
+              selectedAcademicYear.endsOn,
+            )}.`
+          : `This learning period must sit inside the learning year: ${formatWeekRangeLabel(
+              selectedAcademicYear.startsOn,
+              selectedAcademicYear.endsOn,
+            )}.`,
+      );
+      setMessage(null);
+      return;
+    }
+
+    if (!periodIsBreak) {
+      const overlappingTerm = learningTermsForSelectedYear.find((period) =>
+        doDateRangesOverlap(period.startsOn, period.endsOn, periodStartsOn, periodEndsOn),
+      );
+
+      if (overlappingTerm) {
+        setActionError(
+          `This learning period overlaps with ${overlappingTerm.title}. Adjust the dates so terms do not overlap.`,
+        );
+        setMessage(null);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
@@ -1593,11 +1756,17 @@ function CleanCalendarWorkspaceBody() {
         startsOn: periodStartsOn,
         endsOn: periodEndsOn,
         isBreak: periodIsBreak,
+        notes: periodNotes || null,
       });
 
-      setMessage(periodIsBreak ? "Break / holiday saved." : "Learning period saved.");
+      setMessage(
+        periodIsBreak
+          ? "Break / holiday saved. Breaks pause regular planning inside a term."
+          : "Learning period saved.",
+      );
       setShowLearningPeriodComposer(false);
       setPeriodTitle("");
+      setPeriodNotes("");
       setPeriodType("term");
       setPeriodIsBreak(false);
       setLearningPeriodComposerMode("term");
@@ -1617,6 +1786,75 @@ function CleanCalendarWorkspaceBody() {
   async function handleLearningPeriodUpdate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile || !editingLearningPeriodId) return;
+
+    const editingPeriod = visibleLearningPeriods.find(
+      (period) => period.id === editingLearningPeriodId,
+    );
+    const editingAcademicYear = editingPeriod
+      ? academicYears.find((year) => year.id === editingPeriod.academicYearId)
+      : selectedAcademicYear;
+
+    if (!editingAcademicYear) {
+      setActionError("Choose a learning year before updating this learning period.");
+      setMessage(null);
+      return;
+    }
+
+    if (editingLearningPeriodStartsOn > editingLearningPeriodEndsOn) {
+      setActionError(
+        editingLearningPeriodIsBreak
+          ? "The break end date must be after the start date."
+          : "The learning period end date must be after the start date.",
+      );
+      setMessage(null);
+      return;
+    }
+
+    if (
+      !dateRangeContains(
+        editingAcademicYear.startsOn,
+        editingAcademicYear.endsOn,
+        editingLearningPeriodStartsOn,
+        editingLearningPeriodEndsOn,
+      )
+    ) {
+      setActionError(
+        editingLearningPeriodIsBreak
+          ? `This break must sit inside the learning year: ${formatWeekRangeLabel(
+              editingAcademicYear.startsOn,
+              editingAcademicYear.endsOn,
+            )}.`
+          : `This learning period must sit inside the learning year: ${formatWeekRangeLabel(
+              editingAcademicYear.startsOn,
+              editingAcademicYear.endsOn,
+            )}.`,
+      );
+      setMessage(null);
+      return;
+    }
+
+    if (!editingLearningPeriodIsBreak) {
+      const overlappingTerm = learningPeriods.find(
+        (period) =>
+          period.id !== editingLearningPeriodId &&
+          period.academicYearId === editingAcademicYear.id &&
+          !isBreakLearningPeriod(period) &&
+          doDateRangesOverlap(
+            period.startsOn,
+            period.endsOn,
+            editingLearningPeriodStartsOn,
+            editingLearningPeriodEndsOn,
+          ),
+      );
+
+      if (overlappingTerm) {
+        setActionError(
+          `This learning period overlaps with ${overlappingTerm.title}. Adjust the dates so terms do not overlap.`,
+        );
+        setMessage(null);
+        return;
+      }
+    }
 
     setSubmitting(true);
     setMessage(null);
@@ -1841,6 +2079,12 @@ function CleanCalendarWorkspaceBody() {
   }
 
   async function handlePreviewGeneration() {
+    if (selectedWeekPlanningMessage) {
+      setActionError(selectedWeekPlanningMessage);
+      setMessage(null);
+      return;
+    }
+
     if (!selectedTemplateId) {
       setMessage("Choose or create a master week first, then plan this week using master.");
       setActionError(null);
@@ -1855,6 +2099,12 @@ function CleanCalendarWorkspaceBody() {
 
   async function handleApplyGeneratedWeek() {
     if (!workspace.profile) return;
+    if (selectedWeekPlanningMessage) {
+      setActionError(selectedWeekPlanningMessage);
+      setMessage(null);
+      return;
+    }
+
     if (!selectedTemplateId) {
       setMessage("Choose or create a master week first, then plan this week using master.");
       setActionError(null);
@@ -2059,7 +2309,8 @@ function CleanCalendarWorkspaceBody() {
   const firstSetupMode =
     guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
   const shouldShowTermSetup = !firstSetupMode || academicYears.length > 0;
-  const shouldShowCalendarNextStep = !firstSetupMode || visibleLearningPeriods.length > 0;
+  const shouldShowWeeklyPlanner = !firstSetupMode || learningTermsForSelectedYear.length > 0;
+  const shouldShowCalendarNextStep = !firstSetupMode || learningTermsForSelectedYear.length > 0;
 
   return (
     <div style={shellStyle}>
@@ -2283,7 +2534,7 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               value={yearTitle}
                               onChange={(event) => setYearTitle(event.target.value)}
-                              placeholder="2026 learning year"
+                              placeholder={getLearningYearNameSuggestion(yearStartsOn, yearEndsOn)}
                               style={inputStyle}
                             />
                           </div>
@@ -2354,18 +2605,28 @@ function CleanCalendarWorkspaceBody() {
                             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                           }}
                         >
-                          <input
-                            type="date"
-                            value={yearStartsOn}
-                            onChange={(event) => setYearStartsOn(event.target.value)}
-                            style={inputStyle}
-                          />
-                          <input
-                            type="date"
-                            value={yearEndsOn}
-                            onChange={(event) => setYearEndsOn(event.target.value)}
-                            style={inputStyle}
-                          />
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              Start date
+                            </label>
+                            <input
+                              type="date"
+                              value={yearStartsOn}
+                              onChange={(event) => setYearStartsOn(event.target.value)}
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              End date
+                            </label>
+                            <input
+                              type="date"
+                              value={yearEndsOn}
+                              onChange={(event) => setYearEndsOn(event.target.value)}
+                              style={inputStyle}
+                            />
+                          </div>
                         </div>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button type="submit" style={buttonStyle} disabled={submitting}>
@@ -2485,7 +2746,7 @@ function CleanCalendarWorkspaceBody() {
                           {shouldShowLearningPeriodComposer &&
                           learningPeriodComposerMode === "term"
                             ? "Hide term form"
-                            : "Add term / learning block"}
+                            : "Add learning period"}
                         </button>
                         <button
                           type="button"
@@ -2552,11 +2813,11 @@ function CleanCalendarWorkspaceBody() {
                                 ? "1px solid #fcd34d"
                                 : "1px solid #bfdbfe",
                             borderRadius: 14,
-                            padding: 14,
+                            padding: 12,
                             background:
                               learningPeriodComposerMode === "break" ? "#fffbeb" : "#eff6ff",
                             display: "grid",
-                            gap: 6,
+                            gap: 4,
                           }}
                         >
                           <strong style={{ color: "#0f172a" }}>
@@ -2566,7 +2827,7 @@ function CleanCalendarWorkspaceBody() {
                           </strong>
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                             {learningPeriodComposerMode === "break"
-                              ? "Use this for school holidays, public holidays, travel breaks, or weeks where you do not want master blocks added."
+                              ? "Breaks pause regular planning inside a term."
                               : "Use this for Term 1, Semester 1, or any span where you do want master blocks added."}
                           </p>
                         </div>
@@ -2577,56 +2838,61 @@ function CleanCalendarWorkspaceBody() {
                             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                           }}
                         >
-                          <select
-                            value={selectedAcademicYearId}
-                            onChange={(event) => setSelectedAcademicYearId(event.target.value)}
-                            style={inputStyle}
-                          >
-                            <option value="">Choose a year</option>
-                            {academicYears.map((year) => (
-                              <option key={year.id} value={year.id}>
-                                {year.title}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            value={periodTitle}
-                            onChange={(event) => setPeriodTitle(event.target.value)}
-                            placeholder={
-                              learningPeriodComposerMode === "break"
-                                ? "Winter holidays, Travel week, Public holiday break"
-                                : "Term 1, Autumn term, Unit block"
-                            }
-                            style={inputStyle}
-                          />
-                          {learningPeriodComposerMode === "break" ? (
-                            <div
-                              style={{
-                                ...subtleFieldCardStyle,
-                                justifyContent: "center",
-                                color: "#92400e",
-                              }}
-                            >
-                              <strong>Break / holiday</strong>
-                              <p style={{ margin: 0, lineHeight: 1.6 }}>
-                                Only use this when you do not want learning planned inside
-                                these dates.
-                              </p>
-                            </div>
-                          ) : (
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              Learning year
+                            </label>
                             <select
-                              value={periodType}
-                              onChange={(event) =>
-                                setPeriodType(event.target.value as CleanLearningPeriodType)
-                              }
+                              value={selectedAcademicYearId}
+                              onChange={(event) => setSelectedAcademicYearId(event.target.value)}
                               style={inputStyle}
                             >
-                              {visibleComposerPeriodTypes.map((option) => (
-                                <option key={option} value={option}>
-                                  {formatPeriodTypeLabel(option, false)}
+                              <option value="">Choose a year</option>
+                              {academicYears.map((year) => (
+                                <option key={year.id} value={year.id}>
+                                  {year.title}
                                 </option>
                               ))}
                             </select>
+                          </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              {learningPeriodComposerMode === "break"
+                                ? "Break name"
+                                : "Learning period name"}
+                            </label>
+                            <input
+                              value={periodTitle}
+                              onChange={(event) => setPeriodTitle(event.target.value)}
+                              placeholder={
+                                learningPeriodComposerMode === "break"
+                                  ? "Winter holidays"
+                                  : "Term 1"
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          {learningPeriodComposerMode === "break" ? (
+                            <input type="hidden" value="break" readOnly />
+                          ) : (
+                            <div style={{ display: "grid", gap: 6 }}>
+                              <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                                Period type
+                              </label>
+                              <select
+                                value={periodType}
+                                onChange={(event) =>
+                                  setPeriodType(event.target.value as CleanLearningPeriodType)
+                                }
+                                style={inputStyle}
+                              >
+                                {visibleComposerPeriodTypes.map((option) => (
+                                  <option key={option} value={option}>
+                                    {formatPeriodTypeLabel(option, false)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           )}
                         </div>
                         <div
@@ -2636,18 +2902,28 @@ function CleanCalendarWorkspaceBody() {
                             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                           }}
                         >
-                          <input
-                            type="date"
-                            value={periodStartsOn}
-                            onChange={(event) => setPeriodStartsOn(event.target.value)}
-                            style={inputStyle}
-                          />
-                          <input
-                            type="date"
-                            value={periodEndsOn}
-                            onChange={(event) => setPeriodEndsOn(event.target.value)}
-                            style={inputStyle}
-                          />
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              Start date
+                            </label>
+                            <input
+                              type="date"
+                              value={periodStartsOn}
+                              onChange={(event) => setPeriodStartsOn(event.target.value)}
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              End date
+                            </label>
+                            <input
+                              type="date"
+                              value={periodEndsOn}
+                              onChange={(event) => setPeriodEndsOn(event.target.value)}
+                              style={inputStyle}
+                            />
+                          </div>
                         </div>
                         {learningPeriodComposerMode === "break" ? (
                           <div style={subtleFieldCardStyle}>
@@ -2657,6 +2933,21 @@ function CleanCalendarWorkspaceBody() {
                             </p>
                           </div>
                         ) : null}
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                            Notes
+                          </label>
+                          <textarea
+                            value={periodNotes}
+                            onChange={(event) => setPeriodNotes(event.target.value)}
+                            placeholder={
+                              learningPeriodComposerMode === "break"
+                                ? "Optional: travel week or public holidays"
+                                : "Optional notes"
+                            }
+                            style={textAreaStyle}
+                          />
+                        </div>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button
                             type="submit"
@@ -2955,6 +3246,7 @@ function CleanCalendarWorkspaceBody() {
               </div>
             </section>
 
+            {shouldShowWeeklyPlanner ? (
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 18 }}>
                 <div
@@ -3314,16 +3606,15 @@ function CleanCalendarWorkspaceBody() {
                         {templateBlocksLoading ? (
                           <p style={secondaryTextStyle}>Loading your master week...</p>
                         ) : (
-                          <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                          <div style={{ overflowX: masterWeekView === "school" ? "visible" : "auto", paddingBottom: 4 }}>
                             <div
                               style={{
                                 display: "grid",
                                 gap: 12,
                                 gridTemplateColumns:
                                   masterWeekView === "school"
-                                    ? "repeat(5, minmax(190px, 1fr))"
+                                    ? "repeat(5, minmax(0, 1fr))"
                                     : "repeat(auto-fit, minmax(180px, 1fr))",
-                                minWidth: masterWeekView === "school" ? 998 : undefined,
                               }}
                             >
                             {visibleMasterDays.map((day) => {
@@ -3678,12 +3969,9 @@ function CleanCalendarWorkspaceBody() {
                             style={inputStyle}
                           >
                             <option value="">Optional: choose a learning period</option>
-                            {visibleLearningPeriods.map((period) => (
+                            {weeklySelectableLearningPeriods.map((period) => (
                               <option key={period.id} value={period.id}>
                                 {period.title}
-                                {period.isBreak || period.periodType === "break"
-                                  ? " - Break / holiday"
-                                  : ""}
                               </option>
                             ))}
                           </select>
@@ -3707,11 +3995,28 @@ function CleanCalendarWorkspaceBody() {
                         </div>
                       </div>
 
+                      {selectedWeekPlanningMessage ? (
+                        <div
+                          style={{
+                            border: "1px solid #fed7aa",
+                            borderRadius: 14,
+                            background: "#fff7ed",
+                            color: "#9a3412",
+                            padding: 14,
+                            lineHeight: 1.6,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {selectedWeekPlanningMessage}
+                        </div>
+                      ) : null}
+
                       <div data-guidance-id="calendar-add-plan" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <button
                           type="button"
                           style={buttonStyle}
                           onClick={() => void handlePreviewGeneration()}
+                          disabled={Boolean(selectedWeekPlanningMessage)}
                         >
                           Plan this week using master
                         </button>
@@ -3723,6 +4028,7 @@ function CleanCalendarWorkspaceBody() {
                           disabled={
                             !previewSuggestions.length ||
                             !previewRows.some((item) => item.canApply) ||
+                            Boolean(selectedWeekPlanningMessage) ||
                             submitting
                           }
                         >
@@ -3788,16 +4094,16 @@ function CleanCalendarWorkspaceBody() {
                               this week.
                             </div>
                           </div>
-                          <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                          <div style={{ overflowX: liveWeekView === "school" ? "visible" : "auto", paddingBottom: 4 }}>
                             <div
                               style={{
                                 display: "grid",
                                 gap: 12,
                                 gridTemplateColumns:
                                   liveWeekView === "school"
-                                    ? "repeat(5, minmax(220px, 1fr))"
+                                    ? "repeat(5, minmax(0, 1fr))"
                                     : "repeat(7, minmax(220px, 1fr))",
-                                minWidth: liveWeekView === "school" ? 1160 : 1640,
+                                minWidth: liveWeekView === "school" ? undefined : 1640,
                               }}
                             >
                               {visibleWeekDates.map((dateValue) => {
@@ -3992,16 +4298,16 @@ function CleanCalendarWorkspaceBody() {
                         <p style={{ margin: 0, color: "#b91c1c" }}>{setupError}</p>
                       ) : null}
 
-                      <div data-guidance-id="calendar-learning-block" style={{ overflowX: "auto", paddingBottom: 4 }}>
+                      <div data-guidance-id="calendar-learning-block" style={{ overflowX: liveWeekView === "school" ? "visible" : "auto", paddingBottom: 4 }}>
                         <div
                           style={{
                             display: "grid",
                             gap: 12,
                             gridTemplateColumns:
                               liveWeekView === "school"
-                                ? "repeat(5, minmax(220px, 1fr))"
+                                ? "repeat(5, minmax(0, 1fr))"
                                 : "repeat(7, minmax(220px, 1fr))",
-                            minWidth: liveWeekView === "school" ? 1160 : 1640,
+                            minWidth: liveWeekView === "school" ? undefined : 1640,
                           }}
                         >
                         {visibleWeekDates.map((dateValue) => {
@@ -4228,6 +4534,7 @@ function CleanCalendarWorkspaceBody() {
                 )}
               </div>
             </section>
+            ) : null}
 
             {shouldShowCalendarNextStep ? (
             <section data-guidance-id="calendar-next-day" style={cardStyle}>
