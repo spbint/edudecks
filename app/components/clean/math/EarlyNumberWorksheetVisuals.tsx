@@ -392,6 +392,14 @@ export function isStep44PowersRootsActivity(id: string, stepKey?: string | null)
   );
 }
 
+export function isStep45RatioRatesActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "work-with-ratio-and-rates" ||
+    safe(id).startsWith("number-step-45-assess-") ||
+    safe(id).startsWith("number-step-45-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -8000,6 +8008,143 @@ export function renderStep44WorksheetPromptVisual({
   );
 }
 
+function getStep45VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("simplest form") || lower.includes("simplify")) {
+    return "Ratio simplifier";
+  }
+  if (lower.includes("form 1:n")) return "Unit ratio";
+  if (lower.includes("equivalent ratio")) return "Equivalent ratios";
+  if (lower.includes("per hour") || lower.includes("per minute") || lower.includes("per kg")) {
+    return "Unit rate";
+  }
+  if (lower.includes("scale factor") || lower.includes("enlarged")) return "Scale factor";
+  if (lower.includes("recipe") || lower.includes("lemonade") || lower.includes("fruit punch")) {
+    return "Recipe ratio";
+  }
+  if (lower.includes("apples") || lower.includes("girls") || lower.includes("boys")) {
+    return "Part-to-part ratio";
+  }
+  return "Ratio and rates";
+}
+
+export function renderStep45WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.length
+    ? visual.numberCards.map(safe).filter(Boolean)
+    : ["6 : 9", "3", "2 : 3"];
+  const labels = values.map((_, index) => safe(visual.labels[index]) || `Part ${index + 1}`);
+  const mode = getStep45VisualMode(prompt);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Compare quantities multiplicatively. Simplify ratios, build equivalent
+          ratios, and divide to find unit rates.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {values.slice(0, 4).map((value, index) => (
+            <NumberFormCard
+              key={`${value}-${index}`}
+              label={labels[index] || `Part ${index + 1}`}
+              value={value}
+              tone={index % 3 === 0 ? "blue" : index % 3 === 1 ? "purple" : "green"}
+            />
+          ))}
+        </div>
+        <div
+          style={{
+            border: "1px dashed #bfdbfe",
+            borderRadius: 18,
+            background: "#f8fbff",
+            color: "#1e3a8a",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.45,
+            display: "grid",
+            gap: 6,
+          }}
+        >
+          <span>Ratio: compare one quantity with another quantity.</span>
+          <span>Equivalent ratios: multiply or divide both parts by the same factor.</span>
+          <span>Unit rate: divide the total amount by the time or quantity.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -10264,6 +10409,66 @@ export function renderStep44WorksheetOptionCard({
     >
       <div style={{ fontSize: 30, fontWeight: 950, lineHeight: 1.15 }}>
         {exponentDisplay(normalized)}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep45WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = normalized.includes(":")
+    ? "Ratio"
+    : lower.includes("km/h") || lower.includes("l/min") || lower.includes("per kg")
+      ? "Unit rate"
+      : lower.includes("cups") || lower.includes("cm") || lower.includes("l")
+        ? "Context answer"
+        : normalized.startsWith("$")
+          ? "Unit price"
+          : "Value";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 28 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
       </div>
       <div
         style={{

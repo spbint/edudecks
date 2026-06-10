@@ -44,6 +44,10 @@ const STEP_44_NUMBER = 44;
 const STEP_44_KEY = "use-index-notation-powers-and-roots";
 const STEP_44_PATHWAY_STEP_ID =
   "mathematics::number-and-place-value::lower-secondary::use-index-notation-powers-and-roots";
+const STEP_45_NUMBER = 45;
+const STEP_45_KEY = "work-with-ratio-and-rates";
+const STEP_45_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::lower-secondary::work-with-ratio-and-rates";
 
 function visual(description: string) {
   return { type: "context_card" as const, description };
@@ -140,6 +144,38 @@ function makeStep44Item(seed: Seed, index: number): NumberAssessmentBankItem {
         "Practise moving between repeated multiplication, index notation, evaluated powers and roots.",
       diagnosticNote:
         "This checks powers, roots, exponent notation and inverse relationship reasoning for this pathway step.",
+    },
+    visualSupport: visual(seed.visual),
+  };
+}
+
+function makeStep45Item(seed: Seed, index: number): NumberAssessmentBankItem {
+  return {
+    id: `number-step-${STEP_45_NUMBER}-assess-${String(index + 1).padStart(3, "0")}`,
+    progressionBandKey: "percentages-ratio-financial-modelling",
+    progressionStepKey: STEP_45_KEY,
+    subElementKey: seed.cluster,
+    subElementTitle: seed.clusterTitle,
+    subElementDescription:
+      "Compare quantities multiplicatively, simplify and generate equivalent ratios, and use rates in meaningful real-world contexts.",
+    title: seed.title,
+    prompt: seed.prompt,
+    difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "lower_secondary_ratio_rate_card",
+    options: seed.options,
+    expectedAnswer: seed.answer,
+    acceptableAnswers: [seed.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: seed.answer,
+    misconceptionTargets: seed.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: STEP_45_KEY,
+      ifCorrectGoToStepKey: STEP_45_KEY,
+      practiceRecommendation:
+        "Practise simplifying ratios, building equivalent ratios and using unit rates in context.",
+      diagnosticNote:
+        "This checks ratio simplification, equivalent ratios, unit rates and multiplicative comparison for this pathway step.",
     },
     visualSupport: visual(seed.visual),
   };
@@ -486,6 +522,147 @@ const step44Seeds: Seed[] = [
   },
 ];
 
+const step45Seeds: Seed[] = [
+  {
+    cluster: "ratio-simplification",
+    clusterTitle: "Simplify ratios",
+    title: "Simplify a ratio",
+    prompt: "Write the ratio 6 : 9 in simplest form.",
+    options: ["2 : 3", "3 : 2", "6 : 3"],
+    answer: "2 : 3",
+    visual:
+      "early-number|caption=Divide both parts by the same common factor.|numbers=6 : 9,3,2 : 3|labels=ratio,common factor,simplest form",
+    misconceptionTargets: ["ratio-simplification-gap", "common-factor-error"],
+  },
+  {
+    cluster: "ratio-simplification",
+    clusterTitle: "Simplify ratios",
+    title: "Simplify a larger ratio",
+    prompt: "Write the ratio 24 : 36 in simplest form.",
+    options: ["2 : 3", "3 : 2", "4 : 6"],
+    answer: "2 : 3",
+    visual:
+      "early-number|caption=Use the greatest common factor to reduce both parts.|numbers=24 : 36,12,2 : 3|labels=ratio,common factor,simplest form",
+    misconceptionTargets: ["ratio-simplification-gap", "not-fully-simplified-ratio"],
+  },
+  {
+    cluster: "unit-ratio-form",
+    clusterTitle: "Form 1:n",
+    title: "Write a ratio in unit form",
+    prompt: "Write the ratio 3 : 9 in the form 1:n.",
+    options: ["1 : 3", "1 : 6", "3 : 1"],
+    answer: "1 : 3",
+    visual:
+      "early-number|caption=Divide both parts by 3 so the first part is 1.|numbers=3 : 9,3,1 : 3|labels=ratio,divide by,unit ratio",
+    misconceptionTargets: ["unit-ratio-form-gap", "ratio-order-reversal"],
+  },
+  {
+    cluster: "equivalent-ratios",
+    clusterTitle: "Equivalent ratios",
+    title: "Choose equivalent ratios",
+    prompt: "Choose two equivalent ratios for 2 : 3.",
+    options: ["4 : 6 and 6 : 9", "3 : 2 and 6 : 4", "2 : 6 and 3 : 9"],
+    answer: "4 : 6 and 6 : 9",
+    visual:
+      "early-number|caption=Equivalent ratios multiply both parts by the same scale factor.|numbers=2 : 3,4 : 6,6 : 9|labels=base ratio,x2,x3",
+    misconceptionTargets: ["equivalent-ratio-gap", "unequal-scale-factor-error"],
+  },
+  {
+    cluster: "ratio-in-context",
+    clusterTitle: "Ratio in context",
+    title: "Use a fruit ratio",
+    prompt: "In a fruit bowl, there are 8 apples and 12 oranges. What is the ratio of apples to oranges?",
+    options: ["2 : 3", "3 : 2", "8 : 20"],
+    answer: "2 : 3",
+    visual:
+      "early-number|caption=Compare apples to oranges, then simplify the ratio.|numbers=8 apples,12 oranges,2 : 3|labels=apples,oranges,simplified ratio",
+    misconceptionTargets: ["part-to-part-ratio-gap", "part-to-whole-ratio-confusion"],
+  },
+  {
+    cluster: "ratio-in-context",
+    clusterTitle: "Ratio in context",
+    title: "Use a classroom ratio",
+    prompt: "A classroom has 15 girls and 10 boys. What is the ratio of girls to boys?",
+    options: ["3 : 2", "2 : 3", "15 : 25"],
+    answer: "3 : 2",
+    visual:
+      "early-number|caption=Keep the ratio order: girls to boys.|numbers=15 girls,10 boys,3 : 2|labels=girls,boys,simplified ratio",
+    misconceptionTargets: ["ratio-order-reversal", "part-to-whole-ratio-confusion"],
+  },
+  {
+    cluster: "unit-rates",
+    clusterTitle: "Unit rates",
+    title: "Find speed",
+    prompt: "A car travels 180 km in 3 hours. What is its speed in km per hour?",
+    options: ["60 km/h", "90 km/h", "180 km/h"],
+    answer: "60 km/h",
+    visual:
+      "early-number|caption=Rate equals total distance divided by time.|numbers=180 km,3 h,60 km/h|labels=distance,time,unit rate",
+    misconceptionTargets: ["unit-rate-division-gap", "speed-context-error"],
+  },
+  {
+    cluster: "unit-rates",
+    clusterTitle: "Unit rates",
+    title: "Find litres per minute",
+    prompt: "A tap fills a tank with 60 litres of water in 15 minutes. What is the rate in litres per minute?",
+    options: ["4 L/min", "15 L/min", "900 L/min"],
+    answer: "4 L/min",
+    visual:
+      "early-number|caption=Divide total litres by minutes to find litres each minute.|numbers=60 L,15 min,4 L/min|labels=total,time,unit rate",
+    misconceptionTargets: ["unit-rate-division-gap", "multiplication-instead-of-division"],
+  },
+  {
+    cluster: "unit-rates",
+    clusterTitle: "Unit rates",
+    title: "Find cost per kilogram",
+    prompt: "If 5 kg of apples cost $20, what is the cost per kg?",
+    options: ["$4 per kg", "$5 per kg", "$20 per kg"],
+    answer: "$4 per kg",
+    visual:
+      "early-number|caption=Divide total cost by kilograms to find the cost for 1 kg.|numbers=$20,5 kg,$4 per kg|labels=cost,mass,unit price",
+    misconceptionTargets: ["unit-price-gap", "rate-denominator-confusion"],
+  },
+  {
+    cluster: "multiplicative-comparison",
+    clusterTitle: "Multiplicative comparison",
+    title: "Scale a recipe ratio",
+    prompt:
+      "A recipe for lemonade uses 1 part lemon juice to 4 parts water. If you have 2 cups of lemon juice, how many cups of water do you need?",
+    options: ["8 cups", "6 cups", "4 cups"],
+    answer: "8 cups",
+    visual:
+      "early-number|caption=Scale both parts of the ratio by the same factor.|numbers=1 : 4,x2,2 : 8|labels=recipe ratio,scale factor,new ratio",
+    misconceptionTargets: ["scale-factor-gap", "additive-ratio-error"],
+  },
+  {
+    cluster: "scale-factor",
+    clusterTitle: "Scale factor",
+    title: "Use a scale factor",
+    prompt: "A photo is enlarged using a scale factor of 3. If the original photo is 7 cm wide, how wide is the enlarged photo?",
+    options: ["21 cm", "10 cm", "14 cm"],
+    answer: "21 cm",
+    visual:
+      "early-number|caption=Multiply the original width by the scale factor.|numbers=7 cm,x3,21 cm|labels=original,scale factor,enlarged",
+    misconceptionTargets: ["scale-factor-gap", "additive-scaling-error"],
+  },
+  {
+    cluster: "multi-step-ratio",
+    clusterTitle: "Multi-step ratio",
+    title: "Split a total using a ratio",
+    prompt:
+      "A recipe for fruit punch uses apple juice and orange juice in the ratio 2 : 3. If the recipe needs 15 litres of juice, how many litres of each juice are needed?",
+    options: [
+      "Apple juice 6 L, orange juice 9 L",
+      "Apple juice 5 L, orange juice 10 L",
+      "Apple juice 9 L, orange juice 6 L",
+    ],
+    answer: "Apple juice 6 L, orange juice 9 L",
+    visual:
+      "early-number|caption=There are 5 parts altogether, so each part is 3 L.|numbers=2 : 3,5 parts,3 L per part,6 L and 9 L|labels=ratio,total parts,unit part,amounts",
+    misconceptionTargets: ["ratio-sharing-gap", "part-total-confusion"],
+  },
+];
+
 export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
   {
     key: `number-step-${STEP_NUMBER}-${STEP_KEY}-assessment-v1`,
@@ -531,6 +708,21 @@ export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
     parentItemBankKey: NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
     progressionBandKey: "powers-roots-exponent-notation",
     items: step44Seeds.map((seed, index) => makeStep44Item(seed, index)),
+  },
+  {
+    key: `number-step-${STEP_45_NUMBER}-${STEP_45_KEY}-assessment-v1`,
+    stepNumber: STEP_45_NUMBER,
+    stepKey: STEP_45_KEY,
+    pathwayStepId: STEP_45_PATHWAY_STEP_ID,
+    title: "Work with ratio and rates",
+    shortTitle: "Ratio and rates",
+    description:
+      "Compare quantities multiplicatively and use rates in meaningful contexts.",
+    parentBankKey: "percentages-ratio-financial-modelling" as const,
+    parentBankTitle: "Percent, ratio and finance",
+    parentItemBankKey: NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
+    progressionBandKey: "percentages-ratio-financial-modelling",
+    items: step45Seeds.map((seed, index) => makeStep45Item(seed, index)),
   },
 ] as const satisfies LowerSecondaryStepAssessmentDefinition[];
 

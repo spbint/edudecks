@@ -116,6 +116,8 @@ const UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S042-Understand-Negative-Numbers-And-Number-Lines.pdf";
 const USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S044-Use-Index-Notation-Powers-And-Roots.pdf";
+const WORK_WITH_RATIO_RATES_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S045-Work-With-Ratio-And-Rates.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -842,6 +844,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::work-with-ratio-and-rates",
+    stepKey: "work-with-ratio-and-rates",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 45,
+    pathwayStepTitle: "Work with ratio and rates",
+    title: "Work with Ratio and Rates",
+    concept:
+      "Compare quantities multiplicatively, simplify and generate equivalent ratios, and use rates in meaningful real-world contexts",
+    includesAnswerSheet: false,
+    fileName: WORK_WITH_RATIO_RATES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${WORK_WITH_RATIO_RATES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
