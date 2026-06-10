@@ -46,6 +46,7 @@ import {
   isStep39FractionDecimalPercentActivity,
   isStep40FinancialModellingActivity,
   isStep41FlexibleNumberFormsActivity,
+  isStep42NegativeNumberLineActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -121,6 +122,8 @@ import {
   renderStep40WorksheetPromptVisual,
   renderStep41WorksheetOptionCard,
   renderStep41WorksheetPromptVisual,
+  renderStep42WorksheetOptionCard,
+  renderStep42WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1346,6 +1349,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep42NegativeNumberLineActivity(task.id)) {
+    const step42Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep42WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step42Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1799,6 +1811,7 @@ function TaskCard({
           const step39FractionDecimalPercentOptions = isStep39FractionDecimalPercentActivity(task.id);
           const step40FinancialModellingOptions = isStep40FinancialModellingActivity(task.id);
           const step41FlexibleNumberFormsOptions = isStep41FlexibleNumberFormsActivity(task.id);
+          const step42NegativeNumberLineOptions = isStep42NegativeNumberLineActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1850,7 +1863,8 @@ function TaskCard({
                   step38RemaindersContextOptions ||
                   step39FractionDecimalPercentOptions ||
                   step40FinancialModellingOptions ||
-                  step41FlexibleNumberFormsOptions
+                  step41FlexibleNumberFormsOptions ||
+                  step42NegativeNumberLineOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -2862,6 +2876,52 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step42Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              !step32Visual &&
+              !step33Visual &&
+              !step34Visual &&
+              !step35Visual &&
+              !step36Visual &&
+              !step37Visual &&
+              !step38Visual &&
+              !step39Visual &&
+              !step40Visual &&
+              !step41Visual &&
+              step42NegativeNumberLineOptions
+                ? renderStep42WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -2901,7 +2961,8 @@ function TaskCard({
               step38Visual ??
               step39Visual ??
               step40Visual ??
-              step41Visual;
+              step41Visual ??
+              step42Visual;
 
             return (
               <button
@@ -2947,7 +3008,8 @@ function TaskCard({
                     step38Visual ||
                     step39Visual ||
                     step40Visual ||
-                    step41Visual
+                    step41Visual ||
+                    step42Visual
                       ? 18
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
@@ -2988,7 +3050,8 @@ function TaskCard({
                     step38Visual ||
                     step39Visual ||
                     step40Visual ||
-                    step41Visual
+                    step41Visual ||
+                    step42Visual
                       ? 4
                       : statisticsVisual
                         ? "6px 4px"
@@ -3033,7 +3096,8 @@ function TaskCard({
                     step38Visual ||
                     step39Visual ||
                     step40Visual ||
-                    step41Visual
+                    step41Visual ||
+                    step42Visual
                       ? 1.15
                       : 1.45,
                   cursor: "pointer",
@@ -3078,7 +3142,8 @@ function TaskCard({
                     step38Visual ||
                     step39Visual ||
                     step40Visual ||
-                    step41Visual
+                    step41Visual ||
+                    step42Visual
                       ? 150
                       : statisticsVisual
                         ? 68

@@ -376,6 +376,14 @@ export function isStep41FlexibleNumberFormsActivity(id: string, stepKey?: string
   );
 }
 
+export function isStep42NegativeNumberLineActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "understand-negative-numbers-and-number-lines" ||
+    safe(id).startsWith("number-step-42-assess-") ||
+    safe(id).startsWith("number-step-42-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -7593,6 +7601,262 @@ export function renderStep41WorksheetPromptVisual({
   );
 }
 
+function parseSignedNumber(value: string | undefined, fallback: number) {
+  const match = safe(value).replace("$", "").match(/-?\d+(?:\.\d+)?/);
+  const parsed = Number(match?.[0]);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function SignedNumberLine({
+  min,
+  max,
+  start,
+  end,
+}: {
+  min: number;
+  max: number;
+  start?: number | null;
+  end?: number | null;
+}) {
+  const safeMin = Math.min(min, max);
+  const safeMax = Math.max(min, max);
+  const span = Math.max(1, safeMax - safeMin);
+  const position = (value: number) =>
+    `${Math.max(0, Math.min(100, ((value - safeMin) / span) * 100))}%`;
+  const zeroVisible = safeMin <= 0 && safeMax >= 0;
+  const tickValues = Array.from(new Set([safeMin, -5, 0, 5, safeMax]))
+    .filter((value) => value >= safeMin && value <= safeMax)
+    .sort((a, b) => a - b);
+
+  return (
+    <div
+      aria-label={`Number line from ${safeMin} to ${safeMax}`}
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 18,
+        background: "#eff6ff",
+        padding: "24px 14px 16px",
+        minHeight: 150,
+        display: "grid",
+        alignContent: "center",
+        gap: 14,
+      }}
+    >
+      <div style={{ position: "relative", height: 64 }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 30,
+            height: 4,
+            borderRadius: 999,
+            background: "#1d4ed8",
+          }}
+        />
+        {zeroVisible ? (
+          <div
+            style={{
+              position: "absolute",
+              left: position(0),
+              top: 12,
+              width: 3,
+              height: 40,
+              background: "#0f172a",
+              borderRadius: 999,
+            }}
+          />
+        ) : null}
+        {typeof start === "number" ? (
+          <div
+            style={{
+              position: "absolute",
+              left: position(start),
+              top: 5,
+              transform: "translateX(-50%)",
+              display: "grid",
+              gap: 4,
+              justifyItems: "center",
+            }}
+          >
+            <span
+              style={{
+                border: "1px solid #fed7aa",
+                borderRadius: 999,
+                background: "#fff7ed",
+                color: "#9a3412",
+                padding: "3px 7px",
+                fontSize: 12,
+                fontWeight: 900,
+              }}
+            >
+              start {start}
+            </span>
+            <span style={{ width: 12, height: 12, borderRadius: 999, background: "#ea580c" }} />
+          </div>
+        ) : null}
+        {typeof end === "number" ? (
+          <div
+            style={{
+              position: "absolute",
+              left: position(end),
+              top: 38,
+              transform: "translateX(-50%)",
+              display: "grid",
+              gap: 4,
+              justifyItems: "center",
+            }}
+          >
+            <span style={{ width: 12, height: 12, borderRadius: 999, background: "#16a34a" }} />
+            <span
+              style={{
+                border: "1px solid #bbf7d0",
+                borderRadius: 999,
+                background: "#f0fdf4",
+                color: "#166534",
+                padding: "3px 7px",
+                fontSize: 12,
+                fontWeight: 900,
+              }}
+            >
+              end {end}
+            </span>
+          </div>
+        ) : null}
+      </div>
+      <div style={{ position: "relative", height: 24 }}>
+        {tickValues.map((value) => (
+          <span
+            key={value}
+            style={{
+              position: "absolute",
+              left: position(value),
+              transform: "translateX(-50%)",
+              color: value === 0 ? "#0f172a" : "#1e3a8a",
+              fontSize: 12,
+              fontWeight: value === 0 ? 950 : 850,
+            }}
+          >
+            {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getStep42VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("left") || lower.includes("right") || lower.includes("swims")) {
+    return "Movement on a number line";
+  }
+  if (lower.includes("least to greatest") || lower.includes("order")) return "Ordering";
+  if (lower.includes("<") || lower.includes("__")) return "Compare integers";
+  if (lower.includes("temperature")) return "Temperature below zero";
+  if (lower.includes("overdrawn") || lower.includes("balance")) return "Negative balance";
+  if (lower.includes("halfway")) return "Halfway point";
+  if (lower.includes("farther from 0")) return "Distance from zero";
+  return "Negative number line";
+}
+
+export function renderStep42WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.map(safe).filter(Boolean);
+  const numericValues = values.map((value, index) =>
+    parseSignedNumber(value, index === 0 ? -10 : index === 1 ? 10 : 0),
+  );
+  const min = numericValues[0] ?? -10;
+  const max = numericValues[1] ?? 10;
+  const start = numericValues.length >= 4 ? numericValues[2] : null;
+  const end = numericValues.length >= 4 ? numericValues[3] : numericValues[2] ?? null;
+  const mode = getStep42VisualMode(prompt);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use zero as the centre point, then reason left, right, above and below zero.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <SignedNumberLine min={min} max={max} start={start} end={end} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: 10,
+          }}
+        >
+          <NumberFormCard label="Left of zero" value="negative" tone="purple" />
+          <NumberFormCard label="Centre" value="0" tone="blue" />
+          <NumberFormCard label="Right of zero" value="positive" tone="green" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -9733,6 +9997,70 @@ export function renderStep41WorksheetOptionCard({
       }}
     >
       <div style={{ fontSize: isSymbol ? 42 : 30, fontWeight: 950, lineHeight: 1 }}>
+        {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep42WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const isSymbol = ["<", ">", "="].includes(normalized);
+  const isOrdering = normalized.includes(",");
+  const isMoney = normalized.includes("$");
+  const label = isSymbol
+    ? "Compare"
+    : isOrdering
+      ? "Order"
+      : isMoney
+        ? "Balance"
+        : normalized.startsWith("-")
+          ? "Negative"
+          : normalized === "0" || normalized.includes("same distance")
+            ? "Zero or equal distance"
+            : "Positive";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: isSymbol ? 42 : isOrdering ? 20 : 30, fontWeight: 950, lineHeight: 1.15 }}>
         {normalized}
       </div>
       <div

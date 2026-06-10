@@ -112,6 +112,8 @@ const MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S040-Use-Mathematical-Modelling-In-Financial-And-Real-World-Contexts.pdf";
 const WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S041-Work-Fluently-With-Integers-Decimals-Fractions-And-Percentages.pdf";
+const UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S042-Understand-Negative-Numbers-And-Number-Lines.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -802,6 +804,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::understand-negative-numbers-and-number-lines",
+    stepKey: "understand-negative-numbers-and-number-lines",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 42,
+    pathwayStepTitle: "Understand negative numbers and number lines",
+    title: "Understand Negative Numbers and Number Lines",
+    concept:
+      "Use negative numbers and number lines to reason about direction, comparison and real-world contexts below zero",
+    includesAnswerSheet: false,
+    fileName: UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
