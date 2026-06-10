@@ -124,6 +124,8 @@ const APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S048-Apply-Estimation-Rounding-And-Bounds.pdf";
 const EXPLAIN_CALCULATION_CHOICES_REASONABLENESS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S049-Explain-Calculation-Choices-And-Reasonableness.pdf";
+const USE_NUMBER_RELATIONSHIPS_ALGEBRAIC_THINKING_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S050-Use-Number-Relationships-To-Support-Algebraic-Thinking.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -922,6 +924,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: EXPLAIN_CALCULATION_CHOICES_REASONABLENESS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${EXPLAIN_CALCULATION_CHOICES_REASONABLENESS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::use-number-relationships-to-support-algebraic-thinking",
+    stepKey: "use-number-relationships-to-support-algebraic-thinking",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 50,
+    pathwayStepTitle: "Use number relationships to support algebraic thinking",
+    title: "Use Number Relationships to Support Algebraic Thinking",
+    concept:
+      "Use number patterns, rules, tables and nth-term relationships to support early algebraic reasoning",
+    includesAnswerSheet: false,
+    fileName: USE_NUMBER_RELATIONSHIPS_ALGEBRAIC_THINKING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${USE_NUMBER_RELATIONSHIPS_ALGEBRAIC_THINKING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
