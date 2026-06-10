@@ -400,6 +400,14 @@ export function isStep45RatioRatesActivity(id: string, stepKey?: string | null) 
   );
 }
 
+export function isStep46ProportionalReasoningActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "use-proportional-reasoning" ||
+    safe(id).startsWith("number-step-46-assess-") ||
+    safe(id).startsWith("number-step-46-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -8145,6 +8153,142 @@ export function renderStep45WorksheetPromptVisual({
   );
 }
 
+function getStep46VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("equivalent proportion") || lower.includes("form an equivalent")) {
+    return "Proportion check";
+  }
+  if (lower.includes("table") || lower.includes("batches")) return "Scale table";
+  if (lower.includes("recipe") || lower.includes("rice")) return "Recipe scaling";
+  if (lower.includes("map") || lower.includes("scale")) return "Map scale";
+  if (lower.includes("fuel") || lower.includes("litres")) return "Fuel rate";
+  if (lower.includes("better value") || lower.includes("per 100 g") || lower.includes("pack")) {
+    return "Fair comparison";
+  }
+  if (lower.includes("same rate") || lower.includes("notebooks")) return "Same rate";
+  if (lower.includes("students") || lower.includes("girls") || lower.includes("boys")) {
+    return "Part of a total";
+  }
+  return "Proportional reasoning";
+}
+
+export function renderStep46WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.length
+    ? visual.numberCards.map(safe).filter(Boolean)
+    : ["2 : 3", "x2", "4 : 6"];
+  const labels = values.map((_, index) => safe(visual.labels[index]) || `Part ${index + 1}`);
+  const mode = getStep46VisualMode(prompt);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Keep the relationship balanced. Use the same scale factor, unit rate,
+          or same-rate reasoning to compare fairly.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {values.slice(0, 5).map((value, index) => (
+            <NumberFormCard
+              key={`${value}-${index}`}
+              label={labels[index] || `Part ${index + 1}`}
+              value={value}
+              tone={index % 3 === 0 ? "blue" : index % 3 === 1 ? "purple" : "green"}
+            />
+          ))}
+        </div>
+        <div
+          style={{
+            border: "1px dashed #bfdbfe",
+            borderRadius: 18,
+            background: "#f8fbff",
+            color: "#1e3a8a",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.45,
+            display: "grid",
+            gap: 6,
+          }}
+        >
+          <span>Proportion: linked quantities scale by the same multiplier.</span>
+          <span>Fair comparison: compare the same unit, such as cost per pen.</span>
+          <span>Same-rate reasoning: find the unit rate, then scale to the new amount.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -10468,6 +10612,68 @@ export function renderStep45WorksheetOptionCard({
       }}
     >
       <div style={{ fontSize: normalized.length > 28 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep46WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = lower.includes("equivalent") || lower.includes("not equivalent")
+    ? "Proportion check"
+    : lower.includes("same value")
+      ? "Fair comparison"
+      : lower.includes("km") || lower.includes("hours") || lower.includes("h")
+        ? "Rate result"
+        : lower.includes("cups") || lower.includes("boys") || lower.includes("pack")
+          ? "Context answer"
+          : lower.includes("$") || lower.includes("g")
+            ? "Unit comparison"
+            : "Scaled value";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 24 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
         {normalized}
       </div>
       <div

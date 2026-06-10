@@ -118,6 +118,8 @@ const USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S044-Use-Index-Notation-Powers-And-Roots.pdf";
 const WORK_WITH_RATIO_RATES_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S045-Work-With-Ratio-And-Rates.pdf";
+const USE_PROPORTIONAL_REASONING_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S046-Use-Proportional-Reasoning.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -862,6 +864,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: WORK_WITH_RATIO_RATES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${WORK_WITH_RATIO_RATES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::use-proportional-reasoning",
+    stepKey: "use-proportional-reasoning",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 46,
+    pathwayStepTitle: "Use proportional reasoning",
+    title: "Use Proportional Reasoning",
+    concept:
+      "Scale quantities up or down, compare fairly using unit rates, and reason about equivalent proportional relationships",
+    includesAnswerSheet: false,
+    fileName: USE_PROPORTIONAL_REASONING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${USE_PROPORTIONAL_REASONING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

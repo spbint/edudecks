@@ -48,6 +48,10 @@ const STEP_45_NUMBER = 45;
 const STEP_45_KEY = "work-with-ratio-and-rates";
 const STEP_45_PATHWAY_STEP_ID =
   "mathematics::number-and-place-value::lower-secondary::work-with-ratio-and-rates";
+const STEP_46_NUMBER = 46;
+const STEP_46_KEY = "use-proportional-reasoning";
+const STEP_46_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::lower-secondary::use-proportional-reasoning";
 
 function visual(description: string) {
   return { type: "context_card" as const, description };
@@ -176,6 +180,38 @@ function makeStep45Item(seed: Seed, index: number): NumberAssessmentBankItem {
         "Practise simplifying ratios, building equivalent ratios and using unit rates in context.",
       diagnosticNote:
         "This checks ratio simplification, equivalent ratios, unit rates and multiplicative comparison for this pathway step.",
+    },
+    visualSupport: visual(seed.visual),
+  };
+}
+
+function makeStep46Item(seed: Seed, index: number): NumberAssessmentBankItem {
+  return {
+    id: `number-step-${STEP_46_NUMBER}-assess-${String(index + 1).padStart(3, "0")}`,
+    progressionBandKey: "percentages-ratio-financial-modelling",
+    progressionStepKey: STEP_46_KEY,
+    subElementKey: seed.cluster,
+    subElementTitle: seed.clusterTitle,
+    subElementDescription:
+      "Scale quantities up or down, compare fairly using unit rates, and reason about equivalent proportional relationships.",
+    title: seed.title,
+    prompt: seed.prompt,
+    difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "lower_secondary_proportional_reasoning_card",
+    options: seed.options,
+    expectedAnswer: seed.answer,
+    acceptableAnswers: [seed.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: seed.answer,
+    misconceptionTargets: seed.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: STEP_46_KEY,
+      ifCorrectGoToStepKey: STEP_46_KEY,
+      practiceRecommendation:
+        "Practise equivalent proportions, scale factors, ratio tables and fair unit-rate comparisons.",
+      diagnosticNote:
+        "This checks proportional reasoning with equivalent ratios, scaling, unit rates and real-world same-rate contexts for this pathway step.",
     },
     visualSupport: visual(seed.visual),
   };
@@ -663,6 +699,133 @@ const step45Seeds: Seed[] = [
   },
 ];
 
+const step46Seeds: Seed[] = [
+  {
+    cluster: "equivalent-proportions",
+    clusterTitle: "Equivalent proportions",
+    title: "Check equivalent proportions",
+    prompt: "Do these ratios form an equivalent proportion: 2 : 3 and 4 : 6?",
+    options: ["Equivalent", "Not equivalent"],
+    answer: "Equivalent",
+    visual:
+      "early-number|caption=Both parts are multiplied by 2, so the relationship stays proportional.|numbers=2 : 3,x2,4 : 6|labels=first ratio,scale factor,second ratio",
+    misconceptionTargets: ["equivalent-proportion-gap", "additive-ratio-error"],
+  },
+  {
+    cluster: "equivalent-proportions",
+    clusterTitle: "Equivalent proportions",
+    title: "Check a scaled proportion",
+    prompt: "Do these ratios form an equivalent proportion: 3 : 5 and 9 : 15?",
+    options: ["Equivalent", "Not equivalent"],
+    answer: "Equivalent",
+    visual:
+      "early-number|caption=Both parts are multiplied by 3.|numbers=3 : 5,x3,9 : 15|labels=first ratio,scale factor,second ratio",
+    misconceptionTargets: ["equivalent-proportion-gap", "scale-factor-mismatch"],
+  },
+  {
+    cluster: "scale-up-down",
+    clusterTitle: "Scale up and down",
+    title: "Scale a muffin recipe",
+    prompt:
+      "The table shows cups of flour needed to make different batches of muffins. If 1 batch uses 1.5 cups, how many cups are needed for 4 batches?",
+    options: ["6 cups", "4.5 cups", "7.5 cups"],
+    answer: "6 cups",
+    visual:
+      "early-number|caption=Scale 1.5 cups by 4 batches.|numbers=1 batch,1.5 cups,4 batches,6 cups|labels=batch,flour,scaled batch,scaled flour",
+    misconceptionTargets: ["scale-factor-gap", "proportion-table-gap"],
+  },
+  {
+    cluster: "recipe-scaling",
+    clusterTitle: "Recipe scaling",
+    title: "Scale a recipe",
+    prompt: "A recipe uses 2 cups of rice to serve 3 people. How much rice is needed to serve 9 people?",
+    options: ["6 cups", "4 cups", "9 cups"],
+    answer: "6 cups",
+    visual:
+      "early-number|caption=Serving 9 people is 3 times as many people.|numbers=2 cups,3 people,x3,6 cups|labels=rice,people,scale factor,needed rice",
+    misconceptionTargets: ["recipe-proportion-gap", "additive-scaling-error"],
+  },
+  {
+    cluster: "fuel-proportion",
+    clusterTitle: "Fuel proportion",
+    title: "Scale fuel distance",
+    prompt: "A car travels 180 km with 12 litres of fuel. How far can it travel with 18 litres?",
+    options: ["270 km", "240 km", "300 km"],
+    answer: "270 km",
+    visual:
+      "early-number|caption=18 litres is 1.5 times 12 litres, so scale the distance by 1.5.|numbers=180 km,12 L,18 L,270 km|labels=distance,fuel,new fuel,new distance",
+    misconceptionTargets: ["fuel-rate-proportion-gap", "same-rate-scaling-error"],
+  },
+  {
+    cluster: "fair-comparison",
+    clusterTitle: "Fair comparison",
+    title: "Compare value per pen",
+    prompt: "A pack of 4 pens costs $3.20. A pack of 7 pens costs $5.60. Which pack is better value?",
+    options: ["4-pack", "7-pack", "Same value"],
+    answer: "Same value",
+    visual:
+      "early-number|caption=Compare cost per pen, not total cost.|numbers=$3.20/4,$5.60/7,$0.80 each|labels=4-pack,7-pack,unit price",
+    misconceptionTargets: ["unit-rate-comparison-gap", "total-cost-bias"],
+  },
+  {
+    cluster: "unit-price-comparison",
+    clusterTitle: "Unit price comparison",
+    title: "Compare value per 100 g",
+    prompt: "500 g of cheese costs $4.50. 800 g of cheese costs $7.20. Which is better value per 100 g?",
+    options: ["500 g pack", "800 g pack", "Same value"],
+    answer: "Same value",
+    visual:
+      "early-number|caption=Both packs cost $0.90 per 100 g.|numbers=$4.50/500 g,$7.20/800 g,$0.90 per 100 g|labels=small pack,large pack,unit price",
+    misconceptionTargets: ["unit-price-comparison-gap", "larger-pack-bias"],
+  },
+  {
+    cluster: "map-scale",
+    clusterTitle: "Map scale",
+    title: "Use a map scale",
+    prompt:
+      "A map uses a scale of 1 cm to represent 50 km. The distance between two cities on the map is 7.4 cm. What is the actual distance?",
+    options: ["370 km", "57.4 km", "740 km"],
+    answer: "370 km",
+    visual:
+      "early-number|caption=Multiply each map centimetre by 50 km.|numbers=1 cm,50 km,7.4 cm,370 km|labels=map unit,real unit,map distance,actual distance",
+    misconceptionTargets: ["map-scale-gap", "decimal-scale-error"],
+  },
+  {
+    cluster: "fraction-proportion",
+    clusterTitle: "Fraction proportion",
+    title: "Use a class proportion",
+    prompt: "A school has 240 students. 3/5 of the students are girls. How many boys are there?",
+    options: ["96 boys", "144 boys", "120 boys"],
+    answer: "96 boys",
+    visual:
+      "early-number|caption=If 3/5 are girls, then 2/5 are boys.|numbers=240,3/5 girls,2/5 boys,96 boys|labels=total,girls,boys fraction,boys",
+    misconceptionTargets: ["fraction-complement-gap", "proportion-of-total-error"],
+  },
+  {
+    cluster: "same-rate-challenge",
+    clusterTitle: "Same-rate challenge",
+    title: "Use a production rate",
+    prompt: "A company can produce 150 notebooks in 3 hours. How long will it take to produce 500 notebooks at the same rate?",
+    options: ["10 hours", "9 hours", "12 hours"],
+    answer: "10 hours",
+    visual:
+      "early-number|caption=Find 50 notebooks per hour, then divide 500 by 50.|numbers=150 notebooks,3 h,50 per h,10 h|labels=output,time,unit rate,needed time",
+    misconceptionTargets: ["same-rate-reasoning-gap", "rate-inversion-error"],
+  },
+  {
+    cluster: "fuel-rate-challenge",
+    clusterTitle: "Fuel-rate challenge",
+    title: "Use the same fuel rate",
+    prompt:
+      "A family drove 360 km using 24 litres of fuel. If they continue at the same rate, how many kilometres can they drive with 40 litres?",
+    options: ["600 km", "540 km", "640 km"],
+    answer: "600 km",
+    visual:
+      "early-number|caption=360 km in 24 L means 15 km per litre.|numbers=360 km,24 L,15 km/L,40 L,600 km|labels=distance,fuel,unit rate,new fuel,new distance",
+    misconceptionTargets: ["fuel-rate-proportion-gap", "unit-rate-application-error"],
+  },
+];
+
 export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
   {
     key: `number-step-${STEP_NUMBER}-${STEP_KEY}-assessment-v1`,
@@ -723,6 +886,21 @@ export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
     parentItemBankKey: NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
     progressionBandKey: "percentages-ratio-financial-modelling",
     items: step45Seeds.map((seed, index) => makeStep45Item(seed, index)),
+  },
+  {
+    key: `number-step-${STEP_46_NUMBER}-${STEP_46_KEY}-assessment-v1`,
+    stepNumber: STEP_46_NUMBER,
+    stepKey: STEP_46_KEY,
+    pathwayStepId: STEP_46_PATHWAY_STEP_ID,
+    title: "Use proportional reasoning",
+    shortTitle: "Proportional reasoning",
+    description:
+      "Scale up or down, compare fairly, and reason about equivalent relationships.",
+    parentBankKey: "percentages-ratio-financial-modelling" as const,
+    parentBankTitle: "Percent, ratio and finance",
+    parentItemBankKey: NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
+    progressionBandKey: "percentages-ratio-financial-modelling",
+    items: step46Seeds.map((seed, index) => makeStep46Item(seed, index)),
   },
 ] as const satisfies LowerSecondaryStepAssessmentDefinition[];
 
