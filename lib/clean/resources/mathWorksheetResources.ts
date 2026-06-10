@@ -110,6 +110,8 @@ const CONNECT_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S039-Connect-Fractions-Decimals-And-Percentages.pdf";
 const MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-UP-S040-Use-Mathematical-Modelling-In-Financial-And-Real-World-Contexts.pdf";
+const WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S041-Work-Fluently-With-Integers-Decimals-Fractions-And-Percentages.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -782,6 +784,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/upper-primary/${MATHEMATICAL_MODELLING_FINANCIAL_CONTEXTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::work-fluently-with-integers-decimals-fractions-and-percentages",
+    stepKey: "work-fluently-with-integers-decimals-fractions-and-percentages",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 41,
+    pathwayStepTitle: "Work fluently with integers, decimals, fractions and percentages",
+    title: "Work Fluently with Integers, Decimals, Fractions and Percentages",
+    concept:
+      "Use integers, decimals, fractions and percentages flexibly, convert between forms, compare values and choose the most useful form for a situation",
+    includesAnswerSheet: false,
+    fileName: WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

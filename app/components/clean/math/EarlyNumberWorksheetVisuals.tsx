@@ -368,6 +368,14 @@ export function isStep40FinancialModellingActivity(id: string, stepKey?: string 
   );
 }
 
+export function isStep41FlexibleNumberFormsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "work-fluently-with-integers-decimals-fractions-and-percentages" ||
+    safe(id).startsWith("number-step-41-assess-") ||
+    safe(id).startsWith("number-step-41-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -7413,6 +7421,178 @@ export function renderStep40WorksheetPromptVisual({
   );
 }
 
+function NumberFormCard({
+  label,
+  value,
+  tone = "blue",
+}: {
+  label: string;
+  value: string;
+  tone?: "blue" | "orange" | "green" | "purple";
+}) {
+  const colors = {
+    blue: { border: "#bfdbfe", background: "#eff6ff", text: "#1e3a8a" },
+    orange: { border: "#fed7aa", background: "#fff7ed", text: "#9a3412" },
+    green: { border: "#bbf7d0", background: "#f0fdf4", text: "#166534" },
+    purple: { border: "#ddd6fe", background: "#f5f3ff", text: "#5b21b6" },
+  }[tone];
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${colors.border}`,
+        borderRadius: 18,
+        background: colors.background,
+        color: colors.text,
+        padding: 12,
+        minHeight: 110,
+        display: "grid",
+        alignContent: "center",
+        gap: 8,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 950, lineHeight: 1.1 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function getStep41VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("use <") || lower.includes("__")) return "Compare mixed forms";
+  if (lower.includes("sale") || lower.includes("discount") || lower.includes("gst")) {
+    return "Real-world percentage problem";
+  }
+  if (lower.includes("scored") || lower.includes("pieces")) return "Best form for context";
+  if (lower.includes("fraction")) return "Conversion panel";
+  if (lower.includes("percentage") || lower.includes("percent")) return "Percentage conversion";
+  return "Flexible number forms";
+}
+
+export function renderStep41WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.length
+    ? visual.numberCards.map(safe).filter(Boolean)
+    : ["0.25", "1/4", "25%"];
+  const labels = values.map((_, index) => safe(visual.labels[index]) || `Form ${index + 1}`);
+  const mode = getStep41VisualMode(prompt);
+  const tones: Array<"blue" | "orange" | "green" | "purple"> = [
+    "blue",
+    "orange",
+    "green",
+    "purple",
+  ];
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Switch between integers, decimals, fractions and percentages with purpose.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {values.slice(0, 5).map((value, index) => (
+            <NumberFormCard
+              key={`${value}-${index}`}
+              label={labels[index] || `Form ${index + 1}`}
+              value={value}
+              tone={tones[index % tones.length]}
+            />
+          ))}
+        </div>
+        <div
+          style={{
+            border: "1px dashed #bfdbfe",
+            borderRadius: 18,
+            background: "#f8fbff",
+            color: "#1e3a8a",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.45,
+          }}
+        >
+          Choose the form that makes the comparison, conversion or context easiest to reason
+          about.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -9505,6 +9685,68 @@ export function renderStep40WorksheetOptionCard({
         }}
       >
         Model result
+      </div>
+    </div>
+  );
+}
+
+export function renderStep41WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const isSymbol = ["<", ">", "="].includes(normalized);
+  const label = normalized.includes("%")
+    ? "Percentage"
+    : normalized.includes("/")
+      ? "Fraction"
+      : normalized.startsWith("$")
+        ? "Money"
+        : isSymbol
+          ? "Compare"
+          : normalized.includes(".")
+            ? "Decimal"
+            : "Number form";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: isSymbol ? 42 : 30, fontWeight: 950, lineHeight: 1 }}>
+        {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
       </div>
     </div>
   );
