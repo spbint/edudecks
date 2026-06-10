@@ -120,6 +120,8 @@ const WORK_WITH_RATIO_RATES_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S045-Work-With-Ratio-And-Rates.pdf";
 const USE_PROPORTIONAL_REASONING_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S046-Use-Proportional-Reasoning.pdf";
+const APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S048-Apply-Estimation-Rounding-And-Bounds.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -882,6 +884,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: USE_PROPORTIONAL_REASONING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${USE_PROPORTIONAL_REASONING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::apply-estimation-rounding-and-bounds",
+    stepKey: "apply-estimation-rounding-and-bounds",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 48,
+    pathwayStepTitle: "Apply estimation, rounding and bounds",
+    title: "Apply Estimation, Rounding and Bounds",
+    concept:
+      "Use approximation, rounding and lower/upper bounds to judge answers sensibly and reason about limits of accuracy",
+    includesAnswerSheet: false,
+    fileName: APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

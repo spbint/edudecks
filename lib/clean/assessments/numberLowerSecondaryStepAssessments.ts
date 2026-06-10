@@ -52,6 +52,10 @@ const STEP_46_NUMBER = 46;
 const STEP_46_KEY = "use-proportional-reasoning";
 const STEP_46_PATHWAY_STEP_ID =
   "mathematics::number-and-place-value::lower-secondary::use-proportional-reasoning";
+const STEP_48_NUMBER = 48;
+const STEP_48_KEY = "apply-estimation-rounding-and-bounds";
+const STEP_48_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::lower-secondary::apply-estimation-rounding-and-bounds";
 
 function visual(description: string) {
   return { type: "context_card" as const, description };
@@ -212,6 +216,38 @@ function makeStep46Item(seed: Seed, index: number): NumberAssessmentBankItem {
         "Practise equivalent proportions, scale factors, ratio tables and fair unit-rate comparisons.",
       diagnosticNote:
         "This checks proportional reasoning with equivalent ratios, scaling, unit rates and real-world same-rate contexts for this pathway step.",
+    },
+    visualSupport: visual(seed.visual),
+  };
+}
+
+function makeStep48Item(seed: Seed, index: number): NumberAssessmentBankItem {
+  return {
+    id: `number-step-${STEP_48_NUMBER}-assess-${String(index + 1).padStart(3, "0")}`,
+    progressionBandKey: "approximation-estimation-error",
+    progressionStepKey: STEP_48_KEY,
+    subElementKey: seed.cluster,
+    subElementTitle: seed.clusterTitle,
+    subElementDescription:
+      "Use approximation, rounding and lower/upper bounds to judge answers sensibly and reason about limits of accuracy.",
+    title: seed.title,
+    prompt: seed.prompt,
+    difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "lower_secondary_estimation_bounds_card",
+    options: seed.options,
+    expectedAnswer: seed.answer,
+    acceptableAnswers: [seed.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: seed.answer,
+    misconceptionTargets: seed.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: STEP_48_KEY,
+      ifCorrectGoToStepKey: STEP_48_KEY,
+      practiceRecommendation:
+        "Practise rounding to a suitable accuracy, estimating first, and using lower and upper bounds to check reasonableness.",
+      diagnosticNote:
+        "This checks estimation, rounding, bounds, possible-value ranges and limits of accuracy for this pathway step.",
     },
     visualSupport: visual(seed.visual),
   };
@@ -826,6 +862,130 @@ const step46Seeds: Seed[] = [
   },
 ];
 
+const step48Seeds: Seed[] = [
+  {
+    cluster: "estimate-one-significant-figure",
+    clusterTitle: "Estimate to 1 significant figure",
+    title: "Estimate a sum",
+    prompt: "Estimate 298 + 412 by rounding each number to 1 significant figure.",
+    options: ["700", "600", "800"],
+    answer: "700",
+    visual:
+      "early-number|caption=Round to friendly values before adding.|numbers=298 + 412,300 + 400,700|labels=calculation,estimate,answer",
+    misconceptionTargets: ["rounding-place-value-error", "estimated-exact-confusion"],
+  },
+  {
+    cluster: "estimate-one-significant-figure",
+    clusterTitle: "Estimate to 1 significant figure",
+    title: "Estimate a product",
+    prompt: "Estimate 317 x 21 by rounding each number to 1 significant figure.",
+    options: ["6,000", "7,000", "600"],
+    answer: "6,000",
+    visual:
+      "early-number|caption=Use 300 x 20 as a quick estimate.|numbers=317 x 21,300 x 20,6,000|labels=calculation,estimate,answer",
+    misconceptionTargets: ["rounding-place-value-error", "place-value-product-error"],
+  },
+  {
+    cluster: "estimate-one-significant-figure",
+    clusterTitle: "Estimate to 1 significant figure",
+    title: "Estimate a division",
+    prompt: "Estimate 7,351 ÷ 28 by rounding each number to 1 significant figure.",
+    options: ["about 200", "about 250", "about 300"],
+    answer: "about 200",
+    visual:
+      "early-number|caption=Use 7,000 ÷ 30 to judge the size of the answer.|numbers=7,351 ÷ 28,7,000 ÷ 30,about 200|labels=calculation,estimate,answer",
+    misconceptionTargets: ["division-estimation-gap", "estimated-exact-confusion"],
+  },
+  {
+    cluster: "rounding-whole-numbers",
+    clusterTitle: "Round whole numbers",
+    title: "Round to the nearest thousand",
+    prompt: "Round 62,847 to the nearest 1,000.",
+    options: ["63,000", "62,000", "62,800"],
+    answer: "63,000",
+    visual:
+      "early-number|caption=Look at the hundreds digit to round to the nearest 1,000.|numbers=62,847,nearest 1,000,63,000|labels=number,accuracy,rounded value",
+    misconceptionTargets: ["rounding-place-value-error", "nearest-thousand-gap"],
+  },
+  {
+    cluster: "rounding-decimals",
+    clusterTitle: "Round decimals",
+    title: "Round to decimal places",
+    prompt: "Round 12.678 to 2 decimal places.",
+    options: ["12.68", "12.67", "12.70"],
+    answer: "12.68",
+    visual:
+      "early-number|caption=Keep two decimal places and check the next digit.|numbers=12.678,2 decimal places,12.68|labels=number,accuracy,rounded value",
+    misconceptionTargets: ["rounding-place-value-error", "decimal-place-gap"],
+  },
+  {
+    cluster: "whole-number-bounds",
+    clusterTitle: "Whole-number bounds",
+    title: "Find bounds for a rounded ten",
+    prompt: "A value rounded to the nearest 10 is 240. What are the lower and upper bounds?",
+    options: ["235 and 245", "230 and 250", "240 and 250"],
+    answer: "235 and 245",
+    visual:
+      "early-number|caption=Values from 235 up to but not including 245 round to 240.|numbers=235,240,245|labels=lower bound,rounded value,upper bound",
+    misconceptionTargets: ["bounds-half-interval-gap", "upper-bound-inclusion-confusion"],
+  },
+  {
+    cluster: "decimal-bounds",
+    clusterTitle: "Decimal bounds",
+    title: "Find bounds for a whole-number rounding",
+    prompt: "A length is 4 to the nearest whole number. What are the lower and upper bounds?",
+    options: ["3.5 and 4.5", "3.55 and 4.45", "4.0 and 5.0"],
+    answer: "3.5 and 4.5",
+    visual:
+      "early-number|caption=Nearest whole number bounds are half a unit either side.|numbers=3.5,4,4.5|labels=lower bound,rounded value,upper bound",
+    misconceptionTargets: ["bounds-half-interval-gap", "whole-number-bound-error"],
+  },
+  {
+    cluster: "decimal-place-bounds",
+    clusterTitle: "Decimal-place bounds",
+    title: "Find bounds for 1 decimal place",
+    prompt: "A value is 3.7 to 1 decimal place. What are the lower and upper bounds?",
+    options: ["3.65 and 3.75", "3.675 and 3.685", "3.6 and 3.8"],
+    answer: "3.65 and 3.75",
+    visual:
+      "early-number|caption=For 1 decimal place, the half-step is 0.05.|numbers=3.65,3.7,3.75|labels=lower bound,rounded value,upper bound",
+    misconceptionTargets: ["decimal-bound-size-error", "bounds-half-interval-gap"],
+  },
+  {
+    cluster: "bounds-in-context",
+    clusterTitle: "Bounds in context",
+    title: "Use bounds for pages",
+    prompt: "A book is rounded to 200 pages to the nearest 10 pages. What are the lower and upper bounds?",
+    options: ["195 and 205", "190 and 210", "198 and 200"],
+    answer: "195 and 205",
+    visual:
+      "early-number|caption=Any value from 195 up to but not including 205 rounds to 200.|numbers=195,200 pages,205|labels=lower bound,rounded value,upper bound",
+    misconceptionTargets: ["context-bounds-gap", "rounding-interval-width-error"],
+  },
+  {
+    cluster: "estimate-in-context",
+    clusterTitle: "Estimate in context",
+    title: "Estimate a shop total",
+    prompt: "A shop sells a box for $2.97. About how much would 7 boxes cost?",
+    options: ["about $21", "about $14", "about $28"],
+    answer: "about $21",
+    visual:
+      "early-number|caption=Round $2.97 to $3, then multiply by 7.|numbers=$2.97,$3 x 7,about $21|labels=price,estimate,total",
+    misconceptionTargets: ["money-estimation-gap", "reasonableness-not-checked"],
+  },
+  {
+    cluster: "reasonableness-check",
+    clusterTitle: "Reasonableness check",
+    title: "Judge a calculated answer",
+    prompt: "A learner estimates 49 x 21 as about 1,000. Is that sensible?",
+    options: ["Yes, because 50 x 20 = 1,000", "No, it should be about 100", "No, it should be about 10,000"],
+    answer: "Yes, because 50 x 20 = 1,000",
+    visual:
+      "early-number|caption=Use nearby friendly numbers to check the size of the answer.|numbers=49 x 21,50 x 20,1,000|labels=calculation,estimate,reasonable size",
+    misconceptionTargets: ["reasonableness-not-checked", "place-value-product-error"],
+  },
+];
+
 export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
   {
     key: `number-step-${STEP_NUMBER}-${STEP_KEY}-assessment-v1`,
@@ -901,6 +1061,21 @@ export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
     parentItemBankKey: NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
     progressionBandKey: "percentages-ratio-financial-modelling",
     items: step46Seeds.map((seed, index) => makeStep46Item(seed, index)),
+  },
+  {
+    key: `number-step-${STEP_48_NUMBER}-${STEP_48_KEY}-assessment-v1`,
+    stepNumber: STEP_48_NUMBER,
+    stepKey: STEP_48_KEY,
+    pathwayStepId: STEP_48_PATHWAY_STEP_ID,
+    title: "Apply estimation, rounding and bounds",
+    shortTitle: "Estimation and bounds",
+    description:
+      "Use approximation and limits of accuracy to judge answers sensibly.",
+    parentBankKey: "approximation-estimation-error" as const,
+    parentBankTitle: "Approximation and estimation",
+    parentItemBankKey: "number-approximation-assessment-items-v1",
+    progressionBandKey: "approximation-estimation-error",
+    items: step48Seeds.map((seed, index) => makeStep48Item(seed, index)),
   },
 ] as const satisfies LowerSecondaryStepAssessmentDefinition[];
 
