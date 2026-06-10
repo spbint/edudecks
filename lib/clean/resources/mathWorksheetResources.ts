@@ -122,6 +122,8 @@ const USE_PROPORTIONAL_REASONING_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S046-Use-Proportional-Reasoning.pdf";
 const APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S048-Apply-Estimation-Rounding-And-Bounds.pdf";
+const EXPLAIN_CALCULATION_CHOICES_REASONABLENESS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S049-Explain-Calculation-Choices-And-Reasonableness.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -902,6 +904,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${APPLY_ESTIMATION_ROUNDING_BOUNDS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::explain-calculation-choices-and-reasonableness",
+    stepKey: "explain-calculation-choices-and-reasonableness",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 49,
+    pathwayStepTitle: "Explain calculation choices and reasonableness",
+    title: "Explain Calculation Choices and Reasonableness",
+    concept:
+      "Choose, explain and compare calculation strategies, then judge whether answers are reasonable in context",
+    includesAnswerSheet: false,
+    fileName: EXPLAIN_CALCULATION_CHOICES_REASONABLENESS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${EXPLAIN_CALCULATION_CHOICES_REASONABLENESS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
