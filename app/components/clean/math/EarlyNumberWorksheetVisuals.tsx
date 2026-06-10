@@ -384,6 +384,14 @@ export function isStep42NegativeNumberLineActivity(id: string, stepKey?: string 
   );
 }
 
+export function isStep44PowersRootsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "use-index-notation-powers-and-roots" ||
+    safe(id).startsWith("number-step-44-assess-") ||
+    safe(id).startsWith("number-step-44-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -7857,6 +7865,141 @@ export function renderStep42WorksheetPromptVisual({
   );
 }
 
+function exponentDisplay(value: string) {
+  return safe(value).replace(/\^2/g, "²").replace(/\^3/g, "³").replace(/\^4/g, "⁴");
+}
+
+function getStep44VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("repeated multiplication") || lower.includes("index notation")) {
+    return "Index notation";
+  }
+  if (lower.includes("expand")) return "Expanded form";
+  if (lower.includes("evaluate")) return "Evaluate powers";
+  if (lower.includes("sqrt") || lower.includes("square root")) return "Square roots";
+  if (lower.includes("inverse")) return "Inverse relationship";
+  if (lower.includes("cube") || lower.includes("volume")) return "Cube context";
+  if (lower.includes("area") || lower.includes("garden")) return "Square context";
+  return "Powers and roots";
+}
+
+export function renderStep44WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.length
+    ? visual.numberCards.map(safe).filter(Boolean)
+    : ["2", "3", "2^3"];
+  const labels = values.map((_, index) => safe(visual.labels[index]) || `Part ${index + 1}`);
+  const mode = getStep44VisualMode(prompt);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Use index notation for repeated multiplication, then connect powers and roots as
+          inverse ideas.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {exponentDisplay(prompt)}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {values.slice(0, 4).map((value, index) => (
+            <NumberFormCard
+              key={`${value}-${index}`}
+              label={labels[index] || `Part ${index + 1}`}
+              value={exponentDisplay(value)}
+              tone={index % 3 === 0 ? "blue" : index % 3 === 1 ? "purple" : "green"}
+            />
+          ))}
+        </div>
+        <div
+          style={{
+            border: "1px dashed #bfdbfe",
+            borderRadius: 18,
+            background: "#f8fbff",
+            color: "#1e3a8a",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.45,
+            display: "grid",
+            gap: 6,
+          }}
+        >
+          <span>Base: the factor that repeats.</span>
+          <span>Exponent: how many times the base repeats.</span>
+          <span>Roots reverse powers for square and cube contexts.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -10062,6 +10205,65 @@ export function renderStep42WorksheetOptionCard({
     >
       <div style={{ fontSize: isSymbol ? 42 : isOrdering ? 20 : 30, fontWeight: 950, lineHeight: 1.15 }}>
         {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep44WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const label = normalized.includes("^")
+    ? "Index notation"
+    : normalized.includes("sqrt")
+      ? "Root"
+      : normalized.includes(" x ")
+        ? "Expanded form"
+        : normalized.includes("m") || normalized.includes("cm")
+          ? "Context answer"
+          : "Value";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {exponentDisplay(normalized)}
       </div>
       <div
         style={{

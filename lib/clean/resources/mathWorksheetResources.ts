@@ -114,6 +114,8 @@ const WORK_FLUENTLY_INTEGER_DECIMAL_FRACTION_PERCENTAGE_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S041-Work-Fluently-With-Integers-Decimals-Fractions-And-Percentages.pdf";
 const UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S042-Understand-Negative-Numbers-And-Number-Lines.pdf";
+const USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-LS-S044-Use-Index-Notation-Powers-And-Roots.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -822,6 +824,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${UNDERSTAND_NEGATIVE_NUMBERS_NUMBER_LINES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::lower-secondary::use-index-notation-powers-and-roots",
+    stepKey: "use-index-notation-powers-and-roots",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 44,
+    pathwayStepTitle: "Use index notation, powers and roots",
+    title: "Use Index Notation, Powers and Roots",
+    concept:
+      "Use index notation to represent repeated multiplication, evaluate powers, find square roots and connect powers and roots as inverse operations",
+    includesAnswerSheet: false,
+    fileName: USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/lower-secondary/${USE_INDEX_NOTATION_POWERS_ROOTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

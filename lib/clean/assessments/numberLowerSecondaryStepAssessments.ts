@@ -4,6 +4,7 @@ import type {
 } from "@/lib/clean/assessments/numberAssessmentBanks";
 import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberIntegersCoordinatesPropertiesAssessmentItems";
 import { NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberPercentRatioFinanceAssessmentItems";
+import { NUMBER_POWERS_ROOTS_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
 
 export type LowerSecondaryStepAssessmentDefinition = {
   key: string;
@@ -39,6 +40,10 @@ const STEP_42_NUMBER = 42;
 const STEP_42_KEY = "understand-negative-numbers-and-number-lines";
 const STEP_42_PATHWAY_STEP_ID =
   "mathematics::number-and-place-value::lower-secondary::understand-negative-numbers-and-number-lines";
+const STEP_44_NUMBER = 44;
+const STEP_44_KEY = "use-index-notation-powers-and-roots";
+const STEP_44_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::lower-secondary::use-index-notation-powers-and-roots";
 
 function visual(description: string) {
   return { type: "context_card" as const, description };
@@ -103,6 +108,38 @@ function makeStep42Item(seed: Seed, index: number): NumberAssessmentBankItem {
         "Practise using zero, direction and number lines to compare and move with negative numbers.",
       diagnosticNote:
         "This checks negative-number direction, comparison, ordering and context reasoning for this pathway step.",
+    },
+    visualSupport: visual(seed.visual),
+  };
+}
+
+function makeStep44Item(seed: Seed, index: number): NumberAssessmentBankItem {
+  return {
+    id: `number-step-${STEP_44_NUMBER}-assess-${String(index + 1).padStart(3, "0")}`,
+    progressionBandKey: "powers-roots-exponent-notation",
+    progressionStepKey: STEP_44_KEY,
+    subElementKey: seed.cluster,
+    subElementTitle: seed.clusterTitle,
+    subElementDescription:
+      "Use index notation to represent repeated multiplication, evaluate powers, find square roots and connect powers and roots as inverse operations.",
+    title: seed.title,
+    prompt: seed.prompt,
+    difficulty: index < 4 ? "foundation" : index < 7 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "lower_secondary_powers_roots_card",
+    options: seed.options,
+    expectedAnswer: seed.answer,
+    acceptableAnswers: [seed.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: seed.answer,
+    misconceptionTargets: seed.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: STEP_44_KEY,
+      ifCorrectGoToStepKey: STEP_44_KEY,
+      practiceRecommendation:
+        "Practise moving between repeated multiplication, index notation, evaluated powers and roots.",
+      diagnosticNote:
+        "This checks powers, roots, exponent notation and inverse relationship reasoning for this pathway step.",
     },
     visualSupport: visual(seed.visual),
   };
@@ -347,6 +384,108 @@ const step42Seeds: Seed[] = [
   },
 ];
 
+const step44Seeds: Seed[] = [
+  {
+    cluster: "write-index-notation",
+    clusterTitle: "Write index notation",
+    title: "Write repeated multiplication as a power",
+    prompt: "Write this repeated multiplication using index notation: 2 x 2 x 2",
+    options: ["2^3", "3^2", "2 x 3"],
+    answer: "2^3",
+    visual:
+      "early-number|caption=The base is 2 and it repeats 3 times.|numbers=2,3,2^3|labels=base,exponent,power",
+    misconceptionTargets: ["base-exponent-confusion", "repeated-multiplication-index-gap"],
+  },
+  {
+    cluster: "variable-index-notation",
+    clusterTitle: "Variable index notation",
+    title: "Write variable repeated multiplication as a power",
+    prompt: "Write this repeated multiplication using index notation: a x a x a x a",
+    options: ["a^4", "4a", "a + 4"],
+    answer: "a^4",
+    visual:
+      "early-number|caption=The base is a and it repeats 4 times.|numbers=a,4,a^4|labels=base,exponent,power",
+    misconceptionTargets: ["variable-power-notation-error", "coefficient-exponent-confusion"],
+  },
+  {
+    cluster: "expand-index-notation",
+    clusterTitle: "Expand index notation",
+    title: "Expand a power",
+    prompt: "Expand the power as repeated multiplication: 4^2",
+    options: ["4 x 4", "2 x 2 x 2 x 2", "4 + 4"],
+    answer: "4 x 4",
+    visual:
+      "early-number|caption=The exponent tells how many factors of the base to write.|numbers=4^2,4 x 4|labels=power,expanded form",
+    misconceptionTargets: ["power-as-multiplication-by-exponent-error", "expanded-form-gap"],
+  },
+  {
+    cluster: "evaluate-powers",
+    clusterTitle: "Evaluate powers",
+    title: "Evaluate a power",
+    prompt: "Evaluate the power: 5^3",
+    options: ["125", "15", "25"],
+    answer: "125",
+    visual:
+      "early-number|caption=5^3 means 5 x 5 x 5.|numbers=5^3,5 x 5 x 5,125|labels=power,expanded form,value",
+    misconceptionTargets: ["power-evaluation-error", "exponent-as-multiplier-error"],
+  },
+  {
+    cluster: "square-roots",
+    clusterTitle: "Square roots",
+    title: "Find a square root",
+    prompt: "Find the square root: sqrt(81)",
+    options: ["9", "8", "18"],
+    answer: "9",
+    visual:
+      "early-number|caption=The square root asks which number squared gives 81.|numbers=sqrt(81),9,9^2 = 81|labels=root,side,power check",
+    misconceptionTargets: ["square-root-perfect-square-confusion", "root-inverse-gap"],
+  },
+  {
+    cluster: "power-root-inverse",
+    clusterTitle: "Powers and roots as inverses",
+    title: "Connect powers and roots",
+    prompt: "Complete the inverse relationship: (sqrt(49))^2",
+    options: ["49", "7", "14"],
+    answer: "49",
+    visual:
+      "early-number|caption=Square root and squaring undo each other for this value.|numbers=sqrt(49),7,7^2,49|labels=root,value,square,result",
+    misconceptionTargets: ["inverse-operation-gap", "square-root-result-confusion"],
+  },
+  {
+    cluster: "perfect-square-context",
+    clusterTitle: "Perfect square context",
+    title: "Find a square side length",
+    prompt: "The area of a square garden is 144 m^2. What is the length of one side?",
+    options: ["12 m", "14 m", "72 m"],
+    answer: "12 m",
+    visual:
+      "early-number|caption=For a square, side length is the square root of the area.|numbers=144 m^2,sqrt(144),12 m|labels=area,root,side length",
+    misconceptionTargets: ["area-square-root-gap", "halve-area-error"],
+  },
+  {
+    cluster: "cube-context",
+    clusterTitle: "Cube context",
+    title: "Find a cube edge length",
+    prompt: "A cube has a volume of 216 cm^3. What is the length of one edge?",
+    options: ["6 cm", "12 cm", "36 cm"],
+    answer: "6 cm",
+    visual:
+      "early-number|caption=6^3 means 6 x 6 x 6, which gives the cube volume.|numbers=6^3,216 cm^3,6 cm|labels=power,volume,edge",
+    misconceptionTargets: ["cube-root-context-gap", "volume-edge-confusion"],
+  },
+  {
+    cluster: "number-squared",
+    clusterTitle: "Number squared",
+    title: "Reverse a square",
+    prompt: "A number squared is 169. What is the number?",
+    options: ["13", "12", "14"],
+    answer: "13",
+    visual:
+      "early-number|caption=Find the number whose square is 169.|numbers=n^2 = 169,sqrt(169),13|labels=equation,root,number",
+    misconceptionTargets: ["perfect-square-memory-gap", "root-as-half-error"],
+  },
+];
+
 export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
   {
     key: `number-step-${STEP_NUMBER}-${STEP_KEY}-assessment-v1`,
@@ -377,6 +516,21 @@ export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
     parentItemBankKey: NUMBER_INTEGERS_COORDINATES_PROPERTIES_ITEM_BANK_KEY,
     progressionBandKey: "integers-coordinates-number-properties",
     items: step42Seeds.map((seed, index) => makeStep42Item(seed, index)),
+  },
+  {
+    key: `number-step-${STEP_44_NUMBER}-${STEP_44_KEY}-assessment-v1`,
+    stepNumber: STEP_44_NUMBER,
+    stepKey: STEP_44_KEY,
+    pathwayStepId: STEP_44_PATHWAY_STEP_ID,
+    title: "Use index notation, powers and roots",
+    shortTitle: "Powers and roots",
+    description:
+      "Represent repeated multiplication efficiently and connect it to inverse ideas.",
+    parentBankKey: "powers-roots-exponent-notation" as const,
+    parentBankTitle: "Powers and roots",
+    parentItemBankKey: NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
+    progressionBandKey: "powers-roots-exponent-notation",
+    items: step44Seeds.map((seed, index) => makeStep44Item(seed, index)),
   },
 ] as const satisfies LowerSecondaryStepAssessmentDefinition[];
 
