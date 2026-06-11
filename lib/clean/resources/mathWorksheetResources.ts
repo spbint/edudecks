@@ -134,6 +134,8 @@ const CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S053-Calculate-Exactly-With-Fractions-And-Multiples-Of-Pi-Where-Appropriate.pdf";
 const WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S054-Work-With-Percentage-Change-Growth-And-Decay.pdf";
+const APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S055-Apply-Ratio-Proportion-And-Rates-Of-Change.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1025,6 +1027,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::apply-ratio-proportion-and-rates-of-change",
+    stepKey: "apply-ratio-proportion-and-rates-of-change",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 55,
+    pathwayStepTitle: "Apply ratio, proportion and rates of change",
+    title: "Apply Ratio, Proportion And Rates Of Change",
+    concept:
+      "Solve problems using ratio, proportion and rates of change in real-life contexts.",
+    includesAnswerSheet: false,
+    fileName: APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

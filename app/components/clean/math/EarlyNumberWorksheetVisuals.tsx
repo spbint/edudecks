@@ -458,6 +458,14 @@ export function isStep54PercentageChangeActivity(id: string, stepKey?: string | 
   );
 }
 
+export function isStep55RatioProportionRatesActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "apply-ratio-proportion-and-rates-of-change" ||
+    safe(id).startsWith("number-step-55-assess-") ||
+    safe(id).startsWith("number-step-55-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -12107,6 +12115,145 @@ export function renderStep54WorksheetOptionCard({
           fontWeight: 900,
         }}
       >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function getStep55Section(prompt: string, visual: EarlyNumberVisualModel) {
+  const text = `${prompt} ${visual.caption} ${visual.numberCards.join(" ")}`.toLowerCase();
+  if (text.includes("inverse") || text.includes("workers")) return "Inverse proportion";
+  if (text.includes("directly proportional")) return "Direct proportion";
+  if (text.includes("proportion") || text.includes("x/")) return "Fraction proportion";
+  if (text.includes("speed") || text.includes("rate") || text.includes("litres") || text.includes("km/h")) {
+    return "Rate of change";
+  }
+  if (text.includes("map") || text.includes("recipe") || text.includes("scale")) return "Scale and proportion";
+  if (text.includes("share")) return "Share in a ratio";
+  if (text.includes("simplify")) return "Simplify ratios";
+  return "Ratio and rates";
+}
+
+export function renderStep55WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const cards = visual.numberCards.length ? visual.numberCards : visual.labels;
+  const section = getStep55Section(prompt, visual);
+  const primary = cards[0] ?? "ratio or rate";
+  const secondary = cards[1] ?? "result";
+  const tertiary = cards[2] ?? "";
+
+  return (
+    <div
+      style={{
+        border: "2px solid #bfdbfe",
+        borderRadius: 22,
+        background: "#ffffff",
+        padding: 18,
+        display: "grid",
+        gap: 14,
+        boxShadow: "0 14px 30px rgba(15,23,42,0.08)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", padding: "7px 11px", fontSize: 13, fontWeight: 950 }}>
+          {section}
+        </div>
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 999, background: "#f0fdf4", color: "#166534", padding: "7px 11px", fontSize: 13, fontWeight: 900 }}>
+          Structure first
+        </div>
+      </div>
+
+      <div style={{ border: "1px solid #dbeafe", borderRadius: 18, background: "#f8fbff", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 900 }}>
+          Ratio/proportion working card
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
+          <div style={{ border: "2px solid #bfdbfe", borderRadius: 16, background: "#ffffff", color: "#1e3a8a", padding: "14px 10px", textAlign: "center", fontSize: primary.length > 32 ? 16 : 26, fontWeight: 950, lineHeight: 1.15 }}>
+            {primary}
+          </div>
+          <div style={{ color: "#2563eb", fontSize: 24, fontWeight: 950 }}>{"=>"}</div>
+          <div style={{ border: "2px solid #fed7aa", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "14px 10px", textAlign: "center", fontSize: secondary.length > 32 ? 16 : 26, fontWeight: 950, lineHeight: 1.15 }}>
+            {secondary}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 16, background: "#f0f9ff", padding: 12, color: "#075985" }}>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Remember</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            Direct proportion uses y = kx. Inverse proportion keeps xy constant.
+          </div>
+        </div>
+        <div style={{ border: "1px solid #e0e7ff", borderRadius: 16, background: "#eef2ff", padding: 12, color: "#3730a3" }}>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Rate check</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            rate = amount / time. Keep units consistent before choosing.
+          </div>
+        </div>
+      </div>
+
+      {tertiary ? (
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: 12, fontSize: 15, fontWeight: 900, textAlign: "center" }}>
+          {tertiary}
+        </div>
+      ) : null}
+
+      <div style={{ color: "#475569", fontSize: 13, fontWeight: 700 }}>
+        {visual.caption}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep55WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = normalized.includes(":")
+    ? "Ratio"
+    : lower.includes("£") || lower.includes("$")
+      ? "Share"
+      : lower.includes("km") || lower.includes("litre") || lower.includes("/h")
+        ? "Rate"
+        : lower.includes("day") || lower.includes("worker")
+          ? "Inverse"
+          : "Value";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 42 ? 15 : normalized.length > 24 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
         {label}
       </div>
     </div>
