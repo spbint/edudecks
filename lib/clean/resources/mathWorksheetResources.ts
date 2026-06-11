@@ -136,6 +136,8 @@ const WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S054-Work-With-Percentage-Change-Growth-And-Decay.pdf";
 const APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S055-Apply-Ratio-Proportion-And-Rates-Of-Change.pdf";
+const USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S056-Use-Number-Skills-In-Algebraic-And-Graphical-Contexts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1045,6 +1047,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::use-number-skills-in-algebraic-and-graphical-contexts",
+    stepKey: "use-number-skills-in-algebraic-and-graphical-contexts",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 56,
+    pathwayStepTitle: "Use number skills in algebraic and graphical contexts",
+    title: "Use Number Skills In Algebraic And Graphical Contexts",
+    concept:
+      "Apply number skills to simplify algebraic expressions, solve equations and interpret graphs.",
+    includesAnswerSheet: false,
+    fileName: USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

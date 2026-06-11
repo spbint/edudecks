@@ -57,6 +57,7 @@ import {
   isStep53ExactFractionsPiActivity,
   isStep54PercentageChangeActivity,
   isStep55RatioProportionRatesActivity,
+  isStep56AlgebraGraphActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -154,6 +155,8 @@ import {
   renderStep54WorksheetPromptVisual,
   renderStep55WorksheetOptionCard,
   renderStep55WorksheetPromptVisual,
+  renderStep56WorksheetOptionCard,
+  renderStep56WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1478,6 +1481,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep56AlgebraGraphActivity(task.id)) {
+    const step56Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep56WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step56Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1942,6 +1954,7 @@ function TaskCard({
           const step53ExactFractionsPiOptions = isStep53ExactFractionsPiActivity(task.id);
           const step54PercentageChangeOptions = isStep54PercentageChangeActivity(task.id);
           const step55RatioProportionRatesOptions = isStep55RatioProportionRatesActivity(task.id);
+          const step56AlgebraGraphOptions = isStep56AlgebraGraphActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -2004,7 +2017,8 @@ function TaskCard({
                   step51StandardFormOptions ||
                   step53ExactFractionsPiOptions ||
                   step54PercentageChangeOptions ||
-                  step55RatioProportionRatesOptions
+                  step55RatioProportionRatesOptions ||
+                  step56AlgebraGraphOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -3577,6 +3591,63 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step56Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              !step32Visual &&
+              !step33Visual &&
+              !step34Visual &&
+              !step35Visual &&
+              !step36Visual &&
+              !step37Visual &&
+              !step38Visual &&
+              !step39Visual &&
+              !step40Visual &&
+              !step41Visual &&
+              !step42Visual &&
+              !step44Visual &&
+              !step45Visual &&
+              !step46Visual &&
+              !step48Visual &&
+              !step49Visual &&
+              !step50Visual &&
+              !step51Visual &&
+              !step53Visual &&
+              !step54Visual &&
+              !step55Visual &&
+              step56AlgebraGraphOptions
+                ? renderStep56WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -3627,7 +3698,8 @@ function TaskCard({
               step51Visual ??
               step53Visual ??
               step54Visual ??
-              step55Visual;
+              step55Visual ??
+              step56Visual;
 
             return (
               <button

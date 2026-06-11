@@ -54,6 +54,9 @@ function makeTask(
     assessment.stepKey === "work-with-percentage-change-growth-and-decay";
   const isStep55 =
     assessment.stepKey === "apply-ratio-proportion-and-rates-of-change";
+  const isStep56 =
+    assessment.stepKey ===
+    "use-number-skills-in-algebraic-and-graphical-contexts";
   return {
     id: `number-step-${assessment.stepNumber}-practice-${String(index + 1).padStart(3, "0")}`,
     title: assessmentItem.title,
@@ -71,6 +74,8 @@ function makeTask(
             ? "Choose the multiplier first: increases use 1 + p/100, decreases use 1 - p/100, and repeated changes multiply."
             : isStep55
               ? "Identify the structure first: ratio parts, direct proportion y = kx, inverse proportion xy = k, or rate = amount / time."
+              : isStep56
+                ? "Work step by step: collect like terms, keep equations balanced, substitute carefully, and read graph units before choosing."
         : "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,
