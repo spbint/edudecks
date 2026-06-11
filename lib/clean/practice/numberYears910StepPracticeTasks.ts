@@ -57,6 +57,8 @@ function makeTask(
   const isStep56 =
     assessment.stepKey ===
     "use-number-skills-in-algebraic-and-graphical-contexts";
+  const isStep57 =
+    assessment.stepKey === "solve-financial-and-real-world-modelling-problems";
   return {
     id: `number-step-${assessment.stepNumber}-practice-${String(index + 1).padStart(3, "0")}`,
     title: assessmentItem.title,
@@ -76,7 +78,9 @@ function makeTask(
               ? "Identify the structure first: ratio parts, direct proportion y = kx, inverse proportion xy = k, or rate = amount / time."
               : isStep56
                 ? "Work step by step: collect like terms, keep equations balanced, substitute carefully, and read graph units before choosing."
-        : "Use the visual model, table or context card first. Then choose the matching answer.",
+                : isStep57
+                  ? "Organise the known values first. Keep units consistent, choose the operation for each step, and check the answer makes sense."
+                  : "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,
     relatedAssessmentItemIds: [assessmentItem.id],

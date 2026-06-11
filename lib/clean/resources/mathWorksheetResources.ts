@@ -138,6 +138,8 @@ const APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S055-Apply-Ratio-Proportion-And-Rates-Of-Change.pdf";
 const USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S056-Use-Number-Skills-In-Algebraic-And-Graphical-Contexts.pdf";
+const SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S057-Solve-Financial-And-Real-World-Modelling-Problems.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1065,6 +1067,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::solve-financial-and-real-world-modelling-problems",
+    stepKey: "solve-financial-and-real-world-modelling-problems",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 57,
+    pathwayStepTitle: "Solve financial and real-world modelling problems",
+    title: "Solve Financial And Real-World Modelling Problems",
+    concept:
+      "Solve multi-step financial and real-world modelling problems involving money, budgets, best buys, measurement, time and practical decision-making.",
+    includesAnswerSheet: false,
+    fileName: SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];
