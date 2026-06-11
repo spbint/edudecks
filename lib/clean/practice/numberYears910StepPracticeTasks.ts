@@ -59,6 +59,8 @@ function makeTask(
     "use-number-skills-in-algebraic-and-graphical-contexts";
   const isStep57 =
     assessment.stepKey === "solve-financial-and-real-world-modelling-problems";
+  const isStep58 =
+    assessment.stepKey === "interpret-limits-of-accuracy-and-rounding";
   return {
     id: `number-step-${assessment.stepNumber}-practice-${String(index + 1).padStart(3, "0")}`,
     title: assessmentItem.title,
@@ -80,6 +82,8 @@ function makeTask(
                 ? "Work step by step: collect like terms, keep equations balanced, substitute carefully, and read graph units before choosing."
                 : isStep57
                   ? "Organise the known values first. Keep units consistent, choose the operation for each step, and check the answer makes sense."
+                  : isStep58
+                    ? "Identify the rounding accuracy first. Use half the rounding unit for bounds, and round only the final answer unless told otherwise."
                   : "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,

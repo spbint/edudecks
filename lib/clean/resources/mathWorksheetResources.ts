@@ -140,6 +140,8 @@ const USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S056-Use-Number-Skills-In-Algebraic-And-Graphical-Contexts.pdf";
 const SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S057-Solve-Financial-And-Real-World-Modelling-Problems.pdf";
+const INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S058-Interpret-Limits-Of-Accuracy-And-Rounding.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1085,6 +1087,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::interpret-limits-of-accuracy-and-rounding",
+    stepKey: "interpret-limits-of-accuracy-and-rounding",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 58,
+    pathwayStepTitle: "Interpret limits of accuracy and rounding",
+    title: "Interpret Limits Of Accuracy And Rounding",
+    concept:
+      "Solve problems involving limits of accuracy, estimates and rounding in real-life contexts.",
+    includesAnswerSheet: false,
+    fileName: INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

@@ -482,6 +482,14 @@ export function isStep57FinancialModellingActivity(id: string, stepKey?: string 
   );
 }
 
+export function isStep58AccuracyRoundingActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "interpret-limits-of-accuracy-and-rounding" ||
+    safe(id).startsWith("number-step-58-assess-") ||
+    safe(id).startsWith("number-step-58-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -12534,6 +12542,143 @@ export function renderStep57WorksheetOptionCard({
           : lower.includes("%")
             ? "Percent"
             : "Choice";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 42 ? 15 : normalized.length > 24 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function getStep58Section(prompt: string, visual: EarlyNumberVisualModel) {
+  const text = `${prompt} ${visual.caption} ${visual.numberCards.join(" ")}`.toLowerCase();
+  if (text.includes("significant")) return "Significant figures";
+  if (text.includes("lower bound") || text.includes("upper bound") || text.includes("bounds") || text.includes("greatest possible")) {
+    return "Limits of accuracy";
+  }
+  if (text.includes("calculate") || text.includes("final answer")) return "Calculate then round";
+  if (text.includes("estimate") || text.includes("reasonable")) return "Estimate and check";
+  if (text.includes("runner") || text.includes("petrol") || text.includes("rice") || text.includes("mass")) return "Real-world accuracy";
+  return "Decimal-place rounding";
+}
+
+export function renderStep58WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const cards = visual.numberCards.length ? visual.numberCards : visual.labels;
+  const section = getStep58Section(prompt, visual);
+  const primary = cards[0] ?? "rounded value";
+  const secondary = cards[1] ?? "accuracy";
+  const tertiary = cards[2] ?? "";
+
+  return (
+    <div
+      style={{
+        border: "2px solid #bfdbfe",
+        borderRadius: 22,
+        background: "#ffffff",
+        padding: 18,
+        display: "grid",
+        gap: 14,
+        boxShadow: "0 14px 30px rgba(15,23,42,0.08)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", padding: "7px 11px", fontSize: 13, fontWeight: 950 }}>
+          {section}
+        </div>
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 999, background: "#f0fdf4", color: "#166534", padding: "7px 11px", fontSize: 13, fontWeight: 900 }}>
+          Accuracy first
+        </div>
+      </div>
+
+      <div style={{ border: "1px solid #dbeafe", borderRadius: 18, background: "#f8fbff", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 900 }}>
+          Rounding and bounds card
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
+          <div style={{ border: "2px solid #bfdbfe", borderRadius: 16, background: "#ffffff", color: "#1e3a8a", padding: "14px 10px", textAlign: "center", fontSize: primary.length > 32 ? 16 : 26, fontWeight: 950, lineHeight: 1.15 }}>
+            {primary}
+          </div>
+          <div style={{ color: "#2563eb", fontSize: 24, fontWeight: 950 }}>{"=>"}</div>
+          <div style={{ border: "2px solid #fed7aa", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "14px 10px", textAlign: "center", fontSize: secondary.length > 32 ? 16 : 26, fontWeight: 950, lineHeight: 1.15 }}>
+            {secondary}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 16, background: "#f0f9ff", padding: 12, color: "#075985" }}>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Remember</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            For bounds, use half the rounding unit on either side of the rounded value.
+          </div>
+        </div>
+        <div style={{ border: "1px solid #e0e7ff", borderRadius: 16, background: "#eef2ff", padding: 12, color: "#3730a3" }}>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Check</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            Calculate first, then round the final answer unless the task says otherwise.
+          </div>
+        </div>
+      </div>
+
+      {tertiary ? (
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: 12, fontSize: 15, fontWeight: 900, textAlign: "center" }}>
+          {tertiary}
+        </div>
+      ) : null}
+
+      <div style={{ color: "#475569", fontSize: 13, fontWeight: 700 }}>
+        {visual.caption}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep58WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = lower.includes("cm") || lower.includes("kg") || lower.includes("litre") || lower.includes("m") || lower.includes("s")
+    ? "Bound"
+    : lower.includes("yes") || lower.includes("no")
+      ? "Check"
+      : lower.includes(",") || lower.includes("to")
+        ? "Interval"
+        : lower.includes(".")
+          ? "Rounded value"
+          : "Estimate";
 
   return (
     <div
