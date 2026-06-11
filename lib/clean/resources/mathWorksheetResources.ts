@@ -128,6 +128,8 @@ const USE_NUMBER_RELATIONSHIPS_ALGEBRAIC_THINKING_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S050-Use-Number-Relationships-To-Support-Algebraic-Thinking.pdf";
 const WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S051-Work-With-Standard-Form-And-Very-Large-Or-Very-Small-Numbers.pdf";
+const CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S053-Calculate-Exactly-With-Fractions-And-Multiples-Of-Pi-Where-Appropriate.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -963,6 +965,26 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::calculate-exactly-with-fractions-and-multiples-of-pi-where-appropriate",
+    stepKey:
+      "calculate-exactly-with-fractions-and-multiples-of-pi-where-appropriate",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 53,
+    pathwayStepTitle:
+      "Calculate exactly with fractions and multiples of pi where appropriate",
+    title: "Calculate Exactly With Fractions And Multiples Of Pi Where Appropriate",
+    concept:
+      "Calculate exactly using fractions and multiples of pi, leaving answers in simplest exact form where appropriate.",
+    includesAnswerSheet: false,
+    fileName: CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

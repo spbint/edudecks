@@ -356,22 +356,217 @@ function powersRootsSeeds(): Seed[] {
 }
 
 function exactFormSeeds(): Seed[] {
-  const rows = [
-    ["half of 6pi", "3pi"], ["sqrt(50)", "5sqrt(2)"], ["2pi + 3pi", "5pi"],
-    ["sqrt(72)", "6sqrt(2)"], ["area 9pi divided by 3", "3pi"], ["sqrt(18) + sqrt(8)", "5sqrt(2)"],
-    ["4 x pi/2", "2pi"], ["sqrt(48)", "4sqrt(3)"], ["3sqrt(5) + 2sqrt(5)", "5sqrt(5)"],
-    ["circumference 2pi x 7", "14pi"], ["sqrt(27)", "3sqrt(3)"], ["5pi - 2pi", "3pi"],
+  return [
+    {
+      cluster: "exact-fraction-calculations",
+      clusterTitle: "Exact fraction calculations",
+      title: "Add fractions exactly",
+      prompt: "Calculate and give your answer in simplest form.",
+      options: ["5/6", "2/5", "1/5", "1"],
+      answer: "5/6",
+      visual:
+        "early-number|caption=Use a common denominator and simplify the exact fraction.|numbers=1/2 + 1/3,5/6",
+      misconceptionTargets: ["fraction-common-denominator-gap", "fraction-simplification-error"],
+    },
+    {
+      cluster: "exact-fraction-calculations",
+      clusterTitle: "Exact fraction calculations",
+      title: "Subtract fractions exactly",
+      prompt: "Calculate and give your answer in simplest form.",
+      options: ["7/12", "2/10", "1/2", "5/12"],
+      answer: "7/12",
+      visual:
+        "early-number|caption=Rewrite both fractions using twelfths, then subtract.|numbers=3/4 - 1/6,7/12",
+      misconceptionTargets: ["fraction-common-denominator-gap", "fraction-subtraction-error"],
+    },
+    {
+      cluster: "exact-fraction-calculations",
+      clusterTitle: "Exact fraction calculations",
+      title: "Multiply fractions exactly",
+      prompt: "Calculate and give your answer in simplest form.",
+      options: ["3/4", "30/13", "17/40", "1/4"],
+      answer: "3/4",
+      visual:
+        "early-number|caption=Cancel common factors before or after multiplying.|numbers=2/5 x 15/8,3/4",
+      misconceptionTargets: ["fraction-multiplication-error", "fraction-simplification-error"],
+    },
+    {
+      cluster: "exact-fraction-calculations",
+      clusterTitle: "Exact fraction calculations",
+      title: "Divide fractions exactly",
+      prompt: "Calculate and give your answer in simplest form.",
+      options: ["3/2", "2/3", "21/14", "14/27"],
+      answer: "3/2",
+      visual:
+        "early-number|caption=Divide by multiplying by the reciprocal, then simplify.|numbers=7/9 / 14/27,3/2",
+      misconceptionTargets: ["fraction-division-reciprocal-gap", "fraction-simplification-error"],
+    },
+    {
+      cluster: "fraction-contexts",
+      clusterTitle: "Fractions in context",
+      title: "Recipe fraction scale",
+      prompt: "A recipe uses 2/3 cup of sugar. You want to make 1 1/2 times the recipe. How much sugar do you need?",
+      options: ["1 cup", "2/3 cup", "3/2 cups", "4/3 cups"],
+      answer: "1 cup",
+      visual:
+        "early-number|caption=Scale the recipe by multiplying the exact fractions.|numbers=2/3 x 3/2,1 cup",
+      misconceptionTargets: ["fraction-context-operation-error", "mixed-number-conversion-gap"],
+    },
+    {
+      cluster: "fraction-contexts",
+      clusterTitle: "Fractions in context",
+      title: "Tank fraction problem",
+      prompt: "A tank is 3/5 full of water. Then 1/4 of the tank is added. What fraction of the tank is full now?",
+      options: ["17/20", "4/9", "7/10", "1/5"],
+      answer: "17/20",
+      visual:
+        "early-number|caption=Add the exact fractional parts using twentieths.|numbers=3/5 + 1/4,17/20",
+      misconceptionTargets: ["fraction-context-operation-error", "fraction-common-denominator-gap"],
+    },
+    {
+      cluster: "fraction-contexts",
+      clusterTitle: "Fractions in context",
+      title: "Rice fraction subtraction",
+      prompt: "A bag has 5/8 kg of rice. You use 3/10 kg. How much rice is left?",
+      options: ["13/40 kg", "2/18 kg", "1/4 kg", "7/20 kg"],
+      answer: "13/40 kg",
+      visual:
+        "early-number|caption=Subtract exact amounts using fortieths.|numbers=5/8 - 3/10,13/40 kg",
+      misconceptionTargets: ["fraction-context-operation-error", "fraction-subtraction-error"],
+    },
+    {
+      cluster: "exact-pi-values",
+      clusterTitle: "Exact pi expressions",
+      title: "Combine multiples of pi",
+      prompt: "Calculate exactly.",
+      options: ["5pi", "6pi", "pi^5", "5"],
+      answer: "5pi",
+      visual:
+        "early-number|caption=Combine like pi terms without changing pi to a decimal.|numbers=2pi + 3pi,5pi",
+      misconceptionTargets: ["exact-form-rounded-too-early", "unlike-pi-term-error"],
+    },
+    {
+      cluster: "exact-pi-values",
+      clusterTitle: "Exact pi expressions",
+      title: "Subtract multiples of pi",
+      prompt: "Calculate exactly.",
+      options: ["3pi", "11pi", "28pi", "3"],
+      answer: "3pi",
+      visual:
+        "early-number|caption=Subtract the coefficients and keep pi exact.|numbers=7pi - 4pi,3pi",
+      misconceptionTargets: ["exact-form-rounded-too-early", "unlike-pi-term-error"],
+    },
+    {
+      cluster: "exact-pi-values",
+      clusterTitle: "Exact pi expressions",
+      title: "Add fractional multiples of pi",
+      prompt: "Calculate exactly.",
+      options: ["5pi/6", "2pi/5", "pi/6", "5/6"],
+      answer: "5pi/6",
+      visual:
+        "early-number|caption=Use a common denominator for the coefficients, then keep pi exact.|numbers=pi/2 + pi/3,5pi/6",
+      misconceptionTargets: ["fraction-common-denominator-gap", "exact-form-rounded-too-early"],
+    },
+    {
+      cluster: "circle-exact-values",
+      clusterTitle: "Circle exact values",
+      title: "Circumference from radius",
+      prompt: "Find the circumference of a circle with radius 7 cm. Give your answer in terms of pi.",
+      options: ["14pi cm", "7pi cm", "49pi cm", "28pi cm"],
+      answer: "14pi cm",
+      visual:
+        "early-number|caption=Use C = 2pi r and keep the answer exact.|numbers=r = 7 cm,C = 14pi cm",
+      misconceptionTargets: ["radius-diameter-confusion", "circle-formula-error"],
+    },
+    {
+      cluster: "circle-exact-values",
+      clusterTitle: "Circle exact values",
+      title: "Area from radius",
+      prompt: "Find the area of a circle with radius 5 cm. Give your answer in terms of pi.",
+      options: ["25pi cm^2", "10pi cm^2", "5pi cm^2", "20pi cm^2"],
+      answer: "25pi cm^2",
+      visual:
+        "early-number|caption=Use A = pi r^2 and keep pi in the exact answer.|numbers=r = 5 cm,A = 25pi cm^2",
+      misconceptionTargets: ["circle-formula-error", "square-radius-gap"],
+    },
+    {
+      cluster: "circle-exact-values",
+      clusterTitle: "Circle exact values",
+      title: "Area from diameter",
+      prompt: "Find the area of a circle with diameter 12 cm. Give your answer in terms of pi.",
+      options: ["36pi cm^2", "12pi cm^2", "144pi cm^2", "24pi cm^2"],
+      answer: "36pi cm^2",
+      visual:
+        "early-number|caption=Halve the diameter to get the radius before using A = pi r^2.|numbers=d = 12 cm,r = 6 cm,A = 36pi cm^2",
+      misconceptionTargets: ["radius-diameter-confusion", "circle-formula-error"],
+    },
+    {
+      cluster: "circle-exact-values",
+      clusterTitle: "Circle exact values",
+      title: "Radius from area",
+      prompt: "A circular garden has area 36pi m^2. Find the radius of the garden.",
+      options: ["6 m", "12 m", "36 m", "18 m"],
+      answer: "6 m",
+      visual:
+        "early-number|caption=If A = pi r^2 and A = 36pi, then r^2 = 36.|numbers=A = 36pi m^2,r = 6 m",
+      misconceptionTargets: ["inverse-circle-formula-gap", "square-root-gap"],
+    },
+    {
+      cluster: "choose-exact-expression",
+      clusterTitle: "Choose exact expressions",
+      title: "Choose a fraction expression",
+      prompt: "Three-quarters of 2/5 can be written as which expression?",
+      options: ["3/4 x 2/5", "3/4 + 2/5", "3/4 / 2/5", "2/5 - 3/4"],
+      answer: "3/4 x 2/5",
+      visual:
+        "early-number|caption=The word 'of' usually means multiply in fraction problems.|numbers=3/4 of 2/5,3/4 x 2/5",
+      misconceptionTargets: ["fraction-context-operation-error", "expression-choice-error"],
+    },
+    {
+      cluster: "choose-exact-expression",
+      clusterTitle: "Choose exact expressions",
+      title: "Twice a circumference",
+      prompt: "Twice the circumference of a circle with radius r is:",
+      options: ["2 x (2pi r)", "2pi r", "pi r^2", "2r"],
+      answer: "2 x (2pi r)",
+      visual:
+        "early-number|caption=Start with the circumference formula, then multiply the whole expression by 2.|numbers=C = 2pi r,2 x (2pi r)",
+      misconceptionTargets: ["circle-formula-error", "expression-choice-error"],
+    },
+    {
+      cluster: "real-world-exact-values",
+      clusterTitle: "Real-world exact answers",
+      title: "Sector exact area",
+      prompt: "A sector of a circle has radius 10 cm and central angle 60 degrees. What is the area of the sector?",
+      options: ["50pi/3 cm^2", "100pi cm^2", "60pi cm^2", "10pi cm^2"],
+      answer: "50pi/3 cm^2",
+      visual:
+        "early-number|caption=A 60 degree sector is 1/6 of the full circle area.|numbers=1/6 x 100pi,50pi/3 cm^2",
+      misconceptionTargets: ["sector-fraction-gap", "circle-formula-error"],
+    },
+    {
+      cluster: "real-world-exact-values",
+      clusterTitle: "Real-world exact answers",
+      title: "Wheel revolutions exact distance",
+      prompt: "A wheel makes 15 complete revolutions. The wheel has radius 14 cm. How far does it travel?",
+      options: ["420pi cm", "210pi cm", "28pi cm", "15pi cm"],
+      answer: "420pi cm",
+      visual:
+        "early-number|caption=Distance is revolutions times circumference.|numbers=15 x 2pi x 14,420pi cm",
+      misconceptionTargets: ["circle-context-operation-error", "radius-diameter-confusion"],
+    },
+    {
+      cluster: "real-world-exact-values",
+      clusterTitle: "Real-world exact answers",
+      title: "Pizza exact area",
+      prompt: "A pizza has a diameter of 30 cm. What is its area?",
+      options: ["225pi cm^2", "30pi cm^2", "900pi cm^2", "15pi cm^2"],
+      answer: "225pi cm^2",
+      visual:
+        "early-number|caption=Use radius 15 cm, then apply A = pi r^2.|numbers=d = 30 cm,r = 15 cm,A = 225pi cm^2",
+      misconceptionTargets: ["radius-diameter-confusion", "circle-formula-error"],
+    },
   ];
-  return rows.map(([question, answer], index) => ({
-    cluster: index % 4 === 0 ? "exact-pi-values" : index % 4 === 1 ? "simplify-surds" : index % 4 === 2 ? "combine-exact-terms" : "choose-exact-form",
-    clusterTitle: index % 4 === 0 ? "Exact pi values" : index % 4 === 1 ? "Simplify surds" : index % 4 === 2 ? "Combine exact terms" : "Choose exact form",
-    title: `Exact form ${index + 1}`,
-    prompt: `Which exact form matches ${question}?`,
-    options: [answer, question, "9.42"],
-    answer,
-    visual: `early-number|caption=Keep exact cards together instead of rounding.|numbers=${question},${answer}`,
-    misconceptionTargets: ["exact-form-rounded-too-early", "unlike-surd-combination-error"],
-  }));
 }
 
 function percentageChangeSeeds(): Seed[] {

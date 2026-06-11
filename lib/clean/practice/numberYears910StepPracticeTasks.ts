@@ -47,6 +47,9 @@ function makeTask(
   const isStep51 =
     assessment.stepKey ===
     "work-with-standard-form-and-very-large-or-very-small-numbers";
+  const isStep53 =
+    assessment.stepKey ===
+    "calculate-exactly-with-fractions-and-multiples-of-pi-where-appropriate";
   return {
     id: `number-step-${assessment.stepNumber}-practice-${String(index + 1).padStart(3, "0")}`,
     title: assessmentItem.title,
@@ -58,6 +61,8 @@ function makeTask(
     supportPrompt:
       isStep51
         ? "Use a x 10^n with 1 <= a < 10. Track whether the decimal movement makes the number larger or smaller."
+        : isStep53
+          ? "Keep the answer exact. Simplify fractions, combine like pi terms, and use circle formulas before choosing."
         : "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,
