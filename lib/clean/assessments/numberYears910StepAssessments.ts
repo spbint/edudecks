@@ -163,26 +163,178 @@ const approximationParent: ParentBank = {
 };
 
 function standardFormSeeds(): Seed[] {
-  const rows = [
-    ["4.2 x 10^5", "420000"], ["6.03 x 10^-3", "0.00603"], ["8.1 x 10^7", "81000000"],
-    ["3.5 x 10^-4", "0.00035"], ["9.04 x 10^6", "9040000"], ["7.2 x 10^-2", "0.072"],
-    ["1.25 x 10^8", "125000000"], ["5.6 x 10^-5", "0.000056"], ["2.01 x 10^4", "20100"],
-    ["4.75 x 10^-1", "0.475"], ["9.99 x 10^3", "9990"], ["6.4 x 10^-6", "0.0000064"],
+  return [
+    {
+      cluster: "large-scale-standard-form",
+      clusterTitle: "Write large numbers",
+      title: "Write 56,000 in standard form",
+      prompt: "Write 56,000 in standard form.",
+      options: ["5.6 x 10^4", "56 x 10^3", "0.56 x 10^5", "5.6 x 10^-4"],
+      answer: "5.6 x 10^4",
+      visual:
+        "early-number|caption=Move the decimal so the first number is between 1 and 10.|numbers=56,000,5.6 x 10^4",
+      misconceptionTargets: ["standard-form-leading-number-error", "positive-exponent-scale-gap"],
+    },
+    {
+      cluster: "large-scale-standard-form",
+      clusterTitle: "Write large numbers",
+      title: "Write 7,800,000 in standard form",
+      prompt: "Write 7,800,000 in standard form.",
+      options: ["7.8 x 10^6", "78 x 10^5", "7.8 x 10^-6", "0.78 x 10^7"],
+      answer: "7.8 x 10^6",
+      visual:
+        "early-number|caption=Large numbers use positive powers of 10.|numbers=7,800,000,7.8 x 10^6",
+      misconceptionTargets: ["standard-form-leading-number-error", "positive-exponent-scale-gap"],
+    },
+    {
+      cluster: "small-scale-standard-form",
+      clusterTitle: "Write very small numbers",
+      title: "Write 0.0045 in standard form",
+      prompt: "Write 0.0045 in standard form.",
+      options: ["4.5 x 10^-3", "4.5 x 10^3", "45 x 10^-4", "0.45 x 10^-2"],
+      answer: "4.5 x 10^-3",
+      visual:
+        "early-number|caption=Very small numbers use negative powers of 10.|numbers=0.0045,4.5 x 10^-3",
+      misconceptionTargets: ["negative-exponent-scale-gap", "standard-form-leading-number-error"],
+    },
+    {
+      cluster: "small-scale-standard-form",
+      clusterTitle: "Write very small numbers",
+      title: "Write 0.000072 in standard form",
+      prompt: "Write 0.000072 in standard form.",
+      options: ["7.2 x 10^-5", "7.2 x 10^5", "72 x 10^-6", "0.72 x 10^-4"],
+      answer: "7.2 x 10^-5",
+      visual:
+        "early-number|caption=Count the decimal-place shifts back to ordinary notation.|numbers=0.000072,7.2 x 10^-5",
+      misconceptionTargets: ["negative-exponent-scale-gap", "standard-form-leading-number-error"],
+    },
+    {
+      cluster: "convert-standard-form",
+      clusterTitle: "Convert to ordinary notation",
+      title: "Convert 2.4 x 10^3",
+      prompt: "Write 2.4 x 10^3 as an ordinary number.",
+      options: ["2,400", "240", "24,000", "0.0024"],
+      answer: "2,400",
+      visual:
+        "early-number|caption=A positive exponent moves the decimal to make a larger number.|numbers=2.4 x 10^3,2,400",
+      misconceptionTargets: ["positive-exponent-scale-gap", "place-value-shift-error"],
+    },
+    {
+      cluster: "convert-standard-form",
+      clusterTitle: "Convert to ordinary notation",
+      title: "Convert 6.02 x 10^-4",
+      prompt: "Write 6.02 x 10^-4 as an ordinary number.",
+      options: ["0.000602", "0.00602", "6020", "0.0000602"],
+      answer: "0.000602",
+      visual:
+        "early-number|caption=A negative exponent moves the decimal to make a smaller number.|numbers=6.02 x 10^-4,0.000602",
+      misconceptionTargets: ["negative-exponent-scale-gap", "place-value-shift-error"],
+    },
+    {
+      cluster: "compare-standard-form",
+      clusterTitle: "Compare standard form",
+      title: "Compare same powers",
+      prompt: "Choose the correct symbol.",
+      options: [">", "<", "="],
+      answer: ">",
+      visual:
+        "early-number|caption=Compare the leading numbers when the powers of 10 match.|numbers=3.2 x 10^5,__,2.9 x 10^5",
+      misconceptionTargets: ["standard-form-comparison-error", "leading-number-comparison-gap"],
+    },
+    {
+      cluster: "compare-standard-form",
+      clusterTitle: "Compare standard form",
+      title: "Compare negative powers",
+      prompt: "Choose the correct symbol.",
+      options: ["<", ">", "="],
+      answer: "<",
+      visual:
+        "early-number|caption=Convert or compare powers carefully when both numbers are small.|numbers=7.5 x 10^-3,__,2.1 x 10^-2",
+      misconceptionTargets: ["negative-exponent-scale-gap", "standard-form-comparison-error"],
+    },
+    {
+      cluster: "order-standard-form",
+      clusterTitle: "Order standard form",
+      title: "Order powers of 10",
+      prompt: "Order these from least to greatest: 2.6 x 10^3, 2.6 x 10^5, 2.6 x 10^4, 2.6 x 10^2.",
+      options: [
+        "2.6 x 10^2, 2.6 x 10^3, 2.6 x 10^4, 2.6 x 10^5",
+        "2.6 x 10^5, 2.6 x 10^4, 2.6 x 10^3, 2.6 x 10^2",
+        "2.6 x 10^3, 2.6 x 10^2, 2.6 x 10^4, 2.6 x 10^5",
+        "2.6 x 10^2, 2.6 x 10^4, 2.6 x 10^3, 2.6 x 10^5",
+      ],
+      answer: "2.6 x 10^2, 2.6 x 10^3, 2.6 x 10^4, 2.6 x 10^5",
+      visual:
+        "early-number|caption=The leading number is the same, so order the powers of 10.|numbers=2.6 x 10^2,2.6 x 10^3,2.6 x 10^4,2.6 x 10^5",
+      misconceptionTargets: ["standard-form-ordering-error", "power-of-ten-order-gap"],
+    },
+    {
+      cluster: "real-world-standard-form",
+      clusterTitle: "Real-world standard form",
+      title: "Earth to Sun distance",
+      prompt: "The distance from Earth to the Sun is about 149,600,000 km. Write this number in standard form.",
+      options: ["1.496 x 10^8 km", "14.96 x 10^7 km", "1.496 x 10^-8 km", "149.6 x 10^6 km"],
+      answer: "1.496 x 10^8 km",
+      visual:
+        "early-number|caption=Standard form helps write very large real-world measurements compactly.|numbers=149,600,000 km,1.496 x 10^8 km",
+      misconceptionTargets: ["real-world-scale-error", "standard-form-leading-number-error"],
+    },
+    {
+      cluster: "real-world-standard-form",
+      clusterTitle: "Real-world standard form",
+      title: "Bacterium length",
+      prompt: "A bacterium is about 0.0000025 m long. Write this number in standard form.",
+      options: ["2.5 x 10^-6 m", "2.5 x 10^6 m", "25 x 10^-7 m", "0.25 x 10^-5 m"],
+      answer: "2.5 x 10^-6 m",
+      visual:
+        "early-number|caption=Standard form helps write very small measurements compactly.|numbers=0.0000025 m,2.5 x 10^-6 m",
+      misconceptionTargets: ["real-world-scale-error", "negative-exponent-scale-gap"],
+    },
+    {
+      cluster: "calculate-standard-form",
+      clusterTitle: "Calculate in standard form",
+      title: "Multiply in standard form",
+      prompt: "Calculate and give your answer in standard form.",
+      options: ["1 x 10^6", "10 x 10^5", "1 x 10^5", "6.5 x 10^5"],
+      answer: "1 x 10^6",
+      visual:
+        "early-number|caption=Multiply the leading numbers, add the powers of 10, then normalise.|numbers=(2.5 x 10^3) x (4 x 10^2),1 x 10^6",
+      misconceptionTargets: ["standard-form-calculation-error", "normalise-standard-form-gap"],
+    },
+    {
+      cluster: "calculate-standard-form",
+      clusterTitle: "Calculate in standard form",
+      title: "Divide in standard form",
+      prompt: "Calculate and give your answer in standard form.",
+      options: ["2.1 x 10^4", "2.1 x 10^3", "3.3 x 10^8", "18.9 x 10^4"],
+      answer: "2.1 x 10^4",
+      visual:
+        "early-number|caption=Divide the leading numbers and subtract the powers of 10.|numbers=(6.3 x 10^6) / (3 x 10^2),2.1 x 10^4",
+      misconceptionTargets: ["standard-form-calculation-error", "exponent-division-error"],
+    },
+    {
+      cluster: "calculate-standard-form",
+      clusterTitle: "Calculate in standard form",
+      title: "Multiply small numbers",
+      prompt: "Calculate and give your answer in standard form.",
+      options: ["9 x 10^-7", "9 x 10^-1", "6.5 x 10^-7", "9 x 10^7"],
+      answer: "9 x 10^-7",
+      visual:
+        "early-number|caption=Negative powers combine when multiplying very small numbers.|numbers=(4.5 x 10^-4) x (2 x 10^-3),9 x 10^-7",
+      misconceptionTargets: ["negative-exponent-scale-gap", "standard-form-calculation-error"],
+    },
+    {
+      cluster: "calculate-standard-form",
+      clusterTitle: "Calculate in standard form",
+      title: "Divide powers of ten",
+      prompt: "Calculate and give your answer in standard form.",
+      options: ["8 x 10^4", "8 x 10^12", "8 x 10^-4", "11.52 x 10^4"],
+      answer: "8 x 10^4",
+      visual:
+        "early-number|caption=Divide 9.6 by 1.2, then subtract the exponents 8 - 4.|numbers=(9.6 x 10^8) / (1.2 x 10^4),8 x 10^4",
+      misconceptionTargets: ["exponent-division-error", "standard-form-calculation-error"],
+    },
   ];
-  return rows.map(([standard, ordinary], index) => {
-    const distractorA = ordinary.includes(".") ? ordinary.replace("0.", "0.0") : `${ordinary}0`;
-    const distractorB = ordinary.includes(".") ? ordinary.replace("0.", "0.00") : ordinary.slice(0, -1);
-    return {
-      cluster: index % 4 === 0 ? "large-scale-standard-form" : index % 4 === 1 ? "small-scale-standard-form" : index % 4 === 2 ? "powers-of-ten" : "compare-standard-form",
-      clusterTitle: index % 4 === 0 ? "Large-scale standard form" : index % 4 === 1 ? "Small-scale standard form" : index % 4 === 2 ? "Powers of ten" : "Compare standard form",
-      title: `Standard form ${index + 1}`,
-      prompt: `Which ordinary number matches ${standard}?`,
-      options: [ordinary, distractorA, distractorB],
-      answer: ordinary,
-      visual: `early-number|caption=Use powers-of-ten cards to scale the number.|numbers=${standard},${ordinary}`,
-      misconceptionTargets: ["standard-form-place-value-error", "negative-exponent-scale-gap"],
-    };
-  });
 }
 
 function powersRootsSeeds(): Seed[] {

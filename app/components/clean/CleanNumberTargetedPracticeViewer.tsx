@@ -53,6 +53,7 @@ import {
   isStep48EstimationBoundsActivity,
   isStep49CalculationReasonablenessActivity,
   isStep50AlgebraicThinkingActivity,
+  isStep51StandardFormActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -142,6 +143,8 @@ import {
   renderStep49WorksheetPromptVisual,
   renderStep50WorksheetOptionCard,
   renderStep50WorksheetPromptVisual,
+  renderStep51WorksheetOptionCard,
+  renderStep51WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -1430,6 +1433,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isStep51StandardFormActivity(task.id)) {
+    const step51Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderStep51WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: step51Visual,
+    });
+  }
+
   return (
     <div
       style={{
@@ -1890,6 +1902,7 @@ function TaskCard({
           const step48EstimationBoundsOptions = isStep48EstimationBoundsActivity(task.id);
           const step49CalculationReasonablenessOptions = isStep49CalculationReasonablenessActivity(task.id);
           const step50AlgebraicThinkingOptions = isStep50AlgebraicThinkingActivity(task.id);
+          const step51StandardFormOptions = isStep51StandardFormActivity(task.id);
           const step2VisualModel = step2NumberWordOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
@@ -1948,7 +1961,8 @@ function TaskCard({
                   step46ProportionalReasoningOptions ||
                   step48EstimationBoundsOptions ||
                   step49CalculationReasonablenessOptions ||
-                  step50AlgebraicThinkingOptions
+                  step50AlgebraicThinkingOptions ||
+                  step51StandardFormOptions
                 ? "repeat(auto-fit, minmax(132px, 1fr))"
               : undefined,
           }}
@@ -3303,6 +3317,59 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const step51Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              !step32Visual &&
+              !step33Visual &&
+              !step34Visual &&
+              !step35Visual &&
+              !step36Visual &&
+              !step37Visual &&
+              !step38Visual &&
+              !step39Visual &&
+              !step40Visual &&
+              !step41Visual &&
+              !step42Visual &&
+              !step44Visual &&
+              !step45Visual &&
+              !step46Visual &&
+              !step48Visual &&
+              !step49Visual &&
+              !step50Visual &&
+              step51StandardFormOptions
+                ? renderStep51WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -3349,7 +3416,8 @@ function TaskCard({
               step46Visual ??
               step48Visual ??
               step49Visual ??
-              step50Visual;
+              step50Visual ??
+              step51Visual;
 
             return (
               <button

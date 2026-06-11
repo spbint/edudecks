@@ -432,6 +432,15 @@ export function isStep50AlgebraicThinkingActivity(id: string, stepKey?: string |
   );
 }
 
+export function isStep51StandardFormActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) ===
+      "work-with-standard-form-and-very-large-or-very-small-numbers" ||
+    safe(id).startsWith("number-step-51-assess-") ||
+    safe(id).startsWith("number-step-51-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -11299,6 +11308,263 @@ export function renderStep50WorksheetOptionCard({
           borderRadius: 999,
           background: "#f0fdf4",
           color: "#166534",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function getStep51Section(prompt: string, visual: EarlyNumberVisualModel) {
+  const text = `${prompt} ${visual.caption} ${visual.numberCards.join(" ")}`.toLowerCase();
+  if (text.includes("least to greatest") || text.includes("order")) return "Order the cards";
+  if (text.includes("symbol") || text.includes("__")) return "Compare";
+  if (text.includes("earth") || text.includes("bacterium") || text.includes("km") || text.includes(" m")) {
+    return "Real-world scale";
+  }
+  if (text.includes("calculate") || text.includes(" / ") || text.includes(" x (")) return "Calculate";
+  if (text.includes("ordinary")) return "Convert";
+  if (text.includes("0.00") || text.includes("small")) return "Very small numbers";
+  return "Standard form";
+}
+
+export function renderStep51WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const cards = visual.numberCards.length ? visual.numberCards : visual.labels;
+  const section = getStep51Section(prompt, visual);
+  const primary = cards[0] ?? "a x 10^n";
+  const secondary = cards[1] ?? "ordinary number";
+  const tertiary = cards[2] ?? "";
+
+  return (
+    <div
+      style={{
+        border: "2px solid #bfdbfe",
+        borderRadius: 22,
+        background: "#ffffff",
+        padding: 18,
+        display: "grid",
+        gap: 14,
+        boxShadow: "0 14px 30px rgba(15,23,42,0.08)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #bae6fd",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 11px",
+            fontSize: 13,
+            fontWeight: 950,
+          }}
+        >
+          {section}
+        </div>
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 999,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "7px 11px",
+            fontSize: 13,
+            fontWeight: 900,
+          }}
+        >
+          {"Remember: 1 <= a < 10"}
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 18,
+          background: "#f8fbff",
+          padding: 14,
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 900 }}>
+          Standard form structure
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              border: "2px solid #bfdbfe",
+              borderRadius: 16,
+              background: "#ffffff",
+              color: "#1e3a8a",
+              padding: "14px 10px",
+              textAlign: "center",
+              fontSize: primary.length > 24 ? 18 : 28,
+              fontWeight: 950,
+              lineHeight: 1.1,
+            }}
+          >
+            {primary}
+          </div>
+          <div style={{ color: "#2563eb", fontSize: 24, fontWeight: 950 }}>
+            {"<->"}
+          </div>
+          <div
+            style={{
+              border: "2px solid #fed7aa",
+              borderRadius: 16,
+              background: "#fff7ed",
+              color: "#9a3412",
+              padding: "14px 10px",
+              textAlign: "center",
+              fontSize: secondary.length > 24 ? 18 : 28,
+              fontWeight: 950,
+              lineHeight: 1.1,
+            }}
+          >
+            {secondary}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 16,
+            background: "#f0fdf4",
+            padding: 12,
+            color: "#166534",
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Think about it</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            Positive powers make large numbers. Negative powers make very small numbers.
+          </div>
+        </div>
+        <div
+          style={{
+            border: "1px solid #bae6fd",
+            borderRadius: 16,
+            background: "#f0f9ff",
+            padding: 12,
+            color: "#075985",
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Power of 10</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            Move the decimal, then check the leading number is between 1 and 10.
+          </div>
+        </div>
+      </div>
+
+      {tertiary ? (
+        <div
+          style={{
+            border: "1px solid #e0e7ff",
+            borderRadius: 16,
+            background: "#eef2ff",
+            color: "#3730a3",
+            padding: 12,
+            fontSize: 15,
+            fontWeight: 900,
+            textAlign: "center",
+          }}
+        >
+          {tertiary}
+        </div>
+      ) : null}
+
+      <div style={{ color: "#475569", fontSize: 13, fontWeight: 700 }}>
+        {visual.caption}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep51WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = normalized.includes("x 10^")
+    ? "Standard form"
+    : lower.includes(",") || /^0\./.test(lower) || /\d{4,}/.test(lower)
+      ? "Ordinary number"
+      : lower === ">" || lower === "<" || lower === "="
+        ? "Compare"
+        : "Choice";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: normalized.length > 42 ? 15 : normalized.length > 24 ? 18 : 30,
+          fontWeight: 950,
+          lineHeight: 1.15,
+        }}
+      >
+        {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
           padding: "5px 8px",
           fontSize: 12,
           fontWeight: 900,

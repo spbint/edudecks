@@ -44,6 +44,9 @@ function makeTask(
 ): NumberPracticeTask {
   const assessmentItem = assessment.items[index];
   const expectedAnswer = assessmentItem.expectedAnswer || "";
+  const isStep51 =
+    assessment.stepKey ===
+    "work-with-standard-form-and-very-large-or-very-small-numbers";
   return {
     id: `number-step-${assessment.stepNumber}-practice-${String(index + 1).padStart(3, "0")}`,
     title: assessmentItem.title,
@@ -53,7 +56,9 @@ function makeTask(
     expectedAnswer,
     acceptableAnswers: assessmentItem.acceptableAnswers,
     supportPrompt:
-      "Use the visual model, table or context card first. Then choose the matching answer.",
+      isStep51
+        ? "Use a x 10^n with 1 <= a < 10. Track whether the decimal movement makes the number larger or smaller."
+        : "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,
     relatedAssessmentItemIds: [assessmentItem.id],
