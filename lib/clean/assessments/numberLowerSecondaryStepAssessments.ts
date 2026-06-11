@@ -4,6 +4,7 @@ import type {
 } from "@/lib/clean/assessments/numberAssessmentBanks";
 import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberIntegersCoordinatesPropertiesAssessmentItems";
 import { NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberPercentRatioFinanceAssessmentItems";
+import { NUMBER_PATTERNS_EARLY_ALGEBRA_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberPatternsEarlyAlgebraAssessmentItems";
 import { NUMBER_POWERS_ROOTS_ITEM_BANK_KEY } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
 
 export type LowerSecondaryStepAssessmentDefinition = {
@@ -56,6 +57,14 @@ const STEP_48_NUMBER = 48;
 const STEP_48_KEY = "apply-estimation-rounding-and-bounds";
 const STEP_48_PATHWAY_STEP_ID =
   "mathematics::number-and-place-value::lower-secondary::apply-estimation-rounding-and-bounds";
+const STEP_49_NUMBER = 49;
+const STEP_49_KEY = "explain-calculation-choices-and-reasonableness";
+const STEP_49_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::lower-secondary::explain-calculation-choices-and-reasonableness";
+const STEP_50_NUMBER = 50;
+const STEP_50_KEY = "use-number-relationships-to-support-algebraic-thinking";
+const STEP_50_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::lower-secondary::use-number-relationships-to-support-algebraic-thinking";
 
 function visual(description: string) {
   return { type: "context_card" as const, description };
@@ -248,6 +257,70 @@ function makeStep48Item(seed: Seed, index: number): NumberAssessmentBankItem {
         "Practise rounding to a suitable accuracy, estimating first, and using lower and upper bounds to check reasonableness.",
       diagnosticNote:
         "This checks estimation, rounding, bounds, possible-value ranges and limits of accuracy for this pathway step.",
+    },
+    visualSupport: visual(seed.visual),
+  };
+}
+
+function makeStep49Item(seed: Seed, index: number): NumberAssessmentBankItem {
+  return {
+    id: `number-step-${STEP_49_NUMBER}-assess-${String(index + 1).padStart(3, "0")}`,
+    progressionBandKey: "approximation-estimation-error",
+    progressionStepKey: STEP_49_KEY,
+    subElementKey: seed.cluster,
+    subElementTitle: seed.clusterTitle,
+    subElementDescription:
+      "Choose and explain calculation strategies, then judge whether answers are reasonable in context.",
+    title: seed.title,
+    prompt: seed.prompt,
+    difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "lower_secondary_reasonableness_strategy_card",
+    options: seed.options,
+    expectedAnswer: seed.answer,
+    acceptableAnswers: [seed.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: seed.answer,
+    misconceptionTargets: seed.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: STEP_49_KEY,
+      ifCorrectGoToStepKey: STEP_49_KEY,
+      practiceRecommendation:
+        "Practise choosing a method, estimating to check reasonableness, and explaining why the strategy fits the problem.",
+      diagnosticNote:
+        "This checks calculation choice, method explanation, estimation checks and reasonableness reasoning for this pathway step.",
+    },
+    visualSupport: visual(seed.visual),
+  };
+}
+
+function makeStep50Item(seed: Seed, index: number): NumberAssessmentBankItem {
+  return {
+    id: `number-step-${STEP_50_NUMBER}-assess-${String(index + 1).padStart(3, "0")}`,
+    progressionBandKey: "number-patterns-and-early-algebraic-thinking",
+    progressionStepKey: STEP_50_KEY,
+    subElementKey: seed.cluster,
+    subElementTitle: seed.clusterTitle,
+    subElementDescription:
+      "Use number patterns, rules, tables and nth-term relationships to support early algebraic reasoning.",
+    title: seed.title,
+    prompt: seed.prompt,
+    difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
+    answerType: "multiple_choice",
+    format: "lower_secondary_algebraic_patterns_card",
+    options: seed.options,
+    expectedAnswer: seed.answer,
+    acceptableAnswers: [seed.answer],
+    markingGuide: "Auto-check the selected option.",
+    workedSolution: seed.answer,
+    misconceptionTargets: seed.misconceptionTargets,
+    adaptiveRoute: {
+      ifIncorrectGoToStepKey: STEP_50_KEY,
+      ifCorrectGoToStepKey: STEP_50_KEY,
+      practiceRecommendation:
+        "Practise extending patterns, completing input-output tables, writing rules and using nth-term relationships.",
+      diagnosticNote:
+        "This checks number-pattern, rule, table and early algebraic generalisation reasoning for this pathway step.",
     },
     visualSupport: visual(seed.visual),
   };
@@ -986,6 +1059,289 @@ const step48Seeds: Seed[] = [
   },
 ];
 
+const step49Seeds: Seed[] = [
+  {
+    cluster: "explain-calculation",
+    clusterTitle: "Explain the calculation",
+    title: "Choose a strategy",
+    prompt: "Which method is a good choice for 5,327 + 1,796?",
+    options: ["Written method", "Guess and check", "Count by ones"],
+    answer: "Written method",
+    visual:
+      "early-number|caption=Choose a method, then explain why it fits the numbers.|numbers=5327 + 1796,Written method,estimate check|labels=calculation,my strategy,why it works",
+    misconceptionTargets: ["strategy-choice-gap", "written-method-avoidance"],
+  },
+  {
+    cluster: "choose-and-explain",
+    clusterTitle: "Choose and explain",
+    title: "Match a method to subtraction",
+    prompt: "Which method is a sensible first choice for 8,450 - 3,275?",
+    options: ["Written subtraction", "Add the numbers", "Multiply by 10"],
+    answer: "Written subtraction",
+    visual:
+      "early-number|caption=The operation and number size help choose the strategy.|numbers=8450 - 3275,Written subtraction,check by adding|labels=calculation,method,check",
+    misconceptionTargets: ["operation-choice-error", "inverse-check-gap"],
+  },
+  {
+    cluster: "choose-and-explain",
+    clusterTitle: "Choose and explain",
+    title: "Choose for multiplication",
+    prompt: "Which method best fits 36 x 24?",
+    options: ["Partition 24 into 20 and 4", "Round both numbers and stop", "Subtract 24 from 36"],
+    answer: "Partition 24 into 20 and 4",
+    visual:
+      "early-number|caption=Use structure: 36 x 20 plus 36 x 4.|numbers=36 x 24,36 x 20,36 x 4|labels=calculation,part 1,part 2",
+    misconceptionTargets: ["multiplication-strategy-gap", "rounding-as-exact-error"],
+  },
+  {
+    cluster: "explain-calculation",
+    clusterTitle: "Explain the calculation",
+    title: "Choose for division",
+    prompt: "Which strategy helps with 4,896 divided by 16?",
+    options: ["Use division with a multiplication check", "Add 16 once", "Ignore the remainder"],
+    answer: "Use division with a multiplication check",
+    visual:
+      "early-number|caption=Division answers can be checked with multiplication.|numbers=4896 / 16,quotient,quotient x 16|labels=calculation,my answer,check",
+    misconceptionTargets: ["division-check-gap", "operation-inverse-gap"],
+  },
+  {
+    cluster: "reasonableness-check",
+    clusterTitle: "Is the answer reasonable?",
+    title: "Check a sum",
+    prompt: "Is this answer reasonable: 6,198 + 2,345 = 8,543?",
+    options: ["Yes", "No", "Not enough information"],
+    answer: "Yes",
+    visual:
+      "early-number|caption=Use an estimate before accepting the exact answer.|numbers=6198 + 2345,6200 + 2300,about 8500|labels=calculation,estimate,reasonable size",
+    misconceptionTargets: ["reasonableness-not-checked", "estimation-gap"],
+  },
+  {
+    cluster: "reasonableness-check",
+    clusterTitle: "Is the answer reasonable?",
+    title: "Check a difference",
+    prompt: "Is this answer reasonable: 9,000 - 4,752 = 4,348?",
+    options: ["No", "Yes", "It must be 9,000"],
+    answer: "No",
+    visual:
+      "early-number|caption=Estimate: 9000 - 4800 is about 4200, but the exact check gives 4248.|numbers=9000 - 4752,about 4200,4348?|labels=calculation,estimate,answer to question",
+    misconceptionTargets: ["subtraction-error-not-detected", "reasonableness-not-checked"],
+  },
+  {
+    cluster: "reasonableness-check",
+    clusterTitle: "Is the answer reasonable?",
+    title: "Check a product",
+    prompt: "Is this answer reasonable: 27 x 48 = 1,296?",
+    options: ["Yes", "No", "Only if rounded"],
+    answer: "Yes",
+    visual:
+      "early-number|caption=27 x 48 is close to 30 x 50, so a result near 1500 is sensible.|numbers=27 x 48,30 x 50,1296|labels=calculation,estimate,answer",
+    misconceptionTargets: ["multiplication-size-gap", "estimate-comparison-gap"],
+  },
+  {
+    cluster: "reasonableness-check",
+    clusterTitle: "Is the answer reasonable?",
+    title: "Check a quotient",
+    prompt: "Is this answer reasonable: 5,832 divided by 18 = 350?",
+    options: ["No", "Yes", "It cannot be checked"],
+    answer: "No",
+    visual:
+      "early-number|caption=Check with multiplication: 350 x 18 is much larger than 5832.|numbers=5832 / 18,350 x 18,too high|labels=division,check,decision",
+    misconceptionTargets: ["division-size-gap", "inverse-check-gap"],
+  },
+  {
+    cluster: "compare-two-methods",
+    clusterTitle: "Compare two methods",
+    title: "Compare addition methods",
+    prompt: "For 4,386 + 2,957, which comparison is strongest?",
+    options: [
+      "Written method gives the exact total; rounding gives a reasonableness check.",
+      "Rounding gives the exact total.",
+      "Neither method can help.",
+    ],
+    answer: "Written method gives the exact total; rounding gives a reasonableness check.",
+    visual:
+      "early-number|caption=Compare exact work with an estimate check.|numbers=4386 + 2957,written total,rounded check|labels=calculation,method A,method B",
+    misconceptionTargets: ["method-purpose-confusion", "estimate-as-exact-error"],
+  },
+  {
+    cluster: "compare-two-methods",
+    clusterTitle: "Compare two methods",
+    title: "Compare division methods",
+    prompt: "For 7,236 divided by 18, which check is useful?",
+    options: ["Multiply the quotient by 18", "Add 18 once", "Round the quotient to zero"],
+    answer: "Multiply the quotient by 18",
+    visual:
+      "early-number|caption=The inverse operation checks whether the quotient fits.|numbers=7236 / 18,quotient x 18,7236|labels=calculation,inverse check,target",
+    misconceptionTargets: ["inverse-check-gap", "division-method-purpose-gap"],
+  },
+  {
+    cluster: "real-world-reasoning",
+    clusterTitle: "Real-world reasoning",
+    title: "Check a discount",
+    prompt:
+      "A blender costs $59.95 and is 15% off. Which reasonableness check is best?",
+    options: [
+      "Estimate 15% of $60 and subtract it.",
+      "Add 15 to 59.95.",
+      "Ignore the discount.",
+    ],
+    answer: "Estimate 15% of $60 and subtract it.",
+    visual:
+      "early-number|caption=Use a friendly price to check the discount size.|numbers=$59.95,15% off,$60 estimate|labels=price,discount,check",
+    misconceptionTargets: ["percent-discount-reasoning-gap", "context-check-gap"],
+  },
+  {
+    cluster: "reflect",
+    clusterTitle: "Reflect",
+    title: "Identify strong reasoning",
+    prompt: "Which statement best describes good mathematical reasoning?",
+    options: [
+      "Choose a method, explain why it fits, and check whether the answer makes sense.",
+      "Write any answer quickly.",
+      "Only check answers when they are whole numbers.",
+    ],
+    answer: "Choose a method, explain why it fits, and check whether the answer makes sense.",
+    visual:
+      "early-number|caption=A strong answer includes method, explanation and a reasonableness check.|numbers=method,why it works,check|labels=strategy,explanation,reasonableness",
+    misconceptionTargets: ["reasoning-communication-gap", "checking-value-gap"],
+  },
+];
+
+const step50Seeds: Seed[] = [
+  {
+    cluster: "find-the-pattern",
+    clusterTitle: "Find the pattern",
+    title: "Continue an add 3 pattern",
+    prompt: "Find the next three terms: 2, 5, 8, 11, 14, __, __, __",
+    options: ["17, 20, 23", "16, 18, 20", "18, 22, 26"],
+    answer: "17, 20, 23",
+    visual:
+      "early-number|caption=Look at the step between terms.|numbers=2,5,8,11,14,?, ?, ?|labels=term 1,term 2,term 3,term 4,term 5,next,next,next",
+    misconceptionTargets: ["pattern-step-gap", "missing-term-error"],
+  },
+  {
+    cluster: "find-the-pattern",
+    clusterTitle: "Find the pattern",
+    title: "Describe a counting rule",
+    prompt: "What is the rule for 3, 6, 9, 12, 15, ...?",
+    options: ["Add 3", "Multiply by 3 each time", "Add 6"],
+    answer: "Add 3",
+    visual:
+      "early-number|caption=The same amount is added each time.|numbers=3,6,9,12,15|labels=term 1,term 2,term 3,term 4,term 5",
+    misconceptionTargets: ["recursive-rule-gap", "multiplicative-rule-confusion"],
+  },
+  {
+    cluster: "complete-the-table",
+    clusterTitle: "Complete the table",
+    title: "Use an add 4 table",
+    prompt: "Rule: add 4. What is the output for input n = 4?",
+    options: ["8", "4", "16"],
+    answer: "8",
+    visual:
+      "early-number|caption=Apply the rule to the input.|numbers=Rule: add 4,n = 4,output = 8|labels=rule,input,output",
+    misconceptionTargets: ["input-output-rule-error", "operation-application-gap"],
+  },
+  {
+    cluster: "complete-the-table",
+    clusterTitle: "Complete the table",
+    title: "Use a multiply rule",
+    prompt: "Rule: multiply by 3. What is the output for input n = 5?",
+    options: ["15", "8", "10"],
+    answer: "15",
+    visual:
+      "early-number|caption=Multiply the input by 3.|numbers=Rule: x3,n = 5,output = 15|labels=rule,input,output",
+    misconceptionTargets: ["input-output-rule-error", "additive-instead-of-multiplicative"],
+  },
+  {
+    cluster: "write-a-rule",
+    clusterTitle: "Write a rule",
+    title: "Write an add 5 rule",
+    prompt: "Write the rule for 6, 11, 16, 21, 26, ...",
+    options: ["Add 5", "Add 6", "Multiply by 5"],
+    answer: "Add 5",
+    visual:
+      "early-number|caption=Check the difference between neighbouring terms.|numbers=6,11,16,21,26|labels=term 1,term 2,term 3,term 4,term 5",
+    misconceptionTargets: ["rule-writing-gap", "first-term-as-rule-error"],
+  },
+  {
+    cluster: "write-a-rule",
+    clusterTitle: "Write a rule",
+    title: "Write a subtract 10 rule",
+    prompt: "Write the rule for 100, 90, 80, 70, 60, ...",
+    options: ["Subtract 10", "Add 10", "Divide by 10"],
+    answer: "Subtract 10",
+    visual:
+      "early-number|caption=This pattern decreases by the same amount each time.|numbers=100,90,80,70,60|labels=term 1,term 2,term 3,term 4,term 5",
+    misconceptionTargets: ["decreasing-pattern-gap", "operation-direction-error"],
+  },
+  {
+    cluster: "use-the-rule",
+    clusterTitle: "Use the rule",
+    title: "Find a later term",
+    prompt: "A pattern starts at 24 and adds 7 each time. What is the 10th term?",
+    options: ["87", "94", "70"],
+    answer: "87",
+    visual:
+      "early-number|caption=The 10th term is 9 steps after the first term.|numbers=24,+7,10th term,87|labels=start,step,target,answer",
+    misconceptionTargets: ["term-number-off-by-one", "repeated-addition-gap"],
+  },
+  {
+    cluster: "use-the-rule",
+    clusterTitle: "Use the rule",
+    title: "Use double then subtract",
+    prompt: "Rule: double the input, then subtract 2. What is the output for n = 9?",
+    options: ["16", "18", "20"],
+    answer: "16",
+    visual:
+      "early-number|caption=Use both parts of the rule in order.|numbers=n = 9,double = 18,18 - 2 = 16|labels=input,step 1,output",
+    misconceptionTargets: ["two-step-rule-error", "operation-order-gap"],
+  },
+  {
+    cluster: "generalize",
+    clusterTitle: "Generalize",
+    title: "Choose an nth term",
+    prompt: "Choose the nth term for 3, 7, 11, 15, 19, ...",
+    options: ["4n - 1", "3n + 1", "n + 4"],
+    answer: "4n - 1",
+    visual:
+      "early-number|caption=The pattern increases by 4, then adjust to match term 1.|numbers=3,7,11,15,4n - 1|labels=term 1,term 2,term 3,term 4,nth term",
+    misconceptionTargets: ["nth-term-gap", "coefficient-as-first-term-error"],
+  },
+  {
+    cluster: "generalize",
+    clusterTitle: "Generalize",
+    title: "Choose a multiplicative nth term",
+    prompt: "Choose the nth term for 5, 10, 15, 20, 25, ...",
+    options: ["5n", "n + 5", "5 + n"],
+    answer: "5n",
+    visual:
+      "early-number|caption=Each term is 5 times the term number.|numbers=n,1,2,3,5n|labels=term number,term 1,term 2,term 3,rule",
+    misconceptionTargets: ["multiplicative-nth-term-gap", "additive-rule-confusion"],
+  },
+  {
+    cluster: "problem-solving",
+    clusterTitle: "Problem solving",
+    title: "Solve a pattern problem",
+    prompt: "A pattern starts at 4. Each term is 5 more than the previous term. What is the 30th term?",
+    options: ["149", "154", "150"],
+    answer: "149",
+    visual:
+      "early-number|caption=There are 29 jumps of 5 after the first term.|numbers=4,29 jumps,x5,149|labels=start,number of jumps,step size,answer",
+    misconceptionTargets: ["term-number-off-by-one", "pattern-problem-solving-gap"],
+  },
+  {
+    cluster: "problem-solving",
+    clusterTitle: "Problem solving",
+    title: "Use a rule from a situation",
+    prompt: "A pattern is made by multiplying the term number by 7. What is the 18th term?",
+    options: ["126", "25", "117"],
+    answer: "126",
+    visual:
+      "early-number|caption=Use the rule with the term number.|numbers=n = 18,x7,126|labels=term number,rule,answer",
+    misconceptionTargets: ["rule-application-gap", "term-number-confusion"],
+  },
+];
+
 export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
   {
     key: `number-step-${STEP_NUMBER}-${STEP_KEY}-assessment-v1`,
@@ -1076,6 +1432,36 @@ export const NUMBER_LOWER_SECONDARY_STEP_ASSESSMENTS = [
     parentItemBankKey: "number-approximation-assessment-items-v1",
     progressionBandKey: "approximation-estimation-error",
     items: step48Seeds.map((seed, index) => makeStep48Item(seed, index)),
+  },
+  {
+    key: `number-step-${STEP_49_NUMBER}-${STEP_49_KEY}-assessment-v1`,
+    stepNumber: STEP_49_NUMBER,
+    stepKey: STEP_49_KEY,
+    pathwayStepId: STEP_49_PATHWAY_STEP_ID,
+    title: "Explain calculation choices and reasonableness",
+    shortTitle: "Calculation choices",
+    description:
+      "Explain the methods you use and decide if answers make sense.",
+    parentBankKey: "approximation-estimation-error" as const,
+    parentBankTitle: "Approximation and estimation",
+    parentItemBankKey: "number-approximation-assessment-items-v1",
+    progressionBandKey: "approximation-estimation-error",
+    items: step49Seeds.map((seed, index) => makeStep49Item(seed, index)),
+  },
+  {
+    key: `number-step-${STEP_50_NUMBER}-${STEP_50_KEY}-assessment-v1`,
+    stepNumber: STEP_50_NUMBER,
+    stepKey: STEP_50_KEY,
+    pathwayStepId: STEP_50_PATHWAY_STEP_ID,
+    title: "Use number relationships to support algebraic thinking",
+    shortTitle: "Algebraic patterns",
+    description:
+      "Look for patterns and generalize relationships.",
+    parentBankKey: "number-patterns-and-early-algebraic-thinking" as const,
+    parentBankTitle: "Number patterns",
+    parentItemBankKey: NUMBER_PATTERNS_EARLY_ALGEBRA_ITEM_BANK_KEY,
+    progressionBandKey: "number-patterns-and-early-algebraic-thinking",
+    items: step50Seeds.map((seed, index) => makeStep50Item(seed, index)),
   },
 ] as const satisfies LowerSecondaryStepAssessmentDefinition[];
 

@@ -416,6 +416,22 @@ export function isStep48EstimationBoundsActivity(id: string, stepKey?: string | 
   );
 }
 
+export function isStep49CalculationReasonablenessActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "explain-calculation-choices-and-reasonableness" ||
+    safe(id).startsWith("number-step-49-assess-") ||
+    safe(id).startsWith("number-step-49-practice-")
+  );
+}
+
+export function isStep50AlgebraicThinkingActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "use-number-relationships-to-support-algebraic-thinking" ||
+    safe(id).startsWith("number-step-50-assess-") ||
+    safe(id).startsWith("number-step-50-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -8427,6 +8443,291 @@ export function renderStep48WorksheetPromptVisual({
   );
 }
 
+function getStep49VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("reasonable")) return "Reasonableness check";
+  if (lower.includes("compare")) return "Compare methods";
+  if (lower.includes("discount") || lower.includes("blender")) return "Real-world reasoning";
+  if (lower.includes("best describes")) return "Reflect";
+  if (lower.includes("method") || lower.includes("strategy")) return "Choose and explain";
+  return "Explain the calculation";
+}
+
+export function renderStep49WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.length
+    ? visual.numberCards.map(safe).filter(Boolean)
+    : ["4785 + 2639", "My strategy", "Why it works"];
+  const labels = values.map((_, index) => safe(visual.labels[index]) || `Part ${index + 1}`);
+  const mode = getStep49VisualMode(prompt);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Choose a calculation method, explain why it works, then check whether
+          the answer is reasonable.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            borderRadius: 18,
+            background: "#fff7ed",
+            color: "#9a3412",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {values.slice(0, 5).map((value, index) => (
+            <NumberFormCard
+              key={`${value}-${index}`}
+              label={labels[index] || `Part ${index + 1}`}
+              value={value}
+              tone={index % 3 === 0 ? "blue" : index % 3 === 1 ? "green" : "purple"}
+            />
+          ))}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {["My strategy", "Why it works", "Reasonableness check"].map((label) => (
+            <div
+              key={label}
+              style={{
+                border: "1px dashed #bfdbfe",
+                borderRadius: 16,
+                background: "#f8fbff",
+                padding: "10px 12px",
+                color: "#1e3a8a",
+                fontSize: 13,
+                fontWeight: 850,
+                minHeight: 48,
+              }}
+            >
+              {label}
+              <div
+                aria-hidden="true"
+                style={{
+                  borderBottom: "2px solid #bfdbfe",
+                  marginTop: 10,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getStep50VisualMode(prompt: string) {
+  const lower = safe(prompt).toLowerCase();
+  if (lower.includes("output") || lower.includes("input") || lower.includes("table")) {
+    return "Complete the table";
+  }
+  if (lower.includes("nth term") || lower.includes("term number")) return "Generalize";
+  if (lower.includes("30th") || lower.includes("18th")) return "Problem solving";
+  if (lower.includes("rule")) return "Write or use a rule";
+  return "Find the pattern";
+}
+
+export function renderStep50WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const values = visual.numberCards.length
+    ? visual.numberCards.map(safe).filter(Boolean)
+    : ["2", "5", "8", "11", "14", "?"];
+  const labels = values.map((_, index) => safe(visual.labels[index]) || `Term ${index + 1}`);
+  const mode = getStep50VisualMode(prompt);
+  const lowerMode = mode.toLowerCase();
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Look for the relationship, write the rule, then use it to predict
+          missing terms or later terms.
+        </div>
+        <span
+          style={{
+            border: "1px solid #bfdbfe",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            padding: "7px 10px",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {mode}
+        </span>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 18,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "11px 12px",
+            fontSize: 14,
+            fontWeight: 850,
+            lineHeight: 1.45,
+          }}
+        >
+          {prompt}
+        </div>
+        <div
+          style={{
+            display: lowerMode.includes("table") ? "grid" : "flex",
+            gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          {values.slice(0, 8).map((value, index) => (
+            <div
+              key={`${value}-${index}`}
+              style={{
+                border: "1px solid #bfdbfe",
+                borderRadius: 16,
+                background: value.includes("?") || value.includes("__") ? "#eff6ff" : "#ffffff",
+                minWidth: 82,
+                padding: "10px 12px",
+                display: "grid",
+                gap: 5,
+                textAlign: "center",
+                color: "#1e3a8a",
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 850, color: "#64748b" }}>
+                {labels[index] || `Term ${index + 1}`}
+              </span>
+              <span style={{ fontSize: value.length > 12 ? 16 : 24, fontWeight: 950 }}>
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            border: "1px dashed #bfdbfe",
+            borderRadius: 18,
+            background: "#f8fbff",
+            color: "#1e3a8a",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.45,
+            display: "grid",
+            gap: 6,
+          }}
+        >
+          <span>Think about it: what changes from one term to the next?</span>
+          <span>Remember: test a rule against more than one term before using it.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function renderStep21WorksheetPromptVisual({
   prompt,
   visual,
@@ -10880,6 +11181,124 @@ export function renderStep48WorksheetOptionCard({
           borderRadius: 999,
           background: "#f0f9ff",
           color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep49WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = lower === "yes" || lower === "no"
+    ? "Reasonableness"
+    : lower.includes("method") || lower.includes("subtraction")
+      ? "Method choice"
+      : lower.includes("estimate") || lower.includes("check")
+        ? "Check"
+        : lower.includes("explain") || lower.includes("why")
+          ? "Reasoning"
+          : "Strategy";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 34 ? 16 : normalized.length > 20 ? 20 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bae6fd",
+          borderRadius: 999,
+          background: "#f0f9ff",
+          color: "#0369a1",
+          padding: "5px 8px",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep50WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = normalized.includes(",")
+    ? "Pattern strip"
+    : lower.includes("rule") || lower.includes("add") || lower.includes("subtract")
+      ? "Rule"
+      : normalized.includes("n")
+        ? "Expression"
+        : "Output";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected
+          ? "0 10px 22px rgba(37,99,235,0.18)"
+          : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 24 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 999,
+          background: "#f0fdf4",
+          color: "#166534",
           padding: "5px 8px",
           fontSize: 12,
           fontWeight: 900,

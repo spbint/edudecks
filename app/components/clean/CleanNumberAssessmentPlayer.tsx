@@ -54,6 +54,8 @@ import {
   isStep45RatioRatesActivity,
   isStep46ProportionalReasoningActivity,
   isStep48EstimationBoundsActivity,
+  isStep49CalculationReasonablenessActivity,
+  isStep50AlgebraicThinkingActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -139,6 +141,10 @@ import {
   renderStep46WorksheetPromptVisual,
   renderStep48WorksheetOptionCard,
   renderStep48WorksheetPromptVisual,
+  renderStep49WorksheetOptionCard,
+  renderStep49WorksheetPromptVisual,
+  renderStep50WorksheetOptionCard,
+  renderStep50WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2631,6 +2637,24 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep49CalculationReasonablenessActivity(item.id, item.progressionStepKey)) {
+    const step49Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep49WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step49Visual,
+    });
+  }
+
+  if (isStep50AlgebraicThinkingActivity(item.id, item.progressionStepKey)) {
+    const step50Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep50WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step50Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -4204,6 +4228,14 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step49CalculationReasonablenessOptions = isStep49CalculationReasonablenessActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
+      const step50AlgebraicThinkingOptions = isStep50AlgebraicThinkingActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -4259,7 +4291,9 @@ function CleanNumberAssessmentPlayerBody() {
                     step44PowersRootsOptions ||
                     step45RatioRatesOptions ||
                     step46ProportionalReasoningOptions ||
-                    step48EstimationBoundsOptions
+                    step48EstimationBoundsOptions ||
+                    step49CalculationReasonablenessOptions ||
+                    step50AlgebraicThinkingOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
@@ -5547,6 +5581,109 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const step49Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              !step32Visual &&
+              !step33Visual &&
+              !step34Visual &&
+              !step35Visual &&
+              !step36Visual &&
+              !step37Visual &&
+              !step38Visual &&
+              !step39Visual &&
+              !step40Visual &&
+              !step41Visual &&
+              !step42Visual &&
+              !step44Visual &&
+              !step45Visual &&
+              !step46Visual &&
+              !step48Visual &&
+              step49CalculationReasonablenessOptions
+                ? renderStep49WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
+            const step50Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              !step32Visual &&
+              !step33Visual &&
+              !step34Visual &&
+              !step35Visual &&
+              !step36Visual &&
+              !step37Visual &&
+              !step38Visual &&
+              !step39Visual &&
+              !step40Visual &&
+              !step41Visual &&
+              !step42Visual &&
+              !step44Visual &&
+              !step45Visual &&
+              !step46Visual &&
+              !step48Visual &&
+              !step49Visual &&
+              step50AlgebraicThinkingOptions
+                ? renderStep50WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -5591,7 +5728,9 @@ function CleanNumberAssessmentPlayerBody() {
               step44Visual ??
               step45Visual ??
               step46Visual ??
-              step48Visual;
+              step48Visual ??
+              step49Visual ??
+              step50Visual;
 
             return (
               <button
