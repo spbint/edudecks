@@ -128,6 +128,8 @@ const USE_NUMBER_RELATIONSHIPS_ALGEBRAIC_THINKING_WORKSHEET_FILE =
   "MYL-MATH-NPV-LS-S050-Use-Number-Relationships-To-Support-Algebraic-Thinking.pdf";
 const WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S051-Work-With-Standard-Form-And-Very-Large-Or-Very-Small-Numbers.pdf";
+const USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S052-Use-Powers-Roots-And-Indices-In-Context.pdf";
 const CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S053-Calculate-Exactly-With-Fractions-And-Multiples-Of-Pi-Where-Appropriate.pdf";
 
@@ -965,6 +967,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::use-powers-roots-and-indices-in-context",
+    stepKey: "use-powers-roots-and-indices-in-context",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 52,
+    pathwayStepTitle: "Use powers, roots and indices in context",
+    title: "Use Powers, Roots And Indices In Context",
+    concept:
+      "Apply index laws, powers and roots to simplify expressions and solve real-world problems.",
+    includesAnswerSheet: false,
+    fileName: USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
