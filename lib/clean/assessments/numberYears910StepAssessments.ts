@@ -570,22 +570,211 @@ function exactFormSeeds(): Seed[] {
 }
 
 function percentageChangeSeeds(): Seed[] {
-  const rows = [
-    ["Increase 80 by 10%", "88"], ["Decrease 120 by 25%", "90"], ["Increase 50 by 40%", "70"],
-    ["Decrease 200 by 15%", "170"], ["Increase 64 by 12.5%", "72"], ["Decrease 90 by 10%", "81"],
-    ["Increase 300 by 8%", "324"], ["Decrease 45 by 20%", "36"], ["Increase 160 by 5%", "168"],
-    ["Decrease 75 by 40%", "45"], ["Increase 250 by 12%", "280"], ["Decrease 1000 by 3%", "970"],
+  return [
+    {
+      cluster: "percentage-increase",
+      clusterTitle: "Percentage increase",
+      title: "Increase 60 by 20%",
+      prompt: "Increase 60 by 20%.",
+      options: ["72", "80", "12", "48"],
+      answer: "72",
+      visual:
+        "early-number|caption=20% of 60 is 12, so add it to the original value.|numbers=60 x 1.20,72",
+      misconceptionTargets: ["percentage-change-base-error", "increase-decrease-direction-error"],
+    },
+    {
+      cluster: "percentage-increase",
+      clusterTitle: "Percentage increase",
+      title: "Increase 150 by 35%",
+      prompt: "Increase 150 by 35%.",
+      options: ["202.5", "185", "52.5", "97.5"],
+      answer: "202.5",
+      visual:
+        "early-number|caption=A 35% increase means multiply by 1.35.|numbers=150 x 1.35,202.5",
+      misconceptionTargets: ["multiplier-method-gap", "percentage-change-base-error"],
+    },
+    {
+      cluster: "percentage-increase",
+      clusterTitle: "Percentage increase",
+      title: "Increase money by 25%",
+      prompt: "Increase £75 by 25%.",
+      options: ["£93.75", "£100", "£18.75", "£56.25"],
+      answer: "£93.75",
+      visual:
+        "early-number|caption=Use the increase multiplier 1.25 for a 25% increase.|numbers=£75 x 1.25,£93.75",
+      misconceptionTargets: ["money-percentage-error", "multiplier-method-gap"],
+    },
+    {
+      cluster: "percentage-decrease",
+      clusterTitle: "Percentage decrease",
+      title: "Decrease 80 by 20%",
+      prompt: "Decrease 80 by 20%.",
+      options: ["64", "60", "96", "16"],
+      answer: "64",
+      visual:
+        "early-number|caption=A 20% decrease means multiply by 0.80.|numbers=80 x 0.80,64",
+      misconceptionTargets: ["increase-decrease-direction-error", "multiplier-method-gap"],
+    },
+    {
+      cluster: "percentage-decrease",
+      clusterTitle: "Percentage decrease",
+      title: "Decrease 200 by 15%",
+      prompt: "Decrease 200 by 15%.",
+      options: ["170", "185", "30", "215"],
+      answer: "170",
+      visual:
+        "early-number|caption=A 15% decrease leaves 85%, so multiply by 0.85.|numbers=200 x 0.85,170",
+      misconceptionTargets: ["increase-decrease-direction-error", "multiplier-method-gap"],
+    },
+    {
+      cluster: "percentage-decrease",
+      clusterTitle: "Percentage decrease",
+      title: "Decrease money by 12%",
+      prompt: "Decrease £500 by 12%.",
+      options: ["£440", "£560", "£488", "£60"],
+      answer: "£440",
+      visual:
+        "early-number|caption=A 12% decrease leaves 88% of the original amount.|numbers=£500 x 0.88,£440",
+      misconceptionTargets: ["money-percentage-error", "increase-decrease-direction-error"],
+    },
+    {
+      cluster: "multiplier-method",
+      clusterTitle: "Percentage multipliers",
+      title: "Choose increase multiplier",
+      prompt: "Which multiplier represents a 25% increase?",
+      options: ["1.25", "0.25", "0.75", "2.5"],
+      answer: "1.25",
+      visual:
+        "early-number|caption=An increase multiplier is 1 plus the percentage as a decimal.|numbers=1 + 0.25,1.25",
+      misconceptionTargets: ["multiplier-method-gap", "percentage-decimal-conversion-error"],
+    },
+    {
+      cluster: "multiplier-method",
+      clusterTitle: "Percentage multipliers",
+      title: "Choose decrease multiplier",
+      prompt: "Which multiplier represents a 30% decrease?",
+      options: ["0.70", "1.30", "0.30", "1.70"],
+      answer: "0.70",
+      visual:
+        "early-number|caption=A 30% decrease leaves 70% of the original value.|numbers=1 - 0.30,0.70",
+      misconceptionTargets: ["multiplier-method-gap", "increase-decrease-direction-error"],
+    },
+    {
+      cluster: "compound-growth",
+      clusterTitle: "Compound growth",
+      title: "Investment growth",
+      prompt: "An investment of £1,000 grows by 5% each year. What is it worth after 3 years?",
+      options: ["£1,157.63", "£1,150.00", "£1,050.00", "£1,215.51"],
+      answer: "£1,157.63",
+      visual:
+        "early-number|caption=Compound growth repeats the multiplier each year.|numbers=1000 x 1.05^3,£1,157.63",
+      misconceptionTargets: ["compound-growth-additive-error", "multiplier-method-gap"],
+    },
+    {
+      cluster: "compound-growth",
+      clusterTitle: "Compound growth",
+      title: "Population growth",
+      prompt: "A population of 2,000 increases by 3% each year. What is it after 4 years?",
+      options: ["2,251", "2,240", "2,060", "2,600"],
+      answer: "2,251",
+      visual:
+        "early-number|caption=Use the growth multiplier 1.03 four times, then round to a whole person.|numbers=2000 x 1.03^4,2,251",
+      misconceptionTargets: ["compound-growth-additive-error", "rounding-context-gap"],
+    },
+    {
+      cluster: "compound-decay",
+      clusterTitle: "Compound decay",
+      title: "Value decay",
+      prompt: "A value of £5,000 decreases by 10% each year. What is it worth after 3 years?",
+      options: ["£3,645", "£3,500", "£4,500", "£5,500"],
+      answer: "£3,645",
+      visual:
+        "early-number|caption=Compound decay repeats the decrease multiplier each year.|numbers=5000 x 0.9^3,£3,645",
+      misconceptionTargets: ["compound-decay-additive-error", "increase-decrease-direction-error"],
+    },
+    {
+      cluster: "compound-decay",
+      clusterTitle: "Compound decay",
+      title: "Chemical decay",
+      prompt: "A radioactive substance has a mass of 100 g and decays by 15% each year. What will be left after 2 years?",
+      options: ["72.25 g", "70 g", "85 g", "115 g"],
+      answer: "72.25 g",
+      visual:
+        "early-number|caption=A 15% decay leaves 85%, so use 0.85 twice.|numbers=100 x 0.85^2,72.25 g",
+      misconceptionTargets: ["compound-decay-additive-error", "multiplier-method-gap"],
+    },
+    {
+      cluster: "successive-percentage-change",
+      clusterTitle: "Successive percentage changes",
+      title: "Increase then decrease",
+      prompt: "The price of a jacket is £80. It is increased by 15% and then decreased by 10%. What is the final price?",
+      options: ["£82.80", "£84.00", "£92.00", "£72.00"],
+      answer: "£82.80",
+      visual:
+        "early-number|caption=Successive changes multiply in sequence.|numbers=80 x 1.15 x 0.90,£82.80",
+      misconceptionTargets: ["successive-percent-additive-error", "percentage-change-base-error"],
+    },
+    {
+      cluster: "successive-percentage-change",
+      clusterTitle: "Successive percentage changes",
+      title: "Investment two-year growth",
+      prompt: "An investment grows by 7% in the first year and by 5% in the second year. If the initial amount is £2,000, what is the value after 2 years?",
+      options: ["£2,247", "£2,240", "£2,120", "£2,140"],
+      answer: "£2,247",
+      visual:
+        "early-number|caption=Use each year's multiplier in order.|numbers=2000 x 1.07 x 1.05,£2,247",
+      misconceptionTargets: ["successive-percent-additive-error", "money-percentage-error"],
+    },
+    {
+      cluster: "successive-percentage-change",
+      clusterTitle: "Successive percentage changes",
+      title: "Depreciation over two years",
+      prompt: "A laptop loses 25% of its value in the first year and 15% in the second year. If it originally cost £1,200, what is it worth after 2 years?",
+      options: ["£765", "£720", "£900", "£1,020"],
+      answer: "£765",
+      visual:
+        "early-number|caption=Depreciation uses decrease multipliers.|numbers=1200 x 0.75 x 0.85,£765",
+      misconceptionTargets: ["successive-percent-additive-error", "compound-decay-additive-error"],
+    },
+    {
+      cluster: "growth-decay-contexts",
+      clusterTitle: "Growth and decay contexts",
+      title: "Increase then same decrease",
+      prompt: "A shop increases the price of a toy by 10%. A month later, it decreases the new price by 10%. What is true?",
+      options: [
+        "The final price is slightly less than the original price",
+        "The final price is exactly the original price",
+        "The final price is slightly more than the original price",
+        "The final price is double the original price",
+      ],
+      answer: "The final price is slightly less than the original price",
+      visual:
+        "early-number|caption=The decrease is taken from the larger increased value, so the changes do not cancel.|numbers=original x 1.10 x 0.90,0.99 of original",
+      misconceptionTargets: ["successive-percent-additive-error", "percentage-change-base-error"],
+    },
+    {
+      cluster: "growth-decay-contexts",
+      clusterTitle: "Growth and decay contexts",
+      title: "Subscribers growth",
+      prompt: "The number of subscribers to a channel increases by 12% each year. It currently has 15,000 subscribers. How many will it have after 3 years?",
+      options: ["21,074", "20,000", "16,800", "18,600"],
+      answer: "21,074",
+      visual:
+        "early-number|caption=Repeated growth uses the same multiplier each year.|numbers=15000 x 1.12^3,21,074",
+      misconceptionTargets: ["compound-growth-additive-error", "rounding-context-gap"],
+    },
+    {
+      cluster: "growth-decay-contexts",
+      clusterTitle: "Growth and decay contexts",
+      title: "Mixed yearly changes",
+      prompt: "A value increases by 5% each year for 2 years and then decreases by 6% the following year. It was originally £300. What is its value now?",
+      options: ["£310.91", "£315.00", "£297.00", "£330.75"],
+      answer: "£310.91",
+      visual:
+        "early-number|caption=Apply each multiplier in sequence and round to the nearest penny.|numbers=300 x 1.05 x 1.05 x 0.94,£310.91",
+      misconceptionTargets: ["successive-percent-additive-error", "money-percentage-error"],
+    },
   ];
-  return rows.map(([question, answer], index) => ({
-    cluster: index % 4 === 0 ? "percentage-increase" : index % 4 === 1 ? "percentage-decrease" : index % 4 === 2 ? "multiplier-method" : "growth-decay-contexts",
-    clusterTitle: index % 4 === 0 ? "Percentage increase" : index % 4 === 1 ? "Percentage decrease" : index % 4 === 2 ? "Multiplier method" : "Growth and decay",
-    title: `Percentage change ${index + 1}`,
-    prompt: `${question}. Which result is correct?`,
-    options: [answer, String(Number(answer) + 10), String(Math.max(0, Number(answer) - 10))],
-    answer,
-    visual: `early-number|caption=Use the percentage change bar.|numbers=${question},${answer}`,
-    misconceptionTargets: ["percentage-change-base-error", "increase-decrease-direction-error"],
-  }));
 }
 
 function ratioRateSeeds(): Seed[] {

@@ -132,6 +132,8 @@ const USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S052-Use-Powers-Roots-And-Indices-In-Context.pdf";
 const CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S053-Calculate-Exactly-With-Fractions-And-Multiples-Of-Pi-Where-Appropriate.pdf";
+const WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE =
+  "MYL-MATH-NPV-HSF-S054-Work-With-Percentage-Change-Growth-And-Decay.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1005,6 +1007,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::work-with-percentage-change-growth-and-decay",
+    stepKey: "work-with-percentage-change-growth-and-decay",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 54,
+    pathwayStepTitle: "Work with percentage change, growth and decay",
+    title: "Work With Percentage Change, Growth And Decay",
+    concept:
+      "Solve problems involving percentage increase, decrease, compound growth and compound decay.",
+    includesAnswerSheet: false,
+    fileName: WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

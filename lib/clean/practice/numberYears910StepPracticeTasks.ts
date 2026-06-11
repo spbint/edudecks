@@ -50,6 +50,8 @@ function makeTask(
   const isStep53 =
     assessment.stepKey ===
     "calculate-exactly-with-fractions-and-multiples-of-pi-where-appropriate";
+  const isStep54 =
+    assessment.stepKey === "work-with-percentage-change-growth-and-decay";
   return {
     id: `number-step-${assessment.stepNumber}-practice-${String(index + 1).padStart(3, "0")}`,
     title: assessmentItem.title,
@@ -63,6 +65,8 @@ function makeTask(
         ? "Use a x 10^n with 1 <= a < 10. Track whether the decimal movement makes the number larger or smaller."
         : isStep53
           ? "Keep the answer exact. Simplify fractions, combine like pi terms, and use circle formulas before choosing."
+          : isStep54
+            ? "Choose the multiplier first: increases use 1 + p/100, decreases use 1 - p/100, and repeated changes multiply."
         : "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,
