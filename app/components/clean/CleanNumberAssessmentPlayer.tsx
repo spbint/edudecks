@@ -7364,7 +7364,7 @@ function CleanNumberAssessmentPlayerBody() {
                         : getResultTone("review_needed")
                     }
                   >
-                    {saveState === "saved" ? "Saved" : "Not saved yet"}
+                    {saveState === "saved" ? "Saved" : "Ready to save"}
                   </span>
                   {!showSummary && currentResponse.submitted ? (
                     <span
@@ -7854,7 +7854,7 @@ function CleanNumberAssessmentPlayerBody() {
                             ? "Save failed"
                             : incomingStepAssessment
                               ? "Ready to save"
-                              : "Not saved yet"}
+                              : "Ready to save"}
                     </span>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
                       {saveMessage ||

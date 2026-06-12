@@ -9,7 +9,6 @@ import CleanFamilyWorkspaceProvider, {
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
-import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
@@ -125,6 +124,19 @@ const summaryCardStyle: React.CSSProperties = {
   display: "grid",
   gap: 8,
   boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
+};
+
+const curriculumChipStyle: React.CSSProperties = {
+  border: "1px solid #E7EAF2",
+  borderRadius: 999,
+  background: "#ffffff",
+  color: "#17204B",
+  padding: "7px 11px",
+  fontSize: 13,
+  fontWeight: 600,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
 };
 
 const EMPTY_STRAND_CARD: SubjectStrandCard = {
@@ -1101,7 +1113,7 @@ function PathwaysWorkspaceBody() {
       `${selectedSubject.title} pathways`
     : `${selectedSubject.title} pathways`;
   const selectedSubjectSummaryHelper = selectedSubjectSupportsDetailedPathways
-    ? `Pathway map band: ${currentLearningZoneStageTitle}. This is not a grade label.`
+    ? `Current focus: ${currentLearningZoneStageTitle}.`
     : selectedSubject.guidance;
   const selectedSubjectStatusLabel = selectedSubjectSupportsDetailedPathways
     ? "View details"
@@ -1113,7 +1125,7 @@ function PathwaysWorkspaceBody() {
     ? currentLearningZoneStageTitle
     : "Select a strand to see the current pathway";
   const topSnapshotStagePrefix = selectedStrandIsActive
-    ? "Pathway map band: "
+    ? "Focus: "
     : "Pathway view: ";
   const topSnapshotNextAction = selectedStrandIsActive
     ? nextActionLabel
@@ -1379,9 +1391,6 @@ function PathwaysWorkspaceBody() {
         }
       `}</style>
       <div style={wrapStyle}>
-        <CleanWorkflowRibbon />
-        <CleanFirstRunSetupGate currentStep="pathways" />
-
         <section
           data-guidance-id="pathways-current-step"
           style={{
@@ -1412,15 +1421,42 @@ function PathwaysWorkspaceBody() {
               </div>
             </div>
           ) : selectedPlacementStep ? (
-            <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 16 }}>
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={eyebrowStyle}>What should we do next?</div>
-                <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 34px)", lineHeight: 1.1 }}>
-                  Start with this learning step
+                <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
+                  What should we do next?
+                </div>
+                <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 32px)", lineHeight: 1.1, fontWeight: 650 }}>
+                  My Pathways
                 </h1>
-                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6, maxWidth: 760 }}>
-                  Practise first, check understanding when ready, and use the worksheet if printable support helps.
+                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.5, maxWidth: 760 }}>
+                  Choose the next skill, practise with support, then check understanding.
                 </p>
+              </div>
+              <div
+                aria-label="Curriculum context"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ ...curriculumChipStyle, color: "#6C4DF6", background: "#F2EDFF", borderColor: "#D9D0FF" }}>
+                  {selectedPlacementStep.subjectTitle || selectedSubject.title}
+                </span>
+                <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
+                <span style={curriculumChipStyle}>
+                  {selectedPlacementStep.strandTitle || selectedSubjectWorkspace?.title || "Selected strand"}
+                </span>
+                <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
+                <span style={curriculumChipStyle}>
+                  {selectedPlacementStep.stageTitle || selectedWorkspaceCurrentStageTitle}
+                </span>
+                <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
+                <span style={{ ...curriculumChipStyle, color: "#5B6478" }}>
+                  Step {selectedPlacementStep.legacyStepNumber || selectedPlacementStep.stepOrder || selectedPlacementStep.stepKey}
+                </span>
               </div>
               <div
                 style={{
@@ -1429,27 +1465,56 @@ function PathwaysWorkspaceBody() {
                   background: "linear-gradient(145deg, #FFFFFF 0%, #F2EDFF 100%)",
                   padding: "clamp(18px, 3vw, 26px)",
                   display: "grid",
-                  gap: 12,
+                  gap: 14,
                   boxShadow: "0 14px 34px rgba(108,77,246,0.10)",
                 }}
               >
-                <div style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 750, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Current learning step
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...curriculumChipStyle, borderColor: "#D9D0FF", background: "#ffffff", color: "#6C4DF6" }}>
+                    Current step
+                  </span>
+                  <span style={{ ...curriculumChipStyle, color: "#5B6478" }}>
+                    {topSnapshotNextAction}
+                  </span>
                 </div>
-                <strong style={{ color: "#17204B", fontSize: 24, lineHeight: 1.2 }}>
+                <strong style={{ color: "#17204B", fontSize: "clamp(22px, 3vw, 28px)", lineHeight: 1.15, fontWeight: 650 }}>
                   {selectedPlacementStep.stepTitle}
                 </strong>
-                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6, maxWidth: 860 }}>
+                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.55, maxWidth: 860 }}>
                   {selectedPlacementStep.stepDescription}
                 </p>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {selectedPlacementPracticeHref ? (
+                    <Link
+                      href={selectedPlacementPracticeHref}
+                      onClick={markSelectedPathwayInteraction}
+                      style={buttonStyle}
+                    >
+                      Start practise
+                    </Link>
+                  ) : (
+                    <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
+                      Start learning
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={scrollToCurrentStepPanel}
+                    style={secondaryButtonStyle}
+                  >
+                    View pathway map
+                  </button>
+                </div>
               </div>
-              <div style={{ display: "grid", gap: 12 }} aria-label="Learning package actions">
-                <div style={eyebrowStyle}>Learning package</div>
+              <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
+                <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
+                  Practise / Assess / Worksheet
+                </div>
                 <div
                   style={{
                     display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                    gap: 10,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
                   }}
                 >
                   {selectedPlacementPracticeHref ? (
@@ -1458,16 +1523,16 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 128,
+                        minHeight: 118,
                         borderColor: "#D9D0FF",
-                        background: "#FFFFFF",
+                        background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
                         textDecoration: "none",
                       }}
                     >
                       <span style={eyebrowStyle}>Practise</span>
-                      <strong style={{ color: "#17204B", fontSize: 17 }}>Build the skill</strong>
+                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>Try it with support.</strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-                        One focused question at a time.
+                        Start practise
                       </span>
                     </Link>
                   ) : null}
@@ -1477,24 +1542,24 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 128,
+                        minHeight: 118,
                         borderColor: "#CDEFD9",
-                        background: "#FFFFFF",
+                        background: "linear-gradient(180deg, #FFFFFF 0%, #ECFDF4 100%)",
                         textDecoration: "none",
                       }}
                     >
                       <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
-                      <strong style={{ color: "#17204B", fontSize: 16 }}>
-                        Check understanding
+                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>
+                        Check understanding.
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-                        Have a go independently.
+                        Start check
                       </span>
                     </Link>
                   ) : (
-                    <div style={{ ...summaryCardStyle, minHeight: 128, opacity: 0.72 }}>
+                    <div style={{ ...summaryCardStyle, minHeight: 118, opacity: 0.72, background: "#F8FAFC" }}>
                       <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
-                      <strong style={{ color: "#17204B", fontSize: 16 }}>
+                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>
                         Quick check coming
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
@@ -1510,27 +1575,28 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 128,
+                        minHeight: 118,
                         borderColor: "#F8D99A",
-                        background: "#FFFFFF",
+                        background: "linear-gradient(180deg, #FFFFFF 0%, #FFF7E6 100%)",
                         textDecoration: "none",
                       }}
                       aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
                     >
                       <span style={{ ...eyebrowStyle, color: "#F59E0B" }}>Worksheet</span>
-                      <strong style={{ color: "#17204B", fontSize: 16 }}>
-                        Printable support
+                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>
+                        Print or save practice.
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-                        {selectedPlacementWorksheet.title}
+                        Open worksheet
                       </span>
                     </Link>
                   ) : null}
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
-                    Start learning
-                  </button>
+                <details style={{ border: "1px solid #E7EAF2", borderRadius: 14, background: "#ffffff", padding: "8px 10px" }}>
+                  <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
+                    Adjust this step
+                  </summary>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
                 <button
                   type="button"
                   disabled={!nextPlacementStep}
@@ -1560,7 +1626,8 @@ function PathwaysWorkspaceBody() {
                 >
                   Choose a different step
                 </Link>
-                </div>
+                  </div>
+                </details>
               </div>
               {!nextPlacementStep && selectedPlacementStepIndex >= 0 ? (
                 <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
@@ -1622,6 +1689,8 @@ function PathwaysWorkspaceBody() {
             </div>
           )}
         </section>
+
+        <CleanFirstRunSetupGate currentStep="pathways" />
 
         <section
           data-guidance-id="pathways-context-summary"
@@ -2096,7 +2165,7 @@ function PathwaysWorkspaceBody() {
                       title: "What comes next",
                       items: [
                         selectedWorkspaceCurrentStage
-                          ? `Pathway map band: ${currentLearningZoneStageTitle}. This is not a grade label.`
+                          ? `Current focus: ${currentLearningZoneStageTitle}.`
                           : "Current pathway focus will show here.",
                         selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]
                           ? `Next progression: ${getRegionalStageLabel(
@@ -2630,59 +2699,63 @@ function NumberRevealStepCard({
     <div
       style={{
         border: `1px solid ${tone.border}`,
-        borderRadius: 12,
+        borderRadius: 16,
         background: primary ? "#ffffff" : compact ? "#ffffff" : tone.background,
-        padding: primary ? 12 : compact ? "9px 10px" : 12,
+        padding: primary ? 14 : "10px 12px",
         display: "grid",
-        gap: primary ? 10 : 7,
+        gridTemplateColumns: primary ? "1fr" : "minmax(0, 1fr) auto",
+        alignItems: "center",
+        gap: primary ? 10 : 12,
         opacity: compact && step.autoCheck.status !== "Not checked yet" ? 0.86 : 1,
+        boxShadow: primary ? "0 8px 24px rgba(23,32,75,0.045)" : "none",
       }}
     >
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <span
+      <div style={{ display: "grid", gap: primary ? 8 : 5, minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span
+            style={{
+              border: "1px solid #dbeafe",
+              background: "#eff6ff",
+              color: "#1d4ed8",
+              borderRadius: 999,
+              padding: "3px 8px",
+              fontSize: 11,
+              fontWeight: 650,
+            }}
+          >
+            Step {getRevealStepDisplayNumber(step)}
+          </span>
+          <span
+            style={{
+              border: `1px solid ${tone.border}`,
+              background: tone.background,
+              color: tone.text,
+              borderRadius: 999,
+              padding: "3px 8px",
+              fontSize: 11,
+              fontWeight: 650,
+            }}
+          >
+            {step.autoCheck.status}
+          </span>
+        </div>
+        <div
           style={{
-            border: "1px solid #dbeafe",
-            background: "#eff6ff",
-            color: "#1d4ed8",
-            borderRadius: 999,
-            padding: "3px 8px",
-            fontSize: 11,
-            fontWeight: 800,
+            color: "#17204B",
+            fontWeight: primary ? 650 : 600,
+            lineHeight: 1.25,
+            fontSize: primary ? "clamp(16px, 2vw, 20px)" : 14,
           }}
         >
-          Step {getRevealStepDisplayNumber(step)}
-        </span>
-        <span
-          style={{
-            border: `1px solid ${tone.border}`,
-            background: tone.background,
-            color: tone.text,
-            borderRadius: 999,
-            padding: "3px 8px",
-            fontSize: 11,
-            fontWeight: 800,
-          }}
-        >
-          {step.autoCheck.status}
-        </span>
-      </div>
-      <div
-        style={{
-          color: "#0f172a",
-          fontWeight: 800,
-          lineHeight: 1.25,
-          fontSize: primary ? "clamp(16px, 2vw, 20px)" : 14,
-        }}
-      >
-        {step.title}
-      </div>
-      <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-        {step.stageTitle}
-        {step.alignment ? ` / ${step.alignment.bank.shortTitle}` : ""}
-        {step.autoCheck.scope === "sub-element" ? " / focus-level signal" : ""}
+          {step.title}
+        </div>
+        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
+          {step.stageTitle}
+          {step.alignment ? ` · ${step.alignment.bank.shortTitle}` : ""}
+        </div>
       </div>
       {assessmentHref || practiceHref || worksheetResource ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: primary ? "flex-start" : "flex-end" }}>
           {practiceHref ? (
             <Link
               href={practiceHref}
@@ -2693,7 +2766,7 @@ function NumberRevealStepCard({
                 fontSize: 12,
               }}
             >
-              Practise
+              Continue
             </Link>
           ) : null}
           {assessmentHref ? (
@@ -2706,7 +2779,7 @@ function NumberRevealStepCard({
                 fontSize: 12,
               }}
             >
-              {exactStepAssessment ? "Assess" : "Check"}
+              Check
             </Link>
           ) : null}
           {worksheetResource ? (
@@ -2728,17 +2801,17 @@ function NumberRevealStepCard({
         </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Exact practice and assessment are coming next for this step.
+          Learning activity coming soon.
         </div>
       )}
       {!practiceHref && assessmentHref ? (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Exact practice is coming next for this step.
+          Practice is coming soon.
         </div>
       ) : null}
       {!assessmentHref && practiceHref ? (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Exact assessment is coming next for this step.
+          Check is coming soon.
         </div>
       ) : null}
     </div>
@@ -2768,8 +2841,8 @@ function NumberRevealStepList({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(240px, 1fr))",
-        gap: compact ? 8 : 16,
+        gridTemplateColumns: "1fr",
+        gap: 8,
       }}
     >
       {steps.map((step) => (
@@ -2809,7 +2882,7 @@ function NumberRevealLazyStepSection({
         paddingTop: 8,
       }}
     >
-      <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
+      <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 600, fontSize: 14 }}>
         {title} ({steps.length})
       </summary>
       {open ? (
@@ -2855,7 +2928,7 @@ function NumberPathwayRevealPanel({
     >
       <div style={{ display: "grid", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div style={eyebrowStyle}>Individualised pathway</div>
+          <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Pathway focus</div>
           <span
             style={{
               border: "1px solid #dbeafe",
@@ -2864,7 +2937,7 @@ function NumberPathwayRevealPanel({
               color: "#1d4ed8",
               padding: "4px 8px",
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 650,
             }}
           >
             {getRevealFocusLabel(currentStartStep, groups)}
@@ -2874,7 +2947,8 @@ function NumberPathwayRevealPanel({
           style={{
             margin: 0,
             color: "#0f172a",
-            fontSize: "clamp(18px, 2vw, 22px)",
+            fontSize: "clamp(18px, 2vw, 21px)",
+            fontWeight: 650,
           }}
         >
           {groups.hasSavedAttempts
@@ -2905,9 +2979,9 @@ function NumberPathwayRevealPanel({
         <>
           {groups.needsPolish.length ? (
             <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
-              <div style={eyebrowStyle}>Needs polish</div>
+              <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Needs polish</div>
               <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-                Earlier checked steps that were developing or needed support stay visible here.
+                Skills that may need another practice round.
               </div>
               <NumberRevealStepList
                 steps={groups.needsPolish}
@@ -2918,9 +2992,9 @@ function NumberPathwayRevealPanel({
           ) : null}
 
           <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
-            <div style={eyebrowStyle}>Current learning zone</div>
+            <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Current focus</div>
             <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-              These are the steps to work on now.
+              Current focus and next steps.
             </div>
             <NumberRevealStepList
               steps={groups.currentLearningZone.filter(
@@ -2948,10 +3022,9 @@ function NumberPathwayRevealPanel({
         </>
       ) : (
         <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
-          <div style={eyebrowStyle}>Starter guidance</div>
+          <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Start here</div>
           <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-            No saved auto-checked {strandTitle} attempt is available for this learner yet.
-            Choose one of these early pathway checks or open the full pathway below.
+            Choose an early check or open the pathway map.
           </div>
           <NumberRevealStepList
             steps={starterSteps.filter(
@@ -3330,9 +3403,9 @@ function DetailedMathematicsStepCard({
     unifiedPathwayStepStateIndex,
     statusState.pathwayStepId,
   );
-  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not saved";
+  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
   const statusChipMeta =
-    exactStepContext && confidenceStatusLabel === "Not saved"
+    exactStepContext && confidenceStatusLabel === "Not checked yet"
       ? statusMeta["Not started"]
       : meta;
   const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
@@ -3568,7 +3641,7 @@ function DetailedMathematicsStepCard({
             },
     [assessmentAttempts, exactStepAssessment, numberAssessmentAlignment],
   );
-  const worksheetStatus = worksheetResource ? "Worksheet attached" : "No worksheet mapped";
+  const worksheetStatus = worksheetResource ? "Worksheet ready" : "No worksheet";
   const worksheetFileName = worksheetResource?.fileName || "";
 
   return (
@@ -3602,12 +3675,12 @@ function DetailedMathematicsStepCard({
                 borderRadius: 999,
                 padding: "2px 7px",
                 fontSize: 11,
-                fontWeight: 800,
+                fontWeight: 650,
               }}
             >
               Step {displayStepNumber}
             </span>
-            <strong style={{ color: "#0f172a", fontSize: 13, lineHeight: 1.25 }}>
+            <strong style={{ color: "#17204B", fontSize: 13, lineHeight: 1.25, fontWeight: 600 }}>
               {step.title}
             </strong>
           </div>
@@ -3620,9 +3693,7 @@ function DetailedMathematicsStepCard({
             <div
               data-guidance-id="pathways-progress-status"
               title={
-                exactStepContext
-                  ? `Saved confidence is ${confidenceStatusLabel}.`
-                  : meta.helper
+                exactStepContext ? confidenceStatusLabel : meta.helper
               }
               style={{
                 border: `1px solid ${statusChipMeta.border}`,
@@ -3644,8 +3715,8 @@ function DetailedMathematicsStepCard({
                   flexShrink: 0,
                 }}
               />
-              <strong style={{ color: statusChipMeta.text, fontSize: 12 }}>
-                {exactStepContext && confidenceStatusLabel !== "Not saved"
+              <strong style={{ color: statusChipMeta.text, fontSize: 12, fontWeight: 650 }}>
+                {exactStepContext && confidenceStatusLabel !== "Not checked yet"
                   ? confidenceStatusLabel
                   : status}
               </strong>
@@ -3659,10 +3730,10 @@ function DetailedMathematicsStepCard({
                 color: worksheetResource ? "#166534" : "#64748b",
                 padding: "4px 7px",
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 650,
                 lineHeight: 1.3,
               }}
-              title={worksheetFileName || "No mapped worksheet PDF for this step yet."}
+              title={worksheetFileName || "No worksheet is available for this step yet."}
             >
               {worksheetStatus}
             </div>
@@ -3676,7 +3747,7 @@ function DetailedMathematicsStepCard({
                 color: "#1d4ed8",
                 padding: "4px 7px",
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 650,
               }}
             >
               {evidenceLinkedCount} evidence
@@ -3695,7 +3766,7 @@ function DetailedMathematicsStepCard({
               borderRadius: 999,
               padding: "4px 7px",
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 650,
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
@@ -3753,7 +3824,7 @@ function DetailedMathematicsStepCard({
         isExactStepContext={exactStepContext}
         noAssessmentMessage={
           exactStepContext && !exactStepAssessment
-            ? "Exact assessment is coming next for this step."
+            ? "Check is coming soon for this step."
             : null
         }
         worksheetResource={worksheetResource}

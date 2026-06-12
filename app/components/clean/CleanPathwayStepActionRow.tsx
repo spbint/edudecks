@@ -258,7 +258,7 @@ export default function CleanPathwayStepActionRow({
               title={
                 practiceTitle
                   ? `Practise ${practiceTitle}.`
-                  : "Open exact practice for this pathway step."
+                  : "Practise this pathway step."
               }
             >
               Practise
@@ -281,8 +281,8 @@ export default function CleanPathwayStepActionRow({
               type="button"
               style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
               disabled
-              title="Exact practice for this pathway step is coming later."
-              aria-label="Exact practice for this pathway step is coming later"
+              title="Practice is coming soon for this pathway step."
+              aria-label="Practice is coming soon for this pathway step"
             >
               Practise
             </button>
@@ -307,12 +307,12 @@ export default function CleanPathwayStepActionRow({
             style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
             title={
               exactAssessmentTitle
-                ? `Uses the ${exactAssessmentTitle} step assessment.`
+                ? `Check understanding with ${exactAssessmentTitle}.`
                 : "Check understanding for this pathway step."
             }
             aria-label="Assess this pathway step"
           >
-            {exactAssessmentTitle ? "Assess" : "Check"}
+            {exactAssessmentTitle ? "Start check" : "Check"}
           </Link>
         ) : (
           <button
@@ -320,10 +320,10 @@ export default function CleanPathwayStepActionRow({
             type="button"
             style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
             disabled
-            title="Assessment for this step is coming later."
-            aria-label="No auto-checked assessment is available for this pathway step"
+            title="Check is coming soon for this step."
+            aria-label="Check is coming soon for this pathway step"
           >
-            Assess
+            Check
           </button>
         )}
         <Link
