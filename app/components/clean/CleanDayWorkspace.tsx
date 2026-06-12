@@ -13,6 +13,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
@@ -952,7 +953,12 @@ function CleanDayWorkspaceBody() {
           <CleanContinueWhereYouLeftOffCard actions={continueActions} />
         </div>
 
-        {workspace.loading ? <section style={cardStyle}>Loading your day...</section> : null}
+        {workspace.loading ? (
+          <V2LoadingState
+            title="Preparing My Day"
+            body="We are loading today&apos;s rhythm, learner details, and saved blocks."
+          />
+        ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>

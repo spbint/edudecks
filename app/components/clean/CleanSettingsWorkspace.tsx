@@ -8,6 +8,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
   GuidanceSettingsCard,
@@ -844,7 +845,12 @@ function CleanSettingsWorkspaceBody() {
           />
         ) : null}
 
-        {workspace.loading ? <section style={cardStyle}>Loading family settings...</section> : null}
+        {workspace.loading ? (
+          <V2LoadingState
+            title="Preparing settings"
+            body="We are loading your curriculum, reporting, and planning preferences."
+          />
+        ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>

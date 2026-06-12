@@ -1692,9 +1692,9 @@ function AssessmentsWorkspaceBody() {
                 <div style={eyebrowStyle}>Assessment dashboard</div>
                 <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Assessments</h1>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                  Assess confidence against the same pathway steps used in My Pathways. Choose a
-                  subject, narrow to one strand, and save a calm judgement against the learner&apos;s
-                  current steps.
+                  Check how secure a learner feels on the same steps used in My Pathways. Choose
+                  a subject, narrow to one strand, and save a calm judgement to guide what happens
+                  next.
                 </p>
               </div>
 
@@ -1711,7 +1711,7 @@ function AssessmentsWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Manual confidence tracking now writes to pathway-linked step IDs.
+                  Saved to this pathway
                 </span>
                 <Link href="/my-settings" style={secondaryButtonStyle}>
                   My Settings
@@ -3067,13 +3067,13 @@ function AssessmentsWorkspaceBody() {
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>
                   {selectedTileIsNumberContext
-                    ? "Assessment attempt boundary"
-                    : "Future assessment actions"}
+                    ? "What happens next?"
+                    : "When a check is available"}
                 </strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                   {selectedTileIsNumberContext
-                    ? "Number assessments can be checked automatically and saved as assessment attempts. They do not update reports, portfolio evidence, curriculum coverage, pathway progress, or confidence unless a later deliberate integration writes those records."
-                    : "Manual confidence tracking and evidence links are aligned to pathway step IDs. Structured checks can be added on top of the same shared learning spine when a matching assessment engine exists."}
+                    ? "Use this result to decide whether to practise again, save a parent judgement, or return to the pathway."
+                    : "This step can still be tracked with a parent judgement. When a guided check is available, it will appear here."}
                 </p>
                 <div>
                   {selectedTileIsNumberContext ? (

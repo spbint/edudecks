@@ -9,6 +9,7 @@ import CleanFamilyWorkspaceProvider, {
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
@@ -835,7 +836,10 @@ function CleanCaptureWorkspaceBody() {
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading your family workspace...</section>
+          <V2LoadingState
+            title="Preparing capture"
+            body="We are loading your learners, plans, and recent evidence."
+          />
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (

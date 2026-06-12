@@ -362,10 +362,9 @@ function PracticeWorkspaceBody({
         <CleanWorkflowRibbon
           guidanceSlot={
             <section style={helperCardStyle}>
-              <strong style={{ color: "#0f172a" }}>Focused practice player</strong>
+              <strong style={{ color: "#0f172a" }}>Focused practice</strong>
               <div style={{ color: "#475569", lineHeight: 1.65 }}>
-                This prototype keeps the real canonical pathway step and evidence context,
-                but shifts the learner experience into a calmer one-task-at-a-time player.
+                One question at a time, with gentle support when the learner needs it.
               </div>
             </section>
           }
@@ -895,8 +894,8 @@ function PracticeWorkspaceBody({
                 Recommendation status
               </div>
               <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                Suggested next steps come from the Mini Check outcome only. They do not
-                write formal assessment confidence or change pathway progress status in v2.
+                Use this judgement to guide the next step. You can practise again, save a note,
+                or return to the pathway when ready.
               </div>
             </div>
           </section>

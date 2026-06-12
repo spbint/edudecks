@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import { DETAILED_SUBJECT_CONFIGS } from "@/lib/clean/pathways/detailedSubjectConfigs";
 import type { Learner } from "@/lib/clean/learners/types";
 import { inferPathwayStageFromYearLevel } from "@/lib/clean/pathways/mathematicsNumberPrototype";
@@ -338,7 +339,10 @@ function CleanPathwayPlacementWorkspaceBody() {
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading your family...</section>
+          <V2LoadingState
+            title="Preparing pathway placement"
+            body="We are loading learners and pathway choices before suggesting a starting step."
+          />
         ) : null}
 
         {!workspace.loading && workspace.requiresFamilyCreation ? (

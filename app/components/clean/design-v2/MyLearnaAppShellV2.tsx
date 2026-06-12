@@ -26,15 +26,109 @@ export const v2Tokens = {
 };
 
 const navItems = [
-  { href: "/my-day", label: "My Day", icon: "D", matches: ["/my-day", "/home", "/dashboard"] },
-  { href: "/my-pathways", label: "My Pathways", icon: "P", matches: ["/my-pathways"] },
-  { href: "/my-assessments", label: "My Assessments", icon: "A", matches: ["/my-assessments", "/assessments"] },
-  { href: "/my-capture", label: "My Capture", icon: "C", matches: ["/my-capture", "/capture"] },
-  { href: "/my-portfolio", label: "My Portfolio", icon: "F", matches: ["/my-portfolio", "/portfolio"] },
-  { href: "/my-data", label: "My Data", icon: "M", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
-  { href: "/my-reports", label: "My Reports", icon: "R", matches: ["/my-reports", "/reports"] },
-  { href: "/my-settings", label: "My Settings", icon: "S", matches: ["/my-settings", "/settings"] },
+  { href: "/my-day", label: "My Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
+  { href: "/my-pathways", label: "My Pathways", icon: "route", matches: ["/my-pathways"] },
+  { href: "/my-assessments", label: "My Assessments", icon: "clipboard", matches: ["/my-assessments", "/assessments"] },
+  { href: "/my-capture", label: "My Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
+  { href: "/my-portfolio", label: "My Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
+  { href: "/my-data", label: "My Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
+  { href: "/my-reports", label: "My Reports", icon: "file", matches: ["/my-reports", "/reports"] },
+  { href: "/my-settings", label: "My Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
 ] as const;
+
+type ShellIconName = (typeof navItems)[number]["icon"] | "help";
+
+function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  if (name === "sun") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2.8v2.1M12 19.1v2.1M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2.8 12h2.1M19.1 12h2.1M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5" />
+      </svg>
+    );
+  }
+  if (name === "route") {
+    return (
+      <svg {...common}>
+        <circle cx="6" cy="18" r="2.4" />
+        <circle cx="18" cy="6" r="2.4" />
+        <path d="M8.2 17.2c4.6-1 7.7-3.9 8.6-9" />
+        <path d="M8.2 18H14a4 4 0 0 0 4-4v-1" />
+      </svg>
+    );
+  }
+  if (name === "clipboard") {
+    return (
+      <svg {...common}>
+        <path d="M9 4.5h6a2 2 0 0 1 2 2V7H7v-.5a2 2 0 0 1 2-2Z" />
+        <path d="M8 6H6.7A2.7 2.7 0 0 0 4 8.7v9.6A2.7 2.7 0 0 0 6.7 21h10.6a2.7 2.7 0 0 0 2.7-2.7V8.7A2.7 2.7 0 0 0 17.3 6H16" />
+        <path d="m8.5 13 2.1 2.1 4.9-5" />
+      </svg>
+    );
+  }
+  if (name === "camera") {
+    return (
+      <svg {...common}>
+        <path d="M5 8.5A2.5 2.5 0 0 1 7.5 6H9l1.3-1.6h3.4L15 6h1.5A2.5 2.5 0 0 1 19 8.5v7A2.5 2.5 0 0 1 16.5 18h-9A2.5 2.5 0 0 1 5 15.5v-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  if (name === "folder") {
+    return (
+      <svg {...common}>
+        <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H10l2 2.2h5.5A2.5 2.5 0 0 1 20 9.7v6.8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z" />
+      </svg>
+    );
+  }
+  if (name === "chart") {
+    return (
+      <svg {...common}>
+        <path d="M4 19h16" />
+        <path d="M7 16v-5" />
+        <path d="M12 16V7" />
+        <path d="M17 16v-8" />
+      </svg>
+    );
+  }
+  if (name === "file") {
+    return (
+      <svg {...common}>
+        <path d="M7 3.8h6.5L18 8.3v11.9H7V3.8Z" />
+        <path d="M13.5 4v4.5H18" />
+        <path d="M9.5 12h5" />
+        <path d="M9.5 15h5" />
+      </svg>
+    );
+  }
+  if (name === "gear") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 3.5v2M12 18.5v2M5.8 5.8l1.4 1.4M16.8 16.8l1.4 1.4M3.5 12h2M18.5 12h2M5.8 18.2l1.4-1.4M16.8 7.2l1.4-1.4" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.8 9.4a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.8" />
+      <path d="M12 17.2h.01" />
+    </svg>
+  );
+}
 
 function routeTitle(pathname: string) {
   const item = navItems.find((candidate) =>
@@ -151,7 +245,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         className="mylearna-v2-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "240px minmax(0, 1fr)",
+          gridTemplateColumns: "244px minmax(0, 1fr)",
           minHeight: "100vh",
         }}
       >
@@ -163,10 +257,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             height: "100vh",
             borderRight: `1px solid ${v2Tokens.border}`,
             background: "rgba(255,255,255,0.92)",
+            boxShadow: "10px 0 30px rgba(23,32,75,0.035)",
             padding: 18,
             display: "grid",
             gridTemplateRows: "auto 1fr auto",
-            gap: 20,
+            gap: 22,
           }}
         >
           <Link href="/my-day" style={{ display: "block", textDecoration: "none" }}>
@@ -203,9 +298,9 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                     padding: "9px 11px",
                     textDecoration: "none",
                     background: active ? v2Tokens.lavender : "transparent",
-                    color: active ? v2Tokens.purple : v2Tokens.slate,
+                    color: active ? v2Tokens.purple : v2Tokens.navy,
                     fontSize: 14,
-                    fontWeight: 800,
+                    fontWeight: 650,
                   }}
                 >
                   <span
@@ -213,17 +308,13 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                     style={{
                       width: 26,
                       height: 26,
-                      borderRadius: 9,
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      background: active ? "#FFFFFF" : "#F4F6FB",
                       color: active ? v2Tokens.purple : v2Tokens.slate,
-                      fontSize: 12,
-                      fontWeight: 900,
                     }}
                   >
-                    {item.icon}
+                    <ShellIcon name={item.icon} />
                   </span>
                   <span>{item.label}</span>
                 </Link>
@@ -236,16 +327,17 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             style={{
               border: `1px solid ${v2Tokens.border}`,
               borderRadius: 18,
-              background: v2Tokens.lavender,
+              background: "linear-gradient(145deg, #FFFFFF 0%, #F7F4FF 100%)",
               padding: 14,
               color: v2Tokens.navy,
               display: "grid",
               gap: 6,
+              boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
             }}
           >
-            <strong style={{ fontSize: 14 }}>Keep it simple today.</strong>
+            <strong style={{ fontSize: 13, fontWeight: 750 }}>Ready for today</strong>
             <span style={{ color: v2Tokens.slate, fontSize: 13, lineHeight: 1.5 }}>
-              Practise teaches. Assess checks. Results guide the next step.
+              Choose one useful step, then let the pathway guide what comes next.
             </span>
           </div>
         </aside>
@@ -253,7 +345,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         <div style={{ minWidth: 0 }}>
           <header
             style={{
-              minHeight: 68,
+              minHeight: 58,
               position: "sticky",
               top: 0,
               zIndex: 30,
@@ -263,15 +355,15 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 16,
-              padding: "12px clamp(16px, 3vw, 28px)",
+              gap: 14,
+              padding: "8px clamp(16px, 3vw, 26px)",
             }}
           >
             <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
-              <div style={{ color: v2Tokens.slate, fontSize: 12, fontWeight: 700 }}>
+              <div style={{ color: v2Tokens.slate, fontSize: 12, fontWeight: 550 }}>
                 {routeCrumb(pathname)}
               </div>
-              <div style={{ color: v2Tokens.navy, fontSize: 20, fontWeight: 900 }}>
+              <div style={{ color: v2Tokens.navy, fontSize: 18, fontWeight: 750 }}>
                 {title}
               </div>
             </div>
@@ -282,7 +374,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 14,
+                  borderRadius: 999,
                   border: `1px solid ${v2Tokens.border}`,
                   background: "#FFFFFF",
                   color: v2Tokens.slate,
@@ -290,10 +382,9 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                   alignItems: "center",
                   justifyContent: "center",
                   textDecoration: "none",
-                  fontWeight: 900,
                 }}
               >
-                ?
+                <ShellIcon name="help" size={18} />
               </Link>
               <CleanCommunityNotificationsMenu />
               <CleanAccountMenu email={user?.email ?? null} redirectTo="/start-free" />

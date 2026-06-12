@@ -325,19 +325,19 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const sessionShellStyle: React.CSSProperties = {
-  border: "1px solid #dbe4f0",
-  borderRadius: 24,
+  border: "1px solid #E7EAF2",
+  borderRadius: 22,
   background: "#ffffff",
   overflow: "hidden",
-  boxShadow: "0 22px 54px rgba(15,23,42,0.10)",
+  boxShadow: "0 12px 34px rgba(23,32,75,0.08)",
 };
 
 const sessionHeaderStyle: React.CSSProperties = {
   padding: "14px 16px",
   display: "grid",
   gap: 10,
-  borderBottom: "1px solid #e2e8f0",
-  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+  borderBottom: "1px solid #E7EAF2",
+  background: "linear-gradient(180deg, #ECFDF4 0%, #ffffff 100%)",
 };
 
 const sessionBodyStyle: React.CSSProperties = {
@@ -361,7 +361,7 @@ const supportColumnStyle: React.CSSProperties = {
 };
 
 const actionBarStyle: React.CSSProperties = {
-  borderTop: "1px solid #e2e8f0",
+  borderTop: "1px solid #E7EAF2",
   padding: "12px 16px",
   background: "#fcfdff",
   display: "flex",
@@ -372,9 +372,9 @@ const actionBarStyle: React.CSSProperties = {
 };
 
 const compactCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 14,
-  background: "#f8fafc",
+  border: "1px solid #E7EAF2",
+  borderRadius: 16,
+  background: "#ffffff",
   padding: 14,
   display: "grid",
   gap: 8,

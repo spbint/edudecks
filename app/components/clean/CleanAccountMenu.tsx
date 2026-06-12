@@ -69,15 +69,15 @@ export default function CleanAccountMenu({
   }
 
   const menuButtonStyle: React.CSSProperties = {
-    border: "1px solid #dbeafe",
+    border: "1px solid #E7EAF2",
     borderRadius: 999,
     background: "#ffffff",
-    padding: "8px 10px",
+    padding: "3px 8px 3px 3px",
     display: "inline-flex",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     cursor: "pointer",
-    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+    boxShadow: "0 8px 20px rgba(23,32,75,0.04)",
   };
 
   const menuItemStyle: React.CSSProperties = {
@@ -116,23 +116,31 @@ export default function CleanAccountMenu({
             width: 34,
             height: 34,
             borderRadius: 999,
-            background: "#eff6ff",
-            color: "#1d4ed8",
+            background: "#F2EDFF",
+            color: "#6C4DF6",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 13,
-            fontWeight: 900,
-            border: "1px solid #bfdbfe",
+            fontSize: 12,
+            fontWeight: 800,
+            border: "1px solid #D9D0FF",
             flexShrink: 0,
           }}
         >
           {initials}
         </span>
-        <span style={{ display: "grid", gap: 2, textAlign: "left" }}>
-          <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 800 }}>My Account</span>
-          <span style={{ color: "#64748b", fontSize: 12 }}>
-            {email || "Profile and settings"}
+        <span style={{ display: "grid", gap: 1, textAlign: "left", maxWidth: 142 }}>
+          <span style={{ color: "#17204B", fontSize: 13, fontWeight: 650 }}>Account</span>
+          <span
+            style={{
+              color: "#5B6478",
+              fontSize: 11,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {email || "Profile"}
           </span>
         </span>
       </button>

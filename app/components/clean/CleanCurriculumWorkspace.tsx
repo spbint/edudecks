@@ -9,6 +9,7 @@ import CleanFamilyWorkspaceProvider, {
 import CleanLearningIntelligenceDashboard from "@/app/components/clean/CleanLearningIntelligenceDashboard";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   listCleanAssessmentSkillStatuses,
 } from "@/lib/clean/assessments/client";
@@ -39,9 +40,9 @@ import {
 } from "@/lib/clean/outputs/curriculumCoveragePdf";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -52,11 +53,11 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: "clamp(16px, 3vw, 24px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const helperCardStyle: React.CSSProperties = {
@@ -703,7 +704,12 @@ function CurriculumWorkspaceBody() {
           </div>
         </section>
 
-        {workspace.loading ? <section style={cardStyle}>Loading curriculum view...</section> : null}
+        {workspace.loading ? (
+          <V2LoadingState
+            title="Preparing My Data"
+            body="We are loading curriculum coverage, evidence links, and learning signals."
+          />
+        ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>

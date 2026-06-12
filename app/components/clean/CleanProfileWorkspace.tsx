@@ -7,6 +7,7 @@ import CleanFamilyWorkspaceProvider, {
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
@@ -545,7 +546,10 @@ function CleanProfileWorkspaceBody() {
         ) : null}
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading your family workspace...</section>
+          <V2LoadingState
+            title="Preparing your profile"
+            body="We are loading your family profile and learner details."
+          />
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (

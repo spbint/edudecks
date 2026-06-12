@@ -195,7 +195,7 @@ const buttonStyle: React.CSSProperties = {
   borderRadius: 14,
   padding: "10px 14px",
   fontSize: 14,
-  fontWeight: 800,
+  fontWeight: 700,
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
@@ -213,8 +213,8 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: "0.08em",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
   color: "#6C4DF6",
   textTransform: "uppercase",
 };
@@ -1414,42 +1414,37 @@ function PathwaysWorkspaceBody() {
           ) : selectedPlacementStep ? (
             <div style={{ display: "grid", gap: 12 }}>
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={eyebrowStyle}>Current step</div>
-                <h1 style={{ margin: 0, color: "#0f172a", fontSize: 30, lineHeight: 1.1 }}>
-                  {selectedLearnerLabel}&apos;s next step
+                <div style={eyebrowStyle}>What should we do next?</div>
+                <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 34px)", lineHeight: 1.1 }}>
+                  Start with this learning step
                 </h1>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  {selectedPlacementStep.subjectTitle} / {selectedPlacementStep.strandTitle}
+                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6, maxWidth: 760 }}>
+                  {selectedLearnerLabel} is working in {selectedPlacementStep.subjectTitle}:{" "}
+                  {selectedPlacementStep.strandTitle}. Practise first, check understanding when ready,
+                  and use the worksheet if a printable support will help.
                 </p>
               </div>
               <div
                 style={{
-                  border: "1px solid #E7EAF2",
-                  borderRadius: 20,
-                  background: "#ffffff",
-                  padding: "clamp(16px, 3vw, 24px)",
+                  border: "1px solid #D9D0FF",
+                  borderRadius: 22,
+                  background: "linear-gradient(145deg, #FFFFFF 0%, #F2EDFF 100%)",
+                  padding: "clamp(18px, 3vw, 26px)",
                   display: "grid",
-                  gap: 10,
-                  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
+                  gap: 12,
+                  boxShadow: "0 14px 34px rgba(108,77,246,0.10)",
                 }}
               >
-                <div style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900 }}>
-                  Current step
+                <div style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 750, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Current learning step
                 </div>
                 <strong style={{ color: "#17204B", fontSize: 24, lineHeight: 1.2 }}>
                   {selectedPlacementStep.stepTitle}
                 </strong>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6, maxWidth: 860 }}>
                   {selectedPlacementStep.stepDescription}
                 </p>
-                <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                  We&apos;ll start gently. This is a starting point, not a grade label.
-                </p>
               </div>
-              <p style={{ margin: 0, color: "#334155", lineHeight: 1.6, fontWeight: 700 }}>
-                Start here. If this feels too easy or too hard, you can move forward
-                or try an earlier step.
-              </p>
               <div style={{ display: "grid", gap: 12 }} aria-label="Learning package actions">
                 <div style={eyebrowStyle}>Learning package</div>
                 <div
@@ -1463,10 +1458,16 @@ function PathwaysWorkspaceBody() {
                     <Link
                       href={selectedPlacementPracticeHref}
                       onClick={markSelectedPathwayInteraction}
-                      style={{ ...summaryCardStyle, textDecoration: "none" }}
+                      style={{
+                        ...summaryCardStyle,
+                        minHeight: 128,
+                        borderColor: "#D9D0FF",
+                        background: "#FFFFFF",
+                        textDecoration: "none",
+                      }}
                     >
                       <span style={eyebrowStyle}>Practise</span>
-                      <strong style={{ color: "#17204B", fontSize: 16 }}>Build the skill</strong>
+                      <strong style={{ color: "#17204B", fontSize: 17 }}>Build the skill</strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
                         One focused question at a time with gentle support.
                       </span>
@@ -1476,9 +1477,15 @@ function PathwaysWorkspaceBody() {
                     <Link
                       href={selectedPlacementAssessmentHref}
                       onClick={markSelectedPathwayInteraction}
-                      style={{ ...summaryCardStyle, textDecoration: "none" }}
+                      style={{
+                        ...summaryCardStyle,
+                        minHeight: 128,
+                        borderColor: "#CDEFD9",
+                        background: "#FFFFFF",
+                        textDecoration: "none",
+                      }}
                     >
-                      <span style={eyebrowStyle}>Assess</span>
+                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
                       <strong style={{ color: "#17204B", fontSize: 16 }}>
                         Check understanding
                       </strong>
@@ -1487,8 +1494,8 @@ function PathwaysWorkspaceBody() {
                       </span>
                     </Link>
                   ) : (
-                    <div style={{ ...summaryCardStyle, opacity: 0.72 }}>
-                      <span style={eyebrowStyle}>Assess</span>
+                    <div style={{ ...summaryCardStyle, minHeight: 128, opacity: 0.72 }}>
+                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
                       <strong style={{ color: "#17204B", fontSize: 16 }}>
                         Quick check coming
                       </strong>
@@ -1503,10 +1510,16 @@ function PathwaysWorkspaceBody() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={markSelectedPathwayInteraction}
-                      style={{ ...summaryCardStyle, textDecoration: "none" }}
+                      style={{
+                        ...summaryCardStyle,
+                        minHeight: 128,
+                        borderColor: "#F8D99A",
+                        background: "#FFFFFF",
+                        textDecoration: "none",
+                      }}
                       aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
                     >
-                      <span style={eyebrowStyle}>Worksheet</span>
+                      <span style={{ ...eyebrowStyle, color: "#F59E0B" }}>Worksheet</span>
                       <strong style={{ color: "#17204B", fontSize: 16 }}>
                         Printable support
                       </strong>
@@ -1518,7 +1531,7 @@ function PathwaysWorkspaceBody() {
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
-                    Start this step
+                    Start learning
                   </button>
                 <button
                   type="button"

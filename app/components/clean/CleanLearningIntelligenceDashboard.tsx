@@ -36,11 +36,11 @@ type MetricTone = {
 };
 
 const dashboardShellStyle: React.CSSProperties = {
-  border: "1px solid #dbe4f0",
-  borderRadius: 28,
+  border: "1px solid #E7EAF2",
+  borderRadius: 22,
   background:
-    "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,0.98) 100%)",
-  boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+    "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,249,252,0.98) 100%)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
   padding: "clamp(16px, 2.6vw, 24px)",
   display: "grid",
   gap: 18,
@@ -48,17 +48,17 @@ const dashboardShellStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 22,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
-  boxShadow: "0 14px 32px rgba(15,23,42,0.05)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
 };
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: "0.08em",
-  color: "#64748b",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  color: "#6C4DF6",
   textTransform: "uppercase",
 };
 

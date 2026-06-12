@@ -162,30 +162,47 @@ export default function CleanCommunityNotificationsMenu() {
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 8,
+          justifyContent: "center",
+          position: "relative",
+          width: 40,
+          height: 40,
           borderRadius: 999,
-          border: unreadCount ? "1px solid #bfdbfe" : "1px solid #dbeafe",
-          background: unreadCount ? "#eff6ff" : "#ffffff",
-          color: unreadCount ? "#1d4ed8" : "#334155",
-          padding: "8px 12px",
-          fontSize: 13,
-          fontWeight: 700,
+          border: unreadCount ? "1px solid #D9D0FF" : "1px solid #E7EAF2",
+          background: unreadCount ? "#F2EDFF" : "#ffffff",
+          color: unreadCount ? "#6C4DF6" : "#5B6478",
+          padding: 0,
           cursor: "pointer",
-          whiteSpace: "nowrap",
+          boxShadow: "0 8px 20px rgba(23,32,75,0.04)",
         }}
       >
-        Notifications
+        <svg
+          aria-hidden="true"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M17.5 9.7a5.5 5.5 0 1 0-11 0c0 5.2-2.5 5.8-2.5 7h16c0-1.2-2.5-1.8-2.5-7Z" />
+          <path d="M10 20a2.2 2.2 0 0 0 4 0" />
+        </svg>
         {unreadCount ? (
           <span
             aria-label={`${unreadCount} unread notifications`}
             style={{
-              minWidth: 20,
-              height: 20,
-              padding: "0 6px",
+              position: "absolute",
+              right: -3,
+              top: -4,
+              minWidth: 18,
+              height: 18,
+              padding: "0 5px",
               borderRadius: 999,
-              background: "#1d4ed8",
+              background: "#6C4DF6",
               color: "#ffffff",
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 800,
               display: "inline-flex",
               alignItems: "center",
