@@ -83,53 +83,53 @@ import type {
 import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(10px, 3vw, 20px) clamp(8px, 3vw, 16px) 36px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
   boxSizing: "border-box",
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 1180,
+  maxWidth: 1240,
   margin: "0 auto",
   display: "grid",
-  gap: 24,
+  gap: 18,
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 14,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
-  padding: 12,
-  boxShadow: "0 4px 14px rgba(15,23,42,0.035)",
+  padding: "clamp(16px, 3vw, 24px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const compactCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 12,
-  background: "#f8fafc",
-  padding: 10,
+  border: "1px solid #E7EAF2",
+  borderRadius: 16,
+  background: "#ffffff",
+  padding: 14,
   display: "grid",
-  gap: 6,
+  gap: 8,
 };
 
 const helperCardStyle: React.CSSProperties = {
-  border: "1px solid #dbeafe",
-  borderRadius: 12,
-  background: "#f8fbff",
-  padding: 10,
+  border: "1px solid #E7EAF2",
+  borderRadius: 16,
+  background: "#F2EDFF",
+  padding: 14,
   display: "grid",
-  gap: 6,
+  gap: 8,
 };
 
 const summaryCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 12,
+  border: "1px solid #E7EAF2",
+  borderRadius: 16,
   background: "#ffffff",
-  padding: 10,
+  padding: 14,
   display: "grid",
-  gap: 6,
-  boxShadow: "0 3px 10px rgba(15,23,42,0.03)",
+  gap: 8,
+  boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
 };
 
 const EMPTY_STRAND_CARD: SubjectStrandCard = {
@@ -194,32 +194,33 @@ const inputStyle: React.CSSProperties = {
 };
 
 const buttonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
-  borderRadius: 10,
+  borderRadius: 14,
   padding: "10px 14px",
   fontSize: 14,
-  fontWeight: 700,
+  fontWeight: 800,
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  minHeight: 44,
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#0f172a",
+  color: "#17204B",
 };
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 800,
   letterSpacing: "0.08em",
-  color: "#64748b",
+  color: "#6C4DF6",
   textTransform: "uppercase",
 };
 
@@ -1415,11 +1416,14 @@ function PathwaysWorkspaceBody() {
           data-guidance-id="pathways-current-step"
           style={{
             ...cardStyle,
-            padding: 18,
-            border: selectedPlacementStep ? "1px solid #bfdbfe" : cardStyle.border,
+            padding: "clamp(20px, 3vw, 30px)",
+            border: selectedPlacementStep ? "1px solid #D9D0FF" : cardStyle.border,
             background: selectedPlacementStep
-              ? "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)"
+              ? "linear-gradient(135deg, #FFFFFF 0%, #F7F3FF 100%)"
               : "#ffffff",
+            boxShadow: selectedPlacementStep
+              ? "0 14px 34px rgba(108,77,246,0.10)"
+              : cardStyle.boxShadow,
           }}
         >
           {!selectedLearner ? (
@@ -1450,19 +1454,19 @@ function PathwaysWorkspaceBody() {
               </div>
               <div
                 style={{
-                  border: "1px solid #bfdbfe",
-                  borderRadius: 16,
+                  border: "1px solid #E7EAF2",
+                  borderRadius: 20,
                   background: "#ffffff",
-                  padding: 16,
+                  padding: "clamp(16px, 3vw, 24px)",
                   display: "grid",
-                  gap: 8,
-                  boxShadow: "0 8px 22px rgba(37,99,235,0.08)",
+                  gap: 10,
+                  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
                 }}
               >
-                <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
+                <div style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900 }}>
                   Current step
                 </div>
-                <strong style={{ color: "#0f172a", fontSize: 22, lineHeight: 1.2 }}>
+                <strong style={{ color: "#17204B", fontSize: 24, lineHeight: 1.2 }}>
                   {selectedPlacementStep.stepTitle}
                 </strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -1476,7 +1480,19 @@ function PathwaysWorkspaceBody() {
                 Start here. If this feels too easy or too hard, you can move forward
                 or try an earlier step.
               </p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  border: "1px solid #E7EAF2",
+                  borderRadius: 18,
+                  background: "#FFFFFF",
+                  padding: 10,
+                  boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
+                }}
+                aria-label="Learning package actions"
+              >
                 <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
                   Start this step
                 </button>

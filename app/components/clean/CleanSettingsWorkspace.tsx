@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -797,8 +796,6 @@ function CleanSettingsWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
-
         {!firstSetupMode ? (
           <CleanPageIntroVideo
             config={PAGE_INTRO_VIDEOS.mySettings}

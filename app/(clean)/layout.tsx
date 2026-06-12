@@ -1,4 +1,6 @@
 import React from "react";
+import { FamilyWorkspaceProvider } from "@/app/components/FamilyWorkspaceProvider";
+import MyLearnaAppShellV2 from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
 import { requireAuthenticatedRoute } from "@/lib/auth/serverRouteAuth";
 
 export default async function CleanRouteLayout({
@@ -8,5 +10,9 @@ export default async function CleanRouteLayout({
 }) {
   await requireAuthenticatedRoute("/clean-my-day");
 
-  return <>{children}</>;
+  return (
+    <FamilyWorkspaceProvider>
+      <MyLearnaAppShellV2>{children}</MyLearnaAppShellV2>
+    </FamilyWorkspaceProvider>
+  );
 }

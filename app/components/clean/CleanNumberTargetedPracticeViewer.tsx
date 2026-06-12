@@ -240,9 +240,9 @@ import {
 } from "@/lib/clean/practice/numberStepPracticeTypes";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {

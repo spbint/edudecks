@@ -17,7 +17,6 @@ import {
   LearningPanel,
   ParentJudgementPanel,
   StepProgressBar,
-  learningV2,
 } from "@/app/components/clean/learning/LearningExperienceV2";
 import {
   isStep2NumberWordActivity,
@@ -313,9 +312,9 @@ type AssessmentSessionMode = "launcher" | "active" | "summary";
 const NOT_SURE_RESPONSE = "__not_sure__";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: learningV2.page,
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {

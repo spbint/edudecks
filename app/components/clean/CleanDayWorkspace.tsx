@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import {
@@ -857,7 +856,6 @@ function CleanDayWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
         <CleanFirstRunSetupGate currentStep="day" />
         <GuidanceSetupProgress
           stepId="day"
