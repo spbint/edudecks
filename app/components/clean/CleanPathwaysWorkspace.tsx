@@ -454,7 +454,7 @@ function getAssessmentAttemptDisplayTitle(attempt: CleanAssessmentAttempt) {
   const stepTitle = String(prototypeMetadata?.stepTitle ?? "").trim();
   if (stepTitle) return stepTitle;
 
-  return getNumberBankForAttempt(attempt)?.shortTitle || "Assessment saved";
+  return getNumberBankForAttempt(attempt)?.shortTitle || "Check saved";
 }
 
 function formatAssessmentAttemptSavedAt(value: string | null) {
@@ -1508,7 +1508,7 @@ function PathwaysWorkspaceBody() {
               </div>
               <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
                 <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                  Practise / Assess / Worksheet
+                  Practise / Check / Worksheet
                 </div>
                 <div
                   style={{
@@ -1523,15 +1523,16 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 118,
+                        minHeight: 96,
                         borderColor: "#D9D0FF",
                         background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
                         textDecoration: "none",
+                        padding: 14,
                       }}
                     >
                       <span style={eyebrowStyle}>Practise</span>
-                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>Try it with support.</strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>Try it with support.</strong>
+                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
                         Start practise
                       </span>
                     </Link>
@@ -1542,27 +1543,28 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 118,
+                        minHeight: 96,
                         borderColor: "#CDEFD9",
                         background: "linear-gradient(180deg, #FFFFFF 0%, #ECFDF4 100%)",
                         textDecoration: "none",
+                        padding: 14,
                       }}
                     >
-                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
-                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>
+                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Check</span>
+                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
                         Check understanding.
                       </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
                         Start check
                       </span>
                     </Link>
                   ) : (
-                    <div style={{ ...summaryCardStyle, minHeight: 118, opacity: 0.72, background: "#F8FAFC" }}>
-                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
-                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>
+                    <div style={{ ...summaryCardStyle, minHeight: 96, opacity: 0.72, background: "#F8FAFC", padding: 14 }}>
+                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Check</span>
+                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
                         Quick check coming
                       </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
                         This check is coming soon.
                       </span>
                     </div>
@@ -1575,18 +1577,19 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 118,
+                        minHeight: 96,
                         borderColor: "#F8D99A",
                         background: "linear-gradient(180deg, #FFFFFF 0%, #FFF7E6 100%)",
                         textDecoration: "none",
+                        padding: 14,
                       }}
                       aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
                     >
                       <span style={{ ...eyebrowStyle, color: "#F59E0B" }}>Worksheet</span>
-                      <strong style={{ color: "#17204B", fontSize: 17, fontWeight: 650 }}>
+                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
                         Print or save practice.
                       </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
                         Open worksheet
                       </span>
                     </Link>
@@ -3115,7 +3118,7 @@ function DetailedMathematicsStageCard({
     summary.readyToAssess > 0
       ? {
           key: "ready",
-          label: `${summary.readyToAssess} ready to assess`,
+          label: `${summary.readyToAssess} ready to check`,
           border: "#ddd6fe",
           background: "#f5f3ff",
           color: "#6d28d9",
@@ -3856,7 +3859,7 @@ function DetailedMathematicsStepCard({
           items={step.evidenceExamples}
         />
         <PathwayStepGuidanceSection
-          title="Assessment check later"
+          title="Check later"
           content={step.assessmentCheck}
         />
       </div>

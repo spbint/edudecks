@@ -321,19 +321,19 @@ const wrapStyle: React.CSSProperties = {
   maxWidth: 1120,
   margin: "0 auto",
   display: "grid",
-  gap: 18,
+  gap: 14,
 };
 
 const sessionShellStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
-  borderRadius: 22,
+  borderRadius: 20,
   background: "#ffffff",
   overflow: "hidden",
-  boxShadow: "0 12px 34px rgba(23,32,75,0.08)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const sessionHeaderStyle: React.CSSProperties = {
-  padding: "14px 16px",
+  padding: "12px 14px",
   display: "grid",
   gap: 10,
   borderBottom: "1px solid #E7EAF2",
@@ -341,28 +341,28 @@ const sessionHeaderStyle: React.CSSProperties = {
 };
 
 const sessionBodyStyle: React.CSSProperties = {
-  padding: 16,
+  padding: 14,
   display: "grid",
-  gap: 14,
+  gap: 12,
 };
 
 const workspaceLayoutStyle: React.CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 16,
+  gap: 12,
   alignItems: "flex-start",
 };
 
 const supportColumnStyle: React.CSSProperties = {
-  flex: "0.85 1 300px",
-  minWidth: "min(100%, 280px)",
+  flex: "0.8 1 280px",
+  minWidth: "min(100%, 260px)",
   display: "grid",
-  gap: 12,
+  gap: 10,
 };
 
 const actionBarStyle: React.CSSProperties = {
   borderTop: "1px solid #E7EAF2",
-  padding: "12px 16px",
+  padding: "10px 14px",
   background: "#fcfdff",
   display: "flex",
   flexWrap: "wrap",
@@ -375,7 +375,7 @@ const compactCardStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
   borderRadius: 16,
   background: "#ffffff",
-  padding: 14,
+  padding: 12,
   display: "grid",
   gap: 8,
 };
@@ -384,7 +384,7 @@ const helperCardStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
   borderRadius: 16,
   background: "#f8fbff",
-  padding: 14,
+  padding: 12,
   display: "grid",
   gap: 6,
 };
@@ -753,16 +753,16 @@ const chipBaseStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 999,
-  padding: "6px 10px",
+  padding: "5px 9px",
   fontSize: 12,
-  fontWeight: 700,
+  fontWeight: 600,
   lineHeight: 1.2,
 };
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: "0.08em",
+  fontWeight: 600,
+  letterSpacing: "0.04em",
   color: "#64748b",
   textTransform: "uppercase",
 };
@@ -789,9 +789,9 @@ const buttonStyle: React.CSSProperties = {
   background: "#0f172a",
   color: "#ffffff",
   borderRadius: 12,
-  padding: "10px 14px",
-  fontSize: 14,
-  fontWeight: 700,
+  padding: "8px 12px",
+  fontSize: 13,
+  fontWeight: 600,
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
@@ -821,25 +821,25 @@ const optionButtonStyle: React.CSSProperties = {
   gap: 12,
   textAlign: "left",
   border: "1px solid #cbd5e1",
-  borderRadius: 16,
-  padding: "12px 14px",
+  borderRadius: 14,
+  padding: "10px 12px",
   background: "#ffffff",
   color: "#0f172a",
-  fontSize: 15,
+  fontSize: 14,
   lineHeight: 1.5,
   cursor: "pointer",
 };
 
 const launcherShellStyle: React.CSSProperties = {
   border: "1px solid #dbe4f0",
-  borderRadius: 24,
+  borderRadius: 20,
   background: "#ffffff",
-  boxShadow: "0 22px 54px rgba(15,23,42,0.10)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
   overflow: "hidden",
 };
 
 const launcherHeaderStyle: React.CSSProperties = {
-  padding: "clamp(20px, 4vw, 32px)",
+  padding: "clamp(16px, 3vw, 22px)",
   display: "grid",
   gap: 8,
   borderBottom: "1px solid #e2e8f0",
@@ -847,15 +847,15 @@ const launcherHeaderStyle: React.CSSProperties = {
 };
 
 const launcherBodyStyle: React.CSSProperties = {
-  padding: "clamp(16px, 4vw, 26px)",
+  padding: "clamp(14px, 3vw, 20px)",
   display: "grid",
-  gap: 18,
+  gap: 14,
 };
 
 const focusGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
 };
 
 const assessmentTopBarStyle: React.CSSProperties = {
@@ -7018,8 +7018,8 @@ function CleanNumberAssessmentPlayerBody() {
       setSaveState("failed");
       setSaveMessage(
         error instanceof Error
-          ? `Assessment result could not be saved yet. ${error.message}`
-          : "Assessment result could not be saved yet. Please try again before leaving this page.",
+          ? `Check result could not be saved yet. ${error.message}`
+          : "Check result could not be saved yet. Please try again before leaving this page.",
       );
     }
   }
@@ -7063,29 +7063,30 @@ function CleanNumberAssessmentPlayerBody() {
         {sessionMode === "launcher" ? (
           <section style={launcherShellStyle}>
             <div style={launcherHeaderStyle}>
-              <div style={eyebrowStyle}>MyLearna Assessment</div>
+              <div style={eyebrowStyle}>Check</div>
               <h1
                 style={{
                   margin: 0,
-                  fontSize: "clamp(30px, 5vw, 44px)",
-                  lineHeight: 1.05,
+                  fontSize: "clamp(24px, 4vw, 34px)",
+                  lineHeight: 1.1,
                   color: "#0f172a",
+                  fontWeight: 650,
                 }}
               >
-                {incomingStepAssessment ? "Step assessment" : "Number assessment"}
+                {incomingStepAssessment ? "Check understanding" : "Number check"}
               </h1>
               <p
                 style={{
                   margin: 0,
                   color: "#475569",
-                  fontSize: 17,
-                  lineHeight: 1.65,
+                  fontSize: 14,
+                  lineHeight: 1.5,
                   maxWidth: 720,
                 }}
               >
                 {incomingStepAssessment
-                  ? "Choose a check depth, then enter a focused step-level assessment."
-                  : "Choose an assessment focus, then answer a focused set of Number questions."}
+                  ? "Have a go on your own."
+                  : "Choose a focus, then answer a short set of Number questions."}
               </p>
             </div>
 
@@ -7093,15 +7094,15 @@ function CleanNumberAssessmentPlayerBody() {
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={eyebrowStyle}>
                   {incomingStepAssessment
-                    ? "Exact pathway step assessment"
-                    : "Choose an assessment focus"}
+                    ? "Pathway step check"
+                    : "Choose a check focus"}
                 </div>
                 {hasIncomingNumberContext && !incomingStepAssessment ? (
                   <div style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>
                       {incomingBank
-                        ? `No exact step assessment yet. Showing the closest Number assessment family: ${incomingBank.shortTitle}.`
-                        : "Choose a Number focus to start an automatically checked assessment."}
+                        ? `Showing the closest Number check: ${incomingBank.shortTitle}.`
+                        : "Choose a Number focus to start a check."}
                     </strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                       This check can be saved and used to guide your next parent judgement.
@@ -7185,7 +7186,7 @@ function CleanNumberAssessmentPlayerBody() {
                 }}
               >
                 <div style={{ display: "grid", gap: 8 }}>
-                  <div style={eyebrowStyle}>Selected focus</div>
+                  <div style={eyebrowStyle}>Selected check</div>
                   <h2
                     style={{
                       margin: 0,
@@ -7208,7 +7209,7 @@ function CleanNumberAssessmentPlayerBody() {
                         Stage:{" "}
                         <strong>{getStageLabel(incomingStepAssessment.stageKey)}</strong>
                       </div>
-                      <div style={eyebrowStyle}>Choose check depth</div>
+                      <div style={eyebrowStyle}>Check depth</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                         {NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS.map((option) => {
                           const selected = assessmentDepth === option.key;
@@ -7227,12 +7228,12 @@ function CleanNumberAssessmentPlayerBody() {
                                 background: selected ? "#eff6ff" : "#ffffff",
                                 color: selected ? "#1d4ed8" : "#0f172a",
                                 borderRadius: 12,
-                                padding: "10px 12px",
+                                padding: "8px 11px",
                                 cursor: "pointer",
-                                fontWeight: 800,
+                                fontWeight: 600,
                               }}
                             >
-                              {option.label} - {option.description}
+                              {option.label}: {option.description}
                             </button>
                           );
                         })}
@@ -7249,7 +7250,7 @@ function CleanNumberAssessmentPlayerBody() {
                       {totalItems} {incomingStepAssessment ? "questions" : "items"}
                     </span>
                     <span style={getFormatTone("applied_context")}>
-                      Diagnostic attempt
+                      Learning check
                     </span>
                   </div>
                 </div>
@@ -7259,11 +7260,11 @@ function CleanNumberAssessmentPlayerBody() {
                   onClick={() => startAssessment()}
                   style={{
                     ...buttonStyle,
-                    minHeight: 46,
+                    minHeight: 40,
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Start assessment
+                  Start check
                 </button>
               </div>
             </div>
@@ -7273,12 +7274,12 @@ function CleanNumberAssessmentPlayerBody() {
             <div style={sessionHeaderStyle}>
               <div style={assessmentTopBarStyle}>
                 <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-                  <div style={eyebrowStyle}>MyLearna Assessment</div>
+                  <div style={eyebrowStyle}>Check</div>
                   <div
                     style={{
                       color: "#0f172a",
-                      fontSize: "clamp(18px, 3vw, 24px)",
-                      fontWeight: 850,
+                      fontSize: "clamp(17px, 2.6vw, 22px)",
+                      fontWeight: 650,
                       lineHeight: 1.15,
                     }}
                   >
@@ -7340,10 +7341,10 @@ function CleanNumberAssessmentPlayerBody() {
                   }}
                 >
                   {showSummary
-                    ? `Assessment summary - ${
+                    ? `Check summary - ${
                         incomingStepAssessment?.shortTitle ?? selectedBank.shortTitle
                       }`
-                    : `Item ${currentIndex + 1} of ${totalItems}`}
+                    : `Question ${currentIndex + 1} of ${totalItems}`}
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -7355,7 +7356,7 @@ function CleanNumberAssessmentPlayerBody() {
                       color: "#475569",
                     }}
                   >
-                    Attempted {summary.attemptedCount}
+                    Answered {summary.attemptedCount}
                   </span>
                   <span
                     style={
@@ -7390,7 +7391,7 @@ function CleanNumberAssessmentPlayerBody() {
               <StepProgressBar
                 current={Math.min(currentIndex + 1, totalItems)}
                 total={totalItems}
-                label={showSummary ? "Assessment complete" : "Assessment progress"}
+                label={showSummary ? "Check complete" : "Check progress"}
               />
             </div>
           </div>
@@ -7406,7 +7407,7 @@ function CleanNumberAssessmentPlayerBody() {
               >
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Total items</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
+                  <div style={{ fontSize: 22, fontWeight: 650, color: "#0f172a" }}>
                     {totalItems}
                   </div>
                 </div>
@@ -7414,13 +7415,13 @@ function CleanNumberAssessmentPlayerBody() {
                   <div style={eyebrowStyle}>
                     {incomingStepAssessment ? "Answered or Not sure" : "Answered"}
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
+                  <div style={{ fontSize: 22, fontWeight: 650, color: "#0f172a" }}>
                     {summary.attemptedCount}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Correct</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#166534" }}>
+                  <div style={{ fontSize: 22, fontWeight: 650, color: "#166534" }}>
                     {summary.correctCount}
                   </div>
                 </div>
@@ -7428,21 +7429,21 @@ function CleanNumberAssessmentPlayerBody() {
                   <div style={eyebrowStyle}>
                     {incomingStepAssessment ? "More support recommended" : "Worth revisiting"}
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#b45309" }}>
+                  <div style={{ fontSize: 22, fontWeight: 650, color: "#b45309" }}>
                     {summary.incorrectCount}
                   </div>
                 </div>
                 {incomingStepAssessment ? (
                   <div style={compactCardStyle}>
                     <div style={eyebrowStyle}>Not sure</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: "#b45309" }}>
+                    <div style={{ fontSize: 22, fontWeight: 650, color: "#b45309" }}>
                       {summary.notSureCount}
                     </div>
                   </div>
                 ) : (
                   <div style={compactCardStyle}>
                     <div style={eyebrowStyle}>Needs adult review</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: "#4338ca" }}>
+                    <div style={{ fontSize: 22, fontWeight: 650, color: "#4338ca" }}>
                       {summary.reviewNeededCount}
                     </div>
                   </div>
@@ -7450,7 +7451,7 @@ function CleanNumberAssessmentPlayerBody() {
                 {incomingStepAssessment && summary.unansweredCount ? (
                   <div style={compactCardStyle}>
                     <div style={eyebrowStyle}>Still to answer</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: "#475569" }}>
+                    <div style={{ fontSize: 22, fontWeight: 650, color: "#475569" }}>
                       {summary.unansweredCount}
                     </div>
                   </div>
@@ -7500,7 +7501,7 @@ function CleanNumberAssessmentPlayerBody() {
                         <div
                           style={{
                             color: "#0f172a",
-                            fontWeight: 800,
+                          fontWeight: 650,
                             lineHeight: 1.3,
                           }}
                         >
@@ -7509,7 +7510,7 @@ function CleanNumberAssessmentPlayerBody() {
                         <div
                           style={{
                             color: "#1e3a8a",
-                            fontWeight: 800,
+                            fontWeight: 650,
                             lineHeight: 1.4,
                           }}
                         >
@@ -7538,10 +7539,10 @@ function CleanNumberAssessmentPlayerBody() {
 
               {summary.targetedPracticeRecommendation ? (
                 <div style={highlightCardStyle}>
-                  <div style={eyebrowStyle}>
+                    <div style={eyebrowStyle}>
                     {incomingStepAssessment
-                      ? "Suggested practice focus"
-                      : "Recommended targeted practice"}
+                      ? "Suggested practice"
+                      : "Targeted practice"}
                   </div>
                   <div
                     style={{
@@ -7929,10 +7930,10 @@ function CleanNumberAssessmentPlayerBody() {
                     onClick={exitAssessment}
                     style={secondaryButtonStyle}
                   >
-                    Exit assessment
+                    Exit check
                   </button>
                   <button type="button" onClick={resetPreview} style={buttonStyle}>
-                    Restart assessment
+                    Restart check
                   </button>
                 </div>
               </div>
@@ -7943,7 +7944,7 @@ function CleanNumberAssessmentPlayerBody() {
                 <div style={workspaceLayoutStyle}>
                   <LearningPanel
                     tone="assess"
-                    eyebrow="Assess"
+                    eyebrow="Check"
                     title={currentItem.title}
                     subtitle="Have a go on your own."
                   >
@@ -7969,8 +7970,8 @@ function CleanNumberAssessmentPlayerBody() {
                         style={{
                           margin: 0,
                           color: "#334155",
-                          fontSize: 17,
-                          lineHeight: 1.75,
+                          fontSize: 16,
+                          lineHeight: 1.55,
                         }}
                       >
                         {currentItem.prompt}

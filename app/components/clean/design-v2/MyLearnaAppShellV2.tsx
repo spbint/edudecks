@@ -150,7 +150,7 @@ function routeTitle(pathname: string) {
   }
   if (pathname.startsWith("/pathways/practice-prototype")) return "Practise";
   if (pathname.startsWith("/practice/number-targeted")) return "Practise";
-  if (pathname.startsWith("/assessments/number")) return "Assess";
+  if (pathname.startsWith("/assessments/number")) return "Check";
   return item?.label ?? "MyLearna";
 }
 
@@ -172,7 +172,7 @@ function routeCrumb(pathname: string) {
     return "My Pathways > Practise";
   }
   if (pathname.startsWith("/assessments/number")) {
-    return "My Pathways > Assess";
+    return "My Pathways > Check";
   }
   return `MyLearna > ${routeTitle(pathname)}`;
 }

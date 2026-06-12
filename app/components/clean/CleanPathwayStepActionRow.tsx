@@ -34,10 +34,10 @@ const buttonStyle: React.CSSProperties = {
   border: "1px solid #0f172a",
   background: "#0f172a",
   color: "#ffffff",
-  borderRadius: 9,
-  padding: "8px 11px",
+  borderRadius: 10,
+  padding: "7px 10px",
   fontSize: 13,
-  fontWeight: 700,
+  fontWeight: 600,
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
@@ -62,9 +62,9 @@ const chipStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   borderRadius: 999,
-  padding: "6px 10px",
+  padding: "5px 9px",
   fontSize: 12,
-  fontWeight: 700,
+  fontWeight: 600,
   lineHeight: 1.2,
 };
 
@@ -310,7 +310,7 @@ export default function CleanPathwayStepActionRow({
                 ? `Check understanding with ${exactAssessmentTitle}.`
                 : "Check understanding for this pathway step."
             }
-            aria-label="Assess this pathway step"
+            aria-label="Check this pathway step"
           >
             {exactAssessmentTitle ? "Start check" : "Check"}
           </Link>

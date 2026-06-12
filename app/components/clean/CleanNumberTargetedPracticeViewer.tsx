@@ -249,15 +249,15 @@ const wrapStyle: React.CSSProperties = {
   maxWidth: 1120,
   margin: "0 auto",
   display: "grid",
-  gap: 18,
+  gap: 14,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 20,
   background: "#ffffff",
-  padding: "clamp(18px, 3vw, 24px)",
-  boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
+  padding: "clamp(14px, 2.4vw, 18px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const highlightCardStyle: React.CSSProperties = {
@@ -270,15 +270,15 @@ const compactCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 14,
   background: "#f8fafc",
-  padding: 16,
+  padding: 12,
   display: "grid",
-  gap: 10,
+  gap: 8,
 };
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: "0.06em",
+  fontWeight: 600,
+  letterSpacing: "0.04em",
   color: "#7c8da3",
   textTransform: "uppercase",
 };
@@ -288,9 +288,9 @@ const buttonStyle: React.CSSProperties = {
   background: "#0f172a",
   color: "#ffffff",
   borderRadius: 12,
-  padding: "10px 14px",
-  fontSize: 14,
-  fontWeight: 800,
+  padding: "8px 12px",
+  fontSize: 13,
+  fontWeight: 600,
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
@@ -310,7 +310,7 @@ const chipStyle: React.CSSProperties = {
   borderRadius: 999,
   padding: "5px 9px",
   fontSize: 11,
-  fontWeight: 700,
+  fontWeight: 600,
   lineHeight: 1.25,
   border: "1px solid #dbeafe",
   background: "#f8fbff",
@@ -327,13 +327,13 @@ const softChipStyle: React.CSSProperties = {
 
 const bodyTextStyle: React.CSSProperties = {
   color: "#334155",
-  lineHeight: 1.75,
+  lineHeight: 1.55,
   fontWeight: 400,
 };
 
 const quietTextStyle: React.CSSProperties = {
   color: "#64748b",
-  lineHeight: 1.7,
+  lineHeight: 1.5,
   fontWeight: 400,
 };
 
@@ -4481,7 +4481,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             href={exactStepAssessmentHref || buildAssessmentHref(sourceContext)}
             style={secondaryButtonStyle}
           >
-            Return to assessment
+            Return to check
           </Link>
           {returnTo ? (
             <Link href={returnTo} style={secondaryButtonStyle}>
@@ -4498,17 +4498,17 @@ export default function CleanNumberTargetedPracticeViewer() {
                 style={{
                   margin: "8px 0",
                   color: "#0f172a",
-                  fontSize: "clamp(24px, 4vw, 32px)",
+                fontSize: "clamp(22px, 3vw, 30px)",
                   lineHeight: 1.12,
                   fontWeight: 650,
                 }}
               >
                 {exactStepPractice.title}
               </h1>
-              <div style={{ ...bodyTextStyle, fontSize: 16 }}>
+              <div style={{ ...bodyTextStyle, fontSize: 14 }}>
                 Let&apos;s try one focused practice step.
               </div>
-              <div style={{ ...bodyTextStyle, fontSize: 16 }}>
+              <div style={{ ...bodyTextStyle, fontSize: 14 }}>
                 {exactStepPractice.description}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
@@ -4528,12 +4528,12 @@ export default function CleanNumberTargetedPracticeViewer() {
                         background: selected ? "#eff6ff" : "#ffffff",
                         color: selected ? "#1d4ed8" : "#0f172a",
                         borderRadius: 12,
-                        padding: "10px 12px",
+                        padding: "8px 11px",
                         cursor: "pointer",
                         fontWeight: 600,
                       }}
                     >
-                      {option.label} - {option.description}
+                      {option.label}: {option.description}
                     </button>
                   );
                 })}
@@ -4601,7 +4601,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                       ) : null}
                       {exactStepAssessmentHref ? (
                         <Link href={exactStepAssessmentHref} style={secondaryButtonStyle}>
-                          Assess this skill
+                          Start check
                         </Link>
                       ) : null}
                     </div>
@@ -4641,7 +4641,7 @@ export default function CleanNumberTargetedPracticeViewer() {
               This practice module is not connected yet.
             </h1>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
-              The assessment recommendation was received, but this practice route only
+              The check recommendation was received, but this practice route only
               supports connected Number practice modules for now.
             </div>
           </div>
@@ -4676,7 +4676,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                     ...bodyTextStyle,
                   }}
                 >
-                  Recommended from assessment
+                  Recommended from check
                   {sourceBank ? `: ${sourceBank.title}` : ""}
                   {sourceSubElement ? `, ${sourceSubElement}` : ""}.
                 </div>
