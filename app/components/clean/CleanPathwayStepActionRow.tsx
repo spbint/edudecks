@@ -340,7 +340,7 @@ export default function CleanPathwayStepActionRow({
             data-guidance-id="pathways-worksheet-button"
             href={worksheetResource.href}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             style={{
               ...secondaryButtonStyle,
               padding: "7px 10px",
@@ -348,31 +348,14 @@ export default function CleanPathwayStepActionRow({
               gap: 6,
             }}
             title={`Open ${worksheetResource.fileName}`}
-            aria-label={`Download worksheet PDF for ${worksheetResource.title}`}
+            aria-label={`Open worksheet for ${worksheetResource.title}`}
           >
             <span>Worksheet</span>
             <span style={{ color: "#64748b", fontWeight: 700 }}>
               {getCompactWorksheetFileName(worksheetResource.fileName)}
             </span>
           </Link>
-        ) : (
-          <span
-            data-guidance-id="pathways-worksheet-button"
-            title="No worksheet PDF is mapped for this step yet."
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: 9,
-              background: "#f8fafc",
-              color: "#64748b",
-              padding: "7px 10px",
-              fontSize: 12,
-              fontWeight: 700,
-              lineHeight: 1.2,
-            }}
-          >
-            Worksheet missing
-          </span>
-        )}
+        ) : null}
       </div>
 
       {activity ? (

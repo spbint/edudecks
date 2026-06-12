@@ -63,6 +63,7 @@ import {
   isStep56AlgebraGraphActivity,
   isStep57FinancialModellingActivity,
   isStep58AccuracyRoundingActivity,
+  isStep59EfficientStrategyActivity,
   parseEarlyNumberVisualDescription,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
@@ -166,6 +167,8 @@ import {
   renderStep57WorksheetPromptVisual,
   renderStep58WorksheetOptionCard,
   renderStep58WorksheetPromptVisual,
+  renderStep59WorksheetOptionCard,
+  renderStep59WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
   createAssessmentAttempt,
@@ -2739,6 +2742,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isStep59EfficientStrategyActivity(item.id, item.progressionStepKey)) {
+    const step59Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderStep59WorksheetPromptVisual({
+      prompt: item.prompt,
+      visual: step59Visual,
+    });
+  }
+
   const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
     label: visual.labels[index] || `${count}`,
     dots: dotsForCount(count),
@@ -4348,6 +4360,10 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const step59EfficientStrategyOptions = isStep59EfficientStrategyActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step2VisualModel = step2NumberWordOptions
         ? parseEarlyNumberVisualDescription(currentItem.visualSupport?.description)
         : null;
@@ -4412,7 +4428,8 @@ function CleanNumberAssessmentPlayerBody() {
                     step55RatioProportionRatesOptions ||
                     step56AlgebraGraphOptions ||
                     step57FinancialModellingOptions ||
-                    step58AccuracyRoundingOptions
+                    step58AccuracyRoundingOptions ||
+                    step59EfficientStrategyOptions
                   ? 8
                   : 10,
             gridTemplateColumns: statisticsStep1Options
@@ -6195,6 +6212,66 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const step59Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !step9Visual &&
+              !step10Visual &&
+              !step11Visual &&
+              !step12Visual &&
+              !step13Visual &&
+              !step16Visual &&
+              !step17Visual &&
+              !step18Visual &&
+              !step19Visual &&
+              !step20Visual &&
+              !step21Visual &&
+              !step22Visual &&
+              !step23Visual &&
+              !step24Visual &&
+              !step25Visual &&
+              !step26Visual &&
+              !step27Visual &&
+              !step28Visual &&
+              !step29Visual &&
+              !step30Visual &&
+              !step31Visual &&
+              !step32Visual &&
+              !step33Visual &&
+              !step34Visual &&
+              !step35Visual &&
+              !step36Visual &&
+              !step37Visual &&
+              !step38Visual &&
+              !step39Visual &&
+              !step40Visual &&
+              !step41Visual &&
+              !step42Visual &&
+              !step44Visual &&
+              !step45Visual &&
+              !step46Visual &&
+              !step48Visual &&
+              !step49Visual &&
+              !step50Visual &&
+              !step51Visual &&
+              !step53Visual &&
+              !step54Visual &&
+              !step55Visual &&
+              !step56Visual &&
+              !step57Visual &&
+              !step58Visual &&
+              step59EfficientStrategyOptions
+                ? renderStep59WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
@@ -6248,7 +6325,8 @@ function CleanNumberAssessmentPlayerBody() {
               step55Visual ??
               step56Visual ??
               step57Visual ??
-              step58Visual;
+              step58Visual ??
+              step59Visual;
 
             return (
               <button

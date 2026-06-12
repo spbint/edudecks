@@ -1512,9 +1512,10 @@ function PathwaysWorkspaceBody() {
                   <Link
                     href={selectedPlacementWorksheet.href}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     onClick={markSelectedPathwayInteraction}
                     style={secondaryButtonStyle}
+                    aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
                   >
                     Worksheet
                   </Link>
@@ -2702,14 +2703,14 @@ function NumberRevealStepCard({
             <Link
               href={worksheetResource.href}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               style={{
                 ...secondaryButtonStyle,
                 width: "fit-content",
                 padding: "7px 10px",
                 fontSize: 12,
               }}
-              aria-label={`Download worksheet PDF for ${worksheetResource.title}`}
+              aria-label={`Open worksheet for ${worksheetResource.title}`}
             >
               Worksheet
             </Link>
@@ -3557,7 +3558,7 @@ function DetailedMathematicsStepCard({
             },
     [assessmentAttempts, exactStepAssessment, numberAssessmentAlignment],
   );
-  const worksheetStatus = worksheetResource ? "Worksheet attached" : "Worksheet missing";
+  const worksheetStatus = worksheetResource ? "Worksheet attached" : "No worksheet mapped";
   const worksheetFileName = worksheetResource?.fileName || "";
 
   return (

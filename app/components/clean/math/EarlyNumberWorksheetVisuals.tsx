@@ -490,6 +490,15 @@ export function isStep58AccuracyRoundingActivity(id: string, stepKey?: string | 
   );
 }
 
+export function isStep59EfficientStrategyActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) ===
+      "select-efficient-calculation-strategies-for-unfamiliar-problems" ||
+    safe(id).startsWith("number-step-59-assess-") ||
+    safe(id).startsWith("number-step-59-practice-")
+  );
+}
+
 export function parseEarlyNumberVisualDescription(
   description: string | undefined,
 ): EarlyNumberVisualModel | null {
@@ -12679,6 +12688,151 @@ export function renderStep58WorksheetOptionCard({
         : lower.includes(".")
           ? "Rounded value"
           : "Estimate";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 42 ? 15 : normalized.length > 24 ? 18 : 30, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function getStep59Section(prompt: string, visual: EarlyNumberVisualModel) {
+  const text = `${prompt} ${visual.caption} ${visual.numberCards.join(" ")}`.toLowerCase();
+  if (text.includes("fraction") || text.includes("/4") || text.includes("0.25") || text.includes("decimal")) {
+    return "Fractions and decimals";
+  }
+  if (text.includes("simplify") || text.includes("when x") || text.includes("algebra")) {
+    return "Algebra strategy";
+  }
+  if (text.includes("which should be done first") || text.includes("calculate:") || text.includes("brackets")) {
+    return "Mixed operations";
+  }
+  if (text.includes("school") || text.includes("recipe") || text.includes("car") || text.includes("computer")) {
+    return "Real-world strategy";
+  }
+  if (text.includes("challenge") || text.includes("1,234")) return "Challenge";
+  if (text.includes("which strategy")) return "Strategy choice";
+  if (text.includes("round") || text.includes("adjust")) return "Rounding and adjusting";
+  return "Efficient calculation";
+}
+
+export function renderStep59WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const cards = visual.numberCards.length ? visual.numberCards : visual.labels;
+  const section = getStep59Section(prompt, visual);
+  const primary = cards[0] ?? "problem";
+  const secondary = cards[1] ?? "strategy";
+  const tertiary = cards[2] ?? "";
+
+  return (
+    <div
+      style={{
+        border: "2px solid #bfdbfe",
+        borderRadius: 22,
+        background: "#ffffff",
+        padding: 18,
+        display: "grid",
+        gap: 14,
+        boxShadow: "0 14px 30px rgba(15,23,42,0.08)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", padding: "7px 11px", fontSize: 13, fontWeight: 950 }}>
+          {section}
+        </div>
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 999, background: "#f0fdf4", color: "#166534", padding: "7px 11px", fontSize: 13, fontWeight: 900 }}>
+          Estimate, choose, calculate
+        </div>
+      </div>
+
+      <div style={{ border: "1px solid #dbeafe", borderRadius: 18, background: "#f8fbff", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 900 }}>
+          Efficient strategy card
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
+          <div style={{ border: "2px solid #bfdbfe", borderRadius: 16, background: "#ffffff", color: "#1e3a8a", padding: "14px 10px", textAlign: "center", fontSize: primary.length > 32 ? 16 : 26, fontWeight: 950, lineHeight: 1.15 }}>
+            {primary}
+          </div>
+          <div style={{ color: "#2563eb", fontSize: 24, fontWeight: 950 }}>{"=>"}</div>
+          <div style={{ border: "2px solid #fed7aa", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "14px 10px", textAlign: "center", fontSize: secondary.length > 32 ? 16 : 26, fontWeight: 950, lineHeight: 1.15 }}>
+            {secondary}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 16, background: "#f0f9ff", padding: 12, color: "#075985" }}>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Strategy chips</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            Try compatible numbers, known facts, splitting, or rounding and adjusting.
+          </div>
+        </div>
+        <div style={{ border: "1px solid #e0e7ff", borderRadius: 16, background: "#eef2ff", padding: 12, color: "#3730a3" }}>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Remember</div>
+          <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
+            Shortcuts must keep the operation order and the expression equivalent.
+          </div>
+        </div>
+      </div>
+
+      {tertiary ? (
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: 12, fontSize: 15, fontWeight: 900, textAlign: "center" }}>
+          {tertiary}
+        </div>
+      ) : null}
+
+      <div style={{ color: "#475569", fontSize: 13, fontWeight: 700 }}>
+        {visual.caption}
+      </div>
+    </div>
+  );
+}
+
+export function renderStep59WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const label = lower.includes("strategy") || lower.includes("numbers") || lower.includes("combine") || lower.includes("split") || lower.includes("use ")
+    ? "Strategy"
+    : lower.includes("x") || lower.includes("a")
+      ? "Algebra"
+      : lower.includes("kg") || lower.includes("km") || lower.includes("£") || lower.includes("%")
+        ? "Context"
+        : lower.includes("/") || lower.includes(".")
+          ? "Exact value"
+          : "Answer";
 
   return (
     <div
