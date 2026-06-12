@@ -116,7 +116,6 @@ const quickLinks = [
   { label: "My Data", href: "/my-data", current: true },
   { label: "Curriculum", href: "/my-data#coverage-map" },
   { label: "Pathways", href: "/my-pathways" },
-  { label: "Assessments", href: "/my-assessments" },
   { label: "Evidence", href: "/my-capture" },
   { label: "Portfolio", href: "/my-portfolio" },
   { label: "Reports", href: "/my-reports" },
@@ -495,8 +494,8 @@ function ProgressRow(props: { row: LearningIntelligenceRow }) {
           <Link href="/my-pathways" style={quietButtonStyle}>
             Open Pathways
           </Link>
-          <Link href="/my-assessments" style={quietButtonStyle}>
-            Open Assessments
+          <Link href="/my-pathways" style={quietButtonStyle}>
+            Check understanding
           </Link>
         </div>
       </div>

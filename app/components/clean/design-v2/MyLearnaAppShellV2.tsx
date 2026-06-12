@@ -27,8 +27,8 @@ export const v2Tokens = {
 
 const navItems = [
   { href: "/my-day", label: "My Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
+  { href: "/my-calendar", label: "My Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
   { href: "/my-pathways", label: "My Pathways", icon: "route", matches: ["/my-pathways"] },
-  { href: "/my-assessments", label: "My Assessments", icon: "clipboard", matches: ["/my-assessments", "/assessments"] },
   { href: "/my-capture", label: "My Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
   { href: "/my-portfolio", label: "My Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
   { href: "/my-data", label: "My Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
@@ -59,6 +59,19 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
       </svg>
     );
   }
+  if (name === "calendar") {
+    return (
+      <svg {...common}>
+        <path d="M7 3.5v3" />
+        <path d="M17 3.5v3" />
+        <path d="M5.2 6h13.6A2.2 2.2 0 0 1 21 8.2v9.6a2.2 2.2 0 0 1-2.2 2.2H5.2A2.2 2.2 0 0 1 3 17.8V8.2A2.2 2.2 0 0 1 5.2 6Z" />
+        <path d="M3.5 10h17" />
+        <path d="M8 14h.01" />
+        <path d="M12 14h.01" />
+        <path d="M16 14h.01" />
+      </svg>
+    );
+  }
   if (name === "route") {
     return (
       <svg {...common}>
@@ -66,15 +79,6 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
         <circle cx="18" cy="6" r="2.4" />
         <path d="M8.2 17.2c4.6-1 7.7-3.9 8.6-9" />
         <path d="M8.2 18H14a4 4 0 0 0 4-4v-1" />
-      </svg>
-    );
-  }
-  if (name === "clipboard") {
-    return (
-      <svg {...common}>
-        <path d="M9 4.5h6a2 2 0 0 1 2 2V7H7v-.5a2 2 0 0 1 2-2Z" />
-        <path d="M8 6H6.7A2.7 2.7 0 0 0 4 8.7v9.6A2.7 2.7 0 0 0 6.7 21h10.6a2.7 2.7 0 0 0 2.7-2.7V8.7A2.7 2.7 0 0 0 17.3 6H16" />
-        <path d="m8.5 13 2.1 2.1 4.9-5" />
       </svg>
     );
   }

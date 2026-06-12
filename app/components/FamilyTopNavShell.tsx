@@ -52,7 +52,6 @@ const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-pathways", label: "My Pathways" },
-  { href: "/my-assessments", label: "My Assessments" },
 ] as const;
 
 const SECONDARY_NAV = [
