@@ -1,10 +1,9 @@
 import Link from "next/link";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 
 const shellStyle = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "32px 20px 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle = {
@@ -15,11 +14,11 @@ const wrapStyle = {
 };
 
 const cardStyle = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: "clamp(16px, 3vw, 22px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const listStyle = {
@@ -30,20 +29,20 @@ const listStyle = {
 };
 
 const linkStyle = {
-  color: "#1d4ed8",
+  color: "#6C4DF6",
   textDecoration: "none",
   fontWeight: 600,
 };
 
 const previewRoutes = [
-  { href: "/clean-my-day", label: "My Day" },
-  { href: "/clean-my-calendar", label: "My Calendar" },
-  { href: "/clean-my-pathways", label: "My Pathways" },
-  { href: "/clean-my-assessments", label: "My Assessments" },
-  { href: "/clean-my-capture", label: "My Capture" },
-  { href: "/clean-my-portfolio", label: "My Portfolio" },
-  { href: "/clean-my-reports", label: "My Reports" },
-  { href: "/clean-my-outputs", label: "My Outputs" },
+  { href: "/my-day", label: "My Day" },
+  { href: "/my-pathways", label: "My Pathways" },
+  { href: "/my-assessments", label: "My Assessments" },
+  { href: "/my-capture", label: "My Capture" },
+  { href: "/my-portfolio", label: "My Portfolio" },
+  { href: "/my-data", label: "My Data" },
+  { href: "/my-reports", label: "My Reports" },
+  { href: "/my-settings", label: "My Settings" },
 ];
 
 const cleanBackedRoutes = [
@@ -55,33 +54,28 @@ export default function CleanPreviewHubPage() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
-
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
                 fontSize: 12,
                 fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#64748b",
+                letterSpacing: "0.04em",
+                color: "#6C4DF6",
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild preview
+              MyLearna
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>MyLearna clean hub</h1>
+            <h1 style={{ margin: 0, fontSize: 28, color: "#17204B" }}>App hub</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This is the clean rebuild preview. Not yet production.
-            </p>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Use this page as a manual launch point while the old app stays active and navigation remains unchanged.
+              Use the sidebar for the main family workspace, or open a section below.
             </p>
           </div>
         </section>
 
         <section style={cardStyle}>
-          <h2 style={{ marginTop: 0, color: "#0f172a" }}>Clean preview routes</h2>
+          <h2 style={{ marginTop: 0, color: "#17204B" }}>Workspace sections</h2>
           <ul style={listStyle}>
             {previewRoutes.map((route) => (
               <li key={route.href}>
@@ -95,7 +89,7 @@ export default function CleanPreviewHubPage() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={{ marginTop: 0, color: "#0f172a" }}>Clean-backed foundation routes</h2>
+          <h2 style={{ marginTop: 0, color: "#17204B" }}>Profile and setup</h2>
           <ul style={listStyle}>
             {cleanBackedRoutes.map((route) => (
               <li key={route.href}>

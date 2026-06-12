@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -36,9 +35,9 @@ import type { Learner } from "@/lib/clean/learners/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -49,11 +48,11 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: "clamp(16px, 3vw, 22px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -65,10 +64,10 @@ const inputStyle: React.CSSProperties = {
 };
 
 const buttonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
-  borderRadius: 10,
+  borderRadius: 14,
   padding: "10px 14px",
   fontSize: 14,
   fontWeight: 700,
@@ -76,10 +75,10 @@ const buttonStyle: React.CSSProperties = {
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#0f172a",
-  borderRadius: 10,
+  color: "#17204B",
+  borderRadius: 14,
   padding: "10px 14px",
   fontSize: 14,
   fontWeight: 700,
@@ -456,8 +455,6 @@ function CleanProfileWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
-
         {!firstSetupMode ? (
           <CleanPageIntroVideo
             config={PAGE_INTRO_VIDEOS.myProfile}

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -25,9 +24,9 @@ import {
 } from "@/lib/clean/pathways/pathwayPlacement";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(14px, 3vw, 24px) clamp(10px, 3vw, 18px) 40px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -38,11 +37,11 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 14,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
-  padding: 18,
-  boxShadow: "0 4px 14px rgba(15,23,42,0.035)",
+  padding: "clamp(16px, 3vw, 22px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const optionGridStyle: React.CSSProperties = {
@@ -52,8 +51,8 @@ const optionGridStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
   borderRadius: 12,
   padding: "10px 14px",
@@ -67,9 +66,9 @@ const primaryButtonStyle: React.CSSProperties = {
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#0f172a",
+  color: "#17204B",
   borderRadius: 12,
   padding: "10px 14px",
   fontSize: 14,
@@ -82,7 +81,7 @@ const secondaryButtonStyle: React.CSSProperties = {
 };
 
 const eyebrowStyle: React.CSSProperties = {
-  color: "#2563eb",
+  color: "#6C4DF6",
   fontSize: 12,
   fontWeight: 900,
   letterSpacing: "0.08em",
@@ -327,8 +326,6 @@ function CleanPathwayPlacementWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
-
         <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
           <div style={eyebrowStyle}>Pathway entry</div>
           <h1 style={{ margin: 0, color: "#0f172a", fontSize: 30 }}>

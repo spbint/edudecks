@@ -201,7 +201,6 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       const profilePath = getCleanMyProfilePath(pathname);
       if (pathname !== profilePath) {
         setShowWelcomePrompt(false);
-        router.replace(profilePath);
         return;
       }
       setShowWelcomePrompt(true);

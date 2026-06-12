@@ -2,7 +2,6 @@
 
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import {
   COMMUNITY_STARTER_THREADS,
   getStarterPostAuthorLabel,
@@ -41,9 +40,9 @@ import {
 } from "@/lib/clean/community/types";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "32px 20px 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -54,11 +53,11 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
+  border: "1px solid #E7EAF2",
   borderRadius: 20,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
+  padding: "clamp(16px, 3vw, 22px)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -78,10 +77,10 @@ const textareaStyle: React.CSSProperties = {
 };
 
 const buttonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
-  borderRadius: 10,
+  borderRadius: 14,
   padding: "10px 14px",
   fontSize: 14,
   fontWeight: 700,
@@ -89,10 +88,10 @@ const buttonStyle: React.CSSProperties = {
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#0f172a",
-  borderRadius: 10,
+  color: "#17204B",
+  borderRadius: 14,
   padding: "10px 14px",
   fontSize: 14,
   fontWeight: 700,
@@ -1362,8 +1361,6 @@ export default function CleanCommunityWorkspace() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
-
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
