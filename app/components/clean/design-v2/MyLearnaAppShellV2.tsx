@@ -121,7 +121,15 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const title = routeTitle(pathname);
 
   return (
-    <div style={{ minHeight: "100vh", background: v2Tokens.page, color: v2Tokens.navy }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: v2Tokens.page,
+        color: v2Tokens.navy,
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      }}
+    >
       <style jsx global>{`
         @media (max-width: 900px) {
           .mylearna-v2-grid {
@@ -145,6 +153,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           .mylearna-v2-encouragement {
             display: none !important;
           }
+
+          .mylearna-v2-main-header {
+            position: relative !important;
+          }
         }
       `}</style>
       <div
@@ -162,11 +174,12 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             top: 0,
             height: "100vh",
             borderRight: `1px solid ${v2Tokens.border}`,
-            background: "rgba(255,255,255,0.92)",
-            padding: 18,
+            background: "rgba(255,255,255,0.94)",
+            boxShadow: "10px 0 30px rgba(23, 32, 75, 0.035)",
+            padding: 20,
             display: "grid",
             gridTemplateRows: "auto 1fr auto",
-            gap: 20,
+            gap: 22,
           }}
         >
           <Link href="/my-day" style={{ display: "block", textDecoration: "none" }}>
@@ -199,7 +212,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                     gridTemplateColumns: "28px minmax(0, 1fr)",
                     alignItems: "center",
                     gap: 10,
-                    borderRadius: 14,
+                    borderRadius: 16,
                     padding: "9px 11px",
                     textDecoration: "none",
                     background: active ? v2Tokens.lavender : "transparent",
@@ -252,6 +265,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
         <div style={{ minWidth: 0 }}>
           <header
+            className="mylearna-v2-main-header"
             style={{
               minHeight: 68,
               position: "sticky",

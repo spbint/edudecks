@@ -7012,7 +7012,7 @@ function CleanNumberAssessmentPlayerBody() {
 
       setSaveState("saved");
       setSaveMessage(
-        "Assessment attempt saved. This saved the attempt history only. It did not update confidence, pathway progress, evidence, or reports.",
+        "Assessment saved. Use the result to decide whether the next step is more practice, a parent judgement, or returning to the pathway.",
       );
     } catch (error) {
       setSaveState("failed");
@@ -7636,7 +7636,7 @@ function CleanNumberAssessmentPlayerBody() {
                   </div>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     Use the matching Step 1 practice to revisit quick-look dot cards
-                    and same-quantity arrangements. Practice stays local-only.
+                    and same-quantity arrangements before you decide what to do next.
                   </div>
                   <div>
                     <Link href={exactStepPracticeHref} style={buttonStyle}>
@@ -8052,7 +8052,8 @@ function CleanNumberAssessmentPlayerBody() {
                       </div>
                     ) : null}
 
-                    {isOpenResponse(currentItem) &&
+                    {!incomingStepAssessment &&
+                    isOpenResponse(currentItem) &&
                     currentItem.openResponseReview &&
                     !currentResponse.submitted ? (
                       <div style={helperCardStyle}>

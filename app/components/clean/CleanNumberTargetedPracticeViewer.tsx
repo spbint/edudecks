@@ -253,23 +253,23 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
+  border: "1px solid #E7EAF2",
   borderRadius: 20,
   background: "#ffffff",
   padding: "clamp(18px, 3vw, 24px)",
-  boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const highlightCardStyle: React.CSSProperties = {
   ...cardStyle,
-  border: "1px solid #bfdbfe",
-  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+  border: "1px solid #D9D0FF",
+  background: "linear-gradient(180deg, #F7F3FF 0%, #ffffff 100%)",
 };
 
 const compactCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 14,
-  background: "#f8fafc",
+  border: "1px solid #E7EAF2",
+  borderRadius: 16,
+  background: "#ffffff",
   padding: 16,
   display: "grid",
   gap: 10,
@@ -277,15 +277,15 @@ const compactCardStyle: React.CSSProperties = {
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 11,
-  fontWeight: 700,
+  fontWeight: 800,
   letterSpacing: "0.06em",
-  color: "#7c8da3",
+  color: "#6C4DF6",
   textTransform: "uppercase",
 };
 
 const buttonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
   borderRadius: 12,
   padding: "10px 14px",
@@ -299,9 +299,9 @@ const buttonStyle: React.CSSProperties = {
 
 const secondaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#0f172a",
+  color: "#17204B",
 };
 
 const chipStyle: React.CSSProperties = {
@@ -4629,7 +4629,8 @@ export default function CleanNumberTargetedPracticeViewer() {
                 </div>
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>
-                Practice stays local-only. No confidence, evidence, portfolio or reports are updated automatically.
+                Use this practice to build confidence, then choose whether to assess the
+                skill or save a useful observation.
               </div>
               <div style={{ marginTop: 10 }}>
                 <CleanContentIssueReportButton

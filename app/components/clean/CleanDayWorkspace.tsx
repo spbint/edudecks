@@ -1195,7 +1195,7 @@ function CleanDayWorkspaceBody() {
                         textTransform: "uppercase",
                       }}
                     >
-                      What to do next
+                      Today&apos;s next step
                     </div>
                     <div style={{ color: "#475569", lineHeight: 1.7 }}>
                       Use My Day for today&apos;s learning. Add a quick block, open My

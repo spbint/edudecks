@@ -27,9 +27,9 @@ import {
 } from "@/lib/clean/pathways/practiceActivities";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -40,26 +40,26 @@ const wrapStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 22,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
   padding: "clamp(18px, 3vw, 24px)",
-  boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const compactCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
+  border: "1px solid #E7EAF2",
   borderRadius: 16,
-  background: "#f8fafc",
+  background: "#ffffff",
   padding: 16,
   display: "grid",
   gap: 8,
 };
 
 const helperCardStyle: React.CSSProperties = {
-  border: "1px solid #dbeafe",
+  border: "1px solid #E7EAF2",
   borderRadius: 18,
-  background: "#f8fbff",
+  background: "#F2EDFF",
   padding: 16,
   display: "grid",
   gap: 8,
@@ -76,8 +76,8 @@ const chipStyle: React.CSSProperties = {
 };
 
 const buttonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
   borderRadius: 12,
   padding: "10px 14px",
@@ -92,9 +92,9 @@ const buttonStyle: React.CSSProperties = {
 
 const secondaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#0f172a",
+  color: "#17204B",
 };
 
 const textareaStyle: React.CSSProperties = {
@@ -114,16 +114,8 @@ const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 800,
   letterSpacing: "0.08em",
-  color: "#64748b",
+  color: "#6C4DF6",
   textTransform: "uppercase",
-};
-
-const monoTextStyle: React.CSSProperties = {
-  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-  fontSize: 12,
-  color: "#475569",
-  lineHeight: 1.6,
-  wordBreak: "break-all",
 };
 
 const sectionToneMeta: Record<
@@ -391,7 +383,7 @@ function PracticeWorkspaceBody({
             }}
           >
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>Practice + assessment prototype</div>
+              <div style={eyebrowStyle}>Practice package</div>
               <h1
                 style={{
                   margin: 0,
@@ -415,7 +407,7 @@ function PracticeWorkspaceBody({
                 color: "#1d4ed8",
               }}
             >
-              Practice prototype
+              Learning package
             </span>
           </div>
 
@@ -442,19 +434,18 @@ function PracticeWorkspaceBody({
                 {loading ? "Loading workspace..." : learnerLabel}
               </div>
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                Practice state stays local in v2. Nothing is saved until you move into
-                Capture or a later assessment flow.
+                Work through one question at a time, then choose whether to save a
+                useful observation in My Capture.
               </div>
             </div>
 
             <div style={compactCardStyle}>
-              <div style={eyebrowStyle}>Canonical pathway step</div>
+              <div style={eyebrowStyle}>Pathway step</div>
               <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
                 {canonicalMeta.canonicalTitle}
               </div>
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                Foundation / Kindergarten number partitioning stays as the real spine
-                reference under this more parent-friendly practice title.
+                This practice is connected to the same pathway step you see in My Pathways.
               </div>
             </div>
           </div>
@@ -476,7 +467,7 @@ function PracticeWorkspaceBody({
                   color: "#334155",
                 }}
               >
-                Canonical step: {canonicalMeta.canonicalTitle}
+                Pathway step: {canonicalMeta.canonicalTitle}
               </span>
               <span
                 style={{
@@ -497,12 +488,12 @@ function PracticeWorkspaceBody({
                     color: "#6d28d9",
                   }}
                 >
-                  ACARA provenance: {activity.acaraCode}
+                  Curriculum link: {activity.acaraCode}
                 </span>
               ) : null}
             </div>
 
-            <div style={monoTextStyle}>
+            <div style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.6 }}>
               Pathway step: {getPathwayIdentityLabel(activity)}
             </div>
           </div>
@@ -746,8 +737,8 @@ function PracticeWorkspaceBody({
                   Quick readiness check
                 </h2>
                 <div style={{ color: "#475569", lineHeight: 1.65 }}>
-                  Mini Check uses the same focused player pattern, but with lighter
-                  scaffolding, fewer hints, and a separate outcome for the practice loop.
+                  Mini Check uses lighter support so you can see whether the idea is
+                  becoming more independent.
                 </div>
               </div>
 
@@ -825,7 +816,7 @@ function PracticeWorkspaceBody({
         >
           <section style={cardStyle}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>How assessment will connect</div>
+              <div style={eyebrowStyle}>Assess</div>
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
                 Connected, but not identical
               </h2>
@@ -896,8 +887,8 @@ function PracticeWorkspaceBody({
                 Recommendation status
               </div>
               <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                Suggested next steps come from the Mini Check outcome only. They do not
-                write formal assessment confidence or change pathway progress status in v2.
+                Suggested next steps help you decide whether to practise more, capture
+                evidence, or return to the pathway.
               </div>
             </div>
           </section>
@@ -947,8 +938,8 @@ function PracticeWorkspaceBody({
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Available next actions</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Capture can receive canonical pathway context now. Parent notes and
-                  practice attempts stay local-only in this prototype.
+                  Save a parent note when this practice shows something useful about the
+                  learner&apos;s current understanding.
                 </div>
               </div>
 
