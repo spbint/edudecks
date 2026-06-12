@@ -4129,11 +4129,6 @@ function TaskCard({
           </span>
         ))}
       </div>
-      {task.relatedAssessmentItemIds?.length ? (
-        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-          Related assessment items: {task.relatedAssessmentItemIds.join(", ")}
-        </div>
-      ) : null}
     </LearningPanel>
   );
 }

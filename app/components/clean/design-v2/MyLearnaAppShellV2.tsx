@@ -134,13 +134,37 @@ function routeTitle(pathname: string) {
   const item = navItems.find((candidate) =>
     candidate.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`)),
   );
+  if (pathname.startsWith("/my-profile") || pathname.startsWith("/clean-my-profile")) {
+    return "My Profile";
+  }
+  if (pathname.startsWith("/my-settings") || pathname.startsWith("/clean-my-settings")) {
+    return "My Settings";
+  }
+  if (pathname.startsWith("/my-community")) return "My Community";
+  if (pathname.startsWith("/my-pathways/placement") || pathname.startsWith("/clean-my-pathways/placement")) {
+    return "Pathway Placement";
+  }
+  if (pathname.startsWith("/pathways/practice-prototype")) return "Practise";
   if (pathname.startsWith("/practice/number-targeted")) return "Practise";
   if (pathname.startsWith("/assessments/number")) return "Assess";
   return item?.label ?? "MyLearna";
 }
 
 function routeCrumb(pathname: string) {
+  if (pathname.startsWith("/my-profile") || pathname.startsWith("/clean-my-profile")) {
+    return "MyLearna > My Profile";
+  }
+  if (pathname.startsWith("/my-settings") || pathname.startsWith("/clean-my-settings")) {
+    return "MyLearna > My Settings";
+  }
+  if (pathname.startsWith("/my-community")) return "MyLearna > My Community";
+  if (pathname.startsWith("/my-pathways/placement") || pathname.startsWith("/clean-my-pathways/placement")) {
+    return "MyLearna > My Pathways > Placement";
+  }
   if (pathname.startsWith("/practice/number-targeted")) {
+    return "My Pathways > Practise";
+  }
+  if (pathname.startsWith("/pathways/practice-prototype")) {
     return "My Pathways > Practise";
   }
   if (pathname.startsWith("/assessments/number")) {

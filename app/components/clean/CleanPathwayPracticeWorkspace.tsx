@@ -18,7 +18,6 @@ import {
   countMiniCheckTasks,
   countPracticeTasks,
   getCanonicalPracticeStepMeta,
-  getPathwayIdentityLabel,
   getPracticeRecommendation,
   type PathwayPracticeActivity,
   type PracticeOutcome,
@@ -27,9 +26,9 @@ import {
 } from "@/lib/clean/pathways/practiceActivities";
 
 const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  minHeight: "auto",
+  background: "transparent",
+  padding: 0,
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -116,14 +115,6 @@ const eyebrowStyle: React.CSSProperties = {
   letterSpacing: "0.08em",
   color: "#64748b",
   textTransform: "uppercase",
-};
-
-const monoTextStyle: React.CSSProperties = {
-  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-  fontSize: 12,
-  color: "#475569",
-  lineHeight: 1.6,
-  wordBreak: "break-all",
 };
 
 const sectionToneMeta: Record<
@@ -438,7 +429,7 @@ function PracticeWorkspaceBody({
             <div style={compactCardStyle}>
               <div style={eyebrowStyle}>Current learner</div>
               <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
-                {loading ? "Loading workspace..." : learnerLabel}
+                {loading ? "Preparing practice..." : learnerLabel}
               </div>
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
                 Work through one question at a time, then choose whether to save a
@@ -474,7 +465,7 @@ function PracticeWorkspaceBody({
                   color: "#334155",
                 }}
               >
-                Canonical step: {canonicalMeta.canonicalTitle}
+                Connected step: {canonicalMeta.canonicalTitle}
               </span>
               <span
                 style={{
@@ -495,14 +486,11 @@ function PracticeWorkspaceBody({
                     color: "#6d28d9",
                   }}
                 >
-                  ACARA provenance: {activity.acaraCode}
+                  Curriculum link: {activity.acaraCode}
                 </span>
               ) : null}
             </div>
 
-            <div style={monoTextStyle}>
-              Pathway step: {getPathwayIdentityLabel(activity)}
-            </div>
           </div>
         </section>
 

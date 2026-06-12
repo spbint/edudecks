@@ -3042,7 +3042,7 @@ function hasAnyCode(topCodes: string[], targetCodes: string[]) {
 
 function getParentJudgementLabel(value: ParentJudgement) {
   if (value === "secure") return "Secure";
-  if (value === "developing") return "Developing";
+  if (value === "developing") return "Nearly there";
   if (value === "needs_support") return "Needs support";
   return "Not enough evidence yet";
 }
@@ -3991,13 +3991,13 @@ function CleanNumberAssessmentPlayerBody() {
     saveBlockedMessage = "Checking workspace save availability...";
   } else if (workspace.schemaMissing) {
     saveBlockedMessage =
-      "A synced family workspace is required before saving assessment attempts.";
+      "A synced family workspace is required before saving this assessment.";
   } else if (workspace.requiresFamilyCreation || !workspace.profile) {
     saveBlockedMessage =
       "This assessment is not connected to a synced family workspace. Switch to a synced family workspace before saving.";
   } else if (!learnerId) {
     saveBlockedMessage =
-      "Select a learner before saving this assessment attempt.";
+      "Select a learner before saving this assessment.";
   }
 
   function resetAssessmentState() {
@@ -7012,7 +7012,7 @@ function CleanNumberAssessmentPlayerBody() {
 
       setSaveState("saved");
       setSaveMessage(
-        "Assessment saved. Use the result to decide whether the next step is more practice, a parent judgement, or returning to the pathway.",
+        "Saved to this pathway. Use the result to decide whether the next step is more practice, a parent judgement, or returning to the pathway.",
       );
     } catch (error) {
       setSaveState("failed");
@@ -7085,7 +7085,7 @@ function CleanNumberAssessmentPlayerBody() {
               >
                 {incomingStepAssessment
                   ? "Choose a check depth, then enter a focused step-level assessment."
-                  : "Choose an assessment focus, then enter a focused session with 12 Number questions and a saveable attempt summary."}
+                  : "Choose an assessment focus, then answer a focused set of Number questions."}
               </p>
             </div>
 
@@ -7104,9 +7104,7 @@ function CleanNumberAssessmentPlayerBody() {
                         : "Choose a Number focus to start an automatically checked assessment."}
                     </strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                      This assessment can save an automatically checked attempt. It does not update
-                      confidence, portfolio evidence, reports, curriculum coverage, or pathway
-                      progress automatically.
+                      This check can be saved and used to guide your next parent judgement.
                     </p>
                   </div>
                 ) : null}
@@ -7414,7 +7412,7 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>
-                    {incomingStepAssessment ? "Answered or Not sure" : "Attempted"}
+                    {incomingStepAssessment ? "Answered or Not sure" : "Answered"}
                   </div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
                     {summary.attemptedCount}
@@ -7428,7 +7426,7 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>
-                    {incomingStepAssessment ? "Needs support signal" : "Worth revisiting"}
+                    {incomingStepAssessment ? "More support recommended" : "Worth revisiting"}
                   </div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: "#b45309" }}>
                     {summary.incorrectCount}
@@ -7451,7 +7449,7 @@ function CleanNumberAssessmentPlayerBody() {
                 )}
                 {incomingStepAssessment && summary.unansweredCount ? (
                   <div style={compactCardStyle}>
-                    <div style={eyebrowStyle}>Not enough evidence yet</div>
+                    <div style={eyebrowStyle}>Still to answer</div>
                     <div style={{ fontSize: 26, fontWeight: 800, color: "#475569" }}>
                       {summary.unansweredCount}
                     </div>
@@ -7461,17 +7459,17 @@ function CleanNumberAssessmentPlayerBody() {
 
               <div style={highlightCardStyle}>
                 <div style={eyebrowStyle}>
-                  {incomingStepAssessment ? "Skill check results" : "Sub-element mastery"}
+                  {incomingStepAssessment ? "Skill check results" : "Learning focus results"}
                 </div>
                 {incomingStepAssessment ? (
                   <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                    Auto-check result:{" "}
+                    Check result:{" "}
                     <strong>
                       {summary.unansweredCount
-                        ? "Assessment incomplete"
+                        ? "More evidence needed"
                         : getNumberStepAssessmentStatus(summary.correctCount, totalItems)}
                     </strong>
-                    . Confidence has not been changed automatically.
+                    . Use this to guide the next step.
                   </div>
                 ) : null}
                 <div
@@ -7754,10 +7752,9 @@ function CleanNumberAssessmentPlayerBody() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(
                     [
-                      "secure",
-                      "developing",
                       "needs_support",
-                      "not_enough_evidence_yet",
+                      "developing",
+                      "secure",
                     ] as ParentJudgement[]
                   ).map((option) => (
                     <button
@@ -7795,12 +7792,12 @@ function CleanNumberAssessmentPlayerBody() {
                 <div style={eyebrowStyle}>Next decisions</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   Use this result to choose what happens next: practise the recommended
-                  focus, return to the pathway map, or capture completed work later.
+                  focus, save your judgement, or view the pathway map.
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {returnTo && (!incomingStepAssessment || saveState === "saved") ? (
                     <Link href={returnTo} style={buttonStyle}>
-                      Return to pathway step
+                      View pathway map
                     </Link>
                   ) : incomingStepAssessment && returnTo ? (
                     <button type="button" disabled style={disabledButtonStyle}>
@@ -7809,11 +7806,11 @@ function CleanNumberAssessmentPlayerBody() {
                   ) : null}
                   {exactStepPracticeHref ? (
                     <Link href={exactStepPracticeHref} style={secondaryButtonStyle}>
-                      Practise this skill
+                      Start targeted practice
                     </Link>
                   ) : null}
                   <Link href="/my-pathways" style={secondaryButtonStyle}>
-                    Open My Pathways
+                    View pathway map
                   </Link>
                   <CleanContentIssueReportButton
                     label="Report an issue with this assessment"
@@ -7825,8 +7822,8 @@ function CleanNumberAssessmentPlayerBody() {
               <div style={highlightCardStyle}>
                 <div style={eyebrowStyle}>
                   {incomingStepAssessment
-                    ? "Assessment save"
-                    : "Save assessment attempt"}
+                    ? "Save this check"
+                    : "Save this assessment"}
                 </div>
                 <div
                   style={{
@@ -7850,21 +7847,21 @@ function CleanNumberAssessmentPlayerBody() {
                       }
                     >
                       {saveState === "saved"
-                        ? "Assessment saved"
+                        ? "Saved to this pathway"
                         : saveState === "saving"
-                          ? "Saving assessment..."
+                          ? "Saving..."
                           : saveState === "failed"
                             ? "Save failed"
                             : incomingStepAssessment
-                              ? "Waiting to save"
+                              ? "Ready to save"
                               : "Not saved yet"}
                     </span>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
                       {saveMessage ||
                         saveBlockedMessage ||
                         (incomingStepAssessment
-                          ? "This result will save so My Pathways can show the latest check for this step."
-                          : "Save the completed session so you can review this assessment later.")}
+                          ? "This result helps My Pathways show the latest check for this step."
+                          : "Save this completed check so you can review it later.")}
                     </div>
                     {!incomingStepAssessment && summary.enteredButUncheckedCount > 0 ? (
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
@@ -7872,57 +7869,6 @@ function CleanNumberAssessmentPlayerBody() {
                         will be saved as needing review.
                       </div>
                     ) : null}
-                    <details
-                      style={{
-                        border: "1px solid #dbeafe",
-                        borderRadius: 12,
-                        background: "#ffffff",
-                        padding: "10px 12px",
-                      }}
-                    >
-                      <summary
-                        style={{
-                          cursor: "pointer",
-                          color: "#1e3a8a",
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Save context details
-                      </summary>
-                      <div
-                        style={{
-                          marginTop: 8,
-                          display: "grid",
-                          gap: 6,
-                          color: "#334155",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        <div>
-                          <strong>Workspace:</strong>{" "}
-                          {workspace.loading
-                            ? "Checking workspace"
-                            : workspace.profile
-                              ? "Synced family workspace"
-                              : "No synced family workspace"}
-                        </div>
-                        <div>
-                          <strong>Active learner:</strong>{" "}
-                          {selectedLearner ? getLearnerLabel(selectedLearner) : "Missing"}
-                        </div>
-                        <div>
-                          <strong>Save status:</strong>{" "}
-                          {saveState === "saved"
-                            ? "Saved"
-                            : saveState === "saving"
-                              ? "Saving"
-                              : canSaveAttempt
-                                ? "Available"
-                                : "Blocked"}
-                        </div>
-                      </div>
-                    </details>
                   </div>
 
                   <button
@@ -7944,14 +7890,14 @@ function CleanNumberAssessmentPlayerBody() {
                     }
                   >
                     {saveState === "saved"
-                      ? "Attempt saved"
+                      ? "Saved"
                       : saveState === "saving"
-                        ? "Saving attempt..."
+                        ? "Saving..."
                         : incomingStepAssessment && saveState === "failed"
                           ? "Retry save"
                           : incomingStepAssessment
-                            ? "Auto-save pending"
-                            : "Save assessment attempt"}
+                            ? "Save check"
+                            : "Save assessment"}
                   </button>
                 </div>
               </div>

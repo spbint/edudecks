@@ -1014,7 +1014,7 @@ function AssessmentsWorkspaceBody() {
         setAssessmentAttemptsError(
           String(
             (error as { message?: unknown })?.message ??
-              "Saved assessment attempts could not be loaded right now.",
+              "Saved checks could not be loaded right now.",
           ).trim(),
         );
       }
@@ -2099,12 +2099,12 @@ function AssessmentsWorkspaceBody() {
               </div>
 
               <div style={buildSnapshotCardStyle("#bae6fd", "#f0f9ff")}>
-                <div style={eyebrowStyle}>Auto-checked attempts</div>
+                <div style={eyebrowStyle}>Saved checks</div>
                 <strong style={{ color: "#0369a1", fontSize: 24 }}>
                   {currentStageAssessmentAttempts.length}
                 </strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Saved assessment attempts. These do not change confidence automatically.
+                  Guided checks saved for this stage.
                 </div>
               </div>
             </div>
@@ -2150,7 +2150,7 @@ function AssessmentsWorkspaceBody() {
 
             {latestCurrentStageAssessmentAttempt ? (
               <div style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>Latest auto-checked assessment</strong>
+                <strong style={{ color: "#0f172a" }}>Latest guided check</strong>
                 <div style={{ color: "#475569", lineHeight: 1.7 }}>
                   {formatAssessmentAttemptTitle(latestCurrentStageAssessmentAttempt)} saved
                   {formatAssessmentSavedAt(
@@ -2161,8 +2161,7 @@ function AssessmentsWorkspaceBody() {
                         latestCurrentStageAssessmentAttempt.completedAt ||
                           latestCurrentStageAssessmentAttempt.createdAt,
                       )}`
-                    : ""}. Confidence, evidence, reports, curriculum coverage, and pathway
-                  progress remain separate.
+                    : ""}. Use this to guide the next parent judgement.
                 </div>
               </div>
             ) : null}
@@ -2206,9 +2205,9 @@ function AssessmentsWorkspaceBody() {
                   Automatically checked Number assessments
                 </strong>
                 <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                  Open the Number adaptive engine from a pathway step or choose a Number focus
-                  directly. Saved attempts stay separate from parent confidence, portfolio
-                  evidence, reports, curriculum coverage, and pathway progress.
+                  Open a guided Number check from a pathway step, or choose a Number focus
+                  directly. The result can help you decide whether to practise again, save a
+                  parent judgement, or return to the pathway.
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <Link href={numberAssessmentSelectorHref} style={buttonStyle}>
@@ -2225,7 +2224,7 @@ function AssessmentsWorkspaceBody() {
                       fontWeight: 800,
                     }}
                   >
-                    Auto-checked attempts: {assessmentAttempts.length}
+                    Saved checks: {assessmentAttempts.length}
                   </span>
                 </div>
               </div>
@@ -2233,11 +2232,10 @@ function AssessmentsWorkspaceBody() {
 
             {legacyAssessmentStatusesForSubject.length ? (
               <div style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>Legacy saved assessment statuses</strong>
+                <strong style={{ color: "#0f172a" }}>Earlier saved judgements</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Older assessment records from the previous skill tracker are still preserved.
-                  New saves now use canonical pathway step IDs. Legacy rows remain visible here
-                  until a later migration maps them more precisely.
+                  Earlier judgements are still available here so you can keep continuity as the
+                  pathway view becomes more precise.
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
                   {legacyAssessmentStatusesForSubject.slice(0, 6).map((item) => (
@@ -2262,8 +2260,8 @@ function AssessmentsWorkspaceBody() {
                   ))}
                   {legacyAssessmentStatusesForSubject.length > 6 ? (
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      {legacyAssessmentStatusesForSubject.length - 6} more legacy records are also
-                      preserved.
+                      {legacyAssessmentStatusesForSubject.length - 6} more earlier judgements are
+                      also available.
                     </div>
                   ) : null}
                 </div>
@@ -2486,7 +2484,7 @@ function AssessmentsWorkspaceBody() {
                               </div>
                               {stepIsNumberContext ? (
                                 <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>
-                                  Auto-checked attempts:{" "}
+                                  Saved checks:{" "}
                                   <strong style={{ color: "#0f172a" }}>
                                     {stepAssessmentAttemptCount}
                                   </strong>
@@ -2511,12 +2509,11 @@ function AssessmentsWorkspaceBody() {
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>Assessment boundaries</div>
-              <h2 style={{ margin: 0, color: "#0f172a" }}>Assessment actions and exports</h2>
+              <div style={eyebrowStyle}>What happens next?</div>
+              <h2 style={{ margin: 0, color: "#0f172a" }}>Assessment actions</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                Number has automatically checked assessment attempts. Confidence, evidence,
-                curriculum coverage, pathway progress, and reports remain deliberate separate
-                actions.
+                Use guided checks to decide whether to practise again, save a parent judgement,
+                or return to the pathway map.
               </p>
             </div>
 
@@ -2531,8 +2528,7 @@ function AssessmentsWorkspaceBody() {
                 <div style={eyebrowStyle}>Assessment checks</div>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>Number structured checks</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  The Number engine can save automatically checked attempts. Use those attempts to
-                  inform, not replace, a parent confidence judgement.
+                  Number checks can be saved and used to inform a parent judgement.
                 </div>
                 <div>
                   {selectedStrandIsNumberContext ? (
@@ -2836,8 +2832,7 @@ function AssessmentsWorkspaceBody() {
                     {selectedTileNumberBank
                       ? `${selectedTileNumberBank.shortTitle} is connected to the Number adaptive engine.`
                       : "This Number pathway context opens the Number selector so you can choose the closest focus."}{" "}
-                    Saved attempts are assessment records only; confidence, evidence, reports,
-                    curriculum coverage, and pathway progress are not changed automatically.
+                    Saved checks help you decide what to practise next.
                   </p>
                   {selectedTileLatestAssessmentAttempt ? (
                     <div
@@ -2850,7 +2845,7 @@ function AssessmentsWorkspaceBody() {
                         lineHeight: 1.6,
                       }}
                     >
-                      Latest saved attempt:{" "}
+                      Latest saved check:{" "}
                       <strong style={{ color: "#0f172a" }}>
                         {formatAssessmentAttemptTitle(selectedTileLatestAssessmentAttempt)}
                       </strong>
@@ -2862,7 +2857,7 @@ function AssessmentsWorkspaceBody() {
                     </div>
                   ) : (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      No saved automatically checked attempt is linked to this focus yet.
+                      No guided check has been saved for this focus yet.
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -2880,7 +2875,7 @@ function AssessmentsWorkspaceBody() {
                         fontWeight: 800,
                       }}
                     >
-                      Saved attempts: {selectedTileAssessmentAttempts.length}
+                      Saved checks: {selectedTileAssessmentAttempts.length}
                     </span>
                   </div>
                 </section>
@@ -2889,9 +2884,8 @@ function AssessmentsWorkspaceBody() {
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>Update assessment confidence</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Use this to record your current judgement for this pathway step. Automatically
-                  checked assessment attempts can inform this judgement, but confidence is not
-                  changed automatically.
+                  Use this to record your current judgement for this pathway step. Guided checks can
+                  help shape what to practise next.
                 </p>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

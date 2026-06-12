@@ -607,8 +607,8 @@ function CurriculumWorkspaceBody() {
                 evidence, curriculum coverage, portfolio support, and reporting readiness.
               </p>
               <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-                This dashboard sits inside My Data and reads the same canonical pathway
-                spine already used by My Pathways, My Assessments, and My Capture.
+                My Data brings together the same pathway, assessment, evidence, and reporting
+                signals you use across the rest of MyLearna.
               </p>
             </div>
 

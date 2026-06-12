@@ -90,12 +90,20 @@ export function LearningPanel({
 export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
   return (
     <div
+      className="mylearna-answer-option-grid"
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
         gap: 12,
       }}
     >
+      <style jsx>{`
+        @media (max-width: 620px) {
+          .mylearna-answer-option-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
       {children}
     </div>
   );
@@ -287,21 +295,21 @@ export function ParentJudgementPanel({
   const cards = [
     {
       title: "Needs support",
-      subtitle: "More practise recommended",
+      subtitle: "More support recommended",
       fill: learningV2.softRed,
       color: learningV2.red,
       icon: "!",
     },
     {
       title: "Nearly there",
-      subtitle: "A little more practise",
+      subtitle: "This skill may need another practice round",
       fill: learningV2.softAmber,
       color: learningV2.amber,
       icon: "~",
     },
     {
       title: "Secure",
-      subtitle: "Ready to level up",
+      subtitle: "Ready to keep going",
       fill: learningV2.mint,
       color: learningV2.green,
       icon: "OK",

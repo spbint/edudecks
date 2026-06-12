@@ -3,11 +3,11 @@ import CleanPathwayPracticeWorkspace from "@/app/components/clean/CleanPathwayPr
 import { makeNumbersTo10Practice } from "@/lib/clean/pathways/practiceActivities";
 
 export const metadata: Metadata = {
-  title: "Pathway Practice Prototype | MyLearna",
+  title: "Pathway Practice | MyLearna",
   description:
-    "A first MyLearna practice and assessment vertical slice attached to one canonical pathway step.",
+    "A focused MyLearna practice experience connected to the learner's current pathway step.",
 };
 
-export default function PathwayPracticePrototypePage() {
+export default function PathwayPracticePage() {
   return <CleanPathwayPracticeWorkspace activity={makeNumbersTo10Practice} />;
 }

@@ -7,6 +7,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   createCleanProgram,
   createCleanProgramSegment,
@@ -438,7 +439,12 @@ function CleanProgramsWorkspaceBody() {
           </div>
         </section>
 
-        {workspace.loading ? <section style={cardStyle}>Loading your family workspace...</section> : null}
+        {workspace.loading ? (
+          <V2LoadingState
+            title="Preparing programs"
+            body="We are loading longer learning threads and planning blocks."
+          />
+        ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>

@@ -11,6 +11,7 @@ import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
@@ -961,7 +962,10 @@ function CleanOutputsWorkspaceBody() {
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading your family workspace...</section>
+          <V2LoadingState
+            title="Preparing outputs"
+            body="We are loading ready reports, exports, and learning records."
+          />
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
