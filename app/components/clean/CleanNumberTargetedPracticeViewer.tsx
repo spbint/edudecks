@@ -8,6 +8,13 @@ import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import {
+  AnswerOptionGrid,
+  FeedbackPanel,
+  HintDrawer,
+  LearningPanel,
+  StepProgressBar,
+} from "@/app/components/clean/learning/LearningExperienceV2";
+import {
   isStep2NumberWordActivity,
   isStep3NumeralActivity,
   isStep4CountingObjectsActivity,
@@ -1702,26 +1709,6 @@ function getResultLabel(result: PracticeTaskResult) {
   return "Not checked";
 }
 
-function getResultTone(result: PracticeTaskResult) {
-  if (result === "correct") {
-    return { border: "#bbf7d0", fill: "#f0fdf4", text: "#166534" };
-  }
-
-  if (result === "worth_revisiting") {
-    return { border: "#fde68a", fill: "#fffbeb", text: "#92400e" };
-  }
-
-  if (result === "needs_review") {
-    return { border: "#c7d2fe", fill: "#eef2ff", text: "#4338ca" };
-  }
-
-  if (result === "reviewed") {
-    return { border: "#bfdbfe", fill: "#eff6ff", text: "#1d4ed8" };
-  }
-
-  return { border: "#e2e8f0", fill: "#ffffff", text: "#475569" };
-}
-
 function buildProgressSummary(
   tasks: NumberPracticeTask[],
   responses: LocalPracticeResponseMap,
@@ -1914,29 +1901,20 @@ function TaskCard({
   onCheck: () => void;
   reportContext: ContentIssueReportContext;
 }) {
-  const resultTone = getResultTone(response.result);
   const showFeedback = response.checked;
 
   return (
-    <div style={compactCardStyle}>
-      <div style={eyebrowStyle}>Task {index + 1}</div>
-      <div style={{ color: "#0f172a", fontSize: 17, fontWeight: 700, lineHeight: 1.35 }}>
-        {task.title}
-      </div>
-      <div style={{ ...bodyTextStyle, fontSize: 15 }}>{task.prompt}</div>
+    <LearningPanel
+      tone="practice"
+      eyebrow={`Task ${index + 1}`}
+      title={task.title}
+      subtitle={task.prompt}
+    >
       {renderEarlyNumberPracticeVisual(task)}
       {task.taskType === "worked_example" ? (
-        <div
-          style={{
-            border: "1px solid #dbeafe",
-            borderRadius: 12,
-            background: "#ffffff",
-            padding: 12,
-            ...quietTextStyle,
-          }}
-        >
+        <HintDrawer summary="Think about it">
           Read the worked example, then mark it reviewed when it makes sense.
-        </div>
+        </HintDrawer>
       ) : null}
       {task.taskType === "multiple_choice" && task.options?.length ? (
         (() => {
@@ -2000,71 +1978,8 @@ function TaskCard({
           const step3VisualModel = step3NumeralOptions
             ? parseEarlyNumberVisualDescription(task.visualSupport?.description)
             : null;
-          const statisticsStep1Options = task.id.startsWith("statistics-data-step-1-");
-
           return (
-        <div
-          style={{
-            display: "grid",
-            gap: 6,
-            gridTemplateColumns: statisticsStep1Options
-              ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions ||
-                  step3NumeralOptions ||
-                  countingObjectOptions ||
-                  step6CompareGroupOptions ||
-                  step7OrderNumberOptions ||
-                  step8PartWholeOptions ||
-                  step9ObjectStoryOptions ||
-                  step10EqualSharingOptions ||
-                  step11CountingSequenceOptions ||
-                  step12ReadWriteOrderOptions ||
-                  step13SkipCountingOptions ||
-                  step16RenameTwoDigitOptions ||
-                  step17AddSubtractWithin20Options ||
-                  step18SupportedAddSubtractOptions ||
-                  step19EqualGroupsArraysOptions ||
-                  step20HalvesQuartersSharingOptions ||
-                  step21LargeNumberCompareOptions ||
-                  step22HundredsTensOnesOptions ||
-                  step23PartitionRegroupOptions ||
-                  step24ZeroPlaceholderOptions ||
-                  step25PlaceValueAddSubtractOptions ||
-                  step26MultiplicationFactsOptions ||
-                  step27ArraysGroupingKnownFactsOptions ||
-                  step28EstimateReasonablenessOptions ||
-                  step29UnitSimpleFractionsOptions ||
-                  step30PracticalMoneyOptions ||
-                  step31ExtendedPlaceValueOptions ||
-                  step32RoundEstimateLargerNumbersOptions ||
-                  step33DecimalPlaceValueOptions ||
-                  step34CompareOrderDecimalsOptions ||
-                  step35EquivalentFractionsOptions ||
-                  step36FractionAddSubtractOptions ||
-                  step37EfficientStrategiesOptions ||
-                  step38RemaindersContextOptions ||
-                  step39FractionDecimalPercentOptions ||
-                  step40FinancialModellingOptions ||
-                  step41FlexibleNumberFormsOptions ||
-                  step42NegativeNumberLineOptions ||
-                  step44PowersRootsOptions ||
-                  step45RatioRatesOptions ||
-                  step46ProportionalReasoningOptions ||
-                  step48EstimationBoundsOptions ||
-                  step49CalculationReasonablenessOptions ||
-                  step50AlgebraicThinkingOptions ||
-                  step51StandardFormOptions ||
-                  step53ExactFractionsPiOptions ||
-                  step54PercentageChangeOptions ||
-                  step55RatioProportionRatesOptions ||
-                  step56AlgebraGraphOptions ||
-                  step57FinancialModellingOptions ||
-                  step58AccuracyRoundingOptions ||
-                  step59EfficientStrategyOptions
-                ? "repeat(auto-fit, minmax(132px, 1fr))"
-              : undefined,
-          }}
-        >
+        <AnswerOptionGrid>
           {task.options.map((option) => {
             const isSelected = response.value === option;
             const shapeVisual = task.id.startsWith(
@@ -4129,7 +4044,7 @@ function TaskCard({
               </button>
             );
           })}
-        </div>
+        </AnswerOptionGrid>
           );
         })()
       ) : null}
@@ -4182,20 +4097,14 @@ function TaskCard({
       <div>
         <CleanContentIssueReportButton context={reportContext} />
       </div>
+      {task.supportPrompt && !showFeedback ? (
+        <HintDrawer summary="Need a hint?">{task.supportPrompt}</HintDrawer>
+      ) : null}
       {showFeedback ? (
-        <div
-          style={{
-            border: `1px solid ${resultTone.border}`,
-            background: resultTone.fill,
-            borderRadius: 12,
-            padding: 12,
-            display: "grid",
-            gap: 8,
-          }}
+        <FeedbackPanel
+          tone={response.result === "correct" ? "correct" : "review"}
+          title={getResultLabel(response.result)}
         >
-          <div style={{ color: resultTone.text, fontWeight: 800 }}>
-            {getResultLabel(response.result)}
-          </div>
           {task.expectedAnswer ? (
             <div style={bodyTextStyle}>
               <strong>Expected answer:</strong> {task.expectedAnswer}
@@ -4211,7 +4120,7 @@ function TaskCard({
               <strong>Worked solution:</strong> {task.workedSolution}
             </div>
           ) : null}
-        </div>
+        </FeedbackPanel>
       ) : null}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {task.misconceptionTargets.map((target) => (
@@ -4225,7 +4134,7 @@ function TaskCard({
           Related assessment items: {task.relatedAssessmentItemIds.join(", ")}
         </div>
       ) : null}
-    </div>
+    </LearningPanel>
   );
 }
 
@@ -4644,6 +4553,10 @@ export default function CleanNumberTargetedPracticeViewer() {
               <PracticeProgressSummary
                 label="Practice progress"
                 summary={buildProgressSummary(exactStepPracticeTasks, responses)}
+              />
+              <StepProgressBar
+                current={Math.min(stepPracticeIndex + 1, exactStepPracticeTasks.length)}
+                total={exactStepPracticeTasks.length}
               />
               <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
                 {currentStepPracticeTask ? (

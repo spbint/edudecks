@@ -11,6 +11,15 @@ import CleanContentIssueReportButton, {
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
+  AnswerOptionGrid,
+  FeedbackPanel,
+  HintDrawer,
+  LearningPanel,
+  ParentJudgementPanel,
+  StepProgressBar,
+  learningV2,
+} from "@/app/components/clean/learning/LearningExperienceV2";
+import {
   isStep2NumberWordActivity,
   isStep3NumeralActivity,
   isStep4CountingObjectsActivity,
@@ -305,7 +314,7 @@ const NOT_SURE_RESPONSE = "__not_sure__";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
-  background: "#f8fafc",
+  background: learningV2.page,
   padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
 };
 
@@ -343,18 +352,6 @@ const workspaceLayoutStyle: React.CSSProperties = {
   flexWrap: "wrap",
   gap: 16,
   alignItems: "flex-start",
-};
-
-const workspaceCardStyle: React.CSSProperties = {
-  flex: "1.6 1 600px",
-  minWidth: 0,
-  border: "1px solid #e2e8f0",
-  borderRadius: 18,
-  background: "#ffffff",
-  padding: "clamp(18px, 3vw, 26px)",
-  boxShadow: "0 14px 32px rgba(15,23,42,0.06)",
-  display: "grid",
-  gap: 18,
 };
 
 const supportColumnStyle: React.CSSProperties = {
@@ -832,14 +829,6 @@ const optionButtonStyle: React.CSSProperties = {
   fontSize: 15,
   lineHeight: 1.5,
   cursor: "pointer",
-};
-
-const progressTrackStyle: React.CSSProperties = {
-  width: "100%",
-  height: 7,
-  borderRadius: 999,
-  background: "#e2e8f0",
-  overflow: "hidden",
 };
 
 const launcherShellStyle: React.CSSProperties = {
@@ -3885,8 +3874,6 @@ function CleanNumberAssessmentPlayerBody() {
     currentItem
       ? responses[currentItem.id] ?? createEmptyResponse(currentItem.id)
       : createEmptyResponse("no-item");
-  const currentProgress = ((currentIndex + 1) / totalItems) * 100;
-  const sessionProgress = showSummary ? 100 : currentProgress;
 
   const summary = buildAdaptiveInsightSummary(selectedBank.key, items, responses);
   const targetedPracticeHref = summary.targetedPracticeRecommendation
@@ -4148,9 +4135,6 @@ function CleanNumberAssessmentPlayerBody() {
     const structuredResponse = getCurrentStructuredResponse();
 
     if (currentItem.answerType === "multiple_choice") {
-      const statisticsStep1Options = currentItem.id.startsWith(
-        "statistics-data-step-1-",
-      );
       const step2NumberWordOptions = isStep2NumberWordActivity(
         currentItem.id,
         currentItem.progressionStepKey,
@@ -4372,103 +4356,7 @@ function CleanNumberAssessmentPlayerBody() {
         : null;
 
       return (
-        <div
-          style={{
-            display: "grid",
-            gap:
-              statisticsStep1Options
-                ? 6
-                : step2NumberWordOptions ||
-                    step3NumeralOptions ||
-                    countingObjectOptions ||
-                    step6CompareGroupOptions ||
-                    step7OrderNumberOptions ||
-                    step8PartWholeOptions ||
-                    step9ObjectStoryOptions ||
-                    step10EqualSharingOptions ||
-                    step11CountingSequenceOptions ||
-                    step12ReadWriteOrderOptions ||
-                    step13SkipCountingOptions ||
-                    step16RenameTwoDigitOptions ||
-                    step17AddSubtractWithin20Options ||
-                    step18SupportedAddSubtractOptions ||
-                    step19EqualGroupsArraysOptions ||
-                    step20HalvesQuartersSharingOptions ||
-                    step21LargeNumberCompareOptions ||
-                    step22HundredsTensOnesOptions ||
-                    step23PartitionRegroupOptions ||
-                    step24ZeroPlaceholderOptions ||
-                    step25PlaceValueAddSubtractOptions ||
-                    step26MultiplicationFactsOptions ||
-                    step27ArraysGroupingKnownFactsOptions ||
-                    step28EstimateReasonablenessOptions ||
-                    step29UnitSimpleFractionsOptions ||
-                    step30PracticalMoneyOptions ||
-                    step31ExtendedPlaceValueOptions ||
-                    step32RoundEstimateLargerNumbersOptions ||
-                    step33DecimalPlaceValueOptions ||
-                    step34CompareOrderDecimalsOptions ||
-                    step35EquivalentFractionsOptions ||
-                    step36FractionAddSubtractOptions ||
-                    step37EfficientStrategiesOptions ||
-                    step38RemaindersContextOptions ||
-                    step39FractionDecimalPercentOptions ||
-                    step40FinancialModellingOptions ||
-                    step41FlexibleNumberFormsOptions ||
-                    step42NegativeNumberLineOptions ||
-                    step44PowersRootsOptions ||
-                    step45RatioRatesOptions ||
-                    step46ProportionalReasoningOptions ||
-                    step48EstimationBoundsOptions ||
-                    step49CalculationReasonablenessOptions ||
-                    step50AlgebraicThinkingOptions ||
-                    step51StandardFormOptions ||
-                    step53ExactFractionsPiOptions ||
-                    step54PercentageChangeOptions ||
-                    step55RatioProportionRatesOptions ||
-                    step56AlgebraGraphOptions ||
-                    step57FinancialModellingOptions ||
-                    step58AccuracyRoundingOptions ||
-                    step59EfficientStrategyOptions
-                  ? 8
-                  : 10,
-            gridTemplateColumns: statisticsStep1Options
-              ? "repeat(auto-fit, minmax(92px, 1fr))"
-              : step2NumberWordOptions ||
-                  step3NumeralOptions ||
-                  countingObjectOptions ||
-                  step6CompareGroupOptions ||
-                  step7OrderNumberOptions ||
-                  step8PartWholeOptions ||
-                  step9ObjectStoryOptions ||
-                  step10EqualSharingOptions ||
-                  step11CountingSequenceOptions ||
-                  step12ReadWriteOrderOptions ||
-                  step13SkipCountingOptions ||
-                  step16RenameTwoDigitOptions ||
-                  step17AddSubtractWithin20Options ||
-                  step18SupportedAddSubtractOptions ||
-                  step19EqualGroupsArraysOptions ||
-                  step20HalvesQuartersSharingOptions ||
-                  step21LargeNumberCompareOptions ||
-                  step22HundredsTensOnesOptions ||
-                  step23PartitionRegroupOptions ||
-                  step24ZeroPlaceholderOptions ||
-                  step25PlaceValueAddSubtractOptions ||
-                  step26MultiplicationFactsOptions ||
-                  step27ArraysGroupingKnownFactsOptions ||
-                  step28EstimateReasonablenessOptions ||
-                  step29UnitSimpleFractionsOptions ||
-                  step30PracticalMoneyOptions ||
-                  step31ExtendedPlaceValueOptions ||
-                  step32RoundEstimateLargerNumbersOptions ||
-                  step33DecimalPlaceValueOptions ||
-                  step34CompareOrderDecimalsOptions ||
-                  step35EquivalentFractionsOptions
-                ? "repeat(auto-fit, minmax(132px, 1fr))"
-              : undefined,
-          }}
-        >
+        <AnswerOptionGrid>
           {(currentItem.options ?? []).map((option) => {
             const isSelected = currentResponse.response === option;
             const shapeVisual = currentItem.id.startsWith(
@@ -6659,7 +6547,7 @@ function CleanNumberAssessmentPlayerBody() {
               </button>
             );
           })}
-        </div>
+        </AnswerOptionGrid>
       );
     }
 
@@ -7502,16 +7390,11 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
               </div>
 
-              <div style={progressTrackStyle}>
-                <div
-                  style={{
-                    width: `${sessionProgress}%`,
-                    height: "100%",
-                    borderRadius: 999,
-                    background: "linear-gradient(90deg, #60a5fa, #34d399)",
-                  }}
-                />
-              </div>
+              <StepProgressBar
+                current={Math.min(currentIndex + 1, totalItems)}
+                total={totalItems}
+                label={showSummary ? "Assessment complete" : "Assessment progress"}
+              />
             </div>
           </div>
 
@@ -7862,12 +7745,11 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
               </div>
 
-              <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Parent judgement</div>
-                <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 13 }}>
-                  Local judgement only - not saved yet.
-                </div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+              <ParentJudgementPanel
+                targetedPracticeHref={targetedPracticeHref || exactStepPracticeHref}
+                pathwayHref={returnTo || "/my-pathways"}
+              >
+                <div style={{ color: "#5B6478", lineHeight: 1.6 }}>
                   {summary.parentJudgementPrompt}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -7892,20 +7774,29 @@ function CleanNumberAssessmentPlayerBody() {
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  disabled
+                  style={{
+                    ...disabledButtonStyle,
+                    width: "fit-content",
+                    minHeight: 44,
+                  }}
+                >
+                  Save judgement
+                </button>
                 {parentJudgement ? (
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    Current local judgement:{" "}
-                    {getParentJudgementLabel(parentJudgement)}.
+                  <div style={{ color: "#5B6478", lineHeight: 1.6 }}>
+                    Current judgement: {getParentJudgementLabel(parentJudgement)}.
                   </div>
                 ) : null}
-              </div>
+              </ParentJudgementPanel>
 
               <div style={helperCardStyle}>
                 <div style={eyebrowStyle}>Next decisions</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  This check is an assessment signal. Use it to inform confidence,
-                  practise the recommended focus, or return to the pathway to capture
-                  evidence if you want this learning included in the portfolio or reports.
+                  Use this result to choose what happens next: practise the recommended
+                  focus, return to the pathway map, or capture completed work later.
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {returnTo && (!incomingStepAssessment || saveState === "saved") ? (
@@ -7973,8 +7864,8 @@ function CleanNumberAssessmentPlayerBody() {
                       {saveMessage ||
                         saveBlockedMessage ||
                         (incomingStepAssessment
-                          ? "This exact step result will save automatically so My Pathways can show the latest auto-check signal."
-                          : "Save the completed session so the assessment attempt history can be reviewed later.")}
+                          ? "This result will save so My Pathways can show the latest check for this step."
+                          : "Save the completed session so you can review this assessment later.")}
                     </div>
                     {!incomingStepAssessment && summary.enteredButUncheckedCount > 0 ? (
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
@@ -8105,9 +7996,13 @@ function CleanNumberAssessmentPlayerBody() {
             <>
               <div style={sessionBodyStyle}>
                 <div style={workspaceLayoutStyle}>
-                  <div style={workspaceCardStyle}>
+                  <LearningPanel
+                    tone="assess"
+                    eyebrow="Assess"
+                    title={currentItem.title}
+                    subtitle="Have a go on your own."
+                  >
                     <div style={{ display: "grid", gap: 10 }}>
-                      <div style={eyebrowStyle}>Current question</div>
                       {!incomingStepAssessment ? (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                           <span style={getDifficultyTone(currentItem.difficulty)}>
@@ -8118,17 +8013,13 @@ function CleanNumberAssessmentPlayerBody() {
                           </span>
                         </div>
                       ) : null}
-                      <h2
-                        style={{
-                          margin: 0,
-                          fontSize: "clamp(28px, 4vw, 36px)",
-                          color: "#0f172a",
-                          lineHeight: 1.1,
-                        }}
-                      >
-                        {currentItem.title}
-                      </h2>
-                      {incomingStepAssessment ? renderEarlyNumberVisual(currentItem) : null}
+                      {incomingStepAssessment ? (
+                        <HintDrawer summary="Need a hint?">
+                          {renderEarlyNumberVisual(currentItem) ?? (
+                            <span>Read the question carefully and choose the answer that best fits.</span>
+                          )}
+                        </HintDrawer>
+                      ) : null}
                       <p
                         style={{
                           margin: 0,
@@ -8146,7 +8037,7 @@ function CleanNumberAssessmentPlayerBody() {
 
                       {renderResponseControl()}
                     </div>
-                  </div>
+                  </LearningPanel>
 
                   <aside style={supportColumnStyle}>
                     {!incomingStepAssessment &&
@@ -8222,38 +8113,15 @@ function CleanNumberAssessmentPlayerBody() {
                     ) : null}
 
                     {currentResponse.submitted ? (
-                      <div style={compactCardStyle}>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 10,
-                          }}
-                        >
-                          <div style={eyebrowStyle}>
-                            {incomingStepAssessment ? "Response saved" : "Feedback"}
-                          </div>
-                          <span
-                            style={
-                              incomingStepAssessment
-                                ? {
-                                    ...chipBaseStyle,
-                                    border: "1px solid #bfdbfe",
-                                    background: "#eff6ff",
-                                    color: "#1d4ed8",
-                                  }
-                                : getResultTone(currentResponse.result)
-                            }
-                          >
-                            {incomingStepAssessment
-                              ? "Saved"
-                              : getResultLabel(currentResponse.result)}
-                          </span>
-                        </div>
-
-                        <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
+                      <FeedbackPanel
+                        tone={currentResponse.result === "correct" ? "correct" : "review"}
+                        title={
+                          incomingStepAssessment
+                            ? "Response saved"
+                            : getResultLabel(currentResponse.result)
+                        }
+                      >
+                        <div style={{ color: "#17204B", lineHeight: 1.6 }}>
                           {incomingStepAssessment
                             ? getAssessmentResultMessage(
                                 currentResponse.result,
@@ -8284,7 +8152,7 @@ function CleanNumberAssessmentPlayerBody() {
                             {currentItem.markingGuide}
                           </div>
                         ) : null}
-                      </div>
+                      </FeedbackPanel>
                     ) : null}
 
                     {isOpenResponse(currentItem) &&
