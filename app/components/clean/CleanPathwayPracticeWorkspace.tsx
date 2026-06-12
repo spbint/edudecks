@@ -391,7 +391,7 @@ function PracticeWorkspaceBody({
             }}
           >
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>Practice + assessment prototype</div>
+              <div style={eyebrowStyle}>Practice package</div>
               <h1
                 style={{
                   margin: 0,
@@ -415,7 +415,7 @@ function PracticeWorkspaceBody({
                 color: "#1d4ed8",
               }}
             >
-              Practice prototype
+              Learning package
             </span>
           </div>
 
@@ -442,19 +442,18 @@ function PracticeWorkspaceBody({
                 {loading ? "Loading workspace..." : learnerLabel}
               </div>
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                Practice state stays local in v2. Nothing is saved until you move into
-                Capture or a later assessment flow.
+                Work through one question at a time, then choose whether to save a
+                useful observation in My Capture.
               </div>
             </div>
 
             <div style={compactCardStyle}>
-              <div style={eyebrowStyle}>Canonical pathway step</div>
+              <div style={eyebrowStyle}>Pathway step</div>
               <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
                 {canonicalMeta.canonicalTitle}
               </div>
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                Foundation / Kindergarten number partitioning stays as the real spine
-                reference under this more parent-friendly practice title.
+                This practice is connected to the same pathway step you see in My Pathways.
               </div>
             </div>
           </div>
@@ -947,8 +946,8 @@ function PracticeWorkspaceBody({
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Available next actions</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Capture can receive canonical pathway context now. Parent notes and
-                  practice attempts stay local-only in this prototype.
+                  Save a parent note when this practice shows something useful about the
+                  learner&apos;s current understanding.
                 </div>
               </div>
 

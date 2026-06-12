@@ -4629,7 +4629,8 @@ export default function CleanNumberTargetedPracticeViewer() {
                 </div>
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>
-                Practice stays local-only. No confidence, evidence, portfolio or reports are updated automatically.
+                Use this practice to build confidence, then choose whether to assess the
+                skill or save a useful observation.
               </div>
               <div style={{ marginTop: 10 }}>
                 <CleanContentIssueReportButton

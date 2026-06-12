@@ -7,14 +7,10 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
-import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import {
-  GuidancePageAction,
-  GuidanceSetupProgress,
-} from "@/app/components/clean/guidance/GuidanceToggle";
+import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
@@ -35,7 +31,6 @@ import {
 import {
   getStepPracticeForPathwayStep,
 } from "@/lib/clean/practice/stepPracticeRegistry";
-import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { getRegionalStageLabel } from "@/lib/clean/regionalStageLabels";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
@@ -1386,31 +1381,6 @@ function PathwaysWorkspaceBody() {
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="pathways" />
-        <GuidanceSetupProgress
-          stepId="pathways"
-          title="Explore learning pathways."
-          body="See learning steps, worksheets, practise and assess options without treating progress as pressure."
-        />
-
-        <details
-          style={{
-            border: "1px solid #e2e8f0",
-            borderRadius: 12,
-            background: "#ffffff",
-            padding: "8px 10px",
-          }}
-        >
-          <summary style={{ cursor: "pointer", color: "#334155", fontSize: 13, fontWeight: 800 }}>
-            Help and page guide
-          </summary>
-          <div style={{ marginTop: 10 }}>
-            <CleanPageIntroVideo
-              config={PAGE_INTRO_VIDEOS.myPathways}
-              promptTitle="New to My Pathways?"
-              promptDescription="Watch a quick guide to see how pathway steps, practice, assessment and evidence work together."
-            />
-          </div>
-        </details>
 
         <section
           data-guidance-id="pathways-current-step"
@@ -1480,62 +1450,76 @@ function PathwaysWorkspaceBody() {
                 Start here. If this feels too easy or too hard, you can move forward
                 or try an earlier step.
               </p>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  border: "1px solid #E7EAF2",
-                  borderRadius: 18,
-                  background: "#FFFFFF",
-                  padding: 10,
-                  boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
-                }}
-                aria-label="Learning package actions"
-              >
-                <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
-                  Start this step
-                </button>
-                {selectedPlacementPracticeHref ? (
-                  <Link
-                    href={selectedPlacementPracticeHref}
-                    onClick={markSelectedPathwayInteraction}
-                    style={secondaryButtonStyle}
-                  >
-                    Practise
-                  </Link>
-                ) : null}
-                {selectedPlacementAssessmentHref ? (
-                  <Link
-                    href={selectedPlacementAssessmentHref}
-                    onClick={markSelectedPathwayInteraction}
-                    style={secondaryButtonStyle}
-                  >
-                    Assess
-                  </Link>
-                ) : (
-                  <span
-                    style={{
-                      ...secondaryButtonStyle,
-                      color: "#64748b",
-                      cursor: "default",
-                    }}
-                  >
-                    Quick check not connected yet
-                  </span>
-                )}
-                {selectedPlacementWorksheet ? (
-                  <Link
-                    href={selectedPlacementWorksheet.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={markSelectedPathwayInteraction}
-                    style={secondaryButtonStyle}
-                    aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
-                  >
-                    Worksheet
-                  </Link>
-                ) : null}
+              <div style={{ display: "grid", gap: 12 }} aria-label="Learning package actions">
+                <div style={eyebrowStyle}>Learning package</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                  }}
+                >
+                  {selectedPlacementPracticeHref ? (
+                    <Link
+                      href={selectedPlacementPracticeHref}
+                      onClick={markSelectedPathwayInteraction}
+                      style={{ ...summaryCardStyle, textDecoration: "none" }}
+                    >
+                      <span style={eyebrowStyle}>Practise</span>
+                      <strong style={{ color: "#17204B", fontSize: 16 }}>Build the skill</strong>
+                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                        One focused question at a time with gentle support.
+                      </span>
+                    </Link>
+                  ) : null}
+                  {selectedPlacementAssessmentHref ? (
+                    <Link
+                      href={selectedPlacementAssessmentHref}
+                      onClick={markSelectedPathwayInteraction}
+                      style={{ ...summaryCardStyle, textDecoration: "none" }}
+                    >
+                      <span style={eyebrowStyle}>Assess</span>
+                      <strong style={{ color: "#17204B", fontSize: 16 }}>
+                        Check understanding
+                      </strong>
+                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                        A lean check when the learner is ready.
+                      </span>
+                    </Link>
+                  ) : (
+                    <div style={{ ...summaryCardStyle, opacity: 0.72 }}>
+                      <span style={eyebrowStyle}>Assess</span>
+                      <strong style={{ color: "#17204B", fontSize: 16 }}>
+                        Quick check coming
+                      </strong>
+                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                        This step does not have a connected check yet.
+                      </span>
+                    </div>
+                  )}
+                  {selectedPlacementWorksheet ? (
+                    <Link
+                      href={selectedPlacementWorksheet.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={markSelectedPathwayInteraction}
+                      style={{ ...summaryCardStyle, textDecoration: "none" }}
+                      aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
+                    >
+                      <span style={eyebrowStyle}>Worksheet</span>
+                      <strong style={{ color: "#17204B", fontSize: 16 }}>
+                        Printable support
+                      </strong>
+                      <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+                        {selectedPlacementWorksheet.title}
+                      </span>
+                    </Link>
+                  ) : null}
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
+                    Start this step
+                  </button>
                 <button
                   type="button"
                   disabled={!nextPlacementStep}
@@ -1565,6 +1549,7 @@ function PathwaysWorkspaceBody() {
                 >
                   Choose a different step
                 </Link>
+                </div>
               </div>
               {!nextPlacementStep && selectedPlacementStepIndex >= 0 ? (
                 <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>

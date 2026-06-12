@@ -527,7 +527,10 @@ function ResponseField({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gridTemplateColumns:
+            task.options.length <= 4
+              ? "repeat(2, minmax(0, 1fr))"
+              : "repeat(auto-fit, minmax(160px, 1fr))",
           gap: 10,
         }}
       >
@@ -1058,7 +1061,28 @@ export default function CleanPathwayPracticePlayer({
 
           <InstructionalFocus task={currentItem.task} mode={mode} />
 
-          <CraPromptCards task={currentItem.task} mode={mode} />
+          <details
+            style={{
+              borderRadius: 16,
+              border: "1px solid #E7EAF2",
+              background: "#ffffff",
+              padding: "12px 14px",
+            }}
+          >
+            <summary
+              style={{
+                cursor: "pointer",
+                color: "#6C4DF6",
+                fontWeight: 800,
+                listStyle: "none",
+              }}
+            >
+              {mode === "mini_check" ? "Need a small prompt?" : "Need a hint?"}
+            </summary>
+            <div style={{ marginTop: 12 }}>
+              <CraPromptCards task={currentItem.task} mode={mode} />
+            </div>
+          </details>
 
           <VisualWorkspace task={currentItem.task} accent={tone.accent} />
 
@@ -1117,7 +1141,7 @@ export default function CleanPathwayPracticePlayer({
               </div>
             ) : null}
 
-            {currentItem.task.feedbackPrompt ? (
+            {currentItem.task.feedbackPrompt && safe(responseValue) ? (
               <div
                 style={{
                   borderRadius: 16,
@@ -1184,7 +1208,7 @@ export default function CleanPathwayPracticePlayer({
               </details>
             ) : null}
 
-            {safe(currentItem.task.expectedAnswer) ? (
+            {safe(currentItem.task.expectedAnswer) && safe(responseValue) ? (
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.55 }}>
                 <strong style={{ color: "#0f172a" }}>Parent check:</strong>{" "}
                 {Array.isArray(currentItem.task.expectedAnswer)
