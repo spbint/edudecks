@@ -58,7 +58,7 @@ export function LearningPanel({
               color: toneColor,
               padding: "5px 10px",
               fontSize: 12,
-              fontWeight: 700,
+              fontWeight: 600,
               lineHeight: 1.2,
             }}
           >
@@ -71,7 +71,7 @@ export function LearningPanel({
             color: learningV2.navy,
             fontSize: "clamp(20px, 3vw, 24px)",
             lineHeight: 1.2,
-            fontWeight: 800,
+            fontWeight: 650,
           }}
         >
           {title}
@@ -165,7 +165,7 @@ export function AnswerOptionCard({
           background: selected ? learningV2.card : "#F8FAFC",
           color: selected ? learningV2.purple : learningV2.slate,
           fontSize: 13,
-          fontWeight: 800,
+          fontWeight: 650,
         }}
       >
         {badge}
@@ -196,7 +196,7 @@ export function HintDrawer({
           cursor: "pointer",
           color: learningV2.purple,
           fontSize: 14,
-          fontWeight: 800,
+          fontWeight: 650,
           lineHeight: 1.4,
         }}
       >
@@ -235,7 +235,7 @@ export function FeedbackPanel({
         gap: 8,
       }}
     >
-      <div style={{ color, fontWeight: 800, lineHeight: 1.35 }}>{title}</div>
+      <div style={{ color, fontWeight: 650, lineHeight: 1.35 }}>{title}</div>
       <div style={{ color: learningV2.navy, lineHeight: 1.55 }}>{children}</div>
     </div>
   );
@@ -261,7 +261,7 @@ export function StepProgressBar({
           gap: 12,
           color: learningV2.slate,
           fontSize: 13,
-          fontWeight: 700,
+          fontWeight: 600,
         }}
       >
         <span>{label}</span>
@@ -335,7 +335,7 @@ export function ParentJudgementPanel({
             color: learningV2.navy,
             fontSize: 22,
             lineHeight: 1.2,
-            fontWeight: 800,
+            fontWeight: 650,
           }}
         >
           What happens next?

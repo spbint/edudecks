@@ -465,7 +465,7 @@ function PracticeWorkspaceBody({
                   color: "#334155",
                 }}
               >
-                Connected step: {canonicalMeta.canonicalTitle}
+                Practise: {canonicalMeta.canonicalTitle}
               </span>
               <span
                 style={{

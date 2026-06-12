@@ -359,7 +359,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
             }}
           >
-            <strong style={{ fontSize: 13, fontWeight: 750 }}>Ready for today</strong>
+            <strong style={{ fontSize: 13, fontWeight: 650 }}>Ready for today</strong>
             <span style={{ color: v2Tokens.slate, fontSize: 13, lineHeight: 1.5 }}>
               Choose one useful step, then let the pathway guide what comes next.
             </span>
@@ -387,7 +387,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               <div style={{ color: v2Tokens.slate, fontSize: 12, fontWeight: 550 }}>
                 {routeCrumb(pathname)}
               </div>
-              <div style={{ color: v2Tokens.navy, fontSize: 18, fontWeight: 750 }}>
+              <div style={{ color: v2Tokens.navy, fontSize: 17, fontWeight: 650 }}>
                 {title}
               </div>
             </div>

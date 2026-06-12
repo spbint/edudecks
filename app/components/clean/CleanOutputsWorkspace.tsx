@@ -974,7 +974,7 @@ function CleanOutputsWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Outputs will not fall back to older export tools.
+              Exports are temporarily unavailable. Try again shortly.
             </p>
           </section>
         ) : null}

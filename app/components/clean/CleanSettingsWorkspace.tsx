@@ -801,7 +801,7 @@ function CleanSettingsWorkspaceBody() {
           <CleanPageIntroVideo
             config={PAGE_INTRO_VIDEOS.mySettings}
             promptTitle="New to My Settings?"
-            promptDescription="Watch a quick guide to see how region, curriculum and reporting settings shape your homeschool context."
+            promptDescription="See how settings shape planning and reports."
           />
         ) : null}
 
@@ -810,20 +810,16 @@ function CleanSettingsWorkspaceBody() {
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 color: "#64748b",
-                textTransform: "uppercase",
               }}
             >
               Family settings
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{settingsHeading}</h1>
+            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>{settingsHeading}</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Set your family location, curriculum direction, reporting context, and day-to-day preferences here.
-            </p>
-            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-              My Profile stays focused on family and learner details.
+              Set curriculum, reporting, and planning preferences.
             </p>
             <div>
               {!firstSetupMode ? <GuidancePageAction tourId="my-settings" /> : null}
@@ -834,13 +830,13 @@ function CleanSettingsWorkspaceBody() {
         <GuidanceSetupProgress
           stepId="settings"
           title="Choose your learning settings."
-          body="Set your country, region, curriculum and reporting preferences so MyLearna can organise plans and records correctly."
+          body="Choose the context MyLearna should use."
         />
 
         {!firstSetupMode ? (
           <CleanPageGuidance
-            title="Set the family context once, then let planning and reporting feel more natural"
-            copy="My Settings is where you tell MyLearna which family context to use before it helps you plan weeks, frame evidence, and build reports."
+            title="Family context"
+            copy="Use these settings to keep plans, evidence, and reports aligned."
             items={guidanceItems}
           />
         ) : null}

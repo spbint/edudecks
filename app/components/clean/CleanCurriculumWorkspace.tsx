@@ -444,7 +444,7 @@ function CurriculumWorkspaceBody() {
         setAssessmentStatusesError(
           normalizeCleanErrorMessage(
             error,
-            "We could not load pathway-linked assessment confidence just now.",
+            "We could not load learning confidence just now.",
           ),
         );
       }
@@ -590,33 +590,27 @@ function CurriculumWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myData}
           promptTitle="New to My Data?"
-          promptDescription="Watch a quick guide to see how learning activity, evidence, strengths, focus areas and reporting readiness come together."
+          promptDescription="See the signals that guide the next learning step."
         />
 
         <section style={{ ...cardStyle, padding: 24 }}>
           <div style={{ display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Connected overview</div>
-              <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>
+              <div style={eyebrowStyle}>Learning signals</div>
+              <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>
                 {selectedLearnerDisplayName
-                  ? `Learning Intelligence for ${selectedLearnerDisplayName}`
-                  : "Learning Intelligence"}
+                  ? `${selectedLearnerDisplayName}'s learning picture`
+                  : "My Data"}
               </h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                A clear overview of learner progress across pathways, assessment confidence,
-                evidence, curriculum coverage, portfolio support, and reporting readiness.
-              </p>
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-                My Data brings together the same pathway, assessment, evidence, and reporting
-                signals you use across the rest of MyLearna.
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
+                See progress, evidence, and focus areas in one calm view.
               </p>
             </div>
 
             <div style={helperCardStyle}>
-              <strong style={{ color: "#0f172a" }}>What does this learning show?</strong>
+              <strong style={{ color: "#0f172a", fontWeight: 650 }}>What does this show?</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Use Learning Intelligence to see where evidence is building, where confidence has
-                been saved, and which learning areas may benefit from the next calm step.
+                Use this to decide what to practise, capture, or report next.
               </p>
             </div>
 

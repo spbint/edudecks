@@ -1192,7 +1192,7 @@ function CleanReportsWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myReports}
           promptTitle="New to My Reports?"
-          promptDescription="Watch a quick guide to see how reports use planning, evidence and portfolio records."
+          promptDescription="See how to turn selected evidence into a parent-ready report."
         />
 
         <section data-guidance-id="reports-preview-output" style={cardStyle}>
@@ -1200,17 +1200,16 @@ function CleanReportsWorkspaceBody() {
               <div
                 style={{
                 fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 color: "#64748b",
-                textTransform: "uppercase",
               }}
             >
               Prepare a report
               </div>
-              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Reports</h1>
+              <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Reports</h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Your report brings together selected portfolio evidence and written reflections for this learner.
+                Turn selected evidence into a clear report.
               </p>
               <div>
                 <GuidancePageAction tourId="my-reports" />
@@ -1231,7 +1230,7 @@ function CleanReportsWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Reports will not fall back to older draft or export tools.
+              Reports are temporarily unavailable. Try again shortly.
             </p>
           </section>
         ) : null}
@@ -1247,7 +1246,7 @@ function CleanReportsWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              Reports are stored at the family level. Create the family profile first on My Profile.
+              Create your family profile first, then prepare reports here.
             </p>
           </section>
         ) : null}

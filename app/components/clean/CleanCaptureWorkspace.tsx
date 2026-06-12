@@ -808,7 +808,7 @@ function CleanCaptureWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myCapture}
           promptTitle="New to My Capture?"
-          promptDescription="Watch a quick guide to see how to save notes, observations and work samples as learning evidence."
+          promptDescription="See how to save a quick learning moment."
         />
 
         <section style={cardStyle}>
@@ -816,18 +816,16 @@ function CleanCaptureWorkspaceBody() {
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 color: "#64748b",
-                textTransform: "uppercase",
               }}
             >
-              Capture what happened
+              Learning moments
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Capture</h1>
+            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Capture</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Save a simple learning record from today&apos;s blocks, then decide later what
-              belongs in the portfolio.
+              Save a quick learning moment. Add it to the portfolio later.
             </p>
             <div>
               <GuidancePageAction tourId="my-capture" />
@@ -848,7 +846,7 @@ function CleanCaptureWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Capture will not fall back to older evidence systems.
+              Learning evidence is temporarily unavailable. Try again shortly.
             </p>
           </section>
         ) : null}
@@ -864,7 +862,7 @@ function CleanCaptureWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              Capture notes are family-scoped in the clean rebuild. Create the family profile first on My Profile.
+              Create your family profile first, then save learning moments here.
             </p>
           </section>
         ) : null}
@@ -873,7 +871,7 @@ function CleanCaptureWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              A learner is required before saving a clean capture note.
+              Add a learner before saving a learning moment.
             </p>
           </section>
         ) : null}
@@ -891,10 +889,9 @@ function CleanCaptureWorkspaceBody() {
                 }}
               >
                 <div>
-                  <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a" }}>Text capture</h2>
+                  <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>Add evidence</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Save is always explicit. Write what happened, keep the useful links, and
-                    decide later what belongs in the portfolio.
+                    Write what happened and keep the useful links.
                   </p>
                 </div>
                 <button

@@ -867,7 +867,7 @@ function CleanDayWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myDay}
           promptTitle="New to My Day?"
-          promptDescription="Watch a quick guide to see today's learning, add quick blocks and connect daily learning to evidence capture."
+          promptDescription="See how to choose today's next useful step."
         />
 
         {shouldShowPlacementPrompt ? (
@@ -878,8 +878,7 @@ function CleanDayWorkspaceBody() {
                   Start a learning pathway
                 </h2>
                 <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.7 }}>
-                  Choose one learner and one strand. MyLearna will suggest a starting
-                  step, then you can practise, check, move forward, or move back.
+                  Choose a learner and let MyLearna suggest a calm starting step.
                 </p>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -908,21 +907,20 @@ function CleanDayWorkspaceBody() {
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 color: "#64748b",
-                textTransform: "uppercase",
               }}
             >
-              Family day
+              Home base
             </div>
             <h1
               style={{
                 margin: 0,
-                fontSize: 34,
-                lineHeight: 1.05,
-                letterSpacing: "-0.03em",
-                color: "#0f172a",
+                fontSize: 28,
+                lineHeight: 1.12,
+                color: "#17204B",
+                fontWeight: 650,
               }}
             >
               My Day
@@ -931,15 +929,15 @@ function CleanDayWorkspaceBody() {
               style={{
                 margin: 0,
                 color: "#0f172a",
-                fontSize: 20,
-                fontWeight: 700,
+                fontSize: 18,
+                fontWeight: 600,
                 lineHeight: 1.35,
               }}
             >
               {formatTodayHeading(selectedDate)}
             </p>
             <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
-              {familyGreeting} See what is planned and what comes next.
+              {familyGreeting} Start with one simple next step.
             </p>
             <div>
               <GuidancePageAction tourId="my-day" />

@@ -476,7 +476,7 @@ export default function FamilyProfilePage() {
                         <span style={S.tag}>Currently viewing</span>
                       ) : null}
                       <span style={S.subtleValue}>
-                        {workspace.storageMode === "database" ? "Synced learner" : "Local learner"}
+                        {workspace.storageMode === "database" ? "Saved learner" : "Draft learner"}
                       </span>
                     </div>
                   </div>

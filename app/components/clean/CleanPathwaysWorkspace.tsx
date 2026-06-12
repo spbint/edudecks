@@ -1419,9 +1419,7 @@ function PathwaysWorkspaceBody() {
                   Start with this learning step
                 </h1>
                 <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6, maxWidth: 760 }}>
-                  {selectedLearnerLabel} is working in {selectedPlacementStep.subjectTitle}:{" "}
-                  {selectedPlacementStep.strandTitle}. Practise first, check understanding when ready,
-                  and use the worksheet if a printable support will help.
+                  Practise first, check understanding when ready, and use the worksheet if printable support helps.
                 </p>
               </div>
               <div
@@ -1469,7 +1467,7 @@ function PathwaysWorkspaceBody() {
                       <span style={eyebrowStyle}>Practise</span>
                       <strong style={{ color: "#17204B", fontSize: 17 }}>Build the skill</strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-                        One focused question at a time with gentle support.
+                        One focused question at a time.
                       </span>
                     </Link>
                   ) : null}
@@ -1490,7 +1488,7 @@ function PathwaysWorkspaceBody() {
                         Check understanding
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-                        A lean check when the learner is ready.
+                        Have a go independently.
                       </span>
                     </Link>
                   ) : (
@@ -1500,7 +1498,7 @@ function PathwaysWorkspaceBody() {
                         Quick check coming
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-                        This step does not have a connected check yet.
+                        This check is coming soon.
                       </span>
                     </div>
                   )}
@@ -1587,8 +1585,7 @@ function PathwaysWorkspaceBody() {
                 >
                   <strong style={{ color: "#166534" }}>Pathway started</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    You&apos;ve started this pathway step. Next, you can capture evidence
-                    or keep practising.
+                    Ready to keep going. Capture a learning moment or continue practising.
                   </p>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <Link href={capturePathBase} style={buttonStyle}>
@@ -1612,8 +1609,7 @@ function PathwaysWorkspaceBody() {
                 Start a pathway for {selectedLearnerLabel}
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Choose one subject and strand. MyLearna will suggest a starting step,
-                then you can practise, check, move forward, or move back.
+                Choose a focus and MyLearna will suggest a calm starting step.
               </p>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Link href={placementEntryHref} style={buttonStyle}>
@@ -1647,7 +1643,7 @@ function PathwaysWorkspaceBody() {
               }}
             >
               <div style={{ display: "grid", gap: 8, maxWidth: 720 }}>
-                <div style={eyebrowStyle}>Current pathway</div>
+                <div style={eyebrowStyle}>Status</div>
                 <h1 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>{pathwaysHeading}</h1>
               </div>
 
@@ -1664,7 +1660,7 @@ function PathwaysWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Parent pathway map
+                  Pathway map
                 </span>
                 <Link href="/my-settings" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
                   My Settings
@@ -1746,7 +1742,7 @@ function PathwaysWorkspaceBody() {
                   borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <div style={eyebrowStyle}>Current pathway view</div>
+                <div style={eyebrowStyle}>Current view</div>
                 <strong style={{ color: "#0f172a", fontSize: 15 }}>
                   {topSnapshotTitle}
                 </strong>
@@ -1802,8 +1798,8 @@ function PathwaysWorkspaceBody() {
                 <strong style={{ color: "#0f172a" }}>{topSnapshotNextAction}</strong>
                 <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.4 }}>
                   {selectedStrandIsActive
-                    ? "Use the current step panel below."
-                    : "Pick from the pathway strands below."}
+                    ? "Start with the step above."
+                    : "Choose a strand below."}
                 </div>
               </div>
             </div>
@@ -1830,9 +1826,9 @@ function PathwaysWorkspaceBody() {
           <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
               <div style={eyebrowStyle}>Choose a subject</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Subject pathways</h2>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22, fontWeight: 650 }}>Pathway map</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Choose one subject and strand. The pathway below keeps the current focus visible.
+                Choose a pathway focus.
               </p>
             </div>
 

@@ -452,7 +452,7 @@ function CleanProgramsWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Programs will not fall back to older planning systems.
+              Planning is temporarily unavailable. Try again shortly.
             </p>
           </section>
         ) : null}

@@ -7993,7 +7993,7 @@ function CleanNumberAssessmentPlayerBody() {
                         <div style={eyebrowStyle}>Helpful context</div>
                         <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
                           {currentItem.visualSupport.description ||
-                            "Use the context support to compare values before answering."}
+                            "Compare the values before answering."}
                         </div>
                       </div>
                     ) : null}
@@ -8002,7 +8002,7 @@ function CleanNumberAssessmentPlayerBody() {
                     currentItem.openResponseReview &&
                     !currentResponse.submitted ? (
                       <div style={helperCardStyle}>
-                        <div style={eyebrowStyle}>What a strong response includes</div>
+                        <div style={eyebrowStyle}>Strong response</div>
                         <div
                           style={{ display: "grid", gap: 6, color: "#334155" }}
                         >
@@ -8104,14 +8104,14 @@ function CleanNumberAssessmentPlayerBody() {
                     currentItem.openResponseReview &&
                     currentResponse.submitted ? (
                       <div style={helperCardStyle}>
-                        <div style={eyebrowStyle}>Adult review guide</div>
+                        <div style={eyebrowStyle}>Review guide</div>
                         <div style={{ color: "#334155", lineHeight: 1.6 }}>
                           <strong>Expected response:</strong>{" "}
                           {currentItem.openResponseReview.expectedResponse}
                         </div>
                         <div style={{ display: "grid", gap: 6 }}>
                           <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                            Success criteria
+                            Look for
                           </div>
                           {currentItem.openResponseReview.successCriteria.map(
                             (criterion) => (
@@ -8126,7 +8126,7 @@ function CleanNumberAssessmentPlayerBody() {
                         </div>
                         <div style={{ display: "grid", gap: 6 }}>
                           <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                            Parent review prompts
+                            Parent prompts
                           </div>
                           {currentItem.openResponseReview.parentReviewPrompts.map(
                             (prompt) => (
@@ -8144,38 +8144,6 @@ function CleanNumberAssessmentPlayerBody() {
                             <strong>Evidence note:</strong>{" "}
                             {currentItem.openResponseReview.evidenceNote}
                           </div>
-                        ) : null}
-                        {currentItem.openResponseReview.aiReviewPrompt ? (
-                          <details
-                            style={{
-                              border: "1px solid #dbeafe",
-                              borderRadius: 12,
-                              background: "#ffffff",
-                              padding: "10px 12px",
-                            }}
-                          >
-                            <summary
-                              style={{
-                                cursor: "pointer",
-                                color: "#1e3a8a",
-                                fontSize: 13,
-                                fontWeight: 700,
-                              }}
-                            >
-                              Future AI support
-                            </summary>
-                            <div
-                              style={{
-                                marginTop: 8,
-                                color: "#334155",
-                                lineHeight: 1.6,
-                              }}
-                            >
-                              Future AI review can use the typed response against
-                              these success criteria, with the parent confirming the
-                              final judgement.
-                            </div>
-                          </details>
                         ) : null}
                       </div>
                     ) : null}

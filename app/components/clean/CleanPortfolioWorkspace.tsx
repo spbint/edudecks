@@ -474,7 +474,7 @@ function CleanPortfolioWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myPortfolio}
           promptTitle="New to My Portfolio?"
-          promptDescription="Watch a quick guide to see how to choose strong evidence and build a meaningful learning portfolio over time."
+          promptDescription="See how to choose the strongest learning moments."
         />
 
         <section style={cardStyle}>
@@ -482,17 +482,16 @@ function CleanPortfolioWorkspaceBody() {
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 color: "#64748b",
-                textTransform: "uppercase",
               }}
             >
-              Choose evidence
+              Best evidence
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{portfolioHeading}</h1>
+            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>{portfolioHeading}</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Portfolio is where you choose the strongest examples from your captured evidence.
+              Choose the moments that best show learning progress.
             </p>
             <div>
               <GuidancePageAction tourId="my-portfolio" />
@@ -513,7 +512,7 @@ function CleanPortfolioWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Portfolio will not fall back to older portfolio or storage systems.
+              Portfolio evidence is temporarily unavailable. Try again shortly.
             </p>
           </section>
         ) : null}
@@ -529,7 +528,7 @@ function CleanPortfolioWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              Portfolio items are family-scoped in the clean rebuild. Create the family profile first on My Profile.
+              Create your family profile first, then build the portfolio.
             </p>
           </section>
         ) : null}
@@ -538,7 +537,7 @@ function CleanPortfolioWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              A learner is required before portfolio evidence can load.
+              Add a learner before choosing portfolio evidence.
             </p>
           </section>
         ) : null}
@@ -554,20 +553,17 @@ function CleanPortfolioWorkspaceBody() {
                 }}
               >
                 <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>Portfolio</strong>
+                  <strong style={{ color: "#0f172a", fontWeight: 650 }}>Portfolio</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Portfolio is where you choose the strongest examples from your captured evidence. It is not every note - it is the evidence you may want to use in reports, reviews, or authority records.
+                    Choose the strongest examples from captured evidence.
                   </p>
                 </div>
                 <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>What should go into Portfolio?</strong>
+                  <strong style={{ color: "#0f172a", fontWeight: 650 }}>What belongs here?</strong>
                   <ul style={{ margin: 0, paddingLeft: 18, color: "#475569", lineHeight: 1.7 }}>
                     <li>Shows clear progress</li>
                     <li>Demonstrates independence</li>
                     <li>Links to an important pathway or curriculum area</li>
-                    <li>Includes a strong parent observation</li>
-                    <li>Supports reporting or review</li>
-                    <li>Shows a meaningful piece of work</li>
                   </ul>
                 </div>
               </div>
@@ -584,10 +580,9 @@ function CleanPortfolioWorkspaceBody() {
                 }}
               >
                 <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Portfolio filters</h2>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>Portfolio filters</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Start from captured evidence, then add the strongest pieces to the
-                    portfolio rather than every note.
+                    Find the best pieces quickly.
                   </p>
                 </div>
                 <button

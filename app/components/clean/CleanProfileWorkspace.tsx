@@ -460,7 +460,7 @@ function CleanProfileWorkspaceBody() {
           <CleanPageIntroVideo
             config={PAGE_INTRO_VIDEOS.myProfile}
             promptTitle="New to My Profile?"
-            promptDescription="Watch a quick guide to see how family and learner details help MyLearna organise records clearly."
+            promptDescription="See how family details keep learning organised."
           />
         ) : null}
 
@@ -469,15 +469,14 @@ function CleanProfileWorkspaceBody() {
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 color: "#64748b",
-                textTransform: "uppercase",
               }}
             >
               Family details
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{profileHeading}</h1>
+            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>{profileHeading}</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Keep family details and learner information together here.
             </p>
@@ -490,7 +489,7 @@ function CleanProfileWorkspaceBody() {
         <GuidanceSetupProgress
           stepId="profile"
           title="Let's get MyLearna ready for your family."
-          body="Start by adding your family and learner details. MyLearna uses this to organise your plans, evidence, portfolio and reports."
+          body="Add your family and learner details once."
           task={profileSetupTask}
         />
 
@@ -498,8 +497,8 @@ function CleanProfileWorkspaceBody() {
 
         {!firstSetupMode ? (
           <CleanPageGuidance
-            title="Set up the family basics once, then let the rest of MyLearna build from there"
-            copy="My Profile is where you make the learner list feel clear and usable before you start planning, capturing evidence, or building reports."
+            title="Family basics"
+            copy="Keep learners clear before planning, capture, and reports."
             items={guidanceItems}
           />
         ) : null}

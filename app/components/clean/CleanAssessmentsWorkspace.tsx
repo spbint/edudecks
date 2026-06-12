@@ -1689,12 +1689,10 @@ function AssessmentsWorkspaceBody() {
               }}
             >
               <div style={{ display: "grid", gap: 10, maxWidth: 760 }}>
-                <div style={eyebrowStyle}>Assessment dashboard</div>
-                <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Assessments</h1>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                  Check how secure a learner feels on the same steps used in My Pathways. Choose
-                  a subject, narrow to one strand, and save a calm judgement to guide what happens
-                  next.
+                <div style={eyebrowStyle}>Learning checks</div>
+                <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Assessments</h1>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
+                  Check understanding and choose the next step.
                 </p>
               </div>
 
@@ -1711,7 +1709,7 @@ function AssessmentsWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Saved to this pathway
+                  Saved to pathway
                 </span>
                 <Link href="/my-settings" style={secondaryButtonStyle}>
                   My Settings
@@ -1737,7 +1735,7 @@ function AssessmentsWorkspaceBody() {
                   hasMultipleLearners ? (
                     <>
                       <label style={{ color: "#334155", fontWeight: 700 }}>
-                        Viewing assessment map for
+                        Checking
                       </label>
                       <select
                         value={selectedLearnerId}
@@ -1760,17 +1758,17 @@ function AssessmentsWorkspaceBody() {
                         {selectedLearnerLabel}
                       </strong>
                       <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        Learner context for the current assessment workspace.
+                        Current learner
                       </div>
                     </>
                   )
                 ) : (
                   <>
                     <strong style={{ color: "#0f172a" }}>
-                      Add a learner before tracking assessment confidence.
+                      Add a learner before checking understanding.
                     </strong>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      You can still explore the workspace while learner details are being set up.
+                      You can still explore checks while learner details are being set up.
                     </div>
                     <div>
                       <Link href="/my-profile" style={secondaryButtonStyle}>
@@ -1812,7 +1810,7 @@ function AssessmentsWorkspaceBody() {
                     );
                   })}
                 </div>
-                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                <div style={{ color: "#475569", lineHeight: 1.55 }}>
                   {selectedSubject.summaryCopy}
                 </div>
               </div>
@@ -1853,11 +1851,16 @@ function AssessmentsWorkspaceBody() {
                   })}
                 </div>
                 <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                  {selectedStrandCard?.description || "Choose a strand to narrow the assessment view."}
+                  {selectedStrandCard?.description || "Choose a strand to narrow the checks."}
                 </div>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {selectedStrandCard?.whyItMatters || selectedSubject.helper}
-                </div>
+                <details>
+                  <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
+                    Why this matters
+                  </summary>
+                  <div style={{ color: "#64748b", lineHeight: 1.6, marginTop: 8 }}>
+                    {selectedStrandCard?.whyItMatters || selectedSubject.helper}
+                  </div>
+                </details>
               </div>
 
               <div style={compactCardStyle}>

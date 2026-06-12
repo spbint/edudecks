@@ -4485,7 +4485,7 @@ export default function CleanNumberTargetedPracticeViewer() {
           </Link>
           {returnTo ? (
             <Link href={returnTo} style={secondaryButtonStyle}>
-              Return to pathway step
+              View pathway map
             </Link>
           ) : null}
         </div>
@@ -4493,23 +4493,20 @@ export default function CleanNumberTargetedPracticeViewer() {
         {exactStepPractice ? (
           <>
             <section style={cardStyle}>
-              <div style={eyebrowStyle}>Step-level practice</div>
+              <div style={eyebrowStyle}>Practise this skill</div>
               <h1
                 style={{
                   margin: "8px 0",
                   color: "#0f172a",
-                  fontSize: "clamp(30px, 5vw, 44px)",
-                  lineHeight: 1.08,
-                  fontWeight: 800,
+                  fontSize: "clamp(24px, 4vw, 32px)",
+                  lineHeight: 1.12,
+                  fontWeight: 650,
                 }}
               >
                 {exactStepPractice.title}
               </h1>
               <div style={{ ...bodyTextStyle, fontSize: 16 }}>
-                Practice focus: <strong>{exactStepPractice.title}</strong>
-              </div>
-              <div style={quietTextStyle}>
-                Part of: <strong>{exactStepPractice.parentModuleTitle}</strong>
+                Let&apos;s try one focused practice step.
               </div>
               <div style={{ ...bodyTextStyle, fontSize: 16 }}>
                 {exactStepPractice.description}
@@ -4533,7 +4530,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                         borderRadius: 12,
                         padding: "10px 12px",
                         cursor: "pointer",
-                        fontWeight: 800,
+                        fontWeight: 600,
                       }}
                     >
                       {option.label} - {option.description}
@@ -4599,7 +4596,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {returnTo ? (
                         <Link href={returnTo} style={buttonStyle}>
-                          Return to pathway step
+                          View pathway map
                         </Link>
                       ) : null}
                       {exactStepAssessmentHref ? (
@@ -4624,8 +4621,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                 </div>
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>
-                Use this practice to build confidence, then choose whether to assess the
-                skill or save a useful observation.
+                Practise first, then check understanding when ready.
               </div>
               <div style={{ marginTop: 10 }}>
                 <CleanContentIssueReportButton
@@ -4654,33 +4650,20 @@ export default function CleanNumberTargetedPracticeViewer() {
         {practiceModule ? (
           <>
             <section style={cardStyle}>
-              <div style={eyebrowStyle}>MyLearna targeted practice</div>
+              <div style={eyebrowStyle}>Targeted practice</div>
               <h1
                 style={{
                   margin: "8px 0",
                   color: "#0f172a",
-                  fontSize: "clamp(30px, 5vw, 44px)",
-                  lineHeight: 1.08,
-                  fontWeight: 800,
+                  fontSize: "clamp(24px, 4vw, 32px)",
+                  lineHeight: 1.12,
+                  fontWeight: 650,
                 }}
               >
                 {practiceModule.title}
               </h1>
               <div style={{ ...bodyTextStyle, fontSize: 16 }}>
                 {practiceModule.description}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  marginTop: 14,
-                }}
-              >
-                <span style={chipStyle}>{practiceModule.subjectKey}</span>
-                <span style={chipStyle}>{practiceModule.strandKey}</span>
-                <span style={chipStyle}>{practiceModule.stageKey}</span>
-                <span style={chipStyle}>{practiceModule.progressionBandKey}</span>
               </div>
               {sourceAssessmentBand || sourceSubElement ? (
                 <div
