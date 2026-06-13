@@ -1,14 +1,12 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  PAGE_FEEDBACK_MAX_LENGTH,
-  submitCleanPageFeedback,
-} from "@/lib/clean/pageFeedback/client";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+  buildReportProblemMailto,
+  MYLEARNA_SUPPORT_EMAIL,
+} from "@/app/components/clean/feedback/reportProblemMailto";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 
 type FeedbackPage = {
@@ -17,23 +15,25 @@ type FeedbackPage = {
   matches: string[];
 };
 
-type GtagParams = {
-  page_key: string;
-  feedback_type: string;
-  status: string;
-};
+const PAGE_REPORT_OPTIONS = [
+  "Something looks wrong",
+  "A button or link is broken",
+  "Text is confusing",
+  "Page layout problem",
+  "Loading problem",
+  "Other",
+] as const;
+
+const PAGE_FEEDBACK_MAX_LENGTH = 2000;
 
 const feedbackPages: FeedbackPage[] = [
   { key: "my-day", title: "My Day", matches: ["/my-day", "/clean-my-day"] },
   { key: "my-calendar", title: "My Calendar", matches: ["/my-calendar", "/clean-my-calendar"] },
   { key: "my-pathways", title: "My Pathways", matches: ["/my-pathways", "/clean-my-pathways"] },
-  { key: "my-assessments", title: "My Assessments", matches: ["/my-assessments", "/clean-my-assessments"] },
   { key: "my-capture", title: "My Capture", matches: ["/my-capture", "/clean-my-capture"] },
   { key: "my-portfolio", title: "My Portfolio", matches: ["/my-portfolio", "/clean-my-portfolio"] },
   { key: "my-curriculum", title: "My Data", matches: ["/my-data", "/my-curriculum", "/clean-my-curriculum"] },
   { key: "my-reports", title: "My Reports", matches: ["/my-reports", "/clean-my-reports"] },
-  { key: "my-outputs", title: "My Outputs", matches: ["/my-outputs", "/clean-my-outputs"] },
-  { key: "my-programs", title: "My Programs", matches: ["/my-programs", "/clean-my-programs"] },
   { key: "my-community", title: "My Community", matches: ["/my-community"] },
   { key: "my-profile", title: "My Profile", matches: ["/my-profile"] },
   { key: "my-settings", title: "My Settings", matches: ["/my-settings"] },
@@ -51,37 +51,19 @@ function getFeedbackPage(pathname: string) {
   );
 }
 
-function safe(value: unknown) {
-  return String(value ?? "").trim();
+function getSourceUrl() {
+  if (typeof window === "undefined") return "";
+  return window.location.href;
 }
 
-function trackFeedbackEvent(eventName: string, params: GtagParams) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-  if (typeof gtag !== "function") {
-    return;
-  }
-
-  gtag("event", eventName, params);
+function getRoute(pathname: string) {
+  if (typeof window === "undefined") return pathname;
+  return `${window.location.pathname}${window.location.search}`;
 }
 
-function getFriendlyErrorMessage(error: unknown) {
-  const message = String((error as { message?: unknown })?.message ?? "")
-    .trim()
-    .toLowerCase();
-
-  if (
-    message.includes("timed out") ||
-    message.includes("network") ||
-    message.includes("fetch")
-  ) {
-    return "We couldn't send that just now. Please check your connection and try again.";
-  }
-
-  return "We couldn't send that feedback just now. Please try again in a moment.";
+function getUserAgent() {
+  if (typeof navigator === "undefined") return "";
+  return navigator.userAgent;
 }
 
 export default function CleanPageFeedbackWidget() {
@@ -90,9 +72,13 @@ export default function CleanPageFeedbackWidget() {
   const page = useMemo(() => getFeedbackPage(pathname), [pathname]);
   const [open, setOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [category, setCategory] = useState<(typeof PAGE_REPORT_OPTIONS)[number]>(
+    "Something looks wrong",
+  );
+  const [status, setStatus] = useState<"idle" | "opened" | "copied" | "failed">(
+    "idle",
+  );
+  const [statusMessage, setStatusMessage] = useState("");
   const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
@@ -112,7 +98,10 @@ export default function CleanPageFeedbackWidget() {
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        handleClose();
+        setOpen(false);
+        setStatus("idle");
+        setStatusMessage("");
+        setFeedbackText("");
       }
     }
 
@@ -120,95 +109,65 @@ export default function CleanPageFeedbackWidget() {
     return () => document.removeEventListener("keydown", handleEscape);
   });
 
-  const remainingCharacters = PAGE_FEEDBACK_MAX_LENGTH - feedbackText.length;
-
-  if (!page || !hasSupabaseEnv || (guidanceEnabled && setupStatus === "active")) {
+  if (!page || (guidanceEnabled && setupStatus === "active")) {
     return null;
   }
 
   const activePage = page;
+  const sent = status === "opened" || status === "copied";
+  const remainingCharacters = PAGE_FEEDBACK_MAX_LENGTH - feedbackText.length;
+
+  function getReportDetails() {
+    return buildReportProblemMailto({
+      subject: "MyLearna page report",
+      type: "Page",
+      category,
+      message: feedbackText,
+      context: [
+        ["Page", activePage.title],
+        ["Route", getRoute(pathname)],
+        ["URL", getSourceUrl()],
+        ["Timestamp", new Date().toISOString()],
+        ["Browser", getUserAgent()],
+      ],
+    });
+  }
 
   function handleOpen() {
     setOpen(true);
-    setError(null);
-    setSubmitted(false);
-    trackFeedbackEvent("page_feedback_opened", {
-      page_key: activePage.key,
-      feedback_type: "general",
-      status: "opened",
-    });
+    setStatus("idle");
+    setStatusMessage("");
   }
 
   function handleClose() {
     setOpen(false);
-    setSubmitting(false);
-    setError(null);
-    setSubmitted(false);
+    setStatus("idle");
+    setStatusMessage("");
     setFeedbackText("");
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function openEmail(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
+    const report = getReportDetails();
+    window.location.href = report.href;
+    setStatus("opened");
+    setStatusMessage("Your email app should open with the report details filled in.");
+  }
 
-    const trimmedFeedback = safe(feedbackText);
-
-    if (!trimmedFeedback) {
-      setError("Add a short note first so we know what would help here.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-
-    let userId: string | null = null;
+  async function copyReportDetails() {
+    const report = getReportDetails();
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      userId = user?.id ?? null;
-
-      await submitCleanPageFeedback({
-        userId,
-        pageKey: activePage.key,
-        pageTitle: activePage.title,
-        currentUrl:
-          typeof window !== "undefined" ? window.location.href : pathname,
-        feedbackText: trimmedFeedback.slice(0, PAGE_FEEDBACK_MAX_LENGTH),
-        feedbackType: "general",
-        userAgent:
-          typeof navigator !== "undefined" ? navigator.userAgent : null,
-      });
-
-      setSubmitted(true);
-      setFeedbackText("");
-      trackFeedbackEvent("page_feedback_submitted", {
-        page_key: activePage.key,
-        feedback_type: "general",
-        status: "submitted",
-      });
-    } catch (nextError) {
-      setError(getFriendlyErrorMessage(nextError));
-      trackFeedbackEvent("page_feedback_failed", {
-        page_key: activePage.key,
-        feedback_type: "general",
-        status: "failed",
-      });
-      Sentry.captureException(nextError, {
-        tags: {
-          surface: "page_feedback",
-          page_key: activePage.key,
-        },
-        extra: {
-          current_url:
-            typeof window !== "undefined" ? window.location.href : pathname,
-          feedback_type: "general",
-          user_present: Boolean(userId),
-        },
-      });
-    } finally {
-      setSubmitting(false);
+      await navigator.clipboard.writeText(
+        `${report.body}\n\nEmail to: ${MYLEARNA_SUPPORT_EMAIL}`,
+      );
+      setStatus("copied");
+      setStatusMessage(`Report details copied. Email them to ${MYLEARNA_SUPPORT_EMAIL}.`);
+    } catch {
+      setStatus("failed");
+      setStatusMessage(
+        `Could not copy automatically. Please email ${MYLEARNA_SUPPORT_EMAIL}.`,
+      );
     }
   }
 
@@ -263,8 +222,6 @@ export default function CleanPageFeedbackWidget() {
                 style={{
                   width: "min(440px, calc(100vw - 20px))",
                   maxWidth: "100%",
-                  maxHeight: "min(560px, calc(100vh - 24px))",
-                  overflow: "hidden",
                   border: "1px solid #dbeafe",
                   borderRadius: 22,
                   background: "#ffffff",
@@ -272,14 +229,7 @@ export default function CleanPageFeedbackWidget() {
                   display: "grid",
                 }}
               >
-                <div
-                  style={{
-                    padding: "clamp(16px, 4vw, 20px)",
-                    display: "grid",
-                    gap: 14,
-                    overflowY: "auto",
-                  }}
-                >
+                <div style={{ padding: 18, display: "grid", gap: 14 }}>
                   <div
                     style={{
                       display: "flex",
@@ -289,25 +239,14 @@ export default function CleanPageFeedbackWidget() {
                     }}
                   >
                     <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                      <div
-                        style={{
-                          color: "#1d4ed8",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Help us shape MyLearna together
-                      </div>
                       <h2
                         id="page-feedback-title"
-                        style={{ margin: 0, color: "#0f172a", fontSize: 22 }}
+                        style={{ margin: 0, color: "#0f172a", fontSize: 21 }}
                       >
-                        Help improve this page
+                        Report a problem with this page
                       </h2>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        {activePage.title}
+                        {activePage.title}. Please avoid private child details.
                       </p>
                     </div>
                     <button
@@ -325,54 +264,55 @@ export default function CleanPageFeedbackWidget() {
                         flexShrink: 0,
                       }}
                     >
-                      Close
+                      {sent ? "Close" : "Cancel"}
                     </button>
                   </div>
 
-                  {submitted ? (
+                  {sent ? (
                     <div
+                      role="status"
                       style={{
                         border: "1px solid #bbf7d0",
                         borderRadius: 16,
                         background: "#f0fdf4",
-                        padding: 16,
-                        display: "grid",
-                        gap: 10,
+                        padding: 14,
+                        color: "#166534",
+                        fontWeight: 650,
                       }}
                     >
-                      <strong style={{ color: "#166534" }}>
-                        Thanks - this helps us improve MyLearna.
-                      </strong>
-                      <p style={{ margin: 0, color: "#166534", lineHeight: 1.6 }}>
-                        We review this feedback for workflow friction, missing guidance,
-                        and places where parents need clearer support.
-                      </p>
-                      <div>
-                        <button
-                          type="button"
-                          onClick={handleClose}
-                          style={{
-                            border: "1px solid #166534",
-                            background: "#166534",
-                            color: "#ffffff",
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Close
-                        </button>
-                      </div>
+                      {statusMessage}
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
+                    <form onSubmit={openEmail} style={{ display: "grid", gap: 12 }}>
                       <label style={{ display: "grid", gap: 8 }}>
-                        <span
-                          style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}
+                        <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
+                          Category
+                        </span>
+                        <select
+                          value={category}
+                          onChange={(event) =>
+                            setCategory(event.target.value as (typeof PAGE_REPORT_OPTIONS)[number])
+                          }
+                          style={{
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 12,
+                            padding: "10px 12px",
+                            font: "inherit",
+                            color: "#0f172a",
+                            background: "#ffffff",
+                          }}
                         >
-                          What could be clearer, easier, or more helpful here?
+                          {PAGE_REPORT_OPTIONS.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
+                          Tell us what you noticed
                         </span>
                         <textarea
                           value={feedbackText}
@@ -380,11 +320,10 @@ export default function CleanPageFeedbackWidget() {
                             setFeedbackText(event.target.value.slice(0, PAGE_FEEDBACK_MAX_LENGTH))
                           }
                           maxLength={PAGE_FEEDBACK_MAX_LENGTH}
-                          placeholder="A short note about what felt confusing, missing, or especially helpful."
+                          placeholder="Example: A button did not open, or the page layout looked wrong."
                           style={{
                             width: "100%",
-                            minHeight: 140,
-                            maxHeight: 240,
+                            minHeight: 118,
                             resize: "vertical",
                             border: "1px solid #cbd5e1",
                             borderRadius: 14,
@@ -395,83 +334,72 @@ export default function CleanPageFeedbackWidget() {
                         />
                       </label>
 
-                      <div
-                        style={{
-                          border: "1px solid #dbeafe",
-                          borderRadius: 14,
-                          background: "#f8fbff",
-                          padding: 12,
-                          color: "#475569",
-                          fontSize: 13,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Please avoid including private child, medical, or identifying details.
-                      </div>
+                      <span style={{ color: "#64748b", fontSize: 12 }}>
+                        {remainingCharacters} characters left.
+                      </span>
+
+                      {statusMessage ? (
+                        <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
+                          {statusMessage}
+                        </div>
+                      ) : null}
 
                       <div
                         style={{
                           display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
+                          gap: 10,
                           flexWrap: "wrap",
+                          justifyContent: "flex-end",
                         }}
                       >
-                        <span style={{ color: "#64748b", fontSize: 12 }}>
-                          Keep it brief. {remainingCharacters} characters left.
-                        </span>
-                        <div
+                        <button
+                          type="button"
+                          onClick={handleClose}
                           style={{
-                            display: "flex",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            justifyContent: "flex-end",
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            borderRadius: 10,
+                            padding: "10px 14px",
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: "pointer",
                           }}
                         >
-                          <button
-                            type="button"
-                            onClick={handleClose}
-                            disabled={submitting}
-                            style={{
-                              border: "1px solid #cbd5e1",
-                              background: "#ffffff",
-                              color: "#0f172a",
-                              borderRadius: 10,
-                              padding: "10px 14px",
-                              fontSize: 14,
-                              fontWeight: 700,
-                              cursor: submitting ? "wait" : "pointer",
-                            }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={submitting || !safe(feedbackText)}
-                            style={{
-                              border: "1px solid #0f172a",
-                              background: "#0f172a",
-                              color: "#ffffff",
-                              borderRadius: 10,
-                              padding: "10px 14px",
-                              fontSize: 14,
-                              fontWeight: 700,
-                              cursor:
-                                submitting || !safe(feedbackText) ? "not-allowed" : "pointer",
-                              opacity: submitting || !safe(feedbackText) ? 0.7 : 1,
-                            }}
-                          >
-                            {submitting ? "Sending feedback..." : "Send feedback"}
-                          </button>
-                        </div>
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void copyReportDetails()}
+                          style={{
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            borderRadius: 10,
+                            padding: "10px 14px",
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Copy report details
+                        </button>
+                        <button
+                          type="submit"
+                          style={{
+                            border: "1px solid #0f172a",
+                            background: "#0f172a",
+                            color: "#ffffff",
+                            borderRadius: 10,
+                            padding: "10px 14px",
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Open email
+                        </button>
                       </div>
-
-                      {error ? (
-                        <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
-                          {error}
-                        </div>
-                      ) : null}
                     </form>
                   )}
                 </div>

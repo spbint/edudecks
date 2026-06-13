@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 import type React from "react";
 import { usePathname } from "next/navigation";
 import {
-  PAGE_FEEDBACK_MAX_LENGTH,
-  submitCleanPageFeedback,
-} from "@/lib/clean/pageFeedback/client";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+  buildReportProblemMailto,
+  MYLEARNA_SUPPORT_EMAIL,
+} from "@/app/components/clean/feedback/reportProblemMailto";
 
 type ReportProblemButtonProps = {
   pageTitle?: string;
 };
 
-type SubmitState = "idle" | "sending" | "sent" | "failed";
+type SubmitState = "idle" | "opened" | "copied" | "failed";
 
 const PAGE_REPORT_OPTIONS = [
   "Something looks wrong",
@@ -24,22 +23,21 @@ const PAGE_REPORT_OPTIONS = [
   "Other",
 ] as const;
 
-function safe(value: unknown) {
-  return String(value ?? "").trim();
-}
+const PAGE_REPORT_MAX_LENGTH = 2000;
 
 function getSourceUrl() {
   if (typeof window === "undefined") return "";
   return window.location.href;
 }
 
+function getRoute(pathname: string) {
+  if (typeof window === "undefined") return pathname;
+  return `${window.location.pathname}${window.location.search}`;
+}
+
 function getUserAgent() {
   if (typeof navigator === "undefined") return "";
   return navigator.userAgent;
-}
-
-function getPageKey(pathname: string) {
-  return pathname.replace(/^\/+/, "").replace(/\/+/g, "-") || "home";
 }
 
 const triggerStyle: React.CSSProperties = {
@@ -127,40 +125,45 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  if (!hasSupabaseEnv) return null;
+  function getReportDetails() {
+    return buildReportProblemMailto({
+      subject: "MyLearna page report",
+      type: "Page",
+      category,
+      message,
+      context: [
+        ["Page", pageTitle],
+        ["Route", getRoute(pathname)],
+        ["URL", getSourceUrl()],
+        ["Timestamp", new Date().toISOString()],
+        ["Browser", getUserAgent()],
+      ],
+    });
+  }
 
-  async function submitReport() {
-    const trimmed = safe(message);
-    if (!trimmed) {
-      setSubmitState("failed");
-      setStatusMessage("Tell us what you noticed before sending.");
-      return;
-    }
+  function openEmail() {
+    const report = getReportDetails();
+    window.location.href = report.href;
+    setSubmitState("opened");
+    setStatusMessage("Your email app should open with the report details filled in.");
+  }
 
-    setSubmitState("sending");
-    setStatusMessage("");
+  async function copyReportDetails() {
+    const report = getReportDetails();
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      await submitCleanPageFeedback({
-        userId: user?.id ?? null,
-        pageKey: getPageKey(pathname),
-        pageTitle: pageTitle ?? null,
-        currentUrl: getSourceUrl(),
-        feedbackText: trimmed.slice(0, PAGE_FEEDBACK_MAX_LENGTH),
-        feedbackType: category,
-        userAgent: getUserAgent(),
-      });
-
-      setSubmitState("sent");
-      setStatusMessage("Thanks — your report has been saved for review.");
-      setMessage("");
+      await navigator.clipboard.writeText(
+        `${report.body}\n\nEmail to: ${MYLEARNA_SUPPORT_EMAIL}`,
+      );
+      setSubmitState("copied");
+      setStatusMessage(
+        `Report details copied. Email them to ${MYLEARNA_SUPPORT_EMAIL}.`,
+      );
     } catch {
       setSubmitState("failed");
-      setStatusMessage("Sorry, we could not save this report. Please try again.");
+      setStatusMessage(
+        `Could not copy automatically. Please email ${MYLEARNA_SUPPORT_EMAIL}.`,
+      );
     }
   }
 
@@ -171,10 +174,14 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
     setMessage("");
   }
 
+  const reportOpened = submitState === "opened" || submitState === "copied";
+
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} style={triggerStyle}>
-        <span aria-hidden="true" style={{ color: "#6C4DF6", fontSize: 13 }}>!</span>
+        <span aria-hidden="true" style={{ color: "#6C4DF6", fontSize: 13 }}>
+          !
+        </span>
         Report a problem with this page
       </button>
 
@@ -199,7 +206,7 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
               </p>
             </div>
 
-            {submitState === "sent" ? (
+            {reportOpened ? (
               <div
                 role="status"
                 style={{
@@ -216,7 +223,15 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
               </div>
             ) : (
               <>
-                <label style={{ display: "grid", gap: 7, color: "#17204B", fontSize: 13, fontWeight: 650 }}>
+                <label
+                  style={{
+                    display: "grid",
+                    gap: 7,
+                    color: "#17204B",
+                    fontSize: 13,
+                    fontWeight: 650,
+                  }}
+                >
                   Category
                   <select
                     value={category}
@@ -233,42 +248,65 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
                   </select>
                 </label>
 
-                <label style={{ display: "grid", gap: 7, color: "#17204B", fontSize: 13, fontWeight: 650 }}>
+                <label
+                  style={{
+                    display: "grid",
+                    gap: 7,
+                    color: "#17204B",
+                    fontSize: 13,
+                    fontWeight: 650,
+                  }}
+                >
                   Tell us what you noticed
                   <textarea
                     value={message}
                     onChange={(event) =>
-                      setMessage(event.target.value.slice(0, PAGE_FEEDBACK_MAX_LENGTH))
+                      setMessage(event.target.value.slice(0, PAGE_REPORT_MAX_LENGTH))
                     }
                     placeholder="Example: A button did not open, or the page layout looked wrong."
-                    style={{ ...fieldStyle, minHeight: 104, resize: "vertical", lineHeight: 1.5 }}
+                    style={{
+                      ...fieldStyle,
+                      minHeight: 104,
+                      resize: "vertical",
+                      lineHeight: 1.5,
+                    }}
                   />
                 </label>
 
                 {statusMessage ? (
-                  <div role="alert" style={{ color: "#B91C1C", fontSize: 13, lineHeight: 1.5 }}>
+                  <div
+                    role="alert"
+                    style={{ color: "#B91C1C", fontSize: 13, lineHeight: 1.5 }}
+                  >
                     {statusMessage}
                   </div>
                 ) : null}
               </>
             )}
 
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+                gap: 10,
+              }}
+            >
               <button type="button" onClick={closeDialog} style={secondaryButtonStyle}>
-                {submitState === "sent" ? "Close" : "Cancel"}
+                {reportOpened ? "Close" : "Cancel"}
               </button>
-              {submitState !== "sent" ? (
+              {!reportOpened ? (
                 <button
                   type="button"
-                  onClick={() => void submitReport()}
-                  disabled={submitState === "sending"}
-                  style={{
-                    ...primaryButtonStyle,
-                    opacity: submitState === "sending" ? 0.65 : 1,
-                    cursor: submitState === "sending" ? "not-allowed" : "pointer",
-                  }}
+                  onClick={() => void copyReportDetails()}
+                  style={secondaryButtonStyle}
                 >
-                  {submitState === "sending" ? "Sending..." : "Send report"}
+                  Copy report details
+                </button>
+              ) : null}
+              {!reportOpened ? (
+                <button type="button" onClick={openEmail} style={primaryButtonStyle}>
+                  Open email
                 </button>
               ) : null}
             </div>
