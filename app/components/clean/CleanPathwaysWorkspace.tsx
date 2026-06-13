@@ -2196,10 +2196,10 @@ function PathwaysWorkspaceBody() {
                   <div
                     data-guidance-id="pathways-stage-filter"
                     style={{
-                      borderTop: "1px solid #e2e8f0",
-                      borderBottom: "1px solid #e2e8f0",
-                      background: "#ffffff",
-                      padding: "8px 0",
+                      border: "1px solid #E7EAF2",
+                      borderRadius: 16,
+                      background: "#F8FAFC",
+                      padding: 8,
                       display: "flex",
                       gap: 8,
                       flexWrap: "wrap",
@@ -2226,15 +2226,17 @@ function PathwaysWorkspaceBody() {
                         }
                         style={{
                           ...secondaryButtonStyle,
-                          padding: "7px 10px",
-                          fontSize: 12,
+                          minHeight: 36,
+                          padding: "7px 11px",
+                          fontSize: 13,
+                          fontWeight: 600,
                         }}
                       >
                         {densityMode === "compact" ? "Compact view" : "Full view"}
                       </button>
                     </div>
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                       {([
                         ["current", "Current zone only"],
                         ["nearby", "Current + nearby"],
@@ -2247,13 +2249,14 @@ function PathwaysWorkspaceBody() {
                             type="button"
                             onClick={() => setZoneViewMode(value)}
                             style={{
-                              border: selected ? "1px solid #1d4ed8" : "1px solid #cbd5e1",
-                              background: selected ? "#eff6ff" : "#ffffff",
-                              color: selected ? "#1d4ed8" : "#0f172a",
+                              border: selected ? "1px solid #6C4DF6" : "1px solid #E7EAF2",
+                              background: selected ? "#F2EDFF" : "#ffffff",
+                              color: selected ? "#6C4DF6" : "#17204B",
                               borderRadius: 999,
-                              padding: "6px 9px",
-                              fontSize: 12,
-                              fontWeight: 800,
+                              minHeight: 36,
+                              padding: "7px 11px",
+                              fontSize: 13,
+                              fontWeight: 600,
                               cursor: "pointer",
                             }}
                           >
@@ -2263,7 +2266,7 @@ function PathwaysWorkspaceBody() {
                       })}
                     </div>
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                       {([
                         ["all", "All steps"],
                         ["with", "With worksheets"],
@@ -2276,13 +2279,14 @@ function PathwaysWorkspaceBody() {
                             type="button"
                             onClick={() => setWorksheetFilter(value)}
                             style={{
-                              border: selected ? "1px solid #0f766e" : "1px solid #cbd5e1",
+                              border: selected ? "1px solid #2F9D68" : "1px solid #E7EAF2",
                               background: selected ? "#f0fdfa" : "#ffffff",
-                              color: selected ? "#0f766e" : "#0f172a",
+                              color: selected ? "#2F9D68" : "#17204B",
                               borderRadius: 999,
-                              padding: "6px 9px",
-                              fontSize: 12,
-                              fontWeight: 800,
+                              minHeight: 36,
+                              padding: "7px 11px",
+                              fontSize: 13,
+                              fontWeight: 600,
                               cursor: "pointer",
                             }}
                           >
@@ -2702,17 +2706,18 @@ function NumberRevealStepCard({
 
   return (
     <div
+      className="mylearna-compact-pathway-row"
       style={{
-        border: `1px solid ${tone.border}`,
-        borderRadius: 16,
-        background: primary ? "#ffffff" : compact ? "#ffffff" : tone.background,
-        padding: primary ? 14 : "10px 12px",
+        border: `1px solid ${primary ? tone.border : "#E7EAF2"}`,
+        borderRadius: primary ? 16 : 14,
+        background: "#ffffff",
+        padding: primary ? 14 : "12px 14px",
         display: "grid",
-        gridTemplateColumns: primary ? "1fr" : "minmax(0, 1fr) auto",
+        gridTemplateColumns: primary ? "1fr" : "minmax(0, 1fr) minmax(160px, auto)",
         alignItems: "center",
-        gap: primary ? 10 : 12,
+        gap: primary ? 10 : 14,
         opacity: compact && step.autoCheck.status !== "Not checked yet" ? 0.86 : 1,
-        boxShadow: primary ? "0 8px 24px rgba(23,32,75,0.045)" : "none",
+        boxShadow: primary ? "0 8px 24px rgba(23,32,75,0.045)" : "0 3px 10px rgba(23,32,75,0.025)",
       }}
     >
       <div style={{ display: "grid", gap: primary ? 8 : 5, minWidth: 0 }}>
@@ -2749,26 +2754,35 @@ function NumberRevealStepCard({
             color: "#17204B",
             fontWeight: primary ? 650 : 600,
             lineHeight: 1.25,
-            fontSize: primary ? "clamp(16px, 2vw, 20px)" : 14,
+            fontSize: primary ? "clamp(16px, 2vw, 20px)" : 15,
           }}
         >
           {step.title}
         </div>
-        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
+        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
           {step.stageTitle}
           {step.alignment ? ` · ${step.alignment.bank.shortTitle}` : ""}
         </div>
       </div>
       {assessmentHref || practiceHref || worksheetResource ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: primary ? "flex-start" : "flex-end" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            justifyContent: primary ? "flex-start" : "flex-end",
+            alignItems: "center",
+          }}
+        >
           {practiceHref ? (
             <Link
               href={practiceHref}
               style={{
                 ...secondaryButtonStyle,
                 width: "fit-content",
+                minHeight: 34,
                 padding: "7px 10px",
-                fontSize: 12,
+                fontSize: 13,
               }}
             >
               Continue practise
@@ -2780,8 +2794,9 @@ function NumberRevealStepCard({
               style={{
                 ...secondaryButtonStyle,
                 width: "fit-content",
+                minHeight: 34,
                 padding: "7px 10px",
-                fontSize: 12,
+                fontSize: 13,
               }}
             >
               Assess
@@ -2795,12 +2810,13 @@ function NumberRevealStepCard({
               style={{
                 ...secondaryButtonStyle,
                 width: "fit-content",
+                minHeight: 34,
                 padding: "7px 10px",
-                fontSize: 12,
+                fontSize: 13,
               }}
               aria-label={`Open worksheet for ${worksheetResource.title}`}
             >
-              Worksheet
+              Open worksheet
             </Link>
           ) : null}
         </div>
@@ -2819,6 +2835,17 @@ function NumberRevealStepCard({
           Assessment is coming soon.
         </div>
       ) : null}
+      <style jsx global>{`
+        @media (max-width: 720px) {
+          .mylearna-compact-pathway-row {
+            grid-template-columns: 1fr !important;
+          }
+
+          .mylearna-compact-pathway-row > div:nth-child(2) {
+            justify-content: flex-start !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -2847,7 +2874,7 @@ function NumberRevealStepList({
       style={{
         display: "grid",
         gridTemplateColumns: "1fr",
-        gap: 8,
+        gap: 10,
       }}
     >
       {steps.map((step) => (
@@ -2883,15 +2910,15 @@ function NumberRevealLazyStepSection({
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
       style={{
-        borderTop: "1px solid #e2e8f0",
-        paddingTop: 8,
+        borderTop: "1px solid #E7EAF2",
+        paddingTop: 10,
       }}
     >
-      <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 600, fontSize: 14 }}>
+      <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 600, fontSize: 14, lineHeight: 1.4 }}>
         {title} ({steps.length})
       </summary>
       {open ? (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 10 }}>
           <NumberRevealStepList
             steps={steps}
             learnerId={learnerId}
@@ -3120,7 +3147,7 @@ function DetailedMathematicsStageCard({
     summary.readyToAssess > 0
       ? {
           key: "ready",
-          label: `${summary.readyToAssess} ready to check`,
+          label: `${summary.readyToAssess} ready to assess`,
           border: "#ddd6fe",
           background: "#f5f3ff",
           color: "#6d28d9",
@@ -3292,10 +3319,10 @@ function DetailedMathematicsStageCard({
           isOpen
             ? {
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: 16,
-                borderTop: "1px solid #e2e8f0",
-                padding: 12,
+                gridTemplateColumns: "1fr",
+                gap: 10,
+                borderTop: "1px solid #E7EAF2",
+                padding: 10,
               }
             : { display: "none" }
         }
@@ -3653,12 +3680,13 @@ function DetailedMathematicsStepCard({
     <article
       data-guidance-id="pathways-step-card"
       style={{
-        border: "1px solid #e2e8f0",
-        borderRadius: 12,
+        border: "1px solid #E7EAF2",
+        borderRadius: 14,
         background: "#ffffff",
-        padding: densityMode === "compact" ? 8 : 12,
+        padding: densityMode === "compact" ? "9px 10px" : "11px 12px",
         display: "grid",
-        gap: densityMode === "compact" ? 6 : 8,
+        gap: densityMode === "compact" ? 7 : 9,
+        boxShadow: "0 3px 10px rgba(23,32,75,0.025)",
       }}
     >
       <div

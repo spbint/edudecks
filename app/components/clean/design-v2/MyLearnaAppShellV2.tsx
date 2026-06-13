@@ -172,7 +172,7 @@ function routeCrumb(pathname: string) {
     return "My Pathways > Practise";
   }
   if (pathname.startsWith("/assessments/number")) {
-    return "My Pathways > Check";
+    return "My Pathways > Assess";
   }
   return `MyLearna > ${routeTitle(pathname)}`;
 }
