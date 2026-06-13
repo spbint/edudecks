@@ -1,5 +1,9 @@
-const RESEND_API_URL = "https://api.resend.com/emails";
-const DEFAULT_SUPPORT_REPORT_RECIPIENT = "support@mylearna.com";
+import {
+  RESEND_API_URL,
+  resolveMylearnaEmailFrom,
+  resolveResendApiKey,
+  resolveSupportEmail,
+} from "@/lib/email/resendConfig";
 
 export type SupportReportType = "question" | "page";
 
@@ -21,10 +25,6 @@ export class SupportReportEmailConfigurationError extends Error {
     this.name = "SupportReportEmailConfigurationError";
     this.missingConfig = missingConfig;
   }
-}
-
-function safe(value: unknown) {
-  return String(value ?? "").trim();
 }
 
 function formatType(type: SupportReportType) {
@@ -64,9 +64,9 @@ function buildPlainTextBody(input: SupportReportEmailInput) {
 }
 
 export async function sendSupportReportEmail(input: SupportReportEmailInput) {
-  const apiKey = safe(process.env.RESEND_API_KEY);
-  const fromEmail = safe(process.env.RESEND_FROM || process.env.FROM_EMAIL);
-  const supportEmail = safe(process.env.SUPPORT_EMAIL) || DEFAULT_SUPPORT_REPORT_RECIPIENT;
+  const apiKey = resolveResendApiKey();
+  const fromEmail = resolveMylearnaEmailFrom();
+  const supportEmail = resolveSupportEmail();
 
   if (!apiKey) {
     throw new SupportReportEmailConfigurationError(
@@ -106,5 +106,3 @@ export async function sendSupportReportEmail(input: SupportReportEmailInput) {
     );
   }
 }
-
-export { DEFAULT_SUPPORT_REPORT_RECIPIENT };

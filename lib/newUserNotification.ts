@@ -1,3 +1,10 @@
+import {
+  RESEND_API_URL,
+  resolveMylearnaEmailFrom,
+  resolveResendApiKey,
+  resolveSupportEmail,
+} from "@/lib/email/resendConfig";
+
 type NewUserNotificationInput = {
   createdAt: string | null;
   email: string | null;
@@ -5,8 +12,6 @@ type NewUserNotificationInput = {
   source: string | null;
   userId: string;
 };
-
-const RESEND_API_URL = "https://api.resend.com/emails";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -30,20 +35,16 @@ function buildPlainTextBody(input: NewUserNotificationInput) {
 }
 
 export async function sendNewUserNotification(input: NewUserNotificationInput) {
-  const apiKey = safe(process.env.RESEND_API_KEY);
-  const ownerEmail = safe(
-    process.env.ADMIN_SIGNUP_NOTIFY_EMAIL ||
-      process.env.OWNER_SIGNUP_ALERT_EMAIL ||
-      "sean@mylearna.com",
-  );
-  const fromEmail = safe(process.env.FROM_EMAIL);
+  const apiKey = resolveResendApiKey();
+  const supportEmail = resolveSupportEmail();
+  const fromEmail = resolveMylearnaEmailFrom();
 
   if (!apiKey) {
     throw new Error("Missing RESEND_API_KEY for new user notification.");
   }
 
   if (!fromEmail) {
-    throw new Error("Missing FROM_EMAIL for new user notification.");
+    throw new Error("Missing RESEND_FROM or FROM_EMAIL for new user notification.");
   }
 
   const response = await fetch(RESEND_API_URL, {
@@ -54,8 +55,8 @@ export async function sendNewUserNotification(input: NewUserNotificationInput) {
     },
     body: JSON.stringify({
       from: fromEmail,
-      to: ownerEmail,
-      subject: "New MyLearna user signed up",
+      to: supportEmail,
+      subject: "New MyLearna sign-up",
       text: buildPlainTextBody(input),
     }),
   });
