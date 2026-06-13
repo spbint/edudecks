@@ -1862,11 +1862,33 @@ function PracticeProgressSummary({
   label: string;
   summary: ReturnType<typeof buildProgressSummary>;
 }) {
+  const progressPercent = summary.totalCount
+    ? Math.round((summary.completedCount / summary.totalCount) * 100)
+    : 0;
+
   return (
     <div style={compactCardStyle}>
       <div style={eyebrowStyle}>{label}</div>
       <div style={{ color: "#0f172a", fontWeight: 700 }}>
         {summary.completedCount} of {summary.totalCount} tasks completed
+      </div>
+      <div
+        aria-hidden
+        style={{
+          height: 6,
+          borderRadius: 999,
+          background: "#E9ECF5",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${progressPercent}%`,
+            height: "100%",
+            borderRadius: 999,
+            background: "#6C4DF6",
+          }}
+        />
       </div>
       <div
         style={{
@@ -3888,7 +3910,7 @@ function TaskCard({
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 18
+                      ? 14
                       : 10,
                   background: isSelected ? "#eff6ff" : "#ffffff",
                   padding:
@@ -3934,7 +3956,7 @@ function TaskCard({
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 4
+                      ? 3
                       : statisticsVisual
                         ? "6px 4px"
                         : "8px 10px",
@@ -3984,7 +4006,7 @@ function TaskCard({
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 1.15
+                      ? 1.1
                       : 1.45,
                   cursor: "pointer",
                   font: "inherit",
@@ -4034,9 +4056,9 @@ function TaskCard({
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 150
+                      ? 92
                       : statisticsVisual
-                        ? 68
+                        ? 56
                         : undefined,
                 }}
               >
@@ -4218,7 +4240,7 @@ function SelectedSection({
       <div style={{ ...bodyTextStyle, fontSize: 16 }}>
         {section.learnerGoal}
       </div>
-      <PracticeProgressSummary label="Practice progress" summary={progress} />
+      <PracticeProgressSummary label="Practise progress" summary={progress} />
       <div>
         <CleanContentIssueReportButton
           label="Report an issue with this practice"
@@ -4271,7 +4293,7 @@ function MiniCheckSection({
     <section style={cardStyle}>
       <div style={eyebrowStyle}>Mini check</div>
       <div style={quietTextStyle}>
-        Try these after practice to see whether the focus is ready for reassessment.
+        Try these after practise to see whether the focus is ready for a check.
       </div>
       <PracticeProgressSummary label="Mini-check summary" summary={progress} />
       <div style={{ marginTop: 10 }}>
@@ -4543,7 +4565,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             <section style={highlightCardStyle}>
               <div style={eyebrowStyle}>Focused practice</div>
               <PracticeProgressSummary
-                label="Practice progress"
+                label="Practise progress"
                 summary={buildProgressSummary(exactStepPracticeTasks, responses)}
               />
               <StepProgressBar
@@ -4636,13 +4658,13 @@ export default function CleanNumberTargetedPracticeViewer() {
 
         {unsupportedModule ? (
           <div style={cardStyle}>
-            <div style={eyebrowStyle}>Practice not connected</div>
+            <div style={eyebrowStyle}>Practise not connected</div>
             <h1 style={{ margin: "8px 0", color: "#0f172a" }}>
-              This practice module is not connected yet.
+              This practise module is not connected yet.
             </h1>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
-              The check recommendation was received, but this practice route only
-              supports connected Number practice modules for now.
+              The check recommendation was received, but this practise route only
+              supports connected Number practise modules for now.
             </div>
           </div>
         ) : null}

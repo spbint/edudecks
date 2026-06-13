@@ -6276,9 +6276,9 @@ function CleanNumberAssessmentPlayerBody() {
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 150
+                      ? 92
                       : statisticsVisual
-                        ? 70
+                        ? 56
                         : undefined,
                   padding:
                     step2Visual ||
@@ -6323,9 +6323,9 @@ function CleanNumberAssessmentPlayerBody() {
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                    ? 4
+                    ? 3
                     : statisticsVisual
-                      ? "6px 4px"
+                      ? "5px 3px"
                       : optionButtonStyle.padding,
                   borderRadius:
                     step2Visual ||
@@ -6370,7 +6370,7 @@ function CleanNumberAssessmentPlayerBody() {
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                    ? 18
+                    ? 14
                     : statisticsVisual
                       ? 12
                       : optionButtonStyle.borderRadius,
@@ -6418,7 +6418,7 @@ function CleanNumberAssessmentPlayerBody() {
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 1.15
+                      ? 1.1
                       : optionButtonStyle.lineHeight,
                   position:
                     statisticsVisual ||

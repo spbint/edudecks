@@ -1097,36 +1097,36 @@ export function EarlyNumberWorksheetObjectGroupCard({
   const kind = getCountingObjectKind(count, label);
   const objectName = getCountingObjectName(kind, count);
   const largeGroup = count > 10;
-  const objectSize = largeGroup ? 20 : 26;
+  const objectSize = largeGroup ? 14 : 18;
 
   return (
     <div
       aria-label={`Group showing ${count} ${objectName}`}
       style={{
-        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 18,
+        border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 14,
         background: "#ffffff",
         boxShadow: selected
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 8px 18px rgba(15,23,42,0.06)",
-        padding: 10,
+          ? "0 6px 14px rgba(37,99,235,0.14)"
+          : "none",
+        padding: 7,
         display: "grid",
-        gap: 8,
-        minHeight: largeGroup ? 188 : 150,
+        gap: 6,
+        minHeight: largeGroup ? 108 : 88,
       }}
     >
       <div
         style={{
-          minHeight: largeGroup ? 142 : 96,
-          borderRadius: 16,
+          minHeight: largeGroup ? 72 : 54,
+          borderRadius: 12,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           display: "grid",
-          gridTemplateColumns: "repeat(5, minmax(24px, 1fr))",
+          gridTemplateColumns: "repeat(5, minmax(16px, 1fr))",
           alignItems: "center",
           justifyItems: "center",
-          gap: largeGroup ? 6 : 8,
-          padding: largeGroup ? 10 : 12,
+          gap: largeGroup ? 4 : 5,
+          padding: largeGroup ? 6 : 7,
         }}
       >
         {Array.from({ length: Math.max(0, count) }, (_, index) => (
@@ -1138,7 +1138,7 @@ export function EarlyNumberWorksheetObjectGroupCard({
           />
         ))}
       </div>
-      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+      <div style={{ color: "#475569", fontSize: 11, fontWeight: 600, textAlign: "center" }}>
         {label}
       </div>
     </div>
@@ -1155,29 +1155,29 @@ export function EarlyNumberWorksheetDotCard({
   selected?: boolean;
 }) {
   const dots = getDots(count);
-  const dotSize = count > 8 ? 12 : count > 5 ? 14 : 18;
+  const dotSize = count > 8 ? 9 : count > 5 ? 11 : 14;
 
   return (
     <div
       aria-label={`Group showing ${count} dot${count === 1 ? "" : "s"}`}
       style={{
-        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 18,
+        border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 14,
         background: "#ffffff",
         boxShadow: selected
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 8px 18px rgba(15,23,42,0.06)",
-        padding: 10,
+          ? "0 6px 14px rgba(37,99,235,0.14)"
+          : "none",
+        padding: 7,
         display: "grid",
-        gap: 8,
-        minHeight: 132,
+        gap: 6,
+        minHeight: 84,
       }}
     >
       <div
         style={{
           position: "relative",
-          minHeight: 82,
-          borderRadius: 16,
+          minHeight: 52,
+          borderRadius: 12,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           overflow: "hidden",
@@ -1321,8 +1321,8 @@ function TensOnesRepresentationCard({
     <div
       aria-label={`${label}: ${tens} tens and ${ones} ones, showing ${total}`}
       style={{
-        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 18,
+        border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 14,
         background: selected ? "#eff6ff" : "#ffffff",
         minHeight: compact ? 140 : 178,
         padding: compact ? 9 : 12,
@@ -1400,12 +1400,12 @@ export function EarlyNumberWorksheetNumeralCard({
         borderRadius: 18,
         background: "#ffffff",
         boxShadow: selected
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 8px 18px rgba(15,23,42,0.06)",
-        padding: "12px 10px",
+          ? "0 6px 14px rgba(37,99,235,0.14)"
+          : "none",
+        padding: "8px 8px",
         display: "grid",
-        gap: 8,
-        minHeight: 126,
+        gap: 6,
+        minHeight: 74,
         placeItems: "center",
       }}
     >
@@ -1413,22 +1413,22 @@ export function EarlyNumberWorksheetNumeralCard({
         aria-hidden="true"
         style={{
           width: "100%",
-          minHeight: 82,
-          borderRadius: 16,
+          minHeight: 48,
+          borderRadius: 12,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           color: "#1d4ed8",
           display: "grid",
           placeItems: "center",
-          fontSize: numeral.length > 1 ? 46 : 56,
-          fontWeight: 950,
+          fontSize: numeral.length > 1 ? 30 : 36,
+          fontWeight: 700,
           lineHeight: 1,
         }}
       >
         {numeral}
       </div>
       {label ? (
-        <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+        <div style={{ color: "#475569", fontSize: 11, fontWeight: 600, textAlign: "center" }}>
           {label}
         </div>
       ) : null}
@@ -4940,25 +4940,25 @@ function LargeNumberWorksheetCard({
     <div
       aria-label={`${label} ${largeNumberToWords(formatted)}`}
       style={{
-        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
-        borderRadius: 18,
+        border: `1px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 14,
         background: selected ? "#eff6ff" : "#ffffff",
-        minHeight: 132,
-        padding: 12,
+        minHeight: 82,
+        padding: 8,
         display: "grid",
         placeItems: "center",
-        gap: 8,
+        gap: 5,
         textAlign: "center",
         boxShadow: selected
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 8px 18px rgba(15,23,42,0.06)",
+          ? "0 6px 14px rgba(37,99,235,0.14)"
+          : "none",
       }}
     >
       <div
         style={{
           color: "#1d4ed8",
-          fontSize: 12,
-          fontWeight: 900,
+          fontSize: 10,
+          fontWeight: 600,
           textTransform: "uppercase",
           letterSpacing: "0.06em",
         }}
@@ -4968,14 +4968,14 @@ function LargeNumberWorksheetCard({
       <div
         style={{
           color: "#0f172a",
-          fontSize: "clamp(28px, 6vw, 42px)",
-          fontWeight: 950,
+          fontSize: "clamp(20px, 4vw, 30px)",
+          fontWeight: 700,
           lineHeight: 1,
         }}
       >
         {formatted}
       </div>
-      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, lineHeight: 1.3 }}>
+      <div style={{ color: "#475569", fontSize: 11, fontWeight: 500, lineHeight: 1.25 }}>
         {largeNumberToWords(formatted)}
       </div>
     </div>

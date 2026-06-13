@@ -1507,14 +1507,32 @@ function PathwaysWorkspaceBody() {
                 </div>
               </div>
               <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
-                <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                  Practise / Check / Worksheet
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
+                    Practise / Check / Worksheet
+                  </div>
+                  {process.env.NODE_ENV !== "production" ? (
+                    <span
+                      style={{
+                        border: "1px solid #D9D0FF",
+                        background: "#F8F5FF",
+                        color: "#6C4DF6",
+                        borderRadius: 999,
+                        padding: "3px 7px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      v2 compact action package
+                    </span>
+                  ) : null}
                 </div>
                 <div
                   style={{
                     display: "grid",
                     gap: 10,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
                   }}
                 >
                   {selectedPlacementPracticeHref ? (
@@ -1523,11 +1541,11 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 96,
+                        minHeight: 78,
                         borderColor: "#D9D0FF",
                         background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
                         textDecoration: "none",
-                        padding: 14,
+                        padding: 12,
                       }}
                     >
                       <span style={eyebrowStyle}>Practise</span>
@@ -1543,11 +1561,11 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 96,
+                        minHeight: 78,
                         borderColor: "#CDEFD9",
                         background: "linear-gradient(180deg, #FFFFFF 0%, #ECFDF4 100%)",
                         textDecoration: "none",
-                        padding: 14,
+                        padding: 12,
                       }}
                     >
                       <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Check</span>
@@ -1559,7 +1577,7 @@ function PathwaysWorkspaceBody() {
                       </span>
                     </Link>
                   ) : (
-                    <div style={{ ...summaryCardStyle, minHeight: 96, opacity: 0.72, background: "#F8FAFC", padding: 14 }}>
+                    <div style={{ ...summaryCardStyle, minHeight: 78, opacity: 0.72, background: "#F8FAFC", padding: 12 }}>
                       <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Check</span>
                       <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
                         Quick check coming
@@ -1577,11 +1595,11 @@ function PathwaysWorkspaceBody() {
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
-                        minHeight: 96,
+                        minHeight: 78,
                         borderColor: "#F8D99A",
                         background: "linear-gradient(180deg, #FFFFFF 0%, #FFF7E6 100%)",
                         textDecoration: "none",
-                        padding: 14,
+                        padding: 12,
                       }}
                       aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
                     >
@@ -2145,7 +2163,7 @@ function PathwaysWorkspaceBody() {
                       valueColor: "#1d4ed8",
                     },
                     {
-                      label: "Practice activities",
+                      label: "Practise activities",
                       value: String(selectedWorkspaceSnapshot?.practising || 0),
                       valueColor: "#c2410c",
                     },
@@ -2769,7 +2787,7 @@ function NumberRevealStepCard({
                 fontSize: 12,
               }}
             >
-              Continue
+              Continue practise
             </Link>
           ) : null}
           {assessmentHref ? (
@@ -2809,7 +2827,7 @@ function NumberRevealStepCard({
       )}
       {!practiceHref && assessmentHref ? (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Practice is coming soon.
+          Practise is coming soon.
         </div>
       ) : null}
       {!assessmentHref && practiceHref ? (
