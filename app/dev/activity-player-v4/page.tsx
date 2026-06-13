@@ -42,7 +42,7 @@ function buildSamples(): ActivityPlayerV4Sample[] {
           label: "Early visual item",
           mode: "assess",
           source: "Existing Number assessment item",
-          stepLabel: "Step 1 · Assess",
+          stepLabel: "Step 1 - Assess",
           title: earlyItem.title,
           prompt: earlyItem.prompt,
           options: earlyItem.options ?? [],
@@ -50,6 +50,7 @@ function buildSamples(): ActivityPlayerV4Sample[] {
           hint: earlyItem.visualSupport?.description ?? null,
           feedback: earlyItem.workedSolution ?? null,
           visualDescription: earlyItem.visualSupport?.description ?? null,
+          visualKind: "dots",
         }
       : null,
     reasoningTask
@@ -58,7 +59,7 @@ function buildSamples(): ActivityPlayerV4Sample[] {
           label: "Reasoning item",
           mode: "practice",
           source: "Existing Powers and roots practice task",
-          stepLabel: "Powers and roots · Practise",
+          stepLabel: "Powers and roots - Practise",
           title: reasoningTask.title,
           prompt: reasoningTask.prompt,
           options: reasoningTask.options ?? [],
@@ -66,6 +67,7 @@ function buildSamples(): ActivityPlayerV4Sample[] {
           hint: reasoningTask.supportPrompt ?? null,
           feedback: reasoningTask.workedSolution ?? null,
           visualDescription: reasoningTask.visualSupport?.description ?? null,
+          visualKind: "numbers",
         }
       : null,
     ratioItem
@@ -74,7 +76,7 @@ function buildSamples(): ActivityPlayerV4Sample[] {
           label: "Higher-level item",
           mode: "assess",
           source: "Existing Ratio assessment item",
-          stepLabel: "Ratio · Assess",
+          stepLabel: "Ratio - Assess",
           title: ratioItem.title,
           prompt: ratioItem.prompt,
           options: ratioItem.options ?? [],
@@ -82,6 +84,7 @@ function buildSamples(): ActivityPlayerV4Sample[] {
           hint: ratioItem.visualSupport?.description ?? null,
           feedback: ratioItem.workedSolution ?? null,
           visualDescription: ratioItem.visualSupport?.description ?? null,
+          visualKind: "table",
         }
       : null,
   ];
