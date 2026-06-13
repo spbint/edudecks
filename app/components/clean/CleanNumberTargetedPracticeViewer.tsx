@@ -3864,6 +3864,7 @@ function TaskCard({
               <button
                 key={option}
                 type="button"
+                data-compact-visual-answer={visualOption ? "true" : undefined}
                 onClick={() => onChange(option)}
                 style={{
                   border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
@@ -4056,9 +4057,9 @@ function TaskCard({
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 92
+                      ? 66
                       : statisticsVisual
-                        ? 56
+                        ? 52
                         : undefined,
                 }}
               >
@@ -4503,7 +4504,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             href={exactStepAssessmentHref || buildAssessmentHref(sourceContext)}
             style={secondaryButtonStyle}
           >
-            Return to check
+            Return to assessment
           </Link>
           {returnTo ? (
             <Link href={returnTo} style={secondaryButtonStyle}>
@@ -4623,7 +4624,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                       ) : null}
                       {exactStepAssessmentHref ? (
                         <Link href={exactStepAssessmentHref} style={secondaryButtonStyle}>
-                          Start check
+                          Start assessment
                         </Link>
                       ) : null}
                     </div>
@@ -4643,7 +4644,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                 </div>
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>
-                Practise first, then check understanding when ready.
+                Practise first, then assess understanding when ready.
               </div>
               <div style={{ marginTop: 10 }}>
                 <CleanContentIssueReportButton
@@ -4663,7 +4664,7 @@ export default function CleanNumberTargetedPracticeViewer() {
               This practise module is not connected yet.
             </h1>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
-              The check recommendation was received, but this practise route only
+              The assessment recommendation was received, but this practise route only
               supports connected Number practise modules for now.
             </div>
           </div>
@@ -4698,7 +4699,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                     ...bodyTextStyle,
                   }}
                 >
-                  Recommended from check
+                  Recommended from assessment
                   {sourceBank ? `: ${sourceBank.title}` : ""}
                   {sourceSubElement ? `, ${sourceSubElement}` : ""}.
                 </div>

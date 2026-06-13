@@ -97,11 +97,50 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
         gap: 10,
       }}
     >
-      <style jsx>{`
+      <style jsx global>{`
         @media (max-width: 620px) {
           .mylearna-answer-option-grid {
             grid-template-columns: 1fr !important;
           }
+        }
+
+        .mylearna-answer-option-grid [data-compact-visual-answer="true"] {
+          min-height: 64px !important;
+          padding: 7px !important;
+          border-radius: 12px !important;
+          border-width: 1px !important;
+          box-shadow: none !important;
+        }
+
+        .mylearna-answer-option-grid [data-compact-visual-answer="true"] > div {
+          min-height: 0 !important;
+          max-height: 78px !important;
+          padding: 4px 6px !important;
+          border-radius: 10px !important;
+          border-width: 1px !important;
+          gap: 4px !important;
+          box-shadow: none !important;
+          overflow: hidden !important;
+        }
+
+        .mylearna-answer-option-grid [data-compact-visual-answer="true"] div,
+        .mylearna-answer-option-grid [data-compact-visual-answer="true"] strong {
+          box-shadow: none !important;
+          font-weight: 650 !important;
+        }
+
+        .mylearna-answer-option-grid [data-compact-visual-answer="true"] > div > div {
+          min-height: 0 !important;
+          padding: 3px 5px !important;
+          border-radius: 9px !important;
+          gap: 3px !important;
+        }
+
+        .mylearna-answer-option-grid [data-compact-visual-answer="true"] span[aria-hidden="true"] {
+          width: 8px !important;
+          height: 8px !important;
+          border-width: 1px !important;
+          box-shadow: none !important;
         }
       `}</style>
       {children}

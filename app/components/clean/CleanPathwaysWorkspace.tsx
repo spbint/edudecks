@@ -454,7 +454,7 @@ function getAssessmentAttemptDisplayTitle(attempt: CleanAssessmentAttempt) {
   const stepTitle = String(prototypeMetadata?.stepTitle ?? "").trim();
   if (stepTitle) return stepTitle;
 
-  return getNumberBankForAttempt(attempt)?.shortTitle || "Check saved";
+  return getNumberBankForAttempt(attempt)?.shortTitle || "Assessment saved";
 }
 
 function formatAssessmentAttemptSavedAt(value: string | null) {
@@ -1103,7 +1103,7 @@ function PathwaysWorkspaceBody() {
     selectedWorkspaceCurrentStageTitle ||
     "Choose a strand below";
   const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
-    ? "Check understanding"
+    ? "Assess understanding"
     : selectedWorkspaceSnapshot?.practising || selectedWorkspaceSnapshot?.evidenceStarted
       ? "Practise"
       : "Open the current focus";
@@ -1509,24 +1509,8 @@ function PathwaysWorkspaceBody() {
               <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                    Practise / Check / Worksheet
+                    Practise / Assess / Worksheet
                   </div>
-                  {process.env.NODE_ENV !== "production" ? (
-                    <span
-                      style={{
-                        border: "1px solid #D9D0FF",
-                        background: "#F8F5FF",
-                        color: "#6C4DF6",
-                        borderRadius: 999,
-                        padding: "3px 7px",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      v2 compact action package
-                    </span>
-                  ) : null}
                 </div>
                 <div
                   style={{
@@ -1568,22 +1552,22 @@ function PathwaysWorkspaceBody() {
                         padding: 12,
                       }}
                     >
-                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Check</span>
+                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
                       <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
                         Check understanding.
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        Start check
+                        Start assessment
                       </span>
                     </Link>
                   ) : (
                     <div style={{ ...summaryCardStyle, minHeight: 78, opacity: 0.72, background: "#F8FAFC", padding: 12 }}>
-                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Check</span>
+                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
                       <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                        Quick check coming
+                        Assessment coming
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        This check is coming soon.
+                        This assessment is coming soon.
                       </span>
                     </div>
                   )}
@@ -1861,18 +1845,18 @@ function PathwaysWorkspaceBody() {
                   borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <div style={eyebrowStyle}>Latest check</div>
+                <div style={eyebrowStyle}>Latest assessment</div>
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
                   {latestAssessmentAttempt
                     ? getAssessmentAttemptDisplayTitle(latestAssessmentAttempt)
-                    : "No check saved yet"}
+                    : "No assessment saved yet"}
                 </strong>
                 <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
                   {latestAssessmentAttempt
                     ? `Saved ${formatAssessmentAttemptSavedAt(
                         latestAssessmentAttempt.completedAt || latestAssessmentAttempt.createdAt,
                       ) || "recently"}`
-                    : "Use Check understanding when ready."}
+                    : "Use Assess when ready."}
                 </div>
               </div>
 
@@ -2153,7 +2137,7 @@ function PathwaysWorkspaceBody() {
                       valueColor: "#166534",
                     },
                     {
-                      label: "Checks ready",
+                      label: "Assessments ready",
                       value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
                       valueColor: "#6d28d9",
                     },
@@ -2800,7 +2784,7 @@ function NumberRevealStepCard({
                 fontSize: 12,
               }}
             >
-              Check
+              Assess
             </Link>
           ) : null}
           {worksheetResource ? (
@@ -2832,7 +2816,7 @@ function NumberRevealStepCard({
       ) : null}
       {!assessmentHref && practiceHref ? (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Check is coming soon.
+          Assessment is coming soon.
         </div>
       ) : null}
     </div>
@@ -3845,7 +3829,7 @@ function DetailedMathematicsStepCard({
         isExactStepContext={exactStepContext}
         noAssessmentMessage={
           exactStepContext && !exactStepAssessment
-            ? "Check is coming soon for this step."
+            ? "Assessment is coming soon for this step."
             : null
         }
         worksheetResource={worksheetResource}
@@ -3877,7 +3861,7 @@ function DetailedMathematicsStepCard({
           items={step.evidenceExamples}
         />
         <PathwayStepGuidanceSection
-          title="Check later"
+          title="Assess later"
           content={step.assessmentCheck}
         />
       </div>

@@ -12,6 +12,8 @@ export type EarlyNumberVisualModel = {
   numberCards: string[];
 };
 
+type VisualCardVariant = "standard" | "compact";
+
 const NUMBER_WORDS: Record<string, string> = {
   zero: "ZERO",
   one: "ONE",
@@ -1089,44 +1091,49 @@ export function EarlyNumberWorksheetObjectGroupCard({
   count,
   label,
   selected = false,
+  variant = "standard",
 }: {
   count: number;
   label: string;
   selected?: boolean;
+  variant?: VisualCardVariant;
 }) {
   const kind = getCountingObjectKind(count, label);
   const objectName = getCountingObjectName(kind, count);
   const largeGroup = count > 10;
-  const objectSize = largeGroup ? 14 : 18;
+  const compact = variant === "compact";
+  const objectSize = compact ? (largeGroup ? 8 : 10) : largeGroup ? 14 : 18;
 
   return (
     <div
       aria-label={`Group showing ${count} ${objectName}`}
       style={{
         border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 14,
+        borderRadius: compact ? 11 : 14,
         background: "#ffffff",
         boxShadow: selected
-          ? "0 6px 14px rgba(37,99,235,0.14)"
+          ? compact
+            ? "none"
+            : "0 6px 14px rgba(37,99,235,0.14)"
           : "none",
-        padding: 7,
+        padding: compact ? 4 : 7,
         display: "grid",
-        gap: 6,
-        minHeight: largeGroup ? 108 : 88,
+        gap: compact ? 3 : 6,
+        minHeight: compact ? 48 : largeGroup ? 108 : 88,
       }}
     >
       <div
         style={{
-          minHeight: largeGroup ? 72 : 54,
-          borderRadius: 12,
+          minHeight: compact ? 34 : largeGroup ? 72 : 54,
+          borderRadius: compact ? 9 : 12,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           display: "grid",
-          gridTemplateColumns: "repeat(5, minmax(16px, 1fr))",
+          gridTemplateColumns: `repeat(${compact ? 6 : 5}, minmax(${compact ? 9 : 16}px, 1fr))`,
           alignItems: "center",
           justifyItems: "center",
-          gap: largeGroup ? 4 : 5,
-          padding: largeGroup ? 6 : 7,
+          gap: compact ? 2 : largeGroup ? 4 : 5,
+          padding: compact ? 3 : largeGroup ? 6 : 7,
         }}
       >
         {Array.from({ length: Math.max(0, count) }, (_, index) => (
@@ -1138,7 +1145,7 @@ export function EarlyNumberWorksheetObjectGroupCard({
           />
         ))}
       </div>
-      <div style={{ color: "#475569", fontSize: 11, fontWeight: 600, textAlign: "center" }}>
+      <div style={{ color: "#475569", fontSize: compact ? 10 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.15 }}>
         {label}
       </div>
     </div>
@@ -1149,35 +1156,40 @@ export function EarlyNumberWorksheetDotCard({
   count,
   label,
   selected = false,
+  variant = "standard",
 }: {
   count: number;
   label: string;
   selected?: boolean;
+  variant?: VisualCardVariant;
 }) {
   const dots = getDots(count);
-  const dotSize = count > 8 ? 9 : count > 5 ? 11 : 14;
+  const compact = variant === "compact";
+  const dotSize = compact ? (count > 8 ? 5 : count > 5 ? 6 : 8) : count > 8 ? 9 : count > 5 ? 11 : 14;
 
   return (
     <div
       aria-label={`Group showing ${count} dot${count === 1 ? "" : "s"}`}
       style={{
         border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 14,
+        borderRadius: compact ? 11 : 14,
         background: "#ffffff",
         boxShadow: selected
-          ? "0 6px 14px rgba(37,99,235,0.14)"
+          ? compact
+            ? "none"
+            : "0 6px 14px rgba(37,99,235,0.14)"
           : "none",
-        padding: 7,
+        padding: compact ? 4 : 7,
         display: "grid",
-        gap: 6,
-        minHeight: 84,
+        gap: compact ? 3 : 6,
+        minHeight: compact ? 48 : 84,
       }}
     >
       <div
         style={{
           position: "relative",
-          minHeight: 52,
-          borderRadius: 12,
+          minHeight: compact ? 34 : 52,
+          borderRadius: compact ? 9 : 12,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           overflow: "hidden",
@@ -1195,9 +1207,9 @@ export function EarlyNumberWorksheetDotCard({
               height: dotSize,
               borderRadius: 999,
               background: "#2563eb",
-              border: "2px solid #1e40af",
+              border: `${compact ? 1 : 2}px solid #1e40af`,
               transform: "translate(-50%, -50%)",
-              boxShadow: "0 5px 12px rgba(37,99,235,0.22)",
+              boxShadow: compact ? "none" : "0 5px 12px rgba(37,99,235,0.22)",
             }}
           />
         ))}
@@ -1206,18 +1218,18 @@ export function EarlyNumberWorksheetDotCard({
             style={{
               display: "grid",
               height: "100%",
-              minHeight: 82,
+              minHeight: compact ? 34 : 82,
               placeItems: "center",
               color: "#64748b",
-              fontSize: 13,
-              fontWeight: 800,
+              fontSize: compact ? 11 : 13,
+              fontWeight: compact ? 600 : 800,
             }}
           >
             No dots
           </span>
         ) : null}
       </div>
-      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+      <div style={{ color: "#475569", fontSize: compact ? 10 : 12, fontWeight: compact ? 600 : 800, textAlign: "center", lineHeight: 1.15 }}>
         {label}
       </div>
     </div>
@@ -1387,25 +1399,31 @@ export function EarlyNumberWorksheetNumeralCard({
   numeral,
   label,
   selected = false,
+  variant = "standard",
 }: {
   numeral: string;
   label?: string;
   selected?: boolean;
+  variant?: VisualCardVariant;
 }) {
+  const compact = variant === "compact";
+
   return (
     <div
       aria-label={`Numeral ${numeral}`}
       style={{
-        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 18,
+        border: `${compact ? 1 : 2}px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: compact ? 11 : 18,
         background: "#ffffff",
         boxShadow: selected
-          ? "0 6px 14px rgba(37,99,235,0.14)"
+          ? compact
+            ? "none"
+            : "0 6px 14px rgba(37,99,235,0.14)"
           : "none",
-        padding: "8px 8px",
+        padding: compact ? "4px 5px" : "8px 8px",
         display: "grid",
-        gap: 6,
-        minHeight: 74,
+        gap: compact ? 3 : 6,
+        minHeight: compact ? 48 : 74,
         placeItems: "center",
       }}
     >
@@ -1413,22 +1431,22 @@ export function EarlyNumberWorksheetNumeralCard({
         aria-hidden="true"
         style={{
           width: "100%",
-          minHeight: 48,
-          borderRadius: 12,
+          minHeight: compact ? 34 : 48,
+          borderRadius: compact ? 9 : 12,
           border: "1px solid #dbeafe",
           background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           color: "#1d4ed8",
           display: "grid",
           placeItems: "center",
-          fontSize: numeral.length > 1 ? 30 : 36,
-          fontWeight: 700,
+          fontSize: compact ? (numeral.length > 1 ? 18 : 22) : numeral.length > 1 ? 30 : 36,
+          fontWeight: compact ? 650 : 700,
           lineHeight: 1,
         }}
       >
         {numeral}
       </div>
       {label ? (
-        <div style={{ color: "#475569", fontSize: 11, fontWeight: 600, textAlign: "center" }}>
+        <div style={{ color: "#475569", fontSize: compact ? 10 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.15 }}>
           {label}
         </div>
       ) : null}
@@ -9952,7 +9970,7 @@ export function renderStep2WorksheetOptionCard({
   const count = getCountFromLabel(option, visual);
   if (count === null || !Number.isFinite(count)) return null;
 
-  return <EarlyNumberWorksheetDotCard count={count} label={option} selected={selected} />;
+  return <EarlyNumberWorksheetDotCard count={count} label={option} selected={selected} variant="compact" />;
 }
 
 export function renderStep4WorksheetOptionCard({
@@ -9965,7 +9983,7 @@ export function renderStep4WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^(10|[0-9])$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} variant="compact" />;
 }
 
 export function renderStep6WorksheetOptionCard({
@@ -9998,21 +10016,21 @@ export function renderStep6WorksheetOptionCard({
     <div
       aria-label={display}
       style={{
-        border: `2px solid ${selected ? "#1d4ed8" : tone.border}`,
-        borderRadius: 18,
+        border: `1px solid ${selected ? "#1d4ed8" : tone.border}`,
+        borderRadius: 12,
         background: selected ? "#eff6ff" : tone.background,
         color: tone.color,
-        minHeight: 116,
-        padding: 12,
+        minHeight: 52,
+        padding: "8px 10px",
         display: "grid",
         placeItems: "center",
         textAlign: "center",
-        fontSize: 18,
-        fontWeight: 900,
+        fontSize: 13,
+        fontWeight: 650,
         lineHeight: 1.18,
         boxShadow: selected
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 8px 18px rgba(15,23,42,0.06)",
+          ? "0 4px 10px rgba(37,99,235,0.10)"
+          : "none",
       }}
     >
       {display}
@@ -10030,7 +10048,7 @@ export function renderStep7WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^(10|11|12|13|14|15|16|17|18|19|20|[0-9])$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} variant="compact" />;
 }
 
 export function renderStep8WorksheetOptionCard({
@@ -10047,16 +10065,16 @@ export function renderStep8WorksheetOptionCard({
     <div
       aria-label={`Number bond parts ${pair.first} and ${pair.second}`}
       style={{
-        border: `2px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: 18,
+        border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
+        borderRadius: 12,
         background: selected ? "#eff6ff" : "#ffffff",
-        minHeight: 150,
-        padding: 10,
+        minHeight: 62,
+        padding: 7,
         display: "grid",
-        gap: 8,
+        gap: 5,
         boxShadow: selected
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 8px 18px rgba(15,23,42,0.06)",
+          ? "0 4px 10px rgba(37,99,235,0.10)"
+          : "none",
       }}
     >
       <div
@@ -10064,42 +10082,42 @@ export function renderStep8WorksheetOptionCard({
           display: "grid",
           gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
-          gap: 8,
+          gap: 5,
         }}
       >
         <div
           style={{
             border: "1px solid #dbeafe",
-            borderRadius: 16,
+            borderRadius: 9,
             background: "#eff6ff",
             color: "#1d4ed8",
-            minHeight: 70,
+            minHeight: 34,
             display: "grid",
             placeItems: "center",
-            fontSize: 34,
-            fontWeight: 950,
+            fontSize: 20,
+            fontWeight: 650,
           }}
         >
           {pair.first}
         </div>
-        <div style={{ color: "#64748b", fontSize: 20, fontWeight: 900 }}>+</div>
+        <div style={{ color: "#64748b", fontSize: 14, fontWeight: 650 }}>+</div>
         <div
           style={{
             border: "1px solid #dbeafe",
-            borderRadius: 16,
+            borderRadius: 9,
             background: "#f5f3ff",
             color: "#6d28d9",
-            minHeight: 70,
+            minHeight: 34,
             display: "grid",
             placeItems: "center",
-            fontSize: 34,
-            fontWeight: 950,
+            fontSize: 20,
+            fontWeight: 650,
           }}
         >
           {pair.second}
         </div>
       </div>
-      <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+      <div style={{ color: "#475569", fontSize: 10, fontWeight: 600, textAlign: "center" }}>
         {pair.first} and {pair.second}
       </div>
     </div>
@@ -10116,7 +10134,7 @@ export function renderStep9WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^(10|[0-9])$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Result" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Result" selected={selected} variant="compact" />;
 }
 
 export function renderStep10WorksheetOptionCard({
@@ -10130,7 +10148,7 @@ export function renderStep10WorksheetOptionCard({
   const eachMatch = normalized.match(/^(\d{1,2})\s+each$/i)?.[1];
   if (eachMatch) {
     return (
-      <EarlyNumberWorksheetNumeralCard numeral={eachMatch} label="Each group" selected={selected} />
+      <EarlyNumberWorksheetNumeralCard numeral={eachMatch} label="Each group" selected={selected} variant="compact" />
     );
   }
 
@@ -10174,7 +10192,7 @@ export function renderStep11WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} variant="compact" />;
 }
 
 export function renderStep12WorksheetOptionCard({
@@ -10187,7 +10205,7 @@ export function renderStep12WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose numeral" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose numeral" selected={selected} variant="compact" />;
 }
 
 export function renderStep13WorksheetOptionCard({
@@ -10200,7 +10218,7 @@ export function renderStep13WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Missing number" selected={selected} variant="compact" />;
 }
 
 export function renderStep16WorksheetOptionCard({
@@ -10234,7 +10252,7 @@ export function renderStep17WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,2}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} variant="compact" />;
 }
 
 export function renderStep18WorksheetOptionCard({
@@ -10247,7 +10265,7 @@ export function renderStep18WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,2}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Answer" selected={selected} variant="compact" />;
 }
 
 export function renderStep19WorksheetOptionCard({
@@ -10260,7 +10278,7 @@ export function renderStep19WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,2}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} variant="compact" />;
 }
 
 export function renderStep20WorksheetOptionCard({
@@ -10274,7 +10292,7 @@ export function renderStep20WorksheetOptionCard({
   if (!normalized) return null;
 
   if (/^\d{1,2}$/.test(normalized)) {
-    return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose" selected={selected} />;
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Choose" selected={selected} variant="compact" />;
   }
 
   const lower = normalized.toLowerCase();
@@ -10472,7 +10490,7 @@ export function renderStep26WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Product" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Product" selected={selected} variant="compact" />;
 }
 
 export function renderStep27WorksheetOptionCard({
@@ -10485,7 +10503,7 @@ export function renderStep27WorksheetOptionCard({
   const normalized = safe(option);
   if (!/^\d{1,3}$/.test(normalized)) return null;
 
-  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} />;
+  return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Total" selected={selected} variant="compact" />;
 }
 
 export function renderStep28WorksheetOptionCard({
@@ -12872,11 +12890,11 @@ export function renderStep3WorksheetOptionCard({
 }) {
   const normalized = safe(option);
   if (/^(10|[0-9])$/.test(normalized)) {
-    return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} />;
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} variant="compact" />;
   }
 
   const count = getCountFromLabel(option, visual);
   if (count === null || !Number.isFinite(count)) return null;
 
-  return <EarlyNumberWorksheetDotCard count={count} label={option} selected={selected} />;
+  return <EarlyNumberWorksheetDotCard count={count} label={option} selected={selected} variant="compact" />;
 }

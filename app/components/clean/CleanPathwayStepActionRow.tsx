@@ -243,9 +243,9 @@ export default function CleanPathwayStepActionRow({
                 type="button"
                 onClick={openMiniCheckPlayer}
                 style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                aria-label="Open mini check for this pathway step"
+                aria-label="Open mini assessment for this pathway step"
               >
-                Mini-check
+                Mini-assess
               </button>
             ) : null}
           </>
@@ -268,10 +268,10 @@ export default function CleanPathwayStepActionRow({
                 type="button"
                 style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
                 disabled
-                title="Mini Check for this pathway step is coming later."
-                aria-label="Mini Check for this pathway step is coming later"
+                title="Mini assessment for this pathway step is coming later."
+                aria-label="Mini assessment for this pathway step is coming later"
               >
-                Mini-check
+                Mini-assess
               </button>
             ) : null}
           </>
@@ -291,10 +291,10 @@ export default function CleanPathwayStepActionRow({
                 type="button"
                 style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
                 disabled
-                title="Mini Check for this pathway step is coming later."
-                aria-label="Mini Check for this pathway step is coming later"
+                title="Mini assessment for this pathway step is coming later."
+                aria-label="Mini assessment for this pathway step is coming later"
               >
-                Mini-check
+                Mini-assess
               </button>
             ) : null}
           </>
@@ -307,12 +307,12 @@ export default function CleanPathwayStepActionRow({
             style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
             title={
               exactAssessmentTitle
-                ? `Check understanding with ${exactAssessmentTitle}.`
-                : "Check understanding for this pathway step."
+                ? `Assess understanding with ${exactAssessmentTitle}.`
+                : "Assess understanding for this pathway step."
             }
-            aria-label="Check this pathway step"
+            aria-label="Assess this pathway step"
           >
-            {exactAssessmentTitle ? "Start check" : "Check"}
+            {exactAssessmentTitle ? "Start assessment" : "Assess"}
           </Link>
         ) : (
           <button
@@ -320,10 +320,10 @@ export default function CleanPathwayStepActionRow({
             type="button"
             style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
             disabled
-            title="Check is coming soon for this step."
-            aria-label="Check is coming soon for this pathway step"
+            title="Assessment is coming soon for this step."
+            aria-label="Assessment is coming soon for this pathway step"
           >
-            Check
+            Assess
           </button>
         )}
         <Link
@@ -373,7 +373,7 @@ export default function CleanPathwayStepActionRow({
                 color: "#1d4ed8",
               }}
             >
-              {completedPracticeTaskCount}/{practiceTaskTotal} practice tasks
+              {completedPracticeTaskCount}/{practiceTaskTotal} practise tasks
             </span>
             <span
               style={{
@@ -383,7 +383,7 @@ export default function CleanPathwayStepActionRow({
                 color: "#0f766e",
               }}
             >
-              {completedMiniCheckCount}/{miniCheckTaskTotal} mini check tasks
+              {completedMiniCheckCount}/{miniCheckTaskTotal} mini assessment tasks
             </span>
             {miniCheckOutcome !== "not_started" ? (
               <span
@@ -394,7 +394,7 @@ export default function CleanPathwayStepActionRow({
                   color: "#475569",
                 }}
               >
-                Mini Check outcome:{" "}
+                Mini assessment outcome:{" "}
                 <strong style={{ color: "#0f172a", marginLeft: 6 }}>
                   {miniCheckOutcome === "needs_support"
                     ? "Needs support"
@@ -409,7 +409,7 @@ export default function CleanPathwayStepActionRow({
             {hasVisitedMiniCheck ? (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>
-                Mini Check outcome:
+                Mini assessment outcome:
               </span>
               {([
                 ["secure", "Secure"],
@@ -463,7 +463,7 @@ export default function CleanPathwayStepActionRow({
         <CleanPathwayPracticePlayer
           open={miniCheckPlayerOpen}
           mode="mini_check"
-          title={`${activity.title} / Mini Check`}
+          title={`${activity.title} / Mini Assessment`}
           items={miniCheckItems}
           currentIndex={miniCheckPlayerIndex}
           responses={responses}

@@ -6219,6 +6219,7 @@ function CleanNumberAssessmentPlayerBody() {
               <button
                 key={option}
                 type="button"
+                data-compact-visual-answer={visualOption ? "true" : undefined}
                 onClick={() => updateResponse(currentItem.id, option)}
                 style={{
                   ...optionButtonStyle,
@@ -6276,9 +6277,9 @@ function CleanNumberAssessmentPlayerBody() {
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 92
+                      ? 66
                       : statisticsVisual
-                        ? 56
+                        ? 52
                         : undefined,
                   padding:
                     step2Visual ||
@@ -7063,7 +7064,7 @@ function CleanNumberAssessmentPlayerBody() {
         {sessionMode === "launcher" ? (
           <section style={launcherShellStyle}>
             <div style={launcherHeaderStyle}>
-              <div style={eyebrowStyle}>Check</div>
+              <div style={eyebrowStyle}>Assess</div>
               <h1
                 style={{
                   margin: 0,
@@ -7073,7 +7074,7 @@ function CleanNumberAssessmentPlayerBody() {
                   fontWeight: 650,
                 }}
               >
-                {incomingStepAssessment ? "Check understanding" : "Number check"}
+                {incomingStepAssessment ? "Assess understanding" : "Number assessment"}
               </h1>
               <p
                 style={{
@@ -7094,18 +7095,18 @@ function CleanNumberAssessmentPlayerBody() {
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={eyebrowStyle}>
                   {incomingStepAssessment
-                    ? "Pathway step check"
-                    : "Choose a check focus"}
+                    ? "Pathway step assessment"
+                    : "Choose an assessment focus"}
                 </div>
                 {hasIncomingNumberContext && !incomingStepAssessment ? (
                   <div style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>
                       {incomingBank
-                        ? `Showing the closest Number check: ${incomingBank.shortTitle}.`
-                        : "Choose a Number focus to start a check."}
+                        ? `Showing the closest Number assessment: ${incomingBank.shortTitle}.`
+                        : "Choose a Number focus to start an assessment."}
                     </strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                      This check can be saved and used to guide your next parent judgement.
+                      This assessment can be saved and used to guide your next parent judgement.
                     </p>
                   </div>
                 ) : null}
@@ -7264,7 +7265,7 @@ function CleanNumberAssessmentPlayerBody() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Start check
+                  Start assessment
                 </button>
               </div>
             </div>
@@ -7274,7 +7275,7 @@ function CleanNumberAssessmentPlayerBody() {
             <div style={sessionHeaderStyle}>
               <div style={assessmentTopBarStyle}>
                 <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-                  <div style={eyebrowStyle}>Check</div>
+                  <div style={eyebrowStyle}>Assess</div>
                   <div
                     style={{
                       color: "#0f172a",
@@ -7341,7 +7342,7 @@ function CleanNumberAssessmentPlayerBody() {
                   }}
                 >
                   {showSummary
-                    ? `Check summary - ${
+                    ? `Assessment summary - ${
                         incomingStepAssessment?.shortTitle ?? selectedBank.shortTitle
                       }`
                     : `Question ${currentIndex + 1} of ${totalItems}`}
@@ -7391,7 +7392,7 @@ function CleanNumberAssessmentPlayerBody() {
               <StepProgressBar
                 current={Math.min(currentIndex + 1, totalItems)}
                 total={totalItems}
-                label={showSummary ? "Check complete" : "Check progress"}
+                label={showSummary ? "Assessment complete" : "Assessment progress"}
               />
             </div>
           </div>
@@ -7460,7 +7461,7 @@ function CleanNumberAssessmentPlayerBody() {
 
               <div style={highlightCardStyle}>
                 <div style={eyebrowStyle}>
-                  {incomingStepAssessment ? "Skill check results" : "Learning focus results"}
+                  {incomingStepAssessment ? "Skill assessment results" : "Learning focus results"}
                 </div>
                 {incomingStepAssessment ? (
                   <div style={{ color: "#334155", lineHeight: 1.6 }}>
@@ -7944,7 +7945,7 @@ function CleanNumberAssessmentPlayerBody() {
                 <div style={workspaceLayoutStyle}>
                   <LearningPanel
                     tone="assess"
-                    eyebrow="Check"
+                    eyebrow="Assess"
                     title={currentItem.title}
                     subtitle="Have a go on your own."
                   >
