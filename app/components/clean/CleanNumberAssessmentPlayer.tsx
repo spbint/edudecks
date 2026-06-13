@@ -318,7 +318,7 @@ const shellStyle: React.CSSProperties = {
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 1120,
+  maxWidth: 1240,
   margin: "0 auto",
   display: "grid",
   gap: 14,
@@ -347,14 +347,13 @@ const sessionBodyStyle: React.CSSProperties = {
 };
 
 const workspaceLayoutStyle: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 320px)",
   gap: 12,
   alignItems: "flex-start",
 };
 
 const supportColumnStyle: React.CSSProperties = {
-  flex: "0.8 1 280px",
   minWidth: "min(100%, 260px)",
   display: "grid",
   gap: 10,
@@ -743,9 +742,9 @@ const TIME_ELAPSED_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
 
 const highlightCardStyle: React.CSSProperties = {
   ...helperCardStyle,
-  border: "1px solid #bfdbfe",
-  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
-  boxShadow: "0 10px 22px rgba(59,130,246,0.08)",
+  border: "1px solid #E7EAF2",
+  background: "#ffffff",
+  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
 const chipBaseStyle: React.CSSProperties = {
@@ -7942,7 +7941,7 @@ function CleanNumberAssessmentPlayerBody() {
           ) : (
             <>
               <div style={sessionBodyStyle}>
-                <div style={workspaceLayoutStyle}>
+                <div className="mylearna-assessment-workspace" style={workspaceLayoutStyle}>
                   <LearningPanel
                     tone="assess"
                     eyebrow="Assess"
@@ -8169,6 +8168,13 @@ function CleanNumberAssessmentPlayerBody() {
                       </div>
                     ) : null}
                   </aside>
+                  <style jsx global>{`
+                    @media (max-width: 880px) {
+                      .mylearna-assessment-workspace {
+                        grid-template-columns: 1fr !important;
+                      }
+                    }
+                  `}</style>
                 </div>
               </div>
 

@@ -246,7 +246,7 @@ const shellStyle: React.CSSProperties = {
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 1120,
+  maxWidth: 1240,
   margin: "0 auto",
   display: "grid",
   gap: 14,
@@ -262,8 +262,8 @@ const cardStyle: React.CSSProperties = {
 
 const highlightCardStyle: React.CSSProperties = {
   ...cardStyle,
-  border: "1px solid #bfdbfe",
-  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+  border: "1px solid #E7EAF2",
+  background: "#ffffff",
 };
 
 const compactCardStyle: React.CSSProperties = {

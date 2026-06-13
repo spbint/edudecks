@@ -3347,7 +3347,7 @@ function DetailedMathematicsStageCard({
             capturePathBase={capturePathBase}
             assessPathBase={assessPathBase}
             assessmentAttempts={assessmentAttempts}
-            isOpen={expandedStepId === detailPanelId || densityMode === "full"}
+            isOpen={expandedStepId === detailPanelId}
             onToggle={() =>
             onExpandedStepChange(expandedStepId === detailPanelId ? null : detailPanelId)
             }
@@ -3869,25 +3869,23 @@ function DetailedMathematicsStepCard({
         style={
           isOpen
             ? {
-                border: "1px solid #dbeafe",
-                borderRadius: 14,
-                background: "#f8fbff",
-                padding: 10,
+                border: "1px solid #E7EAF2",
+                borderRadius: 16,
+                background: "#ffffff",
+                padding: 12,
                 display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 gap: 10,
               }
             : { display: "none" }
         }
       >
         <PathwayStepGuidanceSection title="What this means" content={step.meaning} />
-        <PathwayStepGuidanceSection title="Skill being developed" content={step.skillFocus} />
-        <PathwayStepGuidanceSection title="Learning intention" content={step.learningIntention} />
+        <PathwayStepGuidanceSection title="Skill focus" content={step.skillFocus} />
+        <PathwayStepGuidanceSection title="Learning goal" content={step.learningIntention} />
         <PathwayStepGuidanceListSection title="Success looks like" items={step.successCriteria} />
         <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
-        <PathwayStepGuidanceListSection
-          title="Evidence you could capture"
-          items={step.evidenceExamples}
-        />
+        <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
         <PathwayStepGuidanceSection
           title="Assess later"
           content={step.assessmentCheck}
@@ -3962,9 +3960,18 @@ function PathwayStepGuidanceSection({
   content: string;
 }) {
   return (
-    <section style={{ display: "grid", gap: 6 }}>
-      <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
-      <div style={{ color: "#475569", lineHeight: 1.5 }}>{content}</div>
+    <section
+      style={{
+        border: "1px solid #E7EAF2",
+        borderRadius: 14,
+        background: "#F8FAFC",
+        padding: 10,
+        display: "grid",
+        gap: 5,
+      }}
+    >
+      <div style={{ ...eyebrowStyle, color: "#6C4DF6", fontSize: 10 }}>{title}</div>
+      <div style={{ color: "#5B6478", lineHeight: 1.45, fontSize: 13 }}>{content}</div>
     </section>
   );
 }
@@ -3977,16 +3984,26 @@ function PathwayStepGuidanceListSection({
   items: string[];
 }) {
   return (
-    <section style={{ display: "grid", gap: 8 }}>
-      <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
+    <section
+      style={{
+        border: "1px solid #E7EAF2",
+        borderRadius: 14,
+        background: "#F8FAFC",
+        padding: 10,
+        display: "grid",
+        gap: 6,
+      }}
+    >
+      <div style={{ ...eyebrowStyle, color: "#6C4DF6", fontSize: 10 }}>{title}</div>
       <ul
         style={{
           margin: 0,
-          paddingLeft: 18,
-          color: "#475569",
-          lineHeight: 1.5,
+          paddingLeft: 16,
+          color: "#5B6478",
+          fontSize: 13,
+          lineHeight: 1.45,
           display: "grid",
-          gap: 6,
+          gap: 4,
         }}
       >
         {items.map((item) => (
