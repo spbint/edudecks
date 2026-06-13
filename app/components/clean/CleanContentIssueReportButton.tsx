@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import {
   type ContentIssueReportMode,
   type ContentIssueType,
 } from "@/lib/clean/contentIssueReports";
-import {
-  submitReportProblem,
-} from "@/app/components/clean/feedback/reportProblemClient";
+import ReportProblemDialog from "@/app/components/clean/feedback/ReportProblemDialog";
 
 export type ContentIssueReportContext = {
   mode: ContentIssueReportMode;
@@ -35,8 +33,6 @@ export type ContentIssueReportContext = {
   context?: Record<string, unknown>;
 };
 
-type SubmitState = "idle" | "sending" | "sent" | "failed";
-
 const triggerStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
   background: "#ffffff",
@@ -49,51 +45,6 @@ const triggerStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
-};
-
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 60,
-  background: "rgba(15,23,42,0.36)",
-  display: "grid",
-  placeItems: "center",
-  padding: 16,
-};
-
-const dialogStyle: React.CSSProperties = {
-  width: "min(100%, 520px)",
-  border: "1px solid #E7EAF2",
-  borderRadius: 20,
-  background: "#ffffff",
-  padding: 18,
-  display: "grid",
-  gap: 14,
-  boxShadow: "0 24px 70px rgba(15,23,42,0.22)",
-};
-
-const labelStyle: React.CSSProperties = {
-  color: "#17204B",
-  fontSize: 13,
-  fontWeight: 650,
-};
-
-const buttonStyle: React.CSSProperties = {
-  border: "1px solid #6C4DF6",
-  background: "#6C4DF6",
-  color: "#ffffff",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontSize: 14,
-  fontWeight: 650,
-  cursor: "pointer",
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  border: "1px solid #cbd5e1",
-  background: "#ffffff",
-  color: "#0f172a",
 };
 
 const QUESTION_REPORT_OPTIONS: Array<{ value: ContentIssueType; label: string }> = [
@@ -127,17 +78,6 @@ function getModeLabel(mode: ContentIssueReportMode) {
   return "Summary";
 }
 
-function getIssueLabel(value: ContentIssueType) {
-  return (
-    QUESTION_REPORT_OPTIONS.find((option) => option.value === value)?.label ??
-    "Other"
-  );
-}
-
-function safe(value: unknown) {
-  return String(value ?? "").trim();
-}
-
 export default function CleanContentIssueReportButton({
   context,
   label = "Report a problem with this question",
@@ -146,24 +86,6 @@ export default function CleanContentIssueReportButton({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [issueType, setIssueType] =
-    useState<ContentIssueType>("visual_wrong_or_missing");
-  const [note, setNote] = useState("");
-  const [submitState, setSubmitState] = useState<SubmitState>("idle");
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
 
   function getReportContext() {
     return {
@@ -185,36 +107,6 @@ export default function CleanContentIssueReportButton({
     };
   }
 
-  async function submitReport() {
-    const trimmedNote = safe(note);
-    if (!trimmedNote) {
-      setSubmitState("failed");
-      setMessage("Tell us what you noticed before sending.");
-      return;
-    }
-
-    setSubmitState("sending");
-    setMessage("");
-
-    const result = await submitReportProblem({
-      type: "question",
-      category: getIssueLabel(issueType),
-      message: trimmedNote,
-      context: getReportContext(),
-    });
-
-    if (!result.ok) {
-      setSubmitState("failed");
-      setMessage(result.message);
-      return;
-    }
-
-    setSubmitState("sent");
-    setMessage("Thanks — your report has been sent.");
-  }
-
-  const reportSent = submitState === "sent";
-
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} style={triggerStyle}>
@@ -223,149 +115,16 @@ export default function CleanContentIssueReportButton({
         </span>
         {label}
       </button>
-      {open ? (
-        <div style={overlayStyle} role="presentation">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="content-issue-title"
-            style={dialogStyle}
-          >
-            <div>
-              <div
-                id="content-issue-title"
-                style={{
-                  color: "#17204B",
-                  fontSize: 19,
-                  fontWeight: 650,
-                  lineHeight: 1.2,
-                }}
-              >
-                Report a problem with this question
-              </div>
-              <div style={{ color: "#64748b", lineHeight: 1.5, marginTop: 4 }}>
-                Tell us what looked wrong or confusing. This will not interrupt the activity.
-              </div>
-            </div>
-
-            {reportSent ? (
-              <div
-                style={{
-                  border: "1px solid #bbf7d0",
-                  borderRadius: 12,
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  padding: 12,
-                  fontWeight: 650,
-                }}
-              >
-                {message}
-              </div>
-            ) : (
-              <>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label htmlFor="content-issue-type" style={labelStyle}>
-                    Category
-                  </label>
-                  <select
-                    id="content-issue-type"
-                    value={issueType}
-                    onChange={(event) =>
-                      setIssueType(event.target.value as ContentIssueType)
-                    }
-                    style={{
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                      font: "inherit",
-                      color: "#0f172a",
-                      background: "#ffffff",
-                    }}
-                  >
-                    {QUESTION_REPORT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label htmlFor="content-issue-note" style={labelStyle}>
-                    Tell us what you noticed
-                  </label>
-                  <textarea
-                    id="content-issue-note"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder="Example: I think the answer marked correct is wrong, or the visual does not match the question."
-                    style={{
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                      minHeight: 96,
-                      resize: "vertical",
-                      font: "inherit",
-                      color: "#0f172a",
-                    }}
-                  />
-                </div>
-
-                {message ? (
-                  <div
-                    style={{
-                      border: "1px solid #fecaca",
-                      borderRadius: 12,
-                      background: "#fef2f2",
-                      color: "#991b1b",
-                      padding: 12,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {message}
-                  </div>
-                ) : null}
-              </>
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "flex-end",
-                gap: 10,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setSubmitState("idle");
-                  setMessage("");
-                  setNote("");
-                }}
-                style={secondaryButtonStyle}
-              >
-                {reportSent ? "Close" : "Cancel"}
-              </button>
-              {!reportSent ? (
-                <button
-                  type="button"
-                  onClick={() => void submitReport()}
-                  disabled={submitState === "sending"}
-                  style={{
-                    ...buttonStyle,
-                    opacity: submitState === "sending" ? 0.62 : 1,
-                    cursor: submitState === "sending" ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {submitState === "sending" ? "Sending..." : "Send report"}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ReportProblemDialog
+        open={open}
+        title="Report a problem with this question"
+        description="Tell us what looked wrong or confusing. This will not interrupt the activity."
+        type="question"
+        categories={QUESTION_REPORT_OPTIONS.map((option) => option.label)}
+        defaultCategory="Visual or image problem"
+        context={getReportContext}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }

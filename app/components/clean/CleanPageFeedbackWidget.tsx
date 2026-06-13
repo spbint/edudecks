@@ -1,11 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import {
-  submitReportProblem,
-} from "@/app/components/clean/feedback/reportProblemClient";
+import { useEffect, useMemo, useState } from "react";
+import ReportProblemDialog from "@/app/components/clean/feedback/ReportProblemDialog";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 
 type FeedbackPage = {
@@ -22,8 +19,6 @@ const PAGE_REPORT_OPTIONS = [
   "Loading problem",
   "Other",
 ] as const;
-
-const PAGE_FEEDBACK_MAX_LENGTH = 2000;
 
 const feedbackPages: FeedbackPage[] = [
   { key: "my-day", title: "My Day", matches: ["/my-day", "/clean-my-day"] },
@@ -70,14 +65,6 @@ export default function CleanPageFeedbackWidget() {
   const { enabled: guidanceEnabled, setupStatus } = useGuidance();
   const page = useMemo(() => getFeedbackPage(pathname), [pathname]);
   const [open, setOpen] = useState(false);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [category, setCategory] = useState<(typeof PAGE_REPORT_OPTIONS)[number]>(
-    "Something looks wrong",
-  );
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "failed">(
-    "idle",
-  );
-  const [statusMessage, setStatusMessage] = useState("");
   const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
@@ -92,33 +79,13 @@ export default function CleanPageFeedbackWidget() {
     return () => mediaQuery.removeEventListener("change", sync);
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        setStatus("idle");
-        setStatusMessage("");
-        setFeedbackText("");
-      }
-    }
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  });
-
   if (!page || (guidanceEnabled && setupStatus === "active")) {
     return null;
   }
 
-  const activePage = page;
-  const sent = status === "sent";
-  const remainingCharacters = PAGE_FEEDBACK_MAX_LENGTH - feedbackText.length;
-
   function getReportContext() {
     return {
-      Page: activePage.title,
+      Page: page?.title,
       Route: getRoute(pathname),
       URL: getSourceUrl(),
       Timestamp: new Date().toISOString(),
@@ -126,54 +93,12 @@ export default function CleanPageFeedbackWidget() {
     };
   }
 
-  function handleOpen() {
-    setOpen(true);
-    setStatus("idle");
-    setStatusMessage("");
-  }
-
-  function handleClose() {
-    setOpen(false);
-    setStatus("idle");
-    setStatusMessage("");
-    setFeedbackText("");
-  }
-
-  async function submitReport(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedFeedback = feedbackText.trim();
-    if (!trimmedFeedback) {
-      setStatus("failed");
-      setStatusMessage("Tell us what you noticed before sending.");
-      return;
-    }
-
-    setStatus("sending");
-    setStatusMessage("");
-
-    const result = await submitReportProblem({
-      type: "page",
-      category,
-      message: trimmedFeedback,
-      context: getReportContext(),
-    });
-
-    if (!result.ok) {
-      setStatus("failed");
-      setStatusMessage(result.message);
-      return;
-    }
-
-    setStatus("sent");
-    setStatusMessage("Thanks — your report has been sent.");
-  }
-
   return (
     <>
       <button
         type="button"
-        onClick={handleOpen}
-        aria-label="Help improve this page"
+        onClick={() => setOpen(true)}
+        aria-label="Report a problem with this page"
         style={{
           position: "fixed",
           right: 12,
@@ -193,204 +118,18 @@ export default function CleanPageFeedbackWidget() {
           whiteSpace: "nowrap",
         }}
       >
-        {isCompact ? "Feedback" : "Help improve this page"}
+        {isCompact ? "Report issue" : "Report a problem with this page"}
       </button>
-
-      {open && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              role="presentation"
-              onClick={handleClose}
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(15,23,42,0.34)",
-                display: "grid",
-                placeItems: "center",
-                padding: 10,
-                zIndex: 95,
-              }}
-            >
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="page-feedback-title"
-                onClick={(event) => event.stopPropagation()}
-                style={{
-                  width: "min(440px, calc(100vw - 20px))",
-                  maxWidth: "100%",
-                  border: "1px solid #dbeafe",
-                  borderRadius: 22,
-                  background: "#ffffff",
-                  boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
-                  display: "grid",
-                }}
-              >
-                <div style={{ padding: 18, display: "grid", gap: 14 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                      <h2
-                        id="page-feedback-title"
-                        style={{ margin: 0, color: "#0f172a", fontSize: 21 }}
-                      >
-                        Report a problem with this page
-                      </h2>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        {activePage.title}. Please avoid private child details.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      style={{
-                        border: "1px solid #cbd5e1",
-                        background: "#ffffff",
-                        color: "#0f172a",
-                        borderRadius: 999,
-                        padding: "8px 12px",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {sent ? "Close" : "Cancel"}
-                    </button>
-                  </div>
-
-                  {sent ? (
-                    <div
-                      role="status"
-                      style={{
-                        border: "1px solid #bbf7d0",
-                        borderRadius: 16,
-                        background: "#f0fdf4",
-                        padding: 14,
-                        color: "#166534",
-                        fontWeight: 650,
-                      }}
-                    >
-                      {statusMessage}
-                    </div>
-                  ) : (
-                    <form onSubmit={submitReport} style={{ display: "grid", gap: 12 }}>
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
-                          Category
-                        </span>
-                        <select
-                          value={category}
-                          onChange={(event) =>
-                            setCategory(event.target.value as (typeof PAGE_REPORT_OPTIONS)[number])
-                          }
-                          style={{
-                            border: "1px solid #cbd5e1",
-                            borderRadius: 12,
-                            padding: "10px 12px",
-                            font: "inherit",
-                            color: "#0f172a",
-                            background: "#ffffff",
-                          }}
-                        >
-                          {PAGE_REPORT_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
-                          Tell us what you noticed
-                        </span>
-                        <textarea
-                          value={feedbackText}
-                          onChange={(event) =>
-                            setFeedbackText(event.target.value.slice(0, PAGE_FEEDBACK_MAX_LENGTH))
-                          }
-                          maxLength={PAGE_FEEDBACK_MAX_LENGTH}
-                          placeholder="Example: A button did not open, or the page layout looked wrong."
-                          style={{
-                            width: "100%",
-                            minHeight: 118,
-                            resize: "vertical",
-                            border: "1px solid #cbd5e1",
-                            borderRadius: 14,
-                            padding: "12px 14px",
-                            fontSize: 14,
-                            lineHeight: 1.6,
-                          }}
-                        />
-                      </label>
-
-                      <span style={{ color: "#64748b", fontSize: 12 }}>
-                        {remainingCharacters} characters left.
-                      </span>
-
-                      {statusMessage ? (
-                        <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
-                          {statusMessage}
-                        </div>
-                      ) : null}
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          flexWrap: "wrap",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={handleClose}
-                          style={{
-                            border: "1px solid #cbd5e1",
-                            background: "#ffffff",
-                            color: "#0f172a",
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={status === "sending"}
-                          style={{
-                            border: "1px solid #0f172a",
-                            background: "#0f172a",
-                            color: "#ffffff",
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: status === "sending" ? "not-allowed" : "pointer",
-                            opacity: status === "sending" ? 0.7 : 1,
-                          }}
-                        >
-                          {status === "sending" ? "Sending..." : "Send report"}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      <ReportProblemDialog
+        open={open}
+        title="Report a problem with this page"
+        description={`${page.title}. Please avoid private child details.`}
+        type="page"
+        categories={PAGE_REPORT_OPTIONS}
+        defaultCategory="Something looks wrong"
+        context={getReportContext}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
