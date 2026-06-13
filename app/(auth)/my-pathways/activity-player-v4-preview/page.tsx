@@ -15,6 +15,7 @@ export default function ActivityPlayerV4PreviewPage() {
       samples={buildActivityPlayerV4Samples()}
       chrome="embedded"
       previewLabel="Activity Player V4 preview"
+      showQuestionPicker
     />
   );
 }

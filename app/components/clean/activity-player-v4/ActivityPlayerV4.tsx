@@ -753,13 +753,13 @@ export default function ActivityPlayerV4({
   samples,
   chrome = "standalone",
   previewLabel = "Activity Player V4 lab",
+  showQuestionPicker = false,
   onSubmitAnswer,
   onComplete,
   allowNotSure = false,
   onNotSure,
 }: ActivityPlayerV4Props) {
   const [sampleIndex, setSampleIndex] = useState(0);
-  const [mode, setMode] = useState<ActivityPlayerV4Sample["mode"]>("practice");
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -768,7 +768,6 @@ export default function ActivityPlayerV4({
 
   function moveToSample(index: number) {
     setSampleIndex(index);
-    setMode(samples[index]?.mode ?? "practice");
     setSelected(null);
     setSubmitted(false);
   }
@@ -777,7 +776,7 @@ export default function ActivityPlayerV4({
     return null;
   }
 
-  const effectiveMode = mode;
+  const effectiveMode = sample.mode;
   const selectedCorrect = isCorrect(sample, selected);
   const hasNext = sampleIndex < samples.length - 1;
   const standalone = chrome === "standalone";
@@ -863,6 +862,7 @@ export default function ActivityPlayerV4({
             <ActivityProgress current={sampleIndex + 1} total={samples.length} mode={effectiveMode} />
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" }}>
+              {showQuestionPicker ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {samples.map((item, index) => (
                   <button
@@ -884,32 +884,27 @@ export default function ActivityPlayerV4({
                   </button>
                 ))}
               </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {(["practice", "assess"] as const).map((nextMode) => (
-                  <button
-                    key={nextMode}
-                    type="button"
-                    onClick={() => {
-                      setMode(nextMode);
-                      setSelected(null);
-                      setSubmitted(false);
-                    }}
-                    style={{
-                      border: `1px solid ${mode === nextMode ? tokens.purple : tokens.border}`,
-                      background: mode === nextMode ? tokens.lavender : "#FFFFFF",
-                      color: mode === nextMode ? tokens.purple : tokens.navy,
-                      borderRadius: 999,
-                      padding: "7px 10px",
-                      fontSize: 12,
-                      fontWeight: 650,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {nextMode === "practice" ? "Practise" : "Assess"}
-                  </button>
-                ))}
+              ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    borderRadius: 999,
+                    background: effectiveMode === "assess" ? tokens.mint : tokens.lavender,
+                    color: effectiveMode === "assess" ? tokens.green : tokens.purple,
+                    padding: "7px 10px",
+                    fontSize: 12,
+                    fontWeight: 650,
+                  }}
+                >
+                  {effectiveMode === "assess" ? "Assess" : "Practice"}
+                </span>
+                <span style={{ color: tokens.slate, fontSize: 13 }}>
+                  {effectiveMode === "assess"
+                    ? "Show what you can do for this step."
+                    : "Try the question, then check your answer."}
+                </span>
               </div>
+              )}
             </div>
 
             <div
@@ -994,9 +989,12 @@ export default function ActivityPlayerV4({
                         ? { type: "context_card", description: sample.visualDescription }
                         : {},
                       context: {
-                        labRoute: "/dev/activity-player-v4",
+                        player: "activity-player-v4",
+                        previewLabel,
                         source: sample.source,
                         visualKind: sample.visualKind,
+                        questionIndex: sampleIndex + 1,
+                        questionCount: samples.length,
                       },
                     }}
                   />
@@ -1062,7 +1060,15 @@ export default function ActivityPlayerV4({
                       cursor: selected ? "pointer" : "not-allowed",
                     }}
                   >
-                    {!submitted ? "Submit answer" : hasNext ? "Next question" : "Restart preview"}
+                    {!submitted
+                      ? "Submit answer"
+                      : hasNext
+                        ? "Next question"
+                        : effectiveMode === "assess"
+                          ? "View result"
+                          : onComplete
+                            ? "Finish practice"
+                            : "Restart practice"}
                   </button>
                 </div>
               </aside>

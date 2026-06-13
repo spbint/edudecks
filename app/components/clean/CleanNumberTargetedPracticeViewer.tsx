@@ -4352,6 +4352,7 @@ export default function CleanNumberTargetedPracticeViewer() {
   const [stepPracticeDepth, setStepPracticeDepth] =
     useState<NumberStepPracticeDepth>("basic");
   const [stepPracticeIndex, setStepPracticeIndex] = useState(0);
+  const [practiceSessionStarted, setPracticeSessionStarted] = useState(false);
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const subjectKey = safe(searchParams.get("subjectKey"));
@@ -4377,7 +4378,7 @@ export default function CleanNumberTargetedPracticeViewer() {
     : [];
   const exactStepPracticeSamples = exactStepPractice
     ? practiceTasksToActivityPlayerV4Samples(exactStepPracticeTasks, {
-        source: "Existing MyLearna practice module",
+        source: "Practice session",
         stepLabel: `${exactStepPractice.title} - Practise`,
         fallbackTitle: exactStepPractice.title,
       })
@@ -4518,7 +4519,7 @@ export default function CleanNumberTargetedPracticeViewer() {
     });
   }
 
-  if (exactStepPractice && exactStepPracticeSamples.length) {
+  if (exactStepPractice && practiceSessionStarted && exactStepPracticeSamples.length) {
     return (
       <ActivityPlayerV4
         samples={exactStepPracticeSamples}
@@ -4541,6 +4542,10 @@ export default function CleanNumberTargetedPracticeViewer() {
               result,
             },
           }));
+        }}
+        onComplete={() => {
+          setPracticeSessionStarted(false);
+          setStepPracticeIndex(0);
         }}
       />
     );
@@ -4587,6 +4592,12 @@ export default function CleanNumberTargetedPracticeViewer() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
                 {NUMBER_STEP_PRACTICE_DEPTH_OPTIONS.map((option) => {
                   const selected = stepPracticeDepth === option.key;
+                  const label =
+                    option.key === "basic"
+                      ? "Quick practice"
+                      : option.key === "standard"
+                        ? "Standard practice"
+                        : "Deep practice";
                   return (
                     <button
                       key={option.key}
@@ -4595,6 +4606,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                         setStepPracticeDepth(option.key);
                         setStepPracticeIndex(0);
                         setResponses({});
+                        setPracticeSessionStarted(true);
                       }}
                       style={{
                         border: selected ? "2px solid #1d4ed8" : "1px solid #cbd5e1",
@@ -4606,13 +4618,14 @@ export default function CleanNumberTargetedPracticeViewer() {
                         fontWeight: 600,
                       }}
                     >
-                      {option.label}: {option.description}
+                      {label}: {option.description.replace("tasks", "questions")}
                     </button>
                   );
                 })}
               </div>
             </section>
 
+            {practiceSessionStarted ? (
             <section style={highlightCardStyle}>
               <div style={eyebrowStyle}>Focused practice</div>
               <PracticeProgressSummary
@@ -4703,6 +4716,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                 />
               </div>
             </section>
+            ) : null}
           </>
         ) : (
           <>

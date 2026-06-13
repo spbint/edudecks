@@ -3873,7 +3873,7 @@ function CleanNumberAssessmentPlayerBody() {
   const totalItems = items.length;
   const incomingStepAssessmentSamples = incomingStepAssessment
     ? assessmentItemsToActivityPlayerV4Samples(items, {
-        source: "Existing MyLearna assessment items",
+        source: "Assessment",
         stepLabel: `${incomingStepAssessment.title} - Assess`,
         fallbackTitle: incomingStepAssessment.title,
       })

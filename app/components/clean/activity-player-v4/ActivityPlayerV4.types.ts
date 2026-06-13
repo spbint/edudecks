@@ -23,6 +23,7 @@ export type ActivityPlayerV4Props = {
   samples: ActivityPlayerV4Sample[];
   chrome?: "standalone" | "embedded";
   previewLabel?: string;
+  showQuestionPicker?: boolean;
   onSubmitAnswer?: (input: {
     sample: ActivityPlayerV4Sample;
     selectedAnswer: string;

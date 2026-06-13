@@ -51,5 +51,5 @@ export default function ActivityPlayerV4LabPage() {
     return <ProductionGuard />;
   }
 
-  return <ActivityPlayerV4 samples={buildActivityPlayerV4Samples()} />;
+  return <ActivityPlayerV4 samples={buildActivityPlayerV4Samples()} showQuestionPicker />;
 }
