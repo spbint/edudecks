@@ -7067,7 +7067,12 @@ function CleanNumberAssessmentPlayerBody() {
     showSummary,
   ]);
 
-  if (incomingStepAssessment && !showSummary && incomingStepAssessmentSamples.length) {
+  if (
+    incomingStepAssessment &&
+    sessionMode === "active" &&
+    !showSummary &&
+    incomingStepAssessmentSamples.length
+  ) {
     return (
       <ActivityPlayerV4
         samples={incomingStepAssessmentSamples}
@@ -7135,7 +7140,7 @@ function CleanNumberAssessmentPlayerBody() {
                   fontWeight: 650,
                 }}
               >
-                {incomingStepAssessment ? "Assess understanding" : "Number assessment"}
+                {incomingStepAssessment ? "Choose your check" : "Number assessment"}
               </h1>
               <p
                 style={{
@@ -7147,7 +7152,7 @@ function CleanNumberAssessmentPlayerBody() {
                 }}
               >
                 {incomingStepAssessment
-                  ? "Have a go on your own."
+                  ? "Pick how many questions you want to use to check this step."
                   : "Choose a focus, then answer a short set of Number questions."}
               </p>
             </div>
@@ -7248,7 +7253,7 @@ function CleanNumberAssessmentPlayerBody() {
                 }}
               >
                 <div style={{ display: "grid", gap: 8 }}>
-                  <div style={eyebrowStyle}>Selected check</div>
+                  <div style={eyebrowStyle}>Choose your check</div>
                   <h2
                     style={{
                       margin: 0,
@@ -7260,7 +7265,9 @@ function CleanNumberAssessmentPlayerBody() {
                     {incomingStepAssessment?.title ?? selectedBank.title}
                   </h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                    {incomingStepAssessment?.description ?? selectedBank.description}
+                    {incomingStepAssessment
+                      ? "Pick how many questions you want to use to check this step."
+                      : selectedBank.description}
                   </p>
                   {incomingStepAssessment ? (
                     <>
@@ -7271,10 +7278,16 @@ function CleanNumberAssessmentPlayerBody() {
                         Stage:{" "}
                         <strong>{getStageLabel(incomingStepAssessment.stageKey)}</strong>
                       </div>
-                      <div style={eyebrowStyle}>Assessment depth</div>
+                      <div style={eyebrowStyle}>Check length</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                         {NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS.map((option) => {
                           const selected = assessmentDepth === option.key;
+                          const label =
+                            option.key === "basic"
+                              ? "Quick check"
+                              : option.key === "standard"
+                                ? "Standard check"
+                                : "Deep check";
                           return (
                             <button
                               key={option.key}
@@ -7295,7 +7308,7 @@ function CleanNumberAssessmentPlayerBody() {
                                 fontWeight: 600,
                               }}
                             >
-                              {option.label}: {option.description}
+                              {label}: {option.description}
                             </button>
                           );
                         })}
@@ -7326,7 +7339,7 @@ function CleanNumberAssessmentPlayerBody() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Start assessment
+                  Start check
                 </button>
               </div>
             </div>
