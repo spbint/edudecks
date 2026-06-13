@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import React from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
@@ -185,6 +185,24 @@ function routeCrumbs(pathname: string): BreadcrumbItem[] {
   return [{ label: "MyLearna" }, { label: routeTitle(pathname), href: navItem?.href }];
 }
 
+function getActivityMode(pathname: string): "practice" | "assess" | null {
+  if (pathname.startsWith("/practice/number-targeted") || pathname.startsWith("/pathways/practice-prototype")) {
+    return "practice";
+  }
+  if (pathname.startsWith("/assessments/number")) {
+    return "assess";
+  }
+  return null;
+}
+
+function formatActivityContext(value: string | null) {
+  if (!value) return null;
+  return value
+    .replace(/^number-step-/i, "Step ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 function isActive(pathname: string, matches: readonly string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
 }
@@ -247,9 +265,153 @@ export function V2PageHeader({
 
 export default function MyLearnaAppShellV2({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuthUser();
   const title = routeTitle(pathname);
   const breadcrumbs = routeCrumbs(pathname);
+  const activityMode = getActivityMode(pathname);
+  const activityContext =
+    formatActivityContext(searchParams.get("stepKey")) ||
+    formatActivityContext(searchParams.get("pathwayStepId")) ||
+    "My Pathways";
+
+  if (activityMode) {
+    const modeLabel = activityMode === "practice" ? "Practise" : "Assess";
+    const modeSubtitle = activityMode === "practice" ? "Let's try together." : "Have a go on your own.";
+    const modeColor = activityMode === "practice" ? v2Tokens.purple : v2Tokens.green;
+    const modeFill = activityMode === "practice" ? v2Tokens.lavender : v2Tokens.mint;
+
+    return (
+      <div
+        className="mylearna-activity-focus-shell"
+        style={{
+          minHeight: "100vh",
+          background: v2Tokens.page,
+          color: v2Tokens.navy,
+        }}
+      >
+        <style jsx global>{`
+          @media (max-width: 720px) {
+            .mylearna-activity-focus-header {
+              align-items: flex-start !important;
+              flex-direction: column !important;
+            }
+
+            .mylearna-activity-focus-main {
+              padding: 10px !important;
+            }
+          }
+        `}</style>
+        <header
+          className="mylearna-activity-focus-header"
+          style={{
+            minHeight: 54,
+            position: "sticky",
+            top: 0,
+            zIndex: 40,
+            borderBottom: `1px solid ${v2Tokens.border}`,
+            background: "rgba(247,249,252,0.94)",
+            backdropFilter: "blur(14px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "9px clamp(12px, 3vw, 24px)",
+          }}
+        >
+          <Link
+            href="/my-pathways"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              color: v2Tokens.navy,
+              textDecoration: "none",
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 999,
+              padding: "8px 10px",
+              background: "#FFFFFF",
+              border: `1px solid ${v2Tokens.border}`,
+              boxShadow: "0 6px 16px rgba(23,32,75,0.04)",
+            }}
+          >
+            <span aria-hidden="true">&larr;</span>
+            Back to My Pathways
+          </Link>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 9,
+              minWidth: 0,
+              textAlign: "center",
+            }}
+          >
+            <span
+              style={{
+                borderRadius: 999,
+                background: modeFill,
+                color: modeColor,
+                padding: "4px 9px",
+                fontSize: 12,
+                fontWeight: 650,
+                lineHeight: 1.2,
+              }}
+            >
+              {modeLabel}
+            </span>
+            <span
+              style={{
+                color: v2Tokens.slate,
+                fontSize: 13,
+                lineHeight: 1.35,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "min(48vw, 520px)",
+              }}
+            >
+              {activityContext}
+            </span>
+          </div>
+
+          <div
+            aria-label={`${modeLabel}: ${modeSubtitle}`}
+            style={{
+              color: v2Tokens.slate,
+              fontSize: 13,
+              lineHeight: 1.35,
+              fontWeight: 500,
+            }}
+          >
+            {modeSubtitle}
+          </div>
+        </header>
+
+        <main
+          className="mylearna-activity-focus-main"
+          style={{
+            padding: "clamp(12px, 3vw, 28px)",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 1040,
+              margin: "0 auto",
+              display: "grid",
+              gap: 12,
+            }}
+          >
+            {children}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: v2Tokens.page, color: v2Tokens.navy }}>
