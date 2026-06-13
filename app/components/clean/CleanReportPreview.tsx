@@ -207,7 +207,7 @@ export default function CleanReportPreview({
             </div>
           ) : (
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              No selected portfolio evidence matches this report yet.
+              No selected portfolio evidence matches this report period yet. Try widening the date range or adding evidence from My Capture.
             </p>
           )}
         </section>
@@ -237,7 +237,7 @@ export default function CleanReportPreview({
             </div>
           ) : (
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Completed pathway checks will appear here once they match this report period.
+              Completed pathway checks will appear here when they fall inside the selected report period.
             </p>
           )}
         </section>
