@@ -12,7 +12,65 @@ export type EarlyNumberVisualModel = {
   numberCards: string[];
 };
 
-type VisualCardVariant = "standard" | "compact";
+export type MathVisualMode = "compact" | "full" | "feedback" | "worksheet";
+
+type VisualCardVariant = MathVisualMode | "standard";
+
+function isCompactVisualMode(variant: VisualCardVariant) {
+  return variant === "compact" || variant === "feedback";
+}
+
+export type ContextualObjectVisualType =
+  | "apple"
+  | "lemon"
+  | "strawberry"
+  | "book"
+  | "pencil"
+  | "coin"
+  | "block"
+  | "shell"
+  | "star"
+  | "sticker";
+
+export const contextualObjectVisualTypes: ContextualObjectVisualType[] = [
+  "apple",
+  "lemon",
+  "strawberry",
+  "book",
+  "pencil",
+  "coin",
+  "block",
+  "shell",
+  "star",
+  "sticker",
+];
+
+export type MathVisualKind =
+  | "counterGroup"
+  | "objectGroup"
+  | "numeral"
+  | "tenFrame"
+  | "placeValue"
+  | "numberLine"
+  | "simpleTable"
+  | "barChart"
+  | "lineGraph"
+  | "array"
+  | "barModel";
+
+export const mathVisualRendererKinds: MathVisualKind[] = [
+  "counterGroup",
+  "objectGroup",
+  "numeral",
+  "tenFrame",
+  "placeValue",
+  "numberLine",
+  "simpleTable",
+  "barChart",
+  "lineGraph",
+  "array",
+  "barModel",
+];
 
 const NUMBER_WORDS: Record<string, string> = {
   zero: "ZERO",
@@ -789,6 +847,14 @@ function getDots(count: number) {
 
 type CountingObjectKind =
   | "apple"
+  | "lemon"
+  | "strawberry"
+  | "book"
+  | "pencil"
+  | "coin"
+  | "block"
+  | "shell"
+  | "sticker"
   | "star"
   | "cube"
   | "fish"
@@ -801,6 +867,14 @@ type CountingObjectKind =
 
 const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
   "apple",
+  "lemon",
+  "strawberry",
+  "book",
+  "pencil",
+  "coin",
+  "block",
+  "shell",
+  "sticker",
   "star",
   "cube",
   "fish",
@@ -815,6 +889,14 @@ const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
 function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
   const normalized = label.toLowerCase();
   if (normalized.includes("apple")) return "apple";
+  if (normalized.includes("lemon")) return "lemon";
+  if (normalized.includes("strawberr")) return "strawberry";
+  if (normalized.includes("book")) return "book";
+  if (normalized.includes("pencil")) return "pencil";
+  if (normalized.includes("coin")) return "coin";
+  if (normalized.includes("block")) return "block";
+  if (normalized.includes("shell")) return "shell";
+  if (normalized.includes("sticker")) return "sticker";
   if (normalized.includes("star")) return "star";
   if (normalized.includes("cube")) return "cube";
   if (normalized.includes("fish")) return "fish";
@@ -830,6 +912,14 @@ function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
 function getCountingObjectName(kind: CountingObjectKind, count: number) {
   const plural: Record<CountingObjectKind, string> = {
     apple: "apples",
+    lemon: "lemons",
+    strawberry: "strawberries",
+    book: "books",
+    pencil: "pencils",
+    coin: "coins",
+    block: "blocks",
+    shell: "shells",
+    sticker: "stickers",
     star: "stars",
     cube: "cubes",
     fish: "fish",
@@ -842,6 +932,14 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
   };
   const singular: Record<CountingObjectKind, string> = {
     apple: "apple",
+    lemon: "lemon",
+    strawberry: "strawberry",
+    book: "book",
+    pencil: "pencil",
+    coin: "coin",
+    block: "block",
+    shell: "shell",
+    sticker: "sticker",
     star: "star",
     cube: "cube",
     fish: "fish",
@@ -870,7 +968,7 @@ function CountingObjectShape({
     height: size,
     display: "inline-block",
     position: "relative",
-    filter: "drop-shadow(0 4px 8px rgba(15,23,42,0.12))",
+    filter: size <= 10 ? "none" : "drop-shadow(0 4px 8px rgba(15,23,42,0.12))",
   };
 
   if (kind === "star") {
@@ -896,6 +994,140 @@ function CountingObjectShape({
           borderRadius: 7,
           background: index % 2 ? "#60a5fa" : "#93c5fd",
           border: "2px solid #2563eb",
+        }}
+      />
+    );
+  }
+
+  if (kind === "block") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: 5,
+          background: index % 2 ? "#bfdbfe" : "#ddd6fe",
+          border: "1px solid #6C4DF6",
+        }}
+      />
+    );
+  }
+
+  if (kind === "lemon") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.18),
+          borderRadius: "50% 45% 50% 45%",
+          background: "#fde047",
+          border: "1px solid #ca8a04",
+          transform: `rotate(${index % 2 ? -12 : 12}deg)`,
+        }}
+      />
+    );
+  }
+
+  if (kind === "strawberry") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "55% 55% 62% 62%",
+          background: "#e11d48",
+          border: "1px solid #be123c",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: "30%",
+            top: "-18%",
+            width: "42%",
+            height: "28%",
+            background: "#16a34a",
+            clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "book") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.28),
+          borderRadius: 4,
+          background: "#ffffff",
+          border: "1px solid #2563eb",
+          boxShadow: size <= 10 ? "none" : "inset 3px 0 0 #bfdbfe",
+        }}
+      />
+    );
+  }
+
+  if (kind === "pencil") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.55),
+          height: Math.max(5, Math.round(size * 0.42)),
+          borderRadius: 999,
+          background: "linear-gradient(90deg, #fde68a 0 78%, #f97316 78% 100%)",
+          border: "1px solid #ca8a04",
+          transform: `rotate(${index % 2 ? -8 : 8}deg)`,
+        }}
+      />
+    );
+  }
+
+  if (kind === "coin") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: 999,
+          background: "#fbbf24",
+          border: "1px solid #b45309",
+          boxShadow: size <= 10 ? "none" : "inset 0 0 0 2px #fde68a",
+        }}
+      />
+    );
+  }
+
+  if (kind === "shell") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "65% 65% 50% 50%",
+          background: "#fed7aa",
+          border: "1px solid #fb923c",
+          clipPath: "polygon(50% 0%, 92% 36%, 76% 100%, 24% 100%, 8% 36%)",
+        }}
+      />
+    );
+  }
+
+  if (kind === "sticker") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: 5,
+          background: index % 2 ? "#F2EDFF" : "#ECFDF4",
+          border: "1px solid #94a3b8",
+          transform: `rotate(${index % 2 ? -10 : 10}deg)`,
         }}
       />
     );
@@ -1101,39 +1333,40 @@ export function EarlyNumberWorksheetObjectGroupCard({
   const kind = getCountingObjectKind(count, label);
   const objectName = getCountingObjectName(kind, count);
   const largeGroup = count > 10;
-  const compact = variant === "compact";
-  const objectSize = compact ? (largeGroup ? 8 : 10) : largeGroup ? 14 : 18;
+  const compact = isCompactVisualMode(variant);
+  const full = variant === "full";
+  const objectSize = compact ? (largeGroup ? 7 : 9) : largeGroup ? (full ? 15 : 14) : full ? 20 : 18;
 
   return (
     <div
       aria-label={`Group showing ${count} ${objectName}`}
       style={{
-        border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: compact ? 11 : 14,
+        border: `1px solid ${selected ? "#6C4DF6" : "#E7EAF2"}`,
+        borderRadius: compact ? 10 : 14,
         background: "#ffffff",
         boxShadow: selected
           ? compact
             ? "none"
-            : "0 6px 14px rgba(37,99,235,0.14)"
+            : "0 6px 14px rgba(108,77,246,0.12)"
           : "none",
-        padding: compact ? 4 : 7,
+        padding: compact ? 3 : 7,
         display: "grid",
-        gap: compact ? 3 : 6,
-        minHeight: compact ? 48 : largeGroup ? 108 : 88,
+        gap: compact ? 2 : 6,
+        minHeight: compact ? 42 : full ? (largeGroup ? 116 : 96) : largeGroup ? 108 : 88,
       }}
     >
       <div
         style={{
-          minHeight: compact ? 34 : largeGroup ? 72 : 54,
-          borderRadius: compact ? 9 : 12,
-          border: "1px solid #dbeafe",
-          background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
+          minHeight: compact ? 28 : largeGroup ? 72 : 54,
+          borderRadius: compact ? 8 : 12,
+          border: "1px solid #E7EAF2",
+          background: compact ? "#F8FAFC" : "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           display: "grid",
-          gridTemplateColumns: `repeat(${compact ? 6 : 5}, minmax(${compact ? 9 : 16}px, 1fr))`,
+          gridTemplateColumns: `repeat(${compact ? 7 : 5}, minmax(${compact ? 7 : 16}px, 1fr))`,
           alignItems: "center",
           justifyItems: "center",
-          gap: compact ? 2 : largeGroup ? 4 : 5,
-          padding: compact ? 3 : largeGroup ? 6 : 7,
+          gap: compact ? 1 : largeGroup ? 4 : 5,
+          padding: compact ? 2 : largeGroup ? 6 : 7,
         }}
       >
         {Array.from({ length: Math.max(0, count) }, (_, index) => (
@@ -1145,7 +1378,7 @@ export function EarlyNumberWorksheetObjectGroupCard({
           />
         ))}
       </div>
-      <div style={{ color: "#475569", fontSize: compact ? 10 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.15 }}>
+      <div style={{ color: "#475569", fontSize: compact ? 9 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.15 }}>
         {label}
       </div>
     </div>
@@ -1164,34 +1397,35 @@ export function EarlyNumberWorksheetDotCard({
   variant?: VisualCardVariant;
 }) {
   const dots = getDots(count);
-  const compact = variant === "compact";
-  const dotSize = compact ? (count > 8 ? 5 : count > 5 ? 6 : 8) : count > 8 ? 9 : count > 5 ? 11 : 14;
+  const compact = isCompactVisualMode(variant);
+  const full = variant === "full";
+  const dotSize = compact ? (count > 8 ? 4 : count > 5 ? 5 : 7) : count > 8 ? (full ? 10 : 9) : count > 5 ? (full ? 12 : 11) : full ? 15 : 14;
 
   return (
     <div
       aria-label={`Group showing ${count} dot${count === 1 ? "" : "s"}`}
       style={{
-        border: `1px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: compact ? 11 : 14,
+        border: `1px solid ${selected ? "#6C4DF6" : "#E7EAF2"}`,
+        borderRadius: compact ? 10 : 14,
         background: "#ffffff",
         boxShadow: selected
           ? compact
             ? "none"
-            : "0 6px 14px rgba(37,99,235,0.14)"
+            : "0 6px 14px rgba(108,77,246,0.12)"
           : "none",
-        padding: compact ? 4 : 7,
+        padding: compact ? 3 : 7,
         display: "grid",
-        gap: compact ? 3 : 6,
-        minHeight: compact ? 48 : 84,
+        gap: compact ? 2 : 6,
+        minHeight: compact ? 42 : full ? 92 : 84,
       }}
     >
       <div
         style={{
           position: "relative",
-          minHeight: compact ? 34 : 52,
-          borderRadius: compact ? 9 : 12,
-          border: "1px solid #dbeafe",
-          background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
+          minHeight: compact ? 28 : 52,
+          borderRadius: compact ? 8 : 12,
+          border: "1px solid #E7EAF2",
+          background: compact ? "#F8FAFC" : "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
           overflow: "hidden",
         }}
       >
@@ -1218,7 +1452,7 @@ export function EarlyNumberWorksheetDotCard({
             style={{
               display: "grid",
               height: "100%",
-              minHeight: compact ? 34 : 82,
+              minHeight: compact ? 28 : 82,
               placeItems: "center",
               color: "#64748b",
               fontSize: compact ? 11 : 13,
@@ -1229,7 +1463,7 @@ export function EarlyNumberWorksheetDotCard({
           </span>
         ) : null}
       </div>
-      <div style={{ color: "#475569", fontSize: compact ? 10 : 12, fontWeight: compact ? 600 : 800, textAlign: "center", lineHeight: 1.15 }}>
+      <div style={{ color: "#475569", fontSize: compact ? 9 : 12, fontWeight: compact ? 600 : 800, textAlign: "center", lineHeight: 1.15 }}>
         {label}
       </div>
     </div>
@@ -1406,24 +1640,25 @@ export function EarlyNumberWorksheetNumeralCard({
   selected?: boolean;
   variant?: VisualCardVariant;
 }) {
-  const compact = variant === "compact";
+  const compact = isCompactVisualMode(variant);
+  const full = variant === "full";
 
   return (
     <div
       aria-label={`Numeral ${numeral}`}
       style={{
-        border: `${compact ? 1 : 2}px solid ${selected ? "#1d4ed8" : "#bfdbfe"}`,
-        borderRadius: compact ? 11 : 18,
+        border: `${compact ? 1 : 2}px solid ${selected ? "#6C4DF6" : "#E7EAF2"}`,
+        borderRadius: compact ? 10 : 18,
         background: "#ffffff",
         boxShadow: selected
           ? compact
             ? "none"
-            : "0 6px 14px rgba(37,99,235,0.14)"
+            : "0 6px 14px rgba(108,77,246,0.12)"
           : "none",
-        padding: compact ? "4px 5px" : "8px 8px",
+        padding: compact ? "3px 4px" : "8px 8px",
         display: "grid",
-        gap: compact ? 3 : 6,
-        minHeight: compact ? 48 : 74,
+        gap: compact ? 2 : 6,
+        minHeight: compact ? 42 : full ? 84 : 74,
         placeItems: "center",
       }}
     >
@@ -1431,14 +1666,14 @@ export function EarlyNumberWorksheetNumeralCard({
         aria-hidden="true"
         style={{
           width: "100%",
-          minHeight: compact ? 34 : 48,
-          borderRadius: compact ? 9 : 12,
-          border: "1px solid #dbeafe",
-          background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
-          color: "#1d4ed8",
+          minHeight: compact ? 28 : 48,
+          borderRadius: compact ? 8 : 12,
+          border: "1px solid #E7EAF2",
+          background: compact ? "#F8FAFC" : "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
+          color: "#17204B",
           display: "grid",
           placeItems: "center",
-          fontSize: compact ? (numeral.length > 1 ? 18 : 22) : numeral.length > 1 ? 30 : 36,
+          fontSize: compact ? (numeral.length > 1 ? 15 : 18) : numeral.length > 1 ? 30 : 36,
           fontWeight: compact ? 650 : 700,
           lineHeight: 1,
         }}
@@ -1446,7 +1681,7 @@ export function EarlyNumberWorksheetNumeralCard({
         {numeral}
       </div>
       {label ? (
-        <div style={{ color: "#475569", fontSize: compact ? 10 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.15 }}>
+        <div style={{ color: "#475569", fontSize: compact ? 9 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.15 }}>
           {label}
         </div>
       ) : null}
@@ -7045,7 +7280,7 @@ function FinancialModelPanel({
         {[
           ["Table", "Organise amounts before calculating."],
           ["Equation", `Use a model to ${actionLabel}.`],
-          ["Check", "Compare the answer with the context."],
+          ["Review", "Compare the answer with the context."],
         ].map(([label, text]) => (
           <div
             key={`financial-helper-${label}`}
@@ -11293,7 +11528,7 @@ export function renderStep49WorksheetOptionCard({
     : lower.includes("method") || lower.includes("subtraction")
       ? "Method choice"
       : lower.includes("estimate") || lower.includes("check")
-        ? "Check"
+        ? "Review"
         : lower.includes("explain") || lower.includes("why")
           ? "Reasoning"
           : "Strategy";
@@ -12666,7 +12901,7 @@ export function renderStep58WorksheetPromptVisual({
           </div>
         </div>
         <div style={{ border: "1px solid #e0e7ff", borderRadius: 16, background: "#eef2ff", padding: 12, color: "#3730a3" }}>
-          <div style={{ fontSize: 12, fontWeight: 950 }}>Check</div>
+          <div style={{ fontSize: 12, fontWeight: 950 }}>Review</div>
           <div style={{ marginTop: 5, fontSize: 14, fontWeight: 800 }}>
             Calculate first, then round the final answer unless the task says otherwise.
           </div>
@@ -12700,7 +12935,7 @@ export function renderStep58WorksheetOptionCard({
   const label = lower.includes("cm") || lower.includes("kg") || lower.includes("litre") || lower.includes("m") || lower.includes("s")
     ? "Bound"
     : lower.includes("yes") || lower.includes("no")
-      ? "Check"
+      ? "Review"
       : lower.includes(",") || lower.includes("to")
         ? "Interval"
         : lower.includes(".")

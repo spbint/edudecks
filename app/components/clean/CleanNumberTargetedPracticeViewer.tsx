@@ -4057,9 +4057,9 @@ function TaskCard({
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 66
+                      ? 56
                       : statisticsVisual
-                        ? 52
+                        ? 48
                         : undefined,
                 }}
               >
@@ -4114,7 +4114,7 @@ function TaskCard({
       ) : null}
       <div>
         <button type="button" onClick={onCheck} style={buttonStyle}>
-          {task.taskType === "worked_example" ? "Mark reviewed" : "Check response"}
+          {task.taskType === "worked_example" ? "Mark reviewed" : "Review response"}
         </button>
       </div>
       <div>

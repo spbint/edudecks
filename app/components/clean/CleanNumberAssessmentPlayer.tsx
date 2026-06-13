@@ -1466,7 +1466,7 @@ function getResultLabel(result: LocalAssessmentResult) {
     return "Correct";
   }
   if (result === "incorrect") {
-    return "Check again";
+    return "Review this skill";
   }
   return "Unanswered";
 }
@@ -6276,9 +6276,9 @@ function CleanNumberAssessmentPlayerBody() {
                     step45Visual ||
                     step46Visual ||
                     step48Visual
-                      ? 66
+                      ? 56
                       : statisticsVisual
-                        ? 52
+                        ? 48
                         : undefined,
                   padding:
                     step2Visual ||
@@ -7018,8 +7018,8 @@ function CleanNumberAssessmentPlayerBody() {
       setSaveState("failed");
       setSaveMessage(
         error instanceof Error
-          ? `Check result could not be saved yet. ${error.message}`
-          : "Check result could not be saved yet. Please try again before leaving this page.",
+          ? `Assessment result could not be saved yet. ${error.message}`
+          : "Assessment result could not be saved yet. Please try again before leaving this page.",
       );
     }
   }
@@ -7209,7 +7209,7 @@ function CleanNumberAssessmentPlayerBody() {
                         Stage:{" "}
                         <strong>{getStageLabel(incomingStepAssessment.stageKey)}</strong>
                       </div>
-                      <div style={eyebrowStyle}>Check depth</div>
+                      <div style={eyebrowStyle}>Assessment depth</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                         {NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS.map((option) => {
                           const selected = assessmentDepth === option.key;
@@ -7464,7 +7464,7 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
                 {incomingStepAssessment ? (
                   <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                    Check result:{" "}
+                    Assessment result:{" "}
                     <strong>
                       {summary.unansweredCount
                         ? "More evidence needed"
@@ -8215,7 +8215,7 @@ function CleanNumberAssessmentPlayerBody() {
                       onClick={submitCurrentItem}
                       style={secondaryButtonStyle}
                     >
-                      Check response
+                      Review response
                     </button>
                   ) : null}
                   {incomingStepAssessment ? (

@@ -38,14 +38,16 @@ export function LearningPanel({
 
   return (
     <section
+      className="mylearna-activity-player-v3"
       style={{
         border: `1px solid ${learningV2.border}`,
         borderRadius: 20,
         background: learningV2.card,
-        boxShadow: "0 8px 24px rgba(23, 32, 75, 0.06)",
-        padding: "clamp(14px, 2.2vw, 18px)",
+        boxShadow: "0 8px 22px rgba(23, 32, 75, 0.045)",
+        padding: "clamp(13px, 2vw, 18px)",
         display: "grid",
-        gap: 12,
+        gap: 11,
+        width: "100%",
       }}
     >
       <div style={{ display: "grid", gap: 6 }}>
@@ -56,8 +58,8 @@ export function LearningPanel({
               borderRadius: 999,
               background: toneFill,
               color: toneColor,
-              padding: "4px 9px",
-              fontSize: 12,
+              padding: "3px 8px",
+              fontSize: 11,
               fontWeight: 600,
               lineHeight: 1.2,
             }}
@@ -69,7 +71,7 @@ export function LearningPanel({
           style={{
             margin: 0,
             color: learningV2.navy,
-            fontSize: "clamp(18px, 2.4vw, 22px)",
+            fontSize: "clamp(17px, 2.1vw, 21px)",
             lineHeight: 1.2,
             fontWeight: 650,
           }}
@@ -77,7 +79,7 @@ export function LearningPanel({
           {title}
         </h2>
         {subtitle ? (
-          <p style={{ margin: 0, color: learningV2.slate, fontSize: 14, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, color: learningV2.slate, fontSize: 13, lineHeight: 1.45 }}>
             {subtitle}
           </p>
         ) : null}
@@ -94,7 +96,7 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: 10,
+        gap: 9,
       }}
     >
       <style jsx global>{`
@@ -105,22 +107,25 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
         }
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] {
-          min-height: 64px !important;
-          padding: 7px !important;
+          min-height: 56px !important;
+          padding: 6px !important;
           border-radius: 12px !important;
           border-width: 1px !important;
           box-shadow: none !important;
+          display: grid !important;
+          align-items: center !important;
         }
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] > div {
           min-height: 0 !important;
-          max-height: 78px !important;
-          padding: 4px 6px !important;
+          max-height: 68px !important;
+          padding: 3px 5px !important;
           border-radius: 10px !important;
           border-width: 1px !important;
-          gap: 4px !important;
+          gap: 3px !important;
           box-shadow: none !important;
           overflow: hidden !important;
+          width: 100% !important;
         }
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] div,
@@ -131,14 +136,14 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] > div > div {
           min-height: 0 !important;
-          padding: 3px 5px !important;
-          border-radius: 9px !important;
-          gap: 3px !important;
+          padding: 2px 4px !important;
+          border-radius: 8px !important;
+          gap: 2px !important;
         }
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] span[aria-hidden="true"] {
-          width: 8px !important;
-          height: 8px !important;
+          width: 7px !important;
+          height: 7px !important;
           border-width: 1px !important;
           box-shadow: none !important;
         }
@@ -170,18 +175,18 @@ export function AnswerOptionCard({
       aria-pressed={selected ? "true" : "false"}
       aria-label={ariaLabel}
       style={{
-        minHeight: 52,
+        minHeight: 48,
         width: "100%",
         display: "grid",
-        gridTemplateColumns: "28px minmax(0, 1fr)",
+        gridTemplateColumns: "26px minmax(0, 1fr)",
         alignItems: "center",
         gap: 10,
         textAlign: "left",
         border: selected ? `2px solid ${learningV2.purple}` : `1px solid ${learningV2.border}`,
-        borderRadius: 14,
+        borderRadius: 13,
         background: selected ? learningV2.lavender : learningV2.card,
         color: learningV2.navy,
-        padding: "9px 11px",
+        padding: "8px 10px",
         font: "inherit",
         fontSize: 14,
         lineHeight: 1.35,
@@ -194,8 +199,8 @@ export function AnswerOptionCard({
       <span
         aria-hidden="true"
         style={{
-          width: 26,
-          height: 26,
+          width: 24,
+          height: 24,
           borderRadius: 999,
           display: "inline-flex",
           alignItems: "center",
@@ -203,7 +208,7 @@ export function AnswerOptionCard({
           border: selected ? `1px solid ${learningV2.purple}` : `1px solid ${learningV2.border}`,
           background: selected ? learningV2.card : "#F8FAFC",
           color: selected ? learningV2.purple : learningV2.slate,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 600,
         }}
       >
