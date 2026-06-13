@@ -81,7 +81,11 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof SupportReportEmailConfigurationError) {
       console.error("support_report_email_configuration_error", {
-        message: error.message,
+        missingConfig: error.missingConfig,
+        required:
+          error.missingConfig === "sender"
+            ? "RESEND_FROM or FROM_EMAIL"
+            : "RESEND_API_KEY",
       });
       return NextResponse.json(
         { ok: false, error: "email_not_configured" },

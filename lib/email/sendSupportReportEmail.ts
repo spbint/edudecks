@@ -11,9 +11,15 @@ export type SupportReportEmailInput = {
 };
 
 export class SupportReportEmailConfigurationError extends Error {
-  constructor(message: string) {
+  missingConfig: "RESEND_API_KEY" | "sender";
+
+  constructor(
+    message: string,
+    missingConfig: "RESEND_API_KEY" | "sender",
+  ) {
     super(message);
     this.name = "SupportReportEmailConfigurationError";
+    this.missingConfig = missingConfig;
   }
 }
 
@@ -65,12 +71,14 @@ export async function sendSupportReportEmail(input: SupportReportEmailInput) {
   if (!apiKey) {
     throw new SupportReportEmailConfigurationError(
       "Missing RESEND_API_KEY for support report email.",
+      "RESEND_API_KEY",
     );
   }
 
   if (!fromEmail) {
     throw new SupportReportEmailConfigurationError(
-      "Missing FROM_EMAIL for support report email.",
+      "Missing RESEND_FROM or FROM_EMAIL for support report email.",
+      "sender",
     );
   }
 
