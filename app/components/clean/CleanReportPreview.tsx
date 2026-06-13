@@ -70,6 +70,56 @@ function formatEvidenceEventDateLabel(value: string | null) {
   });
 }
 
+function getEvidenceGroupTitle(item: CleanReportPdfEvidenceItem) {
+  const title = item.title.trim() || "Learning evidence";
+  const stepMatch = title.match(/Step\s+(\d+)\s*[-:]\s*(.+)$/i);
+  if (stepMatch) {
+    return `Step ${stepMatch[1]} - ${stepMatch[2].trim()}`;
+  }
+
+  return title;
+}
+
+function buildEvidenceSummaryGroups(items: CleanReportPdfEvidenceItem[]) {
+  const groups = new Map<
+    string,
+    {
+      area: string;
+      title: string;
+      count: number;
+      latestDate: string | null;
+    }
+  >();
+
+  items.forEach((item) => {
+    const area = item.learningArea?.trim() || "Learning evidence";
+    const title = getEvidenceGroupTitle(item);
+    const key = `${area.toLowerCase()}::${title.toLowerCase()}`;
+    const current = groups.get(key);
+
+    if (!current) {
+      groups.set(key, {
+        area,
+        title,
+        count: 1,
+        latestDate: item.observedOn,
+      });
+      return;
+    }
+
+    current.count += 1;
+    if (item.observedOn && (!current.latestDate || item.observedOn > current.latestDate)) {
+      current.latestDate = item.observedOn;
+    }
+  });
+
+  return Array.from(groups.values()).sort((left, right) => {
+    const areaCompare = left.area.localeCompare(right.area);
+    if (areaCompare !== 0) return areaCompare;
+    return (right.latestDate || "").localeCompare(left.latestDate || "");
+  });
+}
+
 function getReportStatusLabel(status: CleanReport["status"]) {
   if (status === "ready") return "Ready";
   if (status === "archived") return "Archived";
@@ -108,6 +158,8 @@ export default function CleanReportPreview({
   evidenceItems = [],
   assessmentEvidenceItems = [],
 }: CleanReportPreviewProps) {
+  const evidenceSummaryGroups = buildEvidenceSummaryGroups(evidenceItems);
+
   return (
     <article style={previewWrapStyle}>
       <header style={previewHeaderStyle}>
@@ -194,13 +246,13 @@ export default function CleanReportPreview({
           <div style={{ color: "#64748b", fontSize: 12 }}>Evidence summary</div>
           {evidenceItems.length ? (
             <div style={{ display: "grid", gap: 10 }}>
-              {evidenceItems.map((item) => (
-                <div key={item.id} style={{ display: "grid", gap: 4 }}>
+              {evidenceSummaryGroups.map((item) => (
+                <div key={`${item.area}-${item.title}`} style={{ display: "grid", gap: 4 }}>
                   <strong style={{ color: "#0f172a" }}>{item.title}</strong>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    {formatDateLabel(item.observedOn || "")}
-                    {item.learningArea ? ` - ${item.learningArea}` : ""}
-                    {item.programTitle ? ` - Program: ${item.programTitle}` : ""}
+                    {item.area}
+                    {item.latestDate ? ` - Latest: ${formatDateLabel(item.latestDate)}` : ""}
+                    {` - ${item.count} evidence ${item.count === 1 ? "entry" : "entries"}`}
                   </div>
                 </div>
               ))}
@@ -224,14 +276,14 @@ export default function CleanReportPreview({
                     {item.strand ? ` - ${item.strand}` : ""}
                     {item.stepTitle ? ` - ${item.stepTitle}` : ""}
                   </div>
-                  <p style={{ margin: 0, color: "#334155", lineHeight: 1.7 }}>
-                    {item.summary}
-                  </p>
                   <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
-                    Questions: {item.questionCount} | Correct: {item.correctCount} | More support: {item.supportRecommendedCount}
+                    Result: {item.correctCount} / {item.questionCount} correct | Support recommended: {item.supportRecommendedCount}
                     {item.notSureCount ? ` | Not sure: ${item.notSureCount}` : ""}
                     {item.parentJudgement ? ` | Parent judgement: ${item.parentJudgement}` : ""}
                   </div>
+                  <p style={{ margin: 0, color: "#334155", lineHeight: 1.7 }}>
+                    Included as report-ready pathway evidence.
+                  </p>
                 </div>
               ))}
             </div>
@@ -263,16 +315,7 @@ export default function CleanReportPreview({
               </p>
             </section>
           ))
-        ) : (
-          <section style={sectionStyle}>
-            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-              No sections yet
-            </h3>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Add report sections in My Reports before recording an output.
-            </p>
-          </section>
-        )}
+        ) : null}
 
         <section style={sectionStyle}>
           <div style={{ color: "#64748b", fontSize: 12 }}>Selected evidence details</div>
