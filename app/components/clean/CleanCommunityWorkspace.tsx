@@ -20,11 +20,11 @@ import {
   listCommunityReactionSummary,
   listCommunityReplyCounts,
   listCommunityThreads,
-  reportCommunityContent,
   toggleCommunityReaction,
   updateCommunityPost,
   updateCommunityThread,
 } from "@/lib/clean/community/client";
+import { submitReportProblem } from "@/app/components/clean/feedback/reportProblemClient";
 import { getCurrentCleanUserId } from "@/lib/clean/family/client";
 import {
   COMMUNITY_CATEGORIES,
@@ -215,6 +215,21 @@ function buildReactionTargetKey(
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function getSourceUrl() {
+  if (typeof window === "undefined") return "";
+  return window.location.href;
+}
+
+function getRoute() {
+  if (typeof window === "undefined") return "/my-community";
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+function getUserAgent() {
+  if (typeof navigator === "undefined") return "";
+  return navigator.userAgent;
 }
 
 function getPreviewText(value: string, maxLength = 170) {
@@ -1065,13 +1080,32 @@ export default function CleanCommunityWorkspace() {
     setReportMessage(null);
 
     try {
-      await reportCommunityContent({
-        targetType: reportTarget.type,
-        targetId: reportTarget.id,
-        reason,
+      const result = await submitReportProblem({
+        type: "page",
+        category:
+          reportTarget.type === "thread"
+            ? "Community thread report"
+            : "Community reply report",
+        message: reason,
+        context: {
+          Page: "My Community",
+          Route: getRoute(),
+          URL: getSourceUrl(),
+          "Target type": reportTarget.type,
+          "Target ID": reportTarget.id,
+          "Thread ID": selectedThread?.id,
+          "Thread title": selectedThread?.title,
+          Timestamp: new Date().toISOString(),
+          Browser: getUserAgent(),
+        },
       });
+
+      if (!result.ok) {
+        throw new Error(result.message);
+      }
+
       setReportReason("");
-      setReportMessage("Thanks. We'll review this.");
+      setReportMessage("Thanks — your report has been sent.");
     } catch (nextError) {
       setReportError(
         messageFromError(nextError, "We could not send this community report."),
@@ -2067,7 +2101,7 @@ export default function CleanCommunityWorkspace() {
                           ) : null}
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <button type="submit" disabled={reportSubmitting} style={buttonStyle}>
-                              {reportSubmitting ? "Sending..." : "Submit report"}
+                              {reportSubmitting ? "Sending..." : "Send report"}
                             </button>
                             <button
                               type="button"
@@ -2413,7 +2447,7 @@ export default function CleanCommunityWorkspace() {
                                         ) : null}
                                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                                           <button type="submit" disabled={reportSubmitting} style={buttonStyle}>
-                                            {reportSubmitting ? "Sending..." : "Submit report"}
+                                            {reportSubmitting ? "Sending..." : "Send report"}
                                           </button>
                                           <button
                                             type="button"

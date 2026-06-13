@@ -1,5 +1,5 @@
 const RESEND_API_URL = "https://api.resend.com/emails";
-const SUPPORT_REPORT_RECIPIENT = "support@mylearna.com";
+const DEFAULT_SUPPORT_REPORT_RECIPIENT = "support@mylearna.com";
 
 export type SupportReportType = "question" | "page";
 
@@ -59,7 +59,8 @@ function buildPlainTextBody(input: SupportReportEmailInput) {
 
 export async function sendSupportReportEmail(input: SupportReportEmailInput) {
   const apiKey = safe(process.env.RESEND_API_KEY);
-  const fromEmail = safe(process.env.FROM_EMAIL);
+  const fromEmail = safe(process.env.RESEND_FROM || process.env.FROM_EMAIL);
+  const supportEmail = safe(process.env.SUPPORT_EMAIL) || DEFAULT_SUPPORT_REPORT_RECIPIENT;
 
   if (!apiKey) {
     throw new SupportReportEmailConfigurationError(
@@ -81,7 +82,7 @@ export async function sendSupportReportEmail(input: SupportReportEmailInput) {
     },
     body: JSON.stringify({
       from: fromEmail,
-      to: SUPPORT_REPORT_RECIPIENT,
+      to: supportEmail,
       subject:
         input.type === "question"
           ? "MyLearna question report"
@@ -98,4 +99,4 @@ export async function sendSupportReportEmail(input: SupportReportEmailInput) {
   }
 }
 
-export { SUPPORT_REPORT_RECIPIENT };
+export { DEFAULT_SUPPORT_REPORT_RECIPIENT };
