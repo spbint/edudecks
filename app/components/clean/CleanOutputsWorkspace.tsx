@@ -19,6 +19,10 @@ import {
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
+  listAssessmentLearningEvidenceEventsForLearner,
+  type LearningEvidenceEvent,
+} from "@/lib/clean/evidence/learningEvidenceEvents";
+import {
   buildCleanReportPdfFilename,
   generateCleanReportPdfBytes,
   type CleanReportPdfEvidenceItem,
@@ -231,6 +235,9 @@ function CleanOutputsWorkspaceBody() {
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [exportsHistory, setExportsHistory] = useState<CleanReportExport[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
+  const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
+    LearningEvidenceEvent[]
+  >([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
@@ -466,6 +473,7 @@ function CleanOutputsWorkspaceBody() {
   const reloadReportContext = useCallback(async () => {
     if (!workspace.profile || !selectedReport) {
       setPortfolioItems([]);
+      setAssessmentEvidenceEvents([]);
       setPrograms([]);
       setProgramSegments([]);
       setCalendarItems([]);
@@ -475,7 +483,12 @@ function CleanOutputsWorkspaceBody() {
     setReportContextLoading(true);
     setDataError(null);
     try {
-      const [nextPortfolioItems, nextPrograms, nextCalendarItems] = await Promise.all([
+      const [
+        nextPortfolioItems,
+        nextPrograms,
+        nextCalendarItems,
+        nextAssessmentEvidenceEvents,
+      ] = await Promise.all([
         listCleanPortfolioItems(workspace.profile.id, {
           learnerId: selectedReport.learnerId,
           fromDate: selectedPeriod?.startsOn ?? null,
@@ -490,6 +503,15 @@ function CleanOutputsWorkspaceBody() {
           toDate: selectedPeriod?.endsOn ?? null,
           limit: 200,
         }),
+        listAssessmentLearningEvidenceEventsForLearner(
+          workspace.profile.id,
+          selectedReport.learnerId,
+          {
+            fromDate: selectedPeriod?.startsOn ?? null,
+            toDate: selectedPeriod?.endsOn ?? null,
+            limit: 100,
+          },
+        ),
       ]);
 
       const nextProgramSegments = (
@@ -501,6 +523,7 @@ function CleanOutputsWorkspaceBody() {
       ).flat();
 
       setPortfolioItems(nextPortfolioItems);
+      setAssessmentEvidenceEvents(nextAssessmentEvidenceEvents);
       setPrograms(nextPrograms);
       setProgramSegments(nextProgramSegments);
       setCalendarItems(nextCalendarItems);
@@ -523,6 +546,7 @@ function CleanOutputsWorkspaceBody() {
       setSections([]);
       setExportsHistory([]);
       setPortfolioItems([]);
+      setAssessmentEvidenceEvents([]);
       setPrograms([]);
       setProgramSegments([]);
       setCalendarItems([]);
@@ -598,6 +622,7 @@ function CleanOutputsWorkspaceBody() {
         reportingPeriod: selectedPeriod,
         sections,
         evidenceItems: previewEvidenceItems,
+        assessmentEvidenceItems: assessmentEvidenceEvents,
         preparedOnLabel: formatDateLabel(new Date().toISOString().slice(0, 10)),
         statusLabel: getReportStatusLabel(selectedReport.status),
       });
@@ -1622,6 +1647,7 @@ function CleanOutputsWorkspaceBody() {
                   reportingPeriod={selectedPeriod}
                   sections={sections}
                   evidenceItems={previewEvidenceItems}
+                  assessmentEvidenceItems={assessmentEvidenceEvents}
                 />
 
                 <section style={cardStyle}>

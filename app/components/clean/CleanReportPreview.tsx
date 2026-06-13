@@ -7,6 +7,7 @@ import type {
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
 import type { CleanReportPdfEvidenceItem } from "@/lib/clean/outputs/pdf";
+import type { LearningEvidenceEvent } from "@/lib/clean/evidence/learningEvidenceEvents";
 
 const previewWrapStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
@@ -42,11 +43,26 @@ type CleanReportPreviewProps = {
   reportingPeriod: CleanReportingPeriod | null;
   sections: CleanReportSection[];
   evidenceItems?: CleanReportPdfEvidenceItem[];
+  assessmentEvidenceItems?: LearningEvidenceEvent[];
 };
 
 function formatDateLabel(value: string) {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatEvidenceEventDateLabel(value: string | null) {
+  const normalizedValue = String(value ?? "").trim();
+  if (!normalizedValue) return "Date not recorded";
+
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) return normalizedValue.slice(0, 10) || normalizedValue;
+
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -90,6 +106,7 @@ export default function CleanReportPreview({
   reportingPeriod,
   sections,
   evidenceItems = [],
+  assessmentEvidenceItems = [],
 }: CleanReportPreviewProps) {
   return (
     <article style={previewWrapStyle}>
@@ -164,6 +181,9 @@ export default function CleanReportPreview({
             <strong>Portfolio evidence:</strong> {evidenceItems.length}
           </div>
           <div>
+            <strong>Pathway checks:</strong> {assessmentEvidenceItems.length}
+          </div>
+          <div>
             <strong>Section count:</strong> {sections.length}
           </div>
         </div>
@@ -188,6 +208,36 @@ export default function CleanReportPreview({
           ) : (
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               No selected portfolio evidence matches this report yet.
+            </p>
+          )}
+        </section>
+
+        <section style={sectionStyle}>
+          <div style={{ color: "#64748b", fontSize: 12 }}>Pathway assessment evidence</div>
+          {assessmentEvidenceItems.length ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              {assessmentEvidenceItems.map((item) => (
+                <div key={item.id} style={{ display: "grid", gap: 5 }}>
+                  <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {formatEvidenceEventDateLabel(item.evidenceDate)}
+                    {item.strand ? ` - ${item.strand}` : ""}
+                    {item.stepTitle ? ` - ${item.stepTitle}` : ""}
+                  </div>
+                  <p style={{ margin: 0, color: "#334155", lineHeight: 1.7 }}>
+                    {item.summary}
+                  </p>
+                  <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+                    Questions: {item.questionCount} | Correct: {item.correctCount} | More support: {item.supportRecommendedCount}
+                    {item.notSureCount ? ` | Not sure: ${item.notSureCount}` : ""}
+                    {item.parentJudgement ? ` | Parent judgement: ${item.parentJudgement}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              Completed pathway checks will appear here once they match this report period.
             </p>
           )}
         </section>

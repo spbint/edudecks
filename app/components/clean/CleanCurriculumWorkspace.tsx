@@ -17,6 +17,10 @@ import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
+  listAssessmentLearningEvidenceEventsForLearner,
+  type LearningEvidenceEvent,
+} from "@/lib/clean/evidence/learningEvidenceEvents";
+import {
   buildCurriculumCaptureContext,
   buildCurriculumCaptureSearchParams,
   type CleanCurriculumCaptureContext,
@@ -132,6 +136,22 @@ function formatEvidenceDateLabel(value: string) {
   const date = new Date(`${normalizedValue}T00:00:00`);
   if (Number.isNaN(date.getTime())) {
     return normalizedValue;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatEvidenceEventDateLabel(value: string | null) {
+  const normalizedValue = safe(value);
+  if (!normalizedValue) return "Date not recorded";
+
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) {
+    return formatEvidenceDateLabel(normalizedValue.slice(0, 10));
   }
 
   return date.toLocaleDateString(undefined, {
@@ -329,9 +349,14 @@ function CurriculumWorkspaceBody() {
   const pathname = usePathname();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
+  const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
+    LearningEvidenceEvent[]
+  >([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
+  const [assessmentEvidenceLoading, setAssessmentEvidenceLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
+  const [assessmentEvidenceError, setAssessmentEvidenceError] = useState<string | null>(null);
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [showAuthorityAreas, setShowAuthorityAreas] = useState(false);
@@ -418,6 +443,64 @@ function CurriculumWorkspaceBody() {
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadAssessmentEvidence() {
+      if (!workspace.profile || !selectedLearnerId) {
+        if (!isCurrent) return;
+        setAssessmentEvidenceEvents([]);
+        setAssessmentEvidenceError(null);
+        return;
+      }
+
+      setAssessmentEvidenceLoading(true);
+      setAssessmentEvidenceError(null);
+      try {
+        const nextEvents = await listAssessmentLearningEvidenceEventsForLearner(
+          workspace.profile.id,
+          selectedLearnerId,
+          { limit: 100 },
+        );
+
+        if (!isCurrent) return;
+        setAssessmentEvidenceEvents(nextEvents);
+      } catch (error) {
+        if (!isCurrent) return;
+        setAssessmentEvidenceEvents([]);
+        setAssessmentEvidenceError(
+          normalizeCleanErrorMessage(
+            error,
+            "We could not load pathway check evidence just now.",
+          ),
+        );
+      } finally {
+        if (isCurrent) {
+          setAssessmentEvidenceLoading(false);
+        }
+      }
+    }
+
+    if (workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setAssessmentEvidenceEvents([]);
+      setAssessmentEvidenceError(null);
+      setAssessmentEvidenceLoading(false);
+      return undefined;
+    }
+
+    void loadAssessmentEvidence();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    selectedLearnerId,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
+
   useEffect(() => {
     let isCurrent = true;
 
@@ -774,6 +857,76 @@ function CurriculumWorkspaceBody() {
               coverageMessage={coverageMessage}
               coverageError={coverageError}
             />
+
+            <section style={{ ...cardStyle, padding: 18 }}>
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={eyebrowStyle}>Assessment evidence</div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Pathway checks</h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Completed pathway checks now appear here as report-ready evidence alongside captured notes.
+                  </p>
+                </div>
+                {assessmentEvidenceLoading ? (
+                  <p style={{ margin: 0, color: "#475569" }}>Loading pathway check evidence...</p>
+                ) : assessmentEvidenceError ? (
+                  <p style={{ margin: 0, color: "#b91c1c" }}>{assessmentEvidenceError}</p>
+                ) : assessmentEvidenceEvents.length ? (
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 12,
+                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                    }}
+                  >
+                    {assessmentEvidenceEvents.slice(0, 6).map((event) => (
+                      <article key={event.id} style={compactCardStyle}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                          <strong style={{ color: "#0f172a" }}>{event.title}</strong>
+                          <span
+                            style={{
+                              border: "1px solid #bbf7d0",
+                              borderRadius: 999,
+                              padding: "4px 9px",
+                              background: "#f0fdf4",
+                              color: "#166534",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Report-ready
+                          </span>
+                        </div>
+                        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                          {formatEvidenceEventDateLabel(event.evidenceDate)}
+                          {event.strand ? ` - ${event.strand}` : ""}
+                        </div>
+                        <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+                          {event.summary}
+                        </p>
+                        <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+                          Questions: {event.questionCount} | Correct: {event.correctCount} | More support: {event.supportRecommendedCount}
+                          {event.notSureCount ? ` | Not sure: ${event.notSureCount}` : ""}
+                        </div>
+                        {event.parentJudgement ? (
+                          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+                            Parent judgement: {event.parentJudgement}
+                          </div>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>No pathway checks yet</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Completed pathway checks will appear here as report-ready evidence.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
 
             <section style={{ ...cardStyle, padding: 18 }}>
               <div style={{ display: "grid", gap: 10 }}>

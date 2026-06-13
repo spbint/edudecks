@@ -21,6 +21,10 @@ import {
   deleteCleanEvidenceEntry,
 } from "@/lib/clean/evidence/client";
 import {
+  listAssessmentLearningEvidenceEventsForLearners,
+  type LearningEvidenceEvent,
+} from "@/lib/clean/evidence/learningEvidenceEvents";
+import {
   createCleanPortfolioHighlight,
   deleteCleanPortfolioHighlight,
   listCleanPortfolioItems,
@@ -110,6 +114,21 @@ function formatDateLabel(value: string) {
   });
 }
 
+function formatEvidenceEventDateLabel(value: string | null) {
+  const normalizedValue = String(value ?? "").trim();
+  if (!normalizedValue) return "Date not recorded";
+
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) return normalizedValue.slice(0, 10) || normalizedValue;
+
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function portfolioCardTitle(item: CleanPortfolioItem) {
   return item.evidence.title || item.evidence.whatHappened;
 }
@@ -181,6 +200,9 @@ function CleanPortfolioWorkspaceBody() {
     "all" | "pathway-only" | "repeated-step"
   >("all");
   const [items, setItems] = useState<CleanPortfolioItem[]>([]);
+  const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
+    LearningEvidenceEvent[]
+  >([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
@@ -331,13 +353,19 @@ function CleanPortfolioWorkspaceBody() {
     setItemsLoading(true);
     setItemsError(null);
     try {
-      const [nextItems, nextPrograms, nextCalendarItems] = await Promise.all([
+      const learnerIds = selectedLearnerId
+        ? [selectedLearnerId]
+        : workspace.learners.map((learner) => learner.id);
+      const [nextItems, nextPrograms, nextCalendarItems, nextAssessmentEvidenceEvents] = await Promise.all([
         listCleanPortfolioItems(workspace.profile.id, {
           learnerId: selectedLearnerId || null,
           limit: 50,
         }),
         listCleanPrograms(workspace.profile.id, { limit: 50 }),
         listCleanCalendarItems(workspace.profile.id, { limit: 80 }),
+        listAssessmentLearningEvidenceEventsForLearners(workspace.profile.id, learnerIds, {
+          limit: 100,
+        }),
       ]);
 
       const nextProgramSegments = (
@@ -349,6 +377,7 @@ function CleanPortfolioWorkspaceBody() {
       ).flat();
 
       setItems(nextItems);
+      setAssessmentEvidenceEvents(nextAssessmentEvidenceEvents);
       setPrograms(nextPrograms);
       setProgramSegments(nextProgramSegments);
       setCalendarItems(nextCalendarItems);
@@ -362,11 +391,12 @@ function CleanPortfolioWorkspaceBody() {
     } finally {
       setItemsLoading(false);
     }
-  }, [selectedLearnerId, workspace.profile]);
+  }, [selectedLearnerId, workspace.learners, workspace.profile]);
 
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setItems([]);
+      setAssessmentEvidenceEvents([]);
       setPrograms([]);
       setProgramSegments([]);
       setCalendarItems([]);
@@ -681,6 +711,83 @@ function CleanPortfolioWorkspaceBody() {
             </section>
 
             <section data-guidance-id="portfolio-evidence-list" style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Pathway checks</h2>
+              <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+                Completed checks are shown as report-ready assessment evidence. Portfolio selection for checks will come later.
+              </p>
+              {itemsLoading ? (
+                <p style={{ margin: 0, color: "#475569" }}>Loading pathway checks...</p>
+              ) : assessmentEvidenceEvents.length ? (
+                <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
+                  {assessmentEvidenceEvents.slice(0, 8).map((event) => {
+                    const learnerLabel =
+                      learnerOptions.find((option) => option.value === event.learnerId)?.label ||
+                      "Unknown learner";
+
+                    return (
+                      <article
+                        key={event.id}
+                        style={{
+                          border: "1px solid #dbeafe",
+                          borderRadius: 14,
+                          padding: 14,
+                          background: "#f8fbff",
+                          display: "grid",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <strong style={{ color: "#0f172a" }}>{event.title}</strong>
+                            <div style={{ color: "#64748b", marginTop: 4 }}>
+                              {formatEvidenceEventDateLabel(event.evidenceDate)} - {learnerLabel}
+                              {event.strand ? ` - ${event.strand}` : ""}
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              border: "1px solid #bbf7d0",
+                              borderRadius: 999,
+                              padding: "5px 10px",
+                              background: "#f0fdf4",
+                              color: "#166534",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              alignSelf: "flex-start",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Report-ready
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+                          {event.summary}
+                        </p>
+                        <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+                          Questions: {event.questionCount} | Correct: {event.correctCount} | More support: {event.supportRecommendedCount}
+                          {event.notSureCount ? ` | Not sure: ${event.notSureCount}` : ""}
+                          {event.parentJudgement ? ` | Parent judgement: ${event.parentJudgement}` : ""}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ ...helperCardStyle, marginBottom: 24 }}>
+                  <strong style={{ color: "#0f172a" }}>No pathway checks yet</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Completed pathway checks can appear here as evidence for your portfolio.
+                  </p>
+                </div>
+              )}
+
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
               <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
                 Unselected evidence is shown first so you can choose what belongs in the

@@ -11,6 +11,7 @@ import type {
   CleanReportSection,
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
+import type { LearningEvidenceEvent } from "@/lib/clean/evidence/learningEvidenceEvents";
 import {
   drawDashboardHeroCard,
   drawDashboardMetricGrid,
@@ -41,6 +42,7 @@ export type CleanReportPdfModel = {
   reportingPeriod: CleanReportingPeriod | null;
   sections: CleanReportSection[];
   evidenceItems: CleanReportPdfEvidenceItem[];
+  assessmentEvidenceItems?: LearningEvidenceEvent[];
   preparedOnLabel: string;
   statusLabel: string;
 };
@@ -129,6 +131,18 @@ function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
   return parts.join(" | ");
 }
 
+function formatEvidenceEventDateLabel(value: string | null | undefined) {
+  const clean = safe(value);
+  if (!clean) return "Not set";
+  const date = new Date(clean);
+  if (Number.isNaN(date.getTime())) return clean.slice(0, 10) || clean;
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function buildDashboardPalette(theme: PdfTheme): DashboardPdfPalette {
   return {
     title: theme.title,
@@ -175,6 +189,7 @@ function buildLearningRecordMetricTiles(
   learningAreas: string[],
 ): DashboardPdfMetricTile[] {
   const latestEvidence = getLatestEvidenceItem(model.evidenceItems);
+  const assessmentEvidenceCount = model.assessmentEvidenceItems?.length ?? 0;
   return [
     {
       label: "Selected evidence",
@@ -199,6 +214,14 @@ function buildLearningRecordMetricTiles(
         ? learningAreas.slice(0, 3).join(", ")
         : "Not recorded yet",
       tone: "lavender",
+    },
+    {
+      label: "Pathway checks",
+      value: String(assessmentEvidenceCount),
+      helper: assessmentEvidenceCount
+        ? "Report-ready assessment evidence"
+        : "No completed checks in this record",
+      tone: assessmentEvidenceCount ? "success" : "neutral",
     },
     {
       label: "Report status",
@@ -977,6 +1000,97 @@ function drawEvidenceDetailCard(
   return next;
 }
 
+function drawAssessmentEvidenceDetailCard(
+  composer: PdfComposer,
+  item: LearningEvidenceEvent,
+  index: number,
+) {
+  const width = composer.width - composer.margin * 2 - 28;
+  const titleLines = wrapText(
+    `${index + 1}. ${item.title}`,
+    composer.bold,
+    13,
+    width,
+  );
+  const metaLine = [
+    item.evidenceDate ? `Completed ${formatEvidenceEventDateLabel(item.evidenceDate)}` : "",
+    item.subject ? `Subject ${item.subject}` : "",
+    item.strand ? `Strand ${item.strand}` : "",
+    item.stepNumber ? `Step ${item.stepNumber}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const resultLine = [
+    `${item.correctCount} of ${item.questionCount} correct`,
+    `${item.supportRecommendedCount} ${item.supportRecommendedCount === 1 ? "question" : "questions"} marked for more support`,
+    item.notSureCount ? `${item.notSureCount} not sure` : "",
+    item.parentJudgement ? `Parent judgement: ${item.parentJudgement}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const metaLines = metaLine ? wrapText(metaLine, composer.regular, 10, width) : [];
+  const resultLines = wrapText(resultLine, composer.regular, 10, width);
+  const summaryLines = wrapText(item.summary, composer.regular, 10.75, width);
+  const totalHeight =
+    18 +
+    measureWrappedLines(titleLines, 17) +
+    8 +
+    (metaLines.length ? measureWrappedLines(metaLines, 13) + 6 : 0) +
+    measureWrappedLines(resultLines, 13) +
+    10 +
+    measureWrappedLines(summaryLines, 15) +
+    18;
+  const next = ensureSpace(composer, totalHeight + 10);
+  const top = next.y;
+
+  drawPanel(next, top, totalHeight, {
+    fill: rgb(0.96, 0.99, 0.97),
+    border: rgb(0.76, 0.9, 0.81),
+  });
+
+  let cursor = drawPreparedLines(next, titleLines, {
+    x: next.margin + 14,
+    y: top - 18,
+    font: next.bold,
+    fontSize: 13,
+    lineHeight: 17,
+    color: next.theme.heading,
+  });
+
+  if (metaLines.length) {
+    cursor = drawPreparedLines(next, metaLines, {
+      x: next.margin + 14,
+      y: cursor,
+      font: next.regular,
+      fontSize: 10,
+      lineHeight: 13,
+      color: next.theme.muted,
+    });
+    cursor -= 4;
+  }
+
+  cursor = drawPreparedLines(next, resultLines, {
+    x: next.margin + 14,
+    y: cursor,
+    font: next.bold,
+    fontSize: 10,
+    lineHeight: 13,
+    color: rgb(0.08, 0.39, 0.24),
+  });
+
+  drawPreparedLines(next, summaryLines, {
+    x: next.margin + 14,
+    y: cursor - 8,
+    font: next.regular,
+    fontSize: 10.75,
+    lineHeight: 15,
+    color: next.theme.body,
+  });
+
+  next.y = top - totalHeight - 8;
+  return next;
+}
+
 function addFooter(doc: PDFDocument, regular: PDFFont, theme: PdfTheme) {
   const pageCount = doc.getPageCount();
   doc.getPages().forEach((page, index) => {
@@ -1038,6 +1152,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     ? `This learning record brings together selected portfolio evidence and written report sections for ${model.learnerLabel} during ${model.reportingPeriod.title}.`
     : `This learning record brings together selected portfolio evidence and written report sections for ${model.learnerLabel}.`;
   const latestEvidence = getLatestEvidenceItem(model.evidenceItems);
+  const assessmentEvidenceItems = model.assessmentEvidenceItems ?? [];
 
   let composer = createComposer(doc, regular, bold, theme);
 
@@ -1114,6 +1229,13 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
           : "Not recorded yet",
         tone: learningAreas.length ? "lavender" : "neutral",
       },
+      {
+        label: "Pathway checks",
+        value: assessmentEvidenceItems.length
+          ? `${assessmentEvidenceItems.length} included`
+          : "None included yet",
+        tone: assessmentEvidenceItems.length ? "success" : "neutral",
+      },
     ],
   });
   composer = drawDashboardMetricGrid(
@@ -1146,6 +1268,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   );
   composer = drawSummaryCard(composer, "Record summary", [
     `${model.evidenceItems.length} selected ${model.evidenceItems.length === 1 ? "evidence entry supports" : "evidence entries support"} this learning record.`,
+    `${assessmentEvidenceItems.length} pathway ${assessmentEvidenceItems.length === 1 ? "check is" : "checks are"} included as assessment evidence.`,
     `${model.sections.length} written ${model.sections.length === 1 ? "section shapes" : "sections shape"} the narrative.`,
     `Learning areas represented: ${learningAreas.length ? learningAreas.join(", ") : "Not recorded yet"}.`,
   ]);
@@ -1170,6 +1293,34 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     composer = drawTextBlock(
       composer,
       "No selected portfolio evidence is attached to this report yet.",
+      {
+        fontSize: 10.5,
+        lineHeight: 14,
+      },
+    );
+  }
+
+  composer = drawHeading(composer, "Pathway assessment evidence", 2, {
+    minFollowingSpace: assessmentEvidenceItems.length ? 150 : 40,
+  });
+  composer = drawTextBlock(
+    composer,
+    "Completed pathway checks are included as report-ready evidence for this learning record.",
+    {
+      fontSize: 10.75,
+      lineHeight: 15,
+      spacingAfter: 8,
+      color: theme.muted,
+    },
+  );
+  if (assessmentEvidenceItems.length) {
+    assessmentEvidenceItems.forEach((item, index) => {
+      composer = drawAssessmentEvidenceDetailCard(composer, item, index);
+    });
+  } else {
+    composer = drawTextBlock(
+      composer,
+      "No completed pathway checks match this report period yet.",
       {
         fontSize: 10.5,
         lineHeight: 14,

@@ -18,6 +18,10 @@ import {
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import {
+  listAssessmentLearningEvidenceEventsForLearner,
+  type LearningEvidenceEvent,
+} from "@/lib/clean/evidence/learningEvidenceEvents";
+import {
   createCleanReport,
   createCleanReportingPeriod,
   deleteCleanReport,
@@ -152,6 +156,20 @@ function getLearnerLabel(firstName: string, preferredName: string | null) {
 function formatDateLabel(value: string) {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatEvidenceEventDateLabel(value: string | null) {
+  const normalizedValue = String(value ?? "").trim();
+  if (!normalizedValue) return "Date not recorded";
+
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) return normalizedValue.slice(0, 10) || normalizedValue;
+
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -530,6 +548,9 @@ function CleanReportsWorkspaceBody() {
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
+  const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
+    LearningEvidenceEvent[]
+  >([]);
   const [learningPeriods, setLearningPeriods] = useState<CleanLearningPeriod[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioError, setPortfolioError] = useState<string | null>(null);
@@ -853,6 +874,7 @@ function CleanReportsWorkspaceBody() {
   const reloadPortfolioItems = useCallback(async () => {
     if (!workspace.profile || !activeLearnerId) {
       setPortfolioItems([]);
+      setAssessmentEvidenceEvents([]);
       setPortfolioError(null);
       return;
     }
@@ -861,14 +883,26 @@ function CleanReportsWorkspaceBody() {
     setPortfolioError(null);
 
     try {
-      const nextItems = await listCleanPortfolioItems(workspace.profile.id, {
-        learnerId: activeLearnerId,
-        fromDate: activePeriod?.startsOn ?? null,
-        toDate: activePeriod?.endsOn ?? null,
-        highlightedOnly: true,
-        limit: 100,
-      });
+      const [nextItems, nextAssessmentEvidenceEvents] = await Promise.all([
+        listCleanPortfolioItems(workspace.profile.id, {
+          learnerId: activeLearnerId,
+          fromDate: activePeriod?.startsOn ?? null,
+          toDate: activePeriod?.endsOn ?? null,
+          highlightedOnly: true,
+          limit: 100,
+        }),
+        listAssessmentLearningEvidenceEventsForLearner(
+          workspace.profile.id,
+          activeLearnerId,
+          {
+            fromDate: activePeriod?.startsOn ?? null,
+            toDate: activePeriod?.endsOn ?? null,
+            limit: 100,
+          },
+        ),
+      ]);
       setPortfolioItems(nextItems);
+      setAssessmentEvidenceEvents(nextAssessmentEvidenceEvents);
     } catch (error) {
       setPortfolioError(
         normalizeCleanErrorMessage(
@@ -887,6 +921,7 @@ function CleanReportsWorkspaceBody() {
       setReports([]);
       setSections([]);
       setPortfolioItems([]);
+      setAssessmentEvidenceEvents([]);
       setLearningPeriods([]);
       setPortfolioError(null);
       setSelectedReportId(null);
@@ -1716,7 +1751,9 @@ function CleanReportsWorkspaceBody() {
                             <div style={{ color: "#475569", marginTop: 4, lineHeight: 1.6 }}>
                               {selectedPathwayEvidenceSummary.repeatedSteps.length
                                 ? "Several notes for the same pathway step are included. You may want to keep the clearest example in My Portfolio."
-                                : "Included highlights ready to support this report."}
+                                : assessmentEvidenceEvents.length
+                                  ? `${assessmentEvidenceEvents.length} pathway ${assessmentEvidenceEvents.length === 1 ? "check is" : "checks are"} also ready for this report.`
+                                  : "Included highlights ready to support this report."}
                             </div>
                           </div>
                         </div>
@@ -1855,6 +1892,49 @@ function CleanReportsWorkspaceBody() {
                             No learning evidence matches this report yet. Add highlights in My Portfolio, then return here.
                           </p>
                         )}
+                        <div
+                          style={{
+                            borderTop: "1px solid #e2e8f0",
+                            paddingTop: 12,
+                            display: "grid",
+                            gap: 10,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>
+                            Pathway assessment evidence
+                          </strong>
+                          {portfolioLoading ? null : assessmentEvidenceEvents.length ? (
+                            <div style={{ display: "grid", gap: 10 }}>
+                              {assessmentEvidenceEvents.slice(0, 5).map((event) => (
+                                <div
+                                  key={event.id}
+                                  style={{
+                                    display: "grid",
+                                    gap: 4,
+                                    paddingLeft: 14,
+                                    borderLeft: "3px solid #22c55e",
+                                  }}
+                                >
+                                  <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                                    {event.title}
+                                  </div>
+                                  <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                    {formatEvidenceEventDateLabel(event.evidenceDate)}
+                                    {event.strand ? ` | ${event.strand}` : ""}
+                                    {event.parentJudgement ? ` | Parent judgement: ${event.parentJudgement}` : ""}
+                                  </div>
+                                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                                    {event.summary}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                              Completed pathway checks for this learner and reporting period will appear here.
+                            </p>
+                          )}
+                        </div>
                       </section>
 
                       <section style={{ display: "grid", gap: 22 }}>
