@@ -4,9 +4,8 @@ import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  buildReportProblemMailto,
-  MYLEARNA_SUPPORT_EMAIL,
-} from "@/app/components/clean/feedback/reportProblemMailto";
+  submitReportProblem,
+} from "@/app/components/clean/feedback/reportProblemClient";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 
 type FeedbackPage = {
@@ -75,7 +74,7 @@ export default function CleanPageFeedbackWidget() {
   const [category, setCategory] = useState<(typeof PAGE_REPORT_OPTIONS)[number]>(
     "Something looks wrong",
   );
-  const [status, setStatus] = useState<"idle" | "opened" | "copied" | "failed">(
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "failed">(
     "idle",
   );
   const [statusMessage, setStatusMessage] = useState("");
@@ -114,23 +113,17 @@ export default function CleanPageFeedbackWidget() {
   }
 
   const activePage = page;
-  const sent = status === "opened" || status === "copied";
+  const sent = status === "sent";
   const remainingCharacters = PAGE_FEEDBACK_MAX_LENGTH - feedbackText.length;
 
-  function getReportDetails() {
-    return buildReportProblemMailto({
-      subject: "MyLearna page report",
-      type: "Page",
-      category,
-      message: feedbackText,
-      context: [
-        ["Page", activePage.title],
-        ["Route", getRoute(pathname)],
-        ["URL", getSourceUrl()],
-        ["Timestamp", new Date().toISOString()],
-        ["Browser", getUserAgent()],
-      ],
-    });
+  function getReportContext() {
+    return {
+      Page: activePage.title,
+      Route: getRoute(pathname),
+      URL: getSourceUrl(),
+      Timestamp: new Date().toISOString(),
+      Browser: getUserAgent(),
+    };
   }
 
   function handleOpen() {
@@ -146,29 +139,33 @@ export default function CleanPageFeedbackWidget() {
     setFeedbackText("");
   }
 
-  function openEmail(event: React.FormEvent<HTMLFormElement>) {
+  async function submitReport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const report = getReportDetails();
-    window.location.href = report.href;
-    setStatus("opened");
-    setStatusMessage("Your email app should open with the report details filled in.");
-  }
-
-  async function copyReportDetails() {
-    const report = getReportDetails();
-
-    try {
-      await navigator.clipboard.writeText(
-        `${report.body}\n\nEmail to: ${MYLEARNA_SUPPORT_EMAIL}`,
-      );
-      setStatus("copied");
-      setStatusMessage(`Report details copied. Email them to ${MYLEARNA_SUPPORT_EMAIL}.`);
-    } catch {
+    const trimmedFeedback = feedbackText.trim();
+    if (!trimmedFeedback) {
       setStatus("failed");
-      setStatusMessage(
-        `Could not copy automatically. Please email ${MYLEARNA_SUPPORT_EMAIL}.`,
-      );
+      setStatusMessage("Tell us what you noticed before sending.");
+      return;
     }
+
+    setStatus("sending");
+    setStatusMessage("");
+
+    const result = await submitReportProblem({
+      type: "page",
+      category,
+      message: trimmedFeedback,
+      context: getReportContext(),
+    });
+
+    if (!result.ok) {
+      setStatus("failed");
+      setStatusMessage(result.message);
+      return;
+    }
+
+    setStatus("sent");
+    setStatusMessage("Thanks — your report has been sent.");
   }
 
   return (
@@ -283,7 +280,7 @@ export default function CleanPageFeedbackWidget() {
                       {statusMessage}
                     </div>
                   ) : (
-                    <form onSubmit={openEmail} style={{ display: "grid", gap: 12 }}>
+                    <form onSubmit={submitReport} style={{ display: "grid", gap: 12 }}>
                       <label style={{ display: "grid", gap: 8 }}>
                         <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
                           Category
@@ -369,23 +366,8 @@ export default function CleanPageFeedbackWidget() {
                           Cancel
                         </button>
                         <button
-                          type="button"
-                          onClick={() => void copyReportDetails()}
-                          style={{
-                            border: "1px solid #cbd5e1",
-                            background: "#ffffff",
-                            color: "#0f172a",
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Copy report details
-                        </button>
-                        <button
                           type="submit"
+                          disabled={status === "sending"}
                           style={{
                             border: "1px solid #0f172a",
                             background: "#0f172a",
@@ -394,10 +376,11 @@ export default function CleanPageFeedbackWidget() {
                             padding: "10px 14px",
                             fontSize: 14,
                             fontWeight: 700,
-                            cursor: "pointer",
+                            cursor: status === "sending" ? "not-allowed" : "pointer",
+                            opacity: status === "sending" ? 0.7 : 1,
                           }}
                         >
-                          Open email
+                          {status === "sending" ? "Sending..." : "Send report"}
                         </button>
                       </div>
                     </form>

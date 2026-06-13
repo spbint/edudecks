@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 import type React from "react";
 import { usePathname } from "next/navigation";
 import {
-  buildReportProblemMailto,
-  MYLEARNA_SUPPORT_EMAIL,
-} from "@/app/components/clean/feedback/reportProblemMailto";
+  submitReportProblem,
+} from "@/app/components/clean/feedback/reportProblemClient";
 
 type ReportProblemButtonProps = {
   pageTitle?: string;
 };
 
-type SubmitState = "idle" | "opened" | "copied" | "failed";
+type SubmitState = "idle" | "sending" | "sent" | "failed";
 
 const PAGE_REPORT_OPTIONS = [
   "Something looks wrong",
@@ -38,6 +37,10 @@ function getRoute(pathname: string) {
 function getUserAgent() {
   if (typeof navigator === "undefined") return "";
   return navigator.userAgent;
+}
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
 }
 
 const triggerStyle: React.CSSProperties = {
@@ -125,46 +128,42 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  function getReportDetails() {
-    return buildReportProblemMailto({
-      subject: "MyLearna page report",
-      type: "Page",
-      category,
-      message,
-      context: [
-        ["Page", pageTitle],
-        ["Route", getRoute(pathname)],
-        ["URL", getSourceUrl()],
-        ["Timestamp", new Date().toISOString()],
-        ["Browser", getUserAgent()],
-      ],
-    });
+  function getReportContext() {
+    return {
+      Page: pageTitle,
+      Route: getRoute(pathname),
+      URL: getSourceUrl(),
+      Timestamp: new Date().toISOString(),
+      Browser: getUserAgent(),
+    };
   }
 
-  function openEmail() {
-    const report = getReportDetails();
-    window.location.href = report.href;
-    setSubmitState("opened");
-    setStatusMessage("Your email app should open with the report details filled in.");
-  }
-
-  async function copyReportDetails() {
-    const report = getReportDetails();
-
-    try {
-      await navigator.clipboard.writeText(
-        `${report.body}\n\nEmail to: ${MYLEARNA_SUPPORT_EMAIL}`,
-      );
-      setSubmitState("copied");
-      setStatusMessage(
-        `Report details copied. Email them to ${MYLEARNA_SUPPORT_EMAIL}.`,
-      );
-    } catch {
+  async function submitReport() {
+    const trimmedMessage = safe(message);
+    if (!trimmedMessage) {
       setSubmitState("failed");
-      setStatusMessage(
-        `Could not copy automatically. Please email ${MYLEARNA_SUPPORT_EMAIL}.`,
-      );
+      setStatusMessage("Tell us what you noticed before sending.");
+      return;
     }
+
+    setSubmitState("sending");
+    setStatusMessage("");
+
+    const result = await submitReportProblem({
+      type: "page",
+      category,
+      message: trimmedMessage,
+      context: getReportContext(),
+    });
+
+    if (!result.ok) {
+      setSubmitState("failed");
+      setStatusMessage(result.message);
+      return;
+    }
+
+    setSubmitState("sent");
+    setStatusMessage("Thanks — your report has been sent.");
   }
 
   function closeDialog() {
@@ -174,7 +173,7 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
     setMessage("");
   }
 
-  const reportOpened = submitState === "opened" || submitState === "copied";
+  const reportSent = submitState === "sent";
 
   return (
     <>
@@ -206,7 +205,7 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
               </p>
             </div>
 
-            {reportOpened ? (
+            {reportSent ? (
               <div
                 role="status"
                 style={{
@@ -293,20 +292,20 @@ export default function ReportProblemButton({ pageTitle }: ReportProblemButtonPr
               }}
             >
               <button type="button" onClick={closeDialog} style={secondaryButtonStyle}>
-                {reportOpened ? "Close" : "Cancel"}
+                {reportSent ? "Close" : "Cancel"}
               </button>
-              {!reportOpened ? (
+              {!reportSent ? (
                 <button
                   type="button"
-                  onClick={() => void copyReportDetails()}
-                  style={secondaryButtonStyle}
+                  onClick={() => void submitReport()}
+                  disabled={submitState === "sending"}
+                  style={{
+                    ...primaryButtonStyle,
+                    opacity: submitState === "sending" ? 0.65 : 1,
+                    cursor: submitState === "sending" ? "not-allowed" : "pointer",
+                  }}
                 >
-                  Copy report details
-                </button>
-              ) : null}
-              {!reportOpened ? (
-                <button type="button" onClick={openEmail} style={primaryButtonStyle}>
-                  Open email
+                  {submitState === "sending" ? "Sending..." : "Send report"}
                 </button>
               ) : null}
             </div>

@@ -7,9 +7,8 @@ import {
   type ContentIssueType,
 } from "@/lib/clean/contentIssueReports";
 import {
-  buildReportProblemMailto,
-  MYLEARNA_SUPPORT_EMAIL,
-} from "@/app/components/clean/feedback/reportProblemMailto";
+  submitReportProblem,
+} from "@/app/components/clean/feedback/reportProblemClient";
 
 export type ContentIssueReportContext = {
   mode: ContentIssueReportMode;
@@ -36,7 +35,7 @@ export type ContentIssueReportContext = {
   context?: Record<string, unknown>;
 };
 
-type SubmitState = "idle" | "opened" | "copied" | "failed";
+type SubmitState = "idle" | "sending" | "sent" | "failed";
 
 const triggerStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
@@ -135,6 +134,10 @@ function getIssueLabel(value: ContentIssueType) {
   );
 }
 
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
 export default function CleanContentIssueReportButton({
   context,
   label = "Report a problem with this question",
@@ -162,60 +165,55 @@ export default function CleanContentIssueReportButton({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  function getReportDetails() {
-    return buildReportProblemMailto({
-      subject:
-        context.mode === "summary"
-          ? "MyLearna activity report"
-          : "MyLearna question report",
-      type: context.mode === "summary" ? "Activity" : "Question",
-      category: getIssueLabel(issueType),
-      message: note,
-      context: [
-        ["Mode", getModeLabel(context.mode)],
-        ["Route", getRoute()],
-        ["URL", getSourceUrl()],
-        ["Step ID", context.pathwayStepId],
-        ["Step key", context.stepKey],
-        ["Step title", context.stepTitle],
-        ["Subject", context.subjectKey],
-        ["Strand", context.strandKey],
-        ["Stage", context.stageKey],
-        ["Question ID", context.itemId ?? context.taskId],
-        ["Question", context.context?.currentIndex ?? context.context?.taskIndex],
-        ["Practice depth", context.practiceDepth],
-        ["Assessment depth", context.assessmentDepth],
-        ["Timestamp", new Date().toISOString()],
-        ["Browser", getUserAgent()],
-      ],
-    });
+  function getReportContext() {
+    return {
+      Mode: getModeLabel(context.mode),
+      Route: getRoute(),
+      URL: getSourceUrl(),
+      "Step ID": context.pathwayStepId,
+      "Step key": context.stepKey,
+      "Step title": context.stepTitle,
+      Subject: context.subjectKey,
+      Strand: context.strandKey,
+      Stage: context.stageKey,
+      "Question ID": context.itemId ?? context.taskId,
+      Question: context.context?.currentIndex ?? context.context?.taskIndex,
+      "Practice depth": context.practiceDepth,
+      "Assessment depth": context.assessmentDepth,
+      Timestamp: new Date().toISOString(),
+      Browser: getUserAgent(),
+    };
   }
 
-  function openEmail() {
-    const report = getReportDetails();
-    window.location.href = report.href;
-    setSubmitState("opened");
-    setMessage("Your email app should open with the report details filled in.");
-  }
-
-  async function copyReportDetails() {
-    const report = getReportDetails();
-
-    try {
-      await navigator.clipboard.writeText(
-        `${report.body}\n\nEmail to: ${MYLEARNA_SUPPORT_EMAIL}`,
-      );
-      setSubmitState("copied");
-      setMessage(`Report details copied. Email them to ${MYLEARNA_SUPPORT_EMAIL}.`);
-    } catch {
+  async function submitReport() {
+    const trimmedNote = safe(note);
+    if (!trimmedNote) {
       setSubmitState("failed");
-      setMessage(
-        `Could not copy automatically. Please email ${MYLEARNA_SUPPORT_EMAIL}.`,
-      );
+      setMessage("Tell us what you noticed before sending.");
+      return;
     }
+
+    setSubmitState("sending");
+    setMessage("");
+
+    const result = await submitReportProblem({
+      type: "question",
+      category: getIssueLabel(issueType),
+      message: trimmedNote,
+      context: getReportContext(),
+    });
+
+    if (!result.ok) {
+      setSubmitState("failed");
+      setMessage(result.message);
+      return;
+    }
+
+    setSubmitState("sent");
+    setMessage("Thanks — your report has been sent.");
   }
 
-  const reportOpened = submitState === "opened" || submitState === "copied";
+  const reportSent = submitState === "sent";
 
   return (
     <>
@@ -250,7 +248,7 @@ export default function CleanContentIssueReportButton({
               </div>
             </div>
 
-            {reportOpened ? (
+            {reportSent ? (
               <div
                 style={{
                   border: "1px solid #bbf7d0",
@@ -348,20 +346,20 @@ export default function CleanContentIssueReportButton({
                 }}
                 style={secondaryButtonStyle}
               >
-                {reportOpened ? "Close" : "Cancel"}
+                {reportSent ? "Close" : "Cancel"}
               </button>
-              {!reportOpened ? (
+              {!reportSent ? (
                 <button
                   type="button"
-                  onClick={() => void copyReportDetails()}
-                  style={secondaryButtonStyle}
+                  onClick={() => void submitReport()}
+                  disabled={submitState === "sending"}
+                  style={{
+                    ...buttonStyle,
+                    opacity: submitState === "sending" ? 0.62 : 1,
+                    cursor: submitState === "sending" ? "not-allowed" : "pointer",
+                  }}
                 >
-                  Copy report details
-                </button>
-              ) : null}
-              {!reportOpened ? (
-                <button type="button" onClick={openEmail} style={buttonStyle}>
-                  Open email
+                  {submitState === "sending" ? "Sending..." : "Send report"}
                 </button>
               ) : null}
             </div>
