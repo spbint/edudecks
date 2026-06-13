@@ -20,4 +20,6 @@ export type ActivityPlayerV4VisualMode = "compact" | "full" | "feedback" | "work
 
 export type ActivityPlayerV4Props = {
   samples: ActivityPlayerV4Sample[];
+  chrome?: "standalone" | "embedded";
+  previewLabel?: string;
 };

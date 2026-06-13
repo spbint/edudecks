@@ -146,6 +146,9 @@ function routeTitle(pathname: string) {
     return "My Settings";
   }
   if (pathname.startsWith("/my-community")) return "My Community";
+  if (pathname.startsWith("/my-pathways/activity-player-v4-preview")) {
+    return "Activity Player V4 Preview";
+  }
   if (pathname.startsWith("/my-pathways/placement") || pathname.startsWith("/clean-my-pathways/placement")) {
     return "Pathway Placement";
   }
@@ -168,6 +171,13 @@ function routeCrumbs(pathname: string): BreadcrumbItem[] {
     return [{ label: "MyLearna" }, { label: "My Settings", href: "/my-settings" }];
   }
   if (pathname.startsWith("/my-community")) return [{ label: "MyLearna" }, { label: "My Community" }];
+  if (pathname.startsWith("/my-pathways/activity-player-v4-preview")) {
+    return [
+      { label: "MyLearna" },
+      { label: "My Pathways", href: "/my-pathways" },
+      { label: "Activity Player V4 Preview" },
+    ];
+  }
   if (pathname.startsWith("/my-pathways/placement") || pathname.startsWith("/clean-my-pathways/placement")) {
     return [{ label: "MyLearna" }, { label: "My Pathways", href: "/my-pathways" }, { label: "Placement" }];
   }
@@ -187,6 +197,9 @@ function routeCrumbs(pathname: string): BreadcrumbItem[] {
 }
 
 function getActivityMode(pathname: string): "practice" | "assess" | null {
+  if (pathname.startsWith("/my-pathways/activity-player-v4-preview")) {
+    return "practice";
+  }
   if (pathname.startsWith("/practice/number-targeted") || pathname.startsWith("/pathways/practice-prototype")) {
     return "practice";
   }
@@ -272,6 +285,9 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const breadcrumbs = routeCrumbs(pathname);
   const activityMode = getActivityMode(pathname);
   const activityContext =
+    pathname.startsWith("/my-pathways/activity-player-v4-preview")
+      ? "Activity Player V4 preview"
+      :
     formatActivityContext(searchParams.get("stepKey")) ||
     formatActivityContext(searchParams.get("pathwayStepId")) ||
     "My Pathways";

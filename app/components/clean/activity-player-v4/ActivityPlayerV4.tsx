@@ -749,7 +749,11 @@ function FeedbackPanelV4({
   );
 }
 
-export default function ActivityPlayerV4({ samples }: ActivityPlayerV4Props) {
+export default function ActivityPlayerV4({
+  samples,
+  chrome = "standalone",
+  previewLabel = "Activity Player V4 lab",
+}: ActivityPlayerV4Props) {
   const [sampleIndex, setSampleIndex] = useState(0);
   const [mode, setMode] = useState<ActivityPlayerV4Sample["mode"]>("practice");
   const [selected, setSelected] = useState<string | null>(null);
@@ -772,9 +776,10 @@ export default function ActivityPlayerV4({ samples }: ActivityPlayerV4Props) {
   const effectiveMode = mode;
   const selectedCorrect = isCorrect(sample, selected);
   const hasNext = sampleIndex < samples.length - 1;
+  const standalone = chrome === "standalone";
 
   return (
-    <div style={{ minHeight: "100vh", background: tokens.page, color: tokens.navy }}>
+    <div style={{ minHeight: standalone ? "100vh" : "auto", background: tokens.page, color: tokens.navy }}>
       <style jsx global>{`
         @media (max-width: 860px) {
           .activity-v4-canvas-grid {
@@ -789,54 +794,56 @@ export default function ActivityPlayerV4({ samples }: ActivityPlayerV4Props) {
           }
         }
       `}</style>
-      <header
-        className="activity-v4-header"
-        style={{
-          minHeight: 58,
-          borderBottom: `1px solid ${tokens.border}`,
-          background: "rgba(247,249,252,0.94)",
-          backdropFilter: "blur(14px)",
-          padding: "10px clamp(12px, 3vw, 24px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <Link
-          href="/my-pathways"
+      {standalone ? (
+        <header
+          className="activity-v4-header"
           style={{
-            color: tokens.navy,
-            textDecoration: "none",
-            border: `1px solid ${tokens.border}`,
-            background: "#FFFFFF",
-            borderRadius: 999,
-            padding: "8px 11px",
-            fontSize: 13,
-            fontWeight: 650,
+            minHeight: 58,
+            borderBottom: `1px solid ${tokens.border}`,
+            background: "rgba(247,249,252,0.94)",
+            backdropFilter: "blur(14px)",
+            padding: "10px clamp(12px, 3vw, 24px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
           }}
         >
-          &larr; Back to My Pathways
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-          <span
+          <Link
+            href="/my-pathways"
             style={{
+              color: tokens.navy,
+              textDecoration: "none",
+              border: `1px solid ${tokens.border}`,
+              background: "#FFFFFF",
               borderRadius: 999,
-              background: effectiveMode === "assess" ? tokens.mint : tokens.lavender,
-              color: effectiveMode === "assess" ? tokens.green : tokens.purple,
-              padding: "4px 9px",
-              fontSize: 12,
+              padding: "8px 11px",
+              fontSize: 13,
               fontWeight: 650,
             }}
           >
-            {effectiveMode === "assess" ? "Assess" : "Practise"}
-          </span>
-          <span style={{ color: tokens.slate, fontSize: 13 }}>{sample.stepLabel}</span>
-        </div>
-        <div style={{ color: tokens.slate, fontSize: 13 }}>Activity Player V4 lab</div>
-      </header>
+            &larr; Back to My Pathways
+          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+            <span
+              style={{
+                borderRadius: 999,
+                background: effectiveMode === "assess" ? tokens.mint : tokens.lavender,
+                color: effectiveMode === "assess" ? tokens.green : tokens.purple,
+                padding: "4px 9px",
+                fontSize: 12,
+                fontWeight: 650,
+              }}
+            >
+              {effectiveMode === "assess" ? "Assess" : "Practise"}
+            </span>
+            <span style={{ color: tokens.slate, fontSize: 13 }}>{sample.stepLabel}</span>
+          </div>
+          <div style={{ color: tokens.slate, fontSize: 13 }}>{previewLabel}</div>
+        </header>
+      ) : null}
 
-      <main style={{ padding: "clamp(14px, 4vw, 32px)" }}>
+      <main style={{ padding: standalone ? "clamp(14px, 4vw, 32px)" : 0 }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", display: "grid", gap: 14 }}>
           <section
             style={{
