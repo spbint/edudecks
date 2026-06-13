@@ -12,10 +12,13 @@ import CleanContentIssueReportButton, {
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   AnswerOptionGrid,
+  ActivityPlayerGridV4,
+  AnswerDock,
   FeedbackPanel,
   HintDrawer,
   LearningPanel,
   ParentJudgementPanel,
+  QuestionStage,
   StepProgressBar,
 } from "@/app/components/clean/learning/LearningExperienceV2";
 import {
@@ -7948,41 +7951,36 @@ function CleanNumberAssessmentPlayerBody() {
                     title={currentItem.title}
                     subtitle="Have a go on your own."
                   >
-                    <div style={{ display: "grid", gap: 10 }}>
-                      {!incomingStepAssessment ? (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          <span style={getDifficultyTone(currentItem.difficulty)}>
-                            {currentItem.difficulty}
-                          </span>
-                          <span style={getFormatTone(currentItem.format)}>
-                            {getFormatLabel(currentItem.format)}
-                          </span>
-                        </div>
-                      ) : null}
-                      {incomingStepAssessment ? (
-                        <HintDrawer summary="Need a hint?">
-                          {renderEarlyNumberVisual(currentItem) ?? (
-                            <span>Read the question carefully and choose the answer that best fits.</span>
-                          )}
-                        </HintDrawer>
-                      ) : null}
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#334155",
-                          fontSize: 16,
-                          lineHeight: 1.55,
-                        }}
-                      >
-                        {currentItem.prompt}
-                      </p>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 10 }}>
-                      <div style={eyebrowStyle}>Response</div>
-
-                      {renderResponseControl()}
-                    </div>
+                    <ActivityPlayerGridV4
+                      question={
+                        <QuestionStage>
+                          <p style={{ margin: 0 }}>{currentItem.prompt}</p>
+                        </QuestionStage>
+                      }
+                      answers={
+                        <AnswerDock>
+                          {!incomingStepAssessment ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                              <span style={getDifficultyTone(currentItem.difficulty)}>
+                                {currentItem.difficulty}
+                              </span>
+                              <span style={getFormatTone(currentItem.format)}>
+                                {getFormatLabel(currentItem.format)}
+                              </span>
+                            </div>
+                          ) : null}
+                          <div style={eyebrowStyle}>Response</div>
+                          {renderResponseControl()}
+                          {incomingStepAssessment ? (
+                            <HintDrawer summary="Need a hint?">
+                              {renderEarlyNumberVisual(currentItem) ?? (
+                                <span>Read the question carefully and choose the answer that best fits.</span>
+                              )}
+                            </HintDrawer>
+                          ) : null}
+                        </AnswerDock>
+                      }
+                    />
                   </LearningPanel>
 
                   <aside style={supportColumnStyle}>

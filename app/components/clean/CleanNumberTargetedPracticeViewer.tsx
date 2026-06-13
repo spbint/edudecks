@@ -9,9 +9,12 @@ import CleanContentIssueReportButton, {
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import {
   AnswerOptionGrid,
+  ActivityPlayerGridV4,
+  AnswerDock,
   FeedbackPanel,
   HintDrawer,
   LearningPanel,
+  QuestionStage,
   StepProgressBar,
 } from "@/app/components/clean/learning/LearningExperienceV2";
 import {
@@ -1930,9 +1933,16 @@ function TaskCard({
       tone="practice"
       eyebrow={`Task ${index + 1}`}
       title={task.title}
-      subtitle={task.prompt}
+      subtitle="Let's try together."
     >
-      {renderEarlyNumberPracticeVisual(task)}
+      <ActivityPlayerGridV4
+        question={
+          <QuestionStage visual={renderEarlyNumberPracticeVisual(task)}>
+            <p style={{ margin: 0 }}>{task.prompt}</p>
+          </QuestionStage>
+        }
+        answers={
+          <AnswerDock>
       {task.taskType === "worked_example" ? (
         <HintDrawer summary="Think about it">
           Read the worked example, then mark it reviewed when it makes sense.
@@ -4152,6 +4162,9 @@ function TaskCard({
           </span>
         ))}
       </div>
+          </AnswerDock>
+        }
+      />
     </LearningPanel>
   );
 }

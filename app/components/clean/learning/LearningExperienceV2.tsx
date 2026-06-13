@@ -18,7 +18,7 @@ export const learningV2 = {
   card: "#FFFFFF",
 };
 
-export function LearningPanel({
+export function ActivityPlayerV4({
   tone = "practice",
   eyebrow,
   title,
@@ -38,15 +38,15 @@ export function LearningPanel({
 
   return (
     <section
-      className="mylearna-activity-player-v3"
+      className="mylearna-activity-player-v4"
       style={{
         border: `1px solid ${learningV2.border}`,
-        borderRadius: 20,
+        borderRadius: 22,
         background: learningV2.card,
-        boxShadow: "0 8px 22px rgba(23, 32, 75, 0.045)",
-        padding: "clamp(13px, 2vw, 18px)",
+        boxShadow: "0 10px 28px rgba(23, 32, 75, 0.05)",
+        padding: "clamp(14px, 2vw, 20px)",
         display: "grid",
-        gap: 11,
+        gap: 14,
         width: "100%",
       }}
     >
@@ -89,6 +89,105 @@ export function LearningPanel({
   );
 }
 
+export function LearningPanel(props: Parameters<typeof ActivityPlayerV4>[0]) {
+  return <ActivityPlayerV4 {...props} />;
+}
+
+export function QuestionStage({
+  children,
+  visual,
+}: {
+  children: React.ReactNode;
+  visual?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="mylearna-question-stage-v4"
+      style={{
+        display: "grid",
+        gap: 12,
+        alignContent: "start",
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          color: learningV2.navy,
+          fontSize: "clamp(16px, 2vw, 19px)",
+          lineHeight: 1.55,
+          fontWeight: 500,
+        }}
+      >
+        {children}
+      </div>
+      {visual ? <VisualPromptArea>{visual}</VisualPromptArea> : null}
+    </div>
+  );
+}
+
+export function VisualPromptArea({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mylearna-visual-prompt-area-v4"
+      style={{
+        border: `1px solid ${learningV2.border}`,
+        borderRadius: 16,
+        background: "#F8FAFC",
+        padding: "clamp(10px, 1.8vw, 14px)",
+        overflow: "hidden",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function ActivityPlayerGridV4({
+  question,
+  answers,
+}: {
+  question: React.ReactNode;
+  answers: React.ReactNode;
+}) {
+  return (
+    <div
+      className="mylearna-player-grid-v4"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) minmax(280px, 0.9fr)",
+        gap: 14,
+        alignItems: "start",
+      }}
+    >
+      <style jsx global>{`
+        @media (max-width: 880px) {
+          .mylearna-player-grid-v4 {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+      {question}
+      {answers}
+    </div>
+  );
+}
+
+export function AnswerDock({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mylearna-answer-dock-v4"
+      style={{
+        display: "grid",
+        gap: 10,
+        alignContent: "start",
+        minWidth: 0,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -96,7 +195,7 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: 9,
+        gap: 8,
       }}
     >
       <style jsx global>{`
@@ -107,7 +206,7 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
         }
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] {
-          min-height: 56px !important;
+          min-height: 52px !important;
           padding: 6px !important;
           border-radius: 12px !important;
           border-width: 1px !important;
@@ -118,7 +217,7 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] > div {
           min-height: 0 !important;
-          max-height: 68px !important;
+          max-height: 64px !important;
           padding: 3px 5px !important;
           border-radius: 10px !important;
           border-width: 1px !important;
@@ -142,8 +241,8 @@ export function AnswerOptionGrid({ children }: { children: React.ReactNode }) {
         }
 
         .mylearna-answer-option-grid [data-compact-visual-answer="true"] span[aria-hidden="true"] {
-          width: 7px !important;
-          height: 7px !important;
+          width: 6px !important;
+          height: 6px !important;
           border-width: 1px !important;
           box-shadow: none !important;
         }
