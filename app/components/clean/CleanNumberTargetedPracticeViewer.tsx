@@ -4257,7 +4257,7 @@ function SelectedSection({
       <PracticeProgressSummary label="Practise progress" summary={progress} />
       <div>
         <CleanContentIssueReportButton
-          label="Report an issue with this practice"
+          label="Report a problem with this question"
           context={summaryReportContext}
         />
       </div>
@@ -4312,7 +4312,7 @@ function MiniCheckSection({
       <PracticeProgressSummary label="Mini-check summary" summary={progress} />
       <div style={{ marginTop: 10 }}>
         <CleanContentIssueReportButton
-          label="Report an issue with this practice"
+          label="Report a problem with this question"
           context={summaryReportContext}
         />
       </div>
@@ -4661,7 +4661,7 @@ export default function CleanNumberTargetedPracticeViewer() {
               </div>
               <div style={{ marginTop: 10 }}>
                 <CleanContentIssueReportButton
-                  label="Report an issue with this practice"
+                  label="Report a problem with this question"
                   context={buildPracticeIssueContext("summary")}
                 />
               </div>

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 import {
-  CONTENT_ISSUE_TYPE_OPTIONS,
   submitContentIssueReport,
   type ContentIssueReportMode,
   type ContentIssueType,
@@ -37,14 +36,17 @@ export type ContentIssueReportContext = {
 type SubmitState = "idle" | "sending" | "sent" | "failed";
 
 const triggerStyle: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
+  border: "1px solid #E7EAF2",
   background: "#ffffff",
-  color: "#475569",
+  color: "#5B6478",
   borderRadius: 999,
-  padding: "7px 10px",
+  padding: "7px 11px",
   fontSize: 12,
-  fontWeight: 800,
+  fontWeight: 600,
   cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 7,
 };
 
 const overlayStyle: React.CSSProperties = {
@@ -59,8 +61,8 @@ const overlayStyle: React.CSSProperties = {
 
 const dialogStyle: React.CSSProperties = {
   width: "min(100%, 520px)",
-  border: "1px solid #dbe4f0",
-  borderRadius: 18,
+  border: "1px solid #E7EAF2",
+  borderRadius: 20,
   background: "#ffffff",
   padding: 18,
   display: "grid",
@@ -69,19 +71,19 @@ const dialogStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: "#0f172a",
+  color: "#17204B",
   fontSize: 13,
-  fontWeight: 800,
+  fontWeight: 650,
 };
 
 const buttonStyle: React.CSSProperties = {
-  border: "1px solid #0f172a",
-  background: "#0f172a",
+  border: "1px solid #6C4DF6",
+  background: "#6C4DF6",
   color: "#ffffff",
   borderRadius: 12,
   padding: "10px 14px",
   fontSize: 14,
-  fontWeight: 800,
+  fontWeight: 650,
   cursor: "pointer",
 };
 
@@ -91,6 +93,16 @@ const secondaryButtonStyle: React.CSSProperties = {
   background: "#ffffff",
   color: "#0f172a",
 };
+
+const QUESTION_REPORT_OPTIONS: Array<{ value: ContentIssueType; label: string }> = [
+  { value: "question_wording_confusing", label: "Question wording is unclear" },
+  { value: "correct_answer_seems_wrong", label: "Answer seems wrong" },
+  { value: "visual_wrong_or_missing", label: "Visual or image problem" },
+  { value: "answer_options_unclear", label: "Hint problem" },
+  { value: "visual_question_mismatch", label: "Feedback problem" },
+  { value: "save_or_navigation_problem", label: "Worksheet or link problem" },
+  { value: "other", label: "Other" },
+];
 
 function getSourceUrl() {
   if (typeof window === "undefined") return "";
@@ -104,7 +116,7 @@ function getUserAgent() {
 
 export default function CleanContentIssueReportButton({
   context,
-  label = "Report issue",
+  label = "Report a problem with this question",
 }: {
   context: ContentIssueReportContext;
   label?: string;
@@ -116,6 +128,19 @@ export default function CleanContentIssueReportButton({
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   async function submitReport() {
     setSubmitState("sending");
     setMessage("");
@@ -125,26 +150,32 @@ export default function CleanContentIssueReportButton({
       issueType,
       note,
       sourceUrl: getSourceUrl(),
+      selectedAnswer: null,
+      expectedAnswer: null,
       context: {
         ...(context.context ?? {}),
         appRoute: getSourceUrl(),
         userAgent: getUserAgent(),
+        reportedAt: new Date().toISOString(),
+        answerState: context.context?.result ?? null,
+        checked: context.context?.checked ?? null,
       },
     });
 
     if (result.ok) {
       setSubmitState("sent");
-      setMessage("Thanks - this has been sent for review.");
+      setMessage("Thanks — your report has been saved for review.");
       return;
     }
 
     setSubmitState("failed");
-    setMessage(result.error || "We could not send this report just now.");
+    setMessage(result.error || "Sorry, we could not save this report. Please try again.");
   }
 
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} style={triggerStyle}>
+        <span aria-hidden="true" style={{ color: "#6C4DF6", fontSize: 13 }}>!</span>
         {label}
       </button>
       {open ? (
@@ -152,23 +183,23 @@ export default function CleanContentIssueReportButton({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Report issue"
+            aria-labelledby="content-issue-title"
             style={dialogStyle}
           >
             <div>
               <div
+                id="content-issue-title"
                 style={{
-                  color: "#0f172a",
-                  fontSize: 20,
-                  fontWeight: 900,
+                  color: "#17204B",
+                  fontSize: 19,
+                  fontWeight: 650,
                   lineHeight: 1.2,
                 }}
               >
-                Report issue
+                Report a problem with this question
               </div>
               <div style={{ color: "#64748b", lineHeight: 1.5, marginTop: 4 }}>
-                Tell us what looked wrong or confusing. This will not interrupt the
-                assessment or practice flow.
+                Tell us what looked wrong or confusing. This will not interrupt the activity.
               </div>
             </div>
 
@@ -189,7 +220,7 @@ export default function CleanContentIssueReportButton({
               <>
                 <div style={{ display: "grid", gap: 8 }}>
                   <label htmlFor="content-issue-type" style={labelStyle}>
-                    Issue type
+                    Category
                   </label>
                   <select
                     id="content-issue-type"
@@ -206,7 +237,7 @@ export default function CleanContentIssueReportButton({
                       background: "#ffffff",
                     }}
                   >
-                    {CONTENT_ISSUE_TYPE_OPTIONS.map((option) => (
+                    {QUESTION_REPORT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -216,13 +247,13 @@ export default function CleanContentIssueReportButton({
 
                 <div style={{ display: "grid", gap: 8 }}>
                   <label htmlFor="content-issue-note" style={labelStyle}>
-                    Optional note
+                    Tell us what you noticed
                   </label>
                   <textarea
                     id="content-issue-note"
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    placeholder="Tell us what looked wrong or confusing."
+                    placeholder="Example: I think the answer marked correct is wrong, or the visual does not match the question."
                     style={{
                       border: "1px solid #cbd5e1",
                       borderRadius: 12,

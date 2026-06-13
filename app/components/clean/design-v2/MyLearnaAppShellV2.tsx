@@ -7,6 +7,7 @@ import React from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
+import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
 
 export const v2Tokens = {
   page: "#F7F9FC",
@@ -635,7 +636,18 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </header>
 
           <main style={{ padding: "clamp(16px, 3vw, 28px)" }}>
-            <div style={{ maxWidth: 1240, margin: "0 auto" }}>{children}</div>
+            <div style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
+              {children}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  paddingTop: 4,
+                }}
+              >
+                <ReportProblemButton pageTitle={title} />
+              </div>
+            </div>
           </main>
         </div>
       </div>

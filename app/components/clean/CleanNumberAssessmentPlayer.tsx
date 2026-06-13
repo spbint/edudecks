@@ -7817,7 +7817,7 @@ function CleanNumberAssessmentPlayerBody() {
                     View pathway map
                   </Link>
                   <CleanContentIssueReportButton
-                    label="Report an issue with this assessment"
+                    label="Report a problem with this question"
                     context={buildAssessmentIssueContext("summary")}
                   />
                 </div>
