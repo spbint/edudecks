@@ -17,7 +17,6 @@ import {
   ActivityPlayerGridV4,
   AnswerDock,
   FeedbackPanel,
-  HintDrawer,
   LearningPanel,
   ParentJudgementPanel,
   QuestionStage,
@@ -7661,7 +7660,7 @@ function CleanNumberAssessmentPlayerBody() {
                       </div>
                     ) : (
                       <div style={{ color: "#475569", lineHeight: 1.5 }}>
-                        Practice module coming next for this focus.
+                        More practice recommended for this step.
                       </div>
                     )}
                     <div
@@ -7680,22 +7679,20 @@ function CleanNumberAssessmentPlayerBody() {
                           Start targeted practice
                         </Link>
                       ) : (
-                        <button
-                          type="button"
-                          disabled
+                        <span
                           style={{
-                            ...buttonStyle,
-                            opacity: 0.62,
-                            cursor: "not-allowed",
+                            color: "#64748b",
+                            fontSize: 13,
+                            fontWeight: 700,
                           }}
                         >
-                          Start targeted practice
-                        </button>
+                          Targeted practice is not available for this focus yet.
+                        </span>
                       )}
                       <span style={{ color: "#64748b", fontSize: 13 }}>
                         {summary.targetedPracticeRecommendation.status === "available"
                           ? "Opens the recommended practice section."
-                          : "Practice module coming next."}
+                          : "Use targeted practice for this step before reassessing."}
                       </span>
                     </div>
                   </div>
@@ -7709,8 +7706,7 @@ function CleanNumberAssessmentPlayerBody() {
                     {incomingStepAssessment.title}
                   </div>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    Use the matching Step 1 practice to revisit quick-look dot cards
-                    and same-quantity arrangements before you decide what to do next.
+                    Use the matching practice for this step before deciding what to do next.
                   </div>
                   <div>
                     <Link href={exactStepPracticeHref} style={buttonStyle}>
@@ -7742,7 +7738,7 @@ function CleanNumberAssessmentPlayerBody() {
                             color: "#0f172a",
                           }}
                         >
-                          {entry.label} - {entry.count}
+                          {entry.label}
                         </span>
                       ))}
                     </div>
@@ -7868,12 +7864,12 @@ function CleanNumberAssessmentPlayerBody() {
                 <div style={eyebrowStyle}>Next decisions</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   Use this result to choose what happens next: practise the recommended
-                  focus, save your judgement, or view the pathway map.
+                  focus, save your judgement, or return to the pathway map.
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {returnTo && (!incomingStepAssessment || saveState === "saved") ? (
                     <Link href={returnTo} style={buttonStyle}>
-                      View pathway map
+                      Back to My Pathways
                     </Link>
                   ) : incomingStepAssessment && returnTo ? (
                     <button type="button" disabled style={disabledButtonStyle}>
@@ -7885,13 +7881,11 @@ function CleanNumberAssessmentPlayerBody() {
                       Start targeted practice
                     </Link>
                   ) : null}
-                  <Link href="/my-pathways" style={secondaryButtonStyle}>
-                    View pathway map
-                  </Link>
-                  <CleanContentIssueReportButton
-                    label="Report a problem with this question"
-                    context={buildAssessmentIssueContext("summary")}
-                  />
+                  {!returnTo ? (
+                    <Link href="/my-pathways" style={secondaryButtonStyle}>
+                      Back to My Pathways
+                    </Link>
+                  ) : null}
                 </div>
               </div>
 
@@ -8043,13 +8037,6 @@ function CleanNumberAssessmentPlayerBody() {
                           ) : null}
                           <div style={eyebrowStyle}>Response</div>
                           {renderResponseControl()}
-                          {incomingStepAssessment ? (
-                            <HintDrawer summary="Need a hint?">
-                              {renderEarlyNumberVisual(currentItem) ?? (
-                                <span>Read the question carefully and choose the answer that best fits.</span>
-                              )}
-                            </HintDrawer>
-                          ) : null}
                         </AnswerDock>
                       }
                     />

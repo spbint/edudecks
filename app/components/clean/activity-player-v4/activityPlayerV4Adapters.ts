@@ -68,7 +68,7 @@ export function assessmentItemsToActivityPlayerV4Samples(
       prompt: item.prompt,
       options: item.options ?? [],
       expectedAnswer: item.expectedAnswer ?? "",
-      hint: item.visualSupport?.description ?? null,
+      hint: null,
       feedback: item.workedSolution ?? null,
       visualDescription: item.visualSupport?.description ?? null,
       visualKind: inferVisualKind(item.visualSupport?.description ?? item.prompt),

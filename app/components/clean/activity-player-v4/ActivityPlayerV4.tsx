@@ -81,6 +81,18 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function isRawVisualMetadata(value?: string | null) {
+  const text = safe(value);
+  return Boolean(
+    text.startsWith("early-number|") ||
+      /\|(?:caption|groups|labels|numbers)=/i.test(text),
+  );
+}
+
+function cleanQuestionPrompt(value: string) {
+  return safe(value).replace(/^\s*(?:Practise|Practice|Assess|Assessment)\s*:\s*/i, "");
+}
+
 function normalize(value: string) {
   return safe(value).toLowerCase().replace(/\s+/g, " ");
 }
@@ -130,6 +142,82 @@ function inferCount(value?: string | null) {
 
 function isMathSymbolOption(option: string) {
   return /[\^*/=:$]|sqrt|km|kg|\$|cups?|hours?|h\b/i.test(option);
+}
+
+function parseSimpleFraction(value?: string | null) {
+  const match = safe(value).match(/^(\d{1,2})\s*\/\s*(\d{1,2})$/);
+  if (!match) return null;
+
+  const numerator = Number(match[1]);
+  const denominator = Number(match[2]);
+
+  if (
+    !Number.isInteger(numerator) ||
+    !Number.isInteger(denominator) ||
+    denominator <= 0 ||
+    denominator > 12 ||
+    numerator < 0
+  ) {
+    return null;
+  }
+
+  return {
+    numerator: Math.min(numerator, denominator),
+    denominator,
+  };
+}
+
+function FractionStripVisual({
+  numerator,
+  denominator,
+  mode,
+}: {
+  numerator: number;
+  denominator: number;
+  mode: ActivityPlayerV4VisualMode;
+}) {
+  const compact = mode === "compact";
+  const height = compact ? 18 : mode === "feedback" ? 24 : 34;
+
+  return (
+    <div
+      aria-label={`${numerator}/${denominator}`}
+      style={{
+        width: "100%",
+        maxWidth: compact ? 92 : 220,
+        minHeight: compact ? 28 : 48,
+        display: "grid",
+        alignItems: "center",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${denominator}, minmax(0, 1fr))`,
+          gap: 2,
+          border: `1px solid ${tokens.border}`,
+          borderRadius: compact ? 8 : 12,
+          background: "#FFFFFF",
+          padding: compact ? 3 : 5,
+          height,
+          overflow: "hidden",
+        }}
+      >
+        {Array.from({ length: denominator }, (_, index) => (
+          <span
+            key={index}
+            style={{
+              borderRadius: compact ? 4 : 6,
+              background: index < numerator ? tokens.purple : "#EEF2F7",
+              border: `1px solid ${index < numerator ? tokens.purple : tokens.border}`,
+              minWidth: 0,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ObjectGlyph({
@@ -519,6 +607,17 @@ function MathVisualRendererV4({
   const compact = mode === "compact";
 
   if (compact && option) {
+    const fraction = parseSimpleFraction(option);
+    if (fraction) {
+      return (
+        <FractionStripVisual
+          numerator={fraction.numerator}
+          denominator={fraction.denominator}
+          mode={mode}
+        />
+      );
+    }
+
     if ((resolvedKind === "dots" || resolvedKind === "objects") && optionCount !== null && optionCount >= 0 && optionCount <= 12) {
       return <CounterGroupVisual count={optionCount} mode={mode} kind={objectKind} />;
     }
@@ -714,6 +813,13 @@ function HintDrawerV4({ hint }: { hint?: string | null }) {
   );
 }
 
+function getPlayerHint(sample: ActivityPlayerV4Sample, mode: ActivityPlayerV4Sample["mode"]) {
+  const hint = safe(sample.hint);
+  if (!hint || isRawVisualMetadata(hint)) return null;
+  if (mode === "assess") return null;
+  return hint;
+}
+
 function FeedbackPanelV4({
   correct,
   feedback,
@@ -777,6 +883,8 @@ export default function ActivityPlayerV4({
   }
 
   const effectiveMode = sample.mode;
+  const displayPrompt = cleanQuestionPrompt(sample.prompt);
+  const playerHint = getPlayerHint(sample, effectiveMode);
   const selectedCorrect = isCorrect(sample, selected);
   const hasNext = sampleIndex < samples.length - 1;
   const standalone = chrome === "standalone";
@@ -929,7 +1037,7 @@ export default function ActivityPlayerV4({
                     fontWeight: 650,
                   }}
                 >
-                  {sample.prompt}
+                  {displayPrompt}
                 </h1>
                 <MathVisualRendererV4
                   description={sample.visualDescription}
@@ -965,7 +1073,7 @@ export default function ActivityPlayerV4({
                   ))}
                 </div>
 
-                <HintDrawerV4 hint={sample.hint} />
+                <HintDrawerV4 hint={playerHint} />
 
                 {submitted ? (
                   <FeedbackPanelV4
@@ -983,7 +1091,7 @@ export default function ActivityPlayerV4({
                       stepTitle: sample.title,
                       itemId: effectiveMode === "assess" ? sample.id : null,
                       taskId: effectiveMode === "practice" ? sample.id : null,
-                      prompt: sample.prompt,
+                      prompt: displayPrompt,
                       responseType: "multiple_choice",
                       visualSupport: sample.visualDescription
                         ? { type: "context_card", description: sample.visualDescription }
