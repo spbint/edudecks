@@ -10,6 +10,8 @@ import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import ActivityPlayerV4 from "@/app/components/clean/activity-player-v4/ActivityPlayerV4";
+import { assessmentItemsToActivityPlayerV4Samples } from "@/app/components/clean/activity-player-v4/activityPlayerV4Adapters";
 import {
   AnswerOptionGrid,
   ActivityPlayerGridV4,
@@ -3869,6 +3871,13 @@ function CleanNumberAssessmentPlayerBody() {
     : [];
   const items = incomingStepAssessment ? stepAssessmentItems : selectedBank.items;
   const totalItems = items.length;
+  const incomingStepAssessmentSamples = incomingStepAssessment
+    ? assessmentItemsToActivityPlayerV4Samples(items, {
+        source: "Existing MyLearna assessment items",
+        stepLabel: `${incomingStepAssessment.title} - Assess`,
+        fallbackTitle: incomingStepAssessment.title,
+      })
+    : [];
 
   const currentItem = items[currentIndex] || items[0];
   const currentResponse =
@@ -7057,6 +7066,56 @@ function CleanNumberAssessmentPlayerBody() {
     sessionMode,
     showSummary,
   ]);
+
+  if (incomingStepAssessment && !showSummary && incomingStepAssessmentSamples.length) {
+    return (
+      <ActivityPlayerV4
+        samples={incomingStepAssessmentSamples}
+        chrome="embedded"
+        previewLabel="Assess"
+        allowNotSure
+        onSubmitAnswer={({ sample, selectedAnswer, index }) => {
+          const item = items.find((candidate) => candidate.id === sample.id);
+          if (!item) return;
+          const submittedAt = new Date().toISOString();
+          setCurrentIndex(index);
+          setSessionMode("active");
+          setResponses((current) => ({
+            ...current,
+            [item.id]: {
+              itemId: item.id,
+              response: selectedAnswer,
+              submitted: true,
+              result: getCheckResult(item, selectedAnswer),
+              submittedAt,
+            },
+          }));
+        }}
+        onNotSure={({ sample, index }) => {
+          const item = items.find((candidate) => candidate.id === sample.id);
+          if (!item) return;
+          const submittedAt = new Date().toISOString();
+          setCurrentIndex(index);
+          setSessionMode("active");
+          setResponses((current) => ({
+            ...current,
+            [item.id]: {
+              itemId: item.id,
+              response: NOT_SURE_RESPONSE,
+              submitted: true,
+              result: "incorrect",
+              submittedAt,
+            },
+          }));
+        }}
+        onComplete={() => {
+          setCurrentIndex(Math.max(0, totalItems - 1));
+          setShowSummary(true);
+          setSessionMode("summary");
+        }}
+      />
+    );
+  }
 
   return (
     <div style={shellStyle}>

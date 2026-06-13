@@ -7,6 +7,8 @@ import type React from "react";
 import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
+import ActivityPlayerV4 from "@/app/components/clean/activity-player-v4/ActivityPlayerV4";
+import { practiceTasksToActivityPlayerV4Samples } from "@/app/components/clean/activity-player-v4/activityPlayerV4Adapters";
 import {
   AnswerOptionGrid,
   ActivityPlayerGridV4,
@@ -4373,6 +4375,13 @@ export default function CleanNumberTargetedPracticeViewer() {
   const exactStepPracticeTasks = exactStepPractice
     ? getStepPracticeTasksForDepth(exactStepPractice, stepPracticeDepth)
     : [];
+  const exactStepPracticeSamples = exactStepPractice
+    ? practiceTasksToActivityPlayerV4Samples(exactStepPracticeTasks, {
+        source: "Existing MyLearna practice module",
+        stepLabel: `${exactStepPractice.title} - Practise`,
+        fallbackTitle: exactStepPractice.title,
+      })
+    : [];
   const exactStepAssessment = exactStepPractice
     ? getStepAssessmentForPathwayStep({
         pathwayStepId: exactStepPractice.pathwayStepId,
@@ -4507,6 +4516,34 @@ export default function CleanNumberTargetedPracticeViewer() {
         },
       };
     });
+  }
+
+  if (exactStepPractice && exactStepPracticeSamples.length) {
+    return (
+      <ActivityPlayerV4
+        samples={exactStepPracticeSamples}
+        chrome="embedded"
+        previewLabel="Practise"
+        onSubmitAnswer={({ sample, selectedAnswer }) => {
+          const task = exactStepPracticeTasks.find((candidate) => candidate.id === sample.id);
+          if (!task) return;
+          const response: LocalPracticeResponse = {
+            value: selectedAnswer,
+            checked: false,
+            result: "not_checked",
+          };
+          const result = checkPracticeTask(task, response);
+          setResponses((current) => ({
+            ...current,
+            [task.id]: {
+              value: selectedAnswer,
+              checked: result !== "not_checked",
+              result,
+            },
+          }));
+        }}
+      />
+    );
   }
 
   return (

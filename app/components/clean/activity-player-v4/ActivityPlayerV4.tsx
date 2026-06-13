@@ -753,6 +753,10 @@ export default function ActivityPlayerV4({
   samples,
   chrome = "standalone",
   previewLabel = "Activity Player V4 lab",
+  onSubmitAnswer,
+  onComplete,
+  allowNotSure = false,
+  onNotSure,
 }: ActivityPlayerV4Props) {
   const [sampleIndex, setSampleIndex] = useState(0);
   const [mode, setMode] = useState<ActivityPlayerV4Sample["mode"]>("practice");
@@ -996,20 +1000,55 @@ export default function ActivityPlayerV4({
                       },
                     }}
                   />
+                  {allowNotSure && !submitted ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNotSure?.({ sample, index: sampleIndex });
+                        if (hasNext) {
+                          moveToSample(sampleIndex + 1);
+                        } else {
+                          onComplete?.();
+                        }
+                      }}
+                      style={{
+                        border: `1px solid ${tokens.border}`,
+                        background: "#FFFFFF",
+                        color: tokens.slate,
+                        borderRadius: 12,
+                        padding: "10px 14px",
+                        fontSize: 14,
+                        fontWeight: 650,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Not sure yet
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     disabled={!selected}
                     onClick={() => {
                       if (!submitted) {
+                        onSubmitAnswer?.({
+                          sample,
+                          selectedAnswer: selected || "",
+                          correct: selectedCorrect,
+                          index: sampleIndex,
+                        });
                         setSubmitted(true);
                         return;
                       }
                       if (hasNext) {
                         moveToSample(sampleIndex + 1);
                       } else {
-                        setSelected(null);
-                        setSubmitted(false);
-                        setSampleIndex(0);
+                        if (onComplete) {
+                          onComplete();
+                        } else {
+                          setSelected(null);
+                          setSubmitted(false);
+                          setSampleIndex(0);
+                        }
                       }
                     }}
                     style={{
