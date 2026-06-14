@@ -73,7 +73,10 @@ import {
   isStep57FinancialModellingActivity,
   isStep58AccuracyRoundingActivity,
   isStep59EfficientStrategyActivity,
+  isOperationsStep2ShareCompareActivity,
   parseEarlyNumberVisualDescription,
+  renderOperationsStep2WorksheetOptionCard,
+  renderOperationsStep2WorksheetPromptVisual,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
   renderStep3WorksheetOptionCard,
@@ -1125,6 +1128,15 @@ function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
     });
   }
 
+  if (isOperationsStep2ShareCompareActivity(task.id)) {
+    const operationsStep2Visual =
+      parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
+    return renderOperationsStep2WorksheetPromptVisual({
+      prompt: task.prompt,
+      visual: operationsStep2Visual,
+    });
+  }
+
   if (isStep9ObjectStoryActivity(task.id)) {
     const step9Visual =
       parseEarlyNumberVisualDescription(task.visualSupport?.description) ?? visual;
@@ -1960,6 +1972,7 @@ function TaskCard({
           const step6CompareGroupOptions = isStep6CompareGroupsActivity(task.id);
           const step7OrderNumberOptions = isStep7OrderNumbersActivity(task.id);
           const step8PartWholeOptions = isStep8PartWholeActivity(task.id);
+          const operationsStep2ShareCompareOptions = isOperationsStep2ShareCompareActivity(task.id);
           const step9ObjectStoryOptions = isStep9ObjectStoryActivity(task.id);
           const step10EqualSharingOptions = isStep10EqualSharingActivity(task.id);
           const step11CountingSequenceOptions = isStep11CountingSequenceActivity(task.id);
@@ -2091,6 +2104,21 @@ function TaskCard({
                     selected: isSelected,
                   })
                 : null;
+            const operationsStep2Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              operationsStep2ShareCompareOptions
+                ? renderOperationsStep2WorksheetOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const step9Visual =
               !shapeVisual &&
               !statisticsVisual &&
@@ -2100,6 +2128,7 @@ function TaskCard({
               !step6Visual &&
               !step7Visual &&
               !step8Visual &&
+              !operationsStep2Visual &&
               step9ObjectStoryOptions
                 ? renderStep9WorksheetOptionCard({
                     option,
@@ -2115,6 +2144,7 @@ function TaskCard({
               !step6Visual &&
               !step7Visual &&
               !step8Visual &&
+              !operationsStep2Visual &&
               !step9Visual &&
               step10EqualSharingOptions
                 ? renderStep10WorksheetOptionCard({
@@ -3825,6 +3855,7 @@ function TaskCard({
               step6Visual ??
               step7Visual ??
               step8Visual ??
+              operationsStep2Visual ??
               step9Visual ??
               step10Visual ??
               step11Visual ??

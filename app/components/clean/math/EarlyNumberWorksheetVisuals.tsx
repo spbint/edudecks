@@ -31,6 +31,9 @@ export type ContextualObjectVisualType =
   | "shell"
   | "star"
   | "sticker"
+  | "cookie"
+  | "bear"
+  | "banana"
   | "balloon"
   | "cracker"
   | "bird"
@@ -51,6 +54,9 @@ export const contextualObjectVisualTypes: ContextualObjectVisualType[] = [
   "shell",
   "star",
   "sticker",
+  "cookie",
+  "bear",
+  "banana",
   "balloon",
   "cracker",
   "bird",
@@ -220,6 +226,14 @@ export function isStep10EqualSharingActivity(id: string, stepKey?: string | null
     safe(stepKey) === "share-small-collections-equally" ||
     safe(id).startsWith("number-step-10-assess-") ||
     safe(id).startsWith("number-step-10-practice-")
+  );
+}
+
+export function isOperationsStep2ShareCompareActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "share-compare-and-notice-simple-differences" ||
+    safe(id).startsWith("operations-step-2-assess-") ||
+    safe(id).startsWith("operations-step-2-practice-")
   );
 }
 
@@ -884,6 +898,9 @@ type CountingObjectKind =
   | "shell"
   | "sticker"
   | "star"
+  | "cookie"
+  | "bear"
+  | "banana"
   | "cube"
   | "fish"
   | "leaf"
@@ -912,6 +929,9 @@ const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
   "shell",
   "sticker",
   "star",
+  "cookie",
+  "bear",
+  "banana",
   "cube",
   "fish",
   "leaf",
@@ -941,6 +961,9 @@ function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
   if (normalized.includes("block")) return "block";
   if (normalized.includes("shell")) return "shell";
   if (normalized.includes("sticker")) return "sticker";
+  if (normalized.includes("cookie")) return "cookie";
+  if (normalized.includes("bear")) return "bear";
+  if (normalized.includes("banana")) return "banana";
   if (normalized.includes("balloon")) return "balloon";
   if (normalized.includes("cracker")) return "cracker";
   if (normalized.includes("bird")) return "bird";
@@ -973,6 +996,9 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     shell: "shells",
     sticker: "stickers",
     star: "stars",
+    cookie: "cookies",
+    bear: "bears",
+    banana: "bananas",
     cube: "cubes",
     fish: "fish",
     leaf: "leaves",
@@ -1001,6 +1027,9 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     shell: "shell",
     sticker: "sticker",
     star: "star",
+    cookie: "cookie",
+    bear: "bear",
+    banana: "banana",
     cube: "cube",
     fish: "fish",
     leaf: "leaf",
@@ -1074,6 +1103,93 @@ function CountingObjectShape({
           background: "#facc15",
           border: "1px solid #b45309",
           boxShadow: size <= 10 ? "none" : "inset 0 0 0 3px rgba(255,255,255,0.38)",
+        }}
+      />
+    );
+  }
+
+  if (kind === "cookie") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "50%",
+          background: "#d97706",
+          border: "1px solid #92400e",
+          boxShadow: size <= 10 ? "none" : "inset 0 0 0 3px rgba(255,255,255,0.22)",
+        }}
+      >
+        {[24, 52, 72].map((left, dotIndex) => (
+          <span
+            key={`chip-${dotIndex}`}
+            style={{
+              position: "absolute",
+              left: `${left}%`,
+              top: `${dotIndex === 1 ? 62 : 30}%`,
+              width: "14%",
+              height: "14%",
+              borderRadius: "50%",
+              background: "#451a03",
+            }}
+          />
+        ))}
+      </span>
+    );
+  }
+
+  if (kind === "bear") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "45% 45% 50% 50%",
+          background: "#a16207",
+          border: "1px solid #713f12",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: "-12%",
+            top: "-10%",
+            width: "34%",
+            height: "34%",
+            borderRadius: "50%",
+            background: "#a16207",
+            border: "1px solid #713f12",
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            right: "-12%",
+            top: "-10%",
+            width: "34%",
+            height: "34%",
+            borderRadius: "50%",
+            background: "#a16207",
+            border: "1px solid #713f12",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "banana") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.25),
+          height: Math.round(size * 0.72),
+          borderRadius: "0 0 80% 80%",
+          borderBottom: `${Math.max(5, Math.round(size * 0.28))}px solid #facc15`,
+          borderLeft: "2px solid transparent",
+          borderRight: "2px solid transparent",
+          transform: "rotate(-16deg)",
         }}
       />
     );
@@ -2818,6 +2934,286 @@ export function renderStep10WorksheetPromptVisual({
         }}
       >
         Each group should have the same amount.
+      </div>
+    </div>
+  );
+}
+
+function isOperationsStep2SharingPrompt(prompt: string, visual: EarlyNumberVisualModel) {
+  const source = `${prompt} ${visual.caption}`.toLowerCase();
+  return source.includes("share") || source.includes("equally");
+}
+
+function isOperationsStep2StoryPrompt(prompt: string, visual: EarlyNumberVisualModel) {
+  const source = `${prompt} ${visual.caption}`.toLowerCase();
+  return (
+    source.includes("gives") ||
+    source.includes("left") ||
+    source.includes("take") ||
+    source.includes("taken") ||
+    source.includes("join") ||
+    source.includes("away")
+  );
+}
+
+export function renderOperationsStep2WorksheetPromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const first = visual.groupCounts[0];
+  const second = visual.groupCounts[1];
+
+  if (
+    isOperationsStep2StoryPrompt(prompt, visual) &&
+    first !== undefined &&
+    second !== undefined &&
+    !isOperationsStep2SharingPrompt(prompt, visual)
+  ) {
+    return renderStep9WorksheetPromptVisual({ prompt, visual });
+  }
+
+  if (
+    isOperationsStep2SharingPrompt(prompt, visual) &&
+    first !== undefined &&
+    second !== undefined &&
+    Number.isFinite(first) &&
+    Number.isFinite(second) &&
+    second > 0
+  ) {
+    const total = first;
+    const groupCount = Math.max(1, second);
+    const eachGroupCount = total % groupCount === 0 ? total / groupCount : null;
+    const totalLabel = visual.labels[0] || `${total} objects`;
+
+    return (
+      <div
+        style={{
+          border: "1px solid #bfdbfe",
+          borderRadius: 22,
+          background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+          padding: 16,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Share the objects equally so each group gets the same amount.
+        </div>
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 20,
+            background: "#ffffff",
+            padding: 12,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1.2fr)",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900, textTransform: "uppercase", textAlign: "center" }}>
+              Total collection
+            </div>
+            <EarlyNumberWorksheetObjectGroupCard count={total} label={totalLabel} />
+          </div>
+          <div aria-hidden="true" style={{ color: "#15803d", fontSize: 26, fontWeight: 950, textAlign: "center" }}>
+            -&gt;
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ color: "#15803d", fontSize: 12, fontWeight: 900, textTransform: "uppercase", textAlign: "center" }}>
+              {groupCount} equal groups
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${Math.min(groupCount, 4)}, minmax(82px, 1fr))`,
+                gap: 8,
+              }}
+            >
+              {Array.from({ length: groupCount }, (_, index) => (
+                <div
+                  key={`operations-share-${index}`}
+                  style={{
+                    border: "2px dashed #bbf7d0",
+                    borderRadius: 16,
+                    background: "#f0fdf4",
+                    padding: 8,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ color: "#166534", fontSize: 12, fontWeight: 900, textAlign: "center" }}>
+                    Group {index + 1}
+                  </div>
+                  {eachGroupCount !== null ? (
+                    <EarlyNumberWorksheetObjectGroupCard count={eachGroupCount} label={`${eachGroupCount} each`} />
+                  ) : (
+                    <div style={{ color: "#166534", fontSize: 20, fontWeight: 950, textAlign: "center" }}>?</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: 16,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.45,
+          }}
+        >
+          Count how many are in each equal group.
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    first !== undefined &&
+    second !== undefined &&
+    Number.isFinite(first) &&
+    Number.isFinite(second)
+  ) {
+    const difference = Math.abs(first - second);
+    const firstLabel = visual.labels[0] || `Group A`;
+    const secondLabel = visual.labels[1] || `Group B`;
+    const same = first === second;
+
+    return (
+      <div
+        style={{
+          border: "1px solid #bfdbfe",
+          borderRadius: 22,
+          background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+          padding: 16,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+          Compare the two groups. Look for more, less, same, or how many more.
+        </div>
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 20,
+            background: "#ffffff",
+            padding: 12,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gap: 10,
+          }}
+        >
+          <EarlyNumberWorksheetObjectGroupCard count={first} label={firstLabel} />
+          <EarlyNumberWorksheetObjectGroupCard count={second} label={secondLabel} />
+        </div>
+        <div
+          style={{
+            border: `1px solid ${same ? "#bbf7d0" : "#fed7aa"}`,
+            borderRadius: 16,
+            background: same ? "#f0fdf4" : "#fff7ed",
+            color: same ? "#166534" : "#c2410c",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 850,
+            lineHeight: 1.45,
+            textAlign: "center",
+          }}
+        >
+          {same ? "The groups match: they are the same." : `Difference: ${difference} more in the larger group.`}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+export function renderOperationsStep2WorksheetOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  if (/^\d+$/.test(normalized)) {
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} variant="compact" />;
+  }
+
+  const lower = normalized.toLowerCase();
+  const pictureCount = lower.match(/\btwo groups of\s+(\d+)/)?.[1];
+  if (pictureCount) {
+    return (
+      <div
+        aria-label={`Choose ${normalized}`}
+        style={{
+          border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : "#ffffff",
+          padding: 10,
+          display: "grid",
+          gap: 8,
+          minHeight: 132,
+          boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
+          <EarlyNumberWorksheetObjectGroupCard count={Number(pictureCount)} label="Group 1" variant="compact" />
+          <EarlyNumberWorksheetObjectGroupCard count={Number(pictureCount)} label="Group 2" variant="compact" />
+        </div>
+        <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 900, textAlign: "center" }}>
+          {normalized}
+        </div>
+      </div>
+    );
+  }
+
+  const label = lower.includes("same")
+    ? "Same"
+    : lower.includes("group a") || lower.includes("group b")
+      ? "Compare"
+      : lower.includes("joining")
+        ? "Joining"
+        : lower.includes("taking")
+          ? "Taking away"
+          : lower.includes("more") || lower.includes("less")
+            ? "Compare"
+            : "Choice";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 42 ? 15 : normalized.length > 24 ? 18 : 28, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
+        {label}
       </div>
     </div>
   );

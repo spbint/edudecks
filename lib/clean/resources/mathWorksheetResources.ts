@@ -146,6 +146,8 @@ const SELECT_EFFICIENT_CALCULATION_STRATEGIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S059-Select-Efficient-Calculation-Strategies-For-Unfamiliar-Problems.pdf";
 const OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE =
   "MYL-MATH-OC-KEE-S001-Act-Out-Joining-And-Taking-Away-In-Everyday-Stories.pdf";
+const OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE =
+  "MYL-MATH-OC-KEE-S002-Share-Compare-And-Notice-Simple-Differences.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -164,6 +166,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/kindergarten-early-elementary/${OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::foundation-kindergarten::share-compare-and-notice-simple-differences",
+    stepKey: "share-compare-and-notice-simple-differences",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Kindergarten / Early Elementary",
+    stepNumber: 2,
+    pathwayStepTitle: "Share, compare, and notice simple differences",
+    title: "Share, Compare, And Notice Simple Differences",
+    concept:
+      "Share objects equally, compare groups, notice simple differences and solve simple everyday stories.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/kindergarten-early-elementary/${OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
