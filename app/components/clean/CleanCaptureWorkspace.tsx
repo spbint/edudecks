@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -48,6 +49,7 @@ import {
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
 import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -246,6 +248,7 @@ function getPathwayContextRows(context: CleanPathwayCaptureContext) {
 
 function CleanCaptureWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user } = useAuthUser();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -670,6 +673,19 @@ function CleanCaptureWorkspaceBody() {
 
       if (editingEntryId) {
         await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
+        trackProductEvent(
+          "evidence_updated",
+          {
+            area: "my_capture",
+            route: pathname,
+            hasLearner: Boolean(learnerId),
+            hasEvidence: true,
+            subject: nextPathwayContext?.subjectKey ?? nextCurriculumContext?.learningAreaKey ?? null,
+            strand: nextPathwayContext?.pathwayKey ?? null,
+            source: nextPathwayContext ? "my_pathways" : nextCurriculumContext ? "curriculum" : "manual",
+          },
+          user?.id,
+        );
         setMessage(
           nextPathwayContext
             ? "Evidence saved for this pathway step."
@@ -679,6 +695,19 @@ function CleanCaptureWorkspaceBody() {
         );
       } else {
         await createCleanEvidenceEntry(workspace.profile.id, payload);
+        trackProductEvent(
+          "evidence_created",
+          {
+            area: "my_capture",
+            route: pathname,
+            hasLearner: Boolean(learnerId),
+            hasEvidence: true,
+            subject: nextPathwayContext?.subjectKey ?? nextCurriculumContext?.learningAreaKey ?? null,
+            strand: nextPathwayContext?.pathwayKey ?? null,
+            source: nextPathwayContext ? "my_pathways" : nextCurriculumContext ? "curriculum" : "manual",
+          },
+          user?.id,
+        );
         setMessage(
           !entries.length
             ? "First evidence captured. Your learning record is starting to build."

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -84,6 +85,7 @@ import {
   CURRICULUM_COVERAGE_EMPTY_COPY,
   generateCurriculumCoveragePdfBytes,
 } from "@/lib/clean/outputs/curriculumCoveragePdf";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -230,6 +232,7 @@ function getReportStatusStyles(status: CleanReportStatus): React.CSSProperties {
 
 function CleanOutputsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user } = useAuthUser();
   const [periods, setPeriods] = useState<CleanReportingPeriod[]>([]);
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
@@ -632,6 +635,16 @@ function CleanOutputsWorkspaceBody() {
       );
 
       downloadPdf(pdfBytes, filename);
+      trackProductEvent(
+        "output_pdf_downloaded",
+        {
+          area: "my_outputs",
+          route: "/my-outputs",
+          hasEvidence: previewEvidenceItems.length > 0 || assessmentEvidenceEvents.length > 0,
+          learnerCount: selectedReport.learnerId ? 1 : 0,
+        },
+        user?.id,
+      );
 
       try {
         await createCleanReportExport(workspace.profile.id, {

@@ -293,6 +293,12 @@ export default function PrivacyPage() {
               learning records, portfolio evidence, assessment responses or authenticated
               homeschool content.
             </p>
+            <p style={paragraphStyle}>
+              We use product analytics inside MyLearna to understand which features are used
+              and where families may need support. We avoid sending children&apos;s learning
+              content, evidence text, report text, assessment answers or uploaded files to
+              analytics tools.
+            </p>
           </div>
         </section>
 

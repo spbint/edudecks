@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanFamilyWorkspaceProvider, {
@@ -83,6 +84,7 @@ import {
   getSignupCountryLabel,
   getSignupJurisdictionLabel,
 } from "@/lib/signupPrefill";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -847,6 +849,7 @@ function CleanRhythmBlockPopover({
 
 function CleanCalendarWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user } = useAuthUser();
   const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
   const pathname = usePathname();
   const router = useRouter();
@@ -2370,9 +2373,35 @@ function CleanCalendarWorkspaceBody() {
 
       if (editingItemId) {
         await updateCleanCalendarItem(workspace.profile.id, editingItemId, payload);
+        trackProductEvent(
+          "calendar_block_updated",
+          {
+            area: "my_calendar",
+            route: pathname,
+            hasLearner: Boolean(payload.learnerId),
+            hasLearningArea: Boolean(payload.learningArea),
+            hasStartTime: Boolean(payload.startsAt),
+            hasEndTime: Boolean(payload.endsAt),
+            blockType: payload.sourceType,
+          },
+          user?.id,
+        );
         setMessage("This week's block was updated.");
       } else {
         await createCleanCalendarItem(workspace.profile.id, payload);
+        trackProductEvent(
+          "calendar_block_created",
+          {
+            area: "my_calendar",
+            route: pathname,
+            hasLearner: Boolean(payload.learnerId),
+            hasLearningArea: Boolean(payload.learningArea),
+            hasStartTime: Boolean(payload.startsAt),
+            hasEndTime: Boolean(payload.endsAt),
+            blockType: payload.sourceType,
+          },
+          user?.id,
+        );
         setMessage("This week's block was added.");
       }
 
@@ -2399,6 +2428,19 @@ function CleanCalendarWorkspaceBody() {
 
     try {
       await deleteCleanCalendarItem(workspace.profile.id, item.id);
+      trackProductEvent(
+        "calendar_block_deleted",
+        {
+          area: "my_calendar",
+          route: pathname,
+          hasLearner: Boolean(item.learnerId),
+          hasLearningArea: Boolean(item.learningArea),
+          hasStartTime: Boolean(item.startsAt),
+          hasEndTime: Boolean(item.endsAt),
+          blockType: item.sourceType,
+        },
+        user?.id,
+      );
       setMessage("This block was removed from the week.");
 
       if (editingItemId === item.id) {
@@ -2468,6 +2510,15 @@ function CleanCalendarWorkspaceBody() {
           selectedWeekStart,
         ),
       );
+      trackProductEvent(
+        "weekly_plan_pdf_downloaded",
+        {
+          area: "my_calendar",
+          route: pathname,
+          viewType: liveWeekView,
+        },
+        user?.id,
+      );
       setMessage("Weekly planner downloaded.");
     } catch (error) {
       setActionError(
@@ -2514,6 +2565,15 @@ function CleanCalendarWorkspaceBody() {
           selectedMonthStart,
         ),
       );
+      trackProductEvent(
+        "monthly_plan_pdf_downloaded",
+        {
+          area: "my_calendar",
+          route: pathname,
+          viewType: "month",
+        },
+        user?.id,
+      );
       setMessage("Monthly planner downloaded.");
     } catch (error) {
       setActionError(
@@ -2557,6 +2617,15 @@ function CleanCalendarWorkspaceBody() {
       downloadPdf(
         pdfBytes,
         buildCleanDailyPlannerPdfFilename(workspace.profile.displayName || null, today),
+      );
+      trackProductEvent(
+        "daily_plan_pdf_downloaded",
+        {
+          area: "my_calendar",
+          route: pathname,
+          viewType: "day",
+        },
+        user?.id,
       );
       setMessage("Daily planner downloaded.");
     } catch (error) {

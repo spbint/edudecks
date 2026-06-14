@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -186,6 +187,10 @@ import {
   createAssessmentAttempt,
   createAssessmentAttemptResponses,
 } from "@/lib/clean/assessments/attemptClient";
+import {
+  getScoreBand,
+  trackProductEvent,
+} from "@/lib/clean/analytics/productAnalytics";
 import {
   NUMBER_ASSESSMENT_BANKS,
   getNumberAssessmentBankByKey,
@@ -3787,6 +3792,7 @@ function buildAdaptiveInsightSummary(
 
 function CleanNumberAssessmentPlayerBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user } = useAuthUser();
   const searchParams = useSearchParams();
 
   const incomingBank = useMemo(
@@ -7020,6 +7026,29 @@ function CleanNumberAssessmentPlayerBody() {
         assessmentAttemptId: createdAttempt.id,
         responses: responseInputs,
       });
+
+      trackProductEvent(
+        "assessment_completed",
+        {
+          area: "my_pathways",
+          route: activeAssessmentContext.sourceRoute,
+          subject: activeAssessmentContext.subjectKey,
+          strand: activeAssessmentContext.strandKey,
+          stepNumber:
+            Number.parseInt(
+              String(activeAssessmentContext.stepKey ?? activeAssessmentContext.pathwayStepId ?? "").match(/\d+/)?.[0] ?? "",
+              10,
+            ) || null,
+          questionCount: totalItems,
+          correctCount: summary.correctCount,
+          incorrectCount: summary.incorrectCount,
+          notSureCount: summary.notSureCount,
+          supportRecommendedCount: summary.incorrectCount + summary.reviewNeededCount,
+          scoreBand: getScoreBand(summary.correctCount, totalItems),
+          parentJudgementPresent: Boolean(parentJudgement),
+        },
+        user?.id,
+      );
 
       setSaveState("saved");
       setSaveMessage(

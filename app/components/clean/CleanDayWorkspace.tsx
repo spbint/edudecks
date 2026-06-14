@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import {
@@ -53,6 +54,7 @@ import {
   buildCleanWeeklyPlannerEntriesFromCalendarItems,
   generateCleanDailyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -271,6 +273,7 @@ function hasGuidanceContext(profile: {
 
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user } = useAuthUser();
   const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
   const router = useRouter();
   const pathname = usePathname();
@@ -854,6 +857,18 @@ function CleanDayWorkspaceBody() {
         sourceType: "manual",
       });
 
+      trackProductEvent(
+        "calendar_block_created",
+        {
+          area: "my_day",
+          route: pathname,
+          hasLearner: Boolean(quickAddLearnerId),
+          hasLearningArea: Boolean(quickAddLearningArea),
+          hasStartTime: Boolean(quickAddTime),
+          blockType: "manual",
+        },
+        user?.id,
+      );
       setItems((current) => [...current, createdItem]);
       setExpandedItemIds([createdItem.id]);
       setQuickAddMessage("Quick block added to My Day.");
@@ -892,6 +907,15 @@ function CleanDayWorkspaceBody() {
       downloadPdf(
         pdfBytes,
         buildCleanDailyPlannerPdfFilename(workspace.profile.displayName || null, selectedDate),
+      );
+      trackProductEvent(
+        "daily_plan_pdf_downloaded",
+        {
+          area: "my_day",
+          route: pathname,
+          viewType: "day",
+        },
+        user?.id,
       );
       setQuickAddMessage("Daily planner downloaded.");
     } catch (error) {

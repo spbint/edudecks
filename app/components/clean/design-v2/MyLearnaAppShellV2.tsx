@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import React from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
+import ProductAnalyticsProvider from "@/app/components/clean/analytics/ProductAnalyticsProvider";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
@@ -307,6 +308,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           color: v2Tokens.navy,
         }}
       >
+        <ProductAnalyticsProvider />
         <style jsx global>{`
           @media (max-width: 720px) {
             .mylearna-activity-focus-header {
@@ -432,6 +434,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
   return (
     <div style={{ minHeight: "100vh", background: v2Tokens.page, color: v2Tokens.navy }}>
+      <ProductAnalyticsProvider />
       <style jsx global>{`
         @media (max-width: 900px) {
           .mylearna-v2-grid {
