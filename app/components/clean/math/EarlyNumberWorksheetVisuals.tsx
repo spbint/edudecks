@@ -191,8 +191,11 @@ export function isStep8PartWholeActivity(id: string, stepKey?: string | null) {
 export function isStep9ObjectStoryActivity(id: string, stepKey?: string | null) {
   return (
     safe(stepKey) === "represent-simple-addition-and-subtraction-stories-with-objects" ||
+    safe(stepKey) === "act-out-joining-and-taking-away-in-everyday-stories" ||
     safe(id).startsWith("number-step-9-assess-") ||
-    safe(id).startsWith("number-step-9-practice-")
+    safe(id).startsWith("number-step-9-practice-") ||
+    safe(id).startsWith("operations-step-1-assess-") ||
+    safe(id).startsWith("operations-step-1-practice-")
   );
 }
 
@@ -2300,6 +2303,8 @@ export function renderStep9WorksheetPromptVisual({
   const operation = getStoryOperation(prompt);
   const operationSymbol = operation === "add" ? "+" : "-";
   const operationLabel = operation === "add" ? "Objects join" : "Objects are taken away";
+  const startLabel = visual.labels[0] || `${start} objects`;
+  const changeLabel = visual.labels[1] || `${change} objects`;
 
   return (
     <div
@@ -2348,7 +2353,7 @@ export function renderStep9WorksheetPromptVisual({
           >
             Start
           </div>
-          <EarlyNumberWorksheetObjectGroupCard count={start} label={`${start} objects`} />
+          <EarlyNumberWorksheetObjectGroupCard count={start} label={startLabel} />
         </div>
         <div
           aria-hidden="true"
@@ -2374,7 +2379,7 @@ export function renderStep9WorksheetPromptVisual({
           >
             Change
           </div>
-          <EarlyNumberWorksheetObjectGroupCard count={change} label={`${change} objects`} />
+          <EarlyNumberWorksheetObjectGroupCard count={change} label={changeLabel} />
         </div>
         <div
           aria-hidden="true"

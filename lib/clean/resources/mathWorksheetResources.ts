@@ -144,8 +144,28 @@ const INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S058-Interpret-Limits-Of-Accuracy-And-Rounding.pdf";
 const SELECT_EFFICIENT_CALCULATION_STRATEGIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-HSF-S059-Select-Efficient-Calculation-Strategies-For-Unfamiliar-Problems.pdf";
+const OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE =
+  "MYL-MATH-OC-KEE-S001-Act-Out-Joining-And-Taking-Away-In-Everyday-Stories.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::foundation-kindergarten::act-out-joining-and-taking-away-in-everyday-stories",
+    stepKey: "act-out-joining-and-taking-away-in-everyday-stories",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Kindergarten / Early Elementary",
+    stepNumber: 1,
+    pathwayStepTitle: "Act out joining and taking away in everyday stories",
+    title: "Act Out Joining And Taking Away In Everyday Stories",
+    concept:
+      "Use objects, pictures and number sentences to act out joining and taking away in everyday stories.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/kindergarten-early-elementary/${OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
   {
     pathwayStepId:
       "mathematics::number-and-place-value::foundation-kindergarten::recognise-small-quantities-without-counting",

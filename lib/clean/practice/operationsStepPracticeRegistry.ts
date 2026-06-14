@@ -68,7 +68,7 @@ function makePracticeTask(
     acceptableAnswers: item?.answer ? [item.answer] : [],
     supportPrompt:
       "Use the visual model first. Say what each group or jump means, then choose the answer.",
-    workedSolution: item?.answer ? `The matching answer is ${item.answer}.` : "",
+    workedSolution: item?.feedback ?? (item?.answer ? `The matching answer is ${item.answer}.` : ""),
     misconceptionTargets: item?.misconceptionTargets ?? [],
     relatedAssessmentItemIds: [relatedAssessmentItemId],
     visualSupport: visual(item?.visual ?? spec.description),
