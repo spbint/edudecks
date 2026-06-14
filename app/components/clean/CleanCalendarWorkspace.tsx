@@ -243,6 +243,7 @@ type PickerOption = {
 };
 
 type PlanningView = "master" | "week";
+type CalendarBoardView = "week" | "month";
 type MasterWeekView = "school" | "full";
 type LiveWeekView = "school" | "full";
 type LearningPeriodComposerMode = "term" | "break";
@@ -273,6 +274,27 @@ function getWeekStart(dateValue = getTodayDate()) {
 
 function getWeekDates(weekStartsOn: string) {
   return Array.from({ length: 7 }, (_, index) => addDays(weekStartsOn, index));
+}
+
+function getMonthStart(dateValue = getTodayDate()) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return getTodayDate().slice(0, 8) + "01";
+  date.setDate(1);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function addMonths(dateValue: string, monthOffset: number) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  date.setMonth(date.getMonth() + monthOffset, 1);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getMonthGridDates(monthStartsOn: string) {
+  const gridStart = getWeekStart(monthStartsOn);
+  return Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
 }
 
 function doDateRangesOverlap(
@@ -361,6 +383,15 @@ function formatWeekdayLabel(value: string) {
 
 function formatWeekRangeLabel(startsOn: string, endsOn: string) {
   return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
+}
+
+function formatMonthLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function formatTimeLabel(value: string | null) {
@@ -894,6 +925,7 @@ function CleanCalendarWorkspaceBody() {
   const [popoverProgramSegmentId, setPopoverProgramSegmentId] = useState("");
 
   const [planningView, setPlanningView] = useState<PlanningView>("week");
+  const [calendarBoardView, setCalendarBoardView] = useState<CalendarBoardView>("week");
   const [showYearComposer, setShowYearComposer] = useState(false);
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
@@ -967,6 +999,17 @@ function CleanCalendarWorkspaceBody() {
 
   const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
   const weekDates = useMemo(() => getWeekDates(selectedWeekStart), [selectedWeekStart]);
+  const selectedMonthStart = useMemo(
+    () => getMonthStart(selectedWeekStart),
+    [selectedWeekStart],
+  );
+  const monthGridDates = useMemo(
+    () => getMonthGridDates(selectedMonthStart),
+    [selectedMonthStart],
+  );
+  const selectedCalendarStart = calendarBoardView === "month" ? monthGridDates[0] : selectedWeekStart;
+  const selectedCalendarEnd =
+    calendarBoardView === "month" ? monthGridDates[monthGridDates.length - 1] : selectedWeekEnd;
   const selectedBreakOverlapsWeek = useMemo(
     () =>
       !!selectedLearningPeriod &&
@@ -1124,6 +1167,11 @@ function CleanCalendarWorkspaceBody() {
     () => (liveWeekView === "school" ? weekDates.slice(0, 5) : weekDates),
     [liveWeekView, weekDates],
   );
+  const calendarBoardDates = calendarBoardView === "week" ? visibleWeekDates : monthGridDates;
+  const calendarBoardLabel =
+    calendarBoardView === "week"
+      ? formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)
+      : formatMonthLabel(selectedMonthStart);
 
   const visibleBlockSegments = useMemo(() => {
     if (!blockProgramId) return [];
@@ -1394,7 +1442,7 @@ function CleanCalendarWorkspaceBody() {
     }
   }, [selectedTemplateId, workspace.profile]);
 
-  const reloadWeekItems = useCallback(async () => {
+  const reloadCalendarItems = useCallback(async () => {
     if (!workspace.profile) return;
 
     setItemsLoading(true);
@@ -1402,22 +1450,27 @@ function CleanCalendarWorkspaceBody() {
 
     try {
       const nextItems = await listCleanCalendarItems(workspace.profile.id, {
-        fromDate: selectedWeekStart,
-        toDate: selectedWeekEnd,
-        limit: 100,
+        fromDate: selectedCalendarStart,
+        toDate: selectedCalendarEnd,
+        limit: calendarBoardView === "month" ? 240 : 100,
       });
       setItems(nextItems);
     } catch (error) {
       setItemsError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load this week's blocks just now.",
+          "We could not load these calendar blocks just now.",
         ),
       );
     } finally {
       setItemsLoading(false);
     }
-  }, [selectedWeekEnd, selectedWeekStart, workspace.profile]);
+  }, [
+    calendarBoardView,
+    selectedCalendarEnd,
+    selectedCalendarStart,
+    workspace.profile,
+  ]);
 
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
@@ -1479,9 +1532,9 @@ function CleanCalendarWorkspaceBody() {
       return;
     }
 
-    void reloadWeekItems();
+    void reloadCalendarItems();
   }, [
-    reloadWeekItems,
+    reloadCalendarItems,
     workspace.profile,
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
@@ -2276,7 +2329,7 @@ function CleanCalendarWorkspaceBody() {
       }
 
       setMessage(`${messageParts.join(". ")}.`);
-      await Promise.all([reloadWeekItems(), reloadSetupData()]);
+      await Promise.all([reloadCalendarItems(), reloadSetupData()]);
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2319,7 +2372,7 @@ function CleanCalendarWorkspaceBody() {
       }
 
       closePopover();
-      await reloadWeekItems();
+      await reloadCalendarItems();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2347,7 +2400,7 @@ function CleanCalendarWorkspaceBody() {
         closePopover();
       }
 
-      await reloadWeekItems();
+      await reloadCalendarItems();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2516,6 +2569,493 @@ function CleanCalendarWorkspaceBody() {
 
         {readyForCalendar && workspace.profile && workspace.learners.length ? (
           <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 18 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 14,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Master planning calendar
+                    </div>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>{calendarBoardLabel}</h2>
+                    <p style={secondaryTextStyle}>
+                      Plan learning blocks here. Today&apos;s blocks flow through to My Day.
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() => setSelectedWeekStart(getWeekStart())}
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() =>
+                        setSelectedWeekStart(
+                          calendarBoardView === "week"
+                            ? addDays(selectedWeekStart, -7)
+                            : getWeekStart(addMonths(selectedMonthStart, -1)),
+                        )
+                      }
+                      aria-label={
+                        calendarBoardView === "week" ? "Previous week" : "Previous month"
+                      }
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() =>
+                        setSelectedWeekStart(
+                          calendarBoardView === "week"
+                            ? addDays(selectedWeekStart, 7)
+                            : getWeekStart(addMonths(selectedMonthStart, 1)),
+                        )
+                      }
+                      aria-label={calendarBoardView === "week" ? "Next week" : "Next month"}
+                    >
+                      Next
+                    </button>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 12,
+                        padding: 4,
+                        background: "#f8fafc",
+                        gap: 4,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        style={{
+                          ...buttonStyle,
+                          padding: "8px 12px",
+                          background: calendarBoardView === "week" ? "#0f172a" : "#ffffff",
+                          color: calendarBoardView === "week" ? "#ffffff" : "#0f172a",
+                          borderColor: calendarBoardView === "week" ? "#0f172a" : "#ffffff",
+                        }}
+                        onClick={() => setCalendarBoardView("week")}
+                      >
+                        Week
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          ...buttonStyle,
+                          padding: "8px 12px",
+                          background: calendarBoardView === "month" ? "#0f172a" : "#ffffff",
+                          color: calendarBoardView === "month" ? "#ffffff" : "#0f172a",
+                          borderColor: calendarBoardView === "month" ? "#0f172a" : "#ffffff",
+                        }}
+                        onClick={() => setCalendarBoardView("month")}
+                      >
+                        Month
+                      </button>
+                    </div>
+                    {calendarBoardView === "week" ? (
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: 12,
+                          padding: 4,
+                          background: "#f8fafc",
+                          gap: 4,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          style={{
+                            ...buttonStyle,
+                            padding: "8px 12px",
+                            background: liveWeekView === "school" ? "#0f172a" : "#ffffff",
+                            color: liveWeekView === "school" ? "#ffffff" : "#0f172a",
+                            borderColor: liveWeekView === "school" ? "#0f172a" : "#ffffff",
+                          }}
+                          onClick={() => {
+                            setLiveWeekView("school");
+                            setLiveWeekViewTouched(true);
+                          }}
+                        >
+                          School week
+                        </button>
+                        <button
+                          type="button"
+                          style={{
+                            ...buttonStyle,
+                            padding: "8px 12px",
+                            background: liveWeekView === "full" ? "#0f172a" : "#ffffff",
+                            color: liveWeekView === "full" ? "#ffffff" : "#0f172a",
+                            borderColor: liveWeekView === "full" ? "#0f172a" : "#ffffff",
+                          }}
+                          onClick={() => {
+                            setLiveWeekView("full");
+                            setLiveWeekViewTouched(true);
+                          }}
+                        >
+                          Full week
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {itemsLoading ? (
+                  <p style={secondaryTextStyle}>Loading planned blocks...</p>
+                ) : null}
+                {itemsError ? <p style={{ margin: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
+
+                {hasHiddenWeekendWeekContent && calendarBoardView === "week" ? (
+                  <div
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 14,
+                      padding: 12,
+                      background: "#ffffff",
+                      color: "#475569",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Weekend plans are still part of this week. Switch to Full week to view
+                    Saturday and Sunday.
+                  </div>
+                ) : null}
+
+                <div
+                  style={{
+                    overflowX:
+                      calendarBoardView === "week" && liveWeekView === "full"
+                        ? "auto"
+                        : "visible",
+                    paddingBottom: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: calendarBoardView === "month" ? 8 : 12,
+                      gridTemplateColumns:
+                        calendarBoardView === "month"
+                          ? "repeat(7, minmax(0, 1fr))"
+                          : liveWeekView === "school"
+                            ? "repeat(5, minmax(0, 1fr))"
+                            : "repeat(7, minmax(220px, 1fr))",
+                      minWidth:
+                        calendarBoardView === "week" && liveWeekView === "full"
+                          ? 1640
+                          : undefined,
+                    }}
+                  >
+                    {calendarBoardView === "month"
+                      ? WEEKDAY_OPTIONS.map((day) => (
+                          <div
+                            key={day.value}
+                            style={{
+                              color: "#64748b",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              textAlign: "center",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {day.label.slice(0, 3)}
+                          </div>
+                        ))
+                      : null}
+
+                    {calendarBoardDates.map((dateValue) => {
+                      const dayItems = itemsByDate.get(dateValue) ?? [];
+                      const isToday = dateValue === getTodayDate();
+                      const isOutsideSelectedMonth =
+                        calendarBoardView === "month" &&
+                        getMonthStart(dateValue) !== selectedMonthStart;
+                      const emptyZoneSurfaceId = `calendar-board-empty-${dateValue}`;
+
+                      return (
+                        <div
+                          key={dateValue}
+                          style={{
+                            border: `1px solid ${isToday ? "#a78bfa" : "#dbeafe"}`,
+                            borderRadius: calendarBoardView === "month" ? 14 : 16,
+                            padding: calendarBoardView === "month" ? 10 : 14,
+                            background: isOutsideSelectedMonth
+                              ? "#f8fafc"
+                              : isToday
+                                ? "#faf5ff"
+                                : "#f8fbff",
+                            display: "grid",
+                            gap: 10,
+                            alignContent: "start",
+                            minHeight: calendarBoardView === "month" ? 132 : undefined,
+                            opacity: isOutsideSelectedMonth ? 0.62 : 1,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 8,
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <div style={{ display: "grid", gap: 2 }}>
+                              <strong style={{ color: "#0f172a", fontSize: 14 }}>
+                                {calendarBoardView === "month"
+                                  ? formatDateLabel(dateValue)
+                                  : formatLongDateLabel(dateValue)}
+                              </strong>
+                              {dayItems.length ? (
+                                <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                                  {dayItems.length} block{dayItems.length === 1 ? "" : "s"}
+                                </span>
+                              ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              style={{
+                                ...mutedButtonStyle,
+                                padding: calendarBoardView === "month" ? "6px 8px" : "8px 10px",
+                                fontSize: 12,
+                              }}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openCreatePopover(dateValue);
+                              }}
+                            >
+                              Add block
+                            </button>
+                          </div>
+
+                          {dayItems.length ? (
+                            <div style={{ display: "grid", gap: 8 }}>
+                              {dayItems
+                                .slice(0, calendarBoardView === "month" ? 3 : dayItems.length)
+                                .map((item) => {
+                                  const learnerLabel =
+                                    learnerOptions.find((option) => option.value === item.learnerId)
+                                      ?.label || "Whole family";
+                                  const programLabel =
+                                    programOptions.find((option) => option.value === item.programId)
+                                      ?.label ?? null;
+                                  const segmentLabel =
+                                    programSegments.find(
+                                      (segment) => segment.id === item.programSegmentId,
+                                    )?.title ?? null;
+                                  const blockSurfaceId = `calendar-board-block-${item.id}`;
+
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      role="button"
+                                      tabIndex={0}
+                                      style={{
+                                        ...getClickableCardStyle(
+                                          activeSurfaceId === blockSurfaceId,
+                                        ),
+                                        padding: calendarBoardView === "month" ? 9 : 12,
+                                      }}
+                                      onMouseEnter={() => setActiveSurfaceId(blockSurfaceId)}
+                                      onMouseLeave={() =>
+                                        setActiveSurfaceId((current) =>
+                                          current === blockSurfaceId ? null : current,
+                                        )
+                                      }
+                                      onFocus={() => setActiveSurfaceId(blockSurfaceId)}
+                                      onBlur={() =>
+                                        setActiveSurfaceId((current) =>
+                                          current === blockSurfaceId ? null : current,
+                                        )
+                                      }
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter" || event.key === " ") {
+                                          event.preventDefault();
+                                          openEditPopover(item);
+                                        }
+                                      }}
+                                      onClick={() => openEditPopover(item)}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          gap: 8,
+                                          alignItems: "center",
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        <strong style={{ color: "#0f172a", fontSize: 14 }}>
+                                          {item.title}
+                                        </strong>
+                                        {calendarBoardView === "week" ? (
+                                          <span
+                                            style={{
+                                              fontSize: 12,
+                                              color:
+                                                item.sourceType === "manual"
+                                                  ? "#64748b"
+                                                  : "#1d4ed8",
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            {getSourceLabel(item.sourceType)}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      <div style={{ color: "#475569", fontSize: 13 }}>
+                                        {item.startsAt || item.endsAt
+                                          ? `${formatTimeLabel(item.startsAt)}${
+                                              item.endsAt
+                                                ? ` to ${formatTimeLabel(item.endsAt)}`
+                                                : ""
+                                            }`
+                                          : "Any time"}
+                                      </div>
+                                      <div style={{ color: "#64748b", fontSize: 13 }}>
+                                        {learnerLabel}
+                                        {item.learningArea ? ` - ${item.learningArea}` : ""}
+                                      </div>
+                                      {calendarBoardView === "week" &&
+                                      (programLabel || segmentLabel) ? (
+                                        <div style={{ color: "#64748b", fontSize: 13 }}>
+                                          {programLabel ? `Program: ${programLabel}` : ""}
+                                          {programLabel && segmentLabel ? " - " : ""}
+                                          {segmentLabel ? `Week / segment: ${segmentLabel}` : ""}
+                                        </div>
+                                      ) : null}
+                                      {calendarBoardView === "week" ? (
+                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                          <button
+                                            type="button"
+                                            style={mutedButtonStyle}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              openEditPopover(item);
+                                            }}
+                                          >
+                                            Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            style={dangerButtonStyle}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleDeleteItem(item);
+                                            }}
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              {calendarBoardView === "month" && dayItems.length > 3 ? (
+                                <button
+                                  type="button"
+                                  style={{
+                                    border: "1px solid #cbd5e1",
+                                    borderRadius: 10,
+                                    background: "#ffffff",
+                                    color: "#475569",
+                                    padding: "7px 9px",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                  }}
+                                  onClick={() => {
+                                    setCalendarBoardView("week");
+                                    setSelectedWeekStart(getWeekStart(dateValue));
+                                  }}
+                                >
+                                  {dayItems.length - 3} more block
+                                  {dayItems.length - 3 === 1 ? "" : "s"}
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              style={{
+                                ...getInteractiveZoneStyle(
+                                  activeSurfaceId === emptyZoneSurfaceId,
+                                ),
+                                padding: calendarBoardView === "month" ? "12px 10px" : "16px 14px",
+                              }}
+                              onMouseEnter={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                              onMouseLeave={() =>
+                                setActiveSurfaceId((current) =>
+                                  current === emptyZoneSurfaceId ? null : current,
+                                )
+                              }
+                              onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                              onBlur={() =>
+                                setActiveSurfaceId((current) =>
+                                  current === emptyZoneSurfaceId ? null : current,
+                                )
+                              }
+                              onClick={() => openCreatePopover(dateValue)}
+                            >
+                              <strong style={{ color: "#0f172a", fontSize: 14 }}>Add block</strong>
+                              {calendarBoardView === "week" ? (
+                                <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                                  No learning blocks planned yet.
+                                </span>
+                              ) : null}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {!itemsLoading && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
+                  <div
+                    style={{
+                      border: "1px solid #dbeafe",
+                      borderRadius: 14,
+                      background: "#f8fbff",
+                      color: "#475569",
+                      padding: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    No learning blocks planned yet. Add a block to start building your week.
+                  </div>
+                ) : null}
+              </div>
+            </section>
+
             {!firstSetupMode ? (
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 14 }}>
