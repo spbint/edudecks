@@ -34,7 +34,6 @@ const navItems = [
   { href: "/my-portfolio", label: "My Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
   { href: "/my-data", label: "My Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
   { href: "/my-reports", label: "My Reports", icon: "file", matches: ["/my-reports", "/reports"] },
-  { href: "/my-skills", label: "My Skills", icon: "spark", matches: ["/my-skills"] },
   { href: "/my-settings", label: "My Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
 ] as const;
 
@@ -81,15 +80,6 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
         <circle cx="18" cy="6" r="2.4" />
         <path d="M8.2 17.2c4.6-1 7.7-3.9 8.6-9" />
         <path d="M8.2 18H14a4 4 0 0 0 4-4v-1" />
-      </svg>
-    );
-  }
-  if (name === "spark") {
-    return (
-      <svg {...common}>
-        <path d="M12 3.8 13.7 9l5.3 1.7-5.3 1.7L12 17.6l-1.7-5.2L5 10.7 10.3 9 12 3.8Z" />
-        <path d="m18.2 15.3.8 2.2 2.2.7-2.2.8-.8 2.2-.7-2.2-2.2-.8 2.2-.7.7-2.2Z" />
-        <path d="m5.8 3.7.6 1.7 1.7.6-1.7.6-.6 1.7-.6-1.7-1.7-.6 1.7-.6.6-1.7Z" />
       </svg>
     );
   }
