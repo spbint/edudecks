@@ -30,7 +30,15 @@ export type ContextualObjectVisualType =
   | "block"
   | "shell"
   | "star"
-  | "sticker";
+  | "sticker"
+  | "balloon"
+  | "cracker"
+  | "bird"
+  | "car"
+  | "biscuit"
+  | "marble"
+  | "duck"
+  | "snail";
 
 export const contextualObjectVisualTypes: ContextualObjectVisualType[] = [
   "apple",
@@ -43,6 +51,14 @@ export const contextualObjectVisualTypes: ContextualObjectVisualType[] = [
   "shell",
   "star",
   "sticker",
+  "balloon",
+  "cracker",
+  "bird",
+  "car",
+  "biscuit",
+  "marble",
+  "duck",
+  "snail",
 ];
 
 export type MathVisualKind =
@@ -679,6 +695,15 @@ function getStoryOperation(prompt: string) {
   if (
     source.includes("taken away") ||
     source.includes("take away") ||
+    source.includes("minus") ||
+    source.includes(" - ") ||
+    source.includes("eats") ||
+    source.includes("fly away") ||
+    source.includes("flies away") ||
+    source.includes("given away") ||
+    /\bgives?\s+\d+\s+to\b/.test(source) ||
+    source.includes("you use") ||
+    source.includes("lost") ||
     source.includes("left") ||
     source.includes("swim away") ||
     source.includes("removed")
@@ -866,6 +891,14 @@ type CountingObjectKind =
   | "heart"
   | "sun"
   | "triangle"
+  | "balloon"
+  | "cracker"
+  | "bird"
+  | "car"
+  | "biscuit"
+  | "marble"
+  | "duck"
+  | "snail"
   | "circle";
 
 const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
@@ -886,6 +919,14 @@ const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
   "heart",
   "sun",
   "triangle",
+  "balloon",
+  "cracker",
+  "bird",
+  "car",
+  "biscuit",
+  "marble",
+  "duck",
+  "snail",
   "circle",
 ];
 
@@ -900,6 +941,14 @@ function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
   if (normalized.includes("block")) return "block";
   if (normalized.includes("shell")) return "shell";
   if (normalized.includes("sticker")) return "sticker";
+  if (normalized.includes("balloon")) return "balloon";
+  if (normalized.includes("cracker")) return "cracker";
+  if (normalized.includes("bird")) return "bird";
+  if (normalized.includes("toy car") || normalized.includes("car")) return "car";
+  if (normalized.includes("biscuit")) return "biscuit";
+  if (normalized.includes("marble")) return "marble";
+  if (normalized.includes("duck")) return "duck";
+  if (normalized.includes("snail")) return "snail";
   if (normalized.includes("star")) return "star";
   if (normalized.includes("cube")) return "cube";
   if (normalized.includes("fish")) return "fish";
@@ -931,6 +980,14 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     heart: "hearts",
     sun: "suns",
     triangle: "triangles",
+    balloon: "balloons",
+    cracker: "crackers",
+    bird: "birds",
+    car: "toy cars",
+    biscuit: "biscuits",
+    marble: "marbles",
+    duck: "ducks",
+    snail: "snails",
     circle: "objects",
   };
   const singular: Record<CountingObjectKind, string> = {
@@ -951,6 +1008,14 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     heart: "heart",
     sun: "sun",
     triangle: "triangle",
+    balloon: "balloon",
+    cracker: "cracker",
+    bird: "bird",
+    car: "toy car",
+    biscuit: "biscuit",
+    marble: "marble",
+    duck: "duck",
+    snail: "snail",
     circle: "object",
   };
 
@@ -973,6 +1038,168 @@ function CountingObjectShape({
     position: "relative",
     filter: size <= 10 ? "none" : "drop-shadow(0 4px 8px rgba(15,23,42,0.12))",
   };
+
+  if (kind === "balloon") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "55% 55% 50% 50%",
+          background: index % 2 ? "#93c5fd" : "#f9a8d4",
+          border: "1px solid #7c3aed",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: "44%",
+            bottom: "-25%",
+            width: 2,
+            height: "35%",
+            background: "#64748b",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "cracker" || kind === "biscuit") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: kind === "cracker" ? 6 : "50%",
+          background: "#facc15",
+          border: "1px solid #b45309",
+          boxShadow: size <= 10 ? "none" : "inset 0 0 0 3px rgba(255,255,255,0.38)",
+        }}
+      />
+    );
+  }
+
+  if (kind === "bird" || kind === "duck") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.18),
+          height: Math.round(size * 0.78),
+          borderRadius: "55% 45% 45% 55%",
+          background: kind === "duck" ? "#fde047" : "#60a5fa",
+          border: kind === "duck" ? "1px solid #ca8a04" : "1px solid #2563eb",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            right: "-14%",
+            top: "38%",
+            width: "24%",
+            height: "20%",
+            background: "#fb923c",
+            clipPath: "polygon(0 0, 100% 50%, 0 100%)",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "car") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.45),
+          height: Math.round(size * 0.72),
+          borderRadius: 6,
+          background: "#ef4444",
+          border: "1px solid #991b1b",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: "18%",
+            top: "-36%",
+            width: "46%",
+            height: "42%",
+            borderRadius: "8px 8px 0 0",
+            background: "#bfdbfe",
+            border: "1px solid #2563eb",
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            left: "16%",
+            bottom: "-22%",
+            width: "18%",
+            height: "36%",
+            borderRadius: "50%",
+            background: "#1f2937",
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            right: "16%",
+            bottom: "-22%",
+            width: "18%",
+            height: "36%",
+            borderRadius: "50%",
+            background: "#1f2937",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "marble") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 35% 30%, #ffffff 0 16%, #a78bfa 17% 58%, #5b21b6 59% 100%)",
+          border: "1px solid #6d28d9",
+        }}
+      />
+    );
+  }
+
+  if (kind === "snail") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 1.38),
+          height: Math.round(size * 0.78),
+          borderRadius: "45% 55% 50% 50%",
+          background: "#a3e635",
+          border: "1px solid #4d7c0f",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: "14%",
+            top: "-30%",
+            width: "48%",
+            height: "70%",
+            borderRadius: "50%",
+            background: "#c084fc",
+            border: "1px solid #7e22ce",
+          }}
+        />
+      </span>
+    );
+  }
 
   if (kind === "star") {
     return (
@@ -10372,6 +10599,126 @@ export function renderStep9WorksheetOptionCard({
   selected?: boolean;
 }) {
   const normalized = safe(option);
+  const sentenceMatch = normalized.match(/^(\d{1,2})\s*([+-])\s*(\d{1,2})\s*=\s*(\d{1,2})$/);
+  if (sentenceMatch) {
+    const [, first, symbol, second, result] = sentenceMatch;
+    const isJoining = symbol === "+";
+    return (
+      <div
+        aria-label={`Number sentence ${normalized}`}
+        style={{
+          border: `2px solid ${selected ? "#1d4ed8" : isJoining ? "#bbf7d0" : "#fed7aa"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : "#ffffff",
+          color: "#17204B",
+          minHeight: 118,
+          padding: 12,
+          display: "grid",
+          gap: 8,
+          placeItems: "center",
+          textAlign: "center",
+          boxShadow: selected
+            ? "0 10px 22px rgba(37,99,235,0.18)"
+            : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        <div style={{ fontSize: 26, fontWeight: 950, letterSpacing: "0.02em" }}>
+          {first} {symbol} {second} = {result}
+        </div>
+        <div
+          style={{
+            border: `1px solid ${isJoining ? "#bbf7d0" : "#fed7aa"}`,
+            borderRadius: 999,
+            background: isJoining ? "#f0fdf4" : "#fff7ed",
+            color: isJoining ? "#166534" : "#c2410c",
+            padding: "5px 8px",
+            fontSize: 12,
+            fontWeight: 900,
+          }}
+        >
+          {isJoining ? "Joining" : "Taking away"}
+        </div>
+      </div>
+    );
+  }
+
+  if (/^(Joining|Taking away)$/i.test(normalized)) {
+    const isJoining = normalized.toLowerCase() === "joining";
+    return (
+      <div
+        aria-label={isJoining ? "Joining story" : "Taking away story"}
+        style={{
+          border: `2px solid ${selected ? "#1d4ed8" : isJoining ? "#bbf7d0" : "#fed7aa"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : isJoining ? "#f0fdf4" : "#fff7ed",
+          color: isJoining ? "#166534" : "#c2410c",
+          minHeight: 118,
+          padding: 12,
+          display: "grid",
+          placeItems: "center",
+          textAlign: "center",
+          fontSize: 22,
+          fontWeight: 950,
+          boxShadow: selected
+            ? "0 10px 22px rgba(37,99,235,0.18)"
+            : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        {normalized}
+      </div>
+    );
+  }
+
+  if (normalized.toLowerCase().includes("group of")) {
+    const isTakingAway =
+      normalized.toLowerCase().includes("taken away") ||
+      normalized.toLowerCase().includes("crossed out");
+    const isJoining =
+      normalized.toLowerCase().includes("joined") ||
+      normalized.toLowerCase().includes("join");
+    return (
+      <div
+        aria-label={normalized}
+        style={{
+          border: `2px solid ${selected ? "#1d4ed8" : isTakingAway ? "#fed7aa" : "#bbf7d0"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : "#ffffff",
+          color: "#17204B",
+          minHeight: 126,
+          padding: 12,
+          display: "grid",
+          gap: 8,
+          alignContent: "center",
+          textAlign: "center",
+          fontSize: 14,
+          fontWeight: 850,
+          lineHeight: 1.35,
+          boxShadow: selected
+            ? "0 10px 22px rgba(37,99,235,0.18)"
+            : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        <span
+          style={{
+            justifySelf: "center",
+            border: `1px solid ${isTakingAway ? "#fed7aa" : "#bbf7d0"}`,
+            borderRadius: 999,
+            background: isTakingAway ? "#fff7ed" : "#f0fdf4",
+            color: isTakingAway ? "#c2410c" : "#166534",
+            padding: "4px 8px",
+            fontSize: 11,
+            fontWeight: 950,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {isTakingAway ? "Take away" : isJoining ? "Join" : "Picture"}
+        </span>
+        <span>{normalized}</span>
+      </div>
+    );
+  }
+
   if (!/^(10|[0-9])$/.test(normalized)) return null;
 
   return <EarlyNumberWorksheetNumeralCard numeral={normalized} label="Result" selected={selected} variant="compact" />;
