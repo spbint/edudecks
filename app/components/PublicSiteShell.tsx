@@ -318,7 +318,11 @@ export default function PublicSiteShell({
                   paddingRight: isMobile ? 0 : 6,
                 }}
               />
-              <PreviewBadge compact={isMobile} />
+              <PreviewBadge
+                compact={isMobile}
+                label="Beta V1"
+                title="MyLearna Free Beta V1 is evolving with family feedback."
+              />
             </div>
 
             <div

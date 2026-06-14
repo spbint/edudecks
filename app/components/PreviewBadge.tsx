@@ -4,16 +4,23 @@ import React from "react";
 
 type PreviewBadgeProps = {
   compact?: boolean;
+  label?: string;
+  title?: string;
   style?: React.CSSProperties;
 };
 
 const LABEL = "MyLearna is evolving with family feedback.";
 
-export default function PreviewBadge({ compact = false, style }: PreviewBadgeProps) {
+export default function PreviewBadge({
+  compact = false,
+  label = "Preview",
+  title = LABEL,
+  style,
+}: PreviewBadgeProps) {
   return (
     <span
-      title={LABEL}
-      aria-label={`Preview. ${LABEL}`}
+      title={title}
+      aria-label={`${label}. ${title}`}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -33,7 +40,7 @@ export default function PreviewBadge({ compact = false, style }: PreviewBadgePro
         ...style,
       }}
     >
-      Preview
+      {label}
     </span>
   );
 }
