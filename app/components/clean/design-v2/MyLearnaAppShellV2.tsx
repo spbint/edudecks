@@ -30,11 +30,11 @@ const navItems = [
   { href: "/my-day", label: "My Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
   { href: "/my-calendar", label: "My Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
   { href: "/my-pathways", label: "My Pathways", icon: "route", matches: ["/my-pathways"] },
-  { href: "/my-skills", label: "My Skills", icon: "spark", matches: ["/my-skills"] },
   { href: "/my-capture", label: "My Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
   { href: "/my-portfolio", label: "My Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
   { href: "/my-data", label: "My Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
   { href: "/my-reports", label: "My Reports", icon: "file", matches: ["/my-reports", "/reports"] },
+  { href: "/my-skills", label: "My Skills", icon: "spark", matches: ["/my-skills"] },
   { href: "/my-settings", label: "My Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
 ] as const;
 
