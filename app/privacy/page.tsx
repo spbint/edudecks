@@ -288,12 +288,10 @@ export default function PrivacyPage() {
               personalization, remarketing, or session replay.
             </p>
             <p style={paragraphStyle}>
-              We may use privacy-conscious analytics and advertising tools, such as website
-              pixels or similar technologies, to understand visits to our public pages, measure
-              the effectiveness of our communications, and improve MyLearna. These tools may
-              collect information such as page visits, device or browser information, and
-              referral source. We do not use these tools to publish private family learning
-              records.
+              We may use marketing analytics tools, such as Meta Pixel, on public pages to
+              understand visits and sign-ups. We do not use these tools to track children&apos;s
+              learning records, portfolio evidence, assessment responses or authenticated
+              homeschool content.
             </p>
           </div>
         </section>

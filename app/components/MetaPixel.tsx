@@ -4,7 +4,7 @@ import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const META_PIXEL_ID = "833692524078029";
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ?? "";
 
 const PUBLIC_EXACT_PATHS = new Set([
   "/",
@@ -14,6 +14,8 @@ const PUBLIC_EXACT_PATHS = new Set([
   "/demo",
   "/faq",
   "/get-started",
+  "/beta",
+  "/beta/thanks",
   "/homeschool-learning-evidence",
   "/homeschool-maths-worksheets",
   "/homeschool-planning",
@@ -36,13 +38,21 @@ function isPublicTrackedPath(pathname: string) {
   return PUBLIC_EXACT_PATHS.has(pathname);
 }
 
+export function trackMetaLead() {
+  if (!META_PIXEL_ID || typeof window === "undefined" || typeof window.fbq !== "function") {
+    return;
+  }
+
+  window.fbq("track", "Lead");
+}
+
 export default function MetaPixel() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [pixelReady, setPixelReady] = useState(false);
   const lastPageViewKey = useRef("");
 
-  const shouldTrack = isPublicTrackedPath(pathname);
+  const shouldTrack = Boolean(META_PIXEL_ID) && isPublicTrackedPath(pathname);
   const trackingKey = useMemo(() => {
     const query = searchParams.toString();
     return query ? `${pathname}?${query}` : pathname;
@@ -60,7 +70,7 @@ export default function MetaPixel() {
 
   }, [pathname, pixelReady, shouldTrack, trackingKey]);
 
-  if (!shouldTrack) {
+  if (!META_PIXEL_ID || !shouldTrack) {
     return null;
   }
 

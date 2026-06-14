@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { trackMetaLead } from "@/app/components/MetaPixel";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
@@ -126,6 +127,7 @@ export default function StartFreePage() {
     };
 
     saveSignupPrefill(prefill);
+    trackMetaLead();
     const params = new URLSearchParams();
     params.set("next", "/my-profile");
     params.set("source", prefill.source ?? "start-free");
