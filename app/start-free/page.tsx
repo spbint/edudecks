@@ -174,9 +174,9 @@ export default function StartFreePage() {
   return (
     <PublicSiteShell
       eyebrow="Start free"
-      heroTitle="Start using MyLearna"
-      heroText="Create your account with your email. We will use a few setup details to prefill your family profile so you do not have to enter them again later."
-      heroBadges={["Email sign-in", "Profile prefill", "Start with family setup"]}
+      heroTitle="Start free during beta"
+      heroText="Create your account with your email, then start planning, capturing evidence, building a portfolio and preparing report-ready records."
+      heroBadges={["Free beta", "Email sign-in", "Family setup", "Report-ready records"]}
       primaryCta={null}
       secondaryCta={{ label: "Already have an account?", href: "/login" }}
       asideTitle="What happens next"

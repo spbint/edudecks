@@ -10,62 +10,56 @@ import PublicSiteShell, {
 import useIsMobile from "@/app/components/useIsMobile";
 
 const PRIMARY_CTA = {
-  label: "Start with MyLearna",
+  label: "Start free during beta",
   href: "/start-free?source=home-primary",
 } as const;
 
 const HEADER_PRIMARY_CTA = {
-  label: "Get started",
+  label: "Start free",
   href: "/start-free?source=home-header",
 } as const;
 
-const LIFECYCLE_STEPS = [
+const FLOW_STEPS = [
   {
-    number: "1",
     title: "Plan",
-    text: "Organise the week and connect programs to the calendar.",
+    text: "Use My Calendar and My Day to organise the week.",
   },
   {
-    number: "2",
+    title: "Learn",
+    text: "Use My Pathways for practice, checks and worksheets.",
+  },
+  {
     title: "Capture",
-    text: "Record what happened from daily learning blocks while it is still fresh.",
+    text: "Add notes, learning moments and evidence as they happen.",
   },
   {
-    number: "3",
-    title: "Portfolio",
-    text: "Choose the strongest evidence worth keeping over time.",
+    title: "Report",
+    text: "Turn evidence and pathway checks into portfolios and report-ready outputs.",
+  },
+] as const;
+
+const VALUE_CARDS = [
+  {
+    title: "Planning that feeds the day",
+    text: "Plan the week or month, then use My Day to follow the learning blocks for today.",
   },
   {
-    number: "4",
-    title: "Reports",
-    text: "Prepare reports from selected records when you are ready.",
+    title: "Pathways with useful outputs",
+    text: "Practise, check understanding, open worksheets, and keep completed pathway checks as report-ready evidence.",
+  },
+  {
+    title: "Evidence that keeps moving",
+    text: "Capture text evidence, choose portfolio highlights, and bring selected evidence into reports and outputs.",
+  },
+  {
+    title: "Printable records",
+    text: "Create family learning record PDFs, plus simple weekly, monthly and daily planning PDFs for the fridge.",
   },
 ] as const;
-
-const VALUE_POINTS = [
-  "See the week, daily learning, and records in one place.",
-  "Build a real learning trail instead of rebuilding the story later.",
-  "Move from planning to reports with records that stay connected.",
-] as const;
-
-const TRUST_POINTS = [
-  "Your family learning records stay private to your account.",
-  "Text-first capture is available now.",
-  "Media uploads and advanced exports will come later with clear storage controls.",
-] as const;
-
-const FIRST_SESSION_STEPS = [
-  "Add your learner",
-  "Set your country and reporting context",
-  "Plan your week",
-  "Capture your first learning note",
-] as const;
-
-const HERO_PILLS = ["Plan", "Capture", "Portfolio", "Reports"] as const;
 
 function sectionHeader(title: string, text?: string) {
   return (
-    <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+    <div style={{ display: "grid", gap: 8, maxWidth: 780 }}>
       <h2
         style={{
           margin: 0,
@@ -78,14 +72,7 @@ function sectionHeader(title: string, text?: string) {
         {title}
       </h2>
       {text ? (
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            lineHeight: 1.7,
-            color: "#475569",
-          }}
-        >
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#475569" }}>
           {text}
         </p>
       ) : null}
@@ -101,13 +88,12 @@ export default function HomePage() {
     <PublicSiteShell
       title="MyLearna"
       eyebrow=""
-      heroTitle="Homeschool planning, portfolios and reports made simpler"
-      heroText="MyLearna helps homeschool families organise the week, capture learning as it happens, choose portfolio evidence, and prepare reports from real records."
-      heroBadges={[...HERO_PILLS]}
+      heroTitle="A simple homeschool system for planning, evidence, portfolios and reports."
+      heroText="Plan your week, follow today's learning, capture evidence, complete pathway checks and create report-ready records in one place."
+      heroBadges={["Plan", "Learn", "Capture", "Report"]}
       heroMicrocopy={
         <span>
-          Ready to start? Create your MyLearna account. Want to understand the flow first?
-          Explore the public demo.
+          Use MyLearna now while we continue improving with family feedback.
         </span>
       }
       asideTitle=""
@@ -115,11 +101,11 @@ export default function HomePage() {
       asideItems={[]}
       heroAsideVisible={false}
       primaryCta={PRIMARY_CTA}
-      secondaryCta={{ label: "Explore the demo", href: "/demo" }}
+      secondaryCta={{ label: "See how it works", href: "#how-it-works" }}
       headerAction={{ label: "Sign in", href: "/login" }}
       headerPrimaryAction={HEADER_PRIMARY_CTA}
       footerPrimaryCta={PRIMARY_CTA}
-      footerSecondaryCta={{ label: "Explore the demo", href: "/demo" }}
+      footerSecondaryCta={{ label: "About", href: "/about" }}
       showWorkflowStrip={false}
     >
       <section
@@ -133,53 +119,20 @@ export default function HomePage() {
           background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
         }}
       >
-        <div style={publicPill("#eff6ff", "#1d4ed8")}>Early access</div>
+        <div style={publicPill("#eff6ff", "#1d4ed8")}>Free Beta V1</div>
         <p
           style={{
             margin: 0,
             fontSize: 15,
             lineHeight: 1.7,
             color: "#334155",
-            maxWidth: 860,
+            maxWidth: 920,
             fontWeight: 700,
           }}
         >
-          MyLearna is evolving with feedback from homeschooling families. Help shape the
-          homeschool record system we&apos;re building with families.
+          MyLearna is live in beta for families who want a calmer way to plan
+          learning, keep evidence, build portfolios and prepare usable records.
         </p>
-      </section>
-
-      <section
-        style={{
-          ...publicCardStyle(),
-          marginBottom: isMobile ? 18 : 22,
-          padding: isMobile ? 18 : isTablet ? 22 : 24,
-          display: "grid",
-          gap: 12,
-          border: "1px solid #bfdbfe",
-          background: "#ffffff",
-        }}
-      >
-        <div style={publicPill("#eff6ff", "#1d4ed8")}>Public demo</div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            lineHeight: 1.7,
-            color: "#334155",
-            maxWidth: 880,
-            fontWeight: 700,
-          }}
-        >
-          See MyLearna in action with a fictional homeschool family. Explore
-          planning, pathways, evidence, portfolios, data, reports and sample
-          outputs - no account required.
-        </p>
-        <div>
-          <Link href="/demo" style={publicButtonStyle(false)}>
-            Explore the demo
-          </Link>
-        </div>
       </section>
 
       <section
@@ -194,8 +147,8 @@ export default function HomePage() {
         }}
       >
         {sectionHeader(
-          "A working homeschool record in four steps",
-          "Keep the week, the learning notes, the portfolio, and the reports connected as your family moves through the year.",
+          "Plan -> Learn -> Capture -> Report",
+          "The public promise is simple: help families turn ordinary homeschool activity into a useful learning record.",
         )}
 
         <div
@@ -205,14 +158,14 @@ export default function HomePage() {
             gap: 14,
           }}
         >
-          {LIFECYCLE_STEPS.map((step) => (
+          {FLOW_STEPS.map((step, index) => (
             <div
               key={step.title}
               style={{
                 border: "1px solid #e5e7eb",
                 borderRadius: 18,
                 padding: isMobile ? 16 : 18,
-                background: "#ffffff",
+                background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
                 display: "grid",
                 gap: 10,
               }}
@@ -231,26 +184,12 @@ export default function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {step.number}
+                {index + 1}
               </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.2,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                }}
-              >
+              <div style={{ fontSize: 18, lineHeight: 1.2, fontWeight: 900, color: "#0f172a" }}>
                 {step.title}
               </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  color: "#475569",
-                }}
-              >
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
                 {step.text}
               </p>
             </div>
@@ -275,32 +214,27 @@ export default function HomePage() {
           }}
         >
           {sectionHeader(
-            "Homeschool records without the paperwork spiral",
-            "Use MyLearna to keep planning, daily learning, and long-term records moving in one practical flow.",
+            "What MyLearna helps with now",
+            "Free Beta V1 focuses on practical homeschool workflow: planning, daily learning, evidence, portfolio choices and reports.",
           )}
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
-            {VALUE_POINTS.map((item, index) => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+            {VALUE_CARDS.map((item) => (
               <div
-                key={item}
+                key={item.title}
                 style={{
                   border: "1px solid #e5e7eb",
                   borderRadius: 18,
                   padding: isMobile ? 16 : 18,
-                  background: index === 1 ? "#f8fafc" : "#ffffff",
-                  fontSize: 15,
-                  lineHeight: 1.65,
-                  color: "#334155",
-                  fontWeight: 800,
+                  background: "#ffffff",
+                  display: "grid",
+                  gap: 8,
                 }}
               >
-                {item}
+                <strong style={{ color: "#0f172a", fontSize: 16 }}>{item.title}</strong>
+                <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.65 }}>
+                  {item.text}
+                </p>
               </div>
             ))}
           </div>
@@ -309,47 +243,26 @@ export default function HomePage() {
         <div
           style={{
             borderRadius: 24,
-            border: "1px solid #dbeafe",
-            background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+            border: "1px solid #ddd6fe",
+            background: "linear-gradient(180deg, #faf5ff 0%, #ffffff 100%)",
             padding: isMobile ? 18 : isTablet ? 24 : 28,
             display: "grid",
             gap: 16,
           }}
         >
-          <div style={publicPill("#eff6ff", "#1d4ed8")}>
-            Built around private family records
-          </div>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 15,
-              lineHeight: 1.7,
-              color: "#475569",
-            }}
-          >
-            MyLearna is built for private family learning records. Media uploads and
-            downloadable exports will be introduced only after storage and privacy controls
-            are ready.
+          <div style={publicPill("#f5f3ff", "#6d28d9")}>Free and Family</div>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28, lineHeight: 1.1, fontWeight: 900 }}>
+            Start free. Upgrade when you want the full learning system.
+          </h2>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#334155" }}>
+            Free gives families the tools to plan learning, capture text evidence,
+            build a portfolio and create basic report-ready outputs during beta.
           </p>
-          <div style={{ display: "grid", gap: 10 }}>
-            {TRUST_POINTS.map((item) => (
-              <div
-                key={item}
-                style={{
-                  border: "1px solid #dbeafe",
-                  borderRadius: 16,
-                  background: "#ffffff",
-                  padding: "12px 14px",
-                  color: "#334155",
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  fontWeight: 700,
-                }}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#334155" }}>
+            Family features will unlock deeper curriculum pathways, worksheets,
+            assessments, interactive activities and richer evidence-based reports
+            as they come online.
+          </p>
         </div>
       </section>
 
@@ -359,87 +272,71 @@ export default function HomePage() {
           marginBottom: isMobile ? 18 : 22,
           padding: isMobile ? 18 : isTablet ? 24 : 28,
           display: "grid",
-          gap: 22,
+          gap: 18,
         }}
       >
         {sectionHeader(
-          "Your first session",
-          "The first win is simple: get one learner set up, plan the week, and capture the first learning note.",
+          "Report-ready records without rebuilding the story later",
+          "Completed pathway checks can become report-ready evidence. Capture notes can move into portfolios, reports and printable outputs.",
         )}
-
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: 14,
           }}
         >
-          {FIRST_SESSION_STEPS.map((step, index) => (
+          {[
+            "Calendar and My Day planning",
+            "Pathway practice, checks and worksheets",
+            "Text evidence capture",
+            "Portfolio highlights",
+            "Report and output previews",
+            "Printable PDF learning records",
+          ].map((item) => (
             <div
-              key={step}
+              key={item}
               style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 18,
-                background: "#ffffff",
-                padding: isMobile ? 16 : 18,
-                display: "grid",
-                gap: 10,
+                border: "1px solid #dbeafe",
+                borderRadius: 16,
+                background: "#f8fbff",
+                padding: "13px 14px",
+                color: "#334155",
+                fontSize: 14,
+                lineHeight: 1.5,
+                fontWeight: 800,
               }}
             >
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 999,
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}
-              >
-                {index + 1}
-              </div>
-              <div
-                style={{
-                  fontSize: 16,
-                  lineHeight: 1.35,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                }}
-              >
-                {step}
-              </div>
+              {item}
             </div>
           ))}
         </div>
+      </section>
 
-        <div style={{ display: "grid", gap: 10 }}>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 14,
-              lineHeight: 1.65,
-              color: "#475569",
-              maxWidth: 720,
-            }}
-          >
-            Ready to start? Create your account on the next screen. Existing users can sign in
-            when they return.
-          </p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link
-              href={PRIMARY_CTA.href}
-              style={{
-                ...publicButtonStyle(true),
-                width: isMobile ? "100%" : undefined,
-              }}
-            >
-              {PRIMARY_CTA.label}
-            </Link>
-          </div>
+      <section
+        style={{
+          ...publicCardStyle(),
+          background: "linear-gradient(135deg, rgba(79,124,240,0.06) 0%, rgba(139,124,246,0.06) 100%)",
+          border: "1px solid #bfdbfe",
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28, lineHeight: 1.15, fontWeight: 900 }}>
+          Start with the free beta.
+        </h2>
+        <p style={{ margin: 0, color: "#334155", lineHeight: 1.7, maxWidth: 760 }}>
+          Create an account, set up your family profile, and begin with planning,
+          capture, portfolios and reports. Families should still check local home
+          education requirements before submitting records.
+        </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link href={PRIMARY_CTA.href} style={publicButtonStyle(true)}>
+            {PRIMARY_CTA.label}
+          </Link>
+          <Link href="/about" style={publicButtonStyle(false)}>
+            About MyLearna
+          </Link>
         </div>
       </section>
     </PublicSiteShell>

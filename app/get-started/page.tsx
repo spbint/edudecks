@@ -11,47 +11,47 @@ import PublicSiteShell, {
 const STEPS = [
   {
     step: "Step 1",
-    title: "Capture one learning moment",
+    title: "Set up your family",
     text:
-      "Start with one simple learning record. A short title, a useful summary, and one learning area are enough to begin building confidence.",
+      "Create your account, add your learner, and choose the basic context MyLearna uses for planning and records.",
     href: "/start-free?source=get-started-step-1",
-    cta: "Start with MyLearna",
+    cta: "Start free during beta",
     tone: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
   },
   {
     step: "Step 2",
-    title: "Curate a simple portfolio",
+    title: "Plan the week",
     text:
-      "Choose the learning moments that best represent progress so the record starts becoming clearer, stronger, and easier to work with later.",
+      "Use My Calendar for the week or month, then open My Day to follow the learning blocks for today.",
     href: "/start-free?source=get-started-step-2",
-    cta: "Start with MyLearna",
+    cta: "Start free during beta",
     tone: { bg: "#f5f3ff", bd: "#ddd6fe", fg: "#6d28d9" },
   },
   {
     step: "Step 3",
-    title: "Plan your next week",
+    title: "Capture useful evidence",
     text:
-      "Use what you are noticing to shape a gentler weekly rhythm with a clearer sense of what to focus on next.",
+      "Add short notes and learning moments as they happen so the family record starts building naturally.",
     href: "/start-free?source=get-started-step-3",
-    cta: "Start with MyLearna",
+    cta: "Start free during beta",
     tone: { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" },
   },
   {
     step: "Step 4",
-    title: "Build your first report view",
+    title: "Use pathways when helpful",
     text:
-      "Open the report builder once your evidence base has started to grow, so you can see how the record is coming together over time.",
+      "Use My Pathways for practice, checks and worksheets. Completed pathway checks can become report-ready evidence.",
     href: "/start-free?source=get-started-step-4",
-    cta: "Start with MyLearna",
+    cta: "Start free during beta",
     tone: { bg: "#fff7ed", bd: "#fed7aa", fg: "#9a3412" },
   },
   {
     step: "Step 5",
-    title: "Follow guided pathways",
+    title: "Build reports and outputs",
     text:
-      "When the basics are working, use guided pathways to shape what comes next without making the week feel overwhelming.",
+      "Choose portfolio evidence, preview report-ready records, and download printable outputs when you need them.",
     href: "/start-free?source=get-started-step-5",
-    cta: "Start with MyLearna",
+    cta: "Start free during beta",
     tone: { bg: "#f8fafc", bd: "#e5e7eb", fg: "#334155" },
   },
 ];
@@ -61,14 +61,14 @@ export default function GetStartedPage() {
     <PublicSiteShell
       eyebrow="Your best first path"
       heroTitle="How to start homeschool record keeping with confidence."
-      heroText="MyLearna starts with one learning record, then guides families into portfolio choices, planning, pathways, and reporting over time."
+      heroText="MyLearna starts with a simple family setup, then connects planning, daily learning, evidence, pathways, portfolios and reports over time."
       heroBadges={[
         "Begin simply",
         "Curate gradually",
         "Plan intentionally",
         "Report when ready",
       ]}
-      primaryCta={{ label: "Start with MyLearna", href: "/start-free?source=get-started-primary" }}
+      primaryCta={{ label: "Start free during beta", href: "/start-free?source=get-started-primary" }}
       secondaryCta={{ label: "Back home", href: "/" }}
       asideTitle="Best first move"
       asideText="Create your account with email, then begin with one useful family setup step."
@@ -158,7 +158,7 @@ export default function GetStartedPage() {
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1.1fr) minmax(320px, 0.9fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
           gap: 20,
           marginBottom: 24,
         }}
@@ -191,10 +191,10 @@ export default function GetStartedPage() {
 
           <div style={{ display: "grid", gap: 12 }}>
             {[
-              "Capture 2 to 3 real learning moments from your week.",
-              "Choose 1 or 2 that best show progress and keep them in your portfolio.",
-              "Sketch a gentle weekly rhythm in My Calendar.",
-              "Open the reports area only to see how the evidence flows forward.",
+            "Sketch a gentle weekly rhythm in My Calendar.",
+            "Use My Day to follow today's learning blocks.",
+            "Capture 2 to 3 real learning moments from your week.",
+            "Open Reports once evidence exists so you can see how the record flows forward.",
             ].map((item, index) => (
               <div
                 key={item}
@@ -378,7 +378,7 @@ export default function GetStartedPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.1fr) minmax(280px, 0.9fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
             gap: 20,
             alignItems: "center",
           }}
@@ -405,16 +405,17 @@ export default function GetStartedPage() {
                 marginBottom: 18,
               }}
             >
-              The strongest first move for most families is still the same: capture
-              one meaningful learning moment and let the system build from there.
+              The strongest first move for most families is simple: start free,
+              create the family profile, plan a few blocks, and capture one
+              meaningful learning moment.
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link href="/capture" style={publicButtonStyle(true)}>
-                Open Quick Capture
+              <Link href="/start-free?source=get-started-bottom" style={publicButtonStyle(true)}>
+                Start free during beta
               </Link>
-              <Link href="/family" style={publicButtonStyle(false)}>
-                Open Family Hub
+              <Link href="/" style={publicButtonStyle(false)}>
+                Back home
               </Link>
             </div>
           </div>

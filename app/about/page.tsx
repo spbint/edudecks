@@ -13,9 +13,9 @@ export default function AboutPage() {
     <PublicSiteShell
       eyebrow="Why MyLearna exists"
       heroTitle="About MyLearna"
-      heroText="MyLearna is being built for families who want a more connected way to capture learning, track evidence, plan intentionally, and prepare homeschool reports without turning home into school."
+      heroText="MyLearna is being built for families who want one connected place to plan learning, follow the day, capture evidence, build portfolios and prepare homeschool reports without turning home into school."
       heroBadges={["Calm", "Evidence-led", "Family-first", "Built to grow"]}
-      primaryCta={{ label: "Start with MyLearna", href: "/start-free?source=about-primary" }}
+      primaryCta={{ label: "Start free during beta", href: "/start-free?source=about-primary" }}
       secondaryCta={{ label: "See how it works", href: "/get-started" }}
       asideTitle="What this is"
       asideText="MyLearna is not just a planner, a portfolio, or a report builder on its own. It is a connected family learning workflow designed to reduce overwhelm and build confidence over time."
@@ -57,15 +57,16 @@ export default function AboutPage() {
           }}
         >
           MyLearna exists to offer a calmer alternative: one connected workflow
-          for capturing real learning, shaping stronger evidence, planning what comes
-          next, and building reports that feel more credible and less rushed.
+          for planning the week, following today&apos;s learning, capturing real
+          evidence, shaping a portfolio, and building records that feel more
+          credible and less rushed.
         </div>
       </section>
 
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, 0.95fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
           gap: 20,
           marginBottom: 24,
         }}
@@ -86,13 +87,13 @@ export default function AboutPage() {
           <div style={{ display: "grid", gap: 12 }}>
             {[
               {
-                title: "It starts with real learning moments",
-                text: "The workflow begins with actual learning evidence, not with abstract setup or administrative complexity.",
+                title: "It starts with the family workflow",
+                text: "The workflow connects planning, daily learning, pathway checks, evidence, portfolio choices and reports.",
                 tone: ["#eff6ff", "#1d4ed8"],
               },
               {
-                title: "It grows through progressive complexity",
-                text: "Families can begin simply, then add portfolio, planning, and reporting depth as the system becomes more useful.",
+                title: "It grows through progressive depth",
+                text: "Families can begin with planning and text evidence, then add portfolio, pathway and reporting depth as the record grows.",
                 tone: ["#f5f3ff", "#6d28d9"],
               },
               {
@@ -281,7 +282,7 @@ export default function AboutPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.1fr) minmax(280px, 0.9fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
             gap: 20,
             alignItems: "center",
           }}
@@ -309,13 +310,13 @@ export default function AboutPage() {
               }}
             >
               You do not need a finished setup to begin. The best first move for most
-              families is still simple: capture one real learning moment and let the
-              record build from there.
+              families is simple: create the family profile, sketch the week, and
+              capture one real learning moment.
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link href="/capture" style={publicButtonStyle(true)}>
-                Start Free
+              <Link href="/start-free?source=about-midpage" style={publicButtonStyle(true)}>
+                Start free during beta
               </Link>
               <Link href="/get-started" style={publicButtonStyle(false)}>
                 See the Recommended Path
@@ -404,17 +405,17 @@ export default function AboutPage() {
                 maxWidth: 760,
               }}
             >
-              Join the waitlist, follow the launch, and help shape the workflow around
-              what real families need most.
+              Use MyLearna now during beta, share feedback, and help shape the
+              workflow around what real families need most.
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link href="/contact" style={publicButtonStyle(true)}>
-              Join Waitlist
+            <Link href="/start-free?source=about-footer" style={publicButtonStyle(true)}>
+              Start free during beta
             </Link>
-            <Link href="/pricing" style={publicButtonStyle(false)}>
-              View Pricing
+            <Link href="/contact" style={publicButtonStyle(false)}>
+              Contact
             </Link>
           </div>
         </div>

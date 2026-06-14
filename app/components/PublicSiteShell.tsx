@@ -36,10 +36,8 @@ type PublicSiteShellProps = {
 
 const NAV_ITEMS = [
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/demo", label: "Demo" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/start-free", label: "Start free" },
 ];
 
 const FOOTER_LINKS = [
@@ -230,7 +228,7 @@ export default function PublicSiteShell({
   heroBadges = [],
   asideItems = [],
   navItems,
-  primaryCta = { label: "Start Free", href: "/capture" },
+  primaryCta = { label: "Start free during beta", href: "/start-free" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
   headerPrimaryAction = null,
@@ -418,7 +416,7 @@ export default function PublicSiteShell({
                   }}
                 >
                   <Image
-                    src="/branding/MyLearna Logo.png"
+                    src="/branding/mylearna_logo_transparent_cropped.png"
                     alt="MyLearna logo"
                     width={1916}
                     height={821}
@@ -652,7 +650,7 @@ export default function PublicSiteShell({
                 maxWidth: 620,
               }}
             >
-              Capture learning, build a record over time, and move into reporting with a clearer pathway.
+              Plan learning, capture evidence, build portfolios, and create report-ready records.
             </div>
             <div
               style={{
@@ -708,7 +706,7 @@ export default function PublicSiteShell({
                     color: "#e2e8f0",
                   }}
                 >
-                  MyLearna — Plan. Capture. Grow.
+                  MyLearna - Plan. Learn. Capture. Report.
                 </div>
               </div>
 
