@@ -48,6 +48,11 @@ import {
   listCleanLearningPeriods,
 } from "@/lib/clean/terms/client";
 import { hasAnyPathwayPlacementForLearner } from "@/lib/clean/pathways/pathwayPlacement";
+import {
+  buildCleanDailyPlannerPdfFilename,
+  buildCleanWeeklyPlannerEntriesFromCalendarItems,
+  generateCleanDailyPlannerPdfBytes,
+} from "@/lib/clean/outputs/weeklyPlanner";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -209,6 +214,19 @@ function toTimestampFromDateAndTime(dateValue: string, timeValue: string) {
   return localDate.toISOString();
 }
 
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.click();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -276,6 +294,7 @@ function CleanDayWorkspaceBody() {
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [quickAddError, setQuickAddError] = useState<string | null>(null);
   const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
+  const [dailyPlannerDownloading, setDailyPlannerDownloading] = useState(false);
   const [hasPlacementForPromptLearner, setHasPlacementForPromptLearner] = useState(false);
 
   const today = getTodayDate();
@@ -851,6 +870,42 @@ function CleanDayWorkspaceBody() {
     }
   }
 
+  async function handleDailyPlannerDownload() {
+    if (!workspace.profile) return;
+
+    setDailyPlannerDownloading(true);
+    setItemsError(null);
+
+    try {
+      const entries = buildCleanWeeklyPlannerEntriesFromCalendarItems(sortedVisibleItems, {
+        learnerLabelById,
+        programLabelById,
+        segmentLabelById,
+      });
+      const pdfBytes = await generateCleanDailyPlannerPdfBytes({
+        familyName: workspace.profile.displayName || null,
+        learnerLabel: selectedLearnerLabel,
+        plannedDate: selectedDate,
+        entries,
+      });
+
+      downloadPdf(
+        pdfBytes,
+        buildCleanDailyPlannerPdfFilename(workspace.profile.displayName || null, selectedDate),
+      );
+      setQuickAddMessage("Daily planner downloaded.");
+    } catch (error) {
+      setItemsError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create today's planner. Please try again.",
+        ),
+      );
+    } finally {
+      setDailyPlannerDownloading(false);
+    }
+  }
+
   const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const hasPlannedItemsForSelectedDate = items.length > 0;
 
@@ -1229,6 +1284,14 @@ function CleanDayWorkspaceBody() {
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                     <button type="button" onClick={openQuickAdd} style={primaryButtonStyle}>
                       Add a quick block
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDailyPlannerDownload()}
+                      style={secondaryButtonStyle}
+                      disabled={dailyPlannerDownloading}
+                    >
+                      {dailyPlannerDownloading ? "Preparing..." : "Print today's plan"}
                     </button>
                     <Link
                       href={calendarPathBase}

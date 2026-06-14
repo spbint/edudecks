@@ -28,6 +28,22 @@ export type CleanWeeklyPlannerPdfModel = {
   weekEndsOn: string;
   sourceLabel: string | null;
   entries: CleanWeeklyPlannerEntry[];
+  includedDates?: string[];
+  viewLabel?: string | null;
+};
+
+export type CleanMonthlyPlannerPdfModel = {
+  familyName: string | null;
+  learnerLabel: string | null;
+  monthStartsOn: string;
+  entries: CleanWeeklyPlannerEntry[];
+};
+
+export type CleanDailyPlannerPdfModel = {
+  familyName: string | null;
+  learnerLabel: string | null;
+  plannedDate: string;
+  entries: CleanWeeklyPlannerEntry[];
 };
 
 type PlannerLabelMaps = {
@@ -39,7 +55,7 @@ type PlannerLabelMaps = {
 const LANDSCAPE_A4 = [841.89, 595.28] as const;
 const LOGO_PATH = "/branding/mylearna-logo.png";
 const EMPTY_WEEK_NOTE = "No learning blocks planned for this week yet.";
-const FOOTER_TEXT = "MyLearna \u2014 Plan. Capture. Grow.";
+const FOOTER_TEXT = "Family learning plan. Adjust as needed for your homeschool day.";
 const WEEKDAY_LABELS = [
   "Monday",
   "Tuesday",
@@ -82,6 +98,29 @@ function getWeekDates(weekStartsOn: string) {
   return Array.from({ length: 7 }, (_, index) => addDays(weekStartsOn, index));
 }
 
+function getWeekStart(dateValue: string) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  const weekday = date.getDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  date.setDate(date.getDate() + diff);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getMonthStart(dateValue: string) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue.slice(0, 8) + "01";
+  date.setDate(1);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getMonthGridDates(monthStartsOn: string) {
+  const gridStart = getWeekStart(monthStartsOn);
+  return Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
+}
+
 function formatDateLabel(
   value: string,
   options: Intl.DateTimeFormatOptions = {
@@ -113,6 +152,15 @@ function formatWeekRangeLabel(startsOn: string, endsOn: string) {
     month: "short",
     year: "numeric",
   })}`;
+}
+
+function formatMonthLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function safeTimeString(value: string | null | undefined) {
@@ -569,6 +617,32 @@ function drawNotesCard(
   }
 }
 
+function drawPlannerFooter(
+  page: ReturnType<PDFDocument["addPage"]>,
+  regular: PDFFont,
+  width: number,
+  margin: number,
+  y: number,
+  lineColor: ReturnType<typeof rgb>,
+  textColor: ReturnType<typeof rgb>,
+) {
+  page.drawLine({
+    start: { x: margin, y: y + 17 },
+    end: { x: width - margin, y: y + 17 },
+    thickness: 1,
+    color: lineColor,
+  });
+
+  const footerWidth = regular.widthOfTextAtSize(FOOTER_TEXT, 8.5);
+  page.drawText(FOOTER_TEXT, {
+    x: Math.max(margin, (width - footerWidth) / 2),
+    y,
+    size: 8.5,
+    font: regular,
+    color: textColor,
+  });
+}
+
 export function buildCleanWeeklyPlannerEntriesFromCalendarItems(
   items: CleanCalendarItem[],
   labels: PlannerLabelMaps = {},
@@ -628,6 +702,22 @@ export function buildCleanWeeklyPlannerPdfFilename(
 ) {
   const familyPart = sanitizeFilePart(safe(familyName) || "family", "family");
   return `MyLearna-Weekly-Planner-${familyPart}-${weekStartsOn}.pdf`;
+}
+
+export function buildCleanMonthlyPlannerPdfFilename(
+  familyName: string | null | undefined,
+  monthStartsOn: string,
+) {
+  const familyPart = sanitizeFilePart(safe(familyName) || "family", "family");
+  return `MyLearna-Monthly-Plan-${familyPart}-${monthStartsOn.slice(0, 7)}.pdf`;
+}
+
+export function buildCleanDailyPlannerPdfFilename(
+  familyName: string | null | undefined,
+  plannedDate: string,
+) {
+  const familyPart = sanitizeFilePart(safe(familyName) || "family", "family");
+  return `MyLearna-Daily-Plan-${familyPart}-${plannedDate}.pdf`;
 }
 
 export async function generateCleanWeeklyPlannerPdfBytes(
@@ -697,7 +787,7 @@ export async function generateCleanWeeklyPlannerPdfBytes(
     .filter(Boolean)
     .join(" • ");
 
-  page.drawText("Weekly Fridge Planner", {
+  page.drawText("Weekly fridge plan", {
     x: titleX,
     y: height - margin - 26,
     size: 10,
@@ -705,7 +795,7 @@ export async function generateCleanWeeklyPlannerPdfBytes(
     color: theme.accent,
   });
 
-  page.drawText("MyLearna Weekly Planner", {
+  page.drawText("MyLearna Weekly Plan", {
     x: titleX,
     y: height - margin - 48,
     size: 24,
@@ -728,6 +818,16 @@ export async function generateCleanWeeklyPlannerPdfBytes(
       x: titleX,
       y: height - margin - 82,
       size: 9,
+      font: regular,
+      color: theme.muted,
+    });
+  }
+
+  if (model.viewLabel) {
+    page.drawText(model.viewLabel, {
+      x: titleX,
+      y: height - margin - 96,
+      size: 8.5,
       font: regular,
       color: theme.muted,
     });
@@ -802,65 +902,416 @@ export async function generateCleanWeeklyPlannerPdfBytes(
     entriesByDate.set(entry.plannedDate, existing);
   });
 
-  const weekDates = getWeekDates(model.weekStartsOn);
-  const topRowY = gridBottom + cardHeight + rowGap;
-  const bottomRowY = gridBottom;
+  const weekDates =
+    model.includedDates?.length ? model.includedDates : getWeekDates(model.weekStartsOn);
 
-  weekDates.slice(0, 4).forEach((dateValue, index) => {
-    drawDayCard(page, {
-      x: margin + index * (cardWidth + columnGap),
-      y: topRowY,
-      width: cardWidth,
-      height: cardHeight,
-      dayLabel: WEEKDAY_LABELS[index] || formatLongDateLabel(dateValue),
-      dateLabel: formatLongDateLabel(dateValue),
-      entries: entriesByDate.get(dateValue) ?? [],
-      emptyLabel: hasEmptyState ? "Open space for this day." : "Nothing planned yet.",
-      regular,
-      bold,
+  if (weekDates.length <= 5) {
+    const schoolCardWidth = (width - margin * 2 - columnGap * 4) / 5;
+    const schoolCardHeight = gridTop - gridBottom;
+
+    weekDates.forEach((dateValue, index) => {
+      drawDayCard(page, {
+        x: margin + index * (schoolCardWidth + columnGap),
+        y: gridBottom,
+        width: schoolCardWidth,
+        height: schoolCardHeight,
+        dayLabel: WEEKDAY_LABELS[index] || formatLongDateLabel(dateValue),
+        dateLabel: formatLongDateLabel(dateValue),
+        entries: entriesByDate.get(dateValue) ?? [],
+        emptyLabel: hasEmptyState ? "No blocks planned" : "No blocks planned",
+        regular,
+        bold,
+      });
     });
-  });
+  } else {
+    const topRowY = gridBottom + cardHeight + rowGap;
+    const bottomRowY = gridBottom;
 
-  weekDates.slice(4).forEach((dateValue, index) => {
-    drawDayCard(page, {
-      x: margin + index * (cardWidth + columnGap),
+    weekDates.slice(0, 4).forEach((dateValue, index) => {
+      drawDayCard(page, {
+        x: margin + index * (cardWidth + columnGap),
+        y: topRowY,
+        width: cardWidth,
+        height: cardHeight,
+        dayLabel: WEEKDAY_LABELS[index] || formatLongDateLabel(dateValue),
+        dateLabel: formatLongDateLabel(dateValue),
+        entries: entriesByDate.get(dateValue) ?? [],
+        emptyLabel: hasEmptyState ? "No blocks planned" : "No blocks planned",
+        regular,
+        bold,
+      });
+    });
+
+    weekDates.slice(4).forEach((dateValue, index) => {
+      drawDayCard(page, {
+        x: margin + index * (cardWidth + columnGap),
+        y: bottomRowY,
+        width: cardWidth,
+        height: cardHeight,
+        dayLabel: WEEKDAY_LABELS[index + 4] || formatLongDateLabel(dateValue),
+        dateLabel: formatLongDateLabel(dateValue),
+        entries: entriesByDate.get(dateValue) ?? [],
+        emptyLabel: hasEmptyState ? "No blocks planned" : "No blocks planned",
+        isWeekend: index >= 1,
+        regular,
+        bold,
+      });
+    });
+
+    drawNotesCard(page, {
+      x: margin + 3 * (cardWidth + columnGap),
       y: bottomRowY,
       width: cardWidth,
       height: cardHeight,
-      dayLabel: WEEKDAY_LABELS[index + 4] || formatLongDateLabel(dateValue),
-      dateLabel: formatLongDateLabel(dateValue),
-      entries: entriesByDate.get(dateValue) ?? [],
-      emptyLabel: hasEmptyState ? "Open space for this day." : "Nothing planned yet.",
-      isWeekend: index >= 1,
       regular,
       bold,
     });
+  }
+
+  drawPlannerFooter(page, regular, width, margin, margin + 4, theme.line, theme.muted);
+
+  return await doc.save();
+}
+
+export async function generateCleanMonthlyPlannerPdfBytes(
+  model: CleanMonthlyPlannerPdfModel,
+) {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([...LANDSCAPE_A4]);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await loadSafeLogoImage(doc);
+  const width = page.getWidth();
+  const height = page.getHeight();
+  const margin = 30;
+  const theme = {
+    background: rgb(1, 1, 1),
+    header: rgb(0.96, 0.98, 0.995),
+    accent: rgb(0.22, 0.45, 0.78),
+    line: rgb(0.84, 0.89, 0.95),
+    body: rgb(0.15, 0.23, 0.34),
+    muted: rgb(0.39, 0.46, 0.56),
+    outside: rgb(0.97, 0.98, 1),
+  };
+
+  page.drawRectangle({ x: 0, y: 0, width, height, color: theme.background });
+  page.drawRectangle({
+    x: margin,
+    y: height - margin - 78,
+    width: width - margin * 2,
+    height: 78,
+    color: theme.header,
+    borderColor: theme.line,
+    borderWidth: 1,
   });
 
-  drawNotesCard(page, {
-    x: margin + 3 * (cardWidth + columnGap),
-    y: bottomRowY,
-    width: cardWidth,
-    height: cardHeight,
-    regular,
-    bold,
-  });
+  if (logo) {
+    const targetWidth = 86;
+    const scale = targetWidth / logo.width;
+    page.drawImage(logo, {
+      x: margin + 16,
+      y: height - margin - 52,
+      width: targetWidth,
+      height: logo.height * scale,
+    });
+  }
 
-  page.drawLine({
-    start: { x: margin, y: margin + footerHeight - 8 },
-    end: { x: width - margin, y: margin + footerHeight - 8 },
-    thickness: 1,
-    color: theme.line,
-  });
+  const titleX = logo ? margin + 118 : margin + 18;
+  const labelText = [safe(model.familyName), safe(model.learnerLabel)]
+    .filter(Boolean)
+    .join(" • ");
 
-  const footerWidth = regular.widthOfTextAtSize(FOOTER_TEXT, 9);
-  page.drawText(FOOTER_TEXT, {
-    x: (width - footerWidth) / 2,
-    y: margin + 4,
-    size: 9,
+  page.drawText("MyLearna Monthly Plan", {
+    x: titleX,
+    y: height - margin - 30,
+    size: 24,
+    font: bold,
+    color: theme.body,
+  });
+  page.drawText(formatMonthLabel(model.monthStartsOn), {
+    x: titleX,
+    y: height - margin - 50,
+    size: 12,
     font: regular,
     color: theme.muted,
   });
+  if (labelText) {
+    page.drawText(labelText, {
+      x: titleX,
+      y: height - margin - 66,
+      size: 9,
+      font: regular,
+      color: theme.muted,
+    });
+  }
 
+  const entriesByDate = new Map<string, CleanWeeklyPlannerEntry[]>();
+  model.entries.forEach((entry) => {
+    const existing = entriesByDate.get(entry.plannedDate) ?? [];
+    existing.push(entry);
+    entriesByDate.set(entry.plannedDate, existing);
+  });
+
+  const monthStart = getMonthStart(model.monthStartsOn);
+  const dates = getMonthGridDates(monthStart);
+  const gridTop = height - margin - 112;
+  const footerY = margin + 4;
+  const gridBottom = margin + 28;
+  const columnGap = 6;
+  const rowGap = 7;
+  const cellWidth = (width - margin * 2 - columnGap * 6) / 7;
+  const headerHeight = 18;
+  const cellHeight = (gridTop - gridBottom - headerHeight - rowGap * 5) / 6;
+
+  WEEKDAY_LABELS.forEach((label, index) => {
+    page.drawText(label.slice(0, 3).toUpperCase(), {
+      x: margin + index * (cellWidth + columnGap) + 4,
+      y: gridTop,
+      size: 8,
+      font: bold,
+      color: theme.muted,
+    });
+  });
+
+  dates.forEach((dateValue, index) => {
+    const column = index % 7;
+    const row = Math.floor(index / 7);
+    const x = margin + column * (cellWidth + columnGap);
+    const y = gridTop - headerHeight - row * (cellHeight + rowGap) - cellHeight;
+    const entries = entriesByDate.get(dateValue) ?? [];
+    const outsideMonth = getMonthStart(dateValue) !== monthStart;
+
+    page.drawRectangle({
+      x,
+      y,
+      width: cellWidth,
+      height: cellHeight,
+      color: outsideMonth ? theme.outside : rgb(1, 1, 1),
+      borderColor: theme.line,
+      borderWidth: 1,
+    });
+
+    page.drawText(formatDateLabel(dateValue, { day: "numeric" }), {
+      x: x + 7,
+      y: y + cellHeight - 14,
+      size: 8.5,
+      font: bold,
+      color: outsideMonth ? theme.muted : theme.body,
+    });
+
+    let cursor = y + cellHeight - 28;
+    entries.slice(0, 3).forEach((entry) => {
+      const line = ellipsizeText(entry.title, regular, 7.5, cellWidth - 14);
+      page.drawText(line, {
+        x: x + 7,
+        y: cursor,
+        size: 7.5,
+        font: regular,
+        color: theme.body,
+      });
+      cursor -= 10;
+    });
+
+    if (entries.length > 3) {
+      page.drawText(`+ ${entries.length - 3} more`, {
+        x: x + 7,
+        y: cursor,
+        size: 7.5,
+        font: bold,
+        color: theme.accent,
+      });
+    }
+  });
+
+  drawPlannerFooter(page, regular, width, margin, footerY, theme.line, theme.muted);
+  return await doc.save();
+}
+
+export async function generateCleanDailyPlannerPdfBytes(model: CleanDailyPlannerPdfModel) {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595.28, 841.89]);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await loadSafeLogoImage(doc);
+  const width = page.getWidth();
+  const height = page.getHeight();
+  const margin = 46;
+  const theme = {
+    background: rgb(1, 1, 1),
+    header: rgb(0.96, 0.98, 0.995),
+    accent: rgb(0.22, 0.45, 0.78),
+    line: rgb(0.84, 0.89, 0.95),
+    body: rgb(0.15, 0.23, 0.34),
+    muted: rgb(0.39, 0.46, 0.56),
+    surface: rgb(0.97, 0.98, 1),
+  };
+
+  page.drawRectangle({ x: 0, y: 0, width, height, color: theme.background });
+  page.drawRectangle({
+    x: margin,
+    y: height - margin - 94,
+    width: width - margin * 2,
+    height: 94,
+    color: theme.header,
+    borderColor: theme.line,
+    borderWidth: 1,
+  });
+
+  if (logo) {
+    const targetWidth = 92;
+    const scale = targetWidth / logo.width;
+    page.drawImage(logo, {
+      x: margin + 14,
+      y: height - margin - 58,
+      width: targetWidth,
+      height: logo.height * scale,
+    });
+  }
+
+  const titleX = logo ? margin + 124 : margin + 16;
+  const labelText = [safe(model.familyName), safe(model.learnerLabel)]
+    .filter(Boolean)
+    .join(" • ");
+  page.drawText("MyLearna Daily Plan", {
+    x: titleX,
+    y: height - margin - 32,
+    size: 24,
+    font: bold,
+    color: theme.body,
+  });
+  page.drawText(formatLongDateLabel(model.plannedDate), {
+    x: titleX,
+    y: height - margin - 54,
+    size: 12,
+    font: regular,
+    color: theme.muted,
+  });
+  if (labelText) {
+    page.drawText(labelText, {
+      x: titleX,
+      y: height - margin - 72,
+      size: 9.5,
+      font: regular,
+      color: theme.muted,
+    });
+  }
+
+  let cursor = height - margin - 126;
+  const cardWidth = width - margin * 2;
+  const footerLimit = margin + 54;
+  const entries = [...model.entries].sort((left, right) =>
+    (left.timeLabel || "").localeCompare(right.timeLabel || "") || left.title.localeCompare(right.title),
+  );
+
+  if (!entries.length) {
+    page.drawRectangle({
+      x: margin,
+      y: cursor - 74,
+      width: cardWidth,
+      height: 74,
+      color: theme.surface,
+      borderColor: theme.line,
+      borderWidth: 1,
+    });
+    page.drawText("No blocks planned", {
+      x: margin + 16,
+      y: cursor - 24,
+      size: 14,
+      font: bold,
+      color: theme.body,
+    });
+    page.drawText("Use this open space to sketch the day as it unfolds.", {
+      x: margin + 16,
+      y: cursor - 44,
+      size: 10,
+      font: regular,
+      color: theme.muted,
+    });
+    cursor -= 92;
+  } else {
+    entries.forEach((entry) => {
+      if (cursor < footerLimit + 92) return;
+      const lines = clampWrappedLines(entry.title, bold, 12, cardWidth - 70, 2);
+      const metaLines = buildEntryMetaLines(entry).flatMap((line) =>
+        clampWrappedLines(line, regular, 9, cardWidth - 70, 1),
+      );
+      const notesLines = entry.notes
+        ? clampWrappedLines(entry.notes, regular, 9, cardWidth - 70, 2)
+        : [];
+      const cardHeight = Math.max(
+        66,
+        22 + lines.length * 14 + metaLines.length * 11 + notesLines.length * 11,
+      );
+
+      page.drawRectangle({
+        x: margin,
+        y: cursor - cardHeight,
+        width: cardWidth,
+        height: cardHeight,
+        color: rgb(1, 1, 1),
+        borderColor: theme.line,
+        borderWidth: 1,
+      });
+      page.drawRectangle({
+        x: margin + 14,
+        y: cursor - 31,
+        width: 14,
+        height: 14,
+        borderColor: theme.accent,
+        borderWidth: 1.2,
+      });
+      if (entry.timeLabel) {
+        page.drawText(entry.timeLabel, {
+          x: margin + 42,
+          y: cursor - 18,
+          size: 8.5,
+          font: bold,
+          color: theme.accent,
+        });
+      }
+
+      let textCursor = cursor - (entry.timeLabel ? 33 : 22);
+      textCursor = drawTextLines(page, lines, margin + 42, textCursor, {
+        font: bold,
+        fontSize: 12,
+        lineHeight: 14,
+        color: theme.body,
+      });
+      textCursor = drawTextLines(page, metaLines, margin + 42, textCursor - 1, {
+        font: regular,
+        fontSize: 9,
+        lineHeight: 11,
+        color: theme.muted,
+      });
+      drawTextLines(page, notesLines, margin + 42, textCursor - 2, {
+        font: regular,
+        fontSize: 9,
+        lineHeight: 11,
+        color: theme.muted,
+      });
+
+      cursor -= cardHeight + 10;
+    });
+  }
+
+  page.drawText("Notes", {
+    x: margin,
+    y: Math.max(cursor - 8, footerLimit + 84),
+    size: 13,
+    font: bold,
+    color: theme.body,
+  });
+  let noteY = Math.max(cursor - 30, footerLimit + 62);
+  while (noteY > footerLimit + 8) {
+    page.drawLine({
+      start: { x: margin, y: noteY },
+      end: { x: width - margin, y: noteY },
+      thickness: 1,
+      color: theme.line,
+    });
+    noteY -= 24;
+  }
+
+  drawPlannerFooter(page, regular, width, margin, margin + 18, theme.line, theme.muted);
   return await doc.save();
 }

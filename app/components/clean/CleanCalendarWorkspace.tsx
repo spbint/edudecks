@@ -72,7 +72,11 @@ import type {
 import {
   buildCleanWeeklyPlannerEntriesFromCalendarItems,
   buildCleanWeeklyPlannerEntriesFromTemplateBlocks,
+  buildCleanDailyPlannerPdfFilename,
+  buildCleanMonthlyPlannerPdfFilename,
   buildCleanWeeklyPlannerPdfFilename,
+  generateCleanDailyPlannerPdfBytes,
+  generateCleanMonthlyPlannerPdfBytes,
   generateCleanWeeklyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
 import {
@@ -936,6 +940,7 @@ function CleanCalendarWorkspaceBody() {
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
   const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
   const [liveWeekViewTouched, setLiveWeekViewTouched] = useState(false);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -2417,12 +2422,16 @@ function CleanCalendarWorkspaceBody() {
     if (!workspace.profile) return;
 
     setPlannerDownloading(true);
+    setPrintMenuOpen(false);
     setMessage(null);
     setActionError(null);
 
     try {
-      const entries = items.length
-        ? buildCleanWeeklyPlannerEntriesFromCalendarItems(items, {
+      const weekItems = items.filter(
+        (item) => item.plannedDate >= selectedWeekStart && item.plannedDate <= selectedWeekEnd,
+      );
+      const entries = weekItems.length
+        ? buildCleanWeeklyPlannerEntriesFromCalendarItems(weekItems, {
             learnerLabelById,
             programLabelById,
             segmentLabelById,
@@ -2436,7 +2445,7 @@ function CleanCalendarWorkspaceBody() {
         selectedTemplate?.scopeType === "learner" && selectedTemplate.learnerId
           ? learnerLabelById.get(selectedTemplate.learnerId) ?? null
           : null;
-      const sourceLabel = items.length
+      const sourceLabel = weekItems.length
         ? "Built from this week's live calendar"
         : templateBlocks.length
           ? "Built from your master week"
@@ -2448,6 +2457,8 @@ function CleanCalendarWorkspaceBody() {
         weekEndsOn: selectedWeekEnd,
         sourceLabel,
         entries,
+        includedDates: liveWeekView === "school" ? weekDates.slice(0, 5) : weekDates,
+        viewLabel: liveWeekView === "school" ? "School week view" : "Full week view",
       });
 
       downloadPdf(
@@ -2463,6 +2474,96 @@ function CleanCalendarWorkspaceBody() {
         normalizeCleanErrorMessage(
           error,
           "Could not create the weekly planner. Please try again.",
+        ),
+      );
+    } finally {
+      setPlannerDownloading(false);
+    }
+  }
+
+  async function handleMonthlyPlannerDownload() {
+    if (!workspace.profile) return;
+
+    setPlannerDownloading(true);
+    setPrintMenuOpen(false);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      const monthItems = await listCleanCalendarItems(workspace.profile.id, {
+        fromDate: monthGridDates[0],
+        toDate: monthGridDates[monthGridDates.length - 1],
+        limit: 240,
+      });
+      const entries = buildCleanWeeklyPlannerEntriesFromCalendarItems(monthItems, {
+        learnerLabelById,
+        programLabelById,
+        segmentLabelById,
+      });
+      const pdfBytes = await generateCleanMonthlyPlannerPdfBytes({
+        familyName: workspace.profile.displayName || null,
+        learnerLabel: null,
+        monthStartsOn: selectedMonthStart,
+        entries,
+      });
+
+      downloadPdf(
+        pdfBytes,
+        buildCleanMonthlyPlannerPdfFilename(
+          workspace.profile.displayName || null,
+          selectedMonthStart,
+        ),
+      );
+      setMessage("Monthly planner downloaded.");
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the monthly planner. Please try again.",
+        ),
+      );
+    } finally {
+      setPlannerDownloading(false);
+    }
+  }
+
+  async function handleTodayPlannerDownload() {
+    if (!workspace.profile) return;
+
+    const today = getTodayDate();
+    setPlannerDownloading(true);
+    setPrintMenuOpen(false);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      const dayItems = await listCleanCalendarItems(workspace.profile.id, {
+        fromDate: today,
+        toDate: today,
+        limit: 80,
+      });
+      const entries = buildCleanWeeklyPlannerEntriesFromCalendarItems(dayItems, {
+        learnerLabelById,
+        programLabelById,
+        segmentLabelById,
+      });
+      const pdfBytes = await generateCleanDailyPlannerPdfBytes({
+        familyName: workspace.profile.displayName || null,
+        learnerLabel: null,
+        plannedDate: today,
+        entries,
+      });
+
+      downloadPdf(
+        pdfBytes,
+        buildCleanDailyPlannerPdfFilename(workspace.profile.displayName || null, today),
+      );
+      setMessage("Daily planner downloaded.");
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create today's planner. Please try again.",
         ),
       );
     } finally {
@@ -2680,6 +2781,57 @@ function CleanCalendarWorkspaceBody() {
                       >
                         Month
                       </button>
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        style={mutedButtonStyle}
+                        onClick={() => setPrintMenuOpen((current) => !current)}
+                        disabled={plannerDownloading}
+                        aria-expanded={printMenuOpen}
+                      >
+                        {plannerDownloading ? "Preparing..." : "Print / Download"}
+                      </button>
+                      {printMenuOpen ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            right: 0,
+                            top: "calc(100% + 8px)",
+                            zIndex: 20,
+                            width: 230,
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 14,
+                            background: "#ffffff",
+                            boxShadow: "0 18px 40px rgba(15,23,42,0.14)",
+                            padding: 8,
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <button
+                            type="button"
+                            style={{ ...mutedButtonStyle, width: "100%", textAlign: "left" }}
+                            onClick={() => void handleWeeklyPlannerDownload()}
+                          >
+                            Download week plan PDF
+                          </button>
+                          <button
+                            type="button"
+                            style={{ ...mutedButtonStyle, width: "100%", textAlign: "left" }}
+                            onClick={() => void handleMonthlyPlannerDownload()}
+                          >
+                            Download month plan PDF
+                          </button>
+                          <button
+                            type="button"
+                            style={{ ...mutedButtonStyle, width: "100%", textAlign: "left" }}
+                            onClick={() => void handleTodayPlannerDownload()}
+                          >
+                            Download today&apos;s plan PDF
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                     {calendarBoardView === "week" ? (
                       <div
