@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
+import { getH5PActivityById } from "@/lib/clean/resources/h5pActivities";
 
 const colors = {
   card: "#FFFFFF",
@@ -70,19 +72,29 @@ function Pill({
 
 const featuredSkillBuilders = [
   {
+    title: "Arithmetic Quiz",
+    area: "Mathematics - Number - Fluency Practice",
+    description: "Build number fluency with a short interactive arithmetic quiz.",
+    status: "Prototype",
+    href: "/my-skills/arithmetic-quiz",
+  },
+  {
     title: "Times tables fluency",
-    area: "Mathematics · Number",
+    area: "Mathematics - Number",
     description: "Short arithmetic practice for building confidence with multiplication facts.",
+    status: "Coming soon",
   },
   {
     title: "Addition and subtraction facts",
-    area: "Mathematics · Number",
+    area: "Mathematics - Number",
     description: "Quick practice for number facts and mental strategies.",
+    status: "Coming soon",
   },
   {
     title: "Fraction matching",
-    area: "Mathematics · Number",
+    area: "Mathematics - Number",
     description: "Match symbols, visual models and equivalent fractions.",
+    status: "Coming soon",
   },
 ] as const;
 
@@ -106,6 +118,8 @@ const subjects = [
 ] as const;
 
 export default function MySkillsPage() {
+  const arithmeticActivity = getH5PActivityById("arithmetic-quiz-h5p-6725");
+
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <section style={sectionStyle}>
@@ -151,36 +165,66 @@ export default function MySkillsPage() {
               gap: 14,
             }}
           >
-            {featuredSkillBuilders.map((builder) => (
-              <article
-                key={builder.title}
-                style={{
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: 16,
-                  background: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFF 100%)",
-                  padding: 18,
-                  display: "grid",
-                  gap: 12,
-                  minHeight: 216,
-                }}
-              >
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  <Pill>Family feature</Pill>
-                  <Pill tone="green">Coming soon</Pill>
-                </div>
-                <div style={{ display: "grid", gap: 6 }}>
-                  <h3 style={{ margin: 0, color: colors.navy, fontSize: 19, lineHeight: 1.25 }}>
-                    {builder.title}
-                  </h3>
-                  <p style={{ margin: 0, color: colors.purple, fontSize: 13, fontWeight: 800 }}>
-                    {builder.area}
+            {featuredSkillBuilders.map((builder) => {
+              const title =
+                builder.title === "Arithmetic Quiz" && arithmeticActivity
+                  ? arithmeticActivity.title
+                  : builder.title;
+              return (
+                <article
+                  key={builder.title}
+                  style={{
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 16,
+                    background: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFF 100%)",
+                    padding: 18,
+                    display: "grid",
+                    gap: 12,
+                    minHeight: 236,
+                  }}
+                >
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <Pill>Family feature</Pill>
+                    <Pill tone={builder.status === "Prototype" ? "blue" : "green"}>
+                      {builder.status}
+                    </Pill>
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <h3 style={{ margin: 0, color: colors.navy, fontSize: 19, lineHeight: 1.25 }}>
+                      {title}
+                    </h3>
+                    <p style={{ margin: 0, color: colors.purple, fontSize: 13, fontWeight: 800 }}>
+                      {builder.area}
+                    </p>
+                  </div>
+                  <p style={{ margin: 0, color: colors.slate, lineHeight: 1.6 }}>
+                    {builder.description}
                   </p>
-                </div>
-                <p style={{ margin: 0, color: colors.slate, lineHeight: 1.6 }}>
-                  {builder.description}
-                </p>
-              </article>
-            ))}
+                  {"href" in builder ? (
+                    <Link
+                      href={builder.href}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "fit-content",
+                        minHeight: 38,
+                        borderRadius: 12,
+                        border: "1px solid #6C4DF6",
+                        background: "#6C4DF6",
+                        color: "#FFFFFF",
+                        padding: "8px 12px",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Open prototype
+                    </Link>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
