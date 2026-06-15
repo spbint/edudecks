@@ -158,6 +158,8 @@ const OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S006-Connect-Multiplication-And-Division-Through-Grouping-And-Sharing.pdf";
 const OPERATIONS_WRITTEN_METHODS_MENTAL_STRATEGIES_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S007-Use-Written-Methods-And-Mental-Strategies-Flexibly.pdf";
+const OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S009-Choose-Efficient-Strategies-Across-Different-Number-Forms.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -285,6 +287,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_WRITTEN_METHODS_MENTAL_STRATEGIES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_WRITTEN_METHODS_MENTAL_STRATEGIES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::lower-secondary::choose-efficient-strategies-across-different-number-forms",
+    stepKey: "choose-efficient-strategies-across-different-number-forms",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 9,
+    pathwayStepTitle: "Choose efficient strategies across different number forms",
+    title: "Choose Efficient Strategies Across Different Number Forms",
+    concept:
+      "Choose efficient strategies across whole numbers, decimals, fractions, percentages and other number forms.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
