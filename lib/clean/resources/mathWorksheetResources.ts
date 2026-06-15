@@ -148,6 +148,8 @@ const OPERATIONS_ACT_OUT_JOINING_TAKING_AWAY_WORKSHEET_FILE =
   "MYL-MATH-OC-KEE-S001-Act-Out-Joining-And-Taking-Away-In-Everyday-Stories.pdf";
 const OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE =
   "MYL-MATH-OC-KEE-S002-Share-Compare-And-Notice-Simple-Differences.pdf";
+const OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S003-Use-Counting-Strategies-And-Known-Facts-More-Efficiently.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -184,6 +186,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/kindergarten-early-elementary/${OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::lower-primary::use-counting-strategies-and-known-facts-more-efficiently",
+    stepKey: "use-counting-strategies-and-known-facts-more-efficiently",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "lower-primary",
+    stageDisplay: "Early Elementary",
+    stepNumber: 3,
+    pathwayStepTitle: "Use counting strategies and known facts more efficiently",
+    title: "Use Counting Strategies And Known Facts More Efficiently",
+    concept:
+      "Use counting-on, counting-back and known facts to solve simple addition and subtraction problems more efficiently.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
