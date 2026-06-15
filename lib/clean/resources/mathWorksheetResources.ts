@@ -154,6 +154,8 @@ const OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S004-Use-Part-Whole-Thinking-For-Addition-And-Subtraction.pdf";
 const OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S005-Model-Equal-Groups-And-Repeated-Addition.pdf";
+const OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S006-Connect-Multiplication-And-Division-Through-Grouping-And-Sharing.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -244,6 +246,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::middle-primary::connect-multiplication-and-division-through-grouping-and-sharing",
+    stepKey: "connect-multiplication-and-division-through-grouping-and-sharing",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "middle-primary",
+    stageDisplay: "Early Elementary",
+    stepNumber: 6,
+    pathwayStepTitle:
+      "Connect multiplication and division through grouping and sharing",
+    title: "Connect Multiplication And Division Through Grouping And Sharing",
+    concept:
+      "Use grouping and sharing models to connect multiplication and division facts in simple everyday contexts.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
