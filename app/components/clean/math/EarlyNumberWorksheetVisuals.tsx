@@ -237,6 +237,14 @@ export function isOperationsStep2ShareCompareActivity(id: string, stepKey?: stri
   );
 }
 
+export function isOperationsStep4PartWholeActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "use-part-whole-thinking-for-addition-and-subtraction" ||
+    safe(id).startsWith("operations-step-4-assess-") ||
+    safe(id).startsWith("operations-step-4-practice-")
+  );
+}
+
 export function isStep11CountingSequenceActivity(id: string, stepKey?: string | null) {
   return (
     safe(stepKey) === "count-forwards-and-backwards-within-100-or-120" ||
@@ -3210,6 +3218,226 @@ export function renderOperationsStep2WorksheetOptionCard({
       }}
     >
       <div style={{ fontSize: normalized.length > 42 ? 15 : normalized.length > 24 ? 18 : 28, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function PartWholeBubble({
+  label,
+  value,
+  tone = "whole",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "whole" | "part" | "missing";
+}) {
+  const palette =
+    tone === "whole"
+      ? { border: "#bfdbfe", background: "#eff6ff", color: "#1d4ed8" }
+      : tone === "missing"
+        ? { border: "#c4b5fd", background: "#f5f3ff", color: "#6d28d9" }
+        : { border: "#bbf7d0", background: "#f0fdf4", color: "#166534" };
+
+  return (
+    <div
+      style={{
+        border: `2px solid ${palette.border}`,
+        borderRadius: 999,
+        background: palette.background,
+        color: palette.color,
+        minHeight: 104,
+        minWidth: 104,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 4,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 950, textTransform: "uppercase" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 34, fontWeight: 950, lineHeight: 1 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export function renderOperationsStep4PartWholePromptVisual({
+  prompt,
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const whole = visual.groupCounts[0];
+  const firstPart = visual.groupCounts[1];
+  const secondPart = visual.groupCounts[2];
+
+  if (
+    whole === undefined ||
+    firstPart === undefined ||
+    secondPart === undefined ||
+    !Number.isFinite(whole) ||
+    !Number.isFinite(firstPart) ||
+    !Number.isFinite(secondPart)
+  ) {
+    return null;
+  }
+
+  const text = `${prompt} ${visual.caption}`.toLowerCase();
+  const showsMissing = text.includes("__") || text.includes("missing");
+  const partTwoLabel = visual.labels[2] || "part";
+  const partTwoValue = showsMissing || partTwoLabel.toLowerCase().includes("missing") ? "?" : secondPart;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+        Use the whole and the parts. One part may be missing.
+      </div>
+      <div
+        aria-label={`Part-whole model with whole ${whole}, part ${firstPart}, and part ${secondPart}`}
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 14,
+          display: "grid",
+          gap: 12,
+          justifyItems: "center",
+        }}
+      >
+        <PartWholeBubble label="Whole" value={whole} tone="whole" />
+        <div
+          aria-hidden="true"
+          style={{
+            width: "74%",
+            height: 28,
+            borderLeft: "2px solid #93c5fd",
+            borderRight: "2px solid #93c5fd",
+            borderTop: "2px solid #93c5fd",
+            borderRadius: "18px 18px 0 0",
+          }}
+        />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(104px, 1fr))",
+            gap: 12,
+            width: "min(360px, 100%)",
+          }}
+        >
+          <PartWholeBubble label={visual.labels[1] || "Part"} value={firstPart} tone="part" />
+          <PartWholeBubble
+            label={partTwoLabel}
+            value={partTwoValue}
+            tone={String(partTwoValue) === "?" ? "missing" : "part"}
+          />
+        </div>
+      </div>
+      <div
+        style={{
+          border: "1px solid #bbf7d0",
+          borderRadius: 16,
+          background: "#f0fdf4",
+          color: "#166534",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: 850,
+          lineHeight: 1.45,
+        }}
+      >
+        Addition joins parts to make the whole. Subtraction starts with the whole and finds a part.
+      </div>
+    </div>
+  );
+}
+
+export function renderOperationsStep4PartWholeOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  if (/^\d+$/.test(normalized)) {
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} variant="compact" />;
+  }
+
+  const modelMatch = normalized.match(/Whole\s+(\d+),\s+parts\s+(\d+)\s+and\s+(\d+)/i);
+  if (modelMatch) {
+    const [, whole, firstPart, secondPart] = modelMatch;
+    return (
+      <div
+        aria-label={`Choose ${normalized}`}
+        style={{
+          border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : "#ffffff",
+          padding: 10,
+          minHeight: 132,
+          display: "grid",
+          gap: 8,
+          justifyItems: "center",
+          boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", justifyItems: "center" }}>
+          <PartWholeBubble label="Whole" value={whole} tone="whole" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(64px, 1fr))", gap: 6, width: "100%" }}>
+          <PartWholeBubble label="Part" value={firstPart} tone="part" />
+          <PartWholeBubble label="Part" value={secondPart} tone="part" />
+        </div>
+      </div>
+    );
+  }
+
+  const lower = normalized.toLowerCase();
+  const label = lower.includes("+")
+    ? "Addition fact"
+    : lower.includes("-")
+      ? "Subtraction fact"
+      : lower.includes("whole")
+        ? "Model"
+        : "Choice";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 46 ? 14 : normalized.length > 26 ? 17 : 28, fontWeight: 950, lineHeight: 1.15 }}>
         {normalized}
       </div>
       <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>

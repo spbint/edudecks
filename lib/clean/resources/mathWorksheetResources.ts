@@ -150,6 +150,8 @@ const OPERATIONS_SHARE_COMPARE_DIFFERENCES_WORKSHEET_FILE =
   "MYL-MATH-OC-KEE-S002-Share-Compare-And-Notice-Simple-Differences.pdf";
 const OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S003-Use-Counting-Strategies-And-Known-Facts-More-Efficiently.pdf";
+const OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S004-Use-Part-Whole-Thinking-For-Addition-And-Subtraction.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -204,6 +206,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::lower-primary::use-part-whole-thinking-for-addition-and-subtraction",
+    stepKey: "use-part-whole-thinking-for-addition-and-subtraction",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "lower-primary",
+    stageDisplay: "Early Elementary",
+    stepNumber: 4,
+    pathwayStepTitle: "Use part-whole thinking for addition and subtraction",
+    title: "Use Part-Whole Thinking For Addition And Subtraction",
+    concept:
+      "Use part-whole models to connect addition and subtraction, find missing parts, and solve simple story problems.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

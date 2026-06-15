@@ -78,9 +78,12 @@ import {
   isStep58AccuracyRoundingActivity,
   isStep59EfficientStrategyActivity,
   isOperationsStep2ShareCompareActivity,
+  isOperationsStep4PartWholeActivity,
   parseEarlyNumberVisualDescription,
   renderOperationsStep2WorksheetOptionCard,
   renderOperationsStep2WorksheetPromptVisual,
+  renderOperationsStep4PartWholeOptionCard,
+  renderOperationsStep4PartWholePromptVisual,
   renderStep2WorksheetOptionCard,
   renderStep2WorksheetPromptVisual,
   renderStep3WorksheetOptionCard,
@@ -2346,6 +2349,15 @@ function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
     });
   }
 
+  if (isOperationsStep4PartWholeActivity(item.id, item.progressionStepKey)) {
+    const operationsStep4Visual =
+      parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
+    return renderOperationsStep4PartWholePromptVisual({
+      prompt: item.prompt,
+      visual: operationsStep4Visual,
+    });
+  }
+
   if (isStep9ObjectStoryActivity(item.id, item.progressionStepKey)) {
     const step9Visual =
       parseEarlyNumberVisualDescription(item.visualSupport?.description) ?? visual;
@@ -4195,6 +4207,10 @@ function CleanNumberAssessmentPlayerBody() {
         currentItem.id,
         currentItem.progressionStepKey,
       );
+      const operationsStep4PartWholeOptions = isOperationsStep4PartWholeActivity(
+        currentItem.id,
+        currentItem.progressionStepKey,
+      );
       const step9ObjectStoryOptions = isStep9ObjectStoryActivity(
         currentItem.id,
         currentItem.progressionStepKey,
@@ -4481,6 +4497,22 @@ function CleanNumberAssessmentPlayerBody() {
                     selected: isSelected,
                   })
                 : null;
+            const operationsStep4Visual =
+              !shapeVisual &&
+              !statisticsVisual &&
+              !step2Visual &&
+              !step3Visual &&
+              !step4Visual &&
+              !step6Visual &&
+              !step7Visual &&
+              !step8Visual &&
+              !operationsStep2Visual &&
+              operationsStep4PartWholeOptions
+                ? renderOperationsStep4PartWholeOptionCard({
+                    option,
+                    selected: isSelected,
+                  })
+                : null;
             const step9Visual =
               !shapeVisual &&
               !statisticsVisual &&
@@ -4491,6 +4523,7 @@ function CleanNumberAssessmentPlayerBody() {
               !step7Visual &&
               !step8Visual &&
               !operationsStep2Visual &&
+              !operationsStep4Visual &&
               step9ObjectStoryOptions
                 ? renderStep9WorksheetOptionCard({
                     option,
@@ -4507,6 +4540,7 @@ function CleanNumberAssessmentPlayerBody() {
               !step7Visual &&
               !step8Visual &&
               !operationsStep2Visual &&
+              !operationsStep4Visual &&
               !step9Visual &&
               step10EqualSharingOptions
                 ? renderStep10WorksheetOptionCard({
@@ -6218,6 +6252,7 @@ function CleanNumberAssessmentPlayerBody() {
               step7Visual ??
               step8Visual ??
               operationsStep2Visual ??
+              operationsStep4Visual ??
               step9Visual ??
               step10Visual ??
               step11Visual ??
