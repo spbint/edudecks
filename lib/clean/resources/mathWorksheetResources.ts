@@ -156,6 +156,8 @@ const OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S005-Model-Equal-Groups-And-Repeated-Addition.pdf";
 const OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S006-Connect-Multiplication-And-Division-Through-Grouping-And-Sharing.pdf";
+const OPERATIONS_WRITTEN_METHODS_MENTAL_STRATEGIES_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S007-Use-Written-Methods-And-Mental-Strategies-Flexibly.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -265,6 +267,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_MULTIPLICATION_DIVISION_GROUPING_SHARING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::upper-primary::use-written-methods-and-mental-strategies-flexibly",
+    stepKey: "use-written-methods-and-mental-strategies-flexibly",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 7,
+    pathwayStepTitle: "Use written methods and mental strategies flexibly",
+    title: "Use Written Methods And Mental Strategies Flexibly",
+    concept:
+      "Choose written methods and mental strategies flexibly for addition, subtraction, multiplication and division problems.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_WRITTEN_METHODS_MENTAL_STRATEGIES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_WRITTEN_METHODS_MENTAL_STRATEGIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
