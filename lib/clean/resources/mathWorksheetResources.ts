@@ -152,6 +152,8 @@ const OPERATIONS_COUNTING_STRATEGIES_KNOWN_FACTS_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S003-Use-Counting-Strategies-And-Known-Facts-More-Efficiently.pdf";
 const OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S004-Use-Part-Whole-Thinking-For-Addition-And-Subtraction.pdf";
+const OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S005-Model-Equal-Groups-And-Repeated-Addition.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -224,6 +226,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_PART_WHOLE_ADDITION_SUBTRACTION_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::middle-primary::model-equal-groups-and-repeated-addition",
+    stepKey: "model-equal-groups-and-repeated-addition",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "middle-primary",
+    stageDisplay: "Early Elementary",
+    stepNumber: 5,
+    pathwayStepTitle: "Model equal groups and repeated addition",
+    title: "Model Equal Groups And Repeated Addition",
+    concept:
+      "Use equal groups and repeated addition to find total amounts and prepare for multiplication thinking.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_EQUAL_GROUPS_REPEATED_ADDITION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

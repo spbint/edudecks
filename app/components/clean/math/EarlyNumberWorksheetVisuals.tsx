@@ -34,6 +34,8 @@ export type ContextualObjectVisualType =
   | "cookie"
   | "bear"
   | "banana"
+  | "crayon"
+  | "grape"
   | "balloon"
   | "cracker"
   | "bird"
@@ -57,6 +59,8 @@ export const contextualObjectVisualTypes: ContextualObjectVisualType[] = [
   "cookie",
   "bear",
   "banana",
+  "crayon",
+  "grape",
   "balloon",
   "cracker",
   "bird",
@@ -242,6 +246,14 @@ export function isOperationsStep4PartWholeActivity(id: string, stepKey?: string 
     safe(stepKey) === "use-part-whole-thinking-for-addition-and-subtraction" ||
     safe(id).startsWith("operations-step-4-assess-") ||
     safe(id).startsWith("operations-step-4-practice-")
+  );
+}
+
+export function isOperationsStep5EqualGroupsActivity(id: string, stepKey?: string | null) {
+  return (
+    safe(stepKey) === "model-equal-groups-and-repeated-addition" ||
+    safe(id).startsWith("operations-step-5-assess-") ||
+    safe(id).startsWith("operations-step-5-practice-")
   );
 }
 
@@ -909,6 +921,8 @@ type CountingObjectKind =
   | "cookie"
   | "bear"
   | "banana"
+  | "crayon"
+  | "grape"
   | "cube"
   | "fish"
   | "leaf"
@@ -940,6 +954,8 @@ const COUNTING_OBJECT_KINDS: CountingObjectKind[] = [
   "cookie",
   "bear",
   "banana",
+  "crayon",
+  "grape",
   "cube",
   "fish",
   "leaf",
@@ -972,6 +988,8 @@ function getCountingObjectKind(count: number, label = ""): CountingObjectKind {
   if (normalized.includes("cookie")) return "cookie";
   if (normalized.includes("bear")) return "bear";
   if (normalized.includes("banana")) return "banana";
+  if (normalized.includes("crayon")) return "crayon";
+  if (normalized.includes("grape")) return "grape";
   if (normalized.includes("balloon")) return "balloon";
   if (normalized.includes("cracker")) return "cracker";
   if (normalized.includes("bird")) return "bird";
@@ -1007,6 +1025,8 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     cookie: "cookies",
     bear: "bears",
     banana: "bananas",
+    crayon: "crayons",
+    grape: "grapes",
     cube: "cubes",
     fish: "fish",
     leaf: "leaves",
@@ -1038,6 +1058,8 @@ function getCountingObjectName(kind: CountingObjectKind, count: number) {
     cookie: "cookie",
     bear: "bear",
     banana: "banana",
+    crayon: "crayon",
+    grape: "grape",
     cube: "cube",
     fish: "fish",
     leaf: "leaf",
@@ -1200,6 +1222,57 @@ function CountingObjectShape({
           transform: "rotate(-16deg)",
         }}
       />
+    );
+  }
+
+  if (kind === "crayon") {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          ...commonStyle,
+          width: Math.round(size * 0.48),
+          height: Math.round(size * 1.25),
+          borderRadius: "5px 5px 3px 3px",
+          background: index % 2 ? "#60a5fa" : "#f97316",
+          border: "1px solid #475569",
+          transform: "rotate(8deg)",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "-18%",
+            height: "22%",
+            background: "#fef3c7",
+            clipPath: "polygon(50% 0, 100% 100%, 0 100%)",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (kind === "grape") {
+    return (
+      <span aria-hidden="true" style={{ ...commonStyle }}>
+        {[0, 1, 2, 3, 4].map((dot) => (
+          <span
+            key={`grape-${dot}`}
+            style={{
+              position: "absolute",
+              left: `${dot % 2 ? 48 : 24}%`,
+              top: `${18 + Math.floor(dot / 2) * 24}%`,
+              width: "34%",
+              height: "34%",
+              borderRadius: "50%",
+              background: "#8b5cf6",
+              border: "1px solid #6d28d9",
+            }}
+          />
+        ))}
+      </span>
     );
   }
 
@@ -3438,6 +3511,175 @@ export function renderOperationsStep4PartWholeOptionCard({
       }}
     >
       <div style={{ fontSize: normalized.length > 46 ? 14 : normalized.length > 26 ? 17 : 28, fontWeight: 950, lineHeight: 1.15 }}>
+        {normalized}
+      </div>
+      <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function renderOperationsStep5EqualGroupsPromptVisual({
+  visual,
+}: {
+  prompt: string;
+  visual: EarlyNumberVisualModel;
+}) {
+  const counts = visual.groupCounts.filter((count) => Number.isFinite(count));
+  if (!counts.length) return null;
+
+  const groupCount = counts.length;
+  const groupSize = counts[0] ?? 0;
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  const repeatedAddition = counts.join(" + ");
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 22,
+        background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 850, lineHeight: 1.45 }}>
+        Count equal groups: how many groups, how many in each group, then the total.
+      </div>
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          borderRadius: 20,
+          background: "#ffffff",
+          padding: 12,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {counts.map((count, index) => (
+          <div key={`equal-group-${index}`} style={{ display: "grid", gap: 6 }}>
+            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 900, textTransform: "uppercase", textAlign: "center" }}>
+              Group {index + 1}
+            </div>
+            <EarlyNumberWorksheetObjectGroupCard
+              count={count}
+              label={visual.labels[index] || `${count} objects`}
+            />
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <div style={{ border: "1px solid #bae6fd", borderRadius: 16, background: "#eff6ff", color: "#1d4ed8", padding: 10, textAlign: "center", fontWeight: 900 }}>
+          {groupCount} groups
+        </div>
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: 10, textAlign: "center", fontWeight: 900 }}>
+          {groupSize} in each group
+        </div>
+        <div style={{ border: "1px solid #fed7aa", borderRadius: 16, background: "#fff7ed", color: "#c2410c", padding: 10, textAlign: "center", fontWeight: 900 }}>
+          Total {total}
+        </div>
+      </div>
+      <div
+        style={{
+          border: "1px solid #ddd6fe",
+          borderRadius: 16,
+          background: "#f5f3ff",
+          color: "#6d28d9",
+          padding: "10px 12px",
+          fontSize: 16,
+          fontWeight: 950,
+          textAlign: "center",
+        }}
+      >
+        {repeatedAddition} = {total}
+      </div>
+    </div>
+  );
+}
+
+export function renderOperationsStep5EqualGroupsOptionCard({
+  option,
+  selected = false,
+}: {
+  option: string;
+  selected?: boolean;
+}) {
+  const normalized = safe(option);
+  if (!normalized) return null;
+
+  if (/^\d+$/.test(normalized)) {
+    return <EarlyNumberWorksheetNumeralCard numeral={normalized} selected={selected} variant="compact" />;
+  }
+
+  const groupsMatch = normalized.match(/^(\d+)\s+groups?\s+with\s+(\d+)\s+objects?/i);
+  if (groupsMatch) {
+    const groupCount = Number(groupsMatch[1]);
+    const groupSize = Number(groupsMatch[2]);
+    return (
+      <div
+        aria-label={`Choose ${normalized}`}
+        style={{
+          border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+          borderRadius: 18,
+          background: selected ? "#eff6ff" : "#ffffff",
+          padding: 10,
+          minHeight: 132,
+          display: "grid",
+          gap: 8,
+          boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(groupCount, 5)}, minmax(0, 1fr))`, gap: 5 }}>
+          {Array.from({ length: groupCount }, (_, index) => (
+            <EarlyNumberWorksheetObjectGroupCard
+              key={`option-group-${index}`}
+              count={groupSize}
+              label={`Group ${index + 1}`}
+              variant="compact"
+            />
+          ))}
+        </div>
+        <div style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 900, textAlign: "center" }}>
+          {normalized}
+        </div>
+      </div>
+    );
+  }
+
+  const lower = normalized.toLowerCase();
+  const label = lower.includes("+")
+    ? "Repeated addition"
+    : lower.includes("groups")
+      ? "Equal groups"
+      : "Choice";
+
+  return (
+    <div
+      aria-label={`Choose ${normalized}`}
+      style={{
+        border: `2px solid ${selected ? "#2563eb" : "#bfdbfe"}`,
+        borderRadius: 18,
+        background: selected ? "#eff6ff" : "#ffffff",
+        color: "#1e3a8a",
+        minHeight: 132,
+        padding: 12,
+        display: "grid",
+        placeItems: "center",
+        gap: 8,
+        textAlign: "center",
+        boxShadow: selected ? "0 10px 22px rgba(37,99,235,0.18)" : "0 8px 18px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div style={{ fontSize: normalized.length > 48 ? 14 : normalized.length > 26 ? 17 : 28, fontWeight: 950, lineHeight: 1.15 }}>
         {normalized}
       </div>
       <div style={{ border: "1px solid #bae6fd", borderRadius: 999, background: "#f0f9ff", color: "#0369a1", padding: "5px 8px", fontSize: 12, fontWeight: 900 }}>
