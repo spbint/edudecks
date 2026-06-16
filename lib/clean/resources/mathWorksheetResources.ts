@@ -168,6 +168,8 @@ const OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-OC-UE-S011-Use-Operations-Confidently-In-Algebraic-And-Financial-Contexts.pdf";
 const OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE =
   "MYL-MATH-OC-UE-S012-Refine-Judgement-Checking-And-Mathematical-Communication.pdf";
+const FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-KEE-S001-Recognise-Equal-Parts-In-Real-Objects-And-Sharing-Situations.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -387,6 +389,26 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/upper-primary/${OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::foundation-kindergarten::recognise-equal-parts-in-real-objects-and-sharing-situations",
+    stepKey: "recognise-equal-parts-in-real-objects-and-sharing-situations",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 1,
+    pathwayStepTitle:
+      "Recognise equal parts in real objects and sharing situations",
+    title:
+      "Recognise Equal Parts In Real Objects And Sharing Situations",
+    concept:
+      "Recognise fair equal parts, unequal parts, halves and simple sharing situations using familiar real objects.",
+    includesAnswerSheet: false,
+    fileName: FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/foundation-kindergarten/${FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
