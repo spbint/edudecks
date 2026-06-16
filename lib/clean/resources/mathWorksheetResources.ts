@@ -174,6 +174,8 @@ const FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S002-Use-Halves-In-Simple-Real-World-Situations.pdf";
 const FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S003-Use-Halves-Quarters-And-Simple-Fractions-In-Practical-Tasks.pdf";
+const FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-KEE-S004-Describe-Simple-Fraction-Situations-With-Confidence.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -450,6 +452,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-primary/${FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::lower-primary::describe-simple-fraction-situations-with-confidence",
+    stepKey: "describe-simple-fraction-situations-with-confidence",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Describe simple fraction situations with confidence",
+    title: "Describe Simple Fraction Situations With Confidence",
+    concept:
+      "Describe halves, quarters and simple fraction situations using clear words, symbols, labels and everyday sharing contexts.",
+    includesAnswerSheet: false,
+    fileName: FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-primary/${FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
