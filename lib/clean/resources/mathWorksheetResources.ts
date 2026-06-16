@@ -172,6 +172,8 @@ const FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S001-Recognise-Equal-Parts-In-Real-Objects-And-Sharing-Situations.pdf";
 const FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S002-Use-Halves-In-Simple-Real-World-Situations.pdf";
+const FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-KEE-S003-Use-Halves-Quarters-And-Simple-Fractions-In-Practical-Tasks.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -429,6 +431,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/foundation-kindergarten/${FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::lower-primary::use-halves-quarters-and-simple-fractions-in-practical-tasks",
+    stepKey: "use-halves-quarters-and-simple-fractions-in-practical-tasks",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 1,
+    pathwayStepTitle:
+      "Use halves, quarters, and simple fractions in practical tasks",
+    title: "Use Halves, Quarters, And Simple Fractions In Practical Tasks",
+    concept:
+      "Use halves, quarters and simple fractions in practical sharing, folding, portioning and everyday measurement tasks.",
+    includesAnswerSheet: false,
+    fileName: FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-primary/${FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
