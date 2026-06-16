@@ -176,6 +176,8 @@ const FDP_HALVES_QUARTERS_SIMPLE_FRACTIONS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S003-Use-Halves-Quarters-And-Simple-Fractions-In-Practical-Tasks.pdf";
 const FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S004-Describe-Simple-Fraction-Situations-With-Confidence.pdf";
+const FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-KEE-S005-Represent-And-Compare-Fractions-With-Visual-Models.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -470,6 +472,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-primary/${FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::middle-primary::represent-and-compare-fractions-with-visual-models",
+    stepKey: "represent-and-compare-fractions-with-visual-models",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Represent and compare fractions with visual models",
+    title: "Represent And Compare Fractions With Visual Models",
+    concept:
+      "Use pizzas, chocolate blocks, fraction strips, shape models and set models to represent and compare familiar fractions.",
+    includesAnswerSheet: false,
+    fileName: FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/middle-primary/${FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
