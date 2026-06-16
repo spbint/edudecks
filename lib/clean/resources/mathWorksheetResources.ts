@@ -166,6 +166,8 @@ const OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S010-Apply-Calculation-To-Richer-Practical-Reasoning.pdf";
 const OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-OC-UE-S011-Use-Operations-Confidently-In-Algebraic-And-Financial-Contexts.pdf";
+const OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE =
+  "MYL-MATH-OC-UE-S012-Refine-Judgement-Checking-And-Mathematical-Communication.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -366,6 +368,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/upper-primary/${OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::years-9-10-consolidation::refine-judgement-checking-and-mathematical-communication",
+    stepKey: "refine-judgement-checking-and-mathematical-communication",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 12,
+    pathwayStepTitle:
+      "Refine judgement, checking, and mathematical communication",
+    title: "Refine Judgement, Checking, And Mathematical Communication",
+    concept:
+      "Use estimation, checking, error analysis and clear mathematical communication to refine calculation decisions.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/upper-primary/${OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
