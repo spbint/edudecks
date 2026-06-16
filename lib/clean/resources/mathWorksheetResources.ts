@@ -170,6 +170,8 @@ const OPERATIONS_JUDGEMENT_CHECKING_COMMUNICATION_WORKSHEET_FILE =
   "MYL-MATH-OC-UE-S012-Refine-Judgement-Checking-And-Mathematical-Communication.pdf";
 const FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S001-Recognise-Equal-Parts-In-Real-Objects-And-Sharing-Situations.pdf";
+const FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE =
+  "MYL-MATH-FDP-KEE-S002-Use-Halves-In-Simple-Real-World-Situations.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -409,6 +411,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/foundation-kindergarten/${FDP_RECOGNISE_EQUAL_PARTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::foundation-kindergarten::use-halves-in-simple-real-world-situations",
+    stepKey: "use-halves-in-simple-real-world-situations",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 2,
+    pathwayStepTitle: "Use halves in simple real-world situations",
+    title: "Use Halves In Simple Real-World Situations",
+    concept:
+      "Recognise, colour, share and complete halves in familiar food, shape and everyday sharing contexts.",
+    includesAnswerSheet: false,
+    fileName: FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/foundation-kindergarten/${FDP_USE_HALVES_REAL_WORLD_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
