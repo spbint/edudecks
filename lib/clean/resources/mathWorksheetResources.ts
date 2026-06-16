@@ -164,6 +164,8 @@ const OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S009-Choose-Efficient-Strategies-Across-Different-Number-Forms.pdf";
 const OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S010-Apply-Calculation-To-Richer-Practical-Reasoning.pdf";
+const OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE =
+  "MYL-MATH-OC-UE-S011-Use-Operations-Confidently-In-Algebraic-And-Financial-Contexts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -345,6 +347,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::years-9-10-consolidation::use-operations-confidently-in-algebraic-and-financial-contexts",
+    stepKey: "use-operations-confidently-in-algebraic-and-financial-contexts",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 11,
+    pathwayStepTitle:
+      "Use operations confidently in algebraic and financial contexts",
+    title: "Use Operations Confidently In Algebraic And Financial Contexts",
+    concept:
+      "Use operations confidently in algebraic, financial and practical contexts involving unknowns, formulas, percentages and multi-step reasoning.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/upper-primary/${OPERATIONS_ALGEBRAIC_FINANCIAL_CONTEXTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
