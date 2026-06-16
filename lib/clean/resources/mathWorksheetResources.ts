@@ -162,6 +162,8 @@ const OPERATIONS_ESTIMATE_MULTI_STEP_PROBLEMS_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S008-Estimate-And-Solve-Multi-Step-Practical-Problems.pdf";
 const OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE =
   "MYL-MATH-OC-EE-S009-Choose-Efficient-Strategies-Across-Different-Number-Forms.pdf";
+const OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE =
+  "MYL-MATH-OC-EE-S010-Apply-Calculation-To-Richer-Practical-Reasoning.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -325,6 +327,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_EFFICIENT_STRATEGIES_NUMBER_FORMS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::operations-and-calculation::lower-secondary::apply-calculation-to-richer-practical-reasoning",
+    stepKey: "apply-calculation-to-richer-practical-reasoning",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 10,
+    pathwayStepTitle: "Apply calculation to richer practical reasoning",
+    title: "Apply Calculation To Richer Practical Reasoning",
+    concept:
+      "Apply calculation to practical reasoning tasks that involve multi-step decisions, units, comparisons and checks.",
+    includesAnswerSheet: false,
+    fileName: OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/operations-and-calculation/early-elementary/${OPERATIONS_RICHER_PRACTICAL_REASONING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
