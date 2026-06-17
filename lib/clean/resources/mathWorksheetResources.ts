@@ -186,6 +186,8 @@ const FDP_FRACTION_DECIMAL_PRACTICAL_COMPARISON_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S008-Use-Fraction-Decimal-Connections-In-Practical-Comparison.pdf";
 const FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S009-Understand-Percentages-As-Out-Of-100-Comparisons.pdf";
+const FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE =
+  "MYL-MATH-FDP-EE-S010-Move-Flexibly-Between-Fractions-Decimals-And-Percentages.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -571,6 +573,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-secondary/${FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::lower-secondary::move-flexibly-between-fractions-decimals-and-percentages",
+    stepKey: "move-flexibly-between-fractions-decimals-and-percentages",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 2,
+    pathwayStepTitle:
+      "Move flexibly between fractions, decimals, and percentages",
+    title: "Move Flexibly Between Fractions, Decimals, And Percentages",
+    concept:
+      "Use models, equivalent cards and real-life contexts to move between fractions, decimals and percentages.",
+    includesAnswerSheet: false,
+    fileName: FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-secondary/${FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
