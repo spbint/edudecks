@@ -182,6 +182,8 @@ const FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S006-Notice-Equivalent-Fractions-And-Order-Familiar-Amounts.pdf";
 const FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S007-Connect-Fractions-To-Tenths-And-Hundredths-As-Decimals.pdf";
+const FDP_FRACTION_DECIMAL_PRACTICAL_COMPARISON_WORKSHEET_FILE =
+  "MYL-MATH-FDP-EE-S008-Use-Fraction-Decimal-Connections-In-Practical-Comparison.pdf";
 const FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S009-Understand-Percentages-As-Out-Of-100-Comparisons.pdf";
 
@@ -532,6 +534,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/upper-primary/${FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::upper-primary::use-fraction-decimal-connections-in-practical-comparison",
+    stepKey: "use-fraction-decimal-connections-in-practical-comparison",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 2,
+    pathwayStepTitle:
+      "Use fraction-decimal connections in practical comparison",
+    title: "Use Fraction-Decimal Connections In Practical Comparison",
+    concept:
+      "Use tenths bars, hundred grids and real-life models to match, compare and order connected fractions and decimals.",
+    includesAnswerSheet: false,
+    fileName: FDP_FRACTION_DECIMAL_PRACTICAL_COMPARISON_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/upper-primary/${FDP_FRACTION_DECIMAL_PRACTICAL_COMPARISON_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
