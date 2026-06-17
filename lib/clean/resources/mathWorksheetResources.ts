@@ -188,6 +188,8 @@ const FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S009-Understand-Percentages-As-Out-Of-100-Comparisons.pdf";
 const FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S010-Move-Flexibly-Between-Fractions-Decimals-And-Percentages.pdf";
+const FDP_PROPORTIONAL_REASONING_SCALE_RATES_FINANCE_WORKSHEET_FILE =
+  "MYL-MATH-FDP-UE-S011-Use-Proportional-Reasoning-In-Scale-Rates-And-Financial-Contexts.pdf";
 const FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE =
   "MYL-MATH-FDP-UE-S012-Interpret-Proportional-Information-In-Data-And-Real-Decisions.pdf";
 
@@ -594,6 +596,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-secondary/${FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::years-9-10-consolidation::use-proportional-reasoning-in-scale-rates-and-financial-contexts",
+    stepKey: "use-proportional-reasoning-in-scale-rates-and-financial-contexts",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 1,
+    pathwayStepTitle:
+      "Use proportional reasoning in scale, rates, and financial contexts",
+    title: "Use Proportional Reasoning In Scale, Rates, And Financial Contexts",
+    concept:
+      "Use map scales, rates, unit prices, scale drawings, recipes and discounts to reason proportionally in real contexts.",
+    includesAnswerSheet: false,
+    fileName: FDP_PROPORTIONAL_REASONING_SCALE_RATES_FINANCE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/years-9-10-consolidation/${FDP_PROPORTIONAL_REASONING_SCALE_RATES_FINANCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
