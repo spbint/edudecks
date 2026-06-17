@@ -30,6 +30,15 @@ function createAdminClient() {
   });
 }
 
+function isDuplicateNotificationGuard(error: unknown) {
+  return (error as { code?: unknown } | null)?.code === "23505";
+}
+
+function sanitizeErrorMessage(error: unknown) {
+  const message = safe((error as { message?: unknown } | null)?.message || error);
+  return message.slice(0, 500) || "Unknown notification failure.";
+}
+
 export async function POST(request: Request) {
   let user = await getAuthenticatedRouteUser();
 
@@ -50,6 +59,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, status: "unauthenticated" }, { status: 401 });
   }
 
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  const source = safe(body.source) || null;
+  const referrer = safe(body.referrer) || null;
   const admin = createAdminClient();
   if (!admin) {
     console.error("new_user_notification_failed", { reason: "missing_admin_env" });
@@ -79,23 +97,76 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, status: "already_sent" });
   }
 
-  let body: Record<string, unknown> = {};
-  try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
-    body = {};
+  const guardInsert = await admin.from("signup_notifications").insert({
+    user_id: user.id,
+    notification_type: "new_user_signup",
+    source,
+    referrer,
+    status: "pending",
+    attempted_at: new Date().toISOString(),
+  });
+
+  if (guardInsert.error) {
+    if (isDuplicateNotificationGuard(guardInsert.error)) {
+      console.info("new_user_notification_skipped", {
+        reason: "duplicate_guard",
+        status: "already_sent",
+      });
+      return NextResponse.json({ ok: true, status: "already_sent" });
+    }
+
+    console.error("new_user_notification_failed", {
+      reason: "guard_insert_failed",
+      code: guardInsert.error.code,
+    });
+    Sentry.captureException(guardInsert.error, {
+      tags: {
+        feature: "new-user-notification",
+        reason: "guard_insert_failed",
+      },
+      extra: {
+        code: guardInsert.error.code,
+      },
+    });
+    return NextResponse.json({ ok: false, status: "guard_failed" });
   }
 
   try {
     await sendNewUserNotification({
       createdAt: user.created_at ?? null,
       email: user.email ?? null,
-      referrer: safe(body.referrer) || null,
-      source: safe(body.source) || null,
+      referrer,
+      source,
       userId: user.id,
     });
 
     const sentAt = new Date().toISOString();
+    const markSent = await admin
+      .from("signup_notifications")
+      .update({
+        sent_at: sentAt,
+        attempted_at: sentAt,
+        status: "sent",
+        last_error: null,
+      })
+      .eq("user_id", user.id)
+      .eq("notification_type", "new_user_signup");
+
+    if (markSent.error) {
+      console.error("new_user_notification_mark_sent_failed", {
+        code: markSent.error.code,
+      });
+      Sentry.captureException(markSent.error, {
+        tags: {
+          feature: "new-user-notification",
+          reason: "mark_sent_failed",
+        },
+        extra: {
+          code: markSent.error.code,
+        },
+      });
+    }
+
     const { error } = await admin.auth.admin.updateUserById(user.id, {
       app_metadata: {
         ...latestAppMetadata,
@@ -104,20 +175,37 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      throw error;
+      console.error("new_user_notification_metadata_update_failed");
+      Sentry.captureException(error, {
+        tags: {
+          feature: "new-user-notification",
+          reason: "metadata_update_failed",
+        },
+      });
     }
 
     console.info("new_user_notification_sent", { status: "sent" });
     return NextResponse.json({ ok: true, status: "sent" });
   } catch (error) {
-    console.error("new_user_notification_failed", { reason: "send_or_mark_failed" });
+    const errorMessage = sanitizeErrorMessage(error);
+    await admin
+      .from("signup_notifications")
+      .update({
+        attempted_at: new Date().toISOString(),
+        status: "failed",
+        last_error: errorMessage,
+      })
+      .eq("user_id", user.id)
+      .eq("notification_type", "new_user_signup");
+
+    console.error("new_user_notification_failed", { reason: "send_failed" });
     Sentry.captureException(error, {
       tags: {
         feature: "new-user-notification",
-        reason: "send_or_mark_failed",
+        reason: "send_failed",
       },
     });
 
-    return NextResponse.json({ ok: false, status: "send_failed" }, { status: 500 });
+    return NextResponse.json({ ok: false, status: "send_failed" });
   }
 }

@@ -16,6 +16,9 @@ type AuthUserContextValue = {
   loading: boolean;
 };
 
+const NEW_USER_NOTIFICATION_CHECKED_PREFIX = "mylearna_signup_notification_checked:";
+const NEW_USER_NOTIFICATION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 const AuthUserContext = createContext<AuthUserContextValue>({
   user: null,
   profile: null,
@@ -30,6 +33,43 @@ async function fetchProfile(userId: string) {
     .maybeSingle();
 
   return data ?? null;
+}
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isRecentSignupUser(user: User) {
+  const createdAtMs = Date.parse(safe(user.created_at));
+  if (!Number.isFinite(createdAtMs)) return true;
+  return Date.now() - createdAtMs <= NEW_USER_NOTIFICATION_WINDOW_MS;
+}
+
+function hasSignupNotificationMetadata(user: User) {
+  return Boolean(
+    (user.app_metadata as { mylearna_signup_notification_sent_at?: unknown } | null)
+      ?.mylearna_signup_notification_sent_at,
+  );
+}
+
+function readNotificationChecked(userId: string) {
+  if (typeof window === "undefined") return false;
+
+  try {
+    return window.localStorage.getItem(`${NEW_USER_NOTIFICATION_CHECKED_PREFIX}${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeNotificationChecked(userId: string) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(`${NEW_USER_NOTIFICATION_CHECKED_PREFIX}${userId}`, "1");
+  } catch {
+    // Browser storage failures should not affect auth.
+  }
 }
 
 export function AuthUserProvider({ children }: { children: ReactNode }) {
@@ -71,7 +111,12 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (!notifiedUserIds.current.has(nextUser.id)) {
+      if (
+        isRecentSignupUser(nextUser) &&
+        !hasSignupNotificationMetadata(nextUser) &&
+        !readNotificationChecked(nextUser.id) &&
+        !notifiedUserIds.current.has(nextUser.id)
+      ) {
         notifiedUserIds.current.add(nextUser.id);
         const searchParams = new URLSearchParams(window.location.search);
         const signupPrefill = readSignupPrefill();
@@ -91,9 +136,23 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
             source,
             referrer: document.referrer || null,
           }),
-        }).catch(() => {
-          console.warn("Could not check new user notification status.");
-        });
+        })
+          .then(async (response) => {
+            const result = (await response.json().catch(() => null)) as {
+              ok?: unknown;
+              status?: unknown;
+            } | null;
+            if (
+              response.ok &&
+              result?.ok === true &&
+              ["sent", "already_sent"].includes(safe(result.status))
+            ) {
+              writeNotificationChecked(nextUser.id);
+            }
+          })
+          .catch(() => {
+            console.warn("Could not check new user notification status.");
+          });
       }
     }
 
