@@ -182,6 +182,8 @@ const FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S006-Notice-Equivalent-Fractions-And-Order-Familiar-Amounts.pdf";
 const FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S007-Connect-Fractions-To-Tenths-And-Hundredths-As-Decimals.pdf";
+const FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE =
+  "MYL-MATH-FDP-EE-S009-Understand-Percentages-As-Out-Of-100-Comparisons.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -530,6 +532,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/upper-primary/${FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::lower-secondary::understand-percentages-as-out-of-100-comparisons",
+    stepKey: "understand-percentages-as-out-of-100-comparisons",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 1,
+    pathwayStepTitle: "Understand percentages as out-of-100 comparisons",
+    title: "Understand Percentages As Out-Of-100 Comparisons",
+    concept:
+      "Use hundred grids, matching models and real-life contexts to understand percentages as comparisons out of 100.",
+    includesAnswerSheet: false,
+    fileName: FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-secondary/${FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
