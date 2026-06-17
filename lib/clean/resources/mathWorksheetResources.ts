@@ -178,6 +178,8 @@ const FDP_DESCRIBE_SIMPLE_FRACTION_SITUATIONS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S004-Describe-Simple-Fraction-Situations-With-Confidence.pdf";
 const FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S005-Represent-And-Compare-Fractions-With-Visual-Models.pdf";
+const FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-KEE-S006-Notice-Equivalent-Fractions-And-Order-Familiar-Amounts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -490,6 +492,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/middle-primary/${FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::middle-primary::notice-equivalent-fractions-and-order-familiar-amounts",
+    stepKey: "notice-equivalent-fractions-and-order-familiar-amounts",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Notice equivalent fractions and order familiar amounts",
+    title: "Notice Equivalent Fractions And Order Familiar Amounts",
+    concept:
+      "Use pizzas, chocolate bars, circles and fraction strips to notice equivalent fractions and order familiar amounts.",
+    includesAnswerSheet: false,
+    fileName: FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/middle-primary/${FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
