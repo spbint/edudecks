@@ -188,6 +188,8 @@ const FDP_PERCENTAGES_OUT_OF_100_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S009-Understand-Percentages-As-Out-Of-100-Comparisons.pdf";
 const FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE =
   "MYL-MATH-FDP-EE-S010-Move-Flexibly-Between-Fractions-Decimals-And-Percentages.pdf";
+const FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-UE-S012-Interpret-Proportional-Information-In-Data-And-Real-Decisions.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -592,6 +594,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/lower-secondary/${FDP_FLEXIBLE_FRACTIONS_DECIMALS_PERCENTAGES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::years-9-10-consolidation::interpret-proportional-information-in-data-and-real-decisions",
+    stepKey: "interpret-proportional-information-in-data-and-real-decisions",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 2,
+    pathwayStepTitle:
+      "Interpret proportional information in data and real decisions",
+    title: "Interpret Proportional Information In Data And Real Decisions",
+    concept:
+      "Use graphs, tables, rates, discounts and best-value comparisons to interpret proportional information in real decisions.",
+    includesAnswerSheet: false,
+    fileName: FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/years-9-10-consolidation/${FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
