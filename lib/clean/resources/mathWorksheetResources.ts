@@ -180,6 +180,8 @@ const FDP_REPRESENT_COMPARE_FRACTIONS_VISUAL_MODELS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S005-Represent-And-Compare-Fractions-With-Visual-Models.pdf";
 const FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE =
   "MYL-MATH-FDP-KEE-S006-Notice-Equivalent-Fractions-And-Order-Familiar-Amounts.pdf";
+const FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE =
+  "MYL-MATH-FDP-EE-S007-Connect-Fractions-To-Tenths-And-Hundredths-As-Decimals.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -510,6 +512,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/middle-primary/${FDP_EQUIVALENT_FRACTIONS_ORDER_FAMILIAR_AMOUNTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::fractions-decimals-percentages::upper-primary::connect-fractions-to-tenths-and-hundredths-as-decimals",
+    stepKey: "connect-fractions-to-tenths-and-hundredths-as-decimals",
+    subjectKey: "mathematics",
+    strandKey: "fractions-decimals-percentages",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Connect fractions to tenths and hundredths as decimals",
+    title: "Connect Fractions To Tenths And Hundredths As Decimals",
+    concept:
+      "Use tenths bars, hundred grids and real-life decimal visuals to connect fractions to decimal notation.",
+    includesAnswerSheet: false,
+    fileName: FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/fractions-decimals-percentages/upper-primary/${FDP_FRACTIONS_TENTHS_HUNDREDTHS_DECIMALS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
