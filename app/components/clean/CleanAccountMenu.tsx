@@ -55,16 +55,21 @@ export default function CleanAccountMenu({
 
     setBusy(true);
     setError(null);
+    const target = safe(redirectTo) || "/start-free";
+    const fallback = window.setTimeout(() => {
+      window.location.assign(target);
+    }, 5000);
 
     try {
       await completeFamilySignOut();
-      window.location.replace(redirectTo);
+      window.clearTimeout(fallback);
+      window.location.assign(target);
     } catch (nextError) {
+      window.clearTimeout(fallback);
       console.warn("[auth] sign-out failed", {
         message: safe((nextError as { message?: unknown })?.message),
       });
-      setError("We couldn't sign you out just yet. Please try again.");
-      setBusy(false);
+      window.location.assign(target);
     }
   }
 
