@@ -210,6 +210,8 @@ const APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE =
   "MYL-MATH-APF-UEMS-S008-Write-And-Interpret-Simple-Expressions-Or-Equations.pdf";
 const APF_BALANCED_EQUATIONS_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S009-Solve-And-Explain-Equations-As-Balanced-Relationships.pdf";
+const APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE =
+  "MYL-MATH-APF-MS-S010-Connect-Tables-Rules-And-Graphs-In-Functional-Thinking.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -814,6 +816,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_BALANCED_EQUATIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/lower-secondary/${APF_BALANCED_EQUATIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::lower-secondary::connect-tables-rules-and-graphs-in-functional-thinking",
+    stepKey: "connect-tables-rules-and-graphs-in-functional-thinking",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 2,
+    pathwayStepTitle:
+      "Connect tables, rules, and graphs in functional thinking",
+    title: "Connect Tables, Rules, And Graphs In Functional Thinking",
+    concept:
+      "Connect input-output tables, rules, plotted points, graphs and real-life function contexts.",
+    includesAnswerSheet: false,
+    fileName: APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/lower-secondary/${APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
