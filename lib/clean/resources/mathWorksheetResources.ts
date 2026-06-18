@@ -212,6 +212,8 @@ const APF_BALANCED_EQUATIONS_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S009-Solve-And-Explain-Equations-As-Balanced-Relationships.pdf";
 const APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S010-Connect-Tables-Rules-And-Graphs-In-Functional-Thinking.pdf";
+const APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE =
+  "MYL-MATH-APF-MS-S011-Use-Algebra-To-Model-Relationships-Efficiently.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -835,6 +837,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/lower-secondary/${APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::years-9-10-consolidation::use-algebra-to-model-relationships-efficiently",
+    stepKey: "use-algebra-to-model-relationships-efficiently",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 1,
+    pathwayStepTitle: "Use algebra to model relationships efficiently",
+    title: "Use Algebra To Model Relationships Efficiently",
+    concept:
+      "Use algebra rules, tables, substitution, graphs and real-world contexts to model relationships efficiently.",
+    includesAnswerSheet: false,
+    fileName: APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/years-9-10-consolidation/${APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
