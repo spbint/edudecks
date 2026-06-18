@@ -204,6 +204,8 @@ const APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S005-Use-Tables-And-Rules-To-Describe-Number-Patterns.pdf";
 const APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S006-Generalise-Simple-Rules-And-Equivalent-Relationships.pdf";
+const APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE =
+  "MYL-MATH-APF-UEMS-S007-Use-Symbols-Or-Letters-To-Show-An-Unknown-Or-Rule.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -754,6 +756,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/middle-primary/${APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::upper-primary::use-symbols-or-letters-to-show-an-unknown-or-rule",
+    stepKey: "use-symbols-or-letters-to-show-an-unknown-or-rule",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Use symbols or letters to show an unknown or rule",
+    title: "Use Symbols Or Letters To Show An Unknown Or Rule",
+    concept:
+      "Use boxes and letters to represent unknown numbers and simple rules in equations, tables and patterns.",
+    includesAnswerSheet: false,
+    fileName: APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/upper-primary/${APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
