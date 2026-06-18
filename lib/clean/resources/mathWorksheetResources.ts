@@ -214,6 +214,8 @@ const APF_TABLES_RULES_GRAPHS_FUNCTIONS_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S010-Connect-Tables-Rules-And-Graphs-In-Functional-Thinking.pdf";
 const APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S011-Use-Algebra-To-Model-Relationships-Efficiently.pdf";
+const APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE =
+  "MYL-MATH-APF-MS-S012-Refine-Explanation-Checking-And-Generalising.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -855,6 +857,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/years-9-10-consolidation/${APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::years-9-10-consolidation::refine-explanation-checking-and-generalising",
+    stepKey: "refine-explanation-checking-and-generalising",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 2,
+    pathwayStepTitle: "Refine explanation, checking, and generalising",
+    title: "Refine Explanation, Checking, And Generalising",
+    concept:
+      "Explain rules, check solutions, interpret relationships, spot errors and generalise patterns clearly.",
+    includesAnswerSheet: false,
+    fileName: APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/years-9-10-consolidation/${APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
