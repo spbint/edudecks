@@ -206,6 +206,8 @@ const APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S006-Generalise-Simple-Rules-And-Equivalent-Relationships.pdf";
 const APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE =
   "MYL-MATH-APF-UEMS-S007-Use-Symbols-Or-Letters-To-Show-An-Unknown-Or-Rule.pdf";
+const APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE =
+  "MYL-MATH-APF-UEMS-S008-Write-And-Interpret-Simple-Expressions-Or-Equations.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -774,6 +776,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/upper-primary/${APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::upper-primary::write-and-interpret-simple-expressions-or-equations",
+    stepKey: "write-and-interpret-simple-expressions-or-equations",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Write and interpret simple expressions or equations",
+    title: "Write And Interpret Simple Expressions Or Equations",
+    concept:
+      "Read, write and solve simple expressions and equations using letters, rule tables and real-life unknown stories.",
+    includesAnswerSheet: false,
+    fileName: APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/upper-primary/${APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
