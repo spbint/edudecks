@@ -192,6 +192,8 @@ const FDP_PROPORTIONAL_REASONING_SCALE_RATES_FINANCE_WORKSHEET_FILE =
   "MYL-MATH-FDP-UE-S011-Use-Proportional-Reasoning-In-Scale-Rates-And-Financial-Contexts.pdf";
 const FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE =
   "MYL-MATH-FDP-UE-S012-Interpret-Proportional-Information-In-Data-And-Real-Decisions.pdf";
+const APF_SIMPLE_REPEATING_PATTERNS_WORKSHEET_FILE =
+  "MYL-MATH-APF-KEE-S001-Notice-And-Continue-Simple-Repeating-Patterns.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -634,6 +636,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/fractions-decimals-percentages/years-9-10-consolidation/${FDP_PROPORTIONAL_INFORMATION_DATA_DECISIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::foundation-kindergarten::notice-and-continue-simple-repeating-patterns",
+    stepKey: "notice-and-continue-simple-repeating-patterns",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 1,
+    pathwayStepTitle: "Notice and continue simple repeating patterns",
+    title: "Notice And Continue Simple Repeating Patterns",
+    concept:
+      "Notice, copy, continue and create simple repeating colour and shape patterns.",
+    includesAnswerSheet: false,
+    fileName: APF_SIMPLE_REPEATING_PATTERNS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/foundation-kindergarten/${APF_SIMPLE_REPEATING_PATTERNS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
