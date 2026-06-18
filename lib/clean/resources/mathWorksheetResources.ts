@@ -200,6 +200,8 @@ const APF_GROWING_PATTERNS_DESCRIBE_CHANGE_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S003-Continue-Growing-Patterns-And-Describe-The-Change.pdf";
 const APF_MISSING_NUMBER_INPUT_OUTPUT_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S004-Use-Missing-Number-And-Input-Output-Thinking.pdf";
+const APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE =
+  "MYL-MATH-APF-KEE-S005-Use-Tables-And-Rules-To-Describe-Number-Patterns.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -714,6 +716,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_MISSING_NUMBER_INPUT_OUTPUT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/lower-primary/${APF_MISSING_NUMBER_INPUT_OUTPUT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::middle-primary::use-tables-and-rules-to-describe-number-patterns",
+    stepKey: "use-tables-and-rules-to-describe-number-patterns",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Use tables and rules to describe number patterns",
+    title: "Use Tables And Rules To Describe Number Patterns",
+    concept:
+      "Use tables, rules and growing groups to record, continue and explain number patterns.",
+    includesAnswerSheet: false,
+    fileName: APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/middle-primary/${APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
