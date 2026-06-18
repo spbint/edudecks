@@ -202,6 +202,8 @@ const APF_MISSING_NUMBER_INPUT_OUTPUT_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S004-Use-Missing-Number-And-Input-Output-Thinking.pdf";
 const APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S005-Use-Tables-And-Rules-To-Describe-Number-Patterns.pdf";
+const APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE =
+  "MYL-MATH-APF-KEE-S006-Generalise-Simple-Rules-And-Equivalent-Relationships.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -734,6 +736,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/middle-primary/${APF_TABLES_RULES_NUMBER_PATTERNS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::middle-primary::generalise-simple-rules-and-equivalent-relationships",
+    stepKey: "generalise-simple-rules-and-equivalent-relationships",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Generalise simple rules and equivalent relationships",
+    title: "Generalise Simple Rules And Equivalent Relationships",
+    concept:
+      "Compare visual and number patterns, identify shared rules, fill missing values and explain equivalent relationships.",
+    includesAnswerSheet: false,
+    fileName: APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/middle-primary/${APF_GENERALISE_RULES_EQUIVALENT_RELATIONSHIPS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
