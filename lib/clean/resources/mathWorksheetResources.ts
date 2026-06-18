@@ -208,6 +208,8 @@ const APF_SYMBOLS_LETTERS_UNKNOWN_RULE_WORKSHEET_FILE =
   "MYL-MATH-APF-UEMS-S007-Use-Symbols-Or-Letters-To-Show-An-Unknown-Or-Rule.pdf";
 const APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE =
   "MYL-MATH-APF-UEMS-S008-Write-And-Interpret-Simple-Expressions-Or-Equations.pdf";
+const APF_BALANCED_EQUATIONS_WORKSHEET_FILE =
+  "MYL-MATH-APF-MS-S009-Solve-And-Explain-Equations-As-Balanced-Relationships.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -794,6 +796,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/upper-primary/${APF_SIMPLE_EXPRESSIONS_EQUATIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::lower-secondary::solve-and-explain-equations-as-balanced-relationships",
+    stepKey: "solve-and-explain-equations-as-balanced-relationships",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 1,
+    pathwayStepTitle: "Solve and explain equations as balanced relationships",
+    title: "Solve And Explain Equations As Balanced Relationships",
+    concept:
+      "Use balance-scale thinking to solve equations, explain inverse moves, match word statements and check unknown values.",
+    includesAnswerSheet: false,
+    fileName: APF_BALANCED_EQUATIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/lower-secondary/${APF_BALANCED_EQUATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
