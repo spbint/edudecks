@@ -196,6 +196,8 @@ const APF_SIMPLE_REPEATING_PATTERNS_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S001-Notice-And-Continue-Simple-Repeating-Patterns.pdf";
 const APF_SORT_OBJECTS_EXPLAIN_RULE_WORKSHEET_FILE =
   "MYL-MATH-APF-KEE-S002-Sort-Objects-And-Explain-The-Rule.pdf";
+const APF_GROWING_PATTERNS_DESCRIBE_CHANGE_WORKSHEET_FILE =
+  "MYL-MATH-APF-KEE-S003-Continue-Growing-Patterns-And-Describe-The-Change.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -674,6 +676,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_SORT_OBJECTS_EXPLAIN_RULE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/foundation-kindergarten/${APF_SORT_OBJECTS_EXPLAIN_RULE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::algebra-patterns-and-functions::lower-primary::continue-growing-patterns-and-describe-the-change",
+    stepKey: "continue-growing-patterns-and-describe-the-change",
+    subjectKey: "mathematics",
+    strandKey: "algebra-patterns-and-functions",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Continue growing patterns and describe the change",
+    title: "Continue Growing Patterns And Describe The Change",
+    concept:
+      "Continue simple growing patterns, describe what changes each time, and predict what comes next.",
+    includesAnswerSheet: false,
+    fileName: APF_GROWING_PATTERNS_DESCRIBE_CHANGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/algebra-patterns-and-functions/lower-primary/${APF_GROWING_PATTERNS_DESCRIBE_CHANGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
