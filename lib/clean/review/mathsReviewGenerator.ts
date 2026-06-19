@@ -1,7 +1,6 @@
 import {
   getMathsReviewBankById,
   MATHS_REVIEW_BANKS,
-  READY_MATHS_REVIEW_BANK_IDS,
   type MathsReviewBank,
   type MathsReviewBankGroup,
 } from "@/lib/clean/review/mathsReviewBanks";
@@ -35,7 +34,12 @@ export type MathsReviewQuestion = {
 type QuestionFactory = (bank: MathsReviewBank, settings: MathsReviewSettings, index: number) => MathsReviewQuestion;
 
 function normalizeAnswer(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\$/g, "")
+    .replace(/,/g, "")
+    .replace(/\s+/g, " ");
 }
 
 function numberAnswer(value: number) {
@@ -56,7 +60,9 @@ function getRange(settings: MathsReviewSettings) {
 }
 
 function randInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  const safeMin = Math.min(min, max);
+  const safeMax = Math.max(min, max);
+  return Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
 }
 
 function shuffle<T>(items: T[]) {
@@ -80,6 +86,54 @@ function withBase(
     group: bank.group,
     ...question,
   };
+}
+
+function choiceQuestion(
+  bank: MathsReviewBank,
+  index: number,
+  prompt: string,
+  answer: string,
+  choices: string[],
+  explanation: string,
+  visualHint?: string,
+  acceptableAnswers: string[] = [answer],
+) {
+  return withBase(bank, index, {
+    type: "choice",
+    prompt,
+    answer,
+    acceptableAnswers,
+    choices: shuffle(choices),
+    explanation,
+    visualHint,
+  });
+}
+
+function inputQuestion(
+  bank: MathsReviewBank,
+  index: number,
+  prompt: string,
+  answer: string,
+  explanation: string,
+  visualHint?: string,
+  acceptableAnswers: string[] = [answer],
+) {
+  return withBase(bank, index, {
+    type: "input",
+    prompt,
+    answer,
+    acceptableAnswers,
+    explanation,
+    visualHint,
+  });
+}
+
+function tenFrameVisual(value: number) {
+  return Array.from({ length: 10 }, (_, index) => (index < value ? "●" : "○")).join(" ");
+}
+
+function factorList(value: number) {
+  return Array.from({ length: value }, (_, index) => index + 1).filter((candidate) => value % candidate === 0);
 }
 
 function oneAfter(bank: MathsReviewBank, settings: MathsReviewSettings, index: number) {
@@ -372,6 +426,215 @@ function missingFactor(bank: MathsReviewBank, _settings: MathsReviewSettings, in
   });
 }
 
+function generalMathsReviewQuestion(bank: MathsReviewBank, settings: MathsReviewSettings, index: number): MathsReviewQuestion {
+  const { low, high } = getRange(settings);
+  const positiveLow = Math.max(0, low);
+  const positiveHigh = Math.max(20, high);
+
+  switch (bank.id) {
+    case "subitising-ten-frame": {
+      const value = randInt(1, 10);
+      return inputQuestion(
+        bank,
+        index,
+        "How many dots are shown in the ten frame?",
+        numberAnswer(value),
+        `There are ${value} filled spaces.`,
+        tenFrameVisual(value),
+      );
+    }
+    case "subitising-dice": {
+      const value = randInt(1, 6);
+      return inputQuestion(bank, index, "How many dice dots?", numberAnswer(value), `The dice pattern shows ${value}.`, "● ".repeat(value).trim());
+    }
+    case "what-number": {
+      const value = randInt(positiveLow, positiveHigh);
+      return inputQuestion(bank, index, "What number is shown?", numberAnswer(value), `The number is ${value}.`, String(value));
+    }
+    case "write-numbers": {
+      const value = randInt(positiveLow, positiveHigh);
+      return inputQuestion(bank, index, `Write this number: ${value}`, numberAnswer(value), `Write ${value}.`);
+    }
+    case "doubles-to-10": {
+      const value = randInt(1, 10);
+      const answer = value * 2;
+      return inputQuestion(bank, index, `Double ${value}.`, numberAnswer(answer), `${value} + ${value} = ${answer}.`);
+    }
+    case "near-doubles-to-10": {
+      const value = randInt(1, 10);
+      const answer = value + value + 1;
+      return inputQuestion(bank, index, `${value} + ${value + 1} = ?`, numberAnswer(answer), `Use the double ${value} + ${value}, then add 1.`);
+    }
+    case "numberline-to-10": {
+      const missing = randInt(0, 10);
+      const line = Array.from({ length: 11 }, (_, value) => (value === missing ? "__" : String(value))).join(" ");
+      return inputQuestion(bank, index, "Find the missing number on the number line.", numberAnswer(missing), `The missing number is ${missing}.`, line);
+    }
+    case "numberline-to-100": {
+      const missing = randInt(0, 10) * 10;
+      const line = Array.from({ length: 11 }, (_, value) => value * 10).map((value) => (value === missing ? "__" : String(value))).join(" ");
+      return inputQuestion(bank, index, "Find the missing number on the number line.", numberAnswer(missing), `The missing number is ${missing}.`, line);
+    }
+    case "symbol-patterns":
+      return choiceQuestion(bank, index, "What comes next? ▲ ● ▲ ● __", "▲", ["▲", "●", "■", "◆"], "The pattern repeats triangle, circle.");
+    case "number-patterns": {
+      const step = [2, 3, 5, 10][randInt(0, 3)];
+      const start = randInt(1, 20);
+      const sequence = [start, start + step, start + step * 2, start + step * 3];
+      const answer = start + step * 4;
+      return inputQuestion(bank, index, `Continue the pattern: ${sequence.join(", ")}, __`, numberAnswer(answer), `Add ${step} each time.`);
+    }
+    case "tens": {
+      const tens = randInt(1, 9);
+      return inputQuestion(bank, index, `How many tens are in ${tens * 10}?`, numberAnswer(tens), `${tens * 10} is ${tens} tens.`);
+    }
+    case "hundreds": {
+      const hundreds = randInt(1, 9);
+      return inputQuestion(bank, index, `How many hundreds are in ${hundreds * 100}?`, numberAnswer(hundreds), `${hundreds * 100} is ${hundreds} hundreds.`);
+    }
+    case "tens-hundreds-thousands": {
+      const value = randInt(1000, 9999);
+      const digit = Math.floor(value / 1000);
+      return inputQuestion(bank, index, `What digit is in the thousands place in ${value}?`, numberAnswer(digit), `${digit} is in the thousands place.`);
+    }
+    case "tenths": {
+      const tenths = randInt(1, 9);
+      return inputQuestion(bank, index, `Write ${tenths} tenths as a decimal.`, `0.${tenths}`, `${tenths} tenths is 0.${tenths}.`, undefined, [`0.${tenths}`, `.${tenths}`]);
+    }
+    case "hundredths": {
+      const hundredths = randInt(1, 99);
+      const answer = (hundredths / 100).toFixed(2);
+      return inputQuestion(bank, index, `Write ${hundredths} hundredths as a decimal.`, answer, `${hundredths} hundredths is ${answer}.`);
+    }
+    case "decimals-to-thousandths": {
+      const thousandths = randInt(1, 999);
+      const answer = (thousandths / 1000).toFixed(3);
+      return inputQuestion(bank, index, `Write ${thousandths} thousandths as a decimal.`, answer, `${thousandths} thousandths is ${answer}.`);
+    }
+    case "form-largest-number":
+    case "form-smallest-number": {
+      const digits = shuffle([randInt(1, 9), randInt(0, 9), randInt(0, 9)]);
+      const sorted = [...digits].sort((a, b) => (bank.id === "form-largest-number" ? b - a : a - b));
+      if (bank.id === "form-smallest-number" && sorted[0] === 0) {
+        const firstNonZeroIndex = sorted.findIndex((digit) => digit > 0);
+        [sorted[0], sorted[firstNonZeroIndex]] = [sorted[firstNonZeroIndex], sorted[0]];
+      }
+      const answer = sorted.join("");
+      return inputQuestion(bank, index, `Use ${digits.join(", ")} to form the ${bank.id === "form-largest-number" ? "largest" : "smallest"} number.`, answer, `The answer is ${answer}.`);
+    }
+    case "number-chart-forwards":
+      return oneAfter(bank, settings, index);
+    case "number-chart-backwards":
+      return oneBefore(bank, settings, index);
+    case "skip-counting":
+      return skipBy(bank, settings, index, randInt(2, 12));
+    case "visual-fractions":
+      return choiceQuestion(bank, index, "What fraction is shaded? ■ ■ ■ □", "3/4", ["1/4", "1/2", "3/4", "4/4"], "Three out of four equal parts are shaded.");
+    case "fractions-numberline":
+      return inputQuestion(bank, index, "What fraction is halfway between 0 and 1?", "1/2", "Halfway between 0 and 1 is 1/2.", "0 ---- ? ---- 1", ["1/2", "2/4", "0.5"]);
+    case "decimals-numberline":
+      return inputQuestion(bank, index, "What decimal is halfway between 0 and 1?", "0.5", "Halfway between 0 and 1 is 0.5.", "0 ---- ? ---- 1", ["0.5", ".5", "1/2"]);
+    case "arrays": {
+      const rows = randInt(2, 5);
+      const columns = randInt(2, 5);
+      return inputQuestion(bank, index, `An array has ${rows} rows and ${columns} columns. How many altogether?`, numberAnswer(rows * columns), `${rows} x ${columns} = ${rows * columns}.`);
+    }
+    case "partially-covered-arrays": {
+      const rows = randInt(2, 5);
+      const columns = randInt(2, 5);
+      const visible = rows * (columns - 1);
+      return inputQuestion(bank, index, `An array has ${rows} rows and ${columns} columns. ${visible} are visible. How many are covered?`, numberAnswer(rows), `One column is covered, so ${rows} are covered.`);
+    }
+    case "grid-reference": {
+      const column = ["A", "B", "C", "D"][randInt(0, 3)];
+      const row = randInt(1, 4);
+      return inputQuestion(bank, index, `Give the grid reference for column ${column}, row ${row}.`, `${column}${row}`, `Column ${column} and row ${row} is ${column}${row}.`);
+    }
+    case "column-or-row":
+      return choiceQuestion(bank, index, "Objects arranged up and down make a...", "column", ["row", "column", "corner", "face"], "A column goes up and down.");
+    case "2d-shape-identification":
+      return choiceQuestion(bank, index, "Which shape has 3 sides?", "triangle", ["triangle", "square", "circle", "rectangle"], "A triangle has 3 sides.");
+    case "2d-shape-drawing":
+      return inputQuestion(bank, index, "Draw or name a 2D shape with 4 equal sides.", "square", "A square has 4 equal sides.", undefined, ["square"]);
+    case "3d-objects":
+      return choiceQuestion(bank, index, "Which 3D object is shaped like a ball?", "sphere", ["sphere", "cube", "cylinder", "cone"], "A sphere is ball-shaped.");
+    case "recognising-angles":
+      return choiceQuestion(bank, index, "What do we call the space where two lines meet?", "angle", ["angle", "face", "edge", "corner only"], "An angle is made where two lines meet.");
+    case "comparing-angles":
+      return choiceQuestion(bank, index, "Which angle is larger?", "120 degrees", ["30 degrees", "60 degrees", "90 degrees", "120 degrees"], "120 degrees is the largest angle listed.");
+    case "recognising-right-angles":
+      return choiceQuestion(bank, index, "A square corner is a...", "right angle", ["right angle", "straight angle", "acute angle", "curve"], "A square corner is a right angle.");
+    case "mm-cm": {
+      const cm = randInt(1, 20);
+      return inputQuestion(bank, index, `${cm} cm = how many mm?`, numberAnswer(cm * 10), `There are 10 mm in 1 cm.`);
+    }
+    case "cm-m": {
+      const metres = randInt(1, 10);
+      return inputQuestion(bank, index, `${metres} m = how many cm?`, numberAnswer(metres * 100), `There are 100 cm in 1 m.`);
+    }
+    case "mm-m": {
+      const metres = randInt(1, 5);
+      return inputQuestion(bank, index, `${metres} m = how many mm?`, numberAnswer(metres * 1000), `There are 1000 mm in 1 m.`);
+    }
+    case "m-km": {
+      const km = randInt(1, 10);
+      return inputQuestion(bank, index, `${km} km = how many m?`, numberAnswer(km * 1000), `There are 1000 m in 1 km.`);
+    }
+    case "ml-l": {
+      const litres = randInt(1, 5);
+      return inputQuestion(bank, index, `${litres} L = how many mL?`, numberAnswer(litres * 1000), `There are 1000 mL in 1 L.`);
+    }
+    case "g-kg": {
+      const kg = randInt(1, 10);
+      return inputQuestion(bank, index, `${kg} kg = how many g?`, numberAnswer(kg * 1000), `There are 1000 g in 1 kg.`);
+    }
+    case "cm2-m2": {
+      const squareMetres = randInt(1, 5);
+      return inputQuestion(bank, index, `${squareMetres} m² = how many cm²?`, numberAnswer(squareMetres * 10000), `There are 10,000 cm² in 1 m².`);
+    }
+    case "make-10": {
+      const value = randInt(0, 10);
+      return inputQuestion(bank, index, `${value} + __ = 10`, numberAnswer(10 - value), `${value} needs ${10 - value} to make 10.`);
+    }
+    case "make-20": {
+      const value = randInt(0, 20);
+      return inputQuestion(bank, index, `${value} + __ = 20`, numberAnswer(20 - value), `${value} needs ${20 - value} to make 20.`);
+    }
+    case "listing-factors": {
+      const value = [12, 18, 20, 24, 30, 36][randInt(0, 5)];
+      const factors = factorList(value).join(", ");
+      return inputQuestion(bank, index, `List the factors of ${value}.`, factors, `The factors of ${value} are ${factors}.`, undefined, [factors, factors.replace(/, /g, " ")]);
+    }
+    case "hour":
+      return choiceQuestion(bank, index, "The minute hand points to 12 and the hour hand points to 4. What time is it?", "4:00", ["4:00", "12:04", "4:30", "12:00"], "That clock shows 4 o'clock.", undefined, ["4:00", "4 o'clock", "4 oclock"]);
+    case "half-hour":
+      return choiceQuestion(bank, index, "Half past 7 is written as...", "7:30", ["7:00", "7:15", "7:30", "8:30"], "Half past means 30 minutes after the hour.");
+    case "quarter-hour":
+      return choiceQuestion(bank, index, "Quarter past 3 is written as...", "3:15", ["3:15", "3:30", "3:45", "4:15"], "Quarter past means 15 minutes after the hour.");
+    case "5-min": {
+      return inputQuestion(bank, index, `Count by 5 minute marks: 0, 5, 10, __`, "15", "The next 5-minute mark is 15.");
+    }
+    case "1-min":
+      return inputQuestion(bank, index, "What time is one minute after 6:14?", "6:15", "One minute after 6:14 is 6:15.");
+    case "24-12-conversion":
+      return inputQuestion(bank, index, "Write 14:00 as 12-hour time.", "2:00 pm", "14:00 is 2:00 pm.", undefined, ["2:00 pm", "2pm", "2 pm"]);
+    case "time-facts":
+      return inputQuestion(bank, index, "How many minutes are in 1 hour?", "60", "There are 60 minutes in 1 hour.");
+    case "recognising-coins-and-notes":
+      return choiceQuestion(bank, index, "Which Australian coin is gold and worth one dollar?", "$1", ["10c", "20c", "50c", "$1"], "The $1 coin is gold.");
+    case "adding-notes-and-coins":
+      return inputQuestion(bank, index, "$5 + $2 + 50c = ?", "$7.50", "$5 + $2 + 50c = $7.50.", undefined, ["$7.50", "7.50", "750c"]);
+    case "adding-coins":
+      return inputQuestion(bank, index, "20c + 20c + 10c = ?", "50c", "20c + 20c + 10c = 50c.", undefined, ["50c", "0.50", "$0.50"]);
+    case "adding-notes":
+      return inputQuestion(bank, index, "$10 + $5 + $5 = ?", "$20", "$10 + $5 + $5 = $20.", undefined, ["$20", "20"]);
+    default: {
+      const value = randInt(positiveLow, positiveHigh);
+      return inputQuestion(bank, index, `${bank.label}: write the number shown.`, numberAnswer(value), `The answer is ${value}.`, String(value));
+    }
+  }
+}
+
 const factories: Record<string, QuestionFactory> = {
   "one-after": oneAfter,
   "one-before": oneBefore,
@@ -407,9 +670,8 @@ for (let step = 2; step <= 12; step += 1) {
 
 export function getReadyMathsReviewBanks(bankIds: string[]) {
   return bankIds
-    .filter((bankId) => READY_MATHS_REVIEW_BANK_IDS.has(bankId))
     .map((bankId) => getMathsReviewBankById(bankId))
-    .filter((bank): bank is MathsReviewBank => Boolean(bank && factories[bank.id]));
+    .filter((bank): bank is MathsReviewBank => Boolean(bank));
 }
 
 export function generateMathsReview(settings: MathsReviewSettings) {
@@ -424,16 +686,14 @@ export function generateMathsReview(settings: MathsReviewSettings) {
   for (let round = 0; round < perFocus && questions.length < cappedCount; round += 1) {
     for (const bank of orderedBanks) {
       if (questions.length >= cappedCount) break;
-      const factory = factories[bank.id];
-      if (!factory) continue;
+      const factory = factories[bank.id] ?? generalMathsReviewQuestion;
       questions.push(factory(bank, settings, questions.length));
     }
   }
 
   while (questions.length < cappedCount) {
     const bank = orderedBanks[questions.length % orderedBanks.length] ?? MATHS_REVIEW_BANKS[0];
-    const factory = factories[bank.id];
-    if (!factory) break;
+    const factory = factories[bank.id] ?? generalMathsReviewQuestion;
     questions.push(factory(bank, settings, questions.length));
   }
 

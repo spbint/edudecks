@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { V2Card, V2PageHeader, v2Tokens } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
+import CleanReviewPlayer from "@/app/components/clean/review/CleanReviewPlayer";
 import {
   MATHS_REVIEW_BANKS,
   MATHS_REVIEW_GROUPS,
@@ -9,7 +10,6 @@ import {
   type MathsReviewBankGroup,
 } from "@/lib/clean/review/mathsReviewBanks";
 import {
-  checkMathsReviewAnswer,
   generateMathsReview,
   getReadyMathsReviewBanks,
   type MathsReviewOrder,
@@ -21,12 +21,6 @@ type ReviewMode = {
   title: string;
   questionCount: number;
   description: string;
-};
-
-type ReviewResult = {
-  question: MathsReviewQuestion;
-  response: string;
-  correct: boolean;
 };
 
 const reviewModes: ReviewMode[] = [
@@ -104,23 +98,21 @@ function BankPill({
   selected: boolean;
   onToggle: () => void;
 }) {
-  const ready = bank.status === "ready";
   return (
     <button
       type="button"
       onClick={onToggle}
-      disabled={!ready}
       style={{
         minHeight: 44,
         textAlign: "left",
         borderRadius: 14,
         border: `1px solid ${selected ? v2Tokens.purple : v2Tokens.border}`,
-        background: selected ? v2Tokens.lavender : ready ? "#FFFFFF" : "#F8FAFC",
-        color: ready ? v2Tokens.navy : "#8A94A8",
+        background: selected ? v2Tokens.lavender : "#FFFFFF",
+        color: v2Tokens.navy,
         padding: "10px 12px",
         display: "grid",
         gap: 4,
-        cursor: ready ? "pointer" : "not-allowed",
+        cursor: "pointer",
         boxShadow: selected ? "0 8px 18px rgba(108,77,246,0.08)" : "none",
       }}
     >
@@ -131,16 +123,16 @@ function BankPill({
             flex: "0 0 auto",
             borderRadius: 999,
             padding: "2px 7px",
-            color: ready ? v2Tokens.green : v2Tokens.slate,
-            background: ready ? v2Tokens.mint : "#EEF2F7",
+            color: v2Tokens.green,
+            background: v2Tokens.mint,
             fontSize: 11,
             fontWeight: 800,
           }}
         >
-          {ready ? "v1" : "soon"}
+          v1
         </span>
       </span>
-      {bank.stageHint ? <span style={{ color: ready ? v2Tokens.slate : "#9AA3B5", fontSize: 12 }}>{bank.stageHint}</span> : null}
+      {bank.stageHint ? <span style={{ color: v2Tokens.slate, fontSize: 12 }}>{bank.stageHint}</span> : null}
     </button>
   );
 }
@@ -160,8 +152,8 @@ function SelectedPanel({
         <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 18 }}>Selected for review</h2>
         <p style={sectionIntroStyle}>
           {selectedBanks.length
-            ? `${readyCount} ready focus ${readyCount === 1 ? "area" : "areas"} will generate questions.`
-            : "Choose at least one v1-ready focus area."}
+            ? `${readyCount} focus ${readyCount === 1 ? "area" : "areas"} will generate practice questions.`
+            : "Choose at least one focus area."}
         </p>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -174,8 +166,8 @@ function SelectedPanel({
               style={{
                 border: `1px solid ${bank.status === "ready" ? v2Tokens.border : "#D8DEE8"}`,
                 borderRadius: 999,
-                background: bank.status === "ready" ? "#FFFFFF" : "#F8FAFC",
-                color: bank.status === "ready" ? v2Tokens.navy : v2Tokens.slate,
+                background: "#FFFFFF",
+                color: v2Tokens.navy,
                 padding: "7px 10px",
                 fontSize: 13,
                 fontWeight: 700,
@@ -188,156 +180,6 @@ function SelectedPanel({
         ) : (
           <span style={{ color: v2Tokens.slate, fontSize: 14 }}>Nothing selected yet.</span>
         )}
-      </div>
-    </V2Card>
-  );
-}
-
-function QuestionCard({
-  question,
-  response,
-  checked,
-  isCorrect,
-  onResponse,
-  onCheck,
-  onNext,
-  onFinish,
-  isLast,
-}: {
-  question: MathsReviewQuestion;
-  response: string;
-  checked: boolean;
-  isCorrect: boolean | null;
-  onResponse: (value: string) => void;
-  onCheck: () => void;
-  onNext: () => void;
-  onFinish: () => void;
-  isLast: boolean;
-}) {
-  return (
-    <V2Card style={{ display: "grid", gap: 18 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-        <span
-          style={{
-            borderRadius: 999,
-            background: v2Tokens.lavender,
-            color: v2Tokens.purple,
-            padding: "6px 10px",
-            fontSize: 12,
-            fontWeight: 850,
-          }}
-        >
-          {question.bankLabel}
-        </span>
-        <span style={{ color: v2Tokens.slate, fontSize: 13 }}>{question.group}</span>
-      </div>
-
-      <div
-        style={{
-          borderRadius: 20,
-          border: `1px solid ${v2Tokens.border}`,
-          background: "linear-gradient(145deg, #FFFFFF 0%, #F8FAFF 100%)",
-          padding: "clamp(18px, 4vw, 34px)",
-          display: "grid",
-          gap: 14,
-          minHeight: 180,
-          alignContent: "center",
-        }}
-      >
-        <div style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 800 }}>Question</div>
-        <div style={{ color: v2Tokens.navy, fontSize: "clamp(28px, 6vw, 48px)", lineHeight: 1.1, fontWeight: 850 }}>
-          {question.prompt}
-        </div>
-        {question.visualHint ? <p style={{ margin: 0, color: v2Tokens.slate, lineHeight: 1.55 }}>{question.visualHint}</p> : null}
-      </div>
-
-      {question.type === "choice" && question.choices ? (
-        <div className="mylearna-review-choice-grid">
-          {question.choices.map((choice) => {
-            const selected = response === choice;
-            return (
-              <button
-                key={choice}
-                type="button"
-                onClick={() => onResponse(choice)}
-                disabled={checked}
-                style={{
-                  minHeight: 50,
-                  borderRadius: 14,
-                  border: `1px solid ${selected ? v2Tokens.purple : v2Tokens.border}`,
-                  background: selected ? v2Tokens.lavender : "#FFFFFF",
-                  color: v2Tokens.navy,
-                  fontSize: 18,
-                  fontWeight: 800,
-                  cursor: checked ? "default" : "pointer",
-                }}
-              >
-                {choice}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <label style={labelStyle}>
-          Answer
-          <input
-            value={response}
-            onChange={(event) => onResponse(event.target.value)}
-            disabled={checked}
-            inputMode="text"
-            style={{ ...inputStyle, fontSize: 20, minHeight: 54 }}
-            placeholder="Type your answer"
-          />
-        </label>
-      )}
-
-      {checked ? (
-        <div
-          role="status"
-          style={{
-            borderRadius: 16,
-            border: `1px solid ${isCorrect ? "#BDEFD4" : "#FFD0DA"}`,
-            background: isCorrect ? v2Tokens.mint : v2Tokens.softRed,
-            color: isCorrect ? "#176B45" : "#9F2440",
-            padding: 14,
-            fontWeight: 700,
-            lineHeight: 1.5,
-          }}
-        >
-          {isCorrect ? "Correct." : `Not quite. The answer is ${question.answer}.`} {question.explanation}
-        </div>
-      ) : null}
-
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 10 }}>
-        <button type="button" onClick={onFinish} style={secondaryButtonStyle}>
-          Finish review
-        </button>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <button
-            type="button"
-            onClick={onCheck}
-            disabled={!response.trim() || checked}
-            style={{
-              ...primaryButtonStyle,
-              opacity: !response.trim() || checked ? 0.55 : 1,
-              cursor: !response.trim() || checked ? "not-allowed" : "pointer",
-            }}
-          >
-            Check answer
-          </button>
-          <button
-            type="button"
-            onClick={isLast ? onFinish : onNext}
-            disabled={!checked}
-            style={{
-              ...secondaryButtonStyle,
-              opacity: checked ? 1 : 0.55,
-              cursor: checked ? "pointer" : "not-allowed",
-            }}
-          >
-            {isLast ? "Show results" : "Next"}
-          </button>
-        </div>
       </div>
     </V2Card>
   );
@@ -367,19 +209,12 @@ export default function CleanReviewWorkspace() {
   const [order, setOrder] = useState<MathsReviewOrder>("random");
   const [questionCount, setQuestionCount] = useState(5);
   const [questions, setQuestions] = useState<MathsReviewQuestion[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [response, setResponse] = useState("");
-  const [checked, setChecked] = useState(false);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [results, setResults] = useState<ReviewResult[]>([]);
-  const [finished, setFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedBanks = selectedBankIds
     .map((bankId) => bankById.get(bankId))
     .filter((bank): bank is MathsReviewBank => Boolean(bank));
   const readySelectedBanks = getReadyMathsReviewBanks(selectedBankIds);
-  const currentQuestion = questions[currentIndex] ?? null;
 
   function updateMode(mode: ReviewMode) {
     setSelectedMode(mode.id);
@@ -389,7 +224,6 @@ export default function CleanReviewWorkspace() {
   }
 
   function toggleBank(bank: MathsReviewBank) {
-    if (bank.status !== "ready") return;
     setSelectedBankIds((current) =>
       current.includes(bank.id) ? current.filter((bankId) => bankId !== bank.id) : [...current, bank.id],
     );
@@ -405,17 +239,11 @@ export default function CleanReviewWorkspace() {
       questionCount,
     });
     if (!generated.length) {
-      setError("Choose at least one v1-ready mathematics focus area before starting.");
+      setError("Choose at least one mathematics focus area before starting.");
       return;
     }
     setError(null);
     setQuestions(generated);
-    setCurrentIndex(0);
-    setResponse("");
-    setChecked(false);
-    setIsCorrect(null);
-    setResults([]);
-    setFinished(false);
   }
 
   function resetBuilder() {
@@ -429,163 +257,32 @@ export default function CleanReviewWorkspace() {
     setError(null);
   }
 
-  function recordCurrentResult(correct: boolean) {
-    if (!currentQuestion) return;
-    setResults((current) => {
-      const withoutCurrent = current.filter((result) => result.question.id !== currentQuestion.id);
-      return [...withoutCurrent, { question: currentQuestion, response, correct }];
-    });
-  }
-
-  function checkAnswer() {
-    if (!currentQuestion) return;
-    const correct = checkMathsReviewAnswer(currentQuestion, response);
-    setIsCorrect(correct);
-    setChecked(true);
-    recordCurrentResult(correct);
-  }
-
-  function nextQuestion() {
-    setCurrentIndex((index) => Math.min(index + 1, questions.length - 1));
-    setResponse("");
-    setChecked(false);
-    setIsCorrect(null);
-  }
-
   function backToBuilder() {
     setQuestions([]);
-    setCurrentIndex(0);
-    setResponse("");
-    setChecked(false);
-    setIsCorrect(null);
-    setResults([]);
-    setFinished(false);
-  }
-
-  if (questions.length && finished) {
-    const correctCount = results.filter((result) => result.correct).length;
-    const missedFocusAreas = Array.from(
-      new Set(results.filter((result) => !result.correct).map((result) => result.question.bankLabel)),
-    );
-
-    return (
-      <div style={{ display: "grid", gap: 18 }}>
-        <V2PageHeader
-          eyebrow="Mathematics Review"
-          title="Review complete"
-          subtitle="A quick summary of this retrieval-practice session."
-        />
-        <V2Card style={{ display: "grid", gap: 16 }}>
-          <div style={{ color: v2Tokens.navy, fontSize: "clamp(34px, 8vw, 62px)", fontWeight: 900 }}>
-            {correctCount}/{questions.length}
-          </div>
-          <p style={sectionIntroStyle}>
-            Correct: {correctCount}. Incorrect: {questions.length - correctCount}. Session saving is local-only in v1.
-          </p>
-          {missedFocusAreas.length ? (
-            <div style={{ display: "grid", gap: 8 }}>
-              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 18 }}>Missed focus areas</h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {missedFocusAreas.map((area) => (
-                  <span
-                    key={area}
-                    style={{
-                      borderRadius: 999,
-                      background: v2Tokens.softAmber,
-                      color: "#9A5B00",
-                      padding: "7px 10px",
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {area}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div style={{ borderRadius: 16, background: v2Tokens.mint, color: "#176B45", padding: 14, fontWeight: 800 }}>
-              No missed focus areas in this session.
-            </div>
-          )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <button type="button" onClick={startReview} style={primaryButtonStyle}>
-              Build another review
-            </button>
-            <button type="button" onClick={backToBuilder} style={secondaryButtonStyle}>
-              Back to builder
-            </button>
-          </div>
-        </V2Card>
-      </div>
-    );
-  }
-
-  if (currentQuestion) {
-    return (
-      <div style={{ display: "grid", gap: 18 }}>
-        <V2PageHeader
-          eyebrow="Mathematics Review"
-          title="My Review"
-          subtitle="One question at a time. Check it, then move on when you are ready."
-        >
-          <button type="button" onClick={backToBuilder} style={secondaryButtonStyle}>
-            Back to builder
-          </button>
-        </V2PageHeader>
-        <V2Card style={{ padding: 14 }}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, color: v2Tokens.slate, fontSize: 13 }}>
-              <span>
-                Question {currentIndex + 1} of {questions.length}
-              </span>
-              <span>{currentQuestion.bankLabel}</span>
-            </div>
-            <div style={{ height: 10, borderRadius: 999, background: "#E9EDF5", overflow: "hidden" }}>
-              <div
-                style={{
-                  height: "100%",
-                  width: `${((currentIndex + 1) / questions.length) * 100}%`,
-                  background: v2Tokens.purple,
-                }}
-              />
-            </div>
-          </div>
-        </V2Card>
-        <QuestionCard
-          question={currentQuestion}
-          response={response}
-          checked={checked}
-          isCorrect={isCorrect}
-          onResponse={setResponse}
-          onCheck={checkAnswer}
-          onNext={nextQuestion}
-          onFinish={() => setFinished(true)}
-          isLast={currentIndex === questions.length - 1}
-        />
-        <style jsx global>{`
-          .mylearna-review-choice-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-          }
-          @media (max-width: 680px) {
-            .mylearna-review-choice-grid {
-              grid-template-columns: 1fr;
-            }
-          }
-        `}</style>
-      </div>
-    );
   }
 
   return (
     <div style={{ display: "grid", gap: 18 }}>
+      {questions.length ? (
+        <CleanReviewPlayer
+          key={`${questions[0]?.id ?? "review"}-${questions.length}`}
+          questions={questions}
+          onExit={backToBuilder}
+          onReviewAgain={startReview}
+        />
+      ) : null}
+
       <V2PageHeader
         eyebrow="Retrieval practice"
         title="My Review"
-        subtitle="Build quick review sessions from the maths skills your learner needs to keep fresh."
+        subtitle="My Review is a skills-builder. Sit with your learner, choose the skills to keep fresh, work through the questions together, and use the answers to reteach straight away."
       />
+
+      <V2Card style={{ background: v2Tokens.mint, borderColor: "#BDEFD4", boxShadow: "none" }}>
+        <p style={{ ...sectionIntroStyle, color: "#176B45", fontWeight: 750 }}>
+          Review results are for practice only and are not used as assessments.
+        </p>
+      </V2Card>
 
       <V2Card style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -645,12 +342,12 @@ export default function CleanReviewWorkspace() {
           <V2Card style={{ display: "grid", gap: 14 }}>
             <div>
               <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 20 }}>Focus areas</h2>
-              <p style={sectionIntroStyle}>The full bank list is visible. Items marked soon are placeholders for future generators.</p>
+              <p style={sectionIntroStyle}>Every focus area is available for parent-led daily practice.</p>
             </div>
             <div style={{ display: "grid", gap: 12 }}>
               {groupedBanks.map(({ group, banks }) => {
                 const open = openGroups[group];
-                const readyCount = banks.filter((bank) => bank.status === "ready").length;
+                const readyCount = banks.length;
                 return (
                   <section
                     key={group}
@@ -679,7 +376,7 @@ export default function CleanReviewWorkspace() {
                     >
                       <span style={{ fontSize: 15, fontWeight: 850 }}>{group}</span>
                       <span style={{ color: v2Tokens.slate, fontSize: 12, fontWeight: 750 }}>
-                        {readyCount} v1 ready {open ? "up" : "down"}
+                        {readyCount} skills {open ? "up" : "down"}
                       </span>
                     </button>
                     {open ? (

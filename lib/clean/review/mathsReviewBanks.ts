@@ -11,7 +11,7 @@ export type MathsReviewBankGroup =
   | "Time"
   | "Australian Money";
 
-export type MathsReviewBankStatus = "ready" | "coming-soon";
+export type MathsReviewBankStatus = "ready";
 
 export type MathsReviewBank = {
   id: string;
@@ -36,7 +36,7 @@ export const MATHS_REVIEW_GROUPS: MathsReviewBankGroup[] = [
 ];
 
 const ready = "ready" as const;
-const soon = "coming-soon" as const;
+const soon = ready;
 
 export const MATHS_REVIEW_BANKS: MathsReviewBank[] = [
   { id: "subitising-ten-frame", label: "Subitising ten frame", group: "Number", stageHint: "Early number", status: soon },
@@ -114,7 +114,7 @@ export const MATHS_REVIEW_BANKS: MathsReviewBank[] = [
   { id: "m-km", label: "m/km", group: "Unit Conversion", stageHint: "Measurement", status: soon },
   { id: "ml-l", label: "ml/l", group: "Unit Conversion", stageHint: "Measurement", status: soon },
   { id: "g-kg", label: "g/kg", group: "Unit Conversion", stageHint: "Measurement", status: soon },
-  { id: "cm2-m2", label: "cm2/m2", group: "Unit Conversion", stageHint: "Measurement", status: soon },
+  { id: "cm2-m2", label: "cm²/m²", group: "Unit Conversion", stageHint: "Measurement", status: soon },
 
   { id: "times-by-1", label: "Times by 1", group: "Multiplication Facts", stageHint: "Facts", status: ready },
   { id: "times-by-2", label: "Times by 2", group: "Multiplication Facts", stageHint: "Facts", status: ready },
