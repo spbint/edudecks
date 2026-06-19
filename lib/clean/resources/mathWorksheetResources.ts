@@ -220,6 +220,8 @@ const MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE =
   "MYL-MATH-MEA-KEE-S001-Compare-Everyday-Attributes-Directly.pdf";
 const MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE =
   "MYL-MATH-MEA-KEE-S002-Use-Everyday-Time-And-Money-Language-In-Context.pdf";
+const MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE =
+  "MYL-MATH-MEA-EE-S003-Measure-With-Informal-And-Early-Standard-Units.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -915,6 +917,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/foundation-kindergarten/${MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::lower-primary::measure-with-informal-and-early-standard-units",
+    stepKey: "measure-with-informal-and-early-standard-units",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Measure with informal and early standard units",
+    title: "Measure With Informal And Early Standard Units",
+    concept:
+      "Measure lengths with blocks, paperclips and simple centimetre ruler readings, then compare and record results clearly.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/lower-primary/${MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

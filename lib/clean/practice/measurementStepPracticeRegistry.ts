@@ -58,6 +58,8 @@ function makePracticeTask(
   const supportPrompt =
     spec.order <= 2
       ? "Use the picture first. Match the everyday word, order, coin, or price label, then choose the answer that fits the context."
+      : spec.order === 3
+        ? "Use the picture first. Count the blocks or paperclips carefully, read the simple centimetre mark when shown, then choose the matching measurement."
       : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
@@ -99,6 +101,8 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
       description:
         spec.order <= 2
           ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded everyday pictures, routine cards, simple comparison cards, Australian coin labels, and practical context models before checking independently.`
+          : spec.order === 3
+            ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded block measurements, paperclip measurements, simple centimetre ruler cards, and informal-or-standard unit choices before checking independently.`
           : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
