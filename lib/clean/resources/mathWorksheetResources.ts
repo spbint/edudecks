@@ -232,6 +232,8 @@ const MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S007-Use-Measurement-Calculations-In-Practical-Tasks.pdf";
 const MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S008-Use-Fractions-Decimals-And-Conversions-In-Measurement.pdf";
+const MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE =
+  "MYL-MATH-MEA-UE-S009-Choose-Precision-And-Conversions-Purposefully.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1035,6 +1037,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/upper-primary/${MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::lower-secondary::choose-precision-and-conversions-purposefully",
+    stepKey: "choose-precision-and-conversions-purposefully",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 1,
+    pathwayStepTitle: "Choose precision and conversions purposefully",
+    title: "Choose Precision And Conversions Purposefully",
+    concept:
+      "Choose suitable units, convert measurements, compare precision, and judge whether practical measurements make sense.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/lower-secondary/${MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
