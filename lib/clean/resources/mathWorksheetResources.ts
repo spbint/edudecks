@@ -1174,7 +1174,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Describe sides, corners and curved edges, compare familiar shapes, and recognise simple lines of symmetry.",
     includesAnswerSheet: false,
     fileName: GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-primary/${GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
