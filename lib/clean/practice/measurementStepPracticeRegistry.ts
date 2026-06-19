@@ -55,6 +55,10 @@ function makePracticeTask(
 ): NumberPracticeTask {
   const item = spec.cases[index];
   const fallbackTitle = `Practice ${index + 1}`;
+  const supportPrompt =
+    spec.order <= 2
+      ? "Use the picture first. Match the everyday word, order, coin, or price label, then choose the answer that fits the context."
+      : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
     id: `measurement-step-${spec.order}-practice-${String(index + 1).padStart(
@@ -67,8 +71,7 @@ function makePracticeTask(
     options: item?.options ?? [],
     expectedAnswer: item?.answer ?? "",
     acceptableAnswers: item?.answer ? [item.answer] : [],
-    supportPrompt:
-      "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.",
+    supportPrompt,
     workedSolution: item?.answer ? `The matching answer is ${item.answer}.` : "",
     misconceptionTargets: item?.misconceptionTargets ?? [],
     relatedAssessmentItemIds: [relatedAssessmentItemId],
@@ -93,7 +96,10 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
       pathwayStepId: spec.pathwayStepId,
       title: spec.title,
       shortTitle: spec.shortTitle,
-      description: `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
+      description:
+        spec.order <= 2
+          ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded everyday pictures, routine cards, simple comparison cards, Australian coin labels, and practical context models before checking independently.`
+          : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
       stageKey: spec.stageKey,

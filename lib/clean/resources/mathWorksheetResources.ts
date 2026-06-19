@@ -218,6 +218,8 @@ const APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S012-Refine-Explanation-Checking-And-Generalising.pdf";
 const MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE =
   "MYL-MATH-MEA-KEE-S001-Compare-Everyday-Attributes-Directly.pdf";
+const MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE =
+  "MYL-MATH-MEA-KEE-S002-Use-Everyday-Time-And-Money-Language-In-Context.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -895,6 +897,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/foundation-kindergarten/${MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::foundation-kindergarten::use-everyday-time-and-money-language-in-context",
+    stepKey: "use-everyday-time-and-money-language-in-context",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 2,
+    pathwayStepTitle: "Use everyday time and money language in context",
+    title: "Use Everyday Time And Money Language In Context",
+    concept:
+      "Use everyday time words, order familiar daily events, recognise Australian coins, and compare simple costs.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/foundation-kindergarten/${MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
