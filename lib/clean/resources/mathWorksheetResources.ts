@@ -238,6 +238,8 @@ const MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S010-Apply-Measurement-Reasoning-In-Design-And-Science-Contexts.pdf";
 const MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S011-Use-Measurement-Confidently-In-Modelling-And-Design.pdf";
+const MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE =
+  "MYL-MATH-MEA-UE-S012-Refine-Judgement-About-Reasonableness-And-Accuracy.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1095,6 +1097,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/years-9-10-consolidation/${MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::years-9-10-consolidation::refine-judgement-about-reasonableness-and-accuracy",
+    stepKey: "refine-judgement-about-reasonableness-and-accuracy",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 2,
+    pathwayStepTitle: "Refine judgement about reasonableness and accuracy",
+    title: "Refine Judgement About Reasonableness And Accuracy",
+    concept:
+      "Judge whether measurements make sense, spot errors, compare accuracy, choose units, and explain measurement decisions.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/years-9-10-consolidation/${MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

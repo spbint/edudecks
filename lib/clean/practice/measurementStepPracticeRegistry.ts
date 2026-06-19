@@ -76,7 +76,9 @@ function makePracticeTask(
                       ? "Read the design or science brief first. Use the measurements, table, or constraint to plan, calculate, and justify the decision."
                       : spec.order === 11
                         ? "Read the modelling or design brief first. Convert units when needed, build the model, and justify whether the design works."
-                        : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
+                        : spec.order === 12
+                          ? "Estimate, measure, judge, and explain. Use benchmarks and unit sense to decide whether each measurement is reasonable and accurate."
+                          : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
     id: `measurement-step-${spec.order}-practice-${String(index + 1).padStart(
@@ -135,7 +137,9 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
                           ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded garden-bed plans, birdhouse wood tables, evaporation investigations, terrarium layout cards, jug conversions, bridge design briefs and leaf-growth data tables before checking independently.`
                           : spec.order === 11
                             ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded playground plans, garden-box designs, water-tank comparisons, plant-growth tables, bookshelf design cards, conversion cards and garden-layout planners before checking independently.`
-                            : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
+                            : spec.order === 12
+                              ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded reasonable-measurement cards, measurement-error panels, estimate-and-check records, accuracy comparisons, best-unit reasoning prompts, book-investigation tables and jug-measuring problems before checking independently.`
+                              : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
       stageKey: spec.stageKey,
