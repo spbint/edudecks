@@ -224,6 +224,8 @@ const MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S003-Measure-With-Informal-And-Early-Standard-Units.pdf";
 const MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S004-Read-And-Use-Familiar-Time-And-Money-Measures.pdf";
+const MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE =
+  "MYL-MATH-MEA-EE-S005-Choose-Suitable-Standard-Units-And-Measuring-Tools.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -955,6 +957,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/lower-primary/${MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::middle-primary::choose-suitable-standard-units-and-measuring-tools",
+    stepKey: "choose-suitable-standard-units-and-measuring-tools",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Choose suitable standard units and measuring tools",
+    title: "Choose Suitable Standard Units And Measuring Tools",
+    concept:
+      "Choose sensible standard units and measuring tools for length, mass, capacity, time, and everyday contexts.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/middle-primary/${MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

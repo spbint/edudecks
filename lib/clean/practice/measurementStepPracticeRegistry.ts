@@ -62,7 +62,9 @@ function makePracticeTask(
         ? "Use the picture first. Count the blocks or paperclips carefully, read the simple centimetre mark when shown, then choose the matching measurement."
         : spec.order === 4
           ? "Use the picture first. Read the o'clock clock, count the simple coins, or compare the price labels before choosing."
-      : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
+          : spec.order === 5
+            ? "Use the visual first. Match the object or context to the measuring tool, then choose the sensible standard unit or reading."
+            : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
     id: `measurement-step-${spec.order}-practice-${String(index + 1).padStart(
@@ -107,7 +109,9 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
             ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded block measurements, paperclip measurements, simple centimetre ruler cards, and informal-or-standard unit choices before checking independently.`
             : spec.order === 4
               ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded o'clock clocks, routine time cards, Australian coin groups, simple price comparisons, and shopping total cards before checking independently.`
-          : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
+              : spec.order === 5
+                ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded rulers, scales, measuring jugs, clocks, pencils, pets, milk bottles, buckets, and recess-time contexts before checking independently.`
+                : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
       stageKey: spec.stageKey,
