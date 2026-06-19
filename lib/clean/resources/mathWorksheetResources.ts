@@ -226,6 +226,8 @@ const MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S004-Read-And-Use-Familiar-Time-And-Money-Measures.pdf";
 const MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S005-Choose-Suitable-Standard-Units-And-Measuring-Tools.pdf";
+const MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE =
+  "MYL-MATH-MEA-EE-S006-Estimate-And-Check-Practical-Measurements.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -975,6 +977,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/middle-primary/${MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::middle-primary::estimate-and-check-practical-measurements",
+    stepKey: "estimate-and-check-practical-measurements",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Estimate and check practical measurements",
+    title: "Estimate And Check Practical Measurements",
+    concept:
+      "Estimate first, measure, compare, and reflect on whether practical measurements are close and reasonable.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/middle-primary/${MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
