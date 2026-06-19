@@ -246,6 +246,8 @@ const GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S002-Use-Position-And-Direction-Language-In-Practical-Movement.pdf";
 const GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S003-Describe-Shape-Features-And-Simple-Symmetry.pdf";
+const GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE =
+  "MYL-MATH-GSR-KEE-S005-Classify-Shapes-And-Reason-About-Properties.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1175,6 +1177,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::middle-primary::classify-shapes-and-reason-about-properties",
+    stepKey: "classify-shapes-and-reason-about-properties",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Classify shapes and reason about properties",
+    title: "Classify Shapes And Reason About Properties",
+    concept:
+      "Sort, compare and classify familiar shapes by sides, corners, angles, symmetry and other visible properties.",
+    includesAnswerSheet: false,
+    fileName: GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/middle-primary/${GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
