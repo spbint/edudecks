@@ -66,7 +66,9 @@ function makePracticeTask(
             ? "Use the visual first. Match the object or context to the measuring tool, then choose the sensible standard unit or reading."
             : spec.order === 6
               ? "Estimate first, then compare with the actual measurement. Decide whether the estimate is close and reflect on whether it makes sense."
-              : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
+              : spec.order === 7
+                ? "Read the practical measurement story first, choose the operation, keep the unit, and check that the answer fits the context."
+                : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
     id: `measurement-step-${spec.order}-practice-${String(index + 1).padStart(
@@ -115,7 +117,9 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
                 ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded rulers, scales, measuring jugs, clocks, pencils, pets, milk bottles, buckets, and recess-time contexts before checking independently.`
                 : spec.order === 6
                   ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded estimate-first cards, pencil and book measurements, bottle capacities, closest-estimate choices, and estimate-measure-compare-reflect prompts before checking independently.`
-                  : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
+                  : spec.order === 7
+                    ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded ribbon, pencil, book, rope, bucket, package, garden-bed, water-tank and clock-time calculation cards before checking independently.`
+                    : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
       stageKey: spec.stageKey,

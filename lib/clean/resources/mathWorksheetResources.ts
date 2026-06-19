@@ -228,6 +228,8 @@ const MEASUREMENT_STANDARD_UNITS_TOOLS_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S005-Choose-Suitable-Standard-Units-And-Measuring-Tools.pdf";
 const MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S006-Estimate-And-Check-Practical-Measurements.pdf";
+const MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE =
+  "MYL-MATH-MEA-UE-S007-Use-Measurement-Calculations-In-Practical-Tasks.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -995,6 +997,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/middle-primary/${MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::upper-primary::use-measurement-calculations-in-practical-tasks",
+    stepKey: "use-measurement-calculations-in-practical-tasks",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Use measurement calculations in practical tasks",
+    title: "Use Measurement Calculations In Practical Tasks",
+    concept:
+      "Use addition, subtraction and simple time reasoning with practical length, capacity, mass and everyday measurement contexts.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/upper-primary/${MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
