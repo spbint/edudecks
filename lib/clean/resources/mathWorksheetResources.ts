@@ -244,6 +244,8 @@ const GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S001-Recognise-Familiar-Shapes-In-Everyday-Life.pdf";
 const GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S002-Use-Position-And-Direction-Language-In-Practical-Movement.pdf";
+const GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE =
+  "MYL-MATH-GSR-KEE-S003-Describe-Shape-Features-And-Simple-Symmetry.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1155,6 +1157,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::lower-primary::describe-shape-features-and-simple-symmetry",
+    stepKey: "describe-shape-features-and-simple-symmetry",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Describe shape features and simple symmetry",
+    title: "Describe Shape Features And Simple Symmetry",
+    concept:
+      "Describe sides, corners and curved edges, compare familiar shapes, and recognise simple lines of symmetry.",
+    includesAnswerSheet: false,
+    fileName: GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-primary/${GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
