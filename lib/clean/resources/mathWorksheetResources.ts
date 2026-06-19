@@ -242,6 +242,8 @@ const MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S012-Refine-Judgement-About-Reasonableness-And-Accuracy.pdf";
 const GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S001-Recognise-Familiar-Shapes-In-Everyday-Life.pdf";
+const GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE =
+  "MYL-MATH-GSR-KEE-S002-Use-Position-And-Direction-Language-In-Practical-Movement.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1135,6 +1137,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::foundation-kindergarten::use-position-and-direction-language-in-practical-movement",
+    stepKey: "use-position-and-direction-language-in-practical-movement",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 2,
+    pathwayStepTitle: "Use position and direction language in practical movement",
+    title: "Use Position And Direction Language In Practical Movement",
+    concept:
+      "Use position and direction words to describe object locations, follow movement instructions, and explain practical routes.",
+    includesAnswerSheet: false,
+    fileName: GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
