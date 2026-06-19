@@ -230,6 +230,8 @@ const MEASUREMENT_ESTIMATE_CHECK_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S006-Estimate-And-Check-Practical-Measurements.pdf";
 const MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S007-Use-Measurement-Calculations-In-Practical-Tasks.pdf";
+const MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE =
+  "MYL-MATH-MEA-UE-S008-Use-Fractions-Decimals-And-Conversions-In-Measurement.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1015,6 +1017,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/upper-primary/${MEASUREMENT_CALCULATIONS_PRACTICAL_TASKS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::upper-primary::use-fractions-decimals-and-conversions-in-measurement",
+    stepKey: "use-fractions-decimals-and-conversions-in-measurement",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Use fractions, decimals, and conversions in measurement",
+    title: "Use Fractions, Decimals, And Conversions In Measurement",
+    concept:
+      "Connect fraction, decimal and converted forms in practical metre, centimetre, litre and millilitre measurement contexts.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/upper-primary/${MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

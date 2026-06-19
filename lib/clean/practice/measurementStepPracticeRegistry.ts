@@ -68,7 +68,9 @@ function makePracticeTask(
               ? "Estimate first, then compare with the actual measurement. Decide whether the estimate is close and reflect on whether it makes sense."
               : spec.order === 7
                 ? "Read the practical measurement story first, choose the operation, keep the unit, and check that the answer fits the context."
-                : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
+                : spec.order === 8
+                  ? "Use the measurement model first. Connect the fraction, decimal, and converted unit before comparing or solving."
+                  : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
     id: `measurement-step-${spec.order}-practice-${String(index + 1).padStart(
@@ -119,7 +121,9 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
                   ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded estimate-first cards, pencil and book measurements, bottle capacities, closest-estimate choices, and estimate-measure-compare-reflect prompts before checking independently.`
                   : spec.order === 7
                     ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded ribbon, pencil, book, rope, bucket, package, garden-bed, water-tank and clock-time calculation cards before checking independently.`
-                    : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
+                    : spec.order === 8
+                      ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded metre strips, litre models, centimetre-to-metre conversions, millilitre-to-litre conversions, number lines, ribbons, bottles and containers before checking independently.`
+                      : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
       stageKey: spec.stageKey,
