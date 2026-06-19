@@ -216,6 +216,8 @@ const APF_ALGEBRA_MODELS_RELATIONSHIPS_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S011-Use-Algebra-To-Model-Relationships-Efficiently.pdf";
 const APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE =
   "MYL-MATH-APF-MS-S012-Refine-Explanation-Checking-And-Generalising.pdf";
+const MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE =
+  "MYL-MATH-MEA-KEE-S001-Compare-Everyday-Attributes-Directly.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -875,6 +877,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/algebra-patterns-and-functions/years-9-10-consolidation/${APF_EXPLANATION_CHECKING_GENERALISING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::foundation-kindergarten::compare-everyday-attributes-directly",
+    stepKey: "compare-everyday-attributes-directly",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 1,
+    pathwayStepTitle: "Compare everyday attributes directly",
+    title: "Compare Everyday Attributes Directly",
+    concept:
+      "Compare everyday objects directly by length, height, capacity, mass, and same-or-different attributes.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/foundation-kindergarten/${MEASUREMENT_COMPARE_ATTRIBUTES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
