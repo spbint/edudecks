@@ -222,6 +222,8 @@ const MEASUREMENT_TIME_MONEY_LANGUAGE_WORKSHEET_FILE =
   "MYL-MATH-MEA-KEE-S002-Use-Everyday-Time-And-Money-Language-In-Context.pdf";
 const MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE =
   "MYL-MATH-MEA-EE-S003-Measure-With-Informal-And-Early-Standard-Units.pdf";
+const MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE =
+  "MYL-MATH-MEA-EE-S004-Read-And-Use-Familiar-Time-And-Money-Measures.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -935,6 +937,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/lower-primary/${MEASUREMENT_INFORMAL_STANDARD_UNITS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::lower-primary::read-and-use-familiar-time-and-money-measures",
+    stepKey: "read-and-use-familiar-time-and-money-measures",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Read and use familiar time and money measures",
+    title: "Read And Use Familiar Time And Money Measures",
+    concept:
+      "Read o'clock times, match familiar events to times, count simple Australian coins, compare costs, and find simple shopping totals.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/lower-primary/${MEASUREMENT_FAMILIAR_TIME_MONEY_MEASURES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
