@@ -234,6 +234,8 @@ const MEASUREMENT_FRACTIONS_DECIMALS_CONVERSIONS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S008-Use-Fractions-Decimals-And-Conversions-In-Measurement.pdf";
 const MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S009-Choose-Precision-And-Conversions-Purposefully.pdf";
+const MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE =
+  "MYL-MATH-MEA-UE-S010-Apply-Measurement-Reasoning-In-Design-And-Science-Contexts.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1055,6 +1057,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/lower-secondary/${MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::lower-secondary::apply-measurement-reasoning-in-design-and-science-contexts",
+    stepKey: "apply-measurement-reasoning-in-design-and-science-contexts",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 2,
+    pathwayStepTitle: "Apply measurement reasoning in design and science contexts",
+    title: "Apply Measurement Reasoning In Design And Science Contexts",
+    concept:
+      "Use measurement to plan, calculate, interpret data, and justify decisions in design and science contexts.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/lower-secondary/${MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
