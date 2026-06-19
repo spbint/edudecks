@@ -31,6 +31,7 @@ const navItems = [
   { href: "/my-day", label: "My Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
   { href: "/my-calendar", label: "My Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
   { href: "/my-pathways", label: "My Pathways", icon: "route", matches: ["/my-pathways"] },
+  { href: "/my-review", label: "My Review", icon: "review", matches: ["/my-review"] },
   { href: "/my-capture", label: "My Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
   { href: "/my-portfolio", label: "My Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
   { href: "/my-data", label: "My Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
@@ -81,6 +82,16 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
         <circle cx="18" cy="6" r="2.4" />
         <path d="M8.2 17.2c4.6-1 7.7-3.9 8.6-9" />
         <path d="M8.2 18H14a4 4 0 0 0 4-4v-1" />
+      </svg>
+    );
+  }
+  if (name === "review") {
+    return (
+      <svg {...common}>
+        <path d="M7 4h10a2 2 0 0 1 2 2v13l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" />
+        <path d="M9.5 8.5h5" />
+        <path d="M9.5 12h3.5" />
+        <path d="M15 11.7l.8.8 1.7-2" />
       </svg>
     );
   }
