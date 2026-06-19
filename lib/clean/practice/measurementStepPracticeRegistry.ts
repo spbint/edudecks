@@ -74,7 +74,9 @@ function makePracticeTask(
                     ? "Choose the unit or conversion for the context first, then compare precision or check whether the measurement is reasonable."
                     : spec.order === 10
                       ? "Read the design or science brief first. Use the measurements, table, or constraint to plan, calculate, and justify the decision."
-                      : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
+                      : spec.order === 11
+                        ? "Read the modelling or design brief first. Convert units when needed, build the model, and justify whether the design works."
+                        : "Use the visual first. Match the quantity, unit, and tool, then check whether the answer makes sense in the context.";
 
   return {
     id: `measurement-step-${spec.order}-practice-${String(index + 1).padStart(
@@ -131,7 +133,9 @@ export const MEASUREMENT_STEP_PRACTICES: MeasurementStepPractice[] =
                         ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded unit-choice cards, conversion cards, precision comparison cards, sensible-measurement choices, mixed-unit challenges and precision investigation tables before checking independently.`
                         : spec.order === 10
                           ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded garden-bed plans, birdhouse wood tables, evaporation investigations, terrarium layout cards, jug conversions, bridge design briefs and leaf-growth data tables before checking independently.`
-                          : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
+                          : spec.order === 11
+                            ? `Practise ${spec.shortTitle.toLowerCase()} with scaffolded playground plans, garden-box designs, water-tank comparisons, plant-growth tables, bookshelf design cards, conversion cards and garden-layout planners before checking independently.`
+                            : `Practise ${spec.shortTitle.toLowerCase()} with scaffolded measuring strips, clocks, grids, unit cards, conversion tables, and practical context models before checking independently.`,
       subjectKey: "mathematics",
       strandKey: MEASUREMENT_STRAND_KEY,
       stageKey: spec.stageKey,

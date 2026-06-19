@@ -236,6 +236,8 @@ const MEASUREMENT_PRECISION_CONVERSIONS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S009-Choose-Precision-And-Conversions-Purposefully.pdf";
 const MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S010-Apply-Measurement-Reasoning-In-Design-And-Science-Contexts.pdf";
+const MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE =
+  "MYL-MATH-MEA-UE-S011-Use-Measurement-Confidently-In-Modelling-And-Design.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1075,6 +1077,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/lower-secondary/${MEASUREMENT_DESIGN_SCIENCE_CONTEXTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::measurement::years-9-10-consolidation::use-measurement-confidently-in-modelling-and-design",
+    stepKey: "use-measurement-confidently-in-modelling-and-design",
+    subjectKey: "mathematics",
+    strandKey: "measurement",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 1,
+    pathwayStepTitle: "Use measurement confidently in modelling and design",
+    title: "Use Measurement Confidently In Modelling And Design",
+    concept:
+      "Use measurement confidently to model playgrounds, garden boxes, tanks, plant growth, bookshelves and practical layouts.",
+    includesAnswerSheet: false,
+    fileName: MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/measurement/years-9-10-consolidation/${MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
