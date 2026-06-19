@@ -240,6 +240,8 @@ const MEASUREMENT_MODELLING_DESIGN_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S011-Use-Measurement-Confidently-In-Modelling-And-Design.pdf";
 const MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE =
   "MYL-MATH-MEA-UE-S012-Refine-Judgement-About-Reasonableness-And-Accuracy.pdf";
+const GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE =
+  "MYL-MATH-GSR-KEE-S001-Recognise-Familiar-Shapes-In-Everyday-Life.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1115,6 +1117,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/measurement/years-9-10-consolidation/${MEASUREMENT_REASONABLENESS_ACCURACY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::foundation-kindergarten::recognise-familiar-shapes-in-everyday-life",
+    stepKey: "recognise-familiar-shapes-in-everyday-life",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 1,
+    pathwayStepTitle: "Recognise familiar shapes in everyday life",
+    title: "Recognise Familiar Shapes In Everyday Life",
+    concept:
+      "Recognise circles, squares, triangles and rectangles in everyday objects, scenes and shape collections.",
+    includesAnswerSheet: false,
+    fileName: GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_RECOGNISE_FAMILIAR_SHAPES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
