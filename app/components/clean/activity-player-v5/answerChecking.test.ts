@@ -286,6 +286,77 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks exact generic money token selection", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "generic_money_model",
+        visualModel: "money_board",
+        correctState: { selectedTokens: [10], tokenValues: [1, 5, 10, 20, 50] },
+      }),
+      { selectedTokens: [10] },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks generic money target totals", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "generic_money_model",
+        visualModel: "money_board",
+        correctState: { targetTotal: 20, tokenValues: [1, 5, 10, 20, 50] },
+      }),
+      { moneyTotal: 20 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks multiple-token generic money totals", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "generic_money_model",
+        visualModel: "money_board",
+        correctState: { targetTotal: 20, tokenValues: [1, 5, 10, 20, 50], allowMultipleTokens: true },
+      }),
+      { selectedTokens: [10, 5, 5] },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks generic money price comparison by selected tag", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "generic_money_model",
+        visualModel: "money_board",
+        correctState: {
+          selectedPriceTagId: "item-expensive",
+          priceTags: [
+            { id: "item-cheap", label: "Book", value: 5 },
+            { id: "item-expensive", label: "Game", value: 10 },
+          ],
+        },
+      }),
+      { selectedPriceTagId: "item-expensive" },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks decimal generic money totals with tolerance", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "generic_money_model",
+        visualModel: "money_board",
+        correctState: { targetTotal: 7.5, tolerance: 0.01 },
+      }),
+      { moneyTotal: 7.505 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("keeps seeded shuffle stable", () => {
     const first = seededShuffle(["A", "B", "C", "D"], "sample-seed");
     const second = seededShuffle(["A", "B", "C", "D"], "sample-seed");

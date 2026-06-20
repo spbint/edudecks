@@ -188,6 +188,37 @@ function sameNumberLineValue(
   return String(actualRaw ?? "").trim() === String(expectedRaw ?? "").trim();
 }
 
+function selectedTokenTotal(response: ActivityV5ResponseState, correct: ActivityV5["correctState"]) {
+  if (response.moneyTotal !== undefined) return response.moneyTotal;
+  if (response.selectedTokens?.length) return response.selectedTokens.reduce((sum, value) => sum + Number(value), 0);
+  if (response.selectedTokenIds?.length && correct.tokenValues?.length) {
+    return response.selectedTokenIds.reduce((sum, tokenId) => {
+      const match = String(tokenId).match(/-?\d+(?:\.\d+)?/g)?.at(-1);
+      return sum + Number(match ?? 0);
+    }, 0);
+  }
+  return undefined;
+}
+
+function sameMoneyValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  if (correct.selectedPriceTagId) return response.selectedPriceTagId === correct.selectedPriceTagId;
+
+  const expectedTotal = correct.targetTotal ?? correct.moneyTotal;
+  const actualTotal = selectedTokenTotal(response, correct);
+  if (typeof expectedTotal === "number" && typeof actualTotal === "number") {
+    return closeEnough(actualTotal, expectedTotal, correct.tolerance ?? 0);
+  }
+
+  if (correct.selectedTokens?.length && response.selectedTokens?.length) {
+    return sameList(response.selectedTokens, correct.selectedTokens);
+  }
+
+  return sameList(response.selectedTokenIds, correct.selectedTokenIds);
+}
+
 function expectedSummary(activity: ActivityV5) {
   const correct = activity.correctState;
   switch (activity.interactionType) {
@@ -216,7 +247,7 @@ function expectedSummary(activity: ActivityV5) {
     case "build_place_value":
       return `${correct.hundreds ?? 0} hundreds, ${correct.tens ?? 0} tens, ${correct.ones ?? 0} ones`;
     case "generic_money_model":
-      return `${correct.moneyTotal ?? 0}`;
+      return `${correct.currencySymbol ?? ""}${correct.targetTotal ?? correct.moneyTotal ?? correct.selectedTokens?.join(" + ") ?? correct.selectedPriceTagId ?? 0}`;
     default:
       return "";
   }
@@ -272,8 +303,7 @@ export function checkActivityV5Answer(
         (response.ones ?? 0) === (correct.ones ?? 0);
       break;
     case "generic_money_model":
-      isCorrect = closeEnough(response.moneyTotal, correct.moneyTotal, correct.tolerance ?? 0) ||
-        sameList(response.selectedTokenIds, correct.selectedTokenIds);
+      isCorrect = sameMoneyValue(response, correct);
       break;
     default:
       isCorrect = false;

@@ -66,6 +66,18 @@ export type MathsReviewVisualMetadata = {
   allowedMinutes?: number[];
   clockMode?: "read" | "set" | "match";
   eventContext?: string;
+  currencySymbol?: string;
+  currencyCode?: string;
+  localisationMode?: "generic" | "AU" | "UK" | "US";
+  tokenValues?: number[];
+  selectedTokens?: number[];
+  targetTotal?: number;
+  priceTags?: Array<{ id: string; label: string; value: number }>;
+  selectedPriceTagId?: string;
+  itemContext?: string;
+  showNotes?: boolean;
+  showCoins?: boolean;
+  allowMultipleTokens?: boolean;
   unit?: string;
   note?: string;
 };
@@ -339,10 +351,21 @@ function buildMathsReviewVisual(
   }
 
   if (bank.group === "Australian Money") {
+    const targetTotal = Number.isFinite(target) ? target : Number(String(question.answer).replace(/[^0-9.]/g, ""));
     return {
       visualModel: "money_board",
       interactionType: "generic_money_model",
-      labels: ["1", "2", "5", "10"],
+      labels: ["1", "5", "10", "20", "50"],
+      tokenValues: [1, 5, 10, 20, 50],
+      selectedTokens: Number.isFinite(targetTotal) ? [targetTotal] : undefined,
+      targetTotal: Number.isFinite(targetTotal) ? targetTotal : undefined,
+      currencySymbol: "",
+      currencyCode: "GEN",
+      localisationMode: "generic",
+      itemContext: bank.label,
+      showCoins: true,
+      showNotes: true,
+      allowMultipleTokens: true,
       targetValue: question.answer,
       note: "Generic money model; local currency should be a localisation layer.",
     };

@@ -57,6 +57,12 @@ export type ActivityV5FractionSpec = {
   decimalEquivalent?: number;
 };
 
+export type ActivityV5PriceTag = {
+  id: string;
+  label: string;
+  value: number;
+};
+
 export type ActivityV5ResponseState = {
   placements?: Record<string, string>;
   selectedObjectIds?: string[];
@@ -96,6 +102,18 @@ export type ActivityV5ResponseState = {
   tens?: number;
   ones?: number;
   hundreds?: number;
+  currencySymbol?: string;
+  currencyCode?: string;
+  localisationMode?: "generic" | "AU" | "UK" | "US";
+  tokenValues?: number[];
+  selectedTokens?: number[];
+  targetTotal?: number;
+  priceTags?: ActivityV5PriceTag[];
+  selectedPriceTagId?: string;
+  itemContext?: string;
+  showNotes?: boolean;
+  showCoins?: boolean;
+  allowMultipleTokens?: boolean;
   moneyTotal?: number;
   selectedTokenIds?: string[];
   selectedOption?: string;

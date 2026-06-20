@@ -206,6 +206,31 @@ function moneyValue(value: unknown) {
   return numberValue(text);
 }
 
+function moneyConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const target = moneyValue(visual?.targetTotal ?? visual?.targetValue ?? question.answer);
+  if (target === null) return null;
+  const tokenValues = visual?.tokenValues ?? [1, 5, 10, 20, 50];
+  const selectedTokens = visual?.selectedTokens ?? (tokenValues.includes(target) ? [target] : undefined);
+  return {
+    currencySymbol: visual?.currencySymbol ?? "",
+    currencyCode: visual?.currencyCode ?? "GEN",
+    localisationMode: visual?.localisationMode ?? "generic",
+    tokenValues,
+    selectedTokens,
+    selectedTokenIds: selectedTokens?.map((value) => `generic-token-${tokenValues.indexOf(value)}-${value}`),
+    targetTotal: target,
+    moneyTotal: target,
+    priceTags: visual?.priceTags,
+    selectedPriceTagId: visual?.selectedPriceTagId,
+    itemContext: visual?.itemContext ?? question.bankLabel,
+    showNotes: visual?.showNotes ?? true,
+    showCoins: visual?.showCoins ?? true,
+    allowMultipleTokens: visual?.allowMultipleTokens ?? true,
+    tolerance: visual?.tolerance ?? 0.001,
+  };
+}
+
 function timeValue(value: unknown) {
   const text = String(value ?? "").trim().toLowerCase();
   const digital = text.match(/(\d{1,2})\s*:\s*(\d{2})/);
@@ -475,22 +500,22 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
   }
 
   if (visual.visualModel === "money_board") {
-    const target = moneyValue(question.answer);
-    if (target === null) return null;
-    const objects = [
-      { id: "token-0-5", label: "0.50", value: 0.5 },
-      { id: "token-1", label: "1", value: 1 },
-      { id: "token-2", label: "2", value: 2 },
-      { id: "token-5", label: "5", value: 5 },
-      { id: "token-10", label: "10", value: 10 },
-    ];
+    const config = moneyConfig(question);
+    if (!config) return null;
+    const objects = config.tokenValues.map((value, index) => ({
+      id: `generic-token-${index}-${value}`,
+      label: `${config.currencySymbol}${value}`,
+      value,
+      type: value >= 20 ? "note" : "coin",
+      selectable: true,
+    }));
     return {
       ...base(question),
       interactionType: "generic_money_model",
       visualModel: "money_board",
       objects,
       targets: [],
-      correctState: { moneyTotal: target, tolerance: 0.001 },
+      correctState: config,
     };
   }
 

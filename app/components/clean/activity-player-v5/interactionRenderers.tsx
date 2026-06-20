@@ -790,25 +790,109 @@ function PlaceValueBuilder({ activity, response, onChange }: RendererProps) {
 }
 
 function MoneyModel({ activity, response, onChange }: RendererProps) {
+  const correct = activity.correctState;
+  const currencySymbol = correct.currencySymbol ?? "";
+  const tokenValues = correct.tokenValues ?? activity.objects.map((object) => Number(object.value)).filter((value) => Number.isFinite(value));
+  const showCoins = correct.showCoins ?? true;
+  const showNotes = correct.showNotes ?? true;
+  const allowMultiple = correct.allowMultipleTokens ?? true;
   const selected = new Set(response.selectedTokenIds ?? []);
-  const toggle = (object: ActivityV5Object) => {
-    const next = new Set(selected);
+  const selectedPrices = response.selectedPriceTagId;
+  const tokenObjects = tokenValues.map((value, index) => ({
+    id: `generic-token-${index}-${value}`,
+    label: `${currencySymbol}${value}`,
+    value,
+    type: value >= 20 ? "note" : "coin",
+  }));
+  const visibleTokens = tokenObjects.filter((token) => (token.type === "coin" ? showCoins : showNotes));
+  const formatMoney = (value: number) => `${currencySymbol}${Number.isInteger(value) ? value : value.toFixed(2)}`;
+  const setTokens = (ids: Set<string>) => {
+    const selectedTokens = visibleTokens.filter((token) => ids.has(token.id)).map((token) => token.value);
+    const total = selectedTokens.reduce((sum, value) => sum + value, 0);
+    onChange(mergeResponse(response, {
+      selectedTokenIds: [...ids],
+      selectedTokens,
+      moneyTotal: Number(total.toFixed(2)),
+      targetTotal: Number(total.toFixed(2)),
+    }));
+  };
+  const toggle = (object: { id: string; value: number }) => {
+    const next = allowMultiple ? new Set(selected) : new Set<string>();
     if (next.has(object.id)) next.delete(object.id);
     else next.add(object.id);
-    const total = activity.objects.filter((candidate) => next.has(candidate.id)).reduce((sum, candidate) => sum + Number(candidate.value ?? 0), 0);
-    onChange(mergeResponse(response, { selectedTokenIds: [...next], moneyTotal: total }));
+    setTokens(next);
   };
 
   return (
     <ModelBoard label={activity.prompt}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
-        {activity.objects.map((object) => (
-          <button key={object.id} type="button" onClick={() => toggle(object)} style={{ minWidth: 74, minHeight: 58, borderRadius: Number(object.value) >= 5 ? 12 : 999, border: `2px solid ${selected.has(object.id) ? v5Tokens.purple : v5Tokens.navy}`, background: selected.has(object.id) ? v5Tokens.lavender : "#FFFFFF", color: v5Tokens.navy, font: "inherit", fontWeight: 900 }}>
-            {object.label}
-          </button>
-        ))}
+      <div style={{ display: "grid", gap: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", color: v5Tokens.navy, fontWeight: 900 }}>
+          <span>{correct.itemContext ?? "Generic money model"}</span>
+          <span>{correct.localisationMode ?? "generic"} {correct.currencyCode ?? ""}</span>
+        </div>
+        {correct.priceTags?.length ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
+            {correct.priceTags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => onChange(mergeResponse(response, { selectedPriceTagId: tag.id, moneyTotal: tag.value }))}
+                style={{
+                  minHeight: 92,
+                  borderRadius: 16,
+                  border: `2px solid ${selectedPrices === tag.id ? v5Tokens.purple : v5Tokens.border}`,
+                  background: selectedPrices === tag.id ? v5Tokens.lavender : "#FFFFFF",
+                  color: v5Tokens.navy,
+                  font: "inherit",
+                  fontWeight: 900,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <span>{tag.label}</span>
+                <span>{formatMoney(tag.value)}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(180px, 0.65fr)", gap: 16 }}>
+          <div style={{ display: "grid", gap: 10 }}>
+            <strong style={{ color: v5Tokens.navy }}>Wallet</strong>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              {visibleTokens.map((object) => (
+                <button
+                  key={object.id}
+                  type="button"
+                  onClick={() => toggle(object)}
+                  style={{
+                    minWidth: object.type === "note" ? 104 : 72,
+                    minHeight: object.type === "note" ? 58 : 72,
+                    borderRadius: object.type === "note" ? 12 : 999,
+                    border: `2px solid ${selected.has(object.id) ? v5Tokens.purple : v5Tokens.navy}`,
+                    background: selected.has(object.id) ? v5Tokens.lavender : object.type === "note" ? v5Tokens.mint : "#FFFFFF",
+                    color: v5Tokens.navy,
+                    font: "inherit",
+                    fontWeight: 950,
+                    boxShadow: selected.has(object.id) ? "0 8px 18px rgba(108,77,246,0.18)" : "none",
+                  }}
+                >
+                  {object.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ border: `2px dashed ${v5Tokens.border}`, borderRadius: 18, padding: 14, display: "grid", gap: 8, alignContent: "start", background: "#FFFFFF" }}>
+            <strong style={{ color: v5Tokens.navy }}>Basket</strong>
+            <span style={{ color: v5Tokens.slate, fontWeight: 800 }}>
+              {(response.selectedTokens ?? []).length
+                ? (response.selectedTokens ?? []).map(formatMoney).join(" + ")
+                : "Tap tokens to add them"}
+            </span>
+            <strong style={{ color: v5Tokens.navy, fontSize: 24 }}>Total: {formatMoney(response.moneyTotal ?? 0)}</strong>
+            {typeof correct.targetTotal === "number" ? <span style={{ color: v5Tokens.slate, fontWeight: 800 }}>Target: {formatMoney(correct.targetTotal)}</span> : null}
+          </div>
+        </div>
       </div>
-      <strong style={{ color: v5Tokens.navy }}>Total: {response.moneyTotal ?? 0}</strong>
     </ModelBoard>
   );
 }
