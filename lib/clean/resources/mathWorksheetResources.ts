@@ -252,6 +252,8 @@ const GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE =
   "MYL-MATH-GSR-EE-S006-Use-Grids-Coordinates-And-Simple-Transformations.pdf";
 const GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE =
   "MYL-MATH-GSR-EE-S007-Use-Angles-Turns-And-Orientation-Meaningfully.pdf";
+const GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE =
+  "MYL-MATH-GSR-UE-S008-Visualise-And-Build-Shapes-In-Two-And-Three-Dimensions.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1235,6 +1237,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::upper-primary::visualise-and-build-shapes-in-two-and-three-dimensions",
+    stepKey: "visualise-and-build-shapes-in-two-and-three-dimensions",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Visualise and build shapes in two and three dimensions",
+    title: "Visualise And Build Shapes In Two And Three Dimensions",
+    concept:
+      "Classify 2D and 3D shapes, connect objects to shapes, count solid features, use nets, compare views and design with shapes.",
+    includesAnswerSheet: false,
+    fileName: GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
