@@ -1,6 +1,18 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  checkActivityV5Answer,
+} from "@/app/components/clean/activity-player-v5/answerChecking";
+import {
+  formatMyReviewV5Response,
+  myReviewQuestionToActivityV5,
+} from "@/app/components/clean/activity-player-v5/adapters/myReviewV5Adapter";
+import { ActivityV5InteractionRenderer } from "@/app/components/clean/activity-player-v5/interactionRenderers";
+import type {
+  ActivityV5CheckResult,
+  ActivityV5ResponseState,
+} from "@/app/components/clean/activity-player-v5/types";
 import { v2Tokens } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
 import {
   checkMathsReviewAnswer,
@@ -63,6 +75,25 @@ function getDisplayParts(question: MathsReviewQuestion) {
 
 function resultForQuestion(results: MathsReviewPlayerResult[], question: MathsReviewQuestion) {
   return results.find((result) => result.question.id === question.id) ?? null;
+}
+
+function hasV5Response(response: ActivityV5ResponseState) {
+  return Boolean(
+    response.numberLineValue !== undefined ||
+      response.rows !== undefined ||
+      response.columns !== undefined ||
+      response.hundreds !== undefined ||
+      response.tens !== undefined ||
+      response.ones !== undefined ||
+      response.shadedParts !== undefined ||
+      response.denominator !== undefined ||
+      response.measuredLength !== undefined ||
+      response.hour !== undefined ||
+      response.minute !== undefined ||
+      response.moneyTotal !== undefined ||
+      response.selectedObjectIds?.length ||
+      response.plottedCoordinates?.length,
+  );
 }
 
 function ReviewVisualModel({ visual }: { visual?: MathsReviewVisualMetadata }) {
@@ -259,11 +290,18 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
   const [results, setResults] = useState<MathsReviewPlayerResult[]>([]);
   const [finished, setFinished] = useState(false);
   const [mode, setMode] = useState<PlayerMode>("learner");
+  const [v5Responses, setV5Responses] = useState<Record<string, ActivityV5ResponseState>>({});
+  const [v5CheckResult, setV5CheckResult] = useState<ActivityV5CheckResult | null>(null);
 
   const currentQuestion = questions[currentIndex] ?? null;
+  const v5Activity = useMemo(
+    () => (currentQuestion ? myReviewQuestionToActivityV5(currentQuestion) : null),
+    [currentQuestion],
+  );
+  const currentV5Response = currentQuestion ? v5Responses[currentQuestion.id] ?? {} : {};
   const displayParts = currentQuestion ? getDisplayParts(currentQuestion) : { lead: "", problem: "" };
   const progressPercent = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
-  const canCheck = mode === "display" || response.trim().length > 0;
+  const canCheck = mode === "display" || (v5Activity ? hasV5Response(currentV5Response) : response.trim().length > 0);
 
   const summary = useMemo(() => {
     const correctCount = results.filter((result) => result.correct).length;
@@ -287,11 +325,24 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
       setResponse(currentQuestion.answer);
       setIsCorrect(true);
       setChecked(true);
+      setV5CheckResult(null);
       recordResult(currentQuestion, currentQuestion.answer, true);
       return;
     }
 
+    if (v5Activity) {
+      const result = checkActivityV5Answer(v5Activity, currentV5Response);
+      const formattedResponse = formatMyReviewV5Response(currentV5Response);
+      setV5CheckResult(result);
+      setResponse(formattedResponse);
+      setIsCorrect(result.correct);
+      setChecked(true);
+      recordResult(currentQuestion, formattedResponse, result.correct);
+      return;
+    }
+
     const correct = checkMathsReviewAnswer(currentQuestion, response);
+    setV5CheckResult(null);
     setIsCorrect(correct);
     setChecked(true);
     recordResult(currentQuestion, response, correct);
@@ -304,6 +355,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
     setResponse(recorded?.response ?? "");
     setChecked(Boolean(recorded));
     setIsCorrect(recorded?.correct ?? null);
+    setV5CheckResult(null);
   }
 
   function goNext() {
@@ -412,6 +464,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                     setResponse("");
                     setChecked(false);
                     setIsCorrect(null);
+                    setV5CheckResult(null);
                   }}
                   style={{
                     border: 0,
@@ -552,13 +605,33 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                   {displayParts.problem}
                 </div>
               ) : null}
-              <ReviewVisualModel visual={currentQuestion.visual} />
+              {v5Activity ? (
+                <div style={{ width: "min(760px, 100%)", margin: "0 auto" }}>
+                  <ActivityV5InteractionRenderer
+                    activity={v5Activity}
+                    response={currentV5Response}
+                    checked={checked}
+                    onChange={(nextResponse) => {
+                      setV5Responses((current) => ({
+                        ...current,
+                        [currentQuestion.id]: nextResponse,
+                      }));
+                      setResponse(formatMyReviewV5Response(nextResponse));
+                      setChecked(false);
+                      setIsCorrect(null);
+                      setV5CheckResult(null);
+                    }}
+                  />
+                </div>
+              ) : (
+                <ReviewVisualModel visual={currentQuestion.visual} />
+              )}
               {currentQuestion.visualHint ? (
                 <p style={{ margin: 0, color: v2Tokens.slate, fontSize: 16, lineHeight: 1.5 }}>{currentQuestion.visualHint}</p>
               ) : null}
             </div>
 
-            {currentQuestion.type === "choice" && currentQuestion.choices ? (
+            {!v5Activity && currentQuestion.type === "choice" && currentQuestion.choices ? (
               <div className="mylearna-review-player-choice-grid">
                 {currentQuestion.choices.map((choice) => {
                   const selected = response === choice;
@@ -584,7 +657,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                   );
                 })}
               </div>
-            ) : mode === "learner" ? (
+            ) : !v5Activity && mode === "learner" ? (
               <label
                 style={{
                   display: "grid",
@@ -638,10 +711,16 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
               >
                 {mode === "display"
                   ? `Answer: ${currentQuestion.answer}`
-                  : isCorrect
+                  : v5CheckResult
+                    ? v5CheckResult.message
+                    : isCorrect
                     ? "Correct."
                     : `Not quite. The answer is ${currentQuestion.answer}.`}
-                <div style={{ fontSize: 15, fontWeight: 650, marginTop: 6 }}>{currentQuestion.explanation}</div>
+                <div style={{ fontSize: 15, fontWeight: 650, marginTop: 6 }}>
+                  {v5CheckResult && !v5CheckResult.correct
+                    ? `Expected: ${v5CheckResult.expectedSummary}`
+                    : currentQuestion.explanation}
+                </div>
               </div>
             ) : null}
           </section>
