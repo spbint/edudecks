@@ -250,6 +250,8 @@ const GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S005-Classify-Shapes-And-Reason-About-Properties.pdf";
 const GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE =
   "MYL-MATH-GSR-EE-S006-Use-Grids-Coordinates-And-Simple-Transformations.pdf";
+const GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE =
+  "MYL-MATH-GSR-EE-S007-Use-Angles-Turns-And-Orientation-Meaningfully.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1215,6 +1217,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/middle-primary/${GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::upper-primary::use-angles-turns-and-orientation-meaningfully",
+    stepKey: "use-angles-turns-and-orientation-meaningfully",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 1,
+    pathwayStepTitle: "Use angles, turns, and orientation meaningfully",
+    title: "Use Angles, Turns, And Orientation Meaningfully",
+    concept:
+      "Use arrows, robot routes, right angles and turn language to describe direction, orientation and practical movement.",
+    includesAnswerSheet: false,
+    fileName: GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
