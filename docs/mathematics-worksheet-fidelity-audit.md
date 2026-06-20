@@ -13,7 +13,7 @@ This audit reviewed the code paths that render MyLearna Mathematics worksheet re
 - Measurement
 - Geometry and Spatial Reasoning
 
-The worksheet resource map currently contains 117 worksheet-backed mathematics steps: 57 Number and Place Value, 12 Operations and Calculation, 12 Fractions/Decimals/Percentages, 12 Algebra/Patterns/Functions, 12 Measurement, and 11 Geometry/Spatial Reasoning mappings. Geometry and Spatial Reasoning Step 4 is not currently represented in the worksheet resource map.
+The worksheet resource map currently contains 118 worksheet-backed mathematics steps: 57 Number and Place Value, 12 Operations and Calculation, 12 Fractions/Decimals/Percentages, 12 Algebra/Patterns/Functions, 12 Measurement, and 12 Geometry/Spatial Reasoning mappings.
 
 The audit was performed by inspecting the pathway registries, worksheet resource mappings, practice registries, assessment registries, and shared renderers. Browser screenshots were not captured in this pass because the local in-app browser runtime was unavailable.
 
@@ -114,7 +114,7 @@ The audit was performed by inspecting the pathway registries, worksheet resource
 | 1 | 2 | 3 | Shape recognition now gets large shape model fallback. Needs worksheet scene reconstruction. |
 | 2 | 1 | 3 | Position/direction now gets route/grid fallback. Needs worksheet-specific position scenes. |
 | 3 | 2 | 3 | Shape features and symmetry now get shape fallback. Needs symmetry builder. |
-| 4 | 0 | 0 | No GSR Step 4 worksheet resource mapping was found, so worksheet-to-practice fidelity cannot currently be verified from the resource map. |
+| 4 | 1 | 3 | Step 4 worksheet mapping is now present. Route and arrangement tasks now use explicit GSR route/arrangement visual payloads. |
 | 5 | 2 | 3 | Classification now gets shape fallback. Needs sorting interaction. |
 | 6 | 1 | 3 | Coordinate and transformation tasks now get grids/routes/transform visuals. Needs true plotting and transform interactions. |
 | 7 | 1 | 3 | Turns and orientation now get route/transform visuals. Needs robot navigation interaction. |
@@ -208,9 +208,27 @@ The visual routing now handles:
 - Australian money descriptions
 - array, equal-group, place-value, and block descriptions
 
+## GSR Step 1-12 Review
+
+Geometry and Spatial Reasoning was reviewed from Step 1 through Step 12. The GSR assessment registry contains 144 cases, 12 per step. Before remediation, many cases had three options and the correct answer was commonly the first option. Practice reused that raw order.
+
+Remediation applied:
+
+- GSR assessment options now pass through `buildGeometrySpatialReasoningAnswerOptions`.
+- The helper guarantees four de-duplicated answer options wherever practical by combining the worksheet case options with a GSR distractor pool.
+- The helper uses a seeded Fisher-Yates shuffle based on the assessment item id, so the item is stable for review but not biased toward option A.
+- GSR practice now reuses the already-shuffled assessment options and the enriched assessment visual description.
+- GSR visual descriptions now include the pathway step title and an explicit instruction to use the diagram, shape, grid, route, map, layout, net, angle, or transformation model.
+- GSR visual descriptions now use explicit `gsr|kind=...` payloads for route, position, coordinate, transformation, turn, angle, net, block, solid, layout, arrangement, symmetry, map and shape-sort tasks.
+- ActivityPlayerV4 now renders those GSR payloads as direct task boards rather than generic keyword fallback visuals.
+
+Answer-position verification:
+
+- First 24 sampled GSR items: A=9, B=2, C=6, D=7, bad option counts=0.
+- All 144 GSR items via the same seeded helper logic: A=26, B=47, C=35, D=36, bad option counts=0.
+
 ## Remaining Remediation Required
 
-- Add the missing GSR Step 4 worksheet resource mapping if the worksheet exists and the pathway step is active.
 - Replace generated `multiple_choice`-only tasks with richer interactions where the worksheet requires placing, drawing, building, rotating, flipping, or matching.
 - Add structured visual payloads to assessment and practice registries instead of relying on description parsing.
 - Rebuild GSR Steps 2, 6, 7, 8, 9, 10, 11, and 12 with worksheet-specific interactive components.

@@ -246,6 +246,8 @@ const GSR_POSITION_DIRECTION_LANGUAGE_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S002-Use-Position-And-Direction-Language-In-Practical-Movement.pdf";
 const GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S003-Describe-Shape-Features-And-Simple-Symmetry.pdf";
+const GSR_SIMPLE_ROUTES_ARRANGEMENTS_WORKSHEET_FILE =
+  "MYL-MATH-GSR-KEE-S004-Follow-And-Create-Simple-Routes-Or-Arrangements.pdf";
 const GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S005-Classify-Shapes-And-Reason-About-Properties.pdf";
 const GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE =
@@ -1191,6 +1193,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/foundation-kindergarten/${GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::lower-primary::follow-and-create-simple-routes-or-arrangements",
+    stepKey: "follow-and-create-simple-routes-or-arrangements",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Follow and create simple routes or arrangements",
+    title: "Follow And Create Simple Routes Or Arrangements",
+    concept:
+      "Follow, trace, create and explain simple routes, paths, object arrangements and spatial plans.",
+    includesAnswerSheet: false,
+    fileName: GSR_SIMPLE_ROUTES_ARRANGEMENTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-primary/${GSR_SIMPLE_ROUTES_ARRANGEMENTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

@@ -87,6 +87,138 @@ function visual(description: string) {
   return { type: "context_card" as const, description };
 }
 
+const GEOMETRY_DISTRACTOR_POOL = [
+  "circle",
+  "square",
+  "triangle",
+  "rectangle",
+  "pentagon",
+  "cube",
+  "sphere",
+  "cylinder",
+  "pyramid",
+  "above",
+  "below",
+  "beside",
+  "behind",
+  "in front of",
+  "inside",
+  "outside",
+  "left",
+  "right",
+  "up",
+  "down",
+  "slide",
+  "flip",
+  "turn",
+  "quarter turn",
+  "half turn",
+  "clockwise",
+  "anticlockwise",
+  "right angle",
+  "acute angle",
+  "obtuse angle",
+  "vertical line through the centre",
+  "mirror line",
+  "line of symmetry",
+  "4 sides",
+  "3 sides",
+  "no corners",
+  "same size and shape",
+  "orientation changes but size stays the same",
+  "start, moves, and finish",
+  "directions, coordinates and evidence",
+  "layout, labels, measurements and explanation",
+];
+
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededShuffle(values: string[], seed: string) {
+  const shuffled = [...values];
+  let state = stableHash(seed) || 1;
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    state = Math.imul(state ^ (state >>> 15), 2246822519) >>> 0;
+    const swapIndex = state % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+function normaliseOption(value: string) {
+  return safe(value).toLowerCase();
+}
+
+export function buildGeometrySpatialReasoningAnswerOptions(
+  options: string[],
+  answer: string,
+  seed: string,
+) {
+  const seen = new Set<string>();
+  const ordered = [answer, ...options, ...GEOMETRY_DISTRACTOR_POOL]
+    .map(safe)
+    .filter(Boolean)
+    .filter((option) => {
+      const key = normaliseOption(option);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  const ensured = ordered.slice(0, Math.max(4, Math.min(ordered.length, 4)));
+  return seededShuffle(ensured, seed);
+}
+
+function geometryVisualKind(
+  spec: GeometrySpatialReasoningStepSpec,
+  item: GeometryCase,
+) {
+  const text = `${item.title} ${item.prompt} ${item.visual} ${item.cluster}`.toLowerCase();
+
+  if (spec.order === 4) return text.includes("arrangement") || text.includes("layout") ? "arrangement" : "route";
+  if (spec.order === 6) return text.includes("coordinate") || text.includes("plot") ? "coordinate" : "transformation";
+  if (spec.order === 7) return text.includes("angle") ? "angle" : "turn";
+  if (spec.order === 8) {
+    if (text.includes("net") || text.includes("fold")) return "net";
+    if (text.includes("view") || text.includes("block") || text.includes("structure")) return "block";
+    return "solid";
+  }
+  if (spec.order === 9) return text.includes("relationship") || text.includes("property") ? "shape-sort" : "transformation";
+  if (spec.order === 10) return text.includes("layout") || text.includes("bedroom") || text.includes("floor") || text.includes("park") ? "layout" : "map";
+  if (spec.order === 11) {
+    if (text.includes("block") || text.includes("structure")) return "block";
+    if (text.includes("scale")) return "scale";
+    return text.includes("map") ? "map" : "layout";
+  }
+  if (spec.order === 12) {
+    if (text.includes("rotate") || text.includes("rotation")) return "transformation";
+    if (text.includes("map") || text.includes("route")) return "map";
+    if (text.includes("block") || text.includes("structure")) return "block";
+    return "layout";
+  }
+  if (spec.order === 2) return text.includes("map") || text.includes("route") || text.includes("turn") ? "route" : "position";
+  if (spec.order === 3) return text.includes("symmetry") || text.includes("fold") ? "symmetry" : "shape-sort";
+  if (spec.order === 5) return "shape-sort";
+
+  return "shape";
+}
+
+function worksheetVisual(spec: GeometrySpatialReasoningStepSpec, item: GeometryCase) {
+  return [
+    "gsr",
+    `kind=${geometryVisualKind(spec, item)}`,
+    `caption=${spec.title}: ${item.visual}`,
+  ].join("|");
+}
+
 function groups(caption: string, counts: number[], labels: string[] = counts.map(String)) {
   return `early-number|caption=${caption}|groups=${counts.join(",")}|labels=${labels.join(",")}`;
 }
@@ -130,8 +262,9 @@ function makeItem(
   item: GeometryCase,
   index: number,
 ): NumberAssessmentBankItem {
+  const id = itemId(spec, index);
   return {
-    id: itemId(spec, index),
+    id,
     progressionBandKey: GEOMETRY_SPATIAL_REASONING_PARENT_FAMILY_KEY,
     progressionStepKey: spec.stepKey,
     subElementKey: item.cluster,
@@ -142,7 +275,11 @@ function makeItem(
     difficulty: index < 4 ? "foundation" : index < 8 ? "developing" : "secure",
     answerType: "multiple_choice",
     format: "geometry_spatial_reasoning_visual_card",
-    options: item.options,
+    options: buildGeometrySpatialReasoningAnswerOptions(
+      item.options,
+      item.answer,
+      id,
+    ),
     expectedAnswer: item.answer,
     acceptableAnswers: [item.answer],
     markingGuide: "Auto-check the selected option.",
@@ -154,7 +291,7 @@ function makeItem(
       practiceRecommendation: `Practise ${spec.shortTitle.toLowerCase()} with shape cards, grids, maps, symmetry diagrams, angle cards, nets, and transformation models.`,
       diagnosticNote: `Checks whether the learner can use ${spec.shortTitle.toLowerCase()} for this exact pathway step.`,
     },
-    visualSupport: visual(item.visual),
+    visualSupport: visual(worksheetVisual(spec, item)),
   };
 }
 

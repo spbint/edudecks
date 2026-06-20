@@ -1043,6 +1043,174 @@ function NetVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4V
   );
 }
 
+function parsePipePayload(description?: string | null) {
+  const text = safe(description);
+  if (!text.startsWith("gsr|")) return null;
+
+  return text.split("|").slice(1).reduce<Record<string, string>>((acc, part) => {
+    const [key, ...rest] = part.split("=");
+    if (!key) return acc;
+    acc[key] = rest.join("=");
+    return acc;
+  }, {});
+}
+
+function MiniArrow({ label, active = false }: { label: string; active?: boolean }) {
+  return (
+    <span
+      style={{
+        minHeight: 34,
+        borderRadius: 10,
+        border: `1px solid ${active ? tokens.purple : tokens.border}`,
+        background: active ? tokens.lavender : "#FFFFFF",
+        display: "grid",
+        placeItems: "center",
+        color: active ? tokens.purple : tokens.navy,
+        fontSize: 12,
+        fontWeight: 800,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function GsrInteractionVisual({
+  payload,
+  mode,
+}: {
+  payload: Record<string, string>;
+  mode: ActivityPlayerV4VisualMode;
+}) {
+  const kind = safe(payload.kind);
+  const caption = safe(payload.caption);
+
+  if (kind === "route" || kind === "position" || kind === "map") {
+    return (
+      <WorksheetPanel caption={caption} mode={mode}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(34px, 1fr))", gap: 5 }}>
+          {Array.from({ length: 25 }, (_, index) => {
+            const row = Math.floor(index / 5);
+            const col = index % 5;
+            const route = (row === 3 && col >= 0 && col <= 3) || (col === 3 && row >= 1 && row <= 3);
+            const landmark =
+              row === 3 && col === 0 ? "start" :
+              row === 1 && col === 3 ? "finish" :
+              row === 0 && col === 1 ? "school" :
+              row === 2 && col === 4 ? "park" :
+              row === 4 && col === 2 ? "shop" : "";
+            return (
+              <span
+                key={index}
+                style={{
+                  minHeight: 38,
+                  borderRadius: 8,
+                  border: `1px solid ${route ? tokens.purple : tokens.border}`,
+                  background: route ? tokens.lavender : "#FFFFFF",
+                  display: "grid",
+                  placeItems: "center",
+                  color: tokens.navy,
+                  fontSize: 10,
+                  fontWeight: 800,
+                }}
+              >
+                {landmark || (route ? "trace" : "")}
+              </span>
+            );
+          })}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+          <MiniArrow label="up" />
+          <MiniArrow label="right" active />
+          <MiniArrow label="down" />
+          <MiniArrow label="left" />
+        </div>
+      </WorksheetPanel>
+    );
+  }
+
+  if (kind === "coordinate" || kind === "scale") {
+    return <CoordinateGridVisual caption={caption} mode={mode} />;
+  }
+
+  if (kind === "transformation" || kind === "turn") {
+    return (
+      <WorksheetPanel caption={caption} mode={mode}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: tokens.slate, fontSize: 12, fontWeight: 800 }}>before</span>
+            <div style={{ minHeight: 96, border: `1px solid ${tokens.border}`, borderRadius: 14, display: "grid", placeItems: "center" }}>
+              <ShapeGlyph shape="triangle" size={54} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: tokens.slate, fontSize: 12, fontWeight: 800 }}>after</span>
+            <div style={{ minHeight: 96, border: `1px solid ${tokens.border}`, borderRadius: 14, display: "grid", placeItems: "center" }}>
+              <span style={{ display: "inline-block", transform: kind === "turn" ? "rotate(90deg)" : "translateX(10px) scaleX(-1)" }}>
+                <ShapeGlyph shape="triangle" size={54} />
+              </span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+          <MiniArrow label="slide" active={kind !== "turn"} />
+          <MiniArrow label="flip" active={kind !== "turn"} />
+          <MiniArrow label="turn" active={kind === "turn"} />
+        </div>
+      </WorksheetPanel>
+    );
+  }
+
+  if (kind === "angle") {
+    return <AngleVisual caption={caption} mode={mode} />;
+  }
+
+  if (kind === "net") {
+    return <NetVisual caption={caption} mode={mode} />;
+  }
+
+  if (kind === "block" || kind === "solid") {
+    return (
+      <WorksheetPanel caption={caption} mode={mode}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 34px)", gridAutoRows: "34px", gap: 4, justifyContent: "center" }}>
+            {[0, 1, 3, 4, 5, 7].map((index) => (
+              <span key={index} style={{ gridColumn: (index % 3) + 1, gridRow: Math.floor(index / 3) + 1 }}>
+                <ShapeGlyph shape="cube" size={28} />
+              </span>
+            ))}
+          </div>
+          <div style={{ display: "grid", gap: 7 }}>
+            <MiniArrow label="front view" active />
+            <MiniArrow label="side view" />
+            <MiniArrow label="top view" />
+          </div>
+        </div>
+      </WorksheetPanel>
+    );
+  }
+
+  if (kind === "layout" || kind === "arrangement") {
+    return <FloorPlanVisual caption={caption} mode={mode} />;
+  }
+
+  if (kind === "symmetry") {
+    return (
+      <WorksheetPanel caption={caption} mode={mode}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 3px 1fr", gap: 12, alignItems: "center" }}>
+          <ShapeGlyph shape="triangle" size={64} />
+          <span style={{ height: 118, borderRadius: 999, background: tokens.purple }} />
+          <span style={{ transform: "scaleX(-1)", display: "inline-block" }}>
+            <ShapeGlyph shape="triangle" size={64} />
+          </span>
+        </div>
+      </WorksheetPanel>
+    );
+  }
+
+  return <ShapeModelVisual caption={caption} mode={mode} />;
+}
+
 function FractionDecimalModelVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
   const percent = caption.toLowerCase().includes("percent") || caption.includes("%");
   const hundred = caption.toLowerCase().includes("hundred") || caption.includes("/100") || percent;
@@ -1084,6 +1252,11 @@ function WorksheetModelVisual({
   description?: string | null;
   mode: ActivityPlayerV4VisualMode;
 }) {
+  const gsrPayload = parsePipePayload(description);
+  if (gsrPayload && mode !== "compact") {
+    return <GsrInteractionVisual payload={gsrPayload} mode={mode} />;
+  }
+
   const text = safe(description);
   if (!text || mode === "compact") return null;
   const lower = text.toLowerCase();

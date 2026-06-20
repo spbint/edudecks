@@ -5,6 +5,7 @@ import {
   GEOMETRY_SPATIAL_REASONING_STEP_SPECS,
   GEOMETRY_SPATIAL_REASONING_STRAND_KEY,
 } from "@/lib/clean/assessments/geometrySpatialReasoningStepAssessmentRegistry";
+import type { NumberAssessmentBankItem } from "@/lib/clean/assessments/numberAssessmentBanks";
 import type { NumberStepAssessmentDepth } from "@/lib/clean/assessments/numberStepAssessmentTypes";
 import type { CleanAssessmentStageKey } from "@/lib/clean/assessments/types";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
@@ -50,11 +51,15 @@ function visual(description: string) {
 
 function makePracticeTask(
   spec: (typeof GEOMETRY_SPATIAL_REASONING_STEP_SPECS)[number],
-  relatedAssessmentItemId: string,
+  relatedAssessmentItem: NumberAssessmentBankItem,
   index: number,
 ): NumberPracticeTask {
   const item = spec.cases[index];
   const fallbackTitle = `Practice ${index + 1}`;
+  const visualDescription =
+    relatedAssessmentItem.visualSupport?.type === "context_card"
+      ? relatedAssessmentItem.visualSupport.description
+      : item?.visual ?? spec.description;
 
   return {
     id: `geometry-spatial-reasoning-step-${spec.order}-practice-${String(
@@ -63,15 +68,15 @@ function makePracticeTask(
     title: item?.title ?? fallbackTitle,
     prompt: item?.practicePrompt ?? spec.description,
     taskType: "multiple_choice",
-    options: item?.options ?? [],
+    options: relatedAssessmentItem.options ?? item?.options ?? [],
     expectedAnswer: item?.answer ?? "",
     acceptableAnswers: item?.answer ? [item.answer] : [],
     supportPrompt:
       "Use the visual first. Check the shape, position, property, or movement, then choose the option that matches the geometry.",
     workedSolution: item?.answer ? `The matching answer is ${item.answer}.` : "",
     misconceptionTargets: item?.misconceptionTargets ?? [],
-    relatedAssessmentItemIds: [relatedAssessmentItemId],
-    visualSupport: visual(item?.visual ?? spec.description),
+    relatedAssessmentItemIds: [relatedAssessmentItem.id],
+    visualSupport: visual(safe(visualDescription) || spec.description),
   };
 }
 
@@ -102,7 +107,7 @@ export const GEOMETRY_SPATIAL_REASONING_STEP_PRACTICES:
       relatedStepAssessmentKey: assessment.key,
       depthOptions: NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
       tasks: assessment.items.map((assessmentItem, index) =>
-        makePracticeTask(spec, assessmentItem.id, index),
+        makePracticeTask(spec, assessmentItem, index),
       ),
     }];
   });
