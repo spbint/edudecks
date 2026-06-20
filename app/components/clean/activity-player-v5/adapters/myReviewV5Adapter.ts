@@ -243,6 +243,43 @@ function clockConfig(question: MathsReviewQuestion) {
   };
 }
 
+function rulerUnit(value: unknown) {
+  const text = String(value ?? "").toLowerCase();
+  if (text.includes("mm")) return "mm";
+  if (text.includes("cm")) return "cm";
+  if (text.includes("m")) return "m";
+  return "cm";
+}
+
+function rulerConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const targetLength = numberValue(visual?.targetLength ?? visual?.measuredLength ?? visual?.targetValue ?? question.answer);
+  if (targetLength === null || targetLength < 0) return null;
+  const unit = rulerUnit(visual?.unit ?? question.prompt);
+  const max = Number.isFinite(visual?.max) ? Number(visual?.max) : Math.max(10, Math.ceil(targetLength * 1.15));
+  const step = Number.isFinite(visual?.step)
+    ? Number(visual?.step)
+    : unit === "mm"
+      ? 1
+      : targetLength % 1 === 0
+        ? 1
+        : 0.5;
+  return {
+    unit,
+    min: Number.isFinite(visual?.min) ? Number(visual?.min) : 0,
+    max,
+    step,
+    targetLength,
+    measuredLength: targetLength,
+    tolerance: visual?.tolerance ?? (step < 1 ? step / 2 : 0),
+    objectLabel: visual?.objectLabel ?? question.bankLabel,
+    objectVisual: visual?.objectVisual ?? "pencil",
+    estimate: visual?.estimate,
+    showEstimate: visual?.showEstimate ?? false,
+    labelMode: visual?.labelMode ?? "both",
+  };
+}
+
 function choiceObjects(question: MathsReviewQuestion): ActivityV5Object[] {
   const labels = question.choices?.length
     ? question.choices
@@ -363,15 +400,15 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
   }
 
   if (visual.visualModel === "ruler_board") {
-    const measuredLength = numberValue(visual.targetValue ?? question.answer);
-    if (measuredLength === null || measuredLength < 1 || measuredLength > 10) return null;
+    const config = rulerConfig(question);
+    if (!config) return null;
     return {
       ...base(question),
       interactionType: "interactive_ruler",
       visualModel: "ruler_board",
       objects: [],
       targets: [],
-      correctState: { measuredLength, tolerance: 0 },
+      correctState: config,
     };
   }
 

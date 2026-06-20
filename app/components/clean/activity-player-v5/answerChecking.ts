@@ -35,6 +35,30 @@ function numericValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function lengthInMillimetres(value?: number, unit?: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  if (unit === "m") return value * 1000;
+  if (unit === "cm") return value * 10;
+  return value;
+}
+
+function sameRulerValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actual = response.measuredLength;
+  const expected = correct.targetLength ?? correct.measuredLength;
+  const actualUnit = response.unit ?? correct.unit;
+  const expectedUnit = correct.unit;
+  const tolerance = correct.tolerance ?? 0;
+  const actualMm = lengthInMillimetres(actual, actualUnit);
+  const expectedMm = lengthInMillimetres(expected, expectedUnit);
+  if (actualMm !== null && expectedMm !== null && actualUnit !== expectedUnit) {
+    return closeEnough(actualMm, expectedMm, lengthInMillimetres(tolerance, expectedUnit) ?? tolerance);
+  }
+  return closeEnough(actual, expected, tolerance);
+}
+
 function fractionFromState(state: ActivityV5ResponseState): ActivityV5FractionSpec | null {
   const denominator = state.denominator ?? state.targetDenominator;
   const numerator =
@@ -182,7 +206,7 @@ function expectedSummary(activity: ActivityV5) {
     case "move_along_route":
       return correct.finalPosition ? `Finish at ${correct.finalPosition}` : `Route ${normaliseList(correct.routePath).join(", ")}`;
     case "interactive_ruler":
-      return `${correct.measuredLength ?? 0} units`;
+      return `${correct.targetLength ?? correct.measuredLength ?? 0} ${correct.unit ?? "units"}`;
     case "interactive_clock":
       return `${normaliseClockHour(correct.targetHour ?? correct.hour) ?? 0}:${String(normaliseMinute(correct.targetMinute ?? correct.minute ?? 0) ?? 0).padStart(2, "0")}`;
     case "interactive_fraction_bar":
@@ -230,7 +254,7 @@ export function checkActivityV5Answer(
         : sameList(response.routePath, correct.routePath);
       break;
     case "interactive_ruler":
-      isCorrect = closeEnough(response.measuredLength, correct.measuredLength, correct.tolerance ?? 0);
+      isCorrect = sameRulerValue(response, correct);
       break;
     case "interactive_clock":
       isCorrect = sameClockValue(response, correct);

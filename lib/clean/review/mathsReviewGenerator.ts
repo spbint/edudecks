@@ -37,6 +37,13 @@ export type MathsReviewVisualMetadata = {
   min?: number;
   max?: number;
   step?: number;
+  targetLength?: number;
+  measuredLength?: number;
+  tolerance?: number;
+  objectLabel?: string;
+  objectVisual?: string;
+  estimate?: number;
+  showEstimate?: boolean;
   tickLabels?: Record<string, string>;
   allowedValues?: Array<number | string>;
   rows?: number;
@@ -50,7 +57,7 @@ export type MathsReviewVisualMetadata = {
   allowedFractions?: Array<{ numerator: number; denominator: number; wholeCount?: number; decimalEquivalent?: number }>;
   equivalentAccepted?: boolean;
   decimalEquivalent?: number;
-  labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both";
+  labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both" | "ticks" | "numeric";
   promptValue?: number | string;
   hour?: number;
   minute?: number;
@@ -292,11 +299,23 @@ function buildMathsReviewVisual(
   }
 
   if (bank.group === "Unit Conversion") {
+    const targetLength = Number.isFinite(target) ? target : first;
+    const unit = bank.id.startsWith("mm") ? "mm" : bank.id.includes("cm") ? "cm" : bank.id.includes("m-") || bank.id.includes("-m") ? "m" : bank.label;
+    const max = Math.max(10, Math.ceil(targetLength * 1.15));
     return {
       visualModel: "ruler_board",
       interactionType: "interactive_ruler",
       values: numbers.slice(0, 4),
-      unit: bank.label,
+      unit,
+      targetLength,
+      measuredLength: targetLength,
+      min: 0,
+      max,
+      step: unit === "mm" ? 1 : targetLength % 1 === 0 ? 1 : 0.5,
+      objectLabel: "Conversion length",
+      objectVisual: "pencil",
+      showEstimate: false,
+      labelMode: "both",
       note: "Measurement tool model for conversion reasoning.",
     };
   }

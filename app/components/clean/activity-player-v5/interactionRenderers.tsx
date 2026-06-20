@@ -345,16 +345,146 @@ function MoveAlongRoute({ activity, response, onChange }: RendererProps) {
 }
 
 function InteractiveRuler({ activity, response, onChange }: RendererProps) {
-  const value = response.measuredLength ?? 5;
+  const correct = activity.correctState;
+  const unit = correct.unit ?? response.unit ?? "cm";
+  const targetLength = correct.targetLength ?? correct.measuredLength ?? 8;
+  const min = Number(correct.min ?? 0);
+  const max = Number(correct.max ?? Math.max(10, Math.ceil(targetLength + 2)));
+  const step = Number(correct.step ?? (unit === "mm" ? 1 : 0.5));
+  const safeMin = Number.isFinite(min) ? min : 0;
+  const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 10;
+  const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
+  const value = Math.min(safeMax, Math.max(safeMin, response.measuredLength ?? safeMin));
+  const labelMode = correct.labelMode ?? "both";
+  const objectPercent = Math.min(100, Math.max(8, ((targetLength - safeMin) / (safeMax - safeMin)) * 100));
+  const markerPercent = ((value - safeMin) / (safeMax - safeMin)) * 100;
+  const tickCount = Math.floor((safeMax - safeMin) / safeStep) + 1;
+  const displayStep = tickCount > 101 ? (safeMax - safeMin) / 100 : safeStep;
+  const displayTickCount = Math.floor((safeMax - safeMin) / displayStep) + 1;
+  const ticks = Array.from({ length: displayTickCount }, (_, index) => Number((safeMin + index * displayStep).toFixed(4)));
+  const labelEvery = ticks.length <= 16 ? 1 : Math.ceil((ticks.length - 1) / 10);
+  const setValue = (nextValue: number) => {
+    const snapped = Math.round(nextValue / safeStep) * safeStep;
+    const rounded = Number(Math.min(safeMax, Math.max(safeMin, snapped)).toFixed(4));
+    onChange(mergeResponse(response, {
+      measuredLength: rounded,
+      targetLength: rounded,
+      unit,
+    }));
+  };
+
   return (
     <ModelBoard label={activity.prompt}>
-      <div style={{ display: "grid", gap: 16 }}>
-        <div style={{ height: 42, width: `${value * 32}px`, maxWidth: "100%", borderRadius: 999, background: v5Tokens.purple }} />
-        <div style={{ height: 50, borderRadius: 10, background: "#FDE68A", border: `2px solid ${v5Tokens.navy}`, display: "grid", gridTemplateColumns: "repeat(10, 1fr)" }}>
-          {Array.from({ length: 10 }, (_, index) => <span key={index} style={{ borderLeft: index ? `1px solid ${v5Tokens.navy}` : 0, padding: 4, color: v5Tokens.navy, fontWeight: 800 }}>{index}</span>)}
+      <div style={{ display: "grid", gap: 18 }}>
+        {correct.showEstimate && correct.estimate !== undefined ? (
+          <strong style={{ color: v5Tokens.slate }}>Estimate: {correct.estimate} {unit}</strong>
+        ) : null}
+        <div style={{ display: "grid", gap: 8 }}>
+          <span style={{ color: v5Tokens.navy, fontWeight: 900 }}>{correct.objectLabel ?? "Object"}</span>
+          <div style={{ minHeight: 62, position: "relative", borderBottom: `2px dashed ${v5Tokens.border}` }}>
+            <span
+              aria-label={correct.objectLabel ?? "object being measured"}
+              style={{
+                position: "absolute",
+                left: 0,
+                bottom: 8,
+                width: `${objectPercent}%`,
+                height: 34,
+                borderRadius: correct.objectVisual === "pencil" || correct.objectVisual === "crayon" ? 999 : 12,
+                border: `2px solid ${v5Tokens.navy}`,
+                background: correct.objectVisual === "crayon" ? v5Tokens.amber : correct.objectVisual === "book" ? v5Tokens.blue : v5Tokens.purple,
+              }}
+            />
+          </div>
         </div>
-        <input type="range" min={1} max={10} value={value} onChange={(event) => onChange(mergeResponse(response, { measuredLength: Number(event.target.value) }))} />
-        <strong style={{ color: v5Tokens.navy }}>{value} units</strong>
+        <button
+          type="button"
+          onClick={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const percent = (event.clientX - rect.left) / rect.width;
+            setValue(safeMin + percent * (safeMax - safeMin));
+          }}
+          style={{
+            position: "relative",
+            height: 112,
+            border: `2px solid ${v5Tokens.navy}`,
+            borderRadius: 14,
+            background: "#FDE68A",
+            cursor: "crosshair",
+            padding: 0,
+          }}
+          aria-label="Tap the ruler to set the measured length"
+        >
+          {ticks.map((tick, index) => {
+            const major = index === 0 || index === ticks.length - 1 || index % labelEvery === 0;
+            const percent = ((tick - safeMin) / (safeMax - safeMin)) * 100;
+            return (
+              <span
+                key={`${tick}-${index}`}
+                style={{
+                  position: "absolute",
+                  left: `${percent}%`,
+                  bottom: 0,
+                  width: 2,
+                  height: major ? 52 : 28,
+                  background: v5Tokens.navy,
+                  transform: "translateX(-1px)",
+                }}
+              >
+                {major && labelMode !== "ticks" ? (
+                  <span style={{ position: "absolute", bottom: 56, left: "50%", transform: "translateX(-50%)", color: v5Tokens.navy, fontSize: 12, fontWeight: 900 }}>
+                    {tick}
+                  </span>
+                ) : null}
+              </span>
+            );
+          })}
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: `${markerPercent}%`,
+              top: 8,
+              width: 4,
+              height: 94,
+              borderRadius: 999,
+              background: v5Tokens.red,
+              boxShadow: "0 8px 18px rgba(232,93,117,0.28)",
+            }}
+          />
+        </button>
+        <label style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 850 }}>
+          Measurement: {value} {unit}
+          <input
+            type="range"
+            min={safeMin}
+            max={safeMax}
+            step={safeStep}
+            value={value}
+            onChange={(event) => setValue(Number(event.target.value))}
+          />
+        </label>
+        <input
+          type="number"
+          min={safeMin}
+          max={safeMax}
+          step={safeStep}
+          value={value}
+          onChange={(event) => setValue(Number(event.target.value))}
+          aria-label={`Measurement in ${unit}`}
+          style={{
+            minHeight: 46,
+            borderRadius: 12,
+            border: `1px solid ${v5Tokens.border}`,
+            padding: "8px 12px",
+            color: v5Tokens.navy,
+            font: "inherit",
+            fontWeight: 800,
+          }}
+        />
+        <div style={{ color: v5Tokens.slate, fontWeight: 800 }}>
+          Ruler range: {safeMin}–{safeMax} {unit}
+        </div>
       </div>
     </ModelBoard>
   );

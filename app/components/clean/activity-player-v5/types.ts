@@ -67,7 +67,13 @@ export type ActivityV5ResponseState = {
   columns?: number;
   routePath?: string[];
   finalPosition?: string;
+  unit?: "cm" | "mm" | "m" | string;
+  targetLength?: number;
   measuredLength?: number;
+  objectLabel?: string;
+  objectVisual?: string;
+  estimate?: number;
+  showEstimate?: boolean;
   hour?: number;
   minute?: number;
   targetHour?: number;
@@ -84,7 +90,7 @@ export type ActivityV5ResponseState = {
   allowedFractions?: ActivityV5FractionSpec[];
   equivalentAccepted?: boolean;
   decimalEquivalent?: number;
-  labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both";
+  labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both" | "ticks" | "numeric";
   promptValue?: number | string;
   numberLineValue?: number | string;
   tens?: number;

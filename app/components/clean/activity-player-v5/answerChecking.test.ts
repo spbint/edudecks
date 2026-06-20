@@ -65,6 +65,58 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks exact centimetre ruler answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_ruler",
+        visualModel: "ruler_board",
+        correctState: { unit: "cm", targetLength: 8, tolerance: 0 },
+      }),
+      { unit: "cm", measuredLength: 8 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks half-centimetre ruler answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_ruler",
+        visualModel: "ruler_board",
+        correctState: { unit: "cm", targetLength: 8.5, step: 0.5, tolerance: 0 },
+      }),
+      { unit: "cm", measuredLength: 8.5 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks millimetre ruler answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_ruler",
+        visualModel: "ruler_board",
+        correctState: { unit: "mm", targetLength: 85, step: 1, tolerance: 0 },
+      }),
+      { unit: "mm", measuredLength: 85 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks ruler unit conversion when metadata provides units", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_ruler",
+        visualModel: "ruler_board",
+        correctState: { unit: "cm", targetLength: 8, tolerance: 0 },
+      }),
+      { unit: "mm", measuredLength: 80 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("checks exact dynamic number-line values", () => {
     const result = checkActivityV5Answer(
       activity({
