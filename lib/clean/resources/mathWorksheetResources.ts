@@ -254,6 +254,8 @@ const GSR_ANGLES_TURNS_ORIENTATION_WORKSHEET_FILE =
   "MYL-MATH-GSR-EE-S007-Use-Angles-Turns-And-Orientation-Meaningfully.pdf";
 const GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S008-Visualise-And-Build-Shapes-In-Two-And-Three-Dimensions.pdf";
+const GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE =
+  "MYL-MATH-GSR-UE-S009-Reason-About-Geometric-Relationships-And-Transformations.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1255,6 +1257,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::lower-secondary::reason-about-geometric-relationships-and-transformations",
+    stepKey: "reason-about-geometric-relationships-and-transformations",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 1,
+    pathwayStepTitle: "Reason about geometric relationships and transformations",
+    title: "Reason About Geometric Relationships And Transformations",
+    concept:
+      "Identify slides, flips and turns, describe transformations, reason about shape properties, and connect geometry to real-world design.",
+    includesAnswerSheet: false,
+    fileName: GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
