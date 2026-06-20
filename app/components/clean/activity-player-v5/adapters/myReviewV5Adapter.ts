@@ -445,14 +445,52 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
   if (visual.visualModel === "array_board") {
     const rows = visual.rows ?? 0;
     const columns = visual.columns ?? 0;
-    if (!rows || !columns || rows > 8 || columns > 8) return null;
+    if (!rows || !columns || rows > 12 || columns > 12) return null;
     return {
       ...base(question),
       interactionType: "build_array",
       visualModel: "array_board",
       objects: [],
       targets: [],
-      correctState: { rows, columns },
+      correctState: {
+        rows,
+        columns,
+        targetRows: visual.targetRows ?? rows,
+        targetColumns: visual.targetColumns ?? columns,
+        total: visual.total ?? rows * columns,
+        targetTotal: visual.targetTotal ?? rows * columns,
+        arrangementMode: visual.arrangementMode ?? "array",
+        allowCommutativeArrays: visual.allowCommutativeArrays ?? true,
+        repeatedAdditionSentence: visual.repeatedAdditionSentence,
+        multiplicationSentence: visual.multiplicationSentence,
+        objectVisual: visual.objectVisual ?? "counter",
+      },
+    };
+  }
+
+  if (visual.visualModel === "equal_groups_board") {
+    const groupCount = visual.groupCount ?? visual.targetGroupCount ?? 0;
+    const itemsPerGroup = visual.itemsPerGroup ?? visual.targetItemsPerGroup ?? 0;
+    if (!groupCount || groupCount > 12 || itemsPerGroup > 24) return null;
+    return {
+      ...base(question),
+      interactionType: "equal_groups",
+      visualModel: "equal_groups_board",
+      objects: [],
+      targets: [],
+      correctState: {
+        groupCount,
+        itemsPerGroup,
+        targetGroupCount: visual.targetGroupCount ?? groupCount,
+        targetItemsPerGroup: visual.targetItemsPerGroup ?? itemsPerGroup,
+        total: visual.total ?? groupCount * itemsPerGroup,
+        targetTotal: visual.targetTotal ?? groupCount * itemsPerGroup,
+        arrangementMode: visual.arrangementMode ?? "equal_groups",
+        repeatedAdditionSentence: visual.repeatedAdditionSentence,
+        multiplicationSentence: visual.multiplicationSentence,
+        divisionSentence: visual.divisionSentence,
+        objectVisual: visual.objectVisual ?? "counter",
+      },
     };
   }
 

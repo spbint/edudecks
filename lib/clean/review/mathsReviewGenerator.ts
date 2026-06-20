@@ -11,6 +11,7 @@ export type MathsReviewVisualModel =
   | "ten_frame"
   | "number_line"
   | "array_board"
+  | "equal_groups_board"
   | "place_value_blocks"
   | "fraction_bar"
   | "ruler_board"
@@ -27,6 +28,7 @@ export type MathsReviewVisualMetadata = {
     | "click_objects"
     | "interactive_number_line"
     | "build_array"
+    | "equal_groups"
     | "build_place_value"
     | "interactive_fraction_bar"
     | "interactive_ruler"
@@ -61,6 +63,19 @@ export type MathsReviewVisualMetadata = {
   allowedValues?: Array<number | string>;
   rows?: number;
   columns?: number;
+  targetRows?: number;
+  targetColumns?: number;
+  total?: number;
+  groupCount?: number;
+  itemsPerGroup?: number;
+  targetGroupCount?: number;
+  targetItemsPerGroup?: number;
+  selectedObjects?: string[];
+  arrangementMode?: "array" | "equal_groups" | "repeated_addition" | "division_sharing";
+  allowCommutativeArrays?: boolean;
+  repeatedAdditionSentence?: string;
+  multiplicationSentence?: string;
+  divisionSentence?: string;
   shadedParts?: number;
   denominator?: number;
   wholeCount?: number;
@@ -274,7 +289,6 @@ function buildMathsReviewVisual(
   if (
     bank.group === "Multiplication Facts" ||
     bank.id === "multiplication" ||
-    bank.id === "division" ||
     bank.id === "arrays" ||
     bank.id === "partially-covered-arrays" ||
     bank.id === "missing-factors"
@@ -286,8 +300,37 @@ function buildMathsReviewVisual(
       interactionType: "build_array",
       rows,
       columns,
+      targetRows: rows,
+      targetColumns: columns,
+      total: rows * columns,
       targetValue: rows * columns,
+      targetTotal: rows * columns,
+      arrangementMode: "array",
+      allowCommutativeArrays: true,
+      repeatedAdditionSentence: Array.from({ length: rows }, () => String(columns)).join(" + "),
+      multiplicationSentence: `${rows} x ${columns} = ${rows * columns}`,
+      objectVisual: "counter",
       note: "Array model for groups, rows and columns.",
+    };
+  }
+
+  if (bank.id === "division") {
+    const total = Math.max(1, numbers[0] || 12);
+    const groupCount = Math.max(1, numbers[1] || 3);
+    const itemsPerGroup = Math.max(1, Math.round(total / groupCount));
+    return {
+      visualModel: "equal_groups_board",
+      interactionType: "equal_groups",
+      groupCount,
+      itemsPerGroup,
+      targetGroupCount: groupCount,
+      targetItemsPerGroup: itemsPerGroup,
+      total,
+      targetTotal: total,
+      arrangementMode: "division_sharing",
+      divisionSentence: `${total} / ${groupCount} = ${itemsPerGroup}`,
+      objectVisual: "counter",
+      note: "Equal-groups model for sharing and division.",
     };
   }
 

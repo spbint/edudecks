@@ -221,6 +221,106 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks exact array rows and columns", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "build_array",
+        visualModel: "array_board",
+        correctState: { targetRows: 3, targetColumns: 4 },
+      }),
+      { rows: 3, columns: 4, total: 12 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("accepts commutative arrays when enabled", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "build_array",
+        visualModel: "array_board",
+        correctState: { targetRows: 3, targetColumns: 4, allowCommutativeArrays: true },
+      }),
+      { rows: 4, columns: 3, total: 12 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("rejects commutative arrays when disabled", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "build_array",
+        visualModel: "array_board",
+        correctState: { targetRows: 3, targetColumns: 4, targetTotal: 12, allowCommutativeArrays: false },
+      }),
+      { rows: 4, columns: 3, total: 12 },
+    );
+
+    expect(result.correct).toBe(false);
+  });
+
+  it("checks total-only array tasks", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "build_array",
+        visualModel: "array_board",
+        correctState: { targetTotal: 15 },
+      }),
+      { rows: 3, columns: 5, total: 15 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks equal groups by group count and items per group", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "equal_groups",
+        visualModel: "equal_groups_board",
+        correctState: { targetGroupCount: 5, targetItemsPerGroup: 2, targetTotal: 10 },
+      }),
+      { groupCount: 5, itemsPerGroup: 2, total: 10 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks division sharing with matching sentence", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "equal_groups",
+        visualModel: "equal_groups_board",
+        correctState: {
+          targetGroupCount: 3,
+          targetItemsPerGroup: 4,
+          targetTotal: 12,
+          divisionSentence: "12 / 3 = 4",
+        },
+      }),
+      { groupCount: 3, itemsPerGroup: 4, total: 12, divisionSentence: "12 ÷ 3 = 4" },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks repeated addition for equal groups", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "equal_groups",
+        visualModel: "equal_groups_board",
+        correctState: {
+          targetGroupCount: 4,
+          targetItemsPerGroup: 3,
+          repeatedAdditionSentence: "3 + 3 + 3 + 3",
+        },
+      }),
+      { groupCount: 4, itemsPerGroup: 3, repeatedAdditionSentence: "3+3+3+3" },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("checks exact dynamic number-line values", () => {
     const result = checkActivityV5Answer(
       activity({

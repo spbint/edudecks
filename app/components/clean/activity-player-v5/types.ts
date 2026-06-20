@@ -7,6 +7,7 @@ export type ActivityV5InteractionType =
   | "rotate_shape"
   | "flip_reflection"
   | "build_array"
+  | "equal_groups"
   | "move_along_route"
   | "interactive_ruler"
   | "interactive_capacity_jug"
@@ -24,6 +25,7 @@ export type ActivityV5VisualModel =
   | "turn_board"
   | "reflection_grid"
   | "array_board"
+  | "equal_groups_board"
   | "ruler_board"
   | "capacity_jug"
   | "mass_scale"
@@ -75,6 +77,20 @@ export type ActivityV5ResponseState = {
   reflectedCells?: string[];
   rows?: number;
   columns?: number;
+  targetRows?: number;
+  targetColumns?: number;
+  total?: number;
+  targetTotal?: number;
+  groupCount?: number;
+  itemsPerGroup?: number;
+  targetGroupCount?: number;
+  targetItemsPerGroup?: number;
+  selectedObjects?: string[];
+  arrangementMode?: "array" | "equal_groups" | "repeated_addition" | "division_sharing";
+  allowCommutativeArrays?: boolean;
+  repeatedAdditionSentence?: string;
+  multiplicationSentence?: string;
+  divisionSentence?: string;
   routePath?: string[];
   finalPosition?: string;
   unit?: "cm" | "mm" | "m" | string;
@@ -120,7 +136,6 @@ export type ActivityV5ResponseState = {
   localisationMode?: "generic" | "AU" | "UK" | "US";
   tokenValues?: number[];
   selectedTokens?: number[];
-  targetTotal?: number;
   priceTags?: ActivityV5PriceTag[];
   selectedPriceTagId?: string;
   itemContext?: string;

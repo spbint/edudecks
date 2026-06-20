@@ -290,25 +290,121 @@ function FlipReflection({ activity, response, onChange }: RendererProps) {
 }
 
 function BuildArray({ activity, response, onChange }: RendererProps) {
-  const rows = response.rows ?? 1;
-  const columns = response.columns ?? 1;
+  const correct = activity.correctState;
+  const rows = response.rows ?? correct.targetRows ?? correct.rows ?? 1;
+  const columns = response.columns ?? correct.targetColumns ?? correct.columns ?? 1;
+  const setArray = (nextRows: number, nextColumns: number) => {
+    const safeRows = Math.max(1, Math.min(12, nextRows));
+    const safeColumns = Math.max(1, Math.min(12, nextColumns));
+    onChange(mergeResponse(response, {
+      rows: safeRows,
+      columns: safeColumns,
+      total: safeRows * safeColumns,
+      multiplicationSentence: `${safeRows} x ${safeColumns} = ${safeRows * safeColumns}`,
+      repeatedAdditionSentence: Array.from({ length: safeRows }, () => String(safeColumns)).join(" + "),
+    }));
+  };
 
   return (
     <ModelBoard label={activity.prompt}>
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-        <label style={{ display: "grid", gap: 6, color: v5Tokens.navy, fontWeight: 800 }}>
-          Rows
-          <input type="number" min={1} max={8} value={rows} onChange={(event) => onChange(mergeResponse(response, { rows: Number(event.target.value) }))} />
-        </label>
-        <label style={{ display: "grid", gap: 6, color: v5Tokens.navy, fontWeight: 800 }}>
-          Columns
-          <input type="number" min={1} max={8} value={columns} onChange={(event) => onChange(mergeResponse(response, { columns: Number(event.target.value) }))} />
-        </label>
+      <div style={{ display: "grid", gap: 18 }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+          <div style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 900 }}>
+            Rows: {rows}
+            <div style={{ display: "flex", gap: 8 }}>
+              <ToggleChip label="-" onClick={() => setArray(rows - 1, columns)} />
+              <ToggleChip label="+" onClick={() => setArray(rows + 1, columns)} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 900 }}>
+            Columns: {columns}
+            <div style={{ display: "flex", gap: 8 }}>
+              <ToggleChip label="-" onClick={() => setArray(rows, columns - 1)} />
+              <ToggleChip label="+" onClick={() => setArray(rows, columns + 1)} />
+            </div>
+          </div>
+        </div>
+        <div style={{ overflowX: "auto", padding: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns}, 46px)`, gap: 9, justifyContent: "center" }}>
+            {Array.from({ length: rows * columns }, (_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setArray(rows, columns)}
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: correct.objectVisual === "star" ? 8 : 999,
+                  background: v5Tokens.blue,
+                  border: `2px solid ${v5Tokens.navy}`,
+                  color: v5Tokens.navy,
+                  fontWeight: 900,
+                }}
+              >
+                {correct.objectVisual === "star" ? "*" : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+        <strong style={{ color: v5Tokens.navy, fontSize: 24, textAlign: "center" }}>
+          {rows} x {columns} = {rows * columns}
+        </strong>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns}, 34px)`, gap: 7, justifyContent: "center" }}>
-        {Array.from({ length: rows * columns }, (_, index) => (
-          <span key={index} style={{ width: 34, height: 34, borderRadius: 10, background: v5Tokens.blue, border: `1px solid ${v5Tokens.navy}` }} />
-        ))}
+    </ModelBoard>
+  );
+}
+
+function EqualGroups({ activity, response, onChange }: RendererProps) {
+  const correct = activity.correctState;
+  const groupCount = response.groupCount ?? correct.targetGroupCount ?? correct.groupCount ?? 3;
+  const itemsPerGroup = response.itemsPerGroup ?? correct.targetItemsPerGroup ?? correct.itemsPerGroup ?? 4;
+  const setGroups = (nextGroups: number, nextItems: number) => {
+    const safeGroups = Math.max(1, Math.min(12, nextGroups));
+    const safeItems = Math.max(0, Math.min(24, nextItems));
+    onChange(mergeResponse(response, {
+      groupCount: safeGroups,
+      itemsPerGroup: safeItems,
+      total: safeGroups * safeItems,
+      repeatedAdditionSentence: Array.from({ length: safeGroups }, () => String(safeItems)).join(" + "),
+      multiplicationSentence: `${safeGroups} x ${safeItems} = ${safeGroups * safeItems}`,
+      divisionSentence: `${safeGroups * safeItems} / ${safeGroups} = ${safeItems}`,
+    }));
+  };
+
+  return (
+    <ModelBoard label={activity.prompt}>
+      <div style={{ display: "grid", gap: 18 }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+          <div style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 900 }}>
+            Groups: {groupCount}
+            <div style={{ display: "flex", gap: 8 }}>
+              <ToggleChip label="-" onClick={() => setGroups(groupCount - 1, itemsPerGroup)} />
+              <ToggleChip label="+" onClick={() => setGroups(groupCount + 1, itemsPerGroup)} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 900 }}>
+            In each group: {itemsPerGroup}
+            <div style={{ display: "flex", gap: 8 }}>
+              <ToggleChip label="-" onClick={() => setGroups(groupCount, itemsPerGroup - 1)} />
+              <ToggleChip label="+" onClick={() => setGroups(groupCount, itemsPerGroup + 1)} />
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 14 }}>
+          {Array.from({ length: groupCount }, (_, groupIndex) => (
+            <div key={groupIndex} style={{ border: `2px solid ${v5Tokens.border}`, borderRadius: 18, background: "#FFFFFF", padding: 12, display: "grid", gap: 10, justifyItems: "center" }}>
+              <strong style={{ color: v5Tokens.navy }}>Group {groupIndex + 1}</strong>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+                {Array.from({ length: itemsPerGroup }, (_, itemIndex) => (
+                  <span key={itemIndex} style={{ width: 28, height: 28, borderRadius: 999, background: v5Tokens.purple, border: `2px solid ${v5Tokens.navy}` }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <strong style={{ color: v5Tokens.navy, fontSize: 24, textAlign: "center" }}>
+          {groupCount} groups of {itemsPerGroup} = {groupCount * itemsPerGroup}
+        </strong>
       </div>
     </ModelBoard>
   );
@@ -1042,6 +1138,8 @@ export function ActivityV5InteractionRenderer(props: RendererProps) {
       return <FlipReflection {...props} />;
     case "build_array":
       return <BuildArray {...props} />;
+    case "equal_groups":
+      return <EqualGroups {...props} />;
     case "move_along_route":
       return <MoveAlongRoute {...props} />;
     case "interactive_ruler":

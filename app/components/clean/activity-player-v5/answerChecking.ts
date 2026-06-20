@@ -24,6 +24,10 @@ function samePlacements(
   return expectedEntries.every(([objectId, targetId]) => actual?.[objectId] === targetId);
 }
 
+function normaliseSentence(value?: string) {
+  return String(value ?? "").toLowerCase().replace(/\s+/g, "").replace(/×/g, "x").replace(/÷/g, "/");
+}
+
 function closeEnough(actual?: number, expected?: number, tolerance = 0) {
   if (typeof actual !== "number" || typeof expected !== "number") return false;
   return Math.abs(actual - expected) <= tolerance;
@@ -265,6 +269,51 @@ function sameMoneyValue(
   return sameList(response.selectedTokenIds, correct.selectedTokenIds);
 }
 
+function sameArrayValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actualRows = response.rows ?? 0;
+  const actualColumns = response.columns ?? 0;
+  const expectedRows = correct.targetRows ?? correct.rows ?? 0;
+  const expectedColumns = correct.targetColumns ?? correct.columns ?? 0;
+  const actualTotal = response.total ?? actualRows * actualColumns;
+  const expectedTotal = correct.targetTotal ?? correct.total ?? expectedRows * expectedColumns;
+
+  const exact = actualRows === expectedRows && actualColumns === expectedColumns;
+  const commutative = Boolean(correct.allowCommutativeArrays) && actualRows === expectedColumns && actualColumns === expectedRows;
+  const hasArrayShapeTarget = Boolean(expectedRows && expectedColumns);
+  const totalOnly = !hasArrayShapeTarget && Boolean(correct.targetTotal) && actualTotal === expectedTotal;
+  const multiplicationOk = correct.multiplicationSentence
+    ? normaliseSentence(response.multiplicationSentence) === normaliseSentence(correct.multiplicationSentence)
+    : true;
+
+  return (exact || commutative || totalOnly) && multiplicationOk;
+}
+
+function sameEqualGroupsValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actualGroups = response.groupCount ?? 0;
+  const actualItems = response.itemsPerGroup ?? 0;
+  const expectedGroups = correct.targetGroupCount ?? correct.groupCount ?? 0;
+  const expectedItems = correct.targetItemsPerGroup ?? correct.itemsPerGroup ?? 0;
+  const actualTotal = response.total ?? actualGroups * actualItems;
+  const expectedTotal = correct.targetTotal ?? correct.total ?? expectedGroups * expectedItems;
+  const groupsOk = expectedGroups ? actualGroups === expectedGroups : true;
+  const itemsOk = expectedItems ? actualItems === expectedItems : true;
+  const totalOk = expectedTotal ? actualTotal === expectedTotal : true;
+  const repeatedOk = correct.repeatedAdditionSentence
+    ? normaliseSentence(response.repeatedAdditionSentence) === normaliseSentence(correct.repeatedAdditionSentence)
+    : true;
+  const divisionOk = correct.divisionSentence
+    ? normaliseSentence(response.divisionSentence) === normaliseSentence(correct.divisionSentence)
+    : true;
+
+  return groupsOk && itemsOk && totalOk && repeatedOk && divisionOk;
+}
+
 function expectedSummary(activity: ActivityV5) {
   const correct = activity.correctState;
   switch (activity.interactionType) {
@@ -279,7 +328,9 @@ function expectedSummary(activity: ActivityV5) {
     case "flip_reflection":
       return `Complete ${normaliseList(correct.reflectedCells).join(", ")}`;
     case "build_array":
-      return `${correct.rows ?? 0} rows of ${correct.columns ?? 0}`;
+      return `${correct.targetRows ?? correct.rows ?? 0} rows of ${correct.targetColumns ?? correct.columns ?? 0}`;
+    case "equal_groups":
+      return `${correct.targetGroupCount ?? correct.groupCount ?? 0} groups of ${correct.targetItemsPerGroup ?? correct.itemsPerGroup ?? 0}`;
     case "move_along_route":
       return correct.finalPosition ? `Finish at ${correct.finalPosition}` : `Route ${normaliseList(correct.routePath).join(", ")}`;
     case "interactive_ruler":
@@ -327,7 +378,10 @@ export function checkActivityV5Answer(
       isCorrect = sameList(response.reflectedCells, correct.reflectedCells);
       break;
     case "build_array":
-      isCorrect = response.rows === correct.rows && response.columns === correct.columns;
+      isCorrect = sameArrayValue(response, correct);
+      break;
+    case "equal_groups":
+      isCorrect = sameEqualGroupsValue(response, correct);
       break;
     case "move_along_route":
       isCorrect = correct.finalPosition
