@@ -256,6 +256,8 @@ const GSR_VISUALISE_BUILD_2D_3D_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S008-Visualise-And-Build-Shapes-In-Two-And-Three-Dimensions.pdf";
 const GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S009-Reason-About-Geometric-Relationships-And-Transformations.pdf";
+const GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE =
+  "MYL-MATH-GSR-UE-S010-Apply-Spatial-Reasoning-In-Design-Mapping-And-Layout.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1275,6 +1277,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::lower-secondary::apply-spatial-reasoning-in-design-mapping-and-layout",
+    stepKey: "apply-spatial-reasoning-in-design-mapping-and-layout",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 2,
+    pathwayStepTitle: "Apply spatial reasoning in design, mapping, and layout",
+    title: "Apply Spatial Reasoning In Design, Mapping, And Layout",
+    concept:
+      "Read maps, follow routes, design layouts, reason about floor plans, use scale, and apply compass directions in practical spatial planning.",
+    includesAnswerSheet: false,
+    fileName: GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
