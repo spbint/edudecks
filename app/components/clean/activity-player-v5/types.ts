@@ -70,6 +70,11 @@ export type ActivityV5ResponseState = {
   measuredLength?: number;
   hour?: number;
   minute?: number;
+  targetHour?: number;
+  targetMinute?: number;
+  allowedMinutes?: number[];
+  clockMode?: "read" | "set" | "match";
+  eventContext?: string;
   shadedParts?: number;
   denominator?: number;
   wholeCount?: number;
@@ -79,7 +84,7 @@ export type ActivityV5ResponseState = {
   allowedFractions?: ActivityV5FractionSpec[];
   equivalentAccepted?: boolean;
   decimalEquivalent?: number;
-  labelMode?: "fraction" | "decimal" | "percent" | "mixed";
+  labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both";
   promptValue?: number | string;
   numberLineValue?: number | string;
   tens?: number;

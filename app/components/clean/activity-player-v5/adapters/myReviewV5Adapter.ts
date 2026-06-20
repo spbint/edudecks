@@ -206,6 +206,43 @@ function moneyValue(value: unknown) {
   return numberValue(text);
 }
 
+function timeValue(value: unknown) {
+  const text = String(value ?? "").trim().toLowerCase();
+  const digital = text.match(/(\d{1,2})\s*:\s*(\d{2})/);
+  if (digital) {
+    const hour = Number(digital[1]);
+    const minute = Number(digital[2]);
+    if (Number.isFinite(hour) && Number.isFinite(minute)) {
+      return { hour: hour % 12 || 12, minute: ((minute % 60) + 60) % 60 };
+    }
+  }
+  const oclock = text.match(/(\d{1,2})\s*(?:o'clock|oclock|:00)?/);
+  if (oclock) {
+    const hour = Number(oclock[1]);
+    if (Number.isFinite(hour)) return { hour: hour % 12 || 12, minute: 0 };
+  }
+  return null;
+}
+
+function clockConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const parsed = timeValue(question.answer) ?? timeValue(question.prompt);
+  const hour = visual?.targetHour ?? visual?.hour ?? parsed?.hour;
+  const minute = visual?.targetMinute ?? visual?.minute ?? parsed?.minute ?? 0;
+  if (!hour || hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+  return {
+    hour,
+    minute,
+    targetHour: hour,
+    targetMinute: minute,
+    allowedMinutes: visual?.allowedMinutes ?? (minute % 5 === 0 ? Array.from({ length: 12 }, (_, index) => index * 5) : Array.from({ length: 60 }, (_, index) => index)),
+    clockMode: visual?.clockMode ?? "set",
+    labelMode: visual?.labelMode ?? "both",
+    eventContext: visual?.eventContext,
+    tolerance: 0,
+  };
+}
+
 function choiceObjects(question: MathsReviewQuestion): ActivityV5Object[] {
   const labels = question.choices?.length
     ? question.choices
@@ -339,14 +376,15 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
   }
 
   if (visual.visualModel === "clock_face") {
-    if (!visual.hour) return null;
+    const config = clockConfig(question);
+    if (!config) return null;
     return {
       ...base(question),
       interactionType: "interactive_clock",
       visualModel: "clock_face",
       objects: [],
       targets: [],
-      correctState: { hour: visual.hour, minute: visual.minute ?? 0 },
+      correctState: config,
     };
   }
 

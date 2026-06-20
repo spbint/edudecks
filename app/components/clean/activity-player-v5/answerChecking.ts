@@ -106,6 +106,37 @@ function sameFractionBarValue(
     : sameFractionExact(actual, expected);
 }
 
+function normaliseClockHour(hour?: number) {
+  if (typeof hour !== "number" || !Number.isFinite(hour)) return null;
+  const wrapped = hour % 12;
+  return wrapped === 0 ? 12 : wrapped;
+}
+
+function normaliseMinute(minute?: number) {
+  if (typeof minute !== "number" || !Number.isFinite(minute)) return null;
+  return ((Math.round(minute) % 60) + 60) % 60;
+}
+
+function sameClockValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actualHour = normaliseClockHour(response.hour);
+  const expectedHour = normaliseClockHour(correct.targetHour ?? correct.hour);
+  const actualMinute = normaliseMinute(response.minute ?? 0);
+  const expectedMinute = normaliseMinute(correct.targetMinute ?? correct.minute ?? 0);
+
+  if (actualHour === null || expectedHour === null || actualMinute === null || expectedMinute === null) {
+    return false;
+  }
+
+  if (correct.allowedMinutes?.length && !correct.allowedMinutes.includes(actualMinute)) {
+    return false;
+  }
+
+  return actualHour === expectedHour && closeEnough(actualMinute, expectedMinute, correct.tolerance ?? 0);
+}
+
 function sameNumberLineValue(
   response: ActivityV5ResponseState,
   correct: ActivityV5["correctState"],
@@ -153,7 +184,7 @@ function expectedSummary(activity: ActivityV5) {
     case "interactive_ruler":
       return `${correct.measuredLength ?? 0} units`;
     case "interactive_clock":
-      return `${correct.hour ?? 0}:${String(correct.minute ?? 0).padStart(2, "0")}`;
+      return `${normaliseClockHour(correct.targetHour ?? correct.hour) ?? 0}:${String(normaliseMinute(correct.targetMinute ?? correct.minute ?? 0) ?? 0).padStart(2, "0")}`;
     case "interactive_fraction_bar":
       return `${correct.wholeCount ? `${correct.wholeCount} ` : ""}${correct.targetNumerator ?? correct.shadedParts ?? 0}/${correct.targetDenominator ?? correct.denominator ?? 1}`;
     case "interactive_number_line":
@@ -202,7 +233,7 @@ export function checkActivityV5Answer(
       isCorrect = closeEnough(response.measuredLength, correct.measuredLength, correct.tolerance ?? 0);
       break;
     case "interactive_clock":
-      isCorrect = response.hour === correct.hour && response.minute === correct.minute;
+      isCorrect = sameClockValue(response, correct);
       break;
     case "interactive_fraction_bar":
       isCorrect = sameFractionBarValue(response, correct);

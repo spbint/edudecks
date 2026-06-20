@@ -50,10 +50,15 @@ export type MathsReviewVisualMetadata = {
   allowedFractions?: Array<{ numerator: number; denominator: number; wholeCount?: number; decimalEquivalent?: number }>;
   equivalentAccepted?: boolean;
   decimalEquivalent?: number;
-  labelMode?: "fraction" | "decimal" | "percent" | "mixed";
+  labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both";
   promptValue?: number | string;
   hour?: number;
   minute?: number;
+  targetHour?: number;
+  targetMinute?: number;
+  allowedMinutes?: number[];
+  clockMode?: "read" | "set" | "match";
+  eventContext?: string;
   unit?: string;
   note?: string;
 };
@@ -175,6 +180,25 @@ function parseFractionValue(value: unknown) {
   return null;
 }
 
+function parseTimeValue(value: unknown) {
+  const text = String(value ?? "").trim().toLowerCase();
+  const digital = text.match(/(\d{1,2})\s*:\s*(\d{2})/);
+  if (digital) {
+    const hour = Number(digital[1]);
+    const minute = Number(digital[2]);
+    if (Number.isFinite(hour) && Number.isFinite(minute)) {
+      const wrapped = hour % 12 || 12;
+      return { hour: wrapped, minute };
+    }
+  }
+  const oclock = text.match(/(\d{1,2})\s*(?:o'clock|oclock|:00)?/);
+  if (oclock) {
+    const hour = Number(oclock[1]);
+    if (Number.isFinite(hour)) return { hour: hour % 12 || 12, minute: 0 };
+  }
+  return null;
+}
+
 function buildMathsReviewVisual(
   bank: MathsReviewBank,
   question: Omit<MathsReviewQuestion, "id" | "bankId" | "bankLabel" | "group">,
@@ -278,13 +302,19 @@ function buildMathsReviewVisual(
   }
 
   if (bank.group === "Time") {
-    const hour = Number(question.answer.match(/\d+/)?.[0] ?? numbers[0] ?? 3);
-    const minute = question.answer.includes(":30") ? 30 : question.answer.includes(":15") ? 15 : 0;
+    const parsed = parseTimeValue(question.answer) ?? parseTimeValue(question.prompt);
+    const hour = parsed?.hour ?? Number(question.answer.match(/\d+/)?.[0] ?? numbers[0] ?? 3);
+    const minute = parsed?.minute ?? (question.answer.includes(":45") ? 45 : question.answer.includes(":30") ? 30 : question.answer.includes(":15") ? 15 : 0);
     return {
       visualModel: "clock_face",
       interactionType: "interactive_clock",
       hour,
       minute,
+      targetHour: hour,
+      targetMinute: minute,
+      allowedMinutes: bank.id === "1-min" ? Array.from({ length: 60 }, (_, index) => index) : bank.id === "5-min" ? Array.from({ length: 12 }, (_, index) => index * 5) : [0, 15, 30, 45],
+      clockMode: bank.id.includes("match") ? "match" : "set",
+      labelMode: "both",
       note: "Clock model for reading and converting time.",
     };
   }

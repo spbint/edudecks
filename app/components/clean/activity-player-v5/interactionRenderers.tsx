@@ -361,13 +361,73 @@ function InteractiveRuler({ activity, response, onChange }: RendererProps) {
 }
 
 function InteractiveClock({ activity, response, onChange }: RendererProps) {
-  const hour = response.hour ?? 3;
-  const minute = response.minute ?? 0;
+  const correct = activity.correctState;
+  const hour = response.hour ?? correct.targetHour ?? correct.hour ?? 3;
+  const minute = response.minute ?? correct.targetMinute ?? correct.minute ?? 0;
+  const allowedMinutes = correct.allowedMinutes ?? [0, 15, 30, 45];
+  const labelMode = correct.labelMode ?? "both";
+  const wrapHour = (value: number) => {
+    const wrapped = value % 12;
+    return wrapped === 0 ? 12 : wrapped;
+  };
+  const setTime = (nextHour: number, nextMinute = minute) => {
+    onChange(mergeResponse(response, {
+      hour: wrapHour(nextHour),
+      minute: ((Math.round(nextMinute) % 60) + 60) % 60,
+      targetHour: wrapHour(nextHour),
+      targetMinute: ((Math.round(nextMinute) % 60) + 60) % 60,
+    }));
+  };
+  const digital = `${wrapHour(hour)}:${String(minute).padStart(2, "0")}`;
   return (
     <ModelBoard label={activity.prompt}>
-      <ClockFace hour={hour} minute={minute} />
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-        {[3, 6, 9, 12].map((value) => <ToggleChip key={value} label={`${value} o'clock`} selected={hour === value && minute === 0} onClick={() => onChange(mergeResponse(response, { hour: value, minute: 0 }))} />)}
+      <div style={{ display: "grid", gap: 18, justifyItems: "center" }}>
+        {correct.eventContext ? <strong style={{ color: v5Tokens.navy }}>{correct.eventContext}</strong> : null}
+        {labelMode !== "digital" ? <ClockFace hour={hour} minute={minute} /> : null}
+        {labelMode !== "analogue" ? (
+          <div style={{ color: v5Tokens.navy, fontSize: 34, fontWeight: 950, letterSpacing: 0 }}>
+            {digital}
+          </div>
+        ) : null}
+        <div style={{ display: "grid", gap: 10, width: "min(620px, 100%)" }}>
+          <label style={{ display: "grid", gap: 6, color: v5Tokens.navy, fontWeight: 850 }}>
+            Hour hand: {wrapHour(hour)}
+            <input
+              type="range"
+              min={1}
+              max={12}
+              step={1}
+              value={wrapHour(hour)}
+              onChange={(event) => setTime(Number(event.target.value), minute)}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6, color: v5Tokens.navy, fontWeight: 850 }}>
+            Minute hand: {String(minute).padStart(2, "0")}
+            <input
+              type="range"
+              min={0}
+              max={55}
+              step={5}
+              value={Math.round(minute / 5) * 5}
+              onChange={(event) => setTime(hour, Number(event.target.value))}
+            />
+          </label>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((value) => (
+            <ToggleChip key={value} label={`${value}`} selected={wrapHour(hour) === value} onClick={() => setTime(value, minute)} />
+          ))}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+          {allowedMinutes.map((value) => (
+            <ToggleChip
+              key={value}
+              label={`:${String(value).padStart(2, "0")}`}
+              selected={minute === value}
+              onClick={() => setTime(hour, value)}
+            />
+          ))}
+        </div>
       </div>
     </ModelBoard>
   );

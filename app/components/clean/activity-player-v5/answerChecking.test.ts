@@ -169,6 +169,71 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks o'clock clock answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_clock",
+        visualModel: "clock_face",
+        correctState: { targetHour: 3, targetMinute: 0, allowedMinutes: [0, 15, 30, 45] },
+      }),
+      { hour: 3, minute: 0 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks half-hour clock answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_clock",
+        visualModel: "clock_face",
+        correctState: { targetHour: 6, targetMinute: 30, allowedMinutes: [0, 15, 30, 45] },
+      }),
+      { hour: 6, minute: 30 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks quarter-hour clock answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_clock",
+        visualModel: "clock_face",
+        correctState: { targetHour: 7, targetMinute: 15, allowedMinutes: [0, 15, 30, 45] },
+      }),
+      { hour: 7, minute: 15 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks 5-minute clock answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_clock",
+        visualModel: "clock_face",
+        correctState: { targetHour: 12, targetMinute: 5, allowedMinutes: Array.from({ length: 12 }, (_, index) => index * 5) },
+      }),
+      { hour: 12, minute: 5 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("handles 12-hour clock wrap", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_clock",
+        visualModel: "clock_face",
+        correctState: { targetHour: 12, targetMinute: 0 },
+      }),
+      { hour: 24, minute: 0 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("keeps seeded shuffle stable", () => {
     const first = seededShuffle(["A", "B", "C", "D"], "sample-seed");
     const second = seededShuffle(["A", "B", "C", "D"], "sample-seed");
