@@ -28,6 +28,39 @@ function closeEnough(actual?: number, expected?: number, tolerance = 0) {
   return Math.abs(actual - expected) <= tolerance;
 }
 
+function numericValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Number(String(value ?? "").trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sameNumberLineValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actualRaw = response.placedValue ?? response.numberLineValue;
+  const expectedRaw = correct.targetValue ?? correct.placedValue ?? correct.numberLineValue;
+
+  if (correct.allowedValues?.length) {
+    return correct.allowedValues.some((allowed) => {
+      const actual = numericValue(actualRaw);
+      const allowedNumber = numericValue(allowed);
+      if (actual !== null && allowedNumber !== null) {
+        return closeEnough(actual, allowedNumber, correct.tolerance ?? 0);
+      }
+      return String(actualRaw ?? "").trim() === String(allowed).trim();
+    });
+  }
+
+  const actual = numericValue(actualRaw);
+  const expected = numericValue(expectedRaw);
+  if (actual !== null && expected !== null) {
+    return closeEnough(actual, expected, correct.tolerance ?? 0);
+  }
+
+  return String(actualRaw ?? "").trim() === String(expectedRaw ?? "").trim();
+}
+
 function expectedSummary(activity: ActivityV5) {
   const correct = activity.correctState;
   switch (activity.interactionType) {
@@ -52,7 +85,7 @@ function expectedSummary(activity: ActivityV5) {
     case "interactive_fraction_bar":
       return `${correct.shadedParts ?? 0}/${correct.denominator ?? 1}`;
     case "interactive_number_line":
-      return String(correct.numberLineValue ?? "");
+      return String(correct.targetValue ?? correct.placedValue ?? correct.numberLineValue ?? "");
     case "build_place_value":
       return `${correct.hundreds ?? 0} hundreds, ${correct.tens ?? 0} tens, ${correct.ones ?? 0} ones`;
     case "generic_money_model":
@@ -103,7 +136,7 @@ export function checkActivityV5Answer(
       isCorrect = response.shadedParts === correct.shadedParts && response.denominator === correct.denominator;
       break;
     case "interactive_number_line":
-      isCorrect = String(response.numberLineValue ?? "") === String(correct.numberLineValue ?? "");
+      isCorrect = sameNumberLineValue(response, correct);
       break;
     case "build_place_value":
       isCorrect =

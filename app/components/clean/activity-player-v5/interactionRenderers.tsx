@@ -400,25 +400,91 @@ function FractionBar({ activity, response, onChange }: RendererProps) {
 }
 
 function NumberLine({ activity, response, onChange }: RendererProps) {
-  const value = Number(response.numberLineValue ?? 5);
+  const correct = activity.correctState;
+  const min = Number(correct.min ?? 0);
+  const max = Number(correct.max ?? 10);
+  const step = Number(correct.step ?? 1);
+  const safeMin = Number.isFinite(min) ? min : 0;
+  const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 10;
+  const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
+  const rawValue = response.placedValue ?? response.numberLineValue ?? correct.targetValue ?? correct.numberLineValue ?? safeMin;
+  const numericValue = Number(rawValue);
+  const value = Number.isFinite(numericValue) ? Math.min(safeMax, Math.max(safeMin, numericValue)) : safeMin;
+  const tickCount = Math.floor((safeMax - safeMin) / safeStep) + 1;
+  const displayStep = tickCount > 101 ? (safeMax - safeMin) / 100 : safeStep;
+  const displayTickCount = Math.floor((safeMax - safeMin) / displayStep) + 1;
+  const ticks = Array.from({ length: displayTickCount }, (_, index) => {
+    const tickValue = Number((safeMin + index * displayStep).toFixed(6));
+    return tickValue > safeMax ? safeMax : tickValue;
+  });
+  const labelEvery = ticks.length <= 12 ? 1 : Math.ceil((ticks.length - 1) / 8);
+  const percentFor = (candidate: number) =>
+    ((candidate - safeMin) / (safeMax - safeMin)) * 100;
+  const setValue = (nextValue: number) => {
+    const rounded = Number(nextValue.toFixed(6));
+    onChange(mergeResponse(response, { placedValue: rounded, numberLineValue: rounded }));
+  };
+
   return (
     <ModelBoard label={activity.prompt}>
-      <div style={{ display: "grid", gap: 14 }}>
-        <div style={{ position: "relative", height: 78 }}>
-          <span style={{ position: "absolute", left: 0, right: 0, top: 38, height: 4, background: v5Tokens.navy, borderRadius: 999 }} />
-          {Array.from({ length: 11 }, (_, index) => (
+      <div style={{ display: "grid", gap: 18 }}>
+        <div style={{ position: "relative", height: 110, padding: "0 12px" }}>
+          <span style={{ position: "absolute", left: 12, right: 12, top: 48, height: 4, background: v5Tokens.navy, borderRadius: 999 }} />
+          {ticks.map((tick, index) => {
+            const major = index === 0 || index === ticks.length - 1 || index % labelEvery === 0;
+            const label = correct.tickLabels?.[String(tick)] ?? String(tick);
+            return (
             <button
-              key={index}
+              key={`${tick}-${index}`}
               type="button"
-              onClick={() => onChange(mergeResponse(response, { numberLineValue: index }))}
-              style={{ position: "absolute", left: `${index * 10}%`, top: 19, transform: "translateX(-50%)", border: 0, background: "transparent", color: v5Tokens.navy, fontWeight: 800, cursor: "pointer" }}
+              onClick={() => setValue(tick)}
+              style={{
+                position: "absolute",
+                left: `calc(${percentFor(tick)}% + ${12 - percentFor(tick) * 0.24}px)`,
+                top: major ? 25 : 34,
+                transform: "translateX(-50%)",
+                border: 0,
+                background: "transparent",
+                color: v5Tokens.navy,
+                fontWeight: 800,
+                cursor: "pointer",
+                padding: 0,
+                minWidth: 28,
+              }}
             >
-              <span style={{ display: "block", width: 3, height: 22, background: v5Tokens.navy, margin: "0 auto 6px" }} />
-              {index}
+              <span style={{ display: "block", width: major ? 4 : 2, height: major ? 26 : 16, background: v5Tokens.navy, margin: "0 auto 6px", borderRadius: 999 }} />
+              {major ? <span style={{ fontSize: 12 }}>{label}</span> : null}
             </button>
-          ))}
-          <span style={{ position: "absolute", left: `${value * 10}%`, top: 0, transform: "translateX(-50%)", color: v5Tokens.purple, fontWeight: 900 }}>marker</span>
+            );
+          })}
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: `calc(${percentFor(value)}% + ${12 - percentFor(value) * 0.24}px)`,
+              top: 6,
+              transform: "translateX(-50%)",
+              width: 24,
+              height: 24,
+              borderRadius: 999,
+              background: v5Tokens.purple,
+              border: "3px solid #FFFFFF",
+              boxShadow: "0 8px 18px rgba(108,77,246,0.24)",
+            }}
+          />
         </div>
+        <label style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 800 }}>
+          Marker value: {value}
+          <input
+            type="range"
+            min={safeMin}
+            max={safeMax}
+            step={safeStep}
+            value={value}
+            onChange={(event) => setValue(Number(event.target.value))}
+            style={{ width: "100%" }}
+          />
+        </label>
       </div>
     </ModelBoard>
   );

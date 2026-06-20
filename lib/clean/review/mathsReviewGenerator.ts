@@ -34,6 +34,11 @@ export type MathsReviewVisualMetadata = {
   values?: number[];
   labels?: string[];
   targetValue?: number | string;
+  min?: number;
+  max?: number;
+  step?: number;
+  tickLabels?: Record<string, string>;
+  allowedValues?: Array<number | string>;
   rows?: number;
   columns?: number;
   shadedParts?: number;

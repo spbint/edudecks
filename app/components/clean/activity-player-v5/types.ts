@@ -72,6 +72,13 @@ export type ActivityV5ResponseState = {
   moneyTotal?: number;
   selectedTokenIds?: string[];
   selectedOption?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  tickLabels?: Record<string, string>;
+  targetValue?: number | string;
+  allowedValues?: Array<number | string>;
+  placedValue?: number | string;
 };
 
 export type ActivityV5CorrectState = ActivityV5ResponseState & {

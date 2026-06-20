@@ -65,6 +65,45 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks exact dynamic number-line values", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_number_line",
+        visualModel: "number_line",
+        correctState: { min: 0, max: 100, step: 10, targetValue: 70 },
+      }),
+      { placedValue: 70 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks decimal number-line values with tolerance", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_number_line",
+        visualModel: "number_line",
+        correctState: { min: 0, max: 1, step: 0.1, targetValue: 0.3, tolerance: 0.02 },
+      }),
+      { placedValue: 0.31 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks negative number-line ranges", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_number_line",
+        visualModel: "number_line",
+        correctState: { min: -10, max: 10, step: 1, targetValue: -4 },
+      }),
+      { placedValue: -4 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("keeps seeded shuffle stable", () => {
     const first = seededShuffle(["A", "B", "C", "D"], "sample-seed");
     const second = seededShuffle(["A", "B", "C", "D"], "sample-seed");

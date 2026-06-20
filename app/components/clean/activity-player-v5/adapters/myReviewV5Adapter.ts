@@ -6,8 +6,130 @@ import type {
 import type { MathsReviewQuestion } from "@/lib/clean/review/mathsReviewGenerator";
 
 function numberValue(value: unknown) {
-  const parsed = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = String(value ?? "").trim().toLowerCase();
+  const fraction = text.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+  if (fraction) {
+    const numerator = Number(fraction[1]);
+    const denominator = Number(fraction[2]);
+    if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0) {
+      return numerator / denominator;
+    }
+  }
+  const parsed = Number(text.replace(/,/g, "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function decimalPlaces(value: number) {
+  const text = String(value);
+  return text.includes(".") ? text.split(".")[1]?.length ?? 0 : 0;
+}
+
+function stepFromValue(value: number, rawValue: unknown) {
+  const text = String(rawValue ?? "").trim();
+  const fraction = text.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+  if (fraction) {
+    const denominator = Number(fraction[2]);
+    if (Number.isFinite(denominator) && denominator > 0) return 1 / denominator;
+  }
+  const places = decimalPlaces(value);
+  if (places >= 2) return 0.01;
+  if (places === 1) return 0.1;
+  return 1;
+}
+
+function uniqueNumbers(values: Array<number | null>) {
+  return [...new Set(values.filter((value): value is number => value !== null && Number.isFinite(value)))];
+}
+
+function numberLineConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const targetRaw = visual?.targetValue ?? question.answer;
+  const target = numberValue(targetRaw);
+  if (target === null) return null;
+
+  const values = uniqueNumbers([
+    target,
+    ...(visual?.values ?? []).map(numberValue),
+    ...question.acceptableAnswers.map(numberValue),
+  ]);
+  const low = Math.min(...values, target);
+  const high = Math.max(...values, target);
+  const defaultStep = stepFromValue(target, targetRaw);
+
+  let min = Number.isFinite(visual?.min) ? Number(visual?.min) : 0;
+  let max = Number.isFinite(visual?.max) ? Number(visual?.max) : 10;
+  let step = Number.isFinite(visual?.step) ? Number(visual?.step) : defaultStep;
+
+  if (!Number.isFinite(visual?.min) || !Number.isFinite(visual?.max)) {
+    if (low < 0) {
+      min = Math.min(-10, Math.floor(low));
+      max = Math.max(10, Math.ceil(high));
+      step = Math.max(step, max - min > 20 ? 5 : 1);
+    } else if (high <= 1 && defaultStep < 1) {
+      min = 0;
+      max = 1;
+      step = defaultStep <= 0.01 ? 0.01 : defaultStep <= 0.1 ? 0.1 : 0.25;
+    } else if (high <= 2 && defaultStep < 1) {
+      min = 0;
+      max = 2;
+      step = Math.min(defaultStep, 0.5);
+    } else if (high <= 5 && defaultStep < 1) {
+      min = 0;
+      max = 5;
+      step = Math.min(defaultStep, 0.5);
+    } else if (high <= 10) {
+      min = 0;
+      max = 10;
+      step = 1;
+    } else if (high <= 20) {
+      min = 0;
+      max = 20;
+      step = 1;
+    } else if (high <= 100) {
+      min = 0;
+      max = 100;
+      step = 10;
+    } else if (high <= 1000) {
+      min = 0;
+      max = Math.ceil(high / 100) * 100;
+      step = 100;
+    } else {
+      min = Math.floor(low / 1000) * 1000;
+      max = Math.ceil(high / 1000) * 1000;
+      step = 1000;
+    }
+  }
+
+  if (target < min) min = Math.floor(target);
+  if (target > max) max = Math.ceil(target);
+  if (max <= min) max = min + Math.max(step, 1);
+
+  const tolerance = step < 1 ? step / 4 : 0;
+  const tickLabels = {
+    ...(visual?.tickLabels ?? {}),
+    ...(min === 0 && max === 1
+      ? {
+          "0": "0",
+          "0.25": "1/4",
+          "0.5": "1/2",
+          "0.75": "3/4",
+          "1": "1",
+        }
+      : {}),
+  };
+
+  return {
+    min,
+    max,
+    step,
+    targetValue: Number(target.toFixed(6)),
+    placedValue: Number(target.toFixed(6)),
+    numberLineValue: Number(target.toFixed(6)),
+    allowedValues: uniqueNumbers([target, ...question.acceptableAnswers.map(numberValue)]),
+    tolerance,
+    tickLabels,
+  };
 }
 
 function moneyValue(value: unknown) {
@@ -82,15 +204,15 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
   if (!visual) return null;
 
   if (visual.visualModel === "number_line") {
-    const target = numberValue(visual.targetValue ?? question.answer);
-    if (target === null || target < 0 || target > 10 || !Number.isInteger(target)) return null;
+    const config = numberLineConfig(question);
+    if (!config) return null;
     return {
       ...base(question),
       interactionType: "interactive_number_line",
       visualModel: "number_line",
       objects: [],
       targets: [],
-      correctState: { numberLineValue: target },
+      correctState: config,
     };
   }
 
