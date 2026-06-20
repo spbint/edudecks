@@ -1,6 +1,7 @@
 import type {
   ActivityV5,
   ActivityV5CheckResult,
+  ActivityV5FractionSpec,
   ActivityV5ResponseState,
 } from "@/app/components/clean/activity-player-v5/types";
 
@@ -32,6 +33,77 @@ function numericValue(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const parsed = Number(String(value ?? "").trim());
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function fractionFromState(state: ActivityV5ResponseState): ActivityV5FractionSpec | null {
+  const denominator = state.denominator ?? state.targetDenominator;
+  const numerator =
+    state.shadedParts ??
+    state.targetNumerator ??
+    (state.selectedParts?.length ? state.selectedParts.length : undefined);
+
+  if (
+    typeof numerator !== "number" ||
+    typeof denominator !== "number" ||
+    !Number.isFinite(numerator) ||
+    !Number.isFinite(denominator) ||
+    denominator <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    numerator,
+    denominator,
+    wholeCount: state.wholeCount ?? 0,
+    decimalEquivalent: state.decimalEquivalent,
+  };
+}
+
+function fractionValue(fraction: ActivityV5FractionSpec) {
+  return (fraction.wholeCount ?? 0) + fraction.numerator / fraction.denominator;
+}
+
+function sameFractionExact(actual: ActivityV5FractionSpec, expected: ActivityV5FractionSpec) {
+  return (
+    (actual.wholeCount ?? 0) === (expected.wholeCount ?? 0) &&
+    actual.numerator === expected.numerator &&
+    actual.denominator === expected.denominator
+  );
+}
+
+function sameFractionEquivalent(
+  actual: ActivityV5FractionSpec,
+  expected: ActivityV5FractionSpec,
+  tolerance = 0,
+) {
+  return closeEnough(fractionValue(actual), fractionValue(expected), tolerance);
+}
+
+function sameFractionBarValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actual = fractionFromState(response);
+  const expected = fractionFromState(correct);
+
+  if (!actual || !expected) return false;
+
+  if (correct.allowedFractions?.length) {
+    return correct.allowedFractions.some((allowed) =>
+      correct.equivalentAccepted
+        ? sameFractionEquivalent(actual, allowed, correct.tolerance ?? 0)
+        : sameFractionExact(actual, allowed),
+    );
+  }
+
+  if (typeof correct.decimalEquivalent === "number") {
+    return closeEnough(fractionValue(actual), correct.decimalEquivalent, correct.tolerance ?? 0.001);
+  }
+
+  return correct.equivalentAccepted
+    ? sameFractionEquivalent(actual, expected, correct.tolerance ?? 0)
+    : sameFractionExact(actual, expected);
 }
 
 function sameNumberLineValue(
@@ -83,7 +155,7 @@ function expectedSummary(activity: ActivityV5) {
     case "interactive_clock":
       return `${correct.hour ?? 0}:${String(correct.minute ?? 0).padStart(2, "0")}`;
     case "interactive_fraction_bar":
-      return `${correct.shadedParts ?? 0}/${correct.denominator ?? 1}`;
+      return `${correct.wholeCount ? `${correct.wholeCount} ` : ""}${correct.targetNumerator ?? correct.shadedParts ?? 0}/${correct.targetDenominator ?? correct.denominator ?? 1}`;
     case "interactive_number_line":
       return String(correct.targetValue ?? correct.placedValue ?? correct.numberLineValue ?? "");
     case "build_place_value":
@@ -133,7 +205,7 @@ export function checkActivityV5Answer(
       isCorrect = response.hour === correct.hour && response.minute === correct.minute;
       break;
     case "interactive_fraction_bar":
-      isCorrect = response.shadedParts === correct.shadedParts && response.denominator === correct.denominator;
+      isCorrect = sameFractionBarValue(response, correct);
       break;
     case "interactive_number_line":
       isCorrect = sameNumberLineValue(response, correct);

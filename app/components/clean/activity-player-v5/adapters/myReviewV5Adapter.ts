@@ -1,5 +1,6 @@
 import type {
   ActivityV5,
+  ActivityV5FractionSpec,
   ActivityV5Object,
   ActivityV5ResponseState,
 } from "@/app/components/clean/activity-player-v5/types";
@@ -40,6 +41,70 @@ function stepFromValue(value: number, rawValue: unknown) {
 
 function uniqueNumbers(values: Array<number | null>) {
   return [...new Set(values.filter((value): value is number => value !== null && Number.isFinite(value)))];
+}
+
+function fractionSpec(value: unknown): ActivityV5FractionSpec | null {
+  const text = String(value ?? "").trim().toLowerCase();
+  const mixed = text.match(/^(-?\d+)\s+(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  if (mixed) {
+    const wholeCount = Number(mixed[1]);
+    const numerator = Number(mixed[2]);
+    const denominator = Number(mixed[3]);
+    if (Number.isFinite(wholeCount) && Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0) {
+      return { wholeCount, numerator, denominator, decimalEquivalent: wholeCount + numerator / denominator };
+    }
+  }
+  const fraction = text.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  if (fraction) {
+    const numerator = Number(fraction[1]);
+    const denominator = Number(fraction[2]);
+    if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0) {
+      return { wholeCount: 0, numerator, denominator, decimalEquivalent: numerator / denominator };
+    }
+  }
+  const decimal = numberValue(value);
+  if (decimal !== null && decimal > 0 && decimal < 1) {
+    const denominator = Math.abs(decimal * 4 - Math.round(decimal * 4)) < 0.001 ? 4 : 10;
+    return {
+      wholeCount: 0,
+      numerator: Math.round(decimal * denominator),
+      denominator,
+      decimalEquivalent: decimal,
+    };
+  }
+  return null;
+}
+
+function isFractionSpec(value: ActivityV5FractionSpec | null): value is ActivityV5FractionSpec {
+  return value !== null;
+}
+
+function fractionConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const parsed = fractionSpec(visual?.promptValue ?? question.answer) ?? fractionSpec(question.answer);
+  const denominator = visual?.targetDenominator ?? visual?.denominator ?? parsed?.denominator ?? 0;
+  const numerator = visual?.targetNumerator ?? visual?.shadedParts ?? parsed?.numerator ?? 0;
+  const wholeCount = visual?.wholeCount ?? parsed?.wholeCount ?? 0;
+  if (!denominator || denominator < 1 || numerator < 0 || denominator > 20) return null;
+
+  const totalSelected = wholeCount * denominator + numerator;
+  const allowedFractions: ActivityV5FractionSpec[] =
+    visual?.allowedFractions ?? question.acceptableAnswers.map(fractionSpec).filter(isFractionSpec);
+
+  return {
+    denominator,
+    targetDenominator: denominator,
+    shadedParts: numerator,
+    targetNumerator: numerator,
+    wholeCount,
+    selectedParts: visual?.selectedParts ?? Array.from({ length: totalSelected }, (_, index) => index),
+    allowedFractions,
+    equivalentAccepted: visual?.equivalentAccepted ?? question.acceptableAnswers.length > 1,
+    decimalEquivalent: visual?.decimalEquivalent ?? parsed?.decimalEquivalent,
+    tolerance: typeof visual?.decimalEquivalent === "number" || parsed?.decimalEquivalent !== undefined ? 0.001 : 0,
+    labelMode: visual?.labelMode ?? (wholeCount > 0 ? "mixed" : "fraction"),
+    promptValue: visual?.promptValue ?? question.answer,
+  };
 }
 
 function numberLineConfig(question: MathsReviewQuestion) {
@@ -248,16 +313,15 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
   }
 
   if (visual.visualModel === "fraction_bar") {
-    const denominator = visual.denominator ?? 0;
-    const shadedParts = visual.shadedParts ?? 0;
-    if (!denominator || !shadedParts) return null;
+    const config = fractionConfig(question);
+    if (!config) return null;
     return {
       ...base(question),
       interactionType: "interactive_fraction_bar",
       visualModel: "fraction_bar",
       objects: [],
       targets: [],
-      correctState: { denominator, shadedParts },
+      correctState: config,
     };
   }
 

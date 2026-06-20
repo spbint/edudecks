@@ -43,6 +43,15 @@ export type MathsReviewVisualMetadata = {
   columns?: number;
   shadedParts?: number;
   denominator?: number;
+  wholeCount?: number;
+  targetNumerator?: number;
+  targetDenominator?: number;
+  selectedParts?: number[];
+  allowedFractions?: Array<{ numerator: number; denominator: number; wholeCount?: number; decimalEquivalent?: number }>;
+  equivalentAccepted?: boolean;
+  decimalEquivalent?: number;
+  labelMode?: "fraction" | "decimal" | "percent" | "mixed";
+  promptValue?: number | string;
   hour?: number;
   minute?: number;
   unit?: string;
@@ -138,6 +147,34 @@ function makeChoices(correct: string, distractors: string[]) {
   return shuffle(unique).slice(0, 4);
 }
 
+function parseFractionValue(value: unknown) {
+  const text = String(value ?? "").trim().toLowerCase();
+  const mixed = text.match(/^(-?\d+)\s+(\d+)\s*\/\s*(\d+)$/);
+  if (mixed) {
+    const wholeCount = Number(mixed[1]);
+    const numerator = Number(mixed[2]);
+    const denominator = Number(mixed[3]);
+    if (Number.isFinite(wholeCount) && Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0) {
+      return { wholeCount, numerator, denominator, decimalEquivalent: wholeCount + numerator / denominator };
+    }
+  }
+  const fraction = text.match(/^(-?\d+)\s*\/\s*(\d+)$/);
+  if (fraction) {
+    const numerator = Number(fraction[1]);
+    const denominator = Number(fraction[2]);
+    if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0) {
+      return { wholeCount: 0, numerator, denominator, decimalEquivalent: numerator / denominator };
+    }
+  }
+  const decimal = Number(text.replace(/[^0-9.-]/g, ""));
+  if (Number.isFinite(decimal) && decimal > 0 && decimal < 1) {
+    const denominator = text.includes("0.25") || text.includes(".25") || text.includes("0.75") || text.includes(".75") ? 4 : 10;
+    const numerator = Math.round(decimal * denominator);
+    return { wholeCount: 0, numerator, denominator, decimalEquivalent: decimal };
+  }
+  return null;
+}
+
 function buildMathsReviewVisual(
   bank: MathsReviewBank,
   question: Omit<MathsReviewQuestion, "id" | "bankId" | "bankLabel" | "group">,
@@ -208,11 +245,24 @@ function buildMathsReviewVisual(
   }
 
   if (bank.group === "Fractions and Decimals" || bank.id === "halve") {
+    const parsed = parseFractionValue(question.answer) ?? parseFractionValue(question.acceptableAnswers[0]);
+    const denominator = parsed?.denominator ?? (question.answer === "3/4" ? 4 : 2);
+    const numerator = parsed?.numerator ?? (question.answer === "3/4" ? 3 : 1);
+    const wholeCount = parsed?.wholeCount ?? 0;
     return {
       visualModel: "fraction_bar",
       interactionType: "interactive_fraction_bar",
-      shadedParts: question.answer === "3/4" ? 3 : 1,
-      denominator: question.answer === "3/4" ? 4 : 2,
+      shadedParts: numerator,
+      denominator,
+      targetNumerator: numerator,
+      targetDenominator: denominator,
+      wholeCount,
+      selectedParts: Array.from({ length: wholeCount * denominator + numerator }, (_, index) => index),
+      allowedFractions: parsed ? [parsed] : undefined,
+      equivalentAccepted: bank.id.includes("numberline") || bank.id.includes("decimal") || question.acceptableAnswers.length > 1,
+      decimalEquivalent: parsed?.decimalEquivalent,
+      labelMode: parsed && parsed.decimalEquivalent >= 1 ? "mixed" : bank.id.includes("decimal") ? "decimal" : "fraction",
+      promptValue: question.answer,
       note: "Fraction bar model for part-whole reasoning.",
     };
   }

@@ -50,6 +50,13 @@ export type ActivityV5Target = {
   accepts?: string[];
 };
 
+export type ActivityV5FractionSpec = {
+  numerator: number;
+  denominator: number;
+  wholeCount?: number;
+  decimalEquivalent?: number;
+};
+
 export type ActivityV5ResponseState = {
   placements?: Record<string, string>;
   selectedObjectIds?: string[];
@@ -65,6 +72,15 @@ export type ActivityV5ResponseState = {
   minute?: number;
   shadedParts?: number;
   denominator?: number;
+  wholeCount?: number;
+  targetNumerator?: number;
+  targetDenominator?: number;
+  selectedParts?: number[];
+  allowedFractions?: ActivityV5FractionSpec[];
+  equivalentAccepted?: boolean;
+  decimalEquivalent?: number;
+  labelMode?: "fraction" | "decimal" | "percent" | "mixed";
+  promptValue?: number | string;
   numberLineValue?: number | string;
   tens?: number;
   ones?: number;

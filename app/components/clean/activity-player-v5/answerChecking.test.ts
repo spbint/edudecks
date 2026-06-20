@@ -104,6 +104,71 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks exact fraction-bar answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_fraction_bar",
+        visualModel: "fraction_bar",
+        correctState: { targetNumerator: 3, targetDenominator: 4 },
+      }),
+      { shadedParts: 3, denominator: 4 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("accepts equivalent fraction-bar answers when enabled", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_fraction_bar",
+        visualModel: "fraction_bar",
+        correctState: { targetNumerator: 1, targetDenominator: 2, equivalentAccepted: true },
+      }),
+      { shadedParts: 2, denominator: 4 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("rejects equivalent fraction-bar answers when equivalence is disabled", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_fraction_bar",
+        visualModel: "fraction_bar",
+        correctState: { targetNumerator: 1, targetDenominator: 2, equivalentAccepted: false },
+      }),
+      { shadedParts: 2, denominator: 4 },
+    );
+
+    expect(result.correct).toBe(false);
+  });
+
+  it("checks decimal-equivalent fraction bars with tolerance", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_fraction_bar",
+        visualModel: "fraction_bar",
+        correctState: { targetNumerator: 1, targetDenominator: 2, decimalEquivalent: 0.5, tolerance: 0.001 },
+      }),
+      { shadedParts: 5, denominator: 10 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks mixed-number fraction-bar representations", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_fraction_bar",
+        visualModel: "fraction_bar",
+        correctState: { wholeCount: 1, targetNumerator: 1, targetDenominator: 2, labelMode: "mixed" },
+      }),
+      { wholeCount: 1, shadedParts: 1, denominator: 2 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("keeps seeded shuffle stable", () => {
     const first = seededShuffle(["A", "B", "C", "D"], "sample-seed");
     const second = seededShuffle(["A", "B", "C", "D"], "sample-seed");

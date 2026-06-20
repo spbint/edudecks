@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type {
   ActivityV5,
   ActivityV5Object,
@@ -374,27 +374,113 @@ function InteractiveClock({ activity, response, onChange }: RendererProps) {
 }
 
 function FractionBar({ activity, response, onChange }: RendererProps) {
-  const denominator = response.denominator ?? activity.correctState.denominator ?? 4;
-  const shaded = response.shadedParts ?? 0;
+  const [dragging, setDragging] = useState(false);
+  const correct = activity.correctState;
+  const denominator = Math.max(1, response.denominator ?? correct.targetDenominator ?? correct.denominator ?? 4);
+  const targetNumerator = correct.targetNumerator ?? correct.shadedParts ?? 1;
+  const targetWhole = correct.wholeCount ?? 0;
+  const displayBars = Math.max(1, targetWhole + (targetNumerator > 0 ? 1 : 0));
+  const selectedParts = new Set(response.selectedParts ?? []);
+  const shaded = response.shadedParts ?? selectedParts.size;
+  const labelMode = correct.labelMode ?? "fraction";
+  const formatValue = () => {
+    const whole = Math.floor(shaded / denominator);
+    const numerator = shaded % denominator;
+    const decimal = shaded / denominator;
+    if (labelMode === "decimal") return decimal.toFixed(denominator === 10 ? 1 : 2);
+    if (labelMode === "percent") return `${Math.round(decimal * 100)}%`;
+    if (labelMode === "mixed" || whole > 0) return numerator ? `${whole} ${numerator}/${denominator}` : String(whole);
+    return `${shaded}/${denominator}`;
+  };
+  const applySelection = (nextSelected: Set<number>) => {
+    const count = nextSelected.size;
+    onChange(mergeResponse(response, {
+      denominator,
+      targetDenominator: denominator,
+      selectedParts: [...nextSelected].sort((a, b) => a - b),
+      shadedParts: count % denominator,
+      targetNumerator: count % denominator,
+      wholeCount: Math.floor(count / denominator),
+      decimalEquivalent: count / denominator,
+    }));
+  };
+  const togglePart = (partIndex: number, forceSelected = false) => {
+    const next = new Set(selectedParts);
+    if (forceSelected || !next.has(partIndex)) next.add(partIndex);
+    else next.delete(partIndex);
+    applySelection(next);
+  };
+
   return (
     <ModelBoard label={activity.prompt}>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${denominator}, 1fr)`, gap: 5 }}>
-        {Array.from({ length: denominator }, (_, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => onChange(mergeResponse(response, { denominator, shadedParts: index + 1 }))}
+      <div style={{ display: "grid", gap: 14 }}>
+        {Array.from({ length: displayBars }, (_, barIndex) => (
+          <div
+            key={barIndex}
             style={{
-              minHeight: 92,
-              borderRadius: 12,
-              border: `2px solid ${v5Tokens.navy}`,
-              background: index < shaded ? v5Tokens.purple : "#FFFFFF",
-              cursor: "pointer",
+              display: "grid",
+              gridTemplateColumns: `repeat(${denominator}, minmax(48px, 1fr))`,
+              gap: 6,
+              maxWidth: 760,
+              width: "100%",
+              margin: "0 auto",
             }}
-          />
+            onPointerLeave={() => setDragging(false)}
+            onPointerUp={() => setDragging(false)}
+          >
+            {Array.from({ length: denominator }, (_, index) => {
+              const partIndex = barIndex * denominator + index;
+              const selected = selectedParts.has(partIndex);
+              return (
+                <button
+                  key={partIndex}
+                  type="button"
+                  aria-pressed={selected}
+                  onPointerDown={() => {
+                    setDragging(true);
+                    togglePart(partIndex);
+                  }}
+                  onPointerEnter={() => {
+                    if (dragging) togglePart(partIndex, true);
+                  }}
+                  onFocus={() => undefined}
+                  style={{
+                    minHeight: 104,
+                    borderRadius: index === 0 ? "18px 10px 10px 18px" : index === denominator - 1 ? "10px 18px 18px 10px" : 10,
+                    border: `2px solid ${v5Tokens.navy}`,
+                    background: selected ? v5Tokens.purple : "#FFFFFF",
+                    color: selected ? "#FFFFFF" : v5Tokens.navy,
+                    cursor: "pointer",
+                    font: "inherit",
+                    fontWeight: 900,
+                    boxShadow: selected ? "inset 0 0 0 2px rgba(255,255,255,0.35)" : "none",
+                  }}
+                >
+                  {correct.labelMode === "fraction" ? `${index + 1}/${denominator}` : ""}
+                </button>
+              );
+            })}
+          </div>
         ))}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+          {[2, 3, 4, 5, 10].map((value) => (
+            <ToggleChip
+              key={value}
+              label={`${value} parts`}
+              selected={denominator === value}
+              onClick={() => onChange(mergeResponse(response, {
+                denominator: value,
+                targetDenominator: value,
+                selectedParts: [],
+                shadedParts: 0,
+                targetNumerator: 0,
+                wholeCount: 0,
+              }))}
+            />
+          ))}
+        </div>
+        <strong style={{ color: v5Tokens.navy, fontSize: 22, textAlign: "center" }}>{formatValue()}</strong>
       </div>
-      <strong style={{ color: v5Tokens.navy }}>{shaded}/{denominator}</strong>
     </ModelBoard>
   );
 }
