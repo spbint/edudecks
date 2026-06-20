@@ -414,14 +414,35 @@ function totalFromBalanceItems(items = [] as NonNullable<ActivityV5ResponseState
   return items.reduce((sum, item) => sum + (typeof item.value === "number" ? item.value : 0), 0);
 }
 
+function balanceLabel(balance?: "balanced" | "left_heavier" | "right_heavier") {
+  if (balance === "left_heavier") return "Left pan is heavier";
+  if (balance === "right_heavier") return "Right pan is heavier";
+  return "The pans are balanced";
+}
+
+function balanceFromTotals(leftTotal: number, rightTotal: number): "balanced" | "left_heavier" | "right_heavier" {
+  if (leftTotal === rightTotal) return "balanced";
+  return leftTotal > rightTotal ? "left_heavier" : "right_heavier";
+}
+
+function tokenItems(side: "left" | "right", count: number) {
+  return Array.from({ length: Math.max(0, Math.min(20, Math.round(count))) }, (_, index) => ({
+    id: `${side}-token-${index}`,
+    label: "1",
+    value: 1,
+  }));
+}
+
 function BalancePan({
   label,
   items,
   total,
+  active,
 }: {
   label: string;
   items: NonNullable<ActivityV5ResponseState["leftItems"]>;
   total?: number;
+  active?: boolean;
 }) {
   return (
     <div style={{ display: "grid", gap: 10, justifyItems: "center", minWidth: 0 }}>
@@ -433,7 +454,7 @@ function BalancePan({
           borderRadius: "22px 22px 34px 34px",
           border: `4px solid ${v5Tokens.navy}`,
           borderTop: `8px solid ${v5Tokens.navy}`,
-          background: "#FFFFFF",
+          background: active ? v5Tokens.lavender : "#FFFFFF",
           padding: 12,
           display: "flex",
           gap: 8,
@@ -472,15 +493,30 @@ function BalancePan({
 
 function TwoPanBalance({ activity, response, onChange }: RendererProps) {
   const correct = activity.correctState;
-  const leftItems = correct.leftItems ?? [];
-  const rightItems = correct.rightItems ?? [];
-  const leftTotal = response.leftTotal ?? correct.leftTotal ?? totalFromBalanceItems(leftItems);
-  const rightTotal = response.rightTotal ?? correct.rightTotal ?? totalFromBalanceItems(rightItems);
-  const selectedBalance = response.selectedBalance;
-  const targetBalance = correct.targetBalance ?? (leftTotal === rightTotal ? "balanced" : leftTotal > rightTotal ? "left_heavier" : "right_heavier");
-  const tilt = selectedBalance === "left_heavier" || (!selectedBalance && targetBalance === "left_heavier")
+  const balanceMode = correct.balanceMode ?? "compare";
+  const baseLeftItems = correct.leftItems ?? [];
+  const baseRightItems = correct.rightItems ?? [];
+  const buildMode = balanceMode === "build_balance";
+  const solveMode = balanceMode === "solve_unknown";
+  const fixedLeft = correct.leftTotal ?? totalFromBalanceItems(baseLeftItems);
+  const fixedRight = correct.rightTotal ?? totalFromBalanceItems(baseRightItems);
+  const inputUnknown = response.unknownValue;
+  const leftTotal = solveMode && correct.unknownSide === "left"
+    ? totalFromBalanceItems(baseLeftItems) + (typeof inputUnknown === "number" ? inputUnknown : 0)
+    : response.leftTotal ?? fixedLeft;
+  const rightTotal = solveMode && correct.unknownSide === "right"
+    ? totalFromBalanceItems(baseRightItems) + (typeof inputUnknown === "number" ? inputUnknown : 0)
+    : response.rightTotal ?? fixedRight;
+  const selectedBalance = response.selectedBalance ?? (response.leftTotal !== undefined || response.rightTotal !== undefined || response.unknownValue !== undefined
+    ? balanceFromTotals(leftTotal, rightTotal)
+    : undefined);
+  const targetBalance = correct.targetBalance ?? balanceFromTotals(leftTotal, rightTotal);
+  const shownBalance = selectedBalance ?? targetBalance;
+  const leftItems = buildMode ? tokenItems("left", leftTotal) : baseLeftItems;
+  const rightItems = buildMode ? tokenItems("right", rightTotal) : baseRightItems;
+  const tilt = shownBalance === "left_heavier"
     ? -4
-    : selectedBalance === "right_heavier" || (!selectedBalance && targetBalance === "right_heavier")
+    : shownBalance === "right_heavier"
       ? 4
       : 0;
   const setBalance = (nextBalance: "balanced" | "left_heavier" | "right_heavier") =>
@@ -488,8 +524,30 @@ function TwoPanBalance({ activity, response, onChange }: RendererProps) {
       selectedBalance: nextBalance,
       leftTotal,
       rightTotal,
-      unknownValue: correct.unknownValue,
+      unknownValue: response.unknownValue,
     }));
+  const setUnknown = (nextValue: number) => {
+    const nextLeft = correct.unknownSide === "left" ? totalFromBalanceItems(baseLeftItems) + nextValue : fixedLeft;
+    const nextRight = correct.unknownSide === "right" ? totalFromBalanceItems(baseRightItems) + nextValue : fixedRight;
+    onChange(mergeResponse(response, {
+      unknownValue: nextValue,
+      targetValue: nextValue,
+      leftTotal: nextLeft,
+      rightTotal: nextRight,
+      selectedBalance: balanceFromTotals(nextLeft, nextRight),
+    }));
+  };
+  const setBuildTotal = (side: "left" | "right", delta: number) => {
+    const nextLeft = side === "left" ? Math.max(0, Math.min(20, leftTotal + delta)) : leftTotal;
+    const nextRight = side === "right" ? Math.max(0, Math.min(20, rightTotal + delta)) : rightTotal;
+    onChange(mergeResponse(response, {
+      leftTotal: nextLeft,
+      rightTotal: nextRight,
+      leftItems: tokenItems("left", nextLeft),
+      rightItems: tokenItems("right", nextRight),
+      selectedBalance: balanceFromTotals(nextLeft, nextRight),
+    }));
+  };
 
   return (
     <ModelBoard label={activity.prompt}>
@@ -497,6 +555,19 @@ function TwoPanBalance({ activity, response, onChange }: RendererProps) {
         {correct.equationText ? (
           <strong style={{ textAlign: "center", color: v5Tokens.navy, fontSize: 28 }}>{correct.equationText}</strong>
         ) : null}
+        <div
+          style={{
+            border: `2px solid ${shownBalance === "balanced" ? v5Tokens.green : v5Tokens.amber}`,
+            background: shownBalance === "balanced" ? v5Tokens.mint : "#FFFBEB",
+            borderRadius: 18,
+            padding: "12px 14px",
+            color: v5Tokens.navy,
+            fontWeight: 900,
+            textAlign: "center",
+          }}
+        >
+          {balanceLabel(shownBalance)}
+        </div>
         <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "end", padding: "20px 0 6px" }}>
           <span
             aria-hidden="true"
@@ -525,9 +596,48 @@ function TwoPanBalance({ activity, response, onChange }: RendererProps) {
               transform: "translateX(-50%)",
             }}
           />
-          <BalancePan label="Left pan" items={leftItems} total={leftTotal} />
-          <BalancePan label="Right pan" items={rightItems} total={rightTotal} />
+          <BalancePan label="Left pan" items={leftItems} total={leftTotal} active={shownBalance === "left_heavier"} />
+          <BalancePan label="Right pan" items={rightItems} total={rightTotal} active={shownBalance === "right_heavier"} />
         </div>
+        {solveMode ? (
+          <label style={{ display: "grid", gap: 8, color: v5Tokens.navy, fontWeight: 900 }}>
+            Unknown value
+            <input
+              type="number"
+              inputMode="numeric"
+              value={response.unknownValue ?? ""}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                if (Number.isFinite(nextValue)) setUnknown(nextValue);
+              }}
+              placeholder="Type the missing value"
+              style={{
+                minHeight: 54,
+                borderRadius: 16,
+                border: `2px solid ${v5Tokens.border}`,
+                padding: "10px 14px",
+                font: "inherit",
+                fontSize: 22,
+                fontWeight: 900,
+                color: v5Tokens.navy,
+              }}
+            />
+          </label>
+        ) : null}
+        {buildMode ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+            {(["left", "right"] as const).map((side) => (
+              <div key={side} style={{ border: `1px solid ${v5Tokens.border}`, borderRadius: 18, padding: 12, display: "grid", gap: 10 }}>
+                <strong style={{ color: v5Tokens.navy }}>{side === "left" ? "Left pan tokens" : "Right pan tokens"}</strong>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <ToggleChip label="-1" onClick={() => setBuildTotal(side, -1)} />
+                  <ToggleChip label="+1" onClick={() => setBuildTotal(side, 1)} />
+                  <ToggleChip label="+5" onClick={() => setBuildTotal(side, 5)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           {[
             ["left_heavier", "Left heavier"],

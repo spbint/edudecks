@@ -91,6 +91,10 @@ function hasV5Response(response: ActivityV5ResponseState) {
       response.hour !== undefined ||
       response.minute !== undefined ||
       response.moneyTotal !== undefined ||
+      response.selectedBalance !== undefined ||
+      response.unknownValue !== undefined ||
+      response.leftTotal !== undefined ||
+      response.rightTotal !== undefined ||
       response.selectedObjectIds?.length ||
       response.plottedCoordinates?.length,
   );
