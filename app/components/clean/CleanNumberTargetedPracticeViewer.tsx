@@ -7,7 +7,11 @@ import type React from "react";
 import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
-import ActivityPlayerV4 from "@/app/components/clean/activity-player-v4/ActivityPlayerV4";
+import ActivityPlayerResolver from "@/app/components/clean/activity-player-v5/ActivityPlayerResolver";
+import {
+  formatActivityPlayerV5Response,
+  geometrySpatialReasoningPracticeTasksToActivityPlayerV5Activities,
+} from "@/app/components/clean/activity-player-v5/adapters/geometrySpatialReasoningV5Adapter";
 import { practiceTasksToActivityPlayerV4Samples } from "@/app/components/clean/activity-player-v4/activityPlayerV4Adapters";
 import {
   AnswerOptionGrid,
@@ -4479,6 +4483,11 @@ export default function CleanNumberTargetedPracticeViewer() {
         fallbackTitle: exactStepPractice.title,
       })
     : [];
+  const exactStepPracticeV5Activities = exactStepPractice
+    ? geometrySpatialReasoningPracticeTasksToActivityPlayerV5Activities(
+        exactStepPracticeTasks,
+      )
+    : [];
   const exactStepAssessment = exactStepPractice
     ? getStepAssessmentForPathwayStep({
         pathwayStepId: exactStepPractice.pathwayStepId,
@@ -4617,31 +4626,58 @@ export default function CleanNumberTargetedPracticeViewer() {
 
   if (exactStepPractice && practiceSessionStarted && exactStepPracticeSamples.length) {
     return (
-      <ActivityPlayerV4
-        samples={exactStepPracticeSamples}
-        chrome="embedded"
-        previewLabel="Practise"
-        onSubmitAnswer={({ sample, selectedAnswer }) => {
-          const task = exactStepPracticeTasks.find((candidate) => candidate.id === sample.id);
-          if (!task) return;
-          const response: LocalPracticeResponse = {
-            value: selectedAnswer,
-            checked: false,
-            result: "not_checked",
-          };
-          const result = checkPracticeTask(task, response);
-          setResponses((current) => ({
-            ...current,
-            [task.id]: {
-              value: selectedAnswer,
-              checked: result !== "not_checked",
-              result,
-            },
-          }));
+      <ActivityPlayerResolver
+        v5Activities={exactStepPracticeV5Activities}
+        v5Props={{
+          chrome: "embedded",
+          onSubmitAnswer: ({ activity, response, correct }) => {
+            const task = exactStepPracticeTasks.find(
+              (candidate) => candidate.id === activity.id,
+            );
+            if (!task) return;
+            const selectedAnswer = correct
+              ? task.expectedAnswer || formatActivityPlayerV5Response(response)
+              : formatActivityPlayerV5Response(response);
+            setResponses((current) => ({
+              ...current,
+              [task.id]: {
+                value: selectedAnswer,
+                checked: true,
+                result: correct ? "correct" : "needs_review",
+              },
+            }));
+          },
+          onComplete: () => {
+            setPracticeSessionStarted(false);
+            setStepPracticeIndex(0);
+          },
         }}
-        onComplete={() => {
-          setPracticeSessionStarted(false);
-          setStepPracticeIndex(0);
+        v4Props={{
+          samples: exactStepPracticeSamples,
+          chrome: "embedded",
+          previewLabel: "Practise",
+          onSubmitAnswer: ({ sample, selectedAnswer }) => {
+            const task = exactStepPracticeTasks.find((candidate) => candidate.id === sample.id);
+            if (!task) return;
+            const response: LocalPracticeResponse = {
+              value: selectedAnswer,
+              checked: false,
+              result: "not_checked",
+            };
+            const result = checkPracticeTask(task, response);
+            setResponses((current) => ({
+              ...current,
+              [task.id]: {
+                value: selectedAnswer,
+                checked: result !== "not_checked",
+                result,
+              },
+            }));
+          },
+          onComplete: () => {
+            setPracticeSessionStarted(false);
+            setStepPracticeIndex(0);
+          },
         }}
       />
     );

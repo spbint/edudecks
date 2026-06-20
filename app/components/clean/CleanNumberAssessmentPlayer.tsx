@@ -11,7 +11,11 @@ import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import ActivityPlayerV4 from "@/app/components/clean/activity-player-v4/ActivityPlayerV4";
+import ActivityPlayerResolver from "@/app/components/clean/activity-player-v5/ActivityPlayerResolver";
+import {
+  formatActivityPlayerV5Response,
+  geometrySpatialReasoningAssessmentItemsToActivityPlayerV5Activities,
+} from "@/app/components/clean/activity-player-v5/adapters/geometrySpatialReasoningV5Adapter";
 import { assessmentItemsToActivityPlayerV4Samples } from "@/app/components/clean/activity-player-v4/activityPlayerV4Adapters";
 import {
   AnswerOptionGrid,
@@ -3919,6 +3923,9 @@ function CleanNumberAssessmentPlayerBody() {
         fallbackTitle: incomingStepAssessment.title,
       })
     : [];
+  const incomingStepAssessmentV5Activities = incomingStepAssessment
+    ? geometrySpatialReasoningAssessmentItemsToActivityPlayerV5Activities(items)
+    : [];
 
   const currentItem = items[currentIndex] || items[0];
   const currentResponse =
@@ -7207,49 +7214,80 @@ function CleanNumberAssessmentPlayerBody() {
     incomingStepAssessmentSamples.length
   ) {
     return (
-      <ActivityPlayerV4
-        samples={incomingStepAssessmentSamples}
-        chrome="embedded"
-        previewLabel="Assess"
-        allowNotSure
-        onSubmitAnswer={({ sample, selectedAnswer, index }) => {
-          const item = items.find((candidate) => candidate.id === sample.id);
-          if (!item) return;
-          const submittedAt = new Date().toISOString();
-          setCurrentIndex(index);
-          setSessionMode("active");
-          setResponses((current) => ({
-            ...current,
-            [item.id]: {
-              itemId: item.id,
-              response: selectedAnswer,
-              submitted: true,
-              result: getCheckResult(item, selectedAnswer),
-              submittedAt,
-            },
-          }));
+      <ActivityPlayerResolver
+        v5Activities={incomingStepAssessmentV5Activities}
+        v5Props={{
+          chrome: "embedded",
+          onSubmitAnswer: ({ activity, response, correct, index }) => {
+            const item = items.find((candidate) => candidate.id === activity.id);
+            if (!item) return;
+            const submittedAt = new Date().toISOString();
+            const selectedAnswer = correct
+              ? item.expectedAnswer ?? ""
+              : formatActivityPlayerV5Response(response);
+            setCurrentIndex(index);
+            setSessionMode("active");
+            setResponses((current) => ({
+              ...current,
+              [item.id]: {
+                itemId: item.id,
+                response: selectedAnswer,
+                submitted: true,
+                result: correct ? "correct" : "incorrect",
+                submittedAt,
+              },
+            }));
+          },
+          onComplete: () => {
+            setCurrentIndex(Math.max(0, totalItems - 1));
+            setShowSummary(true);
+            setSessionMode("summary");
+          },
         }}
-        onNotSure={({ sample, index }) => {
-          const item = items.find((candidate) => candidate.id === sample.id);
-          if (!item) return;
-          const submittedAt = new Date().toISOString();
-          setCurrentIndex(index);
-          setSessionMode("active");
-          setResponses((current) => ({
-            ...current,
-            [item.id]: {
-              itemId: item.id,
-              response: NOT_SURE_RESPONSE,
-              submitted: true,
-              result: "incorrect",
-              submittedAt,
-            },
-          }));
-        }}
-        onComplete={() => {
-          setCurrentIndex(Math.max(0, totalItems - 1));
-          setShowSummary(true);
-          setSessionMode("summary");
+        v4Props={{
+          samples: incomingStepAssessmentSamples,
+          chrome: "embedded",
+          previewLabel: "Assess",
+          allowNotSure: true,
+          onSubmitAnswer: ({ sample, selectedAnswer, index }) => {
+            const item = items.find((candidate) => candidate.id === sample.id);
+            if (!item) return;
+            const submittedAt = new Date().toISOString();
+            setCurrentIndex(index);
+            setSessionMode("active");
+            setResponses((current) => ({
+              ...current,
+              [item.id]: {
+                itemId: item.id,
+                response: selectedAnswer,
+                submitted: true,
+                result: getCheckResult(item, selectedAnswer),
+                submittedAt,
+              },
+            }));
+          },
+          onNotSure: ({ sample, index }) => {
+            const item = items.find((candidate) => candidate.id === sample.id);
+            if (!item) return;
+            const submittedAt = new Date().toISOString();
+            setCurrentIndex(index);
+            setSessionMode("active");
+            setResponses((current) => ({
+              ...current,
+              [item.id]: {
+                itemId: item.id,
+                response: NOT_SURE_RESPONSE,
+                submitted: true,
+                result: "incorrect",
+                submittedAt,
+              },
+            }));
+          },
+          onComplete: () => {
+            setCurrentIndex(Math.max(0, totalItems - 1));
+            setShowSummary(true);
+            setSessionMode("summary");
+          },
         }}
       />
     );
