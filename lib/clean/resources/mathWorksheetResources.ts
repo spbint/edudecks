@@ -260,6 +260,8 @@ const GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S010-Apply-Spatial-Reasoning-In-Design-Mapping-And-Layout.pdf";
 const GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S011-Use-Geometry-To-Model-And-Interpret-Space.pdf";
+const GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE =
+  "MYL-MATH-GSR-UE-S012-Refine-Spatial-Judgement-And-Explanation.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1315,6 +1317,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::years-9-10-consolidation::refine-spatial-judgement-and-explanation",
+    stepKey: "refine-spatial-judgement-and-explanation",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 2,
+    pathwayStepTitle: "Refine spatial judgement and explanation",
+    title: "Refine Spatial Judgement And Explanation",
+    concept:
+      "Visualise, analyse maps, compare layouts, predict rotations, judge real spaces, build and explain structures, and evaluate spatial designs.",
+    includesAnswerSheet: false,
+    fileName: GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
