@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import CleanContentIssueReportButton from "@/app/components/clean/CleanContentIssueReportButton";
 import type {
   ActivityPlayerV4Props,
@@ -562,6 +562,583 @@ function SimpleTableVisual({
   );
 }
 
+function hasAny(text: string, words: string[]) {
+  const lower = text.toLowerCase();
+  return words.some((word) => lower.includes(word));
+}
+
+function WorksheetPanel({
+  caption,
+  mode,
+  children,
+}: {
+  caption: string;
+  mode: ActivityPlayerV4VisualMode;
+  children: React.ReactNode;
+}) {
+  const compact = mode === "compact";
+  if (compact) return null;
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${tokens.border}`,
+        borderRadius: mode === "feedback" ? 14 : 18,
+        background: "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)",
+        padding: mode === "feedback" ? 10 : 16,
+        display: "grid",
+        gap: mode === "feedback" ? 8 : 12,
+      }}
+    >
+      {caption ? (
+        <div style={{ color: tokens.slate, fontSize: 13, fontWeight: 650 }}>
+          {caption}
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+function ShapeGlyph({ shape, size = 54 }: { shape: string; size?: number }) {
+  const lower = shape.toLowerCase();
+  const base: React.CSSProperties = {
+    width: size,
+    height: size,
+    display: "inline-block",
+    border: `2px solid ${tokens.navy}`,
+    background: tokens.lavender,
+  };
+
+  if (lower.includes("triangle")) {
+    return (
+      <span
+        aria-label="triangle"
+        style={{
+          width: 0,
+          height: 0,
+          borderLeft: `${size / 2}px solid transparent`,
+          borderRight: `${size / 2}px solid transparent`,
+          borderBottom: `${size}px solid ${tokens.purple}`,
+          display: "inline-block",
+        }}
+      />
+    );
+  }
+
+  if (lower.includes("circle") || lower.includes("sphere")) {
+    return <span aria-label={lower.includes("sphere") ? "sphere" : "circle"} style={{ ...base, borderRadius: 999 }} />;
+  }
+
+  if (lower.includes("rectangle") || lower.includes("door") || lower.includes("window")) {
+    return <span aria-label="rectangle" style={{ ...base, width: size * 1.35, borderRadius: 8 }} />;
+  }
+
+  if (lower.includes("cube")) {
+    return (
+      <span
+        aria-label="cube"
+        style={{
+          width: size,
+          height: size,
+          display: "inline-block",
+          borderRadius: 8,
+          background: "linear-gradient(135deg, #DBEAFE 0%, #EEF2FF 55%, #C7D2FE 56%)",
+          border: `2px solid ${tokens.navy}`,
+          boxShadow: "8px 8px 0 #CBD5E1",
+        }}
+      />
+    );
+  }
+
+  if (lower.includes("cylinder")) {
+    return (
+      <span
+        aria-label="cylinder"
+        style={{
+          width: size * 0.9,
+          height: size * 1.15,
+          borderRadius: "50% / 16%",
+          background: "linear-gradient(90deg, #E0F2FE, #FFFFFF, #BAE6FD)",
+          border: `2px solid ${tokens.navy}`,
+          display: "inline-block",
+        }}
+      />
+    );
+  }
+
+  if (lower.includes("pyramid")) {
+    return (
+      <span
+        aria-label="pyramid"
+        style={{
+          width: 0,
+          height: 0,
+          borderLeft: `${size / 2}px solid transparent`,
+          borderRight: `${size / 2}px solid transparent`,
+          borderBottom: `${size}px solid #FDE68A`,
+          filter: "drop-shadow(0 0 0 #17204B)",
+          display: "inline-block",
+        }}
+      />
+    );
+  }
+
+  return <span aria-label="square" style={{ ...base, borderRadius: 8 }} />;
+}
+
+function ShapeModelVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const shapes = ["square", "circle", "triangle", "rectangle", "cube", "sphere", "cylinder", "pyramid"].filter((shape) =>
+    caption.toLowerCase().includes(shape),
+  );
+  const resolved = shapes.length ? shapes : ["circle", "square", "triangle", "rectangle"];
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "end", justifyContent: "center", minHeight: 118 }}>
+        {resolved.slice(0, 6).map((shape) => (
+          <div key={shape} style={{ display: "grid", gap: 8, justifyItems: "center", color: tokens.slate, fontSize: 12, fontWeight: 650 }}>
+            <ShapeGlyph shape={shape} />
+            <span>{shape}</span>
+          </div>
+        ))}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function CoordinateGridVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const labels = ["A", "B", "C", "D"];
+  const objects = [
+    { label: "house", col: 0, row: 0 },
+    { label: "school", col: 2, row: 0 },
+    { label: "park", col: 1, row: 2 },
+    { label: "shop", col: 3, row: 1 },
+    { label: "library", col: 0, row: 3 },
+    { label: "pond", col: 3, row: 3 },
+  ];
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "grid", gridTemplateColumns: "34px repeat(4, minmax(42px, 1fr))", gap: 4, alignItems: "stretch" }}>
+        <span />
+        {labels.map((label) => (
+          <span key={label} style={{ textAlign: "center", color: tokens.slate, fontSize: 12, fontWeight: 700 }}>{label}</span>
+        ))}
+        {[1, 2, 3, 4].map((row) => (
+          <React.Fragment key={row}>
+            <span style={{ display: "grid", placeItems: "center", color: tokens.slate, fontSize: 12, fontWeight: 700 }}>{row}</span>
+            {labels.map((label, col) => {
+              const object = objects.find((item) => item.col === col && item.row === row - 1);
+              return (
+                <span
+                  key={`${label}${row}`}
+                  style={{
+                    minHeight: 42,
+                    border: `1px solid ${tokens.border}`,
+                    borderRadius: 8,
+                    background: object ? tokens.lavender : "#FFFFFF",
+                    display: "grid",
+                    placeItems: "center",
+                    color: tokens.navy,
+                    fontSize: 11,
+                    fontWeight: 650,
+                  }}
+                >
+                  {object?.label ?? ""}
+                </span>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function RouteVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(38px, 1fr))", gap: 5 }}>
+        {Array.from({ length: 25 }, (_, index) => {
+          const row = Math.floor(index / 5);
+          const col = index % 5;
+          const isRoute = (row === 3 && col >= 1 && col <= 3) || (col === 3 && row >= 1 && row <= 3) || (row === 1 && col === 2);
+          return (
+            <span
+              key={index}
+              style={{
+                minHeight: 36,
+                borderRadius: 8,
+                border: `1px solid ${tokens.border}`,
+                background: isRoute ? "#DBEAFE" : "#FFFFFF",
+                display: "grid",
+                placeItems: "center",
+                color: tokens.navy,
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              {row === 3 && col === 1 ? "start" : row === 1 && col === 2 ? "finish" : isRoute ? "->" : ""}
+            </span>
+          );
+        })}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function TransformationVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const flip = caption.toLowerCase().includes("flip") || caption.toLowerCase().includes("mirror") || caption.toLowerCase().includes("reflect");
+  const rotate = caption.toLowerCase().includes("rotate") || caption.toLowerCase().includes("turn");
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 54px 1fr", gap: 14, alignItems: "center" }}>
+        <div style={{ minHeight: 96, border: `1px solid ${tokens.border}`, borderRadius: 14, background: "#FFFFFF", display: "grid", placeItems: "center" }}>
+          <ShapeGlyph shape="triangle" size={52} />
+        </div>
+        <div style={{ textAlign: "center", color: tokens.purple, fontSize: 28, fontWeight: 800 }}>
+          {flip ? "mirror" : rotate ? "turn" : "slide"}
+        </div>
+        <div style={{ minHeight: 96, border: `1px solid ${tokens.border}`, borderRadius: 14, background: "#FFFFFF", display: "grid", placeItems: "center" }}>
+          <span style={{ transform: flip ? "scaleX(-1)" : rotate ? "rotate(90deg)" : "translateX(8px)", display: "inline-block" }}>
+            <ShapeGlyph shape="triangle" size={52} />
+          </span>
+        </div>
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function AngleVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const lower = caption.toLowerCase();
+  const acute = lower.includes("acute") || lower.includes("smaller");
+  const obtuse = lower.includes("obtuse") || lower.includes("larger");
+  const angle = acute ? 42 : obtuse ? 128 : 90;
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ minHeight: 132, display: "grid", placeItems: "center" }}>
+        <div style={{ width: 150, height: 110, position: "relative" }}>
+          <span style={{ position: "absolute", left: 28, bottom: 28, width: 100, height: 5, background: tokens.navy, borderRadius: 999 }} />
+          <span
+            style={{
+              position: "absolute",
+              left: 28,
+              bottom: 28,
+              width: 98,
+              height: 5,
+              background: tokens.purple,
+              borderRadius: 999,
+              transformOrigin: "left center",
+              transform: `rotate(-${angle}deg)`,
+            }}
+          />
+          <span style={{ position: "absolute", left: 21, bottom: 21, width: 18, height: 18, borderRadius: 999, background: tokens.purple }} />
+          <span style={{ position: "absolute", left: 50, bottom: 44, color: tokens.slate, fontSize: 12, fontWeight: 800 }}>
+            {acute ? "acute" : obtuse ? "obtuse" : "right angle"}
+          </span>
+        </div>
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function MeasurementToolVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const lower = caption.toLowerCase();
+  const clock = lower.includes("clock") || lower.includes("o'clock") || lower.includes("time");
+  const jug = lower.includes("jug") || lower.includes("litre") || lower.includes("ml") || lower.includes("capacity");
+  const scale = lower.includes("scale") || lower.includes("kg") || lower.includes("mass");
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      {clock ? (
+        <div style={{ display: "grid", placeItems: "center", minHeight: 128 }}>
+          <div style={{ width: 112, height: 112, borderRadius: 999, border: `4px solid ${tokens.navy}`, background: "#FFFFFF", position: "relative" }}>
+            <span style={{ position: "absolute", top: 10, left: 0, right: 0, textAlign: "center", fontWeight: 800 }}>12</span>
+            <span style={{ position: "absolute", right: 12, top: 44, fontWeight: 800 }}>3</span>
+            <span style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontWeight: 800 }}>6</span>
+            <span style={{ position: "absolute", left: 12, top: 44, fontWeight: 800 }}>9</span>
+            <span style={{ position: "absolute", width: 4, height: 36, background: tokens.purple, left: 54, top: 20, transformOrigin: "bottom" }} />
+            <span style={{ position: "absolute", width: 34, height: 4, background: tokens.purple, left: 54, top: 54, transformOrigin: "left" }} />
+          </div>
+        </div>
+      ) : jug ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "end" }}>
+          {[60, 90].map((height, index) => (
+            <div key={height} style={{ display: "grid", gap: 6, justifyItems: "center" }}>
+              <div style={{ width: 72, height: 112, border: `3px solid ${tokens.navy}`, borderRadius: "8px 8px 14px 14px", display: "flex", alignItems: "end", padding: 4, background: "#FFFFFF" }}>
+                <span style={{ display: "block", width: "100%", height, borderRadius: 8, background: "#BAE6FD" }} />
+              </div>
+              <span style={{ color: tokens.slate, fontSize: 12, fontWeight: 700 }}>{index ? "1 L" : "500 mL"}</span>
+            </div>
+          ))}
+        </div>
+      ) : scale ? (
+        <div style={{ display: "grid", placeItems: "center", minHeight: 128 }}>
+          <div style={{ width: 150, height: 92, borderRadius: 18, border: `3px solid ${tokens.navy}`, background: "#FFFFFF", display: "grid", placeItems: "center" }}>
+            <div style={{ width: 76, height: 40, borderRadius: "40px 40px 0 0", border: `2px solid ${tokens.border}`, borderBottom: 0, display: "grid", placeItems: "center", color: tokens.navy, fontWeight: 800 }}>kg</div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ height: 36, borderRadius: 8, background: "#FDE68A", border: `2px solid ${tokens.navy}`, display: "grid", gridTemplateColumns: "repeat(10, 1fr)" }}>
+            {Array.from({ length: 10 }, (_, index) => (
+              <span key={index} style={{ borderLeft: index ? `1px solid ${tokens.navy}` : 0, color: tokens.navy, fontSize: 10, paddingLeft: 2 }}>{index}</span>
+            ))}
+          </div>
+          <div style={{ height: 14, borderRadius: 999, background: "#FCA5A5", border: `1px solid ${tokens.red}` }} />
+        </div>
+      )}
+    </WorksheetPanel>
+  );
+}
+
+function NumberLineVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ height: 54, position: "relative", margin: "0 8px" }}>
+          <span style={{ position: "absolute", left: 0, right: 0, top: 26, height: 3, borderRadius: 999, background: tokens.navy }} />
+          {Array.from({ length: 11 }, (_, index) => (
+            <span key={index} style={{ position: "absolute", left: `${index * 10}%`, top: 18, transform: "translateX(-50%)", display: "grid", justifyItems: "center", gap: 4 }}>
+              <span style={{ width: 2, height: 18, background: tokens.navy }} />
+              <span style={{ color: tokens.slate, fontSize: 11, fontWeight: 700 }}>{index * 10}</span>
+            </span>
+          ))}
+          <span style={{ position: "absolute", left: "30%", top: 4, width: "30%", height: 22, borderTop: `3px solid ${tokens.purple}`, borderRadius: "50% 50% 0 0" }} />
+        </div>
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function MoneyVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
+        {["10c", "20c", "50c", "$1", "$5"].map((label) => (
+          <span
+            key={label}
+            style={{
+              minWidth: label.includes("$5") ? 72 : 54,
+              height: label.includes("$5") ? 38 : 54,
+              borderRadius: label.includes("$5") ? 8 : 999,
+              border: `2px solid ${tokens.navy}`,
+              background: label.includes("$") ? "#DCFCE7" : "#FDE68A",
+              display: "grid",
+              placeItems: "center",
+              color: tokens.navy,
+              fontWeight: 800,
+            }}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function FloorPlanVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const rooms = [
+    { label: "bed", area: "1 / 1 / 3 / 3", color: "#DBEAFE" },
+    { label: "desk", area: "1 / 3 / 2 / 5", color: tokens.lavender },
+    { label: "rug", area: "3 / 2 / 5 / 4", color: "#DCFCE7" },
+    { label: "door", area: "4 / 4 / 5 / 5", color: "#FDE68A" },
+  ];
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(44px, 1fr))", gridTemplateRows: "repeat(4, 44px)", gap: 5 }}>
+        {Array.from({ length: 16 }, (_, index) => (
+          <span key={index} style={{ border: `1px solid ${tokens.border}`, borderRadius: 8, background: "#FFFFFF" }} />
+        ))}
+        {rooms.map((room) => (
+          <span
+            key={room.label}
+            style={{
+              gridArea: room.area,
+              border: `2px solid ${tokens.navy}`,
+              borderRadius: 10,
+              background: room.color,
+              display: "grid",
+              placeItems: "center",
+              color: tokens.navy,
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            {room.label}
+          </span>
+        ))}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function ArrayOrPlaceValueVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const placeValue = hasAny(caption, ["place value", "hundreds", "tens", "ones", "partition"]);
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      {placeValue ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {[
+            ["Hundreds", 1],
+            ["Tens", 4],
+            ["Ones", 6],
+          ].map(([label, count]) => (
+            <div key={label} style={{ display: "grid", gap: 8, justifyItems: "center" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3, justifyContent: "center", minHeight: 58 }}>
+                {Array.from({ length: Number(count) }, (_, index) => (
+                  <span key={index} style={{ width: label === "Hundreds" ? 44 : label === "Tens" ? 10 : 14, height: label === "Hundreds" ? 44 : 44, background: "#DBEAFE", border: `1px solid ${tokens.navy}`, borderRadius: 3 }} />
+                ))}
+              </div>
+              <span style={{ color: tokens.slate, fontSize: 12, fontWeight: 700 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 32px)", gridAutoRows: "32px", gap: 7, justifyContent: "center" }}>
+          {Array.from({ length: 12 }, (_, index) => (
+            <span key={index} style={{ borderRadius: 8, border: `1px solid ${tokens.navy}`, background: index % 4 < 3 ? "#DBEAFE" : tokens.lavender }} />
+          ))}
+        </div>
+      )}
+    </WorksheetPanel>
+  );
+}
+
+function NetVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const cells = [
+    [1, 2],
+    [2, 1],
+    [2, 2],
+    [2, 3],
+    [2, 4],
+    [3, 2],
+  ];
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 46px)", gridTemplateRows: "repeat(3, 46px)", gap: 4, justifyContent: "center" }}>
+        {Array.from({ length: 12 }, (_, index) => {
+          const row = Math.floor(index / 4) + 1;
+          const col = (index % 4) + 1;
+          const active = cells.some(([cellRow, cellCol]) => cellRow === row && cellCol === col);
+          return (
+            <span
+              key={index}
+              style={{
+                borderRadius: 6,
+                border: active ? `2px solid ${tokens.navy}` : `1px dashed ${tokens.border}`,
+                background: active ? tokens.lavender : "transparent",
+              }}
+            />
+          );
+        })}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function FractionDecimalModelVisual({ caption, mode }: { caption: string; mode: ActivityPlayerV4VisualMode }) {
+  const percent = caption.toLowerCase().includes("percent") || caption.includes("%");
+  const hundred = caption.toLowerCase().includes("hundred") || caption.includes("/100") || percent;
+  const cells = hundred ? 100 : 10;
+  const shaded = hundred ? 50 : 5;
+
+  return (
+    <WorksheetPanel caption={caption} mode={mode}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${hundred ? 10 : 10}, minmax(12px, 1fr))`,
+          gap: 3,
+          maxWidth: hundred ? 240 : 260,
+          justifySelf: "center",
+          width: "100%",
+        }}
+      >
+        {Array.from({ length: cells }, (_, index) => (
+          <span
+            key={index}
+            style={{
+              aspectRatio: "1 / 1",
+              borderRadius: 3,
+              background: index < shaded ? tokens.purple : "#EEF2F7",
+              border: `1px solid ${index < shaded ? tokens.purple : tokens.border}`,
+            }}
+          />
+        ))}
+      </div>
+    </WorksheetPanel>
+  );
+}
+
+function WorksheetModelVisual({
+  description,
+  mode,
+}: {
+  description?: string | null;
+  mode: ActivityPlayerV4VisualMode;
+}) {
+  const text = safe(description);
+  if (!text || mode === "compact") return null;
+  const lower = text.toLowerCase();
+
+  if (hasAny(lower, ["fraction", "decimal", "percent", "tenths", "hundredths", "/10", "/100", "%", "half", "quarter", "hundred grid"])) {
+    return <FractionDecimalModelVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["number line", "numberline", "round", "jump"])) {
+    return <NumberLineVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["angle", "acute", "obtuse", "right angle"])) {
+    return <AngleVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["floor plan", "layout", "bedroom", "classroom", "playground", "park planner", "garden layout", "room"])) {
+    return <FloorPlanVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["net", "fold", "faces", "edges", "corners"])) {
+    return <NetVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["slide", "flip", "turn", "rotate", "rotation", "mirror", "reflect", "transformation"])) {
+    return <TransformationVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["map", "coordinate", "grid", "compass", "north", "south", "east", "west"])) {
+    return <CoordinateGridVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["route", "path", "follow", "directions", "move", "left", "right", "up", "down"])) {
+    return <RouteVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["ruler", "measure", "cm", "metre", "meter", "litre", "liter", "ml", "clock", "time", "kg", "mass", "scale", "capacity", "jug"])) {
+    return <MeasurementToolVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["coin", "money", "$", "cents", "price", "cost", "shopping"])) {
+    return <MoneyVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["array", "groups", "equal groups", "place value", "hundreds", "tens", "ones", "partition", "blocks"])) {
+    return <ArrayOrPlaceValueVisual caption={text} mode={mode} />;
+  }
+
+  if (hasAny(lower, ["shape", "circle", "square", "triangle", "rectangle", "cube", "sphere", "cylinder", "pyramid", "face", "edge", "corner", "net", "symmetry", "layout", "floor plan", "room", "architecture", "structure"])) {
+    return <ShapeModelVisual caption={text} mode={mode} />;
+  }
+
+  return null;
+}
+
 function TextVisual({
   text,
   mode,
@@ -605,6 +1182,9 @@ function MathVisualRendererV4({
   const resolvedKind = kind ?? (parsed.numbers.some((value) => value.includes(":")) ? "table" : "text");
   const objectKind = parsed.objectKind;
   const compact = mode === "compact";
+
+  const worksheetVisual = WorksheetModelVisual({ description, mode });
+  if (worksheetVisual) return worksheetVisual;
 
   if (compact && option) {
     const fraction = parseSimpleFraction(option);
