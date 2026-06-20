@@ -524,6 +524,26 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
     };
   }
 
+  if (visual.visualModel === "fraction_comparison_board") {
+    const leftFraction = visual.leftFraction ?? fractionSpec(visual.leftLabel);
+    const rightFraction = visual.rightFraction ?? fractionSpec(visual.rightLabel);
+    if (!leftFraction || !rightFraction || !visual.comparisonAnswer) return null;
+    return {
+      ...base(question),
+      interactionType: "fraction_comparison",
+      visualModel: "fraction_comparison_board",
+      objects: [],
+      targets: [],
+      correctState: {
+        leftFraction,
+        rightFraction,
+        leftLabel: visual.leftLabel ?? `${leftFraction.numerator}/${leftFraction.denominator}`,
+        rightLabel: visual.rightLabel ?? `${rightFraction.numerator}/${rightFraction.denominator}`,
+        comparisonAnswer: visual.comparisonAnswer,
+      },
+    };
+  }
+
   if (visual.visualModel === "ruler_board") {
     const config = rulerConfig(question);
     if (!config) return null;

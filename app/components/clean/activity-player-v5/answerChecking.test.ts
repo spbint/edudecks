@@ -3,7 +3,10 @@ import {
   checkActivityV5Answer,
   seededShuffle,
 } from "@/app/components/clean/activity-player-v5/answerChecking";
+import { myReviewQuestionToActivityV5 } from "@/app/components/clean/activity-player-v5/adapters/myReviewV5Adapter";
+import { buildActivityPlayerV5Samples } from "@/app/components/clean/activity-player-v5/sampleActivities";
 import type { ActivityV5 } from "@/app/components/clean/activity-player-v5/types";
+import { generateMathsReview } from "@/lib/clean/review/mathsReviewGenerator";
 
 function activity(overrides: Partial<ActivityV5>): ActivityV5 {
   return {
@@ -423,6 +426,85 @@ describe("ActivityPlayer v5 answer checking", () => {
     );
 
     expect(result.correct).toBe(true);
+  });
+
+  it("checks fraction comparison board left larger answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "fraction_comparison",
+        visualModel: "fraction_comparison_board",
+        correctState: {
+          leftFraction: { numerator: 3, denominator: 4 },
+          rightFraction: { numerator: 1, denominator: 2 },
+          comparisonAnswer: "left",
+        },
+      }),
+      { selectedOption: "left" },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks fraction comparison board right larger answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "fraction_comparison",
+        visualModel: "fraction_comparison_board",
+        correctState: {
+          leftFraction: { numerator: 1, denominator: 4 },
+          rightFraction: { numerator: 1, denominator: 2 },
+          comparisonAnswer: "right",
+        },
+      }),
+      { selectedOption: "right" },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks fraction comparison board equivalent answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "fraction_comparison",
+        visualModel: "fraction_comparison_board",
+        correctState: {
+          leftFraction: { numerator: 2, denominator: 4 },
+          rightFraction: { numerator: 1, denominator: 2 },
+          comparisonAnswer: "equal",
+        },
+      }),
+      { selectedOption: "equal" },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("generates My Review visual fraction questions as v5 comparison boards", () => {
+    const [question] = generateMathsReview({
+      selectedBankIds: ["visual-fractions"],
+      questionsPerFocusArea: 1,
+      lowestNumber: 0,
+      highestNumber: 10,
+      order: "sequential",
+      questionCount: 1,
+    });
+    const v5Activity = myReviewQuestionToActivityV5(question);
+
+    expect(question.visual?.visualModel).toBe("fraction_comparison_board");
+    expect(v5Activity?.interactionType).toBe("fraction_comparison");
+    expect(v5Activity?.visualModel).toBe("fraction_comparison_board");
+    expect(v5Activity?.correctState.leftFraction).toBeDefined();
+    expect(v5Activity?.correctState.rightFraction).toBeDefined();
+  });
+
+  it("includes an FDP equivalent-fraction sample using the comparison board", () => {
+    const sample = buildActivityPlayerV5Samples().find((activity) => activity.id === "fdp-fraction-comparison-board");
+
+    expect(sample?.strand).toBe("Fractions, Decimals and Percentages");
+    expect(sample?.interactionType).toBe("fraction_comparison");
+    expect(sample?.visualModel).toBe("fraction_comparison_board");
+    expect(sample?.correctState.leftFraction).toEqual({ numerator: 2, denominator: 4 });
+    expect(sample?.correctState.rightFraction).toEqual({ numerator: 1, denominator: 2 });
   });
 
   it("checks o'clock clock answers", () => {

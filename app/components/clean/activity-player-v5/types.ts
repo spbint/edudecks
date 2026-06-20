@@ -14,6 +14,7 @@ export type ActivityV5InteractionType =
   | "interactive_mass_scale"
   | "interactive_clock"
   | "interactive_fraction_bar"
+  | "fraction_comparison"
   | "interactive_number_line"
   | "build_place_value"
   | "generic_money_model";
@@ -31,6 +32,7 @@ export type ActivityV5VisualModel =
   | "mass_scale"
   | "clock_face"
   | "fraction_bar"
+  | "fraction_comparison_board"
   | "number_line"
   | "place_value_blocks"
   | "money_board";
@@ -125,6 +127,11 @@ export type ActivityV5ResponseState = {
   allowedFractions?: ActivityV5FractionSpec[];
   equivalentAccepted?: boolean;
   decimalEquivalent?: number;
+  leftFraction?: ActivityV5FractionSpec;
+  rightFraction?: ActivityV5FractionSpec;
+  comparisonAnswer?: "left" | "right" | "equal";
+  leftLabel?: string;
+  rightLabel?: string;
   labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both" | "ticks" | "numeric";
   promptValue?: number | string;
   numberLineValue?: number | string;

@@ -180,6 +180,13 @@ function sameFractionBarValue(
     : sameFractionExact(actual, expected);
 }
 
+function sameFractionComparisonValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  return response.selectedOption === correct.comparisonAnswer;
+}
+
 function normaliseClockHour(hour?: number) {
   if (typeof hour !== "number" || !Number.isFinite(hour)) return null;
   const wrapped = hour % 12;
@@ -343,6 +350,12 @@ function expectedSummary(activity: ActivityV5) {
       return `${normaliseClockHour(correct.targetHour ?? correct.hour) ?? 0}:${String(normaliseMinute(correct.targetMinute ?? correct.minute ?? 0) ?? 0).padStart(2, "0")}`;
     case "interactive_fraction_bar":
       return `${correct.wholeCount ? `${correct.wholeCount} ` : ""}${correct.targetNumerator ?? correct.shadedParts ?? 0}/${correct.targetDenominator ?? correct.denominator ?? 1}`;
+    case "fraction_comparison":
+      return correct.comparisonAnswer === "left"
+        ? "left is larger"
+        : correct.comparisonAnswer === "right"
+          ? "right is larger"
+          : "equal";
     case "interactive_number_line":
       return String(correct.targetValue ?? correct.placedValue ?? correct.numberLineValue ?? "");
     case "build_place_value":
@@ -402,6 +415,9 @@ export function checkActivityV5Answer(
       break;
     case "interactive_fraction_bar":
       isCorrect = sameFractionBarValue(response, correct);
+      break;
+    case "fraction_comparison":
+      isCorrect = sameFractionComparisonValue(response, correct);
       break;
     case "interactive_number_line":
       isCorrect = sameNumberLineValue(response, correct);

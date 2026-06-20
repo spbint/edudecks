@@ -14,6 +14,7 @@ export type MathsReviewVisualModel =
   | "equal_groups_board"
   | "place_value_blocks"
   | "fraction_bar"
+  | "fraction_comparison_board"
   | "ruler_board"
   | "capacity_jug"
   | "mass_scale"
@@ -31,6 +32,7 @@ export type MathsReviewVisualMetadata = {
     | "equal_groups"
     | "build_place_value"
     | "interactive_fraction_bar"
+    | "fraction_comparison"
     | "interactive_ruler"
     | "interactive_capacity_jug"
     | "interactive_mass_scale"
@@ -85,6 +87,11 @@ export type MathsReviewVisualMetadata = {
   allowedFractions?: Array<{ numerator: number; denominator: number; wholeCount?: number; decimalEquivalent?: number }>;
   equivalentAccepted?: boolean;
   decimalEquivalent?: number;
+  leftFraction?: { numerator: number; denominator: number; wholeCount?: number; decimalEquivalent?: number };
+  rightFraction?: { numerator: number; denominator: number; wholeCount?: number; decimalEquivalent?: number };
+  comparisonAnswer?: "left" | "right" | "equal";
+  leftLabel?: string;
+  rightLabel?: string;
   labelMode?: "fraction" | "decimal" | "percent" | "mixed" | "analogue" | "digital" | "both" | "ticks" | "numeric";
   promptValue?: number | string;
   hour?: number;
@@ -1067,7 +1074,50 @@ function generalMathsReviewQuestion(bank: MathsReviewBank, settings: MathsReview
   }
 }
 
+function fractionComparisonReview(bank: MathsReviewBank, _settings: MathsReviewSettings, index: number) {
+  const pairs = [
+    {
+      left: { numerator: 1, denominator: 2 },
+      right: { numerator: 1, denominator: 4 },
+      answer: "left",
+    },
+    {
+      left: { numerator: 2, denominator: 4 },
+      right: { numerator: 1, denominator: 2 },
+      answer: "equal",
+    },
+    {
+      left: { numerator: 1, denominator: 3 },
+      right: { numerator: 2, denominator: 3 },
+      answer: "right",
+    },
+  ] as const;
+  const pair = pairs[randInt(0, pairs.length - 1)];
+  const answerLabel = pair.answer === "left" ? "Left is larger" : pair.answer === "right" ? "Right is larger" : "Equal";
+
+  return withBase(bank, index, {
+    type: "choice",
+    prompt: `Compare ${pair.left.numerator}/${pair.left.denominator} and ${pair.right.numerator}/${pair.right.denominator}.`,
+    answer: pair.answer,
+    acceptableAnswers: [pair.answer, answerLabel.toLowerCase(), answerLabel],
+    choices: ["Left is larger", "Right is larger", "Equal"],
+    explanation: `${answerLabel}. Compare the shaded parts on the same-sized bars.`,
+    visualHint: "Use the two fraction bars side by side.",
+    visual: {
+      visualModel: "fraction_comparison_board",
+      interactionType: "fraction_comparison",
+      leftFraction: pair.left,
+      rightFraction: pair.right,
+      leftLabel: `${pair.left.numerator}/${pair.left.denominator}`,
+      rightLabel: `${pair.right.numerator}/${pair.right.denominator}`,
+      comparisonAnswer: pair.answer,
+      note: "Side-by-side fraction comparison board.",
+    },
+  });
+}
+
 const factories: Record<string, QuestionFactory> = {
+  "visual-fractions": fractionComparisonReview,
   "one-after": oneAfter,
   "one-before": oneBefore,
   "ten-after": (bank, settings, index) => offsetNumber(bank, settings, index, 10, "ten after"),

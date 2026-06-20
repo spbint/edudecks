@@ -902,6 +902,112 @@ function FractionBar({ activity, response, onChange }: RendererProps) {
   );
 }
 
+function StaticFractionModel({
+  label,
+  numerator,
+  denominator,
+}: {
+  label: string;
+  numerator: number;
+  denominator: number;
+}) {
+  const safeDenominator = Math.max(1, Math.min(20, denominator));
+  const safeNumerator = Math.max(0, Math.min(safeDenominator, numerator));
+
+  return (
+    <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
+      <strong style={{ color: v5Tokens.navy, fontSize: 22, textAlign: "center" }}>{label}</strong>
+      <div
+        aria-label={`${label} fraction model`}
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${safeDenominator}, minmax(26px, 1fr))`,
+          gap: 5,
+          width: "100%",
+        }}
+      >
+        {Array.from({ length: safeDenominator }, (_, index) => {
+          const shaded = index < safeNumerator;
+          return (
+            <span
+              key={index}
+              style={{
+                minHeight: 100,
+                borderRadius: index === 0 ? "18px 8px 8px 18px" : index === safeDenominator - 1 ? "8px 18px 18px 8px" : 8,
+                border: `2px solid ${v5Tokens.navy}`,
+                background: shaded ? v5Tokens.purple : "#FFFFFF",
+                boxShadow: shaded ? "inset 0 0 0 2px rgba(255,255,255,0.32)" : "none",
+              }}
+            />
+          );
+        })}
+      </div>
+      <span style={{ color: v5Tokens.slate, fontWeight: 850, textAlign: "center" }}>
+        {safeNumerator} of {safeDenominator} equal parts shaded
+      </span>
+    </div>
+  );
+}
+
+function FractionComparison({ activity, response, onChange }: RendererProps) {
+  const correct = activity.correctState;
+  const left = correct.leftFraction ?? {
+    numerator: correct.targetNumerator ?? correct.shadedParts ?? 1,
+    denominator: correct.targetDenominator ?? correct.denominator ?? 2,
+  };
+  const right = correct.rightFraction ?? { numerator: 1, denominator: 4 };
+  const setAnswer = (selectedOption: "left" | "right" | "equal") =>
+    onChange(mergeResponse(response, { selectedOption }));
+
+  return (
+    <ModelBoard label={activity.prompt}>
+      <div style={{ display: "grid", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "end" }}>
+          <div style={{ border: `2px solid ${v5Tokens.border}`, borderRadius: 22, background: "#FFFFFF", padding: 18 }}>
+            <StaticFractionModel
+              label={correct.leftLabel ?? `${left.numerator}/${left.denominator}`}
+              numerator={left.numerator}
+              denominator={left.denominator}
+            />
+          </div>
+          <div style={{ border: `2px solid ${v5Tokens.border}`, borderRadius: 22, background: "#FFFFFF", padding: 18 }}>
+            <StaticFractionModel
+              label={correct.rightLabel ?? `${right.numerator}/${right.denominator}`}
+              numerator={right.numerator}
+              denominator={right.denominator}
+            />
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+          {[
+            ["left", "Left is larger"],
+            ["right", "Right is larger"],
+            ["equal", "Equal"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setAnswer(value as "left" | "right" | "equal")}
+              style={{
+                border: `2px solid ${response.selectedOption === value ? v5Tokens.purple : v5Tokens.border}`,
+                background: response.selectedOption === value ? v5Tokens.lavender : "#FFFFFF",
+                color: v5Tokens.navy,
+                borderRadius: 18,
+                padding: "16px 18px",
+                font: "inherit",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </ModelBoard>
+  );
+}
+
 function NumberLine({ activity, response, onChange }: RendererProps) {
   const correct = activity.correctState;
   const min = Number(correct.min ?? 0);
@@ -1152,6 +1258,8 @@ export function ActivityV5InteractionRenderer(props: RendererProps) {
       return <InteractiveClock {...props} />;
     case "interactive_fraction_bar":
       return <FractionBar {...props} />;
+    case "fraction_comparison":
+      return <FractionComparison {...props} />;
     case "interactive_number_line":
       return <NumberLine {...props} />;
     case "build_place_value":
