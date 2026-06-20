@@ -258,6 +258,8 @@ const GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S009-Reason-About-Geometric-Relationships-And-Transformations.pdf";
 const GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S010-Apply-Spatial-Reasoning-In-Design-Mapping-And-Layout.pdf";
+const GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE =
+  "MYL-MATH-GSR-UE-S011-Use-Geometry-To-Model-And-Interpret-Space.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1295,6 +1297,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::years-9-10-consolidation::use-geometry-to-model-and-interpret-space",
+    stepKey: "use-geometry-to-model-and-interpret-space",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 1,
+    pathwayStepTitle: "Use geometry to model and interpret space",
+    title: "Use Geometry To Model And Interpret Space",
+    concept:
+      "Use classroom layouts, floor plans, architecture, block structures, scale drawings, maps and spatial designs to model and interpret space.",
+    includesAnswerSheet: false,
+    fileName: GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
