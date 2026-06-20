@@ -305,6 +305,68 @@ function rulerConfig(question: MathsReviewQuestion) {
   };
 }
 
+function capacityUnit(value: unknown) {
+  const text = String(value ?? "").toLowerCase();
+  if (text.includes("l") && !text.includes("ml")) return "L";
+  return "mL";
+}
+
+function capacityConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const targetCapacity = numberValue(visual?.targetCapacity ?? visual?.measuredCapacity ?? visual?.targetValue ?? question.answer);
+  if (targetCapacity === null || targetCapacity < 0) return null;
+  const unit = capacityUnit(visual?.unit ?? question.answer ?? question.prompt);
+  const max = Number.isFinite(visual?.max) ? Number(visual?.max) : Math.max(unit === "L" ? 2 : 1000, Math.ceil(targetCapacity * 1.15));
+  const step = Number.isFinite(visual?.step) ? Number(visual?.step) : unit === "L" ? 0.25 : 50;
+  return {
+    unit,
+    min: Number.isFinite(visual?.min) ? Number(visual?.min) : 0,
+    max,
+    step,
+    targetCapacity,
+    measuredCapacity: targetCapacity,
+    tolerance: visual?.tolerance ?? (step < 1 ? step / 2 : 0),
+    containerLabel: visual?.containerLabel ?? "Measuring jug",
+    containerVisual: visual?.containerVisual ?? "jug",
+    fillLevel: visual?.fillLevel ?? 0,
+    estimate: visual?.estimate,
+    showEstimate: visual?.showEstimate ?? false,
+    labelMode: visual?.labelMode ?? "both",
+    conversionMode: visual?.conversionMode ?? true,
+  };
+}
+
+function massUnit(value: unknown) {
+  const text = String(value ?? "").toLowerCase();
+  if (text.includes("kg")) return "kg";
+  return "g";
+}
+
+function massConfig(question: MathsReviewQuestion) {
+  const visual = question.visual;
+  const targetMass = numberValue(visual?.targetMass ?? visual?.measuredMass ?? visual?.targetValue ?? question.answer);
+  if (targetMass === null || targetMass < 0) return null;
+  const unit = massUnit(visual?.unit ?? question.answer ?? question.prompt);
+  const max = Number.isFinite(visual?.max) ? Number(visual?.max) : Math.max(unit === "kg" ? 5 : 1000, Math.ceil(targetMass * 1.15));
+  const step = Number.isFinite(visual?.step) ? Number(visual?.step) : unit === "kg" ? 0.5 : 50;
+  return {
+    unit,
+    min: Number.isFinite(visual?.min) ? Number(visual?.min) : 0,
+    max,
+    step,
+    targetMass,
+    measuredMass: targetMass,
+    tolerance: visual?.tolerance ?? (step < 1 ? step / 2 : 0),
+    objectLabel: visual?.objectLabel ?? "Object",
+    objectVisual: visual?.objectVisual ?? "package",
+    scaleType: visual?.scaleType ?? "digital",
+    estimate: visual?.estimate,
+    showEstimate: visual?.showEstimate ?? false,
+    labelMode: visual?.labelMode ?? "both",
+    conversionMode: visual?.conversionMode ?? true,
+  };
+}
+
 function choiceObjects(question: MathsReviewQuestion): ActivityV5Object[] {
   const labels = question.choices?.length
     ? question.choices
@@ -431,6 +493,32 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
       ...base(question),
       interactionType: "interactive_ruler",
       visualModel: "ruler_board",
+      objects: [],
+      targets: [],
+      correctState: config,
+    };
+  }
+
+  if (visual.visualModel === "capacity_jug") {
+    const config = capacityConfig(question);
+    if (!config) return null;
+    return {
+      ...base(question),
+      interactionType: "interactive_capacity_jug",
+      visualModel: "capacity_jug",
+      objects: [],
+      targets: [],
+      correctState: config,
+    };
+  }
+
+  if (visual.visualModel === "mass_scale") {
+    const config = massConfig(question);
+    if (!config) return null;
+    return {
+      ...base(question),
+      interactionType: "interactive_mass_scale",
+      visualModel: "mass_scale",
       objects: [],
       targets: [],
       correctState: config,

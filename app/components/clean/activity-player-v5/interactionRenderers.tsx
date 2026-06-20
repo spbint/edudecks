@@ -490,6 +490,137 @@ function InteractiveRuler({ activity, response, onChange }: RendererProps) {
   );
 }
 
+function CapacityJug({ activity, response, onChange }: RendererProps) {
+  const correct = activity.correctState;
+  const unit = correct.unit ?? "mL";
+  const target = correct.targetCapacity ?? correct.measuredCapacity ?? 500;
+  const min = Number(correct.min ?? 0);
+  const max = Number(correct.max ?? Math.max(unit === "L" ? 2 : 1000, target));
+  const step = Number(correct.step ?? (unit === "L" ? 0.25 : 50));
+  const value = Math.min(max, Math.max(min, response.measuredCapacity ?? min));
+  const fillPercent = ((value - min) / (max - min)) * 100;
+  const tickCount = Math.floor((max - min) / step) + 1;
+  const labelEvery = tickCount <= 8 ? 1 : Math.ceil((tickCount - 1) / 6);
+  const setValue = (nextValue: number) => {
+    const snapped = Math.round(nextValue / step) * step;
+    const rounded = Number(Math.min(max, Math.max(min, snapped)).toFixed(4));
+    onChange(mergeResponse(response, {
+      measuredCapacity: rounded,
+      targetCapacity: rounded,
+      fillLevel: ((rounded - min) / (max - min)) * 100,
+      unit,
+    }));
+  };
+
+  return (
+    <ModelBoard label={activity.prompt}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(180px, 280px) minmax(0, 1fr)", gap: 22, alignItems: "center" }}>
+        <button
+          type="button"
+          onClick={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const percentFromBottom = 1 - (event.clientY - rect.top) / rect.height;
+            setValue(min + percentFromBottom * (max - min));
+          }}
+          aria-label="Tap the jug to set the fill level"
+          style={{
+            position: "relative",
+            height: 330,
+            border: `4px solid ${v5Tokens.navy}`,
+            borderRadius: "26px 26px 34px 34px",
+            background: "#FFFFFF",
+            overflow: "hidden",
+            cursor: "crosshair",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: `${fillPercent}%`,
+              background: "linear-gradient(180deg, #BAE6FD 0%, #38BDF8 100%)",
+            }}
+          />
+          {Array.from({ length: tickCount }, (_, index) => {
+            const tickValue = Number((min + index * step).toFixed(4));
+            const bottom = ((tickValue - min) / (max - min)) * 100;
+            const major = index === 0 || index === tickCount - 1 || index % labelEvery === 0;
+            return (
+              <span key={`${tickValue}-${index}`} style={{ position: "absolute", left: 0, right: major ? 42 : 82, bottom: `${bottom}%`, borderTop: `2px solid ${v5Tokens.navy}` }}>
+                {major && correct.labelMode !== "ticks" ? <span style={{ position: "absolute", right: -38, top: -10, color: v5Tokens.navy, fontSize: 12, fontWeight: 900 }}>{tickValue}</span> : null}
+              </span>
+            );
+          })}
+        </button>
+        <div style={{ display: "grid", gap: 14 }}>
+          <strong style={{ color: v5Tokens.navy, fontSize: 22 }}>{correct.containerLabel ?? "Container"}</strong>
+          {correct.showEstimate && correct.estimate !== undefined ? <span style={{ color: v5Tokens.slate, fontWeight: 850 }}>Estimate: {correct.estimate} {unit}</span> : null}
+          <strong style={{ color: v5Tokens.navy, fontSize: 28 }}>{value} {unit}</strong>
+          <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => setValue(Number(event.target.value))} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <ToggleChip label="- step" onClick={() => setValue(value - step)} />
+            <ToggleChip label="+ step" onClick={() => setValue(value + step)} />
+            <ToggleChip label="Reset" onClick={() => setValue(min)} />
+          </div>
+        </div>
+      </div>
+    </ModelBoard>
+  );
+}
+
+function MassScale({ activity, response, onChange }: RendererProps) {
+  const correct = activity.correctState;
+  const unit = correct.unit ?? "g";
+  const target = correct.targetMass ?? correct.measuredMass ?? 500;
+  const min = Number(correct.min ?? 0);
+  const max = Number(correct.max ?? Math.max(unit === "kg" ? 5 : 1000, target));
+  const step = Number(correct.step ?? (unit === "kg" ? 0.5 : 50));
+  const value = Math.min(max, Math.max(min, response.measuredMass ?? min));
+  const dialDegrees = -120 + ((value - min) / (max - min)) * 240;
+  const setValue = (nextValue: number) => {
+    const snapped = Math.round(nextValue / step) * step;
+    const rounded = Number(Math.min(max, Math.max(min, snapped)).toFixed(4));
+    onChange(mergeResponse(response, {
+      measuredMass: rounded,
+      targetMass: rounded,
+      unit,
+    }));
+  };
+
+  return (
+    <ModelBoard label={activity.prompt}>
+      <div style={{ display: "grid", gap: 18, justifyItems: "center" }}>
+        <div style={{ width: "min(420px, 100%)", display: "grid", gap: 0, justifyItems: "center" }}>
+          <div style={{ minWidth: 120, minHeight: 68, borderRadius: 16, border: `3px solid ${v5Tokens.navy}`, background: correct.objectVisual === "watermelon" ? v5Tokens.green : v5Tokens.blue, display: "grid", placeItems: "center", color: v5Tokens.navy, fontWeight: 900 }}>
+            {correct.objectLabel ?? "Object"}
+          </div>
+          <div style={{ width: "100%", height: 170, borderRadius: "28px 28px 18px 18px", border: `4px solid ${v5Tokens.navy}`, background: "#FFFFFF", display: "grid", placeItems: "center", position: "relative" }}>
+            {correct.scaleType === "digital" ? (
+              <strong style={{ color: v5Tokens.navy, fontSize: 34 }}>{value} {unit}</strong>
+            ) : (
+              <span style={{ width: 118, height: 118, borderRadius: 999, border: `4px solid ${v5Tokens.navy}`, position: "relative", display: "inline-block" }}>
+                <span style={{ position: "absolute", left: 55, top: 18, width: 6, height: 46, borderRadius: 999, background: v5Tokens.red, transformOrigin: "bottom center", transform: `rotate(${dialDegrees}deg)` }} />
+                <span style={{ position: "absolute", left: 48, top: 48, width: 20, height: 20, borderRadius: 999, background: v5Tokens.navy }} />
+                <span style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center", color: v5Tokens.navy, fontWeight: 900 }}>{value} {unit}</span>
+              </span>
+            )}
+          </div>
+        </div>
+        {correct.showEstimate && correct.estimate !== undefined ? <span style={{ color: v5Tokens.slate, fontWeight: 850 }}>Estimate: {correct.estimate} {unit}</span> : null}
+        <input style={{ width: "min(560px, 100%)" }} type="range" min={min} max={max} step={step} value={value} onChange={(event) => setValue(Number(event.target.value))} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+          <ToggleChip label="- step" onClick={() => setValue(value - step)} />
+          <ToggleChip label="+ step" onClick={() => setValue(value + step)} />
+          <ToggleChip label="Reset" onClick={() => setValue(min)} />
+        </div>
+      </div>
+    </ModelBoard>
+  );
+}
+
 function InteractiveClock({ activity, response, onChange }: RendererProps) {
   const correct = activity.correctState;
   const hour = response.hour ?? correct.targetHour ?? correct.hour ?? 3;
@@ -915,6 +1046,10 @@ export function ActivityV5InteractionRenderer(props: RendererProps) {
       return <MoveAlongRoute {...props} />;
     case "interactive_ruler":
       return <InteractiveRuler {...props} />;
+    case "interactive_capacity_jug":
+      return <CapacityJug {...props} />;
+    case "interactive_mass_scale":
+      return <MassScale {...props} />;
     case "interactive_clock":
       return <InteractiveClock {...props} />;
     case "interactive_fraction_bar":

@@ -9,6 +9,8 @@ export type ActivityV5InteractionType =
   | "build_array"
   | "move_along_route"
   | "interactive_ruler"
+  | "interactive_capacity_jug"
+  | "interactive_mass_scale"
   | "interactive_clock"
   | "interactive_fraction_bar"
   | "interactive_number_line"
@@ -23,6 +25,8 @@ export type ActivityV5VisualModel =
   | "reflection_grid"
   | "array_board"
   | "ruler_board"
+  | "capacity_jug"
+  | "mass_scale"
   | "clock_face"
   | "fraction_bar"
   | "number_line"
@@ -74,8 +78,17 @@ export type ActivityV5ResponseState = {
   routePath?: string[];
   finalPosition?: string;
   unit?: "cm" | "mm" | "m" | string;
+  conversionMode?: boolean;
   targetLength?: number;
   measuredLength?: number;
+  targetCapacity?: number;
+  measuredCapacity?: number;
+  containerLabel?: string;
+  containerVisual?: string;
+  fillLevel?: number;
+  targetMass?: number;
+  measuredMass?: number;
+  scaleType?: "digital" | "balance" | "kitchen";
   objectLabel?: string;
   objectVisual?: string;
   estimate?: number;

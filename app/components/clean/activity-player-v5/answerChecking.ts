@@ -42,6 +42,18 @@ function lengthInMillimetres(value?: number, unit?: string) {
   return value;
 }
 
+function capacityInMillilitres(value?: number, unit?: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  if (unit === "L" || unit === "l") return value * 1000;
+  return value;
+}
+
+function massInGrams(value?: number, unit?: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  if (unit === "kg") return value * 1000;
+  return value;
+}
+
 function sameRulerValue(
   response: ActivityV5ResponseState,
   correct: ActivityV5["correctState"],
@@ -55,6 +67,40 @@ function sameRulerValue(
   const expectedMm = lengthInMillimetres(expected, expectedUnit);
   if (actualMm !== null && expectedMm !== null && actualUnit !== expectedUnit) {
     return closeEnough(actualMm, expectedMm, lengthInMillimetres(tolerance, expectedUnit) ?? tolerance);
+  }
+  return closeEnough(actual, expected, tolerance);
+}
+
+function sameCapacityValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actual = response.measuredCapacity;
+  const expected = correct.targetCapacity ?? correct.measuredCapacity;
+  const actualUnit = response.unit ?? correct.unit;
+  const expectedUnit = correct.unit;
+  const tolerance = correct.tolerance ?? 0;
+  const actualMl = capacityInMillilitres(actual, actualUnit);
+  const expectedMl = capacityInMillilitres(expected, expectedUnit);
+  if (actualMl !== null && expectedMl !== null && actualUnit !== expectedUnit) {
+    return closeEnough(actualMl, expectedMl, capacityInMillilitres(tolerance, expectedUnit) ?? tolerance);
+  }
+  return closeEnough(actual, expected, tolerance);
+}
+
+function sameMassValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const actual = response.measuredMass;
+  const expected = correct.targetMass ?? correct.measuredMass;
+  const actualUnit = response.unit ?? correct.unit;
+  const expectedUnit = correct.unit;
+  const tolerance = correct.tolerance ?? 0;
+  const actualG = massInGrams(actual, actualUnit);
+  const expectedG = massInGrams(expected, expectedUnit);
+  if (actualG !== null && expectedG !== null && actualUnit !== expectedUnit) {
+    return closeEnough(actualG, expectedG, massInGrams(tolerance, expectedUnit) ?? tolerance);
   }
   return closeEnough(actual, expected, tolerance);
 }
@@ -238,6 +284,10 @@ function expectedSummary(activity: ActivityV5) {
       return correct.finalPosition ? `Finish at ${correct.finalPosition}` : `Route ${normaliseList(correct.routePath).join(", ")}`;
     case "interactive_ruler":
       return `${correct.targetLength ?? correct.measuredLength ?? 0} ${correct.unit ?? "units"}`;
+    case "interactive_capacity_jug":
+      return `${correct.targetCapacity ?? correct.measuredCapacity ?? 0} ${correct.unit ?? "mL"}`;
+    case "interactive_mass_scale":
+      return `${correct.targetMass ?? correct.measuredMass ?? 0} ${correct.unit ?? "g"}`;
     case "interactive_clock":
       return `${normaliseClockHour(correct.targetHour ?? correct.hour) ?? 0}:${String(normaliseMinute(correct.targetMinute ?? correct.minute ?? 0) ?? 0).padStart(2, "0")}`;
     case "interactive_fraction_bar":
@@ -286,6 +336,12 @@ export function checkActivityV5Answer(
       break;
     case "interactive_ruler":
       isCorrect = sameRulerValue(response, correct);
+      break;
+    case "interactive_capacity_jug":
+      isCorrect = sameCapacityValue(response, correct);
+      break;
+    case "interactive_mass_scale":
+      isCorrect = sameMassValue(response, correct);
       break;
     case "interactive_clock":
       isCorrect = sameClockValue(response, correct);

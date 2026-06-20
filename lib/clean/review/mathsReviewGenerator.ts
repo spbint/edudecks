@@ -14,6 +14,8 @@ export type MathsReviewVisualModel =
   | "place_value_blocks"
   | "fraction_bar"
   | "ruler_board"
+  | "capacity_jug"
+  | "mass_scale"
   | "clock_face"
   | "shape_board"
   | "coordinate_grid"
@@ -28,6 +30,8 @@ export type MathsReviewVisualMetadata = {
     | "build_place_value"
     | "interactive_fraction_bar"
     | "interactive_ruler"
+    | "interactive_capacity_jug"
+    | "interactive_mass_scale"
     | "interactive_clock"
     | "plot_coordinates"
     | "generic_money_model";
@@ -39,6 +43,15 @@ export type MathsReviewVisualMetadata = {
   step?: number;
   targetLength?: number;
   measuredLength?: number;
+  targetCapacity?: number;
+  measuredCapacity?: number;
+  containerLabel?: string;
+  containerVisual?: string;
+  fillLevel?: number;
+  targetMass?: number;
+  measuredMass?: number;
+  scaleType?: "digital" | "balance" | "kitchen";
+  conversionMode?: boolean;
   tolerance?: number;
   objectLabel?: string;
   objectVisual?: string;
@@ -314,6 +327,48 @@ function buildMathsReviewVisual(
     const targetLength = Number.isFinite(target) ? target : first;
     const unit = bank.id.startsWith("mm") ? "mm" : bank.id.includes("cm") ? "cm" : bank.id.includes("m-") || bank.id.includes("-m") ? "m" : bank.label;
     const max = Math.max(10, Math.ceil(targetLength * 1.15));
+    if (bank.id === "ml-l") {
+      const targetCapacity = Number.isFinite(target) ? target : first;
+      const capacityUnit = String(question.answer).toLowerCase().includes("l") && !String(question.answer).toLowerCase().includes("ml") ? "L" : "mL";
+      return {
+        visualModel: "capacity_jug",
+        interactionType: "interactive_capacity_jug",
+        values: numbers.slice(0, 4),
+        unit: capacityUnit,
+        targetCapacity,
+        measuredCapacity: targetCapacity,
+        min: 0,
+        max: Math.max(capacityUnit === "L" ? 2 : 1000, Math.ceil(targetCapacity * 1.15)),
+        step: capacityUnit === "L" ? 0.25 : 50,
+        containerLabel: "Measuring jug",
+        containerVisual: "jug",
+        fillLevel: 0,
+        conversionMode: true,
+        labelMode: "both",
+        note: "Capacity jug model for litres and millilitres.",
+      };
+    }
+    if (bank.id === "g-kg") {
+      const targetMass = Number.isFinite(target) ? target : first;
+      const massUnit = String(question.answer).toLowerCase().includes("kg") ? "kg" : "g";
+      return {
+        visualModel: "mass_scale",
+        interactionType: "interactive_mass_scale",
+        values: numbers.slice(0, 4),
+        unit: massUnit,
+        targetMass,
+        measuredMass: targetMass,
+        min: 0,
+        max: Math.max(massUnit === "kg" ? 5 : 1000, Math.ceil(targetMass * 1.15)),
+        step: massUnit === "kg" ? 0.5 : 50,
+        objectLabel: "Package",
+        objectVisual: "package",
+        scaleType: "digital",
+        conversionMode: true,
+        labelMode: "both",
+        note: "Mass scale model for grams and kilograms.",
+      };
+    }
     return {
       visualModel: "ruler_board",
       interactionType: "interactive_ruler",

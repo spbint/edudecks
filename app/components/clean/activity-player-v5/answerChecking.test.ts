@@ -117,6 +117,110 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks exact millilitre capacity jug answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_capacity_jug",
+        visualModel: "capacity_jug",
+        correctState: { unit: "mL", targetCapacity: 500, tolerance: 0 },
+      }),
+      { unit: "mL", measuredCapacity: 500 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks litre capacity jug answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_capacity_jug",
+        visualModel: "capacity_jug",
+        correctState: { unit: "L", targetCapacity: 1, tolerance: 0 },
+      }),
+      { unit: "L", measuredCapacity: 1 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks mL/L capacity conversion", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_capacity_jug",
+        visualModel: "capacity_jug",
+        correctState: { unit: "L", targetCapacity: 1, tolerance: 0 },
+      }),
+      { unit: "mL", measuredCapacity: 1000 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks capacity jug tolerance", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_capacity_jug",
+        visualModel: "capacity_jug",
+        correctState: { unit: "mL", targetCapacity: 750, tolerance: 25 },
+      }),
+      { unit: "mL", measuredCapacity: 760 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks exact gram mass scale answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_mass_scale",
+        visualModel: "mass_scale",
+        correctState: { unit: "g", targetMass: 500, tolerance: 0 },
+      }),
+      { unit: "g", measuredMass: 500 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks kilogram mass scale answers", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_mass_scale",
+        visualModel: "mass_scale",
+        correctState: { unit: "kg", targetMass: 2, tolerance: 0 },
+      }),
+      { unit: "kg", measuredMass: 2 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks g/kg mass conversion", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_mass_scale",
+        visualModel: "mass_scale",
+        correctState: { unit: "kg", targetMass: 1, tolerance: 0 },
+      }),
+      { unit: "g", measuredMass: 1000 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks mass scale tolerance", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "interactive_mass_scale",
+        visualModel: "mass_scale",
+        correctState: { unit: "g", targetMass: 500, tolerance: 20 },
+      }),
+      { unit: "g", measuredMass: 515 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("checks exact dynamic number-line values", () => {
     const result = checkActivityV5Answer(
       activity({
