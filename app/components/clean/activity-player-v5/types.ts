@@ -1,0 +1,124 @@
+export type ActivityV5Mode = "practise" | "assess";
+
+export type ActivityV5InteractionType =
+  | "drag_to_place"
+  | "click_objects"
+  | "plot_coordinates"
+  | "rotate_shape"
+  | "flip_reflection"
+  | "build_array"
+  | "move_along_route"
+  | "interactive_ruler"
+  | "interactive_clock"
+  | "interactive_fraction_bar"
+  | "interactive_number_line"
+  | "build_place_value"
+  | "generic_money_model";
+
+export type ActivityV5VisualModel =
+  | "shape_board"
+  | "route_grid"
+  | "coordinate_grid"
+  | "turn_board"
+  | "reflection_grid"
+  | "array_board"
+  | "ruler_board"
+  | "clock_face"
+  | "fraction_bar"
+  | "number_line"
+  | "place_value_blocks"
+  | "money_board";
+
+export type ActivityV5Object = {
+  id: string;
+  label: string;
+  type?: string;
+  value?: number | string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  draggable?: boolean;
+  selectable?: boolean;
+};
+
+export type ActivityV5Target = {
+  id: string;
+  label: string;
+  x?: number;
+  y?: number;
+  accepts?: string[];
+};
+
+export type ActivityV5ResponseState = {
+  placements?: Record<string, string>;
+  selectedObjectIds?: string[];
+  plottedCoordinates?: string[];
+  orientation?: number;
+  reflectedCells?: string[];
+  rows?: number;
+  columns?: number;
+  routePath?: string[];
+  finalPosition?: string;
+  measuredLength?: number;
+  hour?: number;
+  minute?: number;
+  shadedParts?: number;
+  denominator?: number;
+  numberLineValue?: number | string;
+  tens?: number;
+  ones?: number;
+  hundreds?: number;
+  moneyTotal?: number;
+  selectedTokenIds?: string[];
+  selectedOption?: string;
+};
+
+export type ActivityV5CorrectState = ActivityV5ResponseState & {
+  tolerance?: number;
+  acceptedOptions?: string[];
+};
+
+export type ActivityV5Feedback = {
+  correct: string;
+  incorrect: string;
+  hint?: string;
+};
+
+export type ActivityV5 = {
+  id: string;
+  strand: string;
+  step: string;
+  mode: ActivityV5Mode;
+  prompt: string;
+  instruction: string;
+  interactionType: ActivityV5InteractionType;
+  visualModel: ActivityV5VisualModel;
+  objects: ActivityV5Object[];
+  targets: ActivityV5Target[];
+  correctState: ActivityV5CorrectState;
+  feedback: ActivityV5Feedback;
+  supportHint?: string;
+  answerOptions?: string[];
+  randomisationSeed?: string;
+  worksheetReference?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type ActivityV5CheckResult = {
+  correct: boolean;
+  message: string;
+  expectedSummary: string;
+};
+
+export type ActivityPlayerV5Props = {
+  activities: ActivityV5[];
+  chrome?: "standalone" | "embedded";
+  onSubmitAnswer?: (input: {
+    activity: ActivityV5;
+    response: ActivityV5ResponseState;
+    correct: boolean;
+    index: number;
+  }) => void;
+  onComplete?: () => void;
+};
