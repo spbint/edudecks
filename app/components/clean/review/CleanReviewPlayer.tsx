@@ -5,6 +5,7 @@ import { v2Tokens } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
 import {
   checkMathsReviewAnswer,
   type MathsReviewQuestion,
+  type MathsReviewVisualMetadata,
 } from "@/lib/clean/review/mathsReviewGenerator";
 
 export type MathsReviewPlayerResult = {
@@ -62,6 +63,192 @@ function getDisplayParts(question: MathsReviewQuestion) {
 
 function resultForQuestion(results: MathsReviewPlayerResult[], question: MathsReviewQuestion) {
   return results.find((result) => result.question.id === question.id) ?? null;
+}
+
+function ReviewVisualModel({ visual }: { visual?: MathsReviewVisualMetadata }) {
+  if (!visual) return null;
+
+  const boardStyle: React.CSSProperties = {
+    width: "min(680px, 100%)",
+    margin: "0 auto",
+    border: `1px solid ${v2Tokens.border}`,
+    borderRadius: 24,
+    background: "#F8FAFC",
+    padding: 18,
+    display: "grid",
+    gap: 12,
+    justifyItems: "center",
+  };
+
+  if (visual.visualModel === "ten_frame") {
+    const filled = Math.max(0, Math.min(10, Number(visual.targetValue ?? 0)));
+    return (
+      <div style={boardStyle} aria-label="Ten frame visual">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 54px)", gap: 8 }}>
+          {Array.from({ length: 10 }, (_, index) => (
+            <span
+              key={index}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 14,
+                border: `2px solid ${v2Tokens.navy}`,
+                background: index < filled ? v2Tokens.purple : "#FFFFFF",
+              }}
+            />
+          ))}
+        </div>
+        <span style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 800 }}>{visual.note}</span>
+      </div>
+    );
+  }
+
+  if (visual.visualModel === "array_board") {
+    const rows = Math.max(1, Math.min(12, visual.rows ?? 3));
+    const columns = Math.max(1, Math.min(12, visual.columns ?? 4));
+    return (
+      <div style={boardStyle} aria-label="Array visual">
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns}, 28px)`, gap: 7 }}>
+          {Array.from({ length: rows * columns }, (_, index) => (
+            <span key={index} style={{ width: 28, height: 28, borderRadius: 9, background: v2Tokens.purple }} />
+          ))}
+        </div>
+        <span style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 800 }}>
+          {rows} rows x {columns} columns
+        </span>
+      </div>
+    );
+  }
+
+  if (visual.visualModel === "place_value_blocks") {
+    const value = Math.max(0, Math.floor(Number(visual.targetValue ?? 0)));
+    const hundreds = Math.floor(value / 100);
+    const tens = Math.floor((value % 100) / 10);
+    const ones = value % 10;
+    return (
+      <div style={boardStyle} aria-label="Place value blocks visual">
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+          {[
+            ["Hundreds", hundreds],
+            ["Tens", tens],
+            ["Ones", ones],
+          ].map(([label, count]) => (
+            <div key={String(label)} style={{ display: "grid", gap: 8, justifyItems: "center" }}>
+              <strong style={{ color: v2Tokens.navy }}>{label}</strong>
+              <span style={{ borderRadius: 16, background: "#FFFFFF", border: `1px solid ${v2Tokens.border}`, padding: "12px 16px", fontSize: 28, fontWeight: 900 }}>
+                {String(count)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (visual.visualModel === "fraction_bar") {
+    const denominator = Math.max(2, visual.denominator ?? 4);
+    const shaded = Math.max(0, Math.min(denominator, visual.shadedParts ?? 1));
+    return (
+      <div style={boardStyle} aria-label="Fraction bar visual">
+        <div style={{ width: "min(460px, 100%)", display: "grid", gridTemplateColumns: `repeat(${denominator}, 1fr)`, gap: 5 }}>
+          {Array.from({ length: denominator }, (_, index) => (
+            <span
+              key={index}
+              style={{
+                minHeight: 76,
+                borderRadius: 12,
+                border: `2px solid ${v2Tokens.navy}`,
+                background: index < shaded ? v2Tokens.purple : "#FFFFFF",
+              }}
+            />
+          ))}
+        </div>
+        <strong style={{ color: v2Tokens.navy }}>{shaded}/{denominator}</strong>
+      </div>
+    );
+  }
+
+  if (visual.visualModel === "clock_face") {
+    const hour = visual.hour ?? 3;
+    const minute = visual.minute ?? 0;
+    const minuteDegrees = minute * 6;
+    const hourDegrees = (hour % 12) * 30 + minute * 0.5;
+    return (
+      <div style={boardStyle} aria-label="Clock visual">
+        <div style={{ width: 190, height: 190, borderRadius: 999, border: `5px solid ${v2Tokens.navy}`, background: "#FFFFFF", position: "relative" }}>
+          {[12, 3, 6, 9].map((label) => (
+            <span key={label} style={{ position: "absolute", ...(label === 12 ? { top: 12, left: 0, right: 0, textAlign: "center" } : {}), ...(label === 3 ? { right: 16, top: 78 } : {}), ...(label === 6 ? { bottom: 10, left: 0, right: 0, textAlign: "center" } : {}), ...(label === 9 ? { left: 16, top: 78 } : {}), fontWeight: 900, color: v2Tokens.navy }}>
+              {label}
+            </span>
+          ))}
+          <span style={{ position: "absolute", left: 91, top: 48, width: 7, height: 48, background: v2Tokens.purple, borderRadius: 999, transformOrigin: "bottom", transform: `rotate(${hourDegrees}deg)` }} />
+          <span style={{ position: "absolute", left: 92, top: 26, width: 5, height: 70, background: v2Tokens.green, borderRadius: 999, transformOrigin: "bottom", transform: `rotate(${minuteDegrees}deg)` }} />
+          <span style={{ position: "absolute", left: 83, top: 83, width: 22, height: 22, borderRadius: 999, background: v2Tokens.navy }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (visual.visualModel === "shape_board" || visual.visualModel === "money_board") {
+    const labels = visual.labels?.length ? visual.labels : [String(visual.targetValue ?? "model")];
+    return (
+      <div style={boardStyle} aria-label={`${visual.visualModel} visual`}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
+          {labels.slice(0, 6).map((label) => (
+            <span key={label} style={{ borderRadius: visual.visualModel === "money_board" ? 999 : 16, border: `2px solid ${v2Tokens.navy}`, background: "#FFFFFF", color: v2Tokens.navy, padding: "14px 18px", fontSize: 20, fontWeight: 900 }}>
+              {label}
+            </span>
+          ))}
+        </div>
+        <span style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 800 }}>{visual.note}</span>
+      </div>
+    );
+  }
+
+  if (visual.visualModel === "coordinate_grid") {
+    const target = String(visual.targetValue ?? "");
+    return (
+      <div style={boardStyle} aria-label="Coordinate grid visual">
+        <div style={{ display: "grid", gridTemplateColumns: "34px repeat(4, 54px)", gap: 7 }}>
+          <span />
+          {["A", "B", "C", "D"].map((col) => <strong key={col} style={{ textAlign: "center", color: v2Tokens.slate }}>{col}</strong>)}
+          {[1, 2, 3, 4].map((row) => (
+            <React.Fragment key={row}>
+              <strong style={{ display: "grid", placeItems: "center", color: v2Tokens.slate }}>{row}</strong>
+              {["A", "B", "C", "D"].map((col) => {
+                const coord = `${col}${row}`;
+                return (
+                  <span key={coord} style={{ minHeight: 54, borderRadius: 12, border: `2px solid ${coord === target ? v2Tokens.purple : v2Tokens.border}`, background: coord === target ? v2Tokens.lavender : "#FFFFFF", display: "grid", placeItems: "center", color: v2Tokens.navy, fontWeight: 850 }}>
+                    {coord}
+                  </span>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const values = visual.values?.length ? visual.values : [0, Number(visual.targetValue ?? 10)];
+  const min = Math.min(...values, 0);
+  const max = Math.max(...values, Number(visual.targetValue ?? 10), 10);
+  return (
+    <div style={boardStyle} aria-label="Number line visual">
+      <div style={{ width: "100%", position: "relative", height: 84 }}>
+        <span style={{ position: "absolute", left: 14, right: 14, top: 42, height: 4, borderRadius: 999, background: v2Tokens.navy }} />
+        {[min, Math.round((min + max) / 2), max].map((value) => (
+          <span key={value} style={{ position: "absolute", left: value === min ? 8 : value === max ? "calc(100% - 28px)" : "50%", top: 54, color: v2Tokens.navy, fontWeight: 850 }}>
+            {value}
+          </span>
+        ))}
+        {values.slice(0, 5).map((value, index) => (
+          <span key={`${value}-${index}`} style={{ position: "absolute", left: `${max === min ? 50 : ((value - min) / (max - min)) * 92 + 4}%`, top: 22, transform: "translateX(-50%)", width: 18, height: 18, borderRadius: 999, background: v2Tokens.purple }} />
+        ))}
+      </div>
+      <span style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 800 }}>{visual.note}</span>
+    </div>
+  );
 }
 
 export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: CleanReviewPlayerProps) {
@@ -365,6 +552,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                   {displayParts.problem}
                 </div>
               ) : null}
+              <ReviewVisualModel visual={currentQuestion.visual} />
               {currentQuestion.visualHint ? (
                 <p style={{ margin: 0, color: v2Tokens.slate, fontSize: 16, lineHeight: 1.5 }}>{currentQuestion.visualHint}</p>
               ) : null}

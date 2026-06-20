@@ -2,6 +2,13 @@
 
 Date: 2026-06-20
 
+## Governed by MyLearna Mathematics Experience Standard v1
+
+This audit and all follow-up mathematics remediation work are governed by
+[MyLearna Mathematics Experience Standard v1](./mylearna-mathematics-experience-standard-v1.md).
+
+The standard defines worksheet fidelity, premium maths interaction expectations, ActivityPlayer v5 requirements, touchscreen support, answer randomisation, strand-specific visual models, My Review expectations, and QA/release criteria.
+
 ## Scope
 
 This audit reviewed the code paths that render MyLearna Mathematics worksheet resources, Practise activities, and Assess activities for:

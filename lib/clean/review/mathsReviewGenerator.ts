@@ -7,6 +7,42 @@ import {
 
 export type MathsReviewOrder = "sequential" | "random";
 export type MathsReviewQuestionType = "input" | "choice";
+export type MathsReviewVisualModel =
+  | "ten_frame"
+  | "number_line"
+  | "array_board"
+  | "place_value_blocks"
+  | "fraction_bar"
+  | "ruler_board"
+  | "clock_face"
+  | "shape_board"
+  | "coordinate_grid"
+  | "money_board";
+
+export type MathsReviewVisualMetadata = {
+  visualModel: MathsReviewVisualModel;
+  interactionType:
+    | "click_objects"
+    | "interactive_number_line"
+    | "build_array"
+    | "build_place_value"
+    | "interactive_fraction_bar"
+    | "interactive_ruler"
+    | "interactive_clock"
+    | "plot_coordinates"
+    | "generic_money_model";
+  values?: number[];
+  labels?: string[];
+  targetValue?: number | string;
+  rows?: number;
+  columns?: number;
+  shadedParts?: number;
+  denominator?: number;
+  hour?: number;
+  minute?: number;
+  unit?: string;
+  note?: string;
+};
 
 export type MathsReviewSettings = {
   selectedBankIds: string[];
@@ -29,6 +65,7 @@ export type MathsReviewQuestion = {
   choices?: string[];
   explanation: string;
   visualHint?: string;
+  visual?: MathsReviewVisualMetadata;
 };
 
 type QuestionFactory = (bank: MathsReviewBank, settings: MathsReviewSettings, index: number) => MathsReviewQuestion;
@@ -69,9 +106,170 @@ function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededShuffle<T>(items: T[], seed: string) {
+  const shuffled = [...items];
+  let state = stableHash(seed) || 1;
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    state = Math.imul(state ^ (state >>> 15), 2246822519) >>> 0;
+    const swapIndex = state % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
 function makeChoices(correct: string, distractors: string[]) {
   const unique = [correct, ...distractors].filter((value, index, list) => list.indexOf(value) === index);
   return shuffle(unique).slice(0, 4);
+}
+
+function buildMathsReviewVisual(
+  bank: MathsReviewBank,
+  question: Omit<MathsReviewQuestion, "id" | "bankId" | "bankLabel" | "group">,
+): MathsReviewVisualMetadata {
+  const numbers = [question.prompt, question.answer]
+    .join(" ")
+    .match(/-?\d+(?:\.\d+)?/g)
+    ?.map(Number)
+    .filter((value) => Number.isFinite(value)) ?? [];
+  const first = numbers[0] ?? (Number(question.answer) || 0);
+  const target = Number(question.answer);
+
+  if (bank.id === "subitising-ten-frame" || bank.id === "make-10" || bank.id === "make-20") {
+    return {
+      visualModel: "ten_frame",
+      interactionType: "click_objects",
+      targetValue: Number.isFinite(target) ? target : first,
+      note: "Ten-frame model for quick number structure.",
+    };
+  }
+
+  if (
+    bank.group === "Counting" ||
+    bank.id.includes("numberline") ||
+    bank.id.includes("round-to") ||
+    bank.id.includes("after") ||
+    bank.id.includes("before") ||
+    bank.id === "greater-than-less-than" ||
+    bank.id.includes("smallest") ||
+    bank.id.includes("largest")
+  ) {
+    return {
+      visualModel: "number_line",
+      interactionType: "interactive_number_line",
+      values: numbers.slice(0, 6),
+      targetValue: Number.isFinite(target) ? target : first,
+      note: "Number-line model for order, counting and magnitude.",
+    };
+  }
+
+  if (
+    bank.group === "Multiplication Facts" ||
+    bank.id === "multiplication" ||
+    bank.id === "division" ||
+    bank.id === "arrays" ||
+    bank.id === "partially-covered-arrays" ||
+    bank.id === "missing-factors"
+  ) {
+    const rows = Math.max(1, Math.min(12, numbers[0] || 3));
+    const columns = Math.max(1, Math.min(12, numbers[1] || numbers[0] || 4));
+    return {
+      visualModel: "array_board",
+      interactionType: "build_array",
+      rows,
+      columns,
+      targetValue: rows * columns,
+      note: "Array model for groups, rows and columns.",
+    };
+  }
+
+  if (bank.group === "Place Value" || bank.id === "standard-partitioning") {
+    return {
+      visualModel: "place_value_blocks",
+      interactionType: "build_place_value",
+      targetValue: first,
+      note: "Place-value blocks model for number structure.",
+    };
+  }
+
+  if (bank.group === "Fractions and Decimals" || bank.id === "halve") {
+    return {
+      visualModel: "fraction_bar",
+      interactionType: "interactive_fraction_bar",
+      shadedParts: question.answer === "3/4" ? 3 : 1,
+      denominator: question.answer === "3/4" ? 4 : 2,
+      note: "Fraction bar model for part-whole reasoning.",
+    };
+  }
+
+  if (bank.group === "Unit Conversion") {
+    return {
+      visualModel: "ruler_board",
+      interactionType: "interactive_ruler",
+      values: numbers.slice(0, 4),
+      unit: bank.label,
+      note: "Measurement tool model for conversion reasoning.",
+    };
+  }
+
+  if (bank.group === "Time") {
+    const hour = Number(question.answer.match(/\d+/)?.[0] ?? numbers[0] ?? 3);
+    const minute = question.answer.includes(":30") ? 30 : question.answer.includes(":15") ? 15 : 0;
+    return {
+      visualModel: "clock_face",
+      interactionType: "interactive_clock",
+      hour,
+      minute,
+      note: "Clock model for reading and converting time.",
+    };
+  }
+
+  if (bank.group === "Australian Money") {
+    return {
+      visualModel: "money_board",
+      interactionType: "generic_money_model",
+      labels: ["1", "2", "5", "10"],
+      targetValue: question.answer,
+      note: "Generic money model; local currency should be a localisation layer.",
+    };
+  }
+
+  if (bank.id === "grid-reference") {
+    return {
+      visualModel: "coordinate_grid",
+      interactionType: "plot_coordinates",
+      targetValue: question.answer,
+      note: "Coordinate grid model for location.",
+    };
+  }
+
+  if (bank.group === "Spatial Structure") {
+    return {
+      visualModel: "shape_board",
+      interactionType: "click_objects",
+      labels: question.choices ?? [question.answer],
+      targetValue: question.answer,
+      note: "Shape board model for spatial structure.",
+    };
+  }
+
+  return {
+    visualModel: "number_line",
+    interactionType: "interactive_number_line",
+    values: numbers.slice(0, 6),
+    targetValue: Number.isFinite(target) ? target : first,
+    note: "Number-line model for review practice.",
+  };
 }
 
 function withBase(
@@ -79,12 +277,21 @@ function withBase(
   index: number,
   question: Omit<MathsReviewQuestion, "id" | "bankId" | "bankLabel" | "group">,
 ): MathsReviewQuestion {
+  const choices = question.choices
+    ? seededShuffle(
+        question.choices,
+        `${bank.id}-${index}-${question.prompt}-${question.answer}`,
+      )
+    : undefined;
+  const questionWithChoices = { ...question, choices };
+  const visual = question.visual ?? buildMathsReviewVisual(bank, questionWithChoices);
   return {
     id: `${bank.id}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
     bankId: bank.id,
     bankLabel: bank.label,
     group: bank.group,
-    ...question,
+    visual,
+    ...questionWithChoices,
   };
 }
 
@@ -103,7 +310,7 @@ function choiceQuestion(
     prompt,
     answer,
     acceptableAnswers,
-    choices: shuffle(choices),
+    choices,
     explanation,
     visualHint,
   });
