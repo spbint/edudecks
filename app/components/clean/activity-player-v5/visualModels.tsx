@@ -46,6 +46,150 @@ export function ModelBoard({
 }
 
 export function ShapeIcon({ shape, size = 70 }: { shape: string; size?: number }) {
+  if (shape.startsWith("arrow-")) {
+    const direction = shape.replace("arrow-", "");
+    const rotation =
+      direction === "right" ? 90 : direction === "down" ? 180 : direction === "left" ? 270 : 0;
+    return (
+      <span
+        style={{
+          width: size,
+          height: size,
+          display: "inline-grid",
+          placeItems: "center",
+          transform: `rotate(${rotation}deg)`,
+        }}
+      >
+        <span
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: `${size * 0.32}px solid transparent`,
+            borderRight: `${size * 0.32}px solid transparent`,
+            borderBottom: `${size * 0.72}px solid ${v5Tokens.purple}`,
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (shape.startsWith("angle-")) {
+    const wide = shape === "angle-obtuse";
+    const narrow = shape === "angle-acute";
+    return (
+      <span
+        style={{
+          width: size,
+          height: size,
+          position: "relative",
+          display: "inline-block",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: size * 0.18,
+            bottom: size * 0.2,
+            width: size * 0.62,
+            height: 5,
+            borderRadius: 999,
+            background: v5Tokens.navy,
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            left: size * 0.18,
+            bottom: size * 0.2,
+            width: size * 0.62,
+            height: 5,
+            borderRadius: 999,
+            background: v5Tokens.navy,
+            transformOrigin: "left center",
+            transform: `rotate(${wide ? -135 : narrow ? -38 : -90}deg)`,
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (shape === "star") {
+    return (
+      <span
+        style={{
+          width: size,
+          height: size,
+          clipPath:
+            "polygon(50% 0%, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%)",
+          background: v5Tokens.amber,
+          border: `3px solid ${v5Tokens.navy}`,
+          display: "inline-block",
+        }}
+      />
+    );
+  }
+
+  if (shape === "tree") {
+    return (
+      <span style={{ display: "inline-grid", justifyItems: "center", width: size }}>
+        <span
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: `${size * 0.38}px solid transparent`,
+            borderRight: `${size * 0.38}px solid transparent`,
+            borderBottom: `${size * 0.7}px solid ${v5Tokens.green}`,
+          }}
+        />
+        <span style={{ width: size * 0.18, height: size * 0.24, background: "#9A6B3F" }} />
+      </span>
+    );
+  }
+
+  if (shape === "house") {
+    return (
+      <span style={{ display: "inline-grid", justifyItems: "center", width: size }}>
+        <span
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: `${size * 0.46}px solid transparent`,
+            borderRight: `${size * 0.46}px solid transparent`,
+            borderBottom: `${size * 0.42}px solid ${v5Tokens.red}`,
+          }}
+        />
+        <span
+          style={{
+            width: size * 0.72,
+            height: size * 0.5,
+            border: `3px solid ${v5Tokens.navy}`,
+            background: v5Tokens.blue,
+            display: "inline-block",
+          }}
+        />
+      </span>
+    );
+  }
+
+  if (shape === "pond") {
+    return (
+      <span
+        style={{
+          width: size,
+          height: size * 0.62,
+          borderRadius: "52% 44% 56% 48%",
+          border: `3px solid ${v5Tokens.navy}`,
+          background: "#BAE6FD",
+          display: "inline-block",
+        }}
+      />
+    );
+  }
+
+  if (shape === "bed" || shape === "wall" || shape === "block") {
+    return <span style={{ width: size * 1.25, height: size * 0.56, border: `3px solid ${v5Tokens.navy}`, background: shape === "wall" ? "#E2E8F0" : v5Tokens.blue, borderRadius: 10, display: "inline-block" }} />;
+  }
+
   const base: CSSProperties = {
     width: size,
     height: size,

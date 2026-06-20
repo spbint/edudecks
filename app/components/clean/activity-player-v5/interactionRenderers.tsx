@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type {
   ActivityV5,
   ActivityV5Object,
@@ -60,6 +61,24 @@ function ToggleChip({
 
 function objectShape(object: ActivityV5Object) {
   return object.type || object.label.toLowerCase();
+}
+
+const coordinateColumns = ["A", "B", "C", "D"];
+const coordinateRows = [1, 2, 3, 4];
+
+function objectAtCoordinate(activity: ActivityV5, coordinate: string) {
+  return activity.objects.find((object) => String(object.value ?? "") === coordinate);
+}
+
+function cellContent(activity: ActivityV5, coordinate: string, fallback: ReactNode) {
+  const object = objectAtCoordinate(activity, coordinate);
+  if (!object) return fallback;
+  return (
+    <span style={{ display: "grid", justifyItems: "center", gap: 4 }}>
+      <ShapeIcon shape={objectShape(object)} size={30} />
+      <span>{object.label}</span>
+    </span>
+  );
 }
 
 function DragToPlace({ activity, response, onChange }: RendererProps) {
@@ -178,7 +197,6 @@ function ClickObjects({ activity, response, onChange }: RendererProps) {
 
 function PlotCoordinates({ activity, response, onChange }: RendererProps) {
   const plotted = new Set(response.plottedCoordinates ?? []);
-  const labels = ["A", "B", "C", "D"];
   const toggle = (coordinate: string) => {
     const next = new Set(plotted);
     if (next.has(coordinate)) next.delete(coordinate);
@@ -190,11 +208,11 @@ function PlotCoordinates({ activity, response, onChange }: RendererProps) {
     <ModelBoard label={activity.prompt}>
       <GridBoard size={5}>
         <span />
-        {labels.map((label) => <strong key={label} style={{ textAlign: "center", color: v5Tokens.slate }}>{label}</strong>)}
-        {[1, 2, 3, 4].map((row) => (
-          <>
+        {coordinateColumns.map((label) => <strong key={label} style={{ textAlign: "center", color: v5Tokens.slate }}>{label}</strong>)}
+        {coordinateRows.map((row) => (
+          <span key={`plot-row-wrap-${row}`} style={{ display: "contents" }}>
             <strong key={`row-${row}`} style={{ display: "grid", placeItems: "center", color: v5Tokens.slate }}>{row}</strong>
-            {labels.map((col) => {
+            {coordinateColumns.map((col) => {
               const coordinate = `${col}${row}`;
               return (
                 <GridCell
@@ -202,11 +220,13 @@ function PlotCoordinates({ activity, response, onChange }: RendererProps) {
                   selected={plotted.has(coordinate)}
                   onClick={() => toggle(coordinate)}
                 >
-                  {plotted.has(coordinate) ? "point" : coordinate}
+                  {plotted.has(coordinate)
+                    ? cellContent(activity, coordinate, "point")
+                    : cellContent(activity, coordinate, coordinate)}
                 </GridCell>
               );
             })}
-          </>
+          </span>
         ))}
       </GridBoard>
     </ModelBoard>
@@ -216,11 +236,12 @@ function PlotCoordinates({ activity, response, onChange }: RendererProps) {
 function RotateShape({ activity, response, onChange }: RendererProps) {
   const orientation = response.orientation ?? 0;
   const setOrientation = (value: number) => onChange(mergeResponse(response, { orientation: value }));
+  const shape = activity.objects[0]?.type ?? "arrow-up";
 
   return (
     <ModelBoard label={activity.prompt} style={{ placeItems: "center" }}>
       <div style={{ transform: `rotate(${orientation}deg)`, transition: "transform 180ms ease" }}>
-        <ShapeIcon shape="triangle" size={120} />
+        <ShapeIcon shape={shape} size={120} />
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
         {[0, 90, 180, 270].map((value) => (
@@ -233,6 +254,7 @@ function RotateShape({ activity, response, onChange }: RendererProps) {
 
 function FlipReflection({ activity, response, onChange }: RendererProps) {
   const selected = new Set(response.reflectedCells ?? []);
+  const originalCells = new Set(activity.objects.map((object) => String(object.value ?? "")));
   const toggle = (cell: string) => {
     const next = new Set(selected);
     if (next.has(cell)) next.delete(cell);
@@ -248,7 +270,9 @@ function FlipReflection({ activity, response, onChange }: RendererProps) {
           const col = index % 5;
           const cell = `${col}-${row}`;
           const mirror = col === 2;
-          const original = col === 1 && row >= 1 && row <= 3;
+          const original = originalCells.size
+            ? originalCells.has(cell)
+            : col === 1 && row >= 1 && row <= 3;
           return (
             <GridCell
               key={cell}
@@ -292,26 +316,28 @@ function BuildArray({ activity, response, onChange }: RendererProps) {
 
 function MoveAlongRoute({ activity, response, onChange }: RendererProps) {
   const current = response.finalPosition ?? "A1";
-  const labels = ["A", "B", "C", "D"];
   const setPosition = (coordinate: string) => onChange(mergeResponse(response, { finalPosition: coordinate, routePath: [...(response.routePath ?? []), coordinate] }));
 
   return (
     <ModelBoard label={activity.prompt}>
       <GridBoard size={5}>
         <span />
-        {labels.map((label) => <strong key={label} style={{ textAlign: "center", color: v5Tokens.slate }}>{label}</strong>)}
-        {[1, 2, 3, 4].map((row) => (
-          <>
+        {coordinateColumns.map((label) => <strong key={label} style={{ textAlign: "center", color: v5Tokens.slate }}>{label}</strong>)}
+        {coordinateRows.map((row) => (
+          <span key={`route-row-wrap-${row}`} style={{ display: "contents" }}>
             <strong key={`route-row-${row}`} style={{ display: "grid", placeItems: "center", color: v5Tokens.slate }}>{row}</strong>
-            {labels.map((col) => {
+            {coordinateColumns.map((col) => {
               const coordinate = `${col}${row}`;
+              const routeStep = activity.correctState.routePath?.includes(coordinate);
               return (
-                <GridCell key={coordinate} selected={current === coordinate} onClick={() => setPosition(coordinate)}>
-                  {current === coordinate ? "robot" : coordinate}
+                <GridCell key={coordinate} active={routeStep} selected={current === coordinate} onClick={() => setPosition(coordinate)}>
+                  {current === coordinate
+                    ? cellContent(activity, coordinate, "finish")
+                    : cellContent(activity, coordinate, coordinate)}
                 </GridCell>
               );
             })}
-          </>
+          </span>
         ))}
       </GridBoard>
     </ModelBoard>
