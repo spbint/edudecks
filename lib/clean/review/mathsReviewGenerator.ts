@@ -12,6 +12,7 @@ export type MathsReviewVisualModel =
   | "number_line"
   | "array_board"
   | "equal_groups_board"
+  | "two_pan_balance_board"
   | "place_value_blocks"
   | "fraction_bar"
   | "fraction_comparison_board"
@@ -30,6 +31,7 @@ export type MathsReviewVisualMetadata = {
     | "interactive_number_line"
     | "build_array"
     | "equal_groups"
+    | "two_pan_balance"
     | "build_place_value"
     | "interactive_fraction_bar"
     | "fraction_comparison"
@@ -78,6 +80,17 @@ export type MathsReviewVisualMetadata = {
   repeatedAdditionSentence?: string;
   multiplicationSentence?: string;
   divisionSentence?: string;
+  leftItems?: Array<{ id: string; label: string; value?: number; unknown?: boolean }>;
+  rightItems?: Array<{ id: string; label: string; value?: number; unknown?: boolean }>;
+  leftTotal?: number;
+  rightTotal?: number;
+  targetBalance?: "balanced" | "left_heavier" | "right_heavier";
+  selectedBalance?: "balanced" | "left_heavier" | "right_heavier";
+  unknownSide?: "left" | "right";
+  unknownValue?: number;
+  equationText?: string;
+  balanceMode?: "compare" | "solve_unknown" | "build_balance";
+  allowEquivalentValues?: boolean;
   shadedParts?: number;
   denominator?: number;
   wholeCount?: number;
@@ -836,6 +849,24 @@ function missingNumber(bank: MathsReviewBank, settings: MathsReviewSettings, ind
       acceptableAnswers: [numberAnswer(missing)],
       explanation: `${total} - ${known} = ${missing}.`,
       visualHint: "Use the inverse operation.",
+      visual: {
+        visualModel: "two_pan_balance_board",
+        interactionType: "two_pan_balance",
+        leftItems: [
+          { id: "unknown", label: "?", unknown: true },
+          { id: "known", label: String(known), value: known },
+        ],
+        rightItems: [{ id: "total", label: String(total), value: total }],
+        leftTotal: total,
+        rightTotal: total,
+        targetBalance: "balanced",
+        unknownSide: "left",
+        unknownValue: missing,
+        equationText: `? + ${known} = ${total}`,
+        balanceMode: "solve_unknown",
+        allowEquivalentValues: true,
+        note: "Two-pan balance model for unknown addition.",
+      },
     });
   }
   const start = randInt(Math.max(1, low), Math.max(2, high));

@@ -8,6 +8,7 @@ export type ActivityV5InteractionType =
   | "flip_reflection"
   | "build_array"
   | "equal_groups"
+  | "two_pan_balance"
   | "move_along_route"
   | "interactive_ruler"
   | "interactive_capacity_jug"
@@ -27,6 +28,7 @@ export type ActivityV5VisualModel =
   | "reflection_grid"
   | "array_board"
   | "equal_groups_board"
+  | "two_pan_balance_board"
   | "ruler_board"
   | "capacity_jug"
   | "mass_scale"
@@ -71,6 +73,13 @@ export type ActivityV5PriceTag = {
   value: number;
 };
 
+export type ActivityV5BalanceItem = {
+  id: string;
+  label: string;
+  value?: number;
+  unknown?: boolean;
+};
+
 export type ActivityV5ResponseState = {
   placements?: Record<string, string>;
   selectedObjectIds?: string[];
@@ -93,6 +102,17 @@ export type ActivityV5ResponseState = {
   repeatedAdditionSentence?: string;
   multiplicationSentence?: string;
   divisionSentence?: string;
+  leftItems?: ActivityV5BalanceItem[];
+  rightItems?: ActivityV5BalanceItem[];
+  leftTotal?: number;
+  rightTotal?: number;
+  targetBalance?: "balanced" | "left_heavier" | "right_heavier";
+  selectedBalance?: "balanced" | "left_heavier" | "right_heavier";
+  unknownSide?: "left" | "right";
+  unknownValue?: number;
+  equationText?: string;
+  balanceMode?: "compare" | "solve_unknown" | "build_balance";
+  allowEquivalentValues?: boolean;
   routePath?: string[];
   finalPosition?: string;
   unit?: "cm" | "mm" | "m" | string;

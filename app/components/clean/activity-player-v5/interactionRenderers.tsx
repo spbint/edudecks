@@ -410,6 +410,154 @@ function EqualGroups({ activity, response, onChange }: RendererProps) {
   );
 }
 
+function totalFromBalanceItems(items = [] as NonNullable<ActivityV5ResponseState["leftItems"]>) {
+  return items.reduce((sum, item) => sum + (typeof item.value === "number" ? item.value : 0), 0);
+}
+
+function BalancePan({
+  label,
+  items,
+  total,
+}: {
+  label: string;
+  items: NonNullable<ActivityV5ResponseState["leftItems"]>;
+  total?: number;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 10, justifyItems: "center", minWidth: 0 }}>
+      <strong style={{ color: v5Tokens.navy, fontSize: 18 }}>{label}</strong>
+      <div
+        style={{
+          width: "min(280px, 100%)",
+          minHeight: 112,
+          borderRadius: "22px 22px 34px 34px",
+          border: `4px solid ${v5Tokens.navy}`,
+          borderTop: `8px solid ${v5Tokens.navy}`,
+          background: "#FFFFFF",
+          padding: 12,
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+          alignContent: "center",
+          justifyContent: "center",
+          boxShadow: "0 14px 26px rgba(23,32,75,0.10)",
+        }}
+      >
+        {items.length ? items.map((item) => (
+          <span
+            key={item.id}
+            style={{
+              minWidth: 42,
+              minHeight: 42,
+              borderRadius: item.unknown ? 14 : 999,
+              border: `2px solid ${v5Tokens.navy}`,
+              background: item.unknown ? v5Tokens.amber : v5Tokens.blue,
+              color: v5Tokens.navy,
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 950,
+              padding: "4px 8px",
+            }}
+          >
+            {item.label}
+          </span>
+        )) : (
+          <span style={{ color: v5Tokens.slate, fontWeight: 850 }}>empty</span>
+        )}
+      </div>
+      {typeof total === "number" ? <span style={{ color: v5Tokens.slate, fontWeight: 900 }}>Total: {total}</span> : null}
+    </div>
+  );
+}
+
+function TwoPanBalance({ activity, response, onChange }: RendererProps) {
+  const correct = activity.correctState;
+  const leftItems = correct.leftItems ?? [];
+  const rightItems = correct.rightItems ?? [];
+  const leftTotal = response.leftTotal ?? correct.leftTotal ?? totalFromBalanceItems(leftItems);
+  const rightTotal = response.rightTotal ?? correct.rightTotal ?? totalFromBalanceItems(rightItems);
+  const selectedBalance = response.selectedBalance;
+  const targetBalance = correct.targetBalance ?? (leftTotal === rightTotal ? "balanced" : leftTotal > rightTotal ? "left_heavier" : "right_heavier");
+  const tilt = selectedBalance === "left_heavier" || (!selectedBalance && targetBalance === "left_heavier")
+    ? -4
+    : selectedBalance === "right_heavier" || (!selectedBalance && targetBalance === "right_heavier")
+      ? 4
+      : 0;
+  const setBalance = (nextBalance: "balanced" | "left_heavier" | "right_heavier") =>
+    onChange(mergeResponse(response, {
+      selectedBalance: nextBalance,
+      leftTotal,
+      rightTotal,
+      unknownValue: correct.unknownValue,
+    }));
+
+  return (
+    <ModelBoard label={activity.prompt}>
+      <div style={{ display: "grid", gap: 18 }}>
+        {correct.equationText ? (
+          <strong style={{ textAlign: "center", color: v5Tokens.navy, fontSize: 28 }}>{correct.equationText}</strong>
+        ) : null}
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "end", padding: "20px 0 6px" }}>
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: "9%",
+              right: "9%",
+              bottom: 74,
+              height: 10,
+              borderRadius: 999,
+              background: v5Tokens.navy,
+              transform: `rotate(${tilt}deg)`,
+              transformOrigin: "center",
+            }}
+          />
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: 0,
+              width: 14,
+              height: 102,
+              borderRadius: 999,
+              background: v5Tokens.navy,
+              transform: "translateX(-50%)",
+            }}
+          />
+          <BalancePan label="Left pan" items={leftItems} total={leftTotal} />
+          <BalancePan label="Right pan" items={rightItems} total={rightTotal} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+          {[
+            ["left_heavier", "Left heavier"],
+            ["balanced", "Balanced"],
+            ["right_heavier", "Right heavier"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setBalance(value as "balanced" | "left_heavier" | "right_heavier")}
+              style={{
+                border: `2px solid ${response.selectedBalance === value ? v5Tokens.purple : v5Tokens.border}`,
+                background: response.selectedBalance === value ? v5Tokens.lavender : "#FFFFFF",
+                color: v5Tokens.navy,
+                borderRadius: 18,
+                padding: "16px 18px",
+                font: "inherit",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </ModelBoard>
+  );
+}
+
 function MoveAlongRoute({ activity, response, onChange }: RendererProps) {
   const current = response.finalPosition ?? "A1";
   const setPosition = (coordinate: string) => onChange(mergeResponse(response, { finalPosition: coordinate, routePath: [...(response.routePath ?? []), coordinate] }));
@@ -1246,6 +1394,8 @@ export function ActivityV5InteractionRenderer(props: RendererProps) {
       return <BuildArray {...props} />;
     case "equal_groups":
       return <EqualGroups {...props} />;
+    case "two_pan_balance":
+      return <TwoPanBalance {...props} />;
     case "move_along_route":
       return <MoveAlongRoute {...props} />;
     case "interactive_ruler":

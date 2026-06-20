@@ -511,6 +511,28 @@ export function myReviewQuestionToActivityV5(question: MathsReviewQuestion): Act
     };
   }
 
+  if (visual.visualModel === "two_pan_balance_board") {
+    return {
+      ...base(question),
+      interactionType: "two_pan_balance",
+      visualModel: "two_pan_balance_board",
+      objects: [],
+      targets: [],
+      correctState: {
+        leftItems: visual.leftItems ?? [],
+        rightItems: visual.rightItems ?? [],
+        leftTotal: visual.leftTotal,
+        rightTotal: visual.rightTotal,
+        targetBalance: visual.targetBalance,
+        unknownSide: visual.unknownSide,
+        unknownValue: visual.unknownValue,
+        equationText: visual.equationText,
+        balanceMode: visual.balanceMode ?? "compare",
+        allowEquivalentValues: visual.allowEquivalentValues,
+      },
+    };
+  }
+
   if (visual.visualModel === "fraction_bar") {
     const config = fractionConfig(question);
     if (!config) return null;

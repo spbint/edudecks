@@ -324,6 +324,95 @@ describe("ActivityPlayer v5 answer checking", () => {
     expect(result.correct).toBe(true);
   });
 
+  it("checks balanced two-pan balance comparisons", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "two_pan_balance",
+        visualModel: "two_pan_balance_board",
+        correctState: {
+          leftTotal: 8,
+          rightTotal: 8,
+          targetBalance: "balanced",
+        },
+      }),
+      { selectedBalance: "balanced", leftTotal: 8, rightTotal: 8 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks left-heavier two-pan balance comparisons", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "two_pan_balance",
+        visualModel: "two_pan_balance_board",
+        correctState: {
+          leftTotal: 9,
+          rightTotal: 6,
+          targetBalance: "left_heavier",
+        },
+      }),
+      { selectedBalance: "left_heavier", leftTotal: 9, rightTotal: 6 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks right-heavier two-pan balance comparisons", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "two_pan_balance",
+        visualModel: "two_pan_balance_board",
+        correctState: {
+          leftTotal: 4,
+          rightTotal: 7,
+          targetBalance: "right_heavier",
+        },
+      }),
+      { selectedBalance: "right_heavier", leftTotal: 4, rightTotal: 7 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks two-pan balance unknown values", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "two_pan_balance",
+        visualModel: "two_pan_balance_board",
+        correctState: {
+          leftTotal: 8,
+          rightTotal: 8,
+          targetBalance: "balanced",
+          unknownSide: "left",
+          unknownValue: 5,
+          equationText: "x + 3 = 8",
+        },
+      }),
+      { selectedBalance: "balanced", leftTotal: 8, rightTotal: 8, unknownValue: 5 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
+  it("checks two-pan balance equivalent totals when enabled", () => {
+    const result = checkActivityV5Answer(
+      activity({
+        interactionType: "two_pan_balance",
+        visualModel: "two_pan_balance_board",
+        correctState: {
+          leftTotal: 8,
+          rightTotal: 8,
+          targetBalance: "balanced",
+          allowEquivalentValues: true,
+        },
+      }),
+      { selectedBalance: "balanced", leftTotal: 10, rightTotal: 10 },
+    );
+
+    expect(result.correct).toBe(true);
+  });
+
   it("checks exact dynamic number-line values", () => {
     const result = checkActivityV5Answer(
       activity({

@@ -321,6 +321,40 @@ function sameEqualGroupsValue(
   return groupsOk && itemsOk && totalOk && repeatedOk && divisionOk;
 }
 
+function balanceFromTotals(leftTotal?: number, rightTotal?: number) {
+  if (typeof leftTotal !== "number" || typeof rightTotal !== "number") return undefined;
+  if (leftTotal === rightTotal) return "balanced";
+  return leftTotal > rightTotal ? "left_heavier" : "right_heavier";
+}
+
+function sameTwoPanBalanceValue(
+  response: ActivityV5ResponseState,
+  correct: ActivityV5["correctState"],
+) {
+  const expectedBalance =
+    correct.targetBalance ?? balanceFromTotals(correct.leftTotal, correct.rightTotal);
+  const selectedBalance =
+    response.selectedBalance ?? balanceFromTotals(response.leftTotal, response.rightTotal);
+  const balanceOk = expectedBalance ? selectedBalance === expectedBalance : true;
+
+  const actualLeft = response.leftTotal;
+  const actualRight = response.rightTotal;
+  const expectedLeft = correct.leftTotal;
+  const expectedRight = correct.rightTotal;
+  const totalsProvided = typeof expectedLeft === "number" && typeof expectedRight === "number";
+  const exactTotalsOk = totalsProvided
+    ? actualLeft === expectedLeft && actualRight === expectedRight
+    : true;
+  const equivalentTotalsOk = Boolean(correct.allowEquivalentValues) && totalsProvided
+    ? actualLeft === actualRight && expectedLeft === expectedRight
+    : false;
+  const unknownOk = typeof correct.unknownValue === "number"
+    ? response.unknownValue === correct.unknownValue || response.targetValue === correct.unknownValue
+    : true;
+
+  return balanceOk && (exactTotalsOk || equivalentTotalsOk) && unknownOk;
+}
+
 function expectedSummary(activity: ActivityV5) {
   const correct = activity.correctState;
   switch (activity.interactionType) {
@@ -338,6 +372,13 @@ function expectedSummary(activity: ActivityV5) {
       return `${correct.targetRows ?? correct.rows ?? 0} rows of ${correct.targetColumns ?? correct.columns ?? 0}`;
     case "equal_groups":
       return `${correct.targetGroupCount ?? correct.groupCount ?? 0} groups of ${correct.targetItemsPerGroup ?? correct.itemsPerGroup ?? 0}`;
+    case "two_pan_balance":
+      if (typeof correct.unknownValue === "number") return `${correct.unknownSide ?? "unknown"} unknown is ${correct.unknownValue}`;
+      return correct.targetBalance === "left_heavier"
+        ? "left side is heavier"
+        : correct.targetBalance === "right_heavier"
+          ? "right side is heavier"
+          : "balanced";
     case "move_along_route":
       return correct.finalPosition ? `Finish at ${correct.finalPosition}` : `Route ${normaliseList(correct.routePath).join(", ")}`;
     case "interactive_ruler":
@@ -395,6 +436,9 @@ export function checkActivityV5Answer(
       break;
     case "equal_groups":
       isCorrect = sameEqualGroupsValue(response, correct);
+      break;
+    case "two_pan_balance":
+      isCorrect = sameTwoPanBalanceValue(response, correct);
       break;
     case "move_along_route":
       isCorrect = correct.finalPosition
