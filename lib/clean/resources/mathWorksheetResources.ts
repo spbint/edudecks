@@ -248,6 +248,8 @@ const GSR_SHAPE_FEATURES_SIMPLE_SYMMETRY_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S003-Describe-Shape-Features-And-Simple-Symmetry.pdf";
 const GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE =
   "MYL-MATH-GSR-KEE-S005-Classify-Shapes-And-Reason-About-Properties.pdf";
+const GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE =
+  "MYL-MATH-GSR-EE-S006-Use-Grids-Coordinates-And-Simple-Transformations.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -1195,6 +1197,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/middle-primary/${GSR_CLASSIFY_SHAPES_PROPERTIES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::geometry-and-spatial-reasoning::middle-primary::use-grids-coordinates-and-simple-transformations",
+    stepKey: "use-grids-coordinates-and-simple-transformations",
+    subjectKey: "mathematics",
+    strandKey: "geometry-and-spatial-reasoning",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 2,
+    pathwayStepTitle: "Use grids, coordinates, and simple transformations",
+    title: "Use Grids, Coordinates, And Simple Transformations",
+    concept:
+      "Use grid coordinates to locate and plot objects, then describe simple slides, flips and turns.",
+    includesAnswerSheet: false,
+    fileName: GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/middle-primary/${GSR_GRIDS_COORDINATES_TRANSFORMATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
