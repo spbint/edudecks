@@ -16,6 +16,7 @@ import {
   formatActivityPlayerV5Response,
   geometrySpatialReasoningAssessmentItemsToActivityPlayerV5Activities,
 } from "@/app/components/clean/activity-player-v5/adapters/geometrySpatialReasoningV5Adapter";
+import { geometrySpatialReasoningAssessmentItemsToWorksheetLedActivities } from "@/app/components/clean/worksheet-player/geometrySpatialReasoningWorksheetLedAdapter";
 import { assessmentItemsToActivityPlayerV4Samples } from "@/app/components/clean/activity-player-v4/activityPlayerV4Adapters";
 import {
   AnswerOptionGrid,
@@ -3926,6 +3927,9 @@ function CleanNumberAssessmentPlayerBody() {
   const incomingStepAssessmentV5Activities = incomingStepAssessment
     ? geometrySpatialReasoningAssessmentItemsToActivityPlayerV5Activities(items)
     : [];
+  const incomingStepAssessmentWorksheetLedActivities = incomingStepAssessment
+    ? geometrySpatialReasoningAssessmentItemsToWorksheetLedActivities(items)
+    : [];
 
   const currentItem = items[currentIndex] || items[0];
   const currentResponse =
@@ -7215,6 +7219,32 @@ function CleanNumberAssessmentPlayerBody() {
   ) {
     return (
       <ActivityPlayerResolver
+        worksheetLedActivities={incomingStepAssessmentWorksheetLedActivities}
+        worksheetLedProps={{
+          chrome: "embedded",
+          onMark: ({ activity, mark, response, index }) => {
+            const item = items.find((candidate) => candidate.id === activity.id);
+            if (!item) return;
+            const submittedAt = new Date().toISOString();
+            setCurrentIndex(index);
+            setSessionMode("active");
+            setResponses((current) => ({
+              ...current,
+              [item.id]: {
+                itemId: item.id,
+                response,
+                submitted: true,
+                result: mark === "correct" ? "correct" : "incorrect",
+                submittedAt,
+              },
+            }));
+          },
+          onComplete: () => {
+            setCurrentIndex(Math.max(0, totalItems - 1));
+            setShowSummary(true);
+            setSessionMode("summary");
+          },
+        }}
         v5Activities={incomingStepAssessmentV5Activities}
         v5Props={{
           chrome: "embedded",

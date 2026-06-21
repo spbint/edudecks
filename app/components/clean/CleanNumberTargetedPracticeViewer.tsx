@@ -12,6 +12,7 @@ import {
   formatActivityPlayerV5Response,
   geometrySpatialReasoningPracticeTasksToActivityPlayerV5Activities,
 } from "@/app/components/clean/activity-player-v5/adapters/geometrySpatialReasoningV5Adapter";
+import { geometrySpatialReasoningPracticeTasksToWorksheetLedActivities } from "@/app/components/clean/worksheet-player/geometrySpatialReasoningWorksheetLedAdapter";
 import { practiceTasksToActivityPlayerV4Samples } from "@/app/components/clean/activity-player-v4/activityPlayerV4Adapters";
 import {
   AnswerOptionGrid,
@@ -4488,6 +4489,11 @@ export default function CleanNumberTargetedPracticeViewer() {
         exactStepPracticeTasks,
       )
     : [];
+  const exactStepPracticeWorksheetLedActivities = exactStepPractice
+    ? geometrySpatialReasoningPracticeTasksToWorksheetLedActivities(
+        exactStepPracticeTasks,
+      )
+    : [];
   const exactStepAssessment = exactStepPractice
     ? getStepAssessmentForPathwayStep({
         pathwayStepId: exactStepPractice.pathwayStepId,
@@ -4627,6 +4633,28 @@ export default function CleanNumberTargetedPracticeViewer() {
   if (exactStepPractice && practiceSessionStarted && exactStepPracticeSamples.length) {
     return (
       <ActivityPlayerResolver
+        worksheetLedActivities={exactStepPracticeWorksheetLedActivities}
+        worksheetLedProps={{
+          chrome: "embedded",
+          onMark: ({ activity, mark, response }) => {
+            const task = exactStepPracticeTasks.find(
+              (candidate) => candidate.id === activity.id,
+            );
+            if (!task) return;
+            setResponses((current) => ({
+              ...current,
+              [task.id]: {
+                value: response,
+                checked: true,
+                result: mark === "correct" ? "correct" : "needs_review",
+              },
+            }));
+          },
+          onComplete: () => {
+            setPracticeSessionStarted(false);
+            setStepPracticeIndex(0);
+          },
+        }}
         v5Activities={exactStepPracticeV5Activities}
         v5Props={{
           chrome: "embedded",

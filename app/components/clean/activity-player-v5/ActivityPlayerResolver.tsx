@@ -7,8 +7,15 @@ import type {
   ActivityPlayerV5Props,
   ActivityV5,
 } from "@/app/components/clean/activity-player-v5/types";
+import WorksheetLedPlayer, {
+  shouldUseWorksheetLedPlayer,
+  type WorksheetLedActivity,
+  type WorksheetLedPlayerProps,
+} from "@/app/components/clean/worksheet-player/WorksheetLedPlayer";
 
 type ActivityPlayerResolverProps = {
+  worksheetLedActivities?: WorksheetLedActivity[] | null;
+  worksheetLedProps?: Omit<WorksheetLedPlayerProps, "activities">;
   v5Activities?: ActivityV5[] | null;
   v5Props?: Omit<ActivityPlayerV5Props, "activities">;
   v4Props: ActivityPlayerV4Props;
@@ -19,10 +26,16 @@ export function shouldUseActivityPlayerV5(activities?: ActivityV5[] | null) {
 }
 
 export default function ActivityPlayerResolver({
+  worksheetLedActivities,
+  worksheetLedProps,
   v5Activities,
   v5Props,
   v4Props,
 }: ActivityPlayerResolverProps) {
+  if (shouldUseWorksheetLedPlayer(worksheetLedActivities)) {
+    return <WorksheetLedPlayer activities={worksheetLedActivities ?? []} {...worksheetLedProps} />;
+  }
+
   if (shouldUseActivityPlayerV5(v5Activities)) {
     return <ActivityPlayerV5 activities={v5Activities ?? []} {...v5Props} />;
   }
