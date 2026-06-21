@@ -90,22 +90,22 @@ import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  padding: "clamp(14px, 3vw, 24px) clamp(10px, 3vw, 18px) 40px",
 };
 
 const wrapStyle: React.CSSProperties = {
   maxWidth: 1120,
   margin: "0 auto",
   display: "grid",
-  gap: 20,
+  gap: 16,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  borderRadius: 16,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: 18,
+  boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -985,7 +985,7 @@ function CleanOutputsWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Outputs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Choose a ready report, review the learning record, and download a PDF when you are ready to keep this version.
+              Review ready records and download the version you want to keep.
             </p>
             <div>
               <GuidancePageAction tourId="my-outputs" />

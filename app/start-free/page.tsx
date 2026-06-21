@@ -27,10 +27,10 @@ function isValidEmail(value: string) {
 function cardStyle(): React.CSSProperties {
   return {
     border: "1px solid #e5e7eb",
-    borderRadius: 22,
+    borderRadius: 18,
     background: "#ffffff",
-    padding: 24,
-    boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
+    padding: 20,
+    boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
   };
 }
 
@@ -39,7 +39,7 @@ function labelStyle(): React.CSSProperties {
     color: "#334155",
     display: "block",
     fontSize: 13,
-    fontWeight: 800,
+    fontWeight: 700,
     marginBottom: 6,
   };
 }
@@ -60,12 +60,12 @@ function inputStyle(invalid = false): React.CSSProperties {
 const buttonStyle: React.CSSProperties = {
   width: "100%",
   minHeight: 50,
-  borderRadius: 14,
+  borderRadius: 12,
   border: "1px solid #2563eb",
   background: "#2563eb",
   color: "#ffffff",
   fontSize: 15,
-  fontWeight: 800,
+  fontWeight: 700,
   cursor: "pointer",
 };
 
@@ -177,7 +177,7 @@ export default function StartFreePage() {
     <PublicSiteShell
       eyebrow="Start free"
       heroTitle="Start free during beta"
-      heroText="Create your account with your email, then start planning, capturing evidence, building a portfolio and preparing report-ready records."
+      heroText="Create your account, then start planning, capturing evidence and preparing report-ready records."
       heroBadges={["Free beta", "Email sign-in", "Family setup", "Report-ready records"]}
       primaryCta={null}
       secondaryCta={{ label: "Already have an account?", href: "/login" }}
@@ -190,8 +190,8 @@ export default function StartFreePage() {
           <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 24 }}>
             Checking your session...
           </h2>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-            MyLearna is checking whether this browser is already signed in.
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>
+            Checking whether this browser is already signed in.
           </p>
         </section>
       ) : user ? (
@@ -200,7 +200,7 @@ export default function StartFreePage() {
             <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 26 }}>
               You&apos;re already signed in
             </h2>
-            <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.7 }}>
+            <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.55 }}>
               You&apos;re signed in as:
             </p>
             <div
@@ -251,9 +251,8 @@ export default function StartFreePage() {
           <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 26 }}>
             Start with email
           </h2>
-          <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.7 }}>
-            Enter a few basic setup details. You can edit them later in My Profile
-            and My Settings.
+          <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.55 }}>
+            Enter a few setup details. You can edit them later.
           </p>
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16 }}>
             <div>

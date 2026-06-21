@@ -107,9 +107,9 @@ function shellButtonStyle(primary = false): React.CSSProperties {
     border: `1px solid ${primary ? C.brandPrimaryStrong : C.borderMid}`,
     background: primary ? C.brandPrimaryStrong : C.bgSurface,
     color: primary ? "#ffffff" : C.textMain,
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontWeight: 700,
+    borderRadius: 12,
+    padding: "9px 13px",
+    fontWeight: 650,
     fontSize: 14,
     textDecoration: "none",
     display: "inline-flex",
@@ -129,9 +129,9 @@ function shellNavStyle(active: boolean): React.CSSProperties {
       : `1px solid ${C.borderMid}`,
     background: active ? C.brandPrimaryStrong : C.bgSurface,
     color: active ? "#ffffff" : C.textMain,
-    borderRadius: 10,
-    padding: "9px 12px",
-    fontWeight: 700,
+    borderRadius: 12,
+    padding: "8px 11px",
+    fontWeight: 650,
     fontSize: 13,
     textDecoration: "none",
     display: "inline-flex",
@@ -149,9 +149,9 @@ function shellPillStyle(
 ): React.CSSProperties {
   return {
     fontSize: 12,
-    fontWeight: 800,
+    fontWeight: 700,
     borderRadius: 999,
-    padding: "6px 10px",
+    padding: "5px 9px",
     background,
     color,
     whiteSpace: "nowrap",
@@ -383,13 +383,13 @@ export default function PublicSiteShell({
 
           <section
             style={{
-              marginBottom: 24,
-              borderRadius: 26,
+              marginBottom: isMobile ? 18 : 20,
+              borderRadius: 24,
               overflow: "hidden",
               background:
                 "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
               border: `1px solid ${C.brandPrimaryBorder}`,
-              boxShadow: "0 18px 50px rgba(15,23,42,0.06)",
+              boxShadow: "0 14px 34px rgba(15,23,42,0.05)",
             }}
           >
             <div
@@ -403,8 +403,8 @@ export default function PublicSiteShell({
                       ? "28px 24px 24px"
                       : "36px 24px 30px"
                     : compactHero
-                      ? "34px 32px 30px"
-                      : "48px 32px 38px",
+                      ? "30px 28px 28px"
+                      : "38px 28px 34px",
                 display: "grid",
                 gridTemplateColumns: "minmax(0, 1fr)",
                 gap: isMobile ? 18 : 28,
@@ -416,7 +416,7 @@ export default function PublicSiteShell({
                   style={{
                     display: "flex",
                     justifyContent: "center",
-                    marginBottom: isMobile ? 20 : 24,
+                    marginBottom: isMobile ? 16 : 18,
                   }}
                 >
                   <Image
@@ -428,15 +428,15 @@ export default function PublicSiteShell({
                     style={{
                       width: compactHero
                         ? isMobile
-                          ? "220px"
+                          ? "200px"
                           : isTablet
-                            ? "320px"
-                            : "400px"
+                            ? "300px"
+                            : "380px"
                         : isMobile
-                          ? "280px"
+                          ? "240px"
                           : isTablet
-                            ? "420px"
-                            : "560px",
+                            ? "360px"
+                            : "460px",
                       maxWidth: "100%",
                       height: "auto",
                       display: "block",
@@ -446,9 +446,9 @@ export default function PublicSiteShell({
 
                 <h1
                   style={{
-                    fontSize: compactHero ? (isMobile ? 28 : 36) : isMobile ? 32 : 44,
-                    lineHeight: 1.02,
-                    fontWeight: 900,
+                    fontSize: compactHero ? (isMobile ? 27 : 34) : isMobile ? 30 : 38,
+                    lineHeight: 1.08,
+                    fontWeight: 800,
                     color: C.textStrong,
                     marginTop: 0,
                     marginBottom: compactHero ? 10 : isMobile ? 12 : 14,
@@ -456,7 +456,7 @@ export default function PublicSiteShell({
                     marginLeft: "auto",
                     marginRight: "auto",
                     textAlign: "center",
-                    letterSpacing: "-0.02em",
+                    letterSpacing: 0,
                   }}
                 >
                   {heroTitle}
@@ -464,10 +464,10 @@ export default function PublicSiteShell({
 
                 <div
                   style={{
-                    fontSize: compactHero ? 15 : isMobile ? 16 : 17,
-                    lineHeight: 1.7,
+                    fontSize: compactHero ? 15 : isMobile ? 15 : 16,
+                    lineHeight: 1.55,
                     color: C.textMain,
-                    maxWidth: 700,
+                    maxWidth: 640,
                     marginBottom: compactHero ? 16 : 20,
                     marginLeft: "auto",
                     marginRight: "auto",
@@ -521,7 +521,7 @@ export default function PublicSiteShell({
                       style={{
                         ...shellButtonStyle(true),
                         fontSize: isMobile ? 16 : 15,
-                        padding: isMobile ? "14px 18px" : "12px 18px",
+                        padding: isMobile ? "13px 18px" : "11px 17px",
                         boxShadow: isMobile
                           ? "0 16px 28px rgba(37,99,235,0.18)"
                           : "0 12px 24px rgba(37,99,235,0.14)",
@@ -781,9 +781,9 @@ export function publicCardStyle() {
   return {
     background: C.bgSurface,
     border: `1px solid ${C.borderSoft}`,
-    borderRadius: 18,
-    padding: 20,
-    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+    borderRadius: 16,
+    padding: 18,
+    boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
   } as React.CSSProperties;
 }
 
@@ -792,9 +792,9 @@ export function publicButtonStyle(primary = false) {
     border: `1px solid ${primary ? C.brandPrimaryStrong : C.borderMid}`,
     background: primary ? C.brandPrimaryStrong : C.bgSurface,
     color: primary ? "#ffffff" : C.textMain,
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontWeight: 700,
+    borderRadius: 12,
+    padding: "9px 13px",
+    fontWeight: 650,
     fontSize: 14,
     textDecoration: "none",
     display: "inline-flex",
@@ -809,9 +809,9 @@ export function publicButtonStyle(primary = false) {
 export function publicPill(bg: string, color: string) {
   return {
     fontSize: 12,
-    fontWeight: 800,
+    fontWeight: 700,
     borderRadius: 999,
-    padding: "6px 10px",
+    padding: "5px 9px",
     background: bg,
     color,
     whiteSpace: "nowrap",

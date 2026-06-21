@@ -13,7 +13,7 @@ export default function AboutPage() {
     <PublicSiteShell
       eyebrow="Why MyLearna exists"
       heroTitle="About MyLearna"
-      heroText="MyLearna is being built for families who want one connected place to plan learning, follow the day, capture evidence, build portfolios and prepare homeschool reports without turning home into school."
+      heroText="MyLearna gives families one connected place to plan learning, follow the day, capture evidence, build portfolios and prepare homeschool reports."
       heroBadges={["Calm", "Evidence-led", "Family-first", "Built to grow"]}
       primaryCta={{ label: "Start free during beta", href: "/start-free?source=about-primary" }}
       secondaryCta={{ label: "See how it works", href: "/get-started" }}
@@ -23,9 +23,9 @@ export default function AboutPage() {
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div
           style={{
-            fontSize: 28,
-            lineHeight: 1.15,
-            fontWeight: 900,
+            fontSize: 26,
+            lineHeight: 1.18,
+            fontWeight: 800,
             color: "#0f172a",
             marginBottom: 10,
           }}
@@ -36,30 +36,26 @@ export default function AboutPage() {
         <div
           style={{
             fontSize: 14,
-            lineHeight: 1.7,
+            lineHeight: 1.55,
             color: "#334155",
             maxWidth: 920,
             marginBottom: 18,
           }}
         >
-          Many families are trying to build meaningful learning records with a mix of
-          notes, folders, screenshots, spreadsheets, memories, and last-minute effort.
-          The result is often stress at reporting time, uncertainty about what matters,
-          and a constant feeling that the system is scattered.
+          Many families build records from notes, folders, screenshots,
+          spreadsheets and memory. Reporting time can feel scattered.
         </div>
 
         <div
           style={{
             fontSize: 14,
-            lineHeight: 1.7,
+            lineHeight: 1.55,
             color: "#334155",
             maxWidth: 920,
           }}
         >
-          MyLearna exists to offer a calmer alternative: one connected workflow
-          for planning the week, following today&apos;s learning, capturing real
-          evidence, shaping a portfolio, and building records that feel more
-          credible and less rushed.
+          MyLearna offers a calmer workflow for planning, capturing real
+          evidence, shaping portfolios and building records with less rush.
         </div>
       </section>
 
@@ -76,7 +72,7 @@ export default function AboutPage() {
             style={{
               fontSize: 18,
               lineHeight: 1.25,
-              fontWeight: 900,
+              fontWeight: 800,
               color: "#0f172a",
               marginBottom: 10,
             }}
@@ -125,9 +121,9 @@ export default function AboutPage() {
                 <div
                   style={{
                     fontSize: 14,
-                    lineHeight: 1.65,
+                    lineHeight: 1.5,
                     color: "#334155",
-                    fontWeight: 600,
+                    fontWeight: 500,
                   }}
                 >
                   {item.text}

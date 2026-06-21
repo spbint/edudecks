@@ -275,7 +275,7 @@ export default function CleanReviewWorkspace() {
       <V2PageHeader
         eyebrow="Retrieval practice"
         title="My Review"
-        subtitle="My Review is a skills-builder. Sit with your learner, choose the skills to keep fresh, work through the questions together, and use the answers to reteach straight away."
+        subtitle="Choose skills to keep fresh, work together, and reteach straight away."
       />
 
       <V2Card style={{ background: v2Tokens.mint, borderColor: "#BDEFD4", boxShadow: "none" }}>
@@ -308,7 +308,7 @@ export default function CleanReviewWorkspace() {
         <div style={{ display: "grid", gap: 18, alignContent: "start" }}>
           <V2Card style={{ display: "grid", gap: 14 }}>
             <div>
-              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 20 }}>Review mode</h2>
+              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 19, fontWeight: 750 }}>Review mode</h2>
               <p style={sectionIntroStyle}>Choose a preset or use Custom Review for a specific question count.</p>
             </div>
             <div className="mylearna-review-mode-grid">
@@ -320,18 +320,18 @@ export default function CleanReviewWorkspace() {
                     type="button"
                     onClick={() => updateMode(mode)}
                     style={{
-                      borderRadius: 18,
+                      borderRadius: 16,
                       border: `1px solid ${active ? v2Tokens.purple : v2Tokens.border}`,
                       background: active ? v2Tokens.lavender : "#FFFFFF",
                       color: v2Tokens.navy,
-                      padding: 16,
+                      padding: 14,
                       textAlign: "left",
                       cursor: "pointer",
                       display: "grid",
                       gap: 6,
                     }}
                   >
-                    <span style={{ fontSize: 16, fontWeight: 850 }}>{mode.title}</span>
+                    <span style={{ fontSize: 16, fontWeight: 750 }}>{mode.title}</span>
                     <span style={{ color: v2Tokens.slate, fontSize: 13 }}>{mode.description}</span>
                   </button>
                 );
@@ -341,7 +341,7 @@ export default function CleanReviewWorkspace() {
 
           <V2Card style={{ display: "grid", gap: 14 }}>
             <div>
-              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 20 }}>Focus areas</h2>
+              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 19, fontWeight: 750 }}>Focus areas</h2>
               <p style={sectionIntroStyle}>Every focus area is available for parent-led daily practice.</p>
             </div>
             <div style={{ display: "grid", gap: 12 }}>

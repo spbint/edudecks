@@ -24,7 +24,7 @@ export const v2Tokens = {
   red: "#E85D75",
   softRed: "#FFF0F3",
   border: "#E7EAF2",
-  shadow: "0 8px 24px rgba(23, 32, 75, 0.06)",
+  shadow: "0 6px 18px rgba(23, 32, 75, 0.05)",
 };
 
 const navItems = [
@@ -244,10 +244,10 @@ export function V2Card({
     <section
       style={{
         border: `1px solid ${v2Tokens.border}`,
-        borderRadius: 20,
+        borderRadius: 18,
         background: v2Tokens.card,
         boxShadow: v2Tokens.shadow,
-        padding: "clamp(16px, 3vw, 24px)",
+        padding: "clamp(14px, 2.4vw, 20px)",
         ...style,
       }}
     >
@@ -269,18 +269,28 @@ export function V2PageHeader({
 }) {
   return (
     <V2Card>
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ display: "grid", gap: 8, maxWidth: 780 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 14 }}>
+        <div style={{ display: "grid", gap: 6, maxWidth: 720 }}>
           {eyebrow ? (
-            <div style={{ color: v2Tokens.purple, fontSize: 12, fontWeight: 800 }}>
+            <div style={{ color: v2Tokens.purple, fontSize: 12, fontWeight: 700 }}>
               {eyebrow}
             </div>
           ) : null}
-          <h1 style={{ margin: 0, color: v2Tokens.navy, fontSize: "clamp(26px, 4vw, 34px)", lineHeight: 1.15 }}>
+          <h1
+            style={{
+              margin: 0,
+              color: v2Tokens.navy,
+              fontSize: "clamp(24px, 3.2vw, 30px)",
+              lineHeight: 1.18,
+              fontWeight: 750,
+            }}
+          >
             {title}
           </h1>
           {subtitle ? (
-            <p style={{ margin: 0, color: v2Tokens.slate, lineHeight: 1.6 }}>{subtitle}</p>
+            <p style={{ margin: 0, color: v2Tokens.slate, lineHeight: 1.5, fontSize: 14, maxWidth: 680 }}>
+              {subtitle}
+            </p>
           ) : null}
         </div>
         {children}

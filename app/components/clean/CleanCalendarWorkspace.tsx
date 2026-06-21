@@ -89,38 +89,38 @@ import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
+  padding: "clamp(14px, 3vw, 24px) clamp(10px, 3vw, 18px) 40px",
 };
 
 const wrapStyle: React.CSSProperties = {
   maxWidth: 1180,
   margin: "0 auto",
   display: "grid",
-  gap: 20,
+  gap: 16,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  borderRadius: 16,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: 18,
+  boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
 };
 
 const subCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 16,
+  borderRadius: 14,
   background: "#f8fafc",
-  padding: 16,
+  padding: 14,
   display: "grid",
-  gap: 14,
+  gap: 12,
 };
 
 const helperCardStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
-  borderRadius: 16,
+  borderRadius: 14,
   background: "#f8fbff",
-  padding: 16,
+  padding: 14,
   display: "grid",
   gap: 8,
 };
@@ -159,8 +159,9 @@ const mutedButtonStyle: React.CSSProperties = {
 
 const dangerButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  background: "#b91c1c",
-  borderColor: "#b91c1c",
+  background: "#fff5f5",
+  borderColor: "#fecaca",
+  color: "#b91c1c",
 };
 
 const secondaryTextStyle: React.CSSProperties = {
@@ -4514,7 +4515,7 @@ function CleanCalendarWorkspaceBody() {
                             <strong style={{ color: "#0f172a" }}>{selectedTemplate.title}</strong>
                             <p style={secondaryTextStyle}>
                               {selectedTemplate.description ||
-                                "Click inside a day to shape the usual flow of your week."}
+                                "Click a day to shape your usual week."}
                             </p>
                           </div>
                           <div
@@ -5289,8 +5290,7 @@ function CleanCalendarWorkspaceBody() {
                         <div>
                           <strong style={{ color: "#0f172a" }}>Live week</strong>
                           <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
-                            Click inside a day to add something, or open an existing block to
-                            adjust the real week.
+                            Click a day to add or adjust blocks.
                           </p>
                         </div>
                       </div>
@@ -5460,9 +5460,7 @@ function CleanCalendarWorkspaceBody() {
                                           <button
                                             type="button"
                                             style={{
-                                              ...buttonStyle,
-                                              background: "#b91c1c",
-                                              borderColor: "#b91c1c",
+                                              ...dangerButtonStyle,
                                             }}
                                             onClick={(event) => {
                                               event.stopPropagation();
@@ -5496,7 +5494,7 @@ function CleanCalendarWorkspaceBody() {
                                     onClick={() => openCreatePopover(dateValue)}
                                   >
                                     <strong style={{ color: "#0f172a" }}>
-                                      Click to add a learning block
+                                      Add learning block
                                     </strong>
                                     <span style={{ color: "#475569", lineHeight: 1.5 }}>
                                       Add something small
@@ -5524,7 +5522,7 @@ function CleanCalendarWorkspaceBody() {
                                   onClick={() => openCreatePopover(dateValue)}
                                 >
                                   <strong style={{ color: "#0f172a" }}>
-                                    Click to add a learning block
+                                    Add learning block
                                   </strong>
                                   <span style={{ color: "#475569", lineHeight: 1.5 }}>
                                     Sketch this day
@@ -5547,8 +5545,7 @@ function CleanCalendarWorkspaceBody() {
             <section data-guidance-id="calendar-next-day" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Day</h2>
               <p style={secondaryTextStyle}>
-                Once your learning year and first term are started, open My Day to focus on
-                today&apos;s learning.
+                Open My Day when you are ready to focus on today&apos;s learning.
               </p>
               {setupStatus === "active" ? (
                 <GuidanceSetupNextAction

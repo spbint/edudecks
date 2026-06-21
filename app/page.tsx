@@ -63,16 +63,16 @@ function sectionHeader(title: string, text?: string) {
       <h2
         style={{
           margin: 0,
-          fontSize: 32,
-          lineHeight: 1.08,
-          fontWeight: 900,
+          fontSize: 28,
+          lineHeight: 1.15,
+          fontWeight: 800,
           color: "#0f172a",
         }}
       >
         {title}
       </h2>
       {text ? (
-        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#475569" }}>
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#475569" }}>
           {text}
         </p>
       ) : null}
@@ -89,7 +89,7 @@ export default function HomePage() {
       title="MyLearna"
       eyebrow=""
       heroTitle="A simple homeschool system for planning, evidence, portfolios and reports."
-      heroText="Plan your week, follow today's learning, capture evidence, complete pathway checks and create report-ready records in one place."
+      heroText="Plan the week, follow today's learning, capture evidence and prepare report-ready records."
       heroBadges={["Plan", "Learn", "Capture", "Report"]}
       heroMicrocopy={
         <span>
@@ -112,7 +112,7 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: isMobile ? 18 : 22,
-          padding: isMobile ? 18 : isTablet ? 22 : 24,
+          padding: isMobile ? 16 : isTablet ? 18 : 20,
           display: "grid",
           gap: 12,
           border: "1px solid #dbeafe",
@@ -124,14 +124,14 @@ export default function HomePage() {
           style={{
             margin: 0,
             fontSize: 15,
-            lineHeight: 1.7,
+            lineHeight: 1.55,
             color: "#334155",
             maxWidth: 920,
-            fontWeight: 700,
+            fontWeight: 500,
           }}
         >
-          MyLearna is live in beta for families who want a calmer way to plan
-          learning, keep evidence, build portfolios and prepare usable records.
+          MyLearna is live in beta for families who want calmer planning,
+          evidence, portfolios and records.
         </p>
       </section>
 
@@ -140,15 +140,15 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: isMobile ? 18 : 22,
-          padding: isMobile ? 18 : isTablet ? 24 : 28,
+          padding: isMobile ? 18 : isTablet ? 22 : 24,
           display: "grid",
-          gap: 22,
+          gap: 18,
           scrollMarginTop: 116,
         }}
       >
         {sectionHeader(
           "Plan -> Learn -> Capture -> Report",
-          "The public promise is simple: help families turn ordinary homeschool activity into a useful learning record.",
+          "Turn ordinary homeschool activity into a usable learning record.",
         )}
 
         <div
@@ -163,8 +163,8 @@ export default function HomePage() {
               key={step.title}
               style={{
                 border: "1px solid #e5e7eb",
-                borderRadius: 18,
-                padding: isMobile ? 16 : 18,
+                borderRadius: 16,
+                padding: isMobile ? 14 : 16,
                 background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
                 display: "grid",
                 gap: 10,
@@ -181,15 +181,15 @@ export default function HomePage() {
                   background: "#eff6ff",
                   color: "#2563eb",
                   fontSize: 13,
-                  fontWeight: 900,
+                  fontWeight: 800,
                 }}
               >
                 {index + 1}
               </div>
-              <div style={{ fontSize: 18, lineHeight: 1.2, fontWeight: 900, color: "#0f172a" }}>
+              <div style={{ fontSize: 17, lineHeight: 1.2, fontWeight: 800, color: "#0f172a" }}>
                 {step.title}
               </div>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: "#475569" }}>
                 {step.text}
               </p>
             </div>
@@ -208,14 +208,14 @@ export default function HomePage() {
         <div
           style={{
             ...publicCardStyle(),
-            padding: isMobile ? 18 : isTablet ? 24 : 28,
+            padding: isMobile ? 18 : isTablet ? 22 : 24,
             display: "grid",
-            gap: 18,
+            gap: 16,
           }}
         >
           {sectionHeader(
             "What MyLearna helps with now",
-            "Free Beta V1 focuses on practical homeschool workflow: planning, daily learning, evidence, portfolio choices and reports.",
+            "Free Beta V1 focuses on planning, daily learning, evidence, portfolios and reports.",
           )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -224,15 +224,15 @@ export default function HomePage() {
                 key={item.title}
                 style={{
                   border: "1px solid #e5e7eb",
-                  borderRadius: 18,
-                  padding: isMobile ? 16 : 18,
+                  borderRadius: 16,
+                  padding: isMobile ? 14 : 16,
                   background: "#ffffff",
                   display: "grid",
                   gap: 8,
                 }}
               >
                 <strong style={{ color: "#0f172a", fontSize: 16 }}>{item.title}</strong>
-                <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.65 }}>
+                <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
                   {item.text}
                 </p>
               </div>
@@ -242,26 +242,25 @@ export default function HomePage() {
 
         <div
           style={{
-            borderRadius: 24,
+            borderRadius: 18,
             border: "1px solid #ddd6fe",
             background: "linear-gradient(180deg, #faf5ff 0%, #ffffff 100%)",
-            padding: isMobile ? 18 : isTablet ? 24 : 28,
+            padding: isMobile ? 18 : isTablet ? 22 : 24,
             display: "grid",
             gap: 16,
           }}
         >
           <div style={publicPill("#f5f3ff", "#6d28d9")}>Free and Family</div>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28, lineHeight: 1.1, fontWeight: 900 }}>
-            Start free. Upgrade when you want the full learning system.
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.15, fontWeight: 800 }}>
+            Start free. Upgrade when you need more.
           </h2>
-          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#334155" }}>
-            Free gives families the tools to plan learning, capture text evidence,
-            build a portfolio and create basic report-ready outputs during beta.
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#334155" }}>
+            Free gives families planning, text evidence, portfolio highlights and
+            basic report-ready outputs during beta.
           </p>
-          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#334155" }}>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#334155" }}>
             Family features will unlock deeper curriculum pathways, worksheets,
-            assessments, interactive activities and richer evidence-based reports
-            as they come online.
+            activities and richer evidence-based reports as they come online.
           </p>
         </div>
       </section>
@@ -270,14 +269,14 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: isMobile ? 18 : 22,
-          padding: isMobile ? 18 : isTablet ? 24 : 28,
+          padding: isMobile ? 18 : isTablet ? 22 : 24,
           display: "grid",
-          gap: 18,
+          gap: 16,
         }}
       >
         {sectionHeader(
           "Report-ready records without rebuilding the story later",
-          "Completed pathway checks can become report-ready evidence. Capture notes can move into portfolios, reports and printable outputs.",
+          "Move checks and capture notes into portfolios, reports and printable outputs.",
         )}
         <div
           style={{
@@ -304,7 +303,7 @@ export default function HomePage() {
                 color: "#334155",
                 fontSize: 14,
                 lineHeight: 1.5,
-                fontWeight: 800,
+                fontWeight: 700,
               }}
             >
               {item}
@@ -322,13 +321,12 @@ export default function HomePage() {
           gap: 14,
         }}
       >
-        <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28, lineHeight: 1.15, fontWeight: 900 }}>
+        <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.15, fontWeight: 800 }}>
           Start with the free beta.
         </h2>
-        <p style={{ margin: 0, color: "#334155", lineHeight: 1.7, maxWidth: 760 }}>
-          Create an account, set up your family profile, and begin with planning,
-          capture, portfolios and reports. Families should still check local home
-          education requirements before submitting records.
+        <p style={{ margin: 0, color: "#334155", lineHeight: 1.55, maxWidth: 760 }}>
+          Create an account, set up your family, and begin. Always check local
+          home education requirements before submitting records.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link href={PRIMARY_CTA.href} style={publicButtonStyle(true)}>

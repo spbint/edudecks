@@ -59,22 +59,22 @@ import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "linear-gradient(180deg, #f8fafc 0%, #fdfefe 45%, #f8fafc 100%)",
-  padding: "clamp(18px, 4vw, 28px) clamp(12px, 4vw, 18px) 44px",
+  padding: "clamp(14px, 3vw, 22px) clamp(10px, 3vw, 16px) 36px",
 };
 
 const wrapStyle: React.CSSProperties = {
   maxWidth: 980,
   margin: "0 auto",
   display: "grid",
-  gap: 16,
+  gap: 14,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 22,
+  borderRadius: 18,
   background: "#ffffff",
-  padding: 22,
-  boxShadow: "0 14px 32px rgba(15,23,42,0.04)",
+  padding: 18,
+  boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -529,8 +529,8 @@ function CleanDayWorkspaceBody() {
     ? "Add one quick block for today"
     : "Add one quick block for this day";
   const quickAddLead = isViewingToday
-    ? "Add today's learning block here, then capture evidence later when something useful happens. Use My Calendar when you want the fuller planning view."
-    : "Add this day's learning block here, then capture evidence later when something useful happens. Use My Calendar when you want the fuller planning view.";
+    ? "Add a simple block now. Capture evidence later if something useful happens."
+    : "Add a simple block for this day. Capture evidence later if needed.";
   const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
   const familyGreeting = familyDisplayName
     ? `Welcome back, ${familyDisplayName}.`
@@ -1617,7 +1617,7 @@ function CleanDayWorkspaceBody() {
                               ) : null}
                             </div>
                             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                              {notesPreview ?? "Open this block to see notes and capture what happened."}
+                              {notesPreview ?? "Open for notes and capture."}
                             </div>
                           </div>
                         </button>
@@ -1714,7 +1714,7 @@ function CleanDayWorkspaceBody() {
                     Explore My Pathways
                   </h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    When you are ready, use My Pathways to find the next learning step, worksheet, practise or assess option.
+                    Find the next step, worksheet, practise or assess option.
                   </p>
                   <GuidanceSetupNextAction
                     stepId="day"

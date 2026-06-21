@@ -61,7 +61,7 @@ export default function GetStartedPage() {
     <PublicSiteShell
       eyebrow="Your best first path"
       heroTitle="How to start homeschool record keeping with confidence."
-      heroText="MyLearna starts with a simple family setup, then connects planning, daily learning, evidence, pathways, portfolios and reports over time."
+      heroText="Start with family setup, then connect planning, daily learning, evidence, pathways, portfolios and reports."
       heroBadges={[
         "Begin simply",
         "Curate gradually",
@@ -76,9 +76,9 @@ export default function GetStartedPage() {
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div
           style={{
-            fontSize: 28,
-            lineHeight: 1.15,
-            fontWeight: 900,
+            fontSize: 26,
+            lineHeight: 1.18,
+            fontWeight: 800,
             color: "#0f172a",
             marginBottom: 8,
           }}
@@ -95,9 +95,8 @@ export default function GetStartedPage() {
             maxWidth: 860,
           }}
         >
-          Most families do not need every part of the system on day one. This is
-          the recommended path for new families, so you can start simply,
-          build useful evidence, and grow into the fuller workflow over time.
+          Start with the essentials, build useful evidence, and grow into the
+          fuller workflow over time.
         </div>
 
         <div
@@ -113,9 +112,9 @@ export default function GetStartedPage() {
               style={{
                 border: `1px solid ${item.tone.bd}`,
                 background: item.tone.bg,
-                borderRadius: 20,
-                padding: 18,
-                boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                borderRadius: 16,
+                padding: 16,
+                boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
               }}
             >
               <div style={{ marginBottom: 10 }}>

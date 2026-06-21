@@ -53,22 +53,22 @@ const wrapStyle: React.CSSProperties = {
   maxWidth: 1320,
   margin: "0 auto",
   display: "grid",
-  gap: 20,
+  gap: 16,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
-  borderRadius: 20,
+  borderRadius: 18,
   background: "#ffffff",
-  padding: "clamp(16px, 3vw, 24px)",
-  boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
+  padding: "clamp(14px, 2.4vw, 20px)",
+  boxShadow: "0 6px 18px rgba(23,32,75,0.05)",
 };
 
 const helperCardStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
-  borderRadius: 16,
+  borderRadius: 14,
   background: "#f8fbff",
-  padding: 16,
+  padding: 14,
   display: "grid",
   gap: 8,
 };
@@ -686,14 +686,14 @@ function CurriculumWorkspaceBody() {
                   : "My Data"}
               </h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
-                See progress, evidence, and focus areas in one calm view.
+                See progress, evidence and focus areas in one calm view.
               </p>
             </div>
 
             <div style={helperCardStyle}>
               <strong style={{ color: "#0f172a", fontWeight: 650 }}>What does this show?</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Use this to decide what to practise, capture, or report next.
+                Decide what to practise, capture or report next.
               </p>
             </div>
 
@@ -752,7 +752,7 @@ function CurriculumWorkspaceBody() {
                     ))}
                   </select>
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    Coverage stays exploratory here. Your capture and portfolio workflow remains unchanged.
+                    Coverage is exploratory. Capture and portfolio workflows stay unchanged.
                   </div>
                 </div>
               </div>
