@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { CSSProperties, ChangeEvent } from "react";
+import { encodePathwayContextNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import { createCleanEvidenceEntry } from "@/lib/clean/evidence/client";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
   updateFamilyEvidenceEntryAttachments,
   uploadFamilyEvidenceFiles,
@@ -30,6 +32,7 @@ type WorksheetEvidenceCaptureProps = {
   stepKey: string;
   stepTitle: string;
   worksheetResource: MathWorksheetResource;
+  latestEvidenceEntry?: CleanEvidenceEntry | null;
 };
 
 const progressOptions: Array<{
@@ -92,6 +95,58 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatEvidenceDate(value: string | null | undefined) {
+  const parsed = Date.parse(value || "");
+  if (Number.isNaN(parsed)) return "Saved recently";
+
+  const today = new Date();
+  const candidate = new Date(parsed);
+  if (candidate.toDateString() === today.toDateString()) {
+    return "Saved today";
+  }
+
+  return `Saved ${new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+  }).format(candidate)}`;
+}
+
+function getProgressFromEvidence(entry: CleanEvidenceEntry | null | undefined) {
+  const text = `${entry?.whatHappened || ""}\n${entry?.reflection || ""}`;
+  const progressMatch = text.match(/Progress level:\s*([^\n.]+)/i);
+  const progressLabel = progressMatch?.[1]?.trim();
+  return progressOptions.find((option) => option.label === progressLabel) ?? null;
+}
+
+function getParentNoteFromEvidence(entry: CleanEvidenceEntry | null | undefined) {
+  const match = entry?.reflection?.match(/Parent note:\s*([^\n]+)/i);
+  return match?.[1]?.trim() || "";
+}
+
+function getObservedSkillStatusForProgress(progressLevel: WorksheetEvidenceProgressLevel) {
+  if (progressLevel === "goal_achieved_extension") return "Strong";
+  if (progressLevel === "goal_achieved") return "Secure";
+  if (progressLevel === "consolidating") return "Developing";
+  return "Still developing";
+}
+
+function getNextStepGuidance(progressLevel: WorksheetEvidenceProgressLevel) {
+  switch (progressLevel) {
+    case "needs_support":
+      return "Revisit this step soon or use Daily Review for a quick warm-up.";
+    case "working_towards":
+      return "Keep this step active and try another example soon.";
+    case "consolidating":
+      return "Good progress. One more short practice could help secure it.";
+    case "goal_achieved":
+      return "This step can be treated as achieved.";
+    case "goal_achieved_extension":
+      return "This step is secure and ready for extension.";
+    default:
+      return "";
+  }
+}
+
 export default function WorksheetEvidenceCapture({
   familyId,
   learnerId,
@@ -105,6 +160,7 @@ export default function WorksheetEvidenceCapture({
   stepKey,
   stepTitle,
   worksheetResource,
+  latestEvidenceEntry,
 }: WorksheetEvidenceCaptureProps) {
   const [progressLevel, setProgressLevel] =
     useState<WorksheetEvidenceProgressLevel>("consolidating");
@@ -122,6 +178,17 @@ export default function WorksheetEvidenceCapture({
   const selectedProgress = useMemo(
     () => progressOptions.find((option) => option.value === progressLevel) ?? progressOptions[2],
     [progressLevel],
+  );
+  const latestProgress = useMemo(
+    () => getProgressFromEvidence(latestEvidenceEntry),
+    [latestEvidenceEntry],
+  );
+  const latestParentNote = useMemo(
+    () => getParentNoteFromEvidence(latestEvidenceEntry),
+    [latestEvidenceEntry],
+  );
+  const latestHasPhoto = Boolean(
+    latestEvidenceEntry?.imageUrl || latestEvidenceEntry?.attachmentUrls.length,
   );
 
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -179,14 +246,22 @@ export default function WorksheetEvidenceCapture({
           .filter(Boolean)
           .join("\n"),
         learningArea: `${subjectTitle} / ${strandTitle}`,
-        curriculumNodeIds: [
-          subjectKey,
-          strandKey,
-          stageKey,
-          stepKey,
-          pathwayStepId,
-          worksheetResource.pathwayStepId,
-        ].filter(Boolean),
+        curriculumNodeIds: encodePathwayContextNodeIds(
+          [subjectKey, strandKey, stageKey, stepKey, pathwayStepId, worksheetResource.pathwayStepId],
+          {
+            source: "my-pathways",
+            subjectKey,
+            subjectLabel: subjectTitle,
+            pathwayKey: strandKey,
+            pathwayLabel: strandTitle,
+            stageKey,
+            stageLabel: stageTitle,
+            pathwayStepId: pathwayStepId || worksheetResource.pathwayStepId,
+            stepKey,
+            stepTitle,
+            observedSkillStatus: getObservedSkillStatusForProgress(progressLevel),
+          },
+        ),
         includeInPortfolio: true,
         includeInReport: true,
       });
@@ -248,7 +323,7 @@ export default function WorksheetEvidenceCapture({
           {stepTitle}
         </h3>
         <p style={{ margin: 0, color: "#5B6478", fontSize: 14, lineHeight: 1.45 }}>
-          Open the worksheet, complete it together, then capture the work and mark how it went.
+          Open the worksheet, complete it with your learner, then add a photo of the completed work.
         </p>
       </div>
 
@@ -261,18 +336,53 @@ export default function WorksheetEvidenceCapture({
         >
           Open worksheet
         </a>
+        <label style={primaryButtonStyle}>
+          Add completed work
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoChange}
+            style={hiddenFileInputStyle}
+          />
+        </label>
         <a
           href={worksheetResource.href}
           download={worksheetResource.fileName}
           style={secondaryButtonStyle}
         >
-          Download worksheet
+          Download PDF
         </a>
       </div>
 
+      {latestEvidenceEntry ? (
+        <div style={latestEvidenceStyle}>
+          <div style={{ display: "grid", gap: 5 }}>
+            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850 }}>
+              Latest evidence
+            </span>
+            <strong style={{ color: latestProgress?.color || "#17204B", fontSize: 15 }}>
+              {latestProgress?.label || "Evidence saved"}
+            </strong>
+            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+              {formatEvidenceDate(latestEvidenceEntry.observedOn || latestEvidenceEntry.createdAt)}
+              {latestHasPhoto ? " / Photo attached" : ""}
+            </span>
+            {latestParentNote ? (
+              <span style={{ color: "#475569", fontSize: 12, lineHeight: 1.45 }}>
+                {latestParentNote}
+              </span>
+            ) : null}
+          </div>
+          {latestHasPhoto ? (
+            <div style={photoAttachedBadgeStyle}>Photo attached</div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div style={uploadBoxStyle}>
         <label style={{ display: "grid", gap: 8, cursor: "pointer" }}>
-          <span style={{ color: "#17204B", fontWeight: 800 }}>Add completed work</span>
+          <span style={{ color: "#17204B", fontWeight: 800 }}>1. Add photo</span>
           <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
             Take a photo on mobile or upload an image of the completed worksheet.
           </span>
@@ -306,7 +416,7 @@ export default function WorksheetEvidenceCapture({
       </div>
 
       <div style={{ display: "grid", gap: 8 }}>
-        <span style={{ color: "#17204B", fontWeight: 800 }}>How did it go?</span>
+        <span style={{ color: "#17204B", fontWeight: 800 }}>2. How did it go?</span>
         <div style={progressGridStyle}>
           {progressOptions.map((option) => {
             const selected = option.value === progressLevel;
@@ -378,6 +488,19 @@ export default function WorksheetEvidenceCapture({
       ) : null}
 
       {savedMessage ? <p style={successStyle}>{savedMessage}</p> : null}
+      {savedMessage ? (
+        <div style={nextStepStyle}>
+          <strong style={{ color: selectedProgress.color, fontSize: 13 }}>
+            {selectedProgress.label}
+          </strong>
+          <span style={{ color: "#475569", fontSize: 13, lineHeight: 1.45 }}>
+            {getNextStepGuidance(progressLevel)}
+          </span>
+          <span style={{ color: "#15803D", fontSize: 12, fontWeight: 800 }}>
+            Saved to evidence. Included for portfolio and reports.
+          </span>
+        </div>
+      ) : null}
       {saveError ? <p style={errorStyle}>{saveError}</p> : null}
     </section>
   );
@@ -423,6 +546,14 @@ const secondaryButtonStyle = {
   color: "#17204B",
 } satisfies CSSProperties;
 
+const hiddenFileInputStyle = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  opacity: 0,
+  pointerEvents: "none",
+} satisfies CSSProperties;
+
 const uploadBoxStyle = {
   border: "1px dashed #CBD5E1",
   borderRadius: 16,
@@ -430,6 +561,28 @@ const uploadBoxStyle = {
   padding: 14,
   display: "grid",
   gap: 10,
+} satisfies CSSProperties;
+
+const latestEvidenceStyle = {
+  border: "1px solid #D9D0FF",
+  borderRadius: 16,
+  background: "#F8F5FF",
+  padding: 12,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const photoAttachedBadgeStyle = {
+  border: "1px solid #CDEFD9",
+  borderRadius: 999,
+  background: "#F0FDF4",
+  color: "#15803D",
+  padding: "7px 10px",
+  fontSize: 12,
+  fontWeight: 850,
 } satisfies CSSProperties;
 
 const fileInputStyle = {
@@ -491,4 +644,13 @@ const savedAttachmentStyle = {
   flexWrap: "wrap",
   alignItems: "center",
   gap: 10,
+} satisfies CSSProperties;
+
+const nextStepStyle = {
+  border: "1px solid #E7EAF2",
+  borderRadius: 16,
+  background: "#FFFFFF",
+  padding: 12,
+  display: "grid",
+  gap: 5,
 } satisfies CSSProperties;

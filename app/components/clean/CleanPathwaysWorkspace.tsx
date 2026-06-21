@@ -3963,6 +3963,7 @@ function DetailedMathematicsStepCard({
             : null
         }
         worksheetResource={worksheetResource}
+        latestEvidenceEntry={stepUnifiedState?.latestEvidenceEntry ?? null}
       />
 
       <div

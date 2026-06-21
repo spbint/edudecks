@@ -13,6 +13,7 @@ import {
   type PracticeOutcome,
   type PracticePlayerTaskItem,
 } from "@/lib/clean/pathways/practiceActivities";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
 type CleanPathwayStepActionRowProps = {
@@ -40,6 +41,7 @@ type CleanPathwayStepActionRowProps = {
   isExactStepContext?: boolean;
   noAssessmentMessage?: string | null;
   worksheetResource?: MathWorksheetResource | null;
+  latestEvidenceEntry?: CleanEvidenceEntry | null;
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -129,6 +131,7 @@ export default function CleanPathwayStepActionRow({
   exactAssessmentTitle,
   isExactStepContext = false,
   worksheetResource,
+  latestEvidenceEntry = null,
 }: CleanPathwayStepActionRowProps) {
   const practiceItems = useMemo(
     () => (activity ? buildPracticePlayerItems(activity) : []),
@@ -241,6 +244,7 @@ export default function CleanPathwayStepActionRow({
           stepKey={stepKey || worksheetResource.stepKey}
           stepTitle={stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
           worksheetResource={worksheetResource}
+          latestEvidenceEntry={latestEvidenceEntry}
         />
       ) : null}
 

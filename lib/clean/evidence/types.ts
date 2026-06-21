@@ -10,6 +10,8 @@ export type CleanEvidenceEntry = {
   reflection: string | null;
   learningArea: string | null;
   curriculumNodeIds: string[];
+  attachmentUrls: string[];
+  imageUrl: string | null;
   includeInPortfolio: boolean;
   includeInReport: boolean;
   createdByUserId: string;

@@ -22,6 +22,8 @@ type EvidenceEntryRow = {
   reflection?: string | null;
   learning_area?: string | null;
   curriculum_node_ids?: unknown;
+  attachment_urls?: unknown;
+  image_url?: string | null;
   include_in_portfolio?: boolean | null;
   include_in_report?: boolean | null;
   created_by_user_id: string;
@@ -56,6 +58,21 @@ function normalizeStringArray(value: unknown) {
     .filter((entry) => Boolean(entry));
 }
 
+function normalizeAttachmentArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((entry) => {
+      if (typeof entry === "string") return safe(entry);
+      if (entry && typeof entry === "object") {
+        const record = entry as Record<string, unknown>;
+        return safe(record.path) || safe(record.url) || safe(record.name);
+      }
+      return "";
+    })
+    .filter((entry) => Boolean(entry));
+}
+
 function toCleanEvidenceEntry(row: EvidenceEntryRow): CleanEvidenceEntry {
   return {
     id: safe(row.id),
@@ -69,6 +86,8 @@ function toCleanEvidenceEntry(row: EvidenceEntryRow): CleanEvidenceEntry {
     reflection: normalizeNullString(row.reflection),
     learningArea: normalizeNullString(row.learning_area),
     curriculumNodeIds: normalizeStringArray(row.curriculum_node_ids),
+    attachmentUrls: normalizeAttachmentArray(row.attachment_urls),
+    imageUrl: normalizeNullString(row.image_url),
     includeInPortfolio: normalizeBoolean(row.include_in_portfolio, true),
     includeInReport: normalizeBoolean(row.include_in_report, true),
     createdByUserId: safe(row.created_by_user_id),
@@ -148,7 +167,7 @@ export async function listCleanEvidenceEntries(
   let query = supabase
     .from("evidence_entries")
     .select(
-      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
     )
     .eq("family_id", familyId)
     .order("observed_on", { ascending: false })
@@ -241,7 +260,7 @@ export async function createCleanEvidenceEntry(
       created_by_user_id: currentUserId,
     })
     .select(
-      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
@@ -284,7 +303,7 @@ export async function updateCleanEvidenceEntry(
     .eq("family_id", familyId)
     .eq("id", entryId)
     .select(
-      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
