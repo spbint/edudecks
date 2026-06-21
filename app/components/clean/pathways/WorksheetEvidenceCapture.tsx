@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties, ChangeEvent } from "react";
 import { createCleanEvidenceEntry } from "@/lib/clean/evidence/client";
+import {
+  updateFamilyEvidenceEntryAttachments,
+  uploadFamilyEvidenceFiles,
+  type UploadedFamilyEvidenceFile,
+} from "@/lib/familyEvidence";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
 export type WorksheetEvidenceProgressLevel =
@@ -104,8 +109,12 @@ export default function WorksheetEvidenceCapture({
   const [progressLevel, setProgressLevel] =
     useState<WorksheetEvidenceProgressLevel>("consolidating");
   const [note, setNote] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoName, setPhotoName] = useState("");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [savedPhotoPreviewUrl, setSavedPhotoPreviewUrl] = useState("");
+  const [savedAttachment, setSavedAttachment] =
+    useState<UploadedFamilyEvidenceFile | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
@@ -117,6 +126,11 @@ export default function WorksheetEvidenceCapture({
 
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
+    setSaveError("");
+    setSavedMessage("");
+    setSavedAttachment(null);
+    setSavedPhotoPreviewUrl("");
+    setPhotoFile(file ?? null);
     setPhotoName(file?.name ?? "");
     setPhotoPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
@@ -135,7 +149,16 @@ export default function WorksheetEvidenceCapture({
 
     setSaving(true);
     try {
-      await createCleanEvidenceEntry(familyId, {
+      if (photoFile && !photoFile.type.startsWith("image/")) {
+        throw new Error("Please choose an image file for worksheet evidence.");
+      }
+
+      const maxImageSizeBytes = 10 * 1024 * 1024;
+      if (photoFile && photoFile.size > maxImageSizeBytes) {
+        throw new Error("Please choose an image smaller than 10 MB.");
+      }
+
+      const entry = await createCleanEvidenceEntry(familyId, {
         learnerId,
         observedOn: todayIsoDate(),
         title: `Worksheet evidence: ${stepTitle}`,
@@ -148,9 +171,7 @@ export default function WorksheetEvidenceCapture({
         ].join("\n"),
         reflection: [
           note ? `Parent note: ${note}` : "",
-          photoName
-            ? `Photo selected: ${photoName}. File upload storage is not connected in this evidence save yet.`
-            : "No photo file selected.",
+          photoName ? `Photo: attached (${photoName}).` : "No photo file selected.",
           `Worksheet: ${worksheetResource.href}`,
           `Source: worksheet_evidence`,
           progressLevel === "goal_achieved_extension" ? "Extension: true" : "",
@@ -170,7 +191,48 @@ export default function WorksheetEvidenceCapture({
         includeInReport: true,
       });
 
-      setSavedMessage(`Saved worksheet evidence as ${selectedProgress.label}.`);
+      let uploadedAttachment: UploadedFamilyEvidenceFile | null = null;
+      if (photoFile) {
+        const uploadResult = await uploadFamilyEvidenceFiles({
+          familyProfileId: familyId,
+          studentId: learnerId,
+          evidenceId: entry.id,
+          files: [photoFile],
+        });
+
+        if (uploadResult.failed.length) {
+          throw new Error(
+            uploadResult.failed
+              .map((failure) => `${failure.name}: ${failure.message}`)
+              .join(" "),
+          );
+        }
+
+        uploadedAttachment = uploadResult.uploaded[0] ?? null;
+        if (!uploadedAttachment) {
+          throw new Error("The photo could not be uploaded.");
+        }
+
+        await updateFamilyEvidenceEntryAttachments({
+          evidenceId: entry.id,
+          attachmentUrls: [{
+            path: uploadedAttachment.path,
+            name: uploadedAttachment.label,
+            mimeType: uploadedAttachment.mimeType,
+            size: uploadedAttachment.size,
+            kind: uploadedAttachment.kind,
+          }],
+          imageUrl: uploadedAttachment.path,
+        });
+      }
+
+      setSavedAttachment(uploadedAttachment);
+      setSavedPhotoPreviewUrl(uploadedAttachment ? photoPreviewUrl : "");
+      setSavedMessage(
+        uploadedAttachment
+          ? `Saved worksheet evidence and uploaded ${uploadedAttachment.label}.`
+          : `Saved worksheet evidence as ${selectedProgress.label}.`,
+      );
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Unable to save worksheet evidence.");
     } finally {
@@ -238,7 +300,7 @@ export default function WorksheetEvidenceCapture({
         ) : null}
         {photoName ? (
           <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-            Selected: {photoName}
+            {savedAttachment ? "Uploaded" : "Selected"}: {photoName}
           </span>
         ) : null}
       </div>
@@ -291,6 +353,29 @@ export default function WorksheetEvidenceCapture({
       <button type="button" onClick={saveEvidence} disabled={saving} style={saveButtonStyle}>
         {saving ? "Saving..." : "Save evidence"}
       </button>
+
+      {savedAttachment && savedPhotoPreviewUrl ? (
+        <div style={savedAttachmentStyle}>
+          <span style={{ color: "#15803D", fontSize: 13, fontWeight: 850 }}>
+            Photo saved
+          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={savedPhotoPreviewUrl}
+            alt="Saved worksheet evidence"
+            style={{
+              width: 96,
+              height: 72,
+              objectFit: "cover",
+              borderRadius: 12,
+              border: "1px solid #BBF7D0",
+            }}
+          />
+          <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>
+            Stored in Supabase Storage: {savedAttachment.label}
+          </span>
+        </div>
+      ) : null}
 
       {savedMessage ? <p style={successStyle}>{savedMessage}</p> : null}
       {saveError ? <p style={errorStyle}>{saveError}</p> : null}
@@ -395,4 +480,15 @@ const errorStyle = {
   border: "1px solid #FECDD3",
   background: "#FFF1F2",
   color: "#BE123C",
+} satisfies CSSProperties;
+
+const savedAttachmentStyle = {
+  border: "1px solid #BBF7D0",
+  borderRadius: 16,
+  background: "#F0FDF4",
+  padding: 12,
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: 10,
 } satisfies CSSProperties;
