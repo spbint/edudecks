@@ -1484,7 +1484,17 @@ function PathwaysWorkspaceBody() {
                   {selectedPlacementStep.stepDescription}
                 </p>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {selectedPlacementPracticeHref ? (
+                  {selectedPlacementWorksheet ? (
+                    <Link
+                      href={selectedPlacementWorksheet.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={markSelectedPathwayInteraction}
+                      style={buttonStyle}
+                    >
+                      Open worksheet
+                    </Link>
+                  ) : selectedPlacementPracticeHref ? (
                     <Link
                       href={selectedPlacementPracticeHref}
                       onClick={markSelectedPathwayInteraction}
@@ -1509,7 +1519,7 @@ function PathwaysWorkspaceBody() {
               <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                    Practise / Assess / Worksheet
+                    {selectedPlacementWorksheet ? "Worksheet evidence" : "Practise / Assess"}
                   </div>
                 </div>
                 <div
@@ -1519,7 +1529,31 @@ function PathwaysWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
                   }}
                 >
-                  {selectedPlacementPracticeHref ? (
+                  {selectedPlacementWorksheet ? (
+                    <Link
+                      href={selectedPlacementWorksheet.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={markSelectedPathwayInteraction}
+                      style={{
+                        ...summaryCardStyle,
+                        minHeight: 78,
+                        borderColor: "#D9D0FF",
+                        background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
+                        textDecoration: "none",
+                        padding: 12,
+                      }}
+                      aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
+                    >
+                      <span style={eyebrowStyle}>Worksheet</span>
+                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
+                        Complete this step on paper.
+                      </strong>
+                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
+                        Open worksheet
+                      </span>
+                    </Link>
+                  ) : selectedPlacementPracticeHref ? (
                     <Link
                       href={selectedPlacementPracticeHref}
                       onClick={markSelectedPathwayInteraction}
@@ -1539,7 +1573,7 @@ function PathwaysWorkspaceBody() {
                       </span>
                     </Link>
                   ) : null}
-                  {selectedPlacementAssessmentHref ? (
+                  {!selectedPlacementWorksheet && selectedPlacementAssessmentHref ? (
                     <Link
                       href={selectedPlacementAssessmentHref}
                       onClick={markSelectedPathwayInteraction}
@@ -1560,7 +1594,7 @@ function PathwaysWorkspaceBody() {
                         Start assessment
                       </span>
                     </Link>
-                  ) : (
+                  ) : !selectedPlacementWorksheet ? (
                     <div style={{ ...summaryCardStyle, minHeight: 78, opacity: 0.72, background: "#F8FAFC", padding: 12 }}>
                       <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
                       <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
@@ -1570,33 +1604,42 @@ function PathwaysWorkspaceBody() {
                         This assessment is coming soon.
                       </span>
                     </div>
-                  )}
-                  {selectedPlacementWorksheet ? (
-                    <Link
-                      href={selectedPlacementWorksheet.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={markSelectedPathwayInteraction}
-                      style={{
-                        ...summaryCardStyle,
-                        minHeight: 78,
-                        borderColor: "#F8D99A",
-                        background: "linear-gradient(180deg, #FFFFFF 0%, #FFF7E6 100%)",
-                        textDecoration: "none",
-                        padding: 12,
-                      }}
-                      aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
-                    >
-                      <span style={{ ...eyebrowStyle, color: "#F59E0B" }}>Worksheet</span>
-                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                        Print or save practice.
-                      </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        Open worksheet
-                      </span>
-                    </Link>
                   ) : null}
                 </div>
+                {selectedPlacementWorksheet ? (
+                  <details
+                    style={{
+                      border: "1px solid #E7EAF2",
+                      borderRadius: 14,
+                      background: "#ffffff",
+                      padding: "8px 10px",
+                    }}
+                  >
+                    <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
+                      Optional digital tools
+                    </summary>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                      {selectedPlacementPracticeHref ? (
+                        <Link
+                          href={selectedPlacementPracticeHref}
+                          onClick={markSelectedPathwayInteraction}
+                          style={{ ...secondaryButtonStyle, minHeight: 36, padding: "7px 10px", fontSize: 13 }}
+                        >
+                          Try interactive practice
+                        </Link>
+                      ) : null}
+                      {selectedPlacementAssessmentHref ? (
+                        <Link
+                          href={selectedPlacementAssessmentHref}
+                          onClick={markSelectedPathwayInteraction}
+                          style={{ ...secondaryButtonStyle, minHeight: 36, padding: "7px 10px", fontSize: 13 }}
+                        >
+                          Legacy digital check
+                        </Link>
+                      ) : null}
+                    </div>
+                  </details>
+                ) : null}
                 <details style={{ border: "1px solid #E7EAF2", borderRadius: 14, background: "#ffffff", padding: "8px 10px" }}>
                   <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
                     Adjust this step
@@ -2775,63 +2818,105 @@ function NumberRevealStepCard({
             alignItems: "center",
           }}
         >
-          {practiceHref ? (
-            <Link
-              href={practiceHref}
-              style={{
-                ...secondaryButtonStyle,
-                width: "fit-content",
-                minHeight: 34,
-                padding: "7px 10px",
-                fontSize: 13,
-              }}
-            >
-              Continue practise
-            </Link>
-          ) : null}
-          {assessmentHref ? (
-            <Link
-              href={assessmentHref}
-              style={{
-                ...secondaryButtonStyle,
-                width: "fit-content",
-                minHeight: 34,
-                padding: "7px 10px",
-                fontSize: 13,
-              }}
-            >
-              Assess
-            </Link>
-          ) : null}
           {worksheetResource ? (
-            <Link
-              href={worksheetResource.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                ...secondaryButtonStyle,
-                width: "fit-content",
-                minHeight: 34,
-                padding: "7px 10px",
-                fontSize: 13,
-              }}
-              aria-label={`Open worksheet for ${worksheetResource.title}`}
-            >
-              Open worksheet
-            </Link>
-          ) : null}
+            <>
+              <Link
+                href={worksheetResource.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  ...secondaryButtonStyle,
+                  width: "fit-content",
+                  minHeight: 34,
+                  padding: "7px 10px",
+                  fontSize: 13,
+                }}
+                aria-label={`Open worksheet for ${worksheetResource.title}`}
+              >
+                Open worksheet
+              </Link>
+              {(practiceHref || assessmentHref) ? (
+                <details style={{ fontSize: 12, color: "#64748b" }}>
+                  <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+                    Optional digital tools
+                  </summary>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                    {practiceHref ? (
+                      <Link
+                        href={practiceHref}
+                        style={{
+                          ...secondaryButtonStyle,
+                          width: "fit-content",
+                          minHeight: 32,
+                          padding: "6px 9px",
+                          fontSize: 12,
+                        }}
+                      >
+                        Try interactive practice
+                      </Link>
+                    ) : null}
+                    {assessmentHref ? (
+                      <Link
+                        href={assessmentHref}
+                        style={{
+                          ...secondaryButtonStyle,
+                          width: "fit-content",
+                          minHeight: 32,
+                          padding: "6px 9px",
+                          fontSize: 12,
+                        }}
+                      >
+                        Legacy digital check
+                      </Link>
+                    ) : null}
+                  </div>
+                </details>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {practiceHref ? (
+                <Link
+                  href={practiceHref}
+                  style={{
+                    ...secondaryButtonStyle,
+                    width: "fit-content",
+                    minHeight: 34,
+                    padding: "7px 10px",
+                    fontSize: 13,
+                  }}
+                >
+                  Continue practise
+                </Link>
+              ) : null}
+              {assessmentHref ? (
+                <Link
+                  href={assessmentHref}
+                  style={{
+                    ...secondaryButtonStyle,
+                    width: "fit-content",
+                    minHeight: 34,
+                    padding: "7px 10px",
+                    fontSize: 13,
+                  }}
+                >
+                  Assess
+                </Link>
+              ) : null}
+            </>
+          )}
         </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
           Learning activity coming soon.
         </div>
       )}
-      {!practiceHref && assessmentHref ? (
+      {!worksheetResource && !practiceHref && assessmentHref ? (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
           Practise is coming soon.
         </div>
       ) : null}
-      {!assessmentHref && practiceHref ? (
+      {!worksheetResource && !assessmentHref && practiceHref ? (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
           Assessment is coming soon.
         </div>

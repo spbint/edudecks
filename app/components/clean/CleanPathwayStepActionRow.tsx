@@ -109,11 +109,6 @@ function getResumeIndex(
   return Math.max(0, items.length - 1);
 }
 
-function getCompactWorksheetFileName(fileName: string) {
-  const stepCode = fileName.match(/S\d{3}/i)?.[0];
-  return stepCode ? `${stepCode}.pdf` : fileName;
-}
-
 export default function CleanPathwayStepActionRow({
   activity,
   assessHref,
@@ -164,6 +159,7 @@ export default function CleanPathwayStepActionRow({
 
   const completedPracticeTaskCount = getCompletedCount(practiceItems, completedTaskIds);
   const completedMiniCheckCount = getCompletedCount(miniCheckItems, completedTaskIds);
+  const hasOptionalDigitalTools = Boolean(activity || practiceHref || assessHref || captureHref);
 
   function updateResponse(taskId: string, value: string) {
     setResponses((current) => ({
@@ -248,6 +244,139 @@ export default function CleanPathwayStepActionRow({
         />
       ) : null}
 
+      {worksheetResource && hasOptionalDigitalTools ? (
+        <details
+          data-guidance-id="pathways-practise-assess"
+          style={{
+            border: "1px solid #E7EAF2",
+            borderRadius: 14,
+            background: "#F8FAFC",
+            padding: "9px 11px",
+            marginTop: 4,
+          }}
+        >
+          <summary
+            style={{
+              cursor: "pointer",
+              color: "#64748b",
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            Optional digital tools
+          </summary>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+            <p style={{ margin: 0, color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
+              These are optional. The worksheet evidence is the main record for this step.
+            </p>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {activity ? (
+                <>
+                  {practiceHref ? (
+                    <Link
+                      data-guidance-id="pathways-practise-button"
+                      href={practiceHref}
+                      style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                      title={
+                        practiceTitle
+                          ? `Practise ${practiceTitle}.`
+                          : "Open exact practice for this pathway step."
+                      }
+                    >
+                      Try interactive practice
+                    </Link>
+                  ) : (
+                    <button
+                      data-guidance-id="pathways-practise-button"
+                      type="button"
+                      onClick={openPracticePlayer}
+                      style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                      aria-label="Open optional interactive practice for this pathway step"
+                    >
+                      Try interactive practice
+                    </button>
+                  )}
+                  {!isExactStepContext ? (
+                    <button
+                      type="button"
+                      onClick={openMiniCheckPlayer}
+                      style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                      aria-label="Open optional mini check for this pathway step"
+                    >
+                      Legacy digital check
+                    </button>
+                  ) : null}
+                </>
+              ) : practiceHref ? (
+                <Link
+                  data-guidance-id="pathways-practise-button"
+                  href={practiceHref}
+                  style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                  title={
+                    practiceTitle
+                      ? `Practise ${practiceTitle}.`
+                      : "Practise this pathway step."
+                  }
+                >
+                  Try interactive practice
+                </Link>
+              ) : null}
+
+              {assessHref ? (
+                <Link
+                  data-guidance-id="pathways-assess-button"
+                  href={assessHref}
+                  style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                  title={
+                    exactAssessmentTitle
+                      ? `Assess understanding with ${exactAssessmentTitle}.`
+                      : "Assess understanding for this pathway step."
+                  }
+                  aria-label="Open optional legacy digital check for this pathway step"
+                >
+                  Legacy digital check
+                </Link>
+              ) : null}
+              <Link
+                data-guidance-id="pathways-next-capture"
+                href={captureHref}
+                style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                title="Open My Capture with this pathway step already connected."
+                aria-label="Capture evidence for this pathway step in My Capture"
+              >
+                Open My Capture
+              </Link>
+            </div>
+
+            {activity ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <span
+                  style={{
+                    ...chipStyle,
+                    border: "1px solid #dbeafe",
+                    background: "#ffffff",
+                    color: "#1d4ed8",
+                  }}
+                >
+                  {completedPracticeTaskCount}/{practiceTaskTotal} practise tasks
+                </span>
+                <span
+                  style={{
+                    ...chipStyle,
+                    border: "1px solid #ccfbf1",
+                    background: "#ffffff",
+                    color: "#0f766e",
+                  }}
+                >
+                  {completedMiniCheckCount}/{miniCheckTaskTotal} mini check tasks
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </details>
+      ) : null}
+
+      {!worksheetResource ? (
       <div
         data-guidance-id="pathways-practise-assess"
         style={{
@@ -255,21 +384,9 @@ export default function CleanPathwayStepActionRow({
           gap: 6,
           flexWrap: "wrap",
           alignItems: "center",
-          marginTop: worksheetResource ? 10 : 0,
+          marginTop: 0,
         }}
       >
-        {worksheetResource ? (
-          <span
-            style={{
-              color: "#64748b",
-              fontSize: 12,
-              fontWeight: 800,
-              marginRight: 2,
-            }}
-          >
-            Optional digital tools:
-          </span>
-        ) : null}
         {activity ? (
           <>
             {practiceHref ? (
@@ -393,30 +510,10 @@ export default function CleanPathwayStepActionRow({
         >
           Capture
         </Link>
-        {worksheetResource ? (
-          <Link
-            data-guidance-id="pathways-worksheet-button"
-            href={worksheetResource.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              ...secondaryButtonStyle,
-              padding: "7px 10px",
-              fontSize: 12,
-              gap: 6,
-            }}
-            title={`Open ${worksheetResource.fileName}`}
-            aria-label={`Open worksheet for ${worksheetResource.title}`}
-          >
-            <span>Worksheet</span>
-            <span style={{ color: "#64748b", fontWeight: 700 }}>
-              {getCompactWorksheetFileName(worksheetResource.fileName)}
-            </span>
-          </Link>
-        ) : null}
       </div>
+      ) : null}
 
-      {activity ? (
+      {activity && !worksheetResource ? (
         <details style={{ marginTop: 2 }}>
           <summary style={{ cursor: "pointer", color: "#64748b", fontSize: 12, fontWeight: 800 }}>
             Practice progress
