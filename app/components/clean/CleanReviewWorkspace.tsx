@@ -2,7 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import { V2Card, V2PageHeader, v2Tokens } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
-import CleanReviewPlayer from "@/app/components/clean/review/CleanReviewPlayer";
+import CleanReviewPlayer, {
+  type CleanReviewPlayerMode,
+} from "@/app/components/clean/review/CleanReviewPlayer";
 import {
   MATHS_REVIEW_BANKS,
   MATHS_REVIEW_GROUPS,
@@ -209,6 +211,7 @@ export default function CleanReviewWorkspace() {
   const [order, setOrder] = useState<MathsReviewOrder>("random");
   const [questionCount, setQuestionCount] = useState(5);
   const [questions, setQuestions] = useState<MathsReviewQuestion[]>([]);
+  const [playerMode, setPlayerMode] = useState<CleanReviewPlayerMode>("whiteboard");
   const [error, setError] = useState<string | null>(null);
 
   const selectedBanks = selectedBankIds
@@ -243,6 +246,7 @@ export default function CleanReviewWorkspace() {
       return;
     }
     setError(null);
+    setPlayerMode("whiteboard");
     setQuestions(generated);
   }
 
@@ -267,6 +271,7 @@ export default function CleanReviewWorkspace() {
         <CleanReviewPlayer
           key={`${questions[0]?.id ?? "review"}-${questions.length}`}
           questions={questions}
+          initialMode={playerMode}
           onExit={backToBuilder}
           onReviewAgain={startReview}
         />

@@ -26,10 +26,11 @@ export type MathsReviewPlayerResult = {
   correct: boolean;
 };
 
-type PlayerMode = "learner" | "display";
+export type CleanReviewPlayerMode = "whiteboard" | "interactive";
 
 type CleanReviewPlayerProps = {
   questions: MathsReviewQuestion[];
+  initialMode?: CleanReviewPlayerMode;
   onExit: () => void;
   onReviewAgain: () => void;
 };
@@ -100,7 +101,13 @@ function hasV5Response(response: ActivityV5ResponseState) {
   );
 }
 
-function ReviewVisualModel({ visual }: { visual?: MathsReviewVisualMetadata }) {
+function ReviewVisualModel({
+  visual,
+  showAnswer = false,
+}: {
+  visual?: MathsReviewVisualMetadata;
+  showAnswer?: boolean;
+}) {
   if (!visual) return null;
 
   const boardStyle: React.CSSProperties = {
@@ -265,9 +272,15 @@ function ReviewVisualModel({ visual }: { visual?: MathsReviewVisualMetadata }) {
     );
   }
 
-  const values = visual.values?.length ? visual.values : [0, Number(visual.targetValue ?? 10)];
+  const target = Number(visual.targetValue ?? Number.NaN);
+  const rawValues = visual.values?.length ? visual.values : [0, Number(visual.targetValue ?? 10)];
+  const visibleValues =
+    showAnswer || !Number.isFinite(target)
+      ? rawValues
+      : rawValues.filter((value) => Number(value) !== target);
+  const values = visibleValues.length ? visibleValues : [0, 10];
   const min = Math.min(...values, 0);
-  const max = Math.max(...values, Number(visual.targetValue ?? 10), 10);
+  const max = Math.max(...values, showAnswer ? Number(visual.targetValue ?? 10) : 10, 10);
   return (
     <div style={boardStyle} aria-label="Number line visual">
       <div style={{ width: "100%", position: "relative", height: 84 }}>
@@ -280,20 +293,32 @@ function ReviewVisualModel({ visual }: { visual?: MathsReviewVisualMetadata }) {
         {values.slice(0, 5).map((value, index) => (
           <span key={`${value}-${index}`} style={{ position: "absolute", left: `${max === min ? 50 : ((value - min) / (max - min)) * 92 + 4}%`, top: 22, transform: "translateX(-50%)", width: 18, height: 18, borderRadius: 999, background: v2Tokens.purple }} />
         ))}
+        {showAnswer && Number.isFinite(target) ? (
+          <span style={{ position: "absolute", left: `${max === min ? 50 : ((target - min) / (max - min)) * 92 + 4}%`, top: 12, transform: "translateX(-50%)", display: "grid", justifyItems: "center", gap: 4 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 999, background: v2Tokens.green, border: "3px solid #FFFFFF", boxShadow: "0 8px 18px rgba(47,157,104,0.22)" }} />
+            <strong style={{ color: v2Tokens.green, fontSize: 13 }}>{target}</strong>
+          </span>
+        ) : null}
       </div>
       <span style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 800 }}>{visual.note}</span>
     </div>
   );
 }
 
-export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: CleanReviewPlayerProps) {
+export default function CleanReviewPlayer({
+  questions,
+  initialMode = "whiteboard",
+  onExit,
+  onReviewAgain,
+}: CleanReviewPlayerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [response, setResponse] = useState("");
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [results, setResults] = useState<MathsReviewPlayerResult[]>([]);
   const [finished, setFinished] = useState(false);
-  const [mode, setMode] = useState<PlayerMode>("learner");
+  const [mode, setMode] = useState<CleanReviewPlayerMode>(initialMode);
+  const [showingAnswer, setShowingAnswer] = useState(false);
   const [v5Responses, setV5Responses] = useState<Record<string, ActivityV5ResponseState>>({});
   const [v5CheckResult, setV5CheckResult] = useState<ActivityV5CheckResult | null>(null);
 
@@ -305,7 +330,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
   const currentV5Response = currentQuestion ? v5Responses[currentQuestion.id] ?? {} : {};
   const displayParts = currentQuestion ? getDisplayParts(currentQuestion) : { lead: "", problem: "" };
   const progressPercent = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
-  const canCheck = mode === "display" || (v5Activity ? hasV5Response(currentV5Response) : response.trim().length > 0);
+  const canCheck = mode === "interactive" && (v5Activity ? hasV5Response(currentV5Response) : response.trim().length > 0);
 
   const summary = useMemo(() => {
     const correctCount = results.filter((result) => result.correct).length;
@@ -313,8 +338,9 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
     const missedFocusAreas = Array.from(
       new Set(results.filter((result) => !result.correct).map((result) => result.question.bankLabel)),
     );
-    return { correctCount, incorrectCount, missedFocusAreas };
-  }, [questions.length, results]);
+    const reviewedFocusAreas = Array.from(new Set(questions.map((question) => question.bankLabel)));
+    return { correctCount, incorrectCount, missedFocusAreas, reviewedFocusAreas };
+  }, [questions, results]);
 
   function recordResult(question: MathsReviewQuestion, nextResponse: string, correct: boolean) {
     setResults((current) => {
@@ -324,15 +350,18 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
   }
 
   function showOrCheckAnswer() {
-    if (!currentQuestion || checked || !canCheck) return;
-    if (mode === "display") {
+    if (!currentQuestion) return;
+    if (mode === "whiteboard") {
       setResponse(currentQuestion.answer);
       setIsCorrect(true);
       setChecked(true);
+      setShowingAnswer(true);
       setV5CheckResult(null);
       recordResult(currentQuestion, currentQuestion.answer, true);
       return;
     }
+
+    if (checked || !canCheck) return;
 
     if (v5Activity) {
       const result = checkActivityV5Answer(v5Activity, currentV5Response);
@@ -359,11 +388,25 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
     setResponse(recorded?.response ?? "");
     setChecked(Boolean(recorded));
     setIsCorrect(recorded?.correct ?? null);
+    setShowingAnswer(false);
     setV5CheckResult(null);
   }
 
   function goNext() {
     if (!currentQuestion) return;
+    if (mode === "whiteboard") {
+      if (!showingAnswer) {
+        showOrCheckAnswer();
+        return;
+      }
+      if (currentIndex >= questions.length - 1) {
+        setFinished(true);
+        return;
+      }
+      loadQuestionState(currentIndex + 1);
+      return;
+    }
+
     if (!checked) {
       recordResult(currentQuestion, response, false);
     }
@@ -459,7 +502,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                 padding: 4,
               }}
             >
-              {(["learner", "display"] as const).map((candidate) => (
+              {(["whiteboard", "interactive"] as const).map((candidate) => (
                 <button
                   key={candidate}
                   type="button"
@@ -468,6 +511,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                     setResponse("");
                     setChecked(false);
                     setIsCorrect(null);
+                    setShowingAnswer(false);
                     setV5CheckResult(null);
                   }}
                   style={{
@@ -479,10 +523,9 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                     fontSize: 12,
                     fontWeight: 850,
                     cursor: "pointer",
-                    textTransform: "capitalize",
                   }}
                 >
-                  {candidate}
+                  {candidate === "whiteboard" ? "Whiteboard" : "Interactive"}
                 </button>
               ))}
             </div>
@@ -524,22 +567,24 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                 Review complete
               </div>
               <h1 style={{ margin: "8px 0 0", color: v2Tokens.navy, fontSize: "clamp(42px, 10vw, 88px)", lineHeight: 1 }}>
-                {summary.correctCount}/{questions.length}
+                {mode === "whiteboard" ? questions.length : `${summary.correctCount}/${questions.length}`}
               </h1>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
               <span style={{ borderRadius: 999, background: v2Tokens.mint, color: "#176B45", padding: "9px 13px", fontWeight: 850 }}>
-                Correct {summary.correctCount}
+                {mode === "whiteboard" ? `Questions ${questions.length}` : `Correct ${summary.correctCount}`}
               </span>
               <span style={{ borderRadius: 999, background: v2Tokens.softRed, color: "#9F2440", padding: "9px 13px", fontWeight: 850 }}>
-                Incorrect {summary.incorrectCount}
+                {mode === "whiteboard" ? "Practice only" : `Incorrect ${summary.incorrectCount}`}
               </span>
             </div>
             <div style={{ display: "grid", gap: 10 }}>
-              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 18 }}>Missed focus areas</h2>
-              {summary.missedFocusAreas.length ? (
+              <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 18 }}>
+                {mode === "whiteboard" ? "Focus areas reviewed" : "Missed focus areas"}
+              </h2>
+              {(mode === "whiteboard" ? summary.reviewedFocusAreas : summary.missedFocusAreas).length ? (
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
-                  {summary.missedFocusAreas.map((area) => (
+                  {(mode === "whiteboard" ? summary.reviewedFocusAreas : summary.missedFocusAreas).map((area) => (
                     <span
                       key={area}
                       style={{
@@ -556,7 +601,9 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                   ))}
                 </div>
               ) : (
-                <p style={{ margin: 0, color: v2Tokens.slate }}>No missed focus areas in this session.</p>
+                <p style={{ margin: 0, color: v2Tokens.slate }}>
+                  {mode === "whiteboard" ? "No focus areas were recorded." : "No missed focus areas in this session."}
+                </p>
               )}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12 }}>
@@ -568,16 +615,97 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
               </button>
             </div>
           </section>
+        ) : mode === "whiteboard" ? (
+          <section
+            style={{
+              width: "min(900px, 100%)",
+              minHeight: "min(520px, 68vh)",
+              borderRadius: 22,
+              border: `1px solid ${v2Tokens.border}`,
+              background: "rgba(255,255,255,0.97)",
+              boxShadow: "0 10px 28px rgba(23,32,75,0.07)",
+              padding: "clamp(22px, 4vw, 42px)",
+              display: "grid",
+              gap: "clamp(16px, 3vw, 26px)",
+              alignContent: "center",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ color: v2Tokens.purple, fontSize: 12, fontWeight: 750 }}>
+                {showingAnswer ? "Answer" : "Question"}
+              </div>
+              <h1
+                style={{
+                  margin: 0,
+                  color: v2Tokens.navy,
+                  fontSize: "clamp(24px, 4vw, 30px)",
+                  lineHeight: 1.2,
+                  fontWeight: 750,
+                }}
+              >
+                {displayParts.lead}
+              </h1>
+              {displayParts.problem ? (
+                <div
+                  style={{
+                    color: v2Tokens.navy,
+                    fontSize: "clamp(44px, 9vw, 86px)",
+                    lineHeight: 1,
+                    fontWeight: 800,
+                    letterSpacing: 0,
+                  }}
+                >
+                  {displayParts.problem}
+                </div>
+              ) : null}
+            </div>
+
+            <ReviewVisualModel visual={currentQuestion.visual} showAnswer={showingAnswer} />
+
+            {showingAnswer ? (
+              <div
+                role="status"
+                style={{
+                  width: "min(620px, 100%)",
+                  margin: "0 auto",
+                  borderRadius: 18,
+                  border: `1px solid ${v2Tokens.border}`,
+                  background: "#F8FAFC",
+                  color: v2Tokens.navy,
+                  padding: "16px 18px",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div style={{ color: v2Tokens.slate, fontSize: 13, fontWeight: 700 }}>
+                  Answer
+                </div>
+                <div style={{ fontSize: "clamp(26px, 5vw, 34px)", fontWeight: 800, lineHeight: 1.1 }}>
+                  {currentQuestion.answer}
+                </div>
+                {currentQuestion.explanation ? (
+                  <p style={{ margin: 0, color: v2Tokens.slate, fontSize: 14, lineHeight: 1.45 }}>
+                    {currentQuestion.explanation}
+                  </p>
+                ) : null}
+              </div>
+            ) : currentQuestion.visualHint ? (
+              <p style={{ margin: 0, color: v2Tokens.slate, fontSize: 15, lineHeight: 1.45 }}>
+                {currentQuestion.visualHint}
+              </p>
+            ) : null}
+          </section>
         ) : (
           <section
             style={{
-              width: "min(1040px, 100%)",
-              minHeight: "min(620px, 72vh)",
-              borderRadius: 36,
+              width: "min(920px, 100%)",
+              minHeight: "min(560px, 70vh)",
+              borderRadius: 22,
               border: `1px solid ${v2Tokens.border}`,
               background: "rgba(255,255,255,0.97)",
-              boxShadow: "0 24px 70px rgba(23,32,75,0.13)",
-              padding: "clamp(26px, 6vw, 72px)",
+              boxShadow: "0 10px 28px rgba(23,32,75,0.07)",
+              padding: "clamp(22px, 4vw, 42px)",
               display: "grid",
               gap: "clamp(18px, 4vw, 34px)",
               alignContent: "center",
@@ -589,9 +717,9 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                 style={{
                   margin: 0,
                   color: v2Tokens.slate,
-                  fontSize: "clamp(24px, 5vw, 48px)",
-                  lineHeight: 1.15,
-                  fontWeight: 800,
+                  fontSize: "clamp(22px, 3.6vw, 30px)",
+                  lineHeight: 1.2,
+                  fontWeight: 750,
                 }}
               >
                 {displayParts.lead}
@@ -600,9 +728,9 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                 <div
                   style={{
                     color: v2Tokens.navy,
-                    fontSize: "clamp(72px, 16vw, 178px)",
-                    lineHeight: 0.95,
-                    fontWeight: 950,
+                    fontSize: "clamp(44px, 9vw, 86px)",
+                    lineHeight: 1,
+                    fontWeight: 800,
                     letterSpacing: 0,
                   }}
                 >
@@ -644,7 +772,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                       key={choice}
                       type="button"
                       onClick={() => setResponse(choice)}
-                      disabled={checked || mode === "display"}
+                      disabled={checked}
                       style={{
                         minHeight: 64,
                         borderRadius: 18,
@@ -653,7 +781,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                         color: v2Tokens.navy,
                         fontSize: "clamp(20px, 3vw, 32px)",
                         fontWeight: 900,
-                        cursor: checked || mode === "display" ? "default" : "pointer",
+                        cursor: checked ? "default" : "pointer",
                       }}
                     >
                       {choice}
@@ -661,7 +789,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                   );
                 })}
               </div>
-            ) : !v5Activity && mode === "learner" ? (
+            ) : !v5Activity ? (
               <label
                 style={{
                   display: "grid",
@@ -713,9 +841,7 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
                   lineHeight: 1.35,
                 }}
               >
-                {mode === "display"
-                  ? `Answer: ${currentQuestion.answer}`
-                  : v5CheckResult
+                {v5CheckResult
                     ? v5CheckResult.message
                     : isCorrect
                     ? "Correct."
@@ -742,24 +868,32 @@ export default function CleanReviewPlayer({ questions, onExit, onReviewAgain }: 
       >
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           <button type="button" onClick={goPrevious} disabled={currentIndex === 0 || finished} style={neutralButtonStyle}>
-            Previous
+            {mode === "whiteboard" && showingAnswer ? "Previous question" : "Previous"}
           </button>
           {!finished ? (
             <button
               type="button"
               onClick={showOrCheckAnswer}
-              disabled={!canCheck || checked}
+              disabled={mode === "whiteboard" ? showingAnswer : !canCheck || checked}
               style={{
                 ...primaryButtonStyle,
-                opacity: !canCheck || checked ? 0.58 : 1,
-                cursor: !canCheck || checked ? "not-allowed" : "pointer",
+                opacity: (mode === "whiteboard" ? showingAnswer : !canCheck || checked) ? 0.58 : 1,
+                cursor: (mode === "whiteboard" ? showingAnswer : !canCheck || checked) ? "not-allowed" : "pointer",
               }}
             >
-              {mode === "display" ? "Show answer" : "Check"}
+              {mode === "whiteboard" ? (showingAnswer ? "Answer shown" : "Show answer") : "Check"}
             </button>
           ) : null}
           <button type="button" onClick={goNext} disabled={finished} style={neutralButtonStyle}>
-            {currentIndex >= questions.length - 1 ? "Finish" : "Next"}
+            {mode === "whiteboard"
+              ? showingAnswer
+                ? currentIndex >= questions.length - 1
+                  ? "Finish review"
+                  : "Next question"
+                : "Show answer"
+              : currentIndex >= questions.length - 1
+              ? "Finish"
+              : "Next"}
           </button>
         </div>
         <div style={{ color: v2Tokens.slate, fontSize: 12, fontWeight: 700 }}>

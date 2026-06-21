@@ -1076,7 +1076,7 @@ function generalMathsReviewQuestion(bank: MathsReviewBank, settings: MathsReview
       return inputQuestion(bank, index, `List the factors of ${value}.`, factors, `The factors of ${value} are ${factors}.`, undefined, [factors, factors.replace(/, /g, " ")]);
     }
     case "hour":
-      return choiceQuestion(bank, index, "The minute hand points to 12 and the hour hand points to 4. What time is it?", "4:00", ["4:00", "12:04", "4:30", "12:00"], "That clock shows 4 o'clock.", undefined, ["4:00", "4 o'clock", "4 oclock"]);
+      return choiceQuestion(bank, index, "What time is shown?", "4:00", ["4:00", "12:04", "4:30", "12:00"], "That clock shows 4 o'clock.", undefined, ["4:00", "4 o'clock", "4 oclock"]);
     case "half-hour":
       return choiceQuestion(bank, index, "Half past 7 is written as...", "7:30", ["7:00", "7:15", "7:30", "8:30"], "Half past means 30 minutes after the hour.");
     case "quarter-hour":
@@ -1091,7 +1091,7 @@ function generalMathsReviewQuestion(bank: MathsReviewBank, settings: MathsReview
     case "time-facts":
       return inputQuestion(bank, index, "How many minutes are in 1 hour?", "60", "There are 60 minutes in 1 hour.");
     case "recognising-coins-and-notes":
-      return choiceQuestion(bank, index, "Which Australian coin is gold and worth one dollar?", "$1", ["10c", "20c", "50c", "$1"], "The $1 coin is gold.");
+      return choiceQuestion(bank, index, "Which money token is worth 1?", "1", ["1", "5", "10", "20"], "The token labelled 1 is worth 1.", undefined, ["1", "$1"]);
     case "adding-notes-and-coins":
       return inputQuestion(bank, index, "$5 + $2 + 50c = ?", "$7.50", "$5 + $2 + 50c = $7.50.", undefined, ["$7.50", "7.50", "750c"]);
     case "adding-coins":

@@ -154,11 +154,11 @@ function numberLineConfig(question: MathsReviewQuestion) {
     } else if (high <= 100) {
       min = 0;
       max = 100;
-      step = 10;
+      step = defaultStep < 1 ? defaultStep : 1;
     } else if (high <= 1000) {
       min = 0;
       max = Math.ceil(high / 100) * 100;
-      step = 100;
+      step = defaultStep < 1 ? defaultStep : 1;
     } else {
       min = Math.floor(low / 1000) * 1000;
       max = Math.ceil(high / 1000) * 1000;
