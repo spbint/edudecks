@@ -2332,6 +2332,7 @@ function PathwaysWorkspaceBody() {
                               unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
                               selectedSubjectKey={selectedSubject.key}
                               selectedSubjectTitle={selectedSubject.title}
+                              familyId={workspace.profile?.id || ""}
                               selectedLearnerId={selectedLearner?.id || ""}
                               returnPath={pathname}
                               isOpen={getStageOpenState(
@@ -3079,6 +3080,7 @@ function DetailedMathematicsStageCard({
   unifiedPathwayStepStateIndex,
   selectedSubjectKey,
   selectedSubjectTitle,
+  familyId,
   selectedLearnerId,
   returnPath,
   isOpen,
@@ -3099,6 +3101,7 @@ function DetailedMathematicsStageCard({
   unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
+  familyId: string;
   selectedLearnerId: string;
   returnPath: string;
   isOpen: boolean;
@@ -3342,6 +3345,7 @@ function DetailedMathematicsStageCard({
             unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
             selectedSubjectKey={selectedSubjectKey}
             selectedSubjectTitle={selectedSubjectTitle}
+            familyId={familyId}
             selectedLearnerId={selectedLearnerId}
             returnPath={returnPath}
             capturePathBase={capturePathBase}
@@ -3384,6 +3388,7 @@ function DetailedMathematicsStepCard({
   unifiedPathwayStepStateIndex,
   selectedSubjectKey,
   selectedSubjectTitle,
+  familyId,
   selectedLearnerId,
   returnPath,
   capturePathBase,
@@ -3402,6 +3407,7 @@ function DetailedMathematicsStepCard({
   unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
+  familyId: string;
   selectedLearnerId: string;
   returnPath: string;
   capturePathBase: string;
@@ -3839,6 +3845,17 @@ function DetailedMathematicsStepCard({
         captureHref={captureHref}
         practiceHref={exactPracticeHref}
         practiceTitle={exactStepPractice?.title ?? null}
+        familyId={familyId}
+        learnerId={selectedLearnerId}
+        subjectKey={selectedSubjectKey}
+        subjectTitle={selectedSubjectTitle}
+        strandKey={strand.key}
+        strandTitle={strand.title}
+        stageKey={stage.key}
+        stageTitle={stage.title}
+        pathwayStepId={canonicalPathwayStepId || ""}
+        stepKey={canonicalStepKey}
+        stepTitle={step.title}
         assessmentBankTitle={
           exactStepAssessment
             ? numberAssessmentBank?.title ?? exactStepAssessment.parentBankTitle

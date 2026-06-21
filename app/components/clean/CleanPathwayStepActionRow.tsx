@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import CleanPathwayPracticePlayer from "@/app/components/clean/CleanPathwayPracticePlayer";
+import WorksheetEvidenceCapture from "@/app/components/clean/pathways/WorksheetEvidenceCapture";
 import {
   buildMiniCheckPlayerItems,
   buildPracticePlayerItems,
@@ -20,6 +21,17 @@ type CleanPathwayStepActionRowProps = {
   captureHref: string;
   practiceHref?: string | null;
   practiceTitle?: string | null;
+  familyId?: string;
+  learnerId?: string;
+  subjectKey?: string;
+  subjectTitle?: string;
+  strandKey?: string;
+  strandTitle?: string;
+  stageKey?: string;
+  stageTitle?: string;
+  pathwayStepId?: string;
+  stepKey?: string;
+  stepTitle?: string;
   assessmentBankTitle?: string | null;
   exactAssessmentTitle?: string | null;
   autoCheckStatusLabel?: string | null;
@@ -108,6 +120,17 @@ export default function CleanPathwayStepActionRow({
   captureHref,
   practiceHref,
   practiceTitle,
+  familyId = "",
+  learnerId = "",
+  subjectKey = "",
+  subjectTitle = "Mathematics",
+  strandKey = "",
+  strandTitle = "Mathematics",
+  stageKey = "",
+  stageTitle = "",
+  pathwayStepId = "",
+  stepKey = "",
+  stepTitle = "",
   exactAssessmentTitle,
   isExactStepContext = false,
   worksheetResource,
@@ -208,10 +231,45 @@ export default function CleanPathwayStepActionRow({
 
   return (
     <>
+      {worksheetResource ? (
+        <WorksheetEvidenceCapture
+          familyId={familyId}
+          learnerId={learnerId}
+          subjectKey={subjectKey}
+          subjectTitle={subjectTitle}
+          strandKey={strandKey}
+          strandTitle={strandTitle}
+          stageKey={stageKey}
+          stageTitle={stageTitle}
+          pathwayStepId={pathwayStepId || worksheetResource.pathwayStepId}
+          stepKey={stepKey || worksheetResource.stepKey}
+          stepTitle={stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
+          worksheetResource={worksheetResource}
+        />
+      ) : null}
+
       <div
         data-guidance-id="pathways-practise-assess"
-        style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
+        style={{
+          display: "flex",
+          gap: 6,
+          flexWrap: "wrap",
+          alignItems: "center",
+          marginTop: worksheetResource ? 10 : 0,
+        }}
       >
+        {worksheetResource ? (
+          <span
+            style={{
+              color: "#64748b",
+              fontSize: 12,
+              fontWeight: 800,
+              marginRight: 2,
+            }}
+          >
+            Optional digital tools:
+          </span>
+        ) : null}
         {activity ? (
           <>
             {practiceHref ? (
