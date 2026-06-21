@@ -126,6 +126,7 @@ export type MathsReviewVisualMetadata = {
   showNotes?: boolean;
   showCoins?: boolean;
   allowMultipleTokens?: boolean;
+  gridObjects?: Array<{ coordinate: string; label: string }>;
   unit?: string;
   note?: string;
 };
@@ -494,6 +495,7 @@ function buildMathsReviewVisual(
       visualModel: "coordinate_grid",
       interactionType: "plot_coordinates",
       targetValue: question.answer,
+      gridObjects: question.visual?.gridObjects,
       note: "Coordinate grid model for location.",
     };
   }
@@ -549,6 +551,7 @@ function choiceQuestion(
   explanation: string,
   visualHint?: string,
   acceptableAnswers: string[] = [answer],
+  visual?: MathsReviewVisualMetadata,
 ) {
   return withBase(bank, index, {
     type: "choice",
@@ -558,6 +561,7 @@ function choiceQuestion(
     choices,
     explanation,
     visualHint,
+    visual,
   });
 }
 
@@ -569,6 +573,7 @@ function inputQuestion(
   explanation: string,
   visualHint?: string,
   acceptableAnswers: string[] = [answer],
+  visual?: MathsReviewVisualMetadata,
 ) {
   return withBase(bank, index, {
     type: "input",
@@ -577,6 +582,7 @@ function inputQuestion(
     acceptableAnswers,
     explanation,
     visualHint,
+    visual,
   });
 }
 
@@ -1016,9 +1022,29 @@ function generalMathsReviewQuestion(bank: MathsReviewBank, settings: MathsReview
       return inputQuestion(bank, index, `An array has ${rows} rows and ${columns} columns. ${visible} are visible. How many are covered?`, numberAnswer(rows), `One column is covered, so ${rows} are covered.`);
     }
     case "grid-reference": {
-      const column = ["A", "B", "C", "D"][randInt(0, 3)];
-      const row = randInt(1, 4);
-      return inputQuestion(bank, index, `Give the grid reference for column ${column}, row ${row}.`, `${column}${row}`, `Column ${column} and row ${row} is ${column}${row}.`);
+      const placements = [
+        { coordinate: "A1", label: "dog" },
+        { coordinate: "B2", label: "car" },
+        { coordinate: "C3", label: "house" },
+        { coordinate: "D4", label: "star" },
+      ];
+      const selected = placements[randInt(0, placements.length - 1)];
+      return inputQuestion(
+        bank,
+        index,
+        `Where is the ${selected.label}?`,
+        selected.coordinate,
+        `The ${selected.label} is at ${selected.coordinate}.`,
+        undefined,
+        [selected.coordinate.toLowerCase()],
+        {
+          visualModel: "coordinate_grid",
+          interactionType: "plot_coordinates",
+          targetValue: selected.coordinate,
+          gridObjects: placements,
+          note: "Find the object on the labelled grid.",
+        },
+      );
     }
     case "column-or-row":
       return choiceQuestion(bank, index, "Objects arranged up and down make a...", "column", ["row", "column", "corner", "face"], "A column goes up and down.");

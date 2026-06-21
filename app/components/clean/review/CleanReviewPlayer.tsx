@@ -248,10 +248,13 @@ function ReviewVisualModel({
   }
 
   if (visual.visualModel === "coordinate_grid") {
-    const target = String(visual.targetValue ?? "");
+    const target = String(visual.targetValue ?? "").toUpperCase();
+    const objectByCoordinate = new Map(
+      (visual.gridObjects ?? []).map((item) => [item.coordinate.toUpperCase(), item.label]),
+    );
     return (
       <div style={boardStyle} aria-label="Coordinate grid visual">
-        <div style={{ display: "grid", gridTemplateColumns: "34px repeat(4, 54px)", gap: 7 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "34px repeat(4, minmax(54px, 72px))", gap: 7 }}>
           <span />
           {["A", "B", "C", "D"].map((col) => <strong key={col} style={{ textAlign: "center", color: v2Tokens.slate }}>{col}</strong>)}
           {[1, 2, 3, 4].map((row) => (
@@ -259,9 +262,26 @@ function ReviewVisualModel({
               <strong style={{ display: "grid", placeItems: "center", color: v2Tokens.slate }}>{row}</strong>
               {["A", "B", "C", "D"].map((col) => {
                 const coord = `${col}${row}`;
+                const objectLabel = objectByCoordinate.get(coord);
+                const answerCell = showAnswer && coord === target;
                 return (
-                  <span key={coord} style={{ minHeight: 54, borderRadius: 12, border: `2px solid ${coord === target ? v2Tokens.purple : v2Tokens.border}`, background: coord === target ? v2Tokens.lavender : "#FFFFFF", display: "grid", placeItems: "center", color: v2Tokens.navy, fontWeight: 850 }}>
-                    {coord}
+                  <span
+                    key={coord}
+                    style={{
+                      minHeight: 64,
+                      borderRadius: 12,
+                      border: `2px solid ${answerCell ? v2Tokens.green : v2Tokens.border}`,
+                      background: answerCell ? v2Tokens.mint : "#FFFFFF",
+                      display: "grid",
+                      placeItems: "center",
+                      gap: 2,
+                      color: v2Tokens.navy,
+                      fontWeight: 750,
+                      padding: 6,
+                    }}
+                  >
+                    <span style={{ fontSize: 16, textTransform: "capitalize" }}>{objectLabel ?? ""}</span>
+                    {answerCell ? <span style={{ color: v2Tokens.green, fontSize: 12, fontWeight: 800 }}>{coord}</span> : null}
                   </span>
                 );
               })}
@@ -460,6 +480,8 @@ export default function CleanReviewPlayer({
       role="dialog"
       aria-modal="true"
       aria-label="Maths review player"
+      data-review-player-version="whiteboard-v2"
+      data-review-player-mode={mode}
       style={{
         position: "fixed",
         inset: 0,
@@ -870,31 +892,35 @@ export default function CleanReviewPlayer({
           <button type="button" onClick={goPrevious} disabled={currentIndex === 0 || finished} style={neutralButtonStyle}>
             {mode === "whiteboard" && showingAnswer ? "Previous question" : "Previous"}
           </button>
-          {!finished ? (
-            <button
-              type="button"
-              onClick={showOrCheckAnswer}
-              disabled={mode === "whiteboard" ? showingAnswer : !canCheck || checked}
-              style={{
-                ...primaryButtonStyle,
-                opacity: (mode === "whiteboard" ? showingAnswer : !canCheck || checked) ? 0.58 : 1,
-                cursor: (mode === "whiteboard" ? showingAnswer : !canCheck || checked) ? "not-allowed" : "pointer",
-              }}
-            >
-              {mode === "whiteboard" ? (showingAnswer ? "Answer shown" : "Show answer") : "Check"}
-            </button>
-          ) : null}
-          <button type="button" onClick={goNext} disabled={finished} style={neutralButtonStyle}>
-            {mode === "whiteboard"
-              ? showingAnswer
+          {mode === "whiteboard" ? (
+            <button type="button" onClick={goNext} disabled={finished} style={primaryButtonStyle}>
+              {showingAnswer
                 ? currentIndex >= questions.length - 1
                   ? "Finish review"
                   : "Next question"
-                : "Show answer"
-              : currentIndex >= questions.length - 1
-              ? "Finish"
-              : "Next"}
-          </button>
+                : "Show answer"}
+            </button>
+          ) : (
+            <>
+              {!finished ? (
+                <button
+                  type="button"
+                  onClick={showOrCheckAnswer}
+                  disabled={!canCheck || checked}
+                  style={{
+                    ...primaryButtonStyle,
+                    opacity: !canCheck || checked ? 0.58 : 1,
+                    cursor: !canCheck || checked ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Check
+                </button>
+              ) : null}
+              <button type="button" onClick={goNext} disabled={finished} style={neutralButtonStyle}>
+                {currentIndex >= questions.length - 1 ? "Finish" : "Next"}
+              </button>
+            </>
+          )}
         </div>
         <div style={{ color: v2Tokens.slate, fontSize: 12, fontWeight: 700 }}>
           Shortcuts: Left/Right arrows, Enter, Escape

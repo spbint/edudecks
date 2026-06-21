@@ -130,7 +130,7 @@ function numberLineConfig(question: MathsReviewQuestion) {
     if (low < 0) {
       min = Math.min(-10, Math.floor(low));
       max = Math.max(10, Math.ceil(high));
-      step = Math.max(step, max - min > 20 ? 5 : 1);
+      step = defaultStep < 1 ? defaultStep : 1;
     } else if (high <= 1 && defaultStep < 1) {
       min = 0;
       max = 1;
