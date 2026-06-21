@@ -1,6 +1,34 @@
 import type { CSSProperties, ReactNode } from "react";
 import { v5Tokens } from "@/app/components/clean/activity-player-v5/visualModels";
 
+export function PlayerPresentationShell({
+  children,
+  standalone = false,
+  centered = false,
+}: {
+  children: ReactNode;
+  standalone?: boolean;
+  centered?: boolean;
+}) {
+  return (
+    <main
+      data-activity-player-v5-shell="polished-v1"
+      style={{
+        ...playerShellStyle,
+        minHeight: standalone ? "100vh" : undefined,
+        ...(centered
+          ? {
+              display: "grid",
+              placeItems: "center",
+            }
+          : {}),
+      }}
+    >
+      {children}
+    </main>
+  );
+}
+
 export function PlayerProgress({
   current,
   total,

@@ -8,12 +8,12 @@ import {
 import { ActivityV5InteractionRenderer } from "@/app/components/clean/activity-player-v5/interactionRenderers";
 import {
   PlayerPanel,
+  PlayerPresentationShell,
   PlayerProgress,
   SymbolicStrip,
   playerButtonStyle,
   playerContentStyle,
   playerHeaderStyle,
-  playerShellStyle,
 } from "@/app/components/clean/activity-player-v5/PlayerPresentationShell";
 import type {
   ActivityPlayerV5Props,
@@ -58,14 +58,7 @@ export default function ActivityPlayerV5({
 
   if (finished) {
     return (
-      <main
-        style={{
-          ...playerShellStyle,
-          minHeight: chrome === "standalone" ? "100vh" : undefined,
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
+      <PlayerPresentationShell standalone={chrome === "standalone"} centered>
         <section style={{ width: "min(720px, 100%)", ...playerHeaderStyle }}>
           <p style={{ margin: 0, color: v5Tokens.slate, fontWeight: 720, fontSize: 13 }}>
             Review complete
@@ -100,7 +93,7 @@ export default function ActivityPlayerV5({
             </button>
           </div>
         </section>
-      </main>
+      </PlayerPresentationShell>
     );
   }
 
@@ -142,12 +135,7 @@ export default function ActivityPlayerV5({
   const symbolicItems = buildSymbolicItems(activity);
 
   return (
-    <main
-      style={{
-        ...playerShellStyle,
-        minHeight: chrome === "standalone" ? "100vh" : undefined,
-      }}
-    >
+    <PlayerPresentationShell standalone={chrome === "standalone"}>
       <section style={playerContentStyle}>
         <header style={playerHeaderStyle}>
           <PlayerProgress
@@ -289,7 +277,7 @@ export default function ActivityPlayerV5({
           }
         }
       `}</style>
-    </main>
+    </PlayerPresentationShell>
   );
 }
 

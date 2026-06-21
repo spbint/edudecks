@@ -36,8 +36,8 @@ export function ModelBoard({
         padding: "clamp(14px, 2vw, 18px)",
         display: "grid",
         gap: 12,
-        minHeight: 280,
-        boxShadow: "0 8px 22px rgba(23,32,75,0.04)",
+        minHeight: 260,
+        boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
         ...style,
       }}
     >
