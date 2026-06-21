@@ -31,12 +31,13 @@ export function ModelBoard({
       aria-label={label}
       style={{
         border: `1px solid ${v5Tokens.border}`,
-        borderRadius: 22,
+        borderRadius: 18,
         background: "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)",
-        padding: 18,
+        padding: "clamp(14px, 2vw, 18px)",
         display: "grid",
-        gap: 14,
-        minHeight: 320,
+        gap: 12,
+        minHeight: 280,
+        boxShadow: "0 8px 22px rgba(23,32,75,0.04)",
         ...style,
       }}
     >
