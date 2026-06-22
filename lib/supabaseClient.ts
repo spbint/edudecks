@@ -9,6 +9,7 @@ export const supabaseAnonKey = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
 
 export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
 const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
+const SUPABASE_STORAGE_UPLOAD_TIMEOUT_MS = 60000;
 
 export function requireSupabasePublicEnv() {
   if (!hasSupabaseEnv) {
@@ -23,6 +24,17 @@ export function requireSupabasePublicEnv() {
 
 async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
   let timer: ReturnType<typeof setTimeout> | null = null;
+  const requestUrl =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : "url" in input
+          ? String(input.url)
+          : "";
+  const timeoutMs = requestUrl.includes("/storage/v1/object/")
+    ? SUPABASE_STORAGE_UPLOAD_TIMEOUT_MS
+    : SUPABASE_REQUEST_TIMEOUT_MS;
 
   try {
     return (await Promise.race([
@@ -31,10 +43,10 @@ async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
         timer = setTimeout(() => {
           reject(
             new Error(
-              `Supabase request timed out after ${SUPABASE_REQUEST_TIMEOUT_MS}ms.`,
+              `Supabase request timed out after ${timeoutMs}ms.`,
             ),
           );
-        }, SUPABASE_REQUEST_TIMEOUT_MS);
+        }, timeoutMs);
       }),
     ])) as Response;
   } finally {

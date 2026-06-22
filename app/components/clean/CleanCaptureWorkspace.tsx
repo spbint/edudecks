@@ -157,6 +157,31 @@ function getWorksheetParentNote(reflection: string) {
     .join("\n");
 }
 
+function logWorksheetUploadDiagnostic(
+  phase: string,
+  details: Record<string, unknown>,
+) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info("[worksheet-evidence-upload]", {
+    phase,
+    ...details,
+  });
+}
+
+function uploadPhaseErrorMessage(phase: string, error: Error) {
+  const message = error.message || "";
+  if (phase === "context") {
+    return "Photo upload could not start because evidence context was missing.";
+  }
+  if (/permission|policy|row-level|rls|unauthorized|not authorized/i.test(message)) {
+    return "Storage permission error. Please try again or contact support.";
+  }
+  if (phase === "attachment-update") {
+    return "Photo uploaded, but could not be linked to the evidence entry.";
+  }
+  return "Photo upload failed. Check your connection and try again.";
+}
+
 async function compressWorksheetEvidenceImage(file: File) {
   if (!file.type.startsWith("image/")) return file;
   if (typeof document === "undefined" || typeof Image === "undefined") return file;
@@ -651,6 +676,7 @@ function CleanCaptureWorkspaceBody() {
   }
 
   async function uploadWorksheetPhotoForEvidence(evidenceId: string, file: File) {
+    let phase = "context";
     if (!workspace.profile) {
       throw new Error("Family workspace is required before uploading a photo.");
     }
@@ -658,12 +684,43 @@ function CleanCaptureWorkspaceBody() {
       throw new Error("Choose a learner before uploading a photo.");
     }
 
+    logWorksheetUploadDiagnostic("context", {
+      evidenceEntryId: evidenceId,
+      bucket: "evidence",
+      storagePathPrefix: `family/${workspace.profile.id}/learner/${learnerId}/evidence/${evidenceId}`,
+      fileName: file.name,
+      fileType: file.type,
+      originalSize: file.size,
+      learnerIdPresent: Boolean(learnerId),
+      familyIdPresent: Boolean(workspace.profile.id),
+      userIdPresent: Boolean(user?.id),
+    });
+
+    phase = "compression";
     const preparedFile = await compressWorksheetEvidenceImage(file);
+    logWorksheetUploadDiagnostic("compression-complete", {
+      evidenceEntryId: evidenceId,
+      fileName: preparedFile.name,
+      fileType: preparedFile.type,
+      originalSize: file.size,
+      compressedSize: preparedFile.size,
+      compressedIsValid: preparedFile.size > 0 && preparedFile.type.startsWith("image/"),
+    });
+
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
+        phase = "storage-upload";
         setSavePhase(attempt === 1 ? "Uploading photo..." : "Retrying photo upload...");
+        logWorksheetUploadDiagnostic("upload-started", {
+          evidenceEntryId: evidenceId,
+          bucket: "evidence",
+          attempt,
+          fileName: preparedFile.name,
+          fileType: preparedFile.type,
+          compressedSize: preparedFile.size,
+        });
         const uploadResult = await uploadFamilyEvidenceFiles({
           familyProfileId: workspace.profile.id,
           studentId: learnerId,
@@ -672,6 +729,16 @@ function CleanCaptureWorkspaceBody() {
         });
 
         if (uploadResult.failed.length) {
+          logWorksheetUploadDiagnostic("upload-failed", {
+            evidenceEntryId: evidenceId,
+            attempt,
+            failures: uploadResult.failed.map((failure) => ({
+              name: failure.name,
+              message: failure.message,
+              code: failure.code ?? null,
+              status: failure.status ?? null,
+            })),
+          });
           throw new Error(
             uploadResult.failed
               .map((failure) => `${failure.name}: ${failure.message}`)
@@ -680,10 +747,20 @@ function CleanCaptureWorkspaceBody() {
         }
 
         const uploadedAttachments = uploadResult.uploaded;
+        logWorksheetUploadDiagnostic("upload-succeeded", {
+          evidenceEntryId: evidenceId,
+          attempt,
+          uploadedCount: uploadedAttachments.length,
+          paths: uploadedAttachments.map((attachment) => attachment.path.split("/").slice(0, 6).join("/")),
+        });
+        phase = "attachment-update";
         setSavePhase("Finalising attachment...");
+        logWorksheetUploadDiagnostic("attachment-update-started", {
+          evidenceEntryId: evidenceId,
+          uploadedCount: uploadedAttachments.length,
+        });
         await updateFamilyEvidenceEntryAttachments({
           evidenceId,
-          studentId: learnerId,
           attachmentUrls: uploadedAttachments.map((attachment) => ({
             path: attachment.path,
             name: attachment.label,
@@ -694,9 +771,23 @@ function CleanCaptureWorkspaceBody() {
           imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
         });
 
+        logWorksheetUploadDiagnostic("attachment-update-succeeded", {
+          evidenceEntryId: evidenceId,
+          uploadedCount: uploadedAttachments.length,
+        });
         return uploadedAttachments;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error("The photo could not be uploaded.");
+        const rawError = error instanceof Error ? error : new Error("The photo could not be uploaded.");
+        logWorksheetUploadDiagnostic("phase-failed", {
+          evidenceEntryId: evidenceId,
+          phase,
+          attempt,
+          errorName: rawError.name,
+          errorMessage: rawError.message,
+          errorCode: (rawError as unknown as { code?: unknown }).code ?? null,
+          errorStatus: (rawError as unknown as { status?: unknown }).status ?? null,
+        });
+        lastError = new Error(uploadPhaseErrorMessage(phase, rawError));
         if (attempt >= 2) break;
       }
     }

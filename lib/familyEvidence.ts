@@ -83,6 +83,8 @@ export type UploadedFamilyEvidenceFile = {
 export type FailedFamilyEvidenceFileUpload = {
   name: string;
   message: string;
+  code?: string | null;
+  status?: string | number | null;
 };
 
 function safe(value: unknown) {
@@ -679,6 +681,11 @@ export async function uploadFamilyEvidenceFiles(input: {
       failed.push({
         name: file.name,
         message: safe(uploadError.message) || "Upload failed.",
+        code: safe((uploadError as unknown as { code?: unknown }).code) || null,
+        status:
+          safe((uploadError as unknown as { statusCode?: unknown }).statusCode) ||
+          safe((uploadError as unknown as { status?: unknown }).status) ||
+          null,
       });
       continue;
     }
