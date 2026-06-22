@@ -31,6 +31,12 @@ type EvidenceEntryRow = {
   updated_at?: string | null;
 };
 
+const CLEAN_EVIDENCE_ENTRY_BASE_SELECT =
+  "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
+
+const CLEAN_EVIDENCE_ENTRY_ATTACHMENT_SELECT =
+  "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -164,58 +170,67 @@ export async function listCleanEvidenceEntries(
   familyId: string,
   options: CleanEvidenceEntriesOptions = {},
 ) {
-  let query = supabase
-    .from("evidence_entries")
-    .select(
-      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
-    )
-    .eq("family_id", familyId)
-    .order("observed_on", { ascending: false })
-    .order("created_at", { ascending: false });
-
   const learnerId = safe(options.learnerId);
   const programId = safe(options.programId);
   const calendarItemId = safe(options.calendarItemId);
   const fromDate = sanitizeDate(options.fromDate);
   const toDate = sanitizeDate(options.toDate);
 
-  if (learnerId) {
-    query = query.eq("learner_id", learnerId);
+  async function runQuery(selectProjection: string) {
+    let query = supabase
+      .from("evidence_entries")
+      .select(selectProjection)
+      .eq("family_id", familyId)
+      .order("observed_on", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (learnerId) {
+      query = query.eq("learner_id", learnerId);
+    }
+
+    if (programId) {
+      query = query.eq("program_id", programId);
+    }
+
+    if (calendarItemId) {
+      query = query.eq("calendar_item_id", calendarItemId);
+    }
+
+    if (fromDate) {
+      query = query.gte("observed_on", fromDate);
+    }
+
+    if (toDate) {
+      query = query.lte("observed_on", toDate);
+    }
+
+    if (typeof options.limit === "number" && options.limit > 0) {
+      query = query.limit(options.limit);
+    }
+
+    return query;
   }
 
-  if (programId) {
-    query = query.eq("program_id", programId);
-  }
+  let response = await runQuery(CLEAN_EVIDENCE_ENTRY_ATTACHMENT_SELECT);
 
-  if (calendarItemId) {
-    query = query.eq("calendar_item_id", calendarItemId);
+  if (response.error) {
+    response = await runQuery(CLEAN_EVIDENCE_ENTRY_BASE_SELECT);
   }
-
-  if (fromDate) {
-    query = query.gte("observed_on", fromDate);
-  }
-
-  if (toDate) {
-    query = query.lte("observed_on", toDate);
-  }
-
-  if (typeof options.limit === "number" && options.limit > 0) {
-    query = query.limit(options.limit);
-  }
-
-  const response = await query;
 
   if (response.error) {
     throw new Error(
       normalizeCleanErrorMessage(
         response.error,
         "We could not load clean evidence entries just now.",
+        "evidence",
       ),
     );
   }
 
   return sortEvidenceEntries(
-    (response.data ?? []).map((row) => toCleanEvidenceEntry(row as EvidenceEntryRow)),
+    (((response.data ?? []) as unknown) as EvidenceEntryRow[]).map((row) =>
+      toCleanEvidenceEntry(row),
+    ),
   );
 }
 
@@ -259,9 +274,7 @@ export async function createCleanEvidenceEntry(
       include_in_report: payload.include_in_report ?? true,
       created_by_user_id: currentUserId,
     })
-    .select(
-      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
-    )
+    .select(CLEAN_EVIDENCE_ENTRY_BASE_SELECT)
     .maybeSingle();
 
   if (response.error || !response.data) {
@@ -269,6 +282,7 @@ export async function createCleanEvidenceEntry(
       normalizeCleanErrorMessage(
         response.error,
         "Unable to create the clean evidence entry.",
+        "evidence",
       ),
     );
   }
@@ -302,9 +316,7 @@ export async function updateCleanEvidenceEntry(
     .update(payload)
     .eq("family_id", familyId)
     .eq("id", entryId)
-    .select(
-      "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at",
-    )
+    .select(CLEAN_EVIDENCE_ENTRY_BASE_SELECT)
     .maybeSingle();
 
   if (response.error || !response.data) {
@@ -312,6 +324,7 @@ export async function updateCleanEvidenceEntry(
       normalizeCleanErrorMessage(
         response.error,
         "Unable to update the clean evidence entry.",
+        "evidence",
       ),
     );
   }
@@ -334,6 +347,7 @@ export async function deleteCleanEvidenceEntry(
       normalizeCleanErrorMessage(
         response.error,
         "Unable to delete the clean evidence entry.",
+        "evidence",
       ),
     );
   }

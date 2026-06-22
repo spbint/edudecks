@@ -129,8 +129,14 @@ export function isCleanSchemaMissingError(error: unknown) {
 export function normalizeCleanErrorMessage(
   error: unknown,
   fallback: string,
+  context: "workspace" | "evidence" = "workspace",
 ) {
-  if (isCleanSchemaMissingError(error)) return CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE;
+  if (isCleanSchemaMissingError(error)) {
+    if (context === "evidence") {
+      return "MyLearna could not save this evidence because the evidence database fields are not available yet.";
+    }
+    return CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE;
+  }
   return String((error as { message?: unknown })?.message ?? fallback).trim();
 }
 
