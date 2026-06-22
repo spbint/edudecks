@@ -33,6 +33,8 @@ type WorksheetEvidenceCaptureProps = {
   stepTitle: string;
   worksheetResource: MathWorksheetResource;
   latestEvidenceEntry?: CleanEvidenceEntry | null;
+  initialFormOpen?: boolean;
+  onEvidenceSaved?: (entry: CleanEvidenceEntry) => void;
 };
 
 const progressOptions: Array<{
@@ -161,10 +163,14 @@ export default function WorksheetEvidenceCapture({
   stepTitle,
   worksheetResource,
   latestEvidenceEntry,
+  initialFormOpen = false,
+  onEvidenceSaved,
 }: WorksheetEvidenceCaptureProps) {
   const [progressLevel, setProgressLevel] =
     useState<WorksheetEvidenceProgressLevel>("consolidating");
-  const [captureFormOpen, setCaptureFormOpen] = useState(!latestEvidenceEntry);
+  const [captureFormOpen, setCaptureFormOpen] = useState(
+    initialFormOpen || !latestEvidenceEntry,
+  );
   const [localLatestEvidenceEntry, setLocalLatestEvidenceEntry] =
     useState<CleanEvidenceEntry | null>(latestEvidenceEntry ?? null);
   const [note, setNote] = useState("");
@@ -188,6 +194,12 @@ export default function WorksheetEvidenceCapture({
       setCaptureFormOpen(true);
     }
   }, [latestEvidenceEntry]);
+
+  useEffect(() => {
+    if (initialFormOpen) {
+      setCaptureFormOpen(true);
+    }
+  }, [initialFormOpen]);
 
   const latestProgress = useMemo(
     () => getProgressFromEvidence(localLatestEvidenceEntry),
@@ -337,13 +349,16 @@ export default function WorksheetEvidenceCapture({
         });
       }
 
-      setSavedAttachment(uploadedAttachment);
-      setSavedPhotoPreviewUrl(uploadedAttachment ? photoPreviewUrl : "");
-      setLocalLatestEvidenceEntry({
+      const savedEntry = {
         ...entry,
         attachmentUrls: uploadedAttachment ? [uploadedAttachment.path] : [],
         imageUrl: uploadedAttachment?.path ?? null,
-      });
+      };
+
+      setSavedAttachment(uploadedAttachment);
+      setSavedPhotoPreviewUrl(uploadedAttachment ? photoPreviewUrl : "");
+      setLocalLatestEvidenceEntry(savedEntry);
+      onEvidenceSaved?.(savedEntry);
       setSavedMessage(
         uploadedAttachment
           ? `Saved worksheet evidence and uploaded ${uploadedAttachment.label}.`
@@ -444,7 +459,7 @@ export default function WorksheetEvidenceCapture({
 
       {captureFormOpen ? (
         <div style={captureFormStyle} data-worksheet-evidence-form="open">
-          <div style={uploadBoxStyle}>
+          <div style={uploadBoxStyle} data-worksheet-evidence-photo-input="active">
             <label style={uploadActionStyle}>
               <span style={{ color: "#17204B", fontWeight: 850 }}>Take or upload photo</span>
               <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
@@ -496,7 +511,7 @@ export default function WorksheetEvidenceCapture({
 
           <div style={{ display: "grid", gap: 8 }}>
             <span style={{ color: "#17204B", fontWeight: 800 }}>How did it go?</span>
-            <div style={progressGridStyle}>
+            <div style={progressGridStyle} data-worksheet-evidence-progress-options="active">
               {progressOptions.map((option) => {
                 const selected = option.value === progressLevel;
                 return (
@@ -540,7 +555,13 @@ export default function WorksheetEvidenceCapture({
           </label>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" onClick={saveEvidence} disabled={saving} style={saveButtonStyle}>
+            <button
+              type="button"
+              onClick={saveEvidence}
+              disabled={saving}
+              style={saveButtonStyle}
+              data-worksheet-evidence-save="active"
+            >
               {saving ? "Saving..." : photoFile ? "Save evidence" : "Save without photo"}
             </button>
             <button
@@ -658,7 +679,6 @@ const hiddenFileInputStyle = {
   width: 1,
   height: 1,
   opacity: 0,
-  pointerEvents: "none",
 } satisfies CSSProperties;
 
 const uploadBoxStyle = {

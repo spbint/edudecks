@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import CleanPathwayPracticePlayer from "@/app/components/clean/CleanPathwayPracticePlayer";
 import WorksheetEvidenceCapture from "@/app/components/clean/pathways/WorksheetEvidenceCapture";
 import {
@@ -82,6 +82,41 @@ const chipStyle: React.CSSProperties = {
   lineHeight: 1.2,
 };
 
+const worksheetEvidenceModalBackdropStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 80,
+  background: "rgba(15, 23, 42, 0.38)",
+  display: "grid",
+  placeItems: "center",
+  padding: "clamp(12px, 3vw, 24px)",
+};
+
+const worksheetEvidenceModalPanelStyle: React.CSSProperties = {
+  width: "min(760px, 100%)",
+  maxHeight: "min(92vh, 860px)",
+  overflowY: "auto",
+  border: "1px solid #E7EAF2",
+  borderRadius: 22,
+  background: "#FFFFFF",
+  padding: "clamp(14px, 3vw, 22px)",
+  display: "grid",
+  gap: 14,
+  boxShadow: "0 24px 70px rgba(15, 23, 42, 0.20)",
+};
+
+const modalCloseButtonStyle: React.CSSProperties = {
+  border: "1px solid #E7EAF2",
+  borderRadius: 999,
+  background: "#FFFFFF",
+  color: "#17204B",
+  padding: "9px 12px",
+  minHeight: 40,
+  fontSize: 13,
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
 function getCompletedCount(
   items: PracticePlayerTaskItem[],
   completedTaskIds: string[],
@@ -159,10 +194,40 @@ export default function CleanPathwayStepActionRow({
   const [hasVisitedMiniCheck, setHasVisitedMiniCheck] = useState(false);
   const [miniCheckOutcome, setMiniCheckOutcome] =
     useState<PracticeOutcome>("not_started");
+  const [worksheetEvidenceModalOpen, setWorksheetEvidenceModalOpen] = useState(false);
+  const [localLatestEvidenceEntry, setLocalLatestEvidenceEntry] =
+    useState<CleanEvidenceEntry | null>(latestEvidenceEntry);
 
   const completedPracticeTaskCount = getCompletedCount(practiceItems, completedTaskIds);
   const completedMiniCheckCount = getCompletedCount(miniCheckItems, completedTaskIds);
   const hasOptionalDigitalTools = Boolean(activity || practiceHref || assessHref);
+
+  useEffect(() => {
+    setLocalLatestEvidenceEntry(latestEvidenceEntry);
+  }, [latestEvidenceEntry]);
+
+  useEffect(() => {
+    if (!worksheetResource) return;
+
+    function handleOpenWorksheetEvidence(event: Event) {
+      const detail = (event as CustomEvent<{ pathwayStepId?: string; stepKey?: string }>).detail;
+      const requestedPathwayStepId = detail?.pathwayStepId;
+      const requestedStepKey = detail?.stepKey;
+      const currentPathwayStepId = pathwayStepId || worksheetResource?.pathwayStepId;
+      const currentStepKey = stepKey || worksheetResource?.stepKey;
+      const matchesPathwayStep = requestedPathwayStepId === currentPathwayStepId;
+      const matchesStepKey =
+        !requestedPathwayStepId && requestedStepKey === currentStepKey;
+
+      if (!matchesPathwayStep && !matchesStepKey) return;
+      setWorksheetEvidenceModalOpen(true);
+    }
+
+    window.addEventListener("mylearna:open-worksheet-evidence", handleOpenWorksheetEvidence);
+    return () => {
+      window.removeEventListener("mylearna:open-worksheet-evidence", handleOpenWorksheetEvidence);
+    };
+  }, [pathwayStepId, stepKey, worksheetResource]);
 
   function updateResponse(taskId: string, value: string) {
     setResponses((current) => ({
@@ -244,8 +309,67 @@ export default function CleanPathwayStepActionRow({
           stepKey={stepKey || worksheetResource.stepKey}
           stepTitle={stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
           worksheetResource={worksheetResource}
-          latestEvidenceEntry={latestEvidenceEntry}
+          latestEvidenceEntry={localLatestEvidenceEntry}
+          onEvidenceSaved={setLocalLatestEvidenceEntry}
         />
+      ) : null}
+
+      {worksheetResource && worksheetEvidenceModalOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Add completed worksheet evidence for ${stepTitle || worksheetResource.title}`}
+          style={worksheetEvidenceModalBackdropStyle}
+          onClick={() => setWorksheetEvidenceModalOpen(false)}
+        >
+          <div
+            style={worksheetEvidenceModalPanelStyle}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "flex-start",
+              }}
+            >
+              <div style={{ display: "grid", gap: 4 }}>
+                <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 850 }}>
+                  Worksheet evidence
+                </span>
+                <strong style={{ color: "#17204B", fontSize: 18, lineHeight: 1.25 }}>
+                  Add completed work
+                </strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWorksheetEvidenceModalOpen(false)}
+                style={modalCloseButtonStyle}
+                aria-label="Close worksheet evidence form"
+              >
+                Close
+              </button>
+            </div>
+            <WorksheetEvidenceCapture
+              familyId={familyId}
+              learnerId={learnerId}
+              subjectKey={subjectKey}
+              subjectTitle={subjectTitle}
+              strandKey={strandKey}
+              strandTitle={strandTitle}
+              stageKey={stageKey}
+              stageTitle={stageTitle}
+              pathwayStepId={pathwayStepId || worksheetResource.pathwayStepId}
+              stepKey={stepKey || worksheetResource.stepKey}
+              stepTitle={stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
+              worksheetResource={worksheetResource}
+              latestEvidenceEntry={localLatestEvidenceEntry}
+              initialFormOpen
+              onEvidenceSaved={setLocalLatestEvidenceEntry}
+            />
+          </div>
+        </div>
       ) : null}
 
       {worksheetResource && hasOptionalDigitalTools ? (
