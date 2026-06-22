@@ -45,6 +45,11 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import {
+  updateFamilyEvidenceEntryAttachments,
+  uploadFamilyEvidenceFiles,
+  type UploadedFamilyEvidenceFile,
+} from "@/lib/familyEvidence";
+import {
   listCleanProgramSegments,
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
@@ -102,6 +107,14 @@ const PATHWAY_OBSERVED_SKILL_STATUS_OPTIONS = [
   "Developing",
   "Secure",
   "Strong",
+] as const;
+
+const WORKSHEET_PROGRESS_OPTIONS = [
+  { value: "Needs support", status: "Still developing" },
+  { value: "Working towards", status: "Developing" },
+  { value: "Consolidating", status: "Developing" },
+  { value: "Goal achieved", status: "Secure" },
+  { value: "Goal achieved + extension", status: "Strong" },
 ] as const;
 
 function getTodayDate() {
@@ -276,10 +289,17 @@ function CleanCaptureWorkspaceBody() {
   const [formPathwayContext, setFormPathwayContext] =
     useState<CleanPathwayCaptureContext | null>(null);
   const [pathwayObservedSkillStatus, setPathwayObservedSkillStatus] = useState("");
+  const [worksheetProgressLevel, setWorksheetProgressLevel] =
+    useState<(typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"]>("Consolidating");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoName, setPhotoName] = useState("");
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [savedAttachments, setSavedAttachments] = useState<UploadedFamilyEvidenceFile[]>([]);
   const [lastSavedCurriculumContext, setLastSavedCurriculumContext] =
     useState<CleanCurriculumCaptureContext | null>(null);
   const [lastSavedPathwayContext, setLastSavedPathwayContext] =
     useState<CleanPathwayCaptureContext | null>(null);
+  const [lastSavedReturnPath, setLastSavedReturnPath] = useState("");
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -308,6 +328,13 @@ function CleanCaptureWorkspaceBody() {
     searchParams.get("curriculumElementLabel"),
   );
   const learningAreaLabelFromQuery = safeQueryValue(searchParams.get("learningAreaLabel"));
+  const worksheetEvidenceMode =
+    safeQueryValue(searchParams.get("worksheetEvidence")) === "1" ||
+    safeQueryValue(searchParams.get("evidenceSource")) === "worksheet_evidence";
+  const worksheetTitleFromQuery = safeQueryValue(searchParams.get("worksheetTitle"));
+  const worksheetHrefFromQuery = safeQueryValue(searchParams.get("worksheetHref"));
+  const worksheetIdFromQuery = safeQueryValue(searchParams.get("worksheetId"));
+  const returnToFromQuery = safeQueryValue(searchParams.get("returnTo"));
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
     safeQueryValue(searchParams.get("planned_date"));
@@ -325,6 +352,10 @@ function CleanCaptureWorkspaceBody() {
   const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-pathways"
     : "/my-pathways";
+  const worksheetReturnPath =
+    returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
+      ? returnToFromQuery
+      : pathwaysReturnPath;
 
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === programId) ?? null,
@@ -482,6 +513,14 @@ function CleanCaptureWorkspaceBody() {
     setProgramId("");
     setCalendarItemId("");
     setPathwayObservedSkillStatus("");
+    setWorksheetProgressLevel("Consolidating");
+    setPhotoFile(null);
+    setPhotoName("");
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return "";
+    });
+    setSavedAttachments([]);
     if (!options.keepCurriculumContext) {
       setFormCurriculumContext(null);
     }
@@ -494,6 +533,42 @@ function CleanCaptureWorkspaceBody() {
   function clearCaptureContext() {
     setLastAppliedContextKey("");
     router.replace(pathname);
+  }
+
+  function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setActionError(null);
+    setMessage(null);
+    setSavedAttachments([]);
+    setPhotoFile(file);
+    setPhotoName(file?.name ?? "");
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return file ? URL.createObjectURL(file) : "";
+    });
+  }
+
+  function removePhoto() {
+    setPhotoFile(null);
+    setPhotoName("");
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return "";
+    });
+  }
+
+  function updateWorksheetProgress(nextProgress: (typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"]) {
+    const selected = WORKSHEET_PROGRESS_OPTIONS.find((option) => option.value === nextProgress);
+    setWorksheetProgressLevel(nextProgress);
+    setPathwayObservedSkillStatus(selected?.status || "");
+    setReflection((current) => {
+      const withoutProgress = current
+        .split("\n")
+        .filter((line) => !/^Progress level:/i.test(line.trim()))
+        .join("\n")
+        .trim();
+      return [`Progress level: ${nextProgress}`, withoutProgress].filter(Boolean).join("\n");
+    });
   }
 
   useEffect(() => {
@@ -575,11 +650,28 @@ function CleanCaptureWorkspaceBody() {
       nextPathwayContext,
       nextLearnerLabel,
     );
+    const worksheetProgress = WORKSHEET_PROGRESS_OPTIONS.find(
+      (option) => option.value === worksheetProgressLevel,
+    ) ?? WORKSHEET_PROGRESS_OPTIONS[2];
+    const worksheetTitleSuggestion =
+      worksheetEvidenceMode && nextPathwayContext
+        ? `${safeQueryValue(nextPathwayContext.stepTitle) || "Completed worksheet"} - worksheet evidence`
+        : "";
+    const worksheetWhatHappenedSuggestion =
+      worksheetEvidenceMode && nextPathwayContext
+        ? [
+            `Completed worksheet evidence for ${safeQueryValue(nextPathwayContext.pathwayLabel) || "this pathway"} / ${safeQueryValue(nextPathwayContext.stepTitle) || "this step"}.`,
+            worksheetTitleFromQuery ? `Worksheet: ${worksheetTitleFromQuery}.` : "",
+            worksheetHrefFromQuery ? `Worksheet link: ${worksheetHrefFromQuery}.` : "",
+            worksheetIdFromQuery ? `Worksheet resource ID: ${worksheetIdFromQuery}.` : "",
+          ].filter(Boolean).join("\n")
+        : "";
 
     setEditingEntryId(null);
     setLearnerId(nextLearnerId);
     setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
     setTitle(
+      worksheetTitleSuggestion ||
       pathwayTitleSuggestion ||
       curriculumTitleSuggestion ||
         linkedCalendarItem?.title ||
@@ -589,8 +681,16 @@ function CleanCaptureWorkspaceBody() {
         humanizeQuerySlug(curriculumElementFromQuery) ||
         "",
     );
-    setWhatHappened(pathwayWhatHappenedSuggestion || "");
-    setReflection("");
+    setWhatHappened(worksheetWhatHappenedSuggestion || pathwayWhatHappenedSuggestion || "");
+    setReflection(
+      worksheetEvidenceMode
+        ? [
+            `Progress level: ${worksheetProgress.value}`,
+            "Source: worksheet_evidence",
+            worksheetHrefFromQuery ? `Worksheet: ${worksheetHrefFromQuery}` : "",
+          ].filter(Boolean).join("\n")
+        : "",
+    );
     setLearningArea(
       derivedPathwayCurriculumContext?.learningAreaLabel ||
         nextCurriculumContext?.learningAreaLabel ||
@@ -604,11 +704,16 @@ function CleanCaptureWorkspaceBody() {
     setCalendarItemId(calendarItemIdFromQuery || "");
     setFormCurriculumContext(derivedPathwayCurriculumContext || nextCurriculumContext);
     setFormPathwayContext(nextPathwayContext);
-    setPathwayObservedSkillStatus(safeQueryValue(nextPathwayContext?.observedSkillStatus));
+    setPathwayObservedSkillStatus(
+      worksheetEvidenceMode
+        ? worksheetProgress.status
+        : safeQueryValue(nextPathwayContext?.observedSkillStatus),
+    );
     setMessage(null);
     setActionError(null);
     setLastSavedCurriculumContext(null);
     setLastSavedPathwayContext(null);
+    setLastSavedReturnPath("");
     setLastAppliedContextKey(captureContextKey);
   }, [
     calendarItemIdFromQuery,
@@ -634,6 +739,11 @@ function CleanCaptureWorkspaceBody() {
     programs,
     workspace.learners,
     workspace.profile,
+    worksheetEvidenceMode,
+    worksheetHrefFromQuery,
+    worksheetIdFromQuery,
+    worksheetProgressLevel,
+    worksheetTitleFromQuery,
   ]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -645,6 +755,15 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
 
     try {
+      if (photoFile && !photoFile.type.startsWith("image/")) {
+        throw new Error("Please choose an image file for worksheet evidence.");
+      }
+
+      const maxImageSizeBytes = 10 * 1024 * 1024;
+      if (photoFile && photoFile.size > maxImageSizeBytes) {
+        throw new Error("Please choose an image smaller than 10 MB.");
+      }
+
       const nextCurriculumContext = buildCurriculumCaptureContext(formCurriculumContext || {});
       const nextPathwayContext = buildPathwayCaptureContext({
         ...(formPathwayContext || {}),
@@ -669,10 +788,13 @@ function CleanCaptureWorkspaceBody() {
         programId: programId || null,
         calendarItemId: calendarItemId || null,
         curriculumNodeIds: evidenceNodeIds,
+        includeInPortfolio: true,
+        includeInReport: true,
       };
+      let savedEntry: CleanEvidenceEntry;
 
       if (editingEntryId) {
-        await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
+        savedEntry = await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
         trackProductEvent(
           "evidence_updated",
           {
@@ -687,14 +809,16 @@ function CleanCaptureWorkspaceBody() {
           user?.id,
         );
         setMessage(
-          nextPathwayContext
+          worksheetEvidenceMode
+            ? "Evidence saved for this worksheet step."
+            : nextPathwayContext
             ? "Evidence saved for this pathway step."
             : nextCurriculumContext
             ? "Evidence saved to My Data."
             : "Capture note updated.",
         );
       } else {
-        await createCleanEvidenceEntry(workspace.profile.id, payload);
+        savedEntry = await createCleanEvidenceEntry(workspace.profile.id, payload);
         trackProductEvent(
           "evidence_created",
           {
@@ -709,7 +833,9 @@ function CleanCaptureWorkspaceBody() {
           user?.id,
         );
         setMessage(
-          !entries.length
+          worksheetEvidenceMode
+            ? "Evidence saved for this worksheet step."
+            : !entries.length
             ? "First evidence captured. Your learning record is starting to build."
             : nextPathwayContext
               ? "Evidence saved for this pathway step."
@@ -719,10 +845,44 @@ function CleanCaptureWorkspaceBody() {
         );
       }
 
+      let uploadedAttachments: UploadedFamilyEvidenceFile[] = [];
+      if (photoFile) {
+        const uploadResult = await uploadFamilyEvidenceFiles({
+          familyProfileId: workspace.profile.id,
+          studentId: learnerId,
+          evidenceId: savedEntry.id,
+          files: [photoFile],
+        });
+
+        if (uploadResult.failed.length) {
+          throw new Error(
+            uploadResult.failed
+              .map((failure) => `${failure.name}: ${failure.message}`)
+              .join(" "),
+          );
+        }
+
+        uploadedAttachments = uploadResult.uploaded;
+        await updateFamilyEvidenceEntryAttachments({
+          evidenceId: savedEntry.id,
+          studentId: learnerId,
+          attachmentUrls: uploadedAttachments.map((attachment) => ({
+            path: attachment.path,
+            name: attachment.label,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            kind: attachment.kind,
+          })),
+          imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
+        });
+      }
+
       setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
       setLastSavedPathwayContext(nextPathwayContext);
+      setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
+      setSavedAttachments(uploadedAttachments);
       if (captureContextKey) {
         clearCaptureContext();
       }
@@ -806,6 +966,7 @@ function CleanCaptureWorkspaceBody() {
     formPathwayContext?.source === MY_PATHWAYS_SOURCE;
   const pathwayObservedStatusFieldVisible =
     pathwayCaptureActive &&
+    !worksheetEvidenceMode &&
     Boolean(pathwayContextFromQuery || safeQueryValue(formPathwayContext?.observedSkillStatus));
   const curriculumCaptureActive =
     !pathwayCaptureActive && formCurriculumContext?.source === MY_CURRICULUM_SOURCE;
@@ -965,6 +1126,71 @@ function CleanCaptureWorkspaceBody() {
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                     This evidence can help show progress through My Pathways and support curriculum coverage, reports, and outputs.
                   </div>
+                  {worksheetEvidenceMode ? (
+                    <div
+                      style={{
+                        border: "1px solid #D9D0FF",
+                        borderRadius: 14,
+                        background: "#FFFFFF",
+                        padding: 12,
+                        display: "grid",
+                        gap: 10,
+                      }}
+                    >
+                      <strong style={{ color: "#17204B" }}>Worksheet evidence</strong>
+                      {worksheetTitleFromQuery ? (
+                        <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                          {worksheetTitleFromQuery}
+                        </span>
+                      ) : null}
+                      {worksheetHrefFromQuery ? (
+                        <Link
+                          href={worksheetHrefFromQuery}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "#6C4DF6", fontWeight: 800 }}
+                        >
+                          Open worksheet
+                        </Link>
+                      ) : null}
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <span style={{ color: "#17204B", fontWeight: 800 }}>
+                          How did it go?
+                        </span>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                            gap: 8,
+                          }}
+                        >
+                          {WORKSHEET_PROGRESS_OPTIONS.map((option) => {
+                            const selected = worksheetProgressLevel === option.value;
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => updateWorksheetProgress(option.value)}
+                                style={{
+                                  border: `1px solid ${selected ? "#6C4DF6" : "#E7EAF2"}`,
+                                  borderRadius: 14,
+                                  background: selected ? "#F2EDFF" : "#FFFFFF",
+                                  color: selected ? "#5B21B6" : "#17204B",
+                                  padding: "11px 12px",
+                                  minHeight: 48,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  textAlign: "left",
+                                }}
+                              >
+                                {option.value}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -1094,6 +1320,76 @@ function CleanCaptureWorkspaceBody() {
                   style={textAreaStyle}
                 />
 
+                {worksheetEvidenceMode ? (
+                  <div
+                    style={{
+                      border: "1px dashed #CBD5E1",
+                      borderRadius: 16,
+                      background: "#F8FAFC",
+                      padding: 14,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <label
+                      style={{
+                        border: "1px solid #D9D0FF",
+                        borderRadius: 16,
+                        background: "#FFFFFF",
+                        padding: 14,
+                        minHeight: 86,
+                        display: "grid",
+                        gap: 7,
+                        cursor: "pointer",
+                        boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
+                      }}
+                    >
+                      <span style={{ color: "#17204B", fontWeight: 850 }}>
+                        Take or upload photo
+                      </span>
+                      <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
+                        Use your phone camera or choose an image of the completed worksheet.
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoChange}
+                        style={{
+                          position: "absolute",
+                          width: 1,
+                          height: 1,
+                          opacity: 0,
+                        }}
+                      />
+                    </label>
+                    {photoPreviewUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photoPreviewUrl}
+                          alt="Selected worksheet evidence preview"
+                          style={{
+                            width: "100%",
+                            maxHeight: 220,
+                            objectFit: "cover",
+                            borderRadius: 14,
+                            border: "1px solid #E2E8F0",
+                          }}
+                        />
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>
+                            Selected: {photoName}
+                          </span>
+                          <button type="button" onClick={removePhoto} style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}>
+                            Remove photo
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {pathwayObservedStatusFieldVisible ? (
                   <label style={{ display: "grid", gap: 6 }}>
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>
@@ -1201,14 +1497,19 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+                  {savedAttachments.length ? (
+                    <p style={{ margin: 0, color: "#0f766e", fontWeight: 700 }}>
+                      Photo attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
+                    </p>
+                  ) : null}
                   {lastSavedPathwayContext ? (
                     <div>
                       <button
                         type="button"
                         style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                        onClick={() => router.push(pathwaysReturnPath)}
+                        onClick={() => router.push(lastSavedReturnPath || pathwaysReturnPath)}
                       >
-                        Back to My Pathways
+                        {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
                       </button>
                     </div>
                   ) : null}
@@ -1241,48 +1542,50 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
             </section>
 
-            <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Later additions</h2>
-              <p style={{ marginTop: 0, color: "#475569" }}>
-                This phase stays text-first. Media and file capture can come later.
-              </p>
-              <div
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                }}
-              >
-                {["Photo upload", "File upload", "Audio note"].map((label) => (
-                  <div
-                    key={label}
-                    style={{
-                      border: "1px dashed #cbd5e1",
-                      borderRadius: 14,
-                      padding: 14,
-                      display: "grid",
-                      gap: 8,
-                      background: "#f8fafc",
-                    }}
-                    >
-                      <strong style={{ color: "#0f172a" }}>{label}</strong>
-                    <button
-                      type="button"
-                      disabled
+            {!worksheetEvidenceMode ? (
+              <section style={cardStyle}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Later additions</h2>
+                <p style={{ marginTop: 0, color: "#475569" }}>
+                  This phase stays text-first. Media and file capture can come later.
+                </p>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  }}
+                >
+                  {["Photo upload", "File upload", "Audio note"].map((label) => (
+                    <div
+                      key={label}
                       style={{
-                        ...buttonStyle,
-                        background: "#e2e8f0",
-                        borderColor: "#cbd5e1",
-                        color: "#475569",
-                        cursor: "not-allowed",
+                        border: "1px dashed #cbd5e1",
+                        borderRadius: 14,
+                        padding: 14,
+                        display: "grid",
+                        gap: 8,
+                        background: "#f8fafc",
                       }}
-                    >
-                      Coming later
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
+                      >
+                        <strong style={{ color: "#0f172a" }}>{label}</strong>
+                      <button
+                        type="button"
+                        disabled
+                        style={{
+                          ...buttonStyle,
+                          background: "#e2e8f0",
+                          borderColor: "#cbd5e1",
+                          color: "#475569",
+                          cursor: "not-allowed",
+                        }}
+                      >
+                        Coming later
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <section data-guidance-id="capture-next-portfolio" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Portfolio</h2>

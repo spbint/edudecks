@@ -426,6 +426,25 @@ function buildPathwayStepReturnHref({
   return `${pathname}?${params.toString()}#${detailPanelId}`;
 }
 
+function appendWorksheetEvidenceCaptureParams(
+  href: string,
+  worksheetResource: NonNullable<ReturnType<typeof getWorksheetResourceForPathwayStep>>,
+  returnTo: string,
+) {
+  const [path, query = ""] = href.split("?");
+  const params = new URLSearchParams(query);
+  params.set("worksheetEvidence", "1");
+  params.set("evidenceSource", "worksheet_evidence");
+  params.set("worksheetId", worksheetResource.fileName);
+  params.set("worksheetTitle", worksheetResource.title);
+  params.set("worksheetHref", worksheetResource.href);
+  params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("includeInPortfolio", "1");
+  params.set("includeInReport", "1");
+  params.set("returnTo", returnTo);
+  return `${path}?${params.toString()}`;
+}
+
 function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
   return (
     NUMBER_ASSESSMENT_BANKS.find(
@@ -1236,6 +1255,46 @@ function PathwaysWorkspaceBody() {
         stageKey: selectedPlacementStep.stageKey,
       })
     : null;
+  const selectedPlacementWorksheetEvidenceHref = useMemo(() => {
+    if (!selectedPlacementStep || !selectedPlacementWorksheet) return "";
+
+    const params = buildPathwayCaptureSearchParams(
+      {
+        source: "my-pathways",
+        subjectKey: selectedPlacementStep.subjectKey,
+        subjectLabel: selectedSubject.title,
+        pathwayKey: selectedPlacementStep.strandKey,
+        pathwayLabel: selectedSubjectWorkspace?.title || selectedPlacementStep.strandKey,
+        stageKey: selectedPlacementStep.stageKey,
+        stageLabel: selectedPlacementStep.stageTitle,
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
+        stepNumber: String(selectedPlacementStep.legacyStepNumber || selectedPlacementStep.stepOrder || selectedPlacementStep.stepKey),
+        stepTitle: selectedPlacementStep.stepTitle,
+        stepMeaning: selectedPlacementStep.stepDescription,
+        skillFocus: selectedPlacementStep.stepTitle,
+      },
+      {
+        learnerId: selectedLearnerId || null,
+        learningAreaKey: selectedPlacementStep.subjectKey,
+        learningAreaLabel: selectedSubject.title,
+      },
+    );
+
+    return appendWorksheetEvidenceCaptureParams(
+      `${capturePathBase}?${params.toString()}`,
+      selectedPlacementWorksheet,
+      selectedPlacementReturnHref,
+    );
+  }, [
+    capturePathBase,
+    selectedLearnerId,
+    selectedPlacementReturnHref,
+    selectedPlacementStep,
+    selectedPlacementWorksheet,
+    selectedSubject.title,
+    selectedSubjectWorkspace?.title,
+  ]);
   const selectedPlacementHasInteraction =
     selectedPlacementStep && selectedLearner
       ? readPathwayInteractionStarted(
@@ -1328,21 +1387,6 @@ function PathwaysWorkspaceBody() {
       selectedPlacementStep.strandKey,
     );
     setPathwayInteractionVersion((current) => current + 1);
-  }
-
-  function openSelectedPlacementWorksheetEvidence() {
-    markSelectedPathwayInteraction();
-    scrollToCurrentStepPanel();
-    window.setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent("mylearna:open-worksheet-evidence", {
-          detail: {
-            pathwayStepId: selectedPlacementStep?.id,
-            stepKey: selectedPlacementStep?.stepKey,
-          },
-        }),
-      );
-    }, 180);
   }
 
   function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
@@ -1510,14 +1554,14 @@ function PathwaysWorkspaceBody() {
                       >
                         Open worksheet
                       </Link>
-                      <button
-                        type="button"
-                        onClick={openSelectedPlacementWorksheetEvidence}
+                      <Link
+                        href={selectedPlacementWorksheetEvidenceHref}
+                        onClick={markSelectedPathwayInteraction}
                         style={buttonStyle}
                         data-worksheet-evidence-action="add-completed-work"
                       >
                         Add completed work
-                      </button>
+                      </Link>
                     </>
                   ) : selectedPlacementPracticeHref ? (
                     <Link
@@ -1579,9 +1623,9 @@ function PathwaysWorkspaceBody() {
                           Open worksheet
                         </span>
                       </Link>
-                      <button
-                        type="button"
-                        onClick={openSelectedPlacementWorksheetEvidence}
+                      <Link
+                        href={selectedPlacementWorksheetEvidenceHref}
+                        onClick={markSelectedPathwayInteraction}
                         style={{
                           ...summaryCardStyle,
                           minHeight: 78,
@@ -1590,6 +1634,7 @@ function PathwaysWorkspaceBody() {
                           textAlign: "left",
                           padding: 12,
                           cursor: "pointer",
+                          textDecoration: "none",
                         }}
                         data-worksheet-evidence-action="add-completed-work"
                       >
@@ -1600,7 +1645,7 @@ function PathwaysWorkspaceBody() {
                         <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
                           Take or upload a photo
                         </span>
-                      </button>
+                      </Link>
                     </>
                   ) : selectedPlacementPracticeHref ? (
                     <Link
@@ -2794,22 +2839,40 @@ function NumberRevealStepCard({
         return `/practice/number-targeted?${params.toString()}`;
       })()
     : "";
-
-  function openWorksheetEvidenceForRevealStep() {
-    const detailPanelId = `pathway-step-${stepStrandKey}-${step.stageKey}-${step.id}`;
-    const target = document.getElementById(detailPanelId);
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent("mylearna:open-worksheet-evidence", {
-          detail: {
+  const worksheetEvidenceHref = worksheetResource
+    ? (() => {
+        const captureBase = returnPath.startsWith("/clean-my-pathways")
+          ? "/clean-my-capture"
+          : "/my-capture";
+        const params = buildPathwayCaptureSearchParams(
+          {
+            source: "my-pathways",
+            subjectKey: "mathematics",
+            subjectLabel: "Mathematics",
+            pathwayKey: stepStrandKey,
+            pathwayLabel: stepStrandKey,
+            stageKey: step.stageKey,
+            stageLabel: step.stageTitle,
             pathwayStepId: step.pathwayStepId,
             stepKey: step.stepKey,
+            stepNumber: String(getRevealStepDisplayNumber(step)),
+            stepTitle: step.title,
+            stepMeaning: step.title,
+            skillFocus: step.title,
           },
-        }),
-      );
-    }, 180);
-  }
+          {
+            learnerId: learnerId || null,
+            learningAreaKey: "mathematics",
+            learningAreaLabel: "Mathematics",
+          },
+        );
+        return appendWorksheetEvidenceCaptureParams(
+          `${captureBase}?${params.toString()}`,
+          worksheetResource,
+          stepReturnHref,
+        );
+      })()
+    : "";
 
   return (
     <div
@@ -2898,9 +2961,8 @@ function NumberRevealStepCard({
               >
                 Open worksheet
               </Link>
-              <button
-                type="button"
-                onClick={openWorksheetEvidenceForRevealStep}
+              <Link
+                href={worksheetEvidenceHref}
                 style={{
                   ...secondaryButtonStyle,
                   width: "fit-content",
@@ -2912,7 +2974,7 @@ function NumberRevealStepCard({
                 data-worksheet-evidence-action="add-completed-work"
               >
                 Add completed work
-              </button>
+              </Link>
               {(practiceHref || assessmentHref) ? (
                 <details style={{ fontSize: 12, color: "#64748b" }} data-optional-digital-tools="collapsed">
                   <summary style={{ cursor: "pointer", fontWeight: 700 }}>
@@ -3684,6 +3746,13 @@ function DetailedMathematicsStepCard({
     [canonicalPathwayStepId, canonicalStepKey, selectedSubjectKey, stage.key, strand.key],
   );
   const captureHref = useMemo(() => {
+    const returnTo = buildPathwayStepReturnHref({
+      pathname: returnPath,
+      subjectKey: selectedSubjectKey,
+      strandKey: strand.key,
+      learnerId: selectedLearnerId,
+      detailPanelId,
+    });
     const params = buildPathwayCaptureSearchParams(
       {
         source: "my-pathways",
@@ -3707,11 +3776,16 @@ function DetailedMathematicsStepCard({
       },
     );
 
-    return `${capturePathBase}?${params.toString()}`;
+    const baseHref = `${capturePathBase}?${params.toString()}`;
+    return worksheetResource
+      ? appendWorksheetEvidenceCaptureParams(baseHref, worksheetResource, returnTo)
+      : baseHref;
   }, [
     canonicalPathwayStepId,
     canonicalStepKey,
     capturePathBase,
+    detailPanelId,
+    returnPath,
     selectedLearnerId,
     selectedSubjectKey,
     selectedSubjectTitle,
@@ -3723,6 +3797,7 @@ function DetailedMathematicsStepCard({
     step.skillFocus,
     step.title,
     strand.pathwayLabel,
+    worksheetResource,
   ]);
   const assessHref = useMemo(() => {
     if (!canonicalPathwayStepId) {

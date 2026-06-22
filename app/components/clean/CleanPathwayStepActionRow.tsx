@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import CleanPathwayPracticePlayer from "@/app/components/clean/CleanPathwayPracticePlayer";
-import WorksheetEvidenceCapture from "@/app/components/clean/pathways/WorksheetEvidenceCapture";
 import {
   buildMiniCheckPlayerItems,
   buildPracticePlayerItems,
@@ -82,41 +81,6 @@ const chipStyle: React.CSSProperties = {
   lineHeight: 1.2,
 };
 
-const worksheetEvidenceModalBackdropStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 80,
-  background: "rgba(15, 23, 42, 0.38)",
-  display: "grid",
-  placeItems: "center",
-  padding: "clamp(12px, 3vw, 24px)",
-};
-
-const worksheetEvidenceModalPanelStyle: React.CSSProperties = {
-  width: "min(760px, 100%)",
-  maxHeight: "min(92vh, 860px)",
-  overflowY: "auto",
-  border: "1px solid #E7EAF2",
-  borderRadius: 22,
-  background: "#FFFFFF",
-  padding: "clamp(14px, 3vw, 22px)",
-  display: "grid",
-  gap: 14,
-  boxShadow: "0 24px 70px rgba(15, 23, 42, 0.20)",
-};
-
-const modalCloseButtonStyle: React.CSSProperties = {
-  border: "1px solid #E7EAF2",
-  borderRadius: 999,
-  background: "#FFFFFF",
-  color: "#17204B",
-  padding: "9px 12px",
-  minHeight: 40,
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-};
-
 function getCompletedCount(
   items: PracticePlayerTaskItem[],
   completedTaskIds: string[],
@@ -146,22 +110,47 @@ function getResumeIndex(
   return Math.max(0, items.length - 1);
 }
 
+function appendWorksheetEvidenceParams(
+  href: string,
+  worksheetResource: MathWorksheetResource,
+) {
+  const [path, query = ""] = href.split("?");
+  const params = new URLSearchParams(query);
+  params.set("worksheetEvidence", "1");
+  params.set("evidenceSource", "worksheet_evidence");
+  params.set("worksheetId", worksheetResource.fileName);
+  params.set("worksheetTitle", worksheetResource.title);
+  params.set("worksheetHref", worksheetResource.href);
+  params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("includeInPortfolio", "1");
+  params.set("includeInReport", "1");
+  return `${path}?${params.toString()}`;
+}
+
+function formatLatestEvidenceDate(entry: CleanEvidenceEntry | null | undefined) {
+  const raw = entry?.observedOn || entry?.createdAt || "";
+  const parsed = Date.parse(raw);
+  if (Number.isNaN(parsed)) return "Saved recently";
+  const date = new Date(parsed);
+  if (date.toDateString() === new Date().toDateString()) return "Saved today";
+  return `Saved ${new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+  }).format(date)}`;
+}
+
+function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefined) {
+  const text = `${entry?.whatHappened || ""}\n${entry?.reflection || ""}`;
+  const match = text.match(/Progress level:\s*([^\n.]+)/i);
+  return match?.[1]?.trim() || "Evidence saved";
+}
+
 export default function CleanPathwayStepActionRow({
   activity,
   assessHref,
   captureHref,
   practiceHref,
   practiceTitle,
-  familyId = "",
-  learnerId = "",
-  subjectKey = "",
-  subjectTitle = "Mathematics",
-  strandKey = "",
-  strandTitle = "Mathematics",
-  stageKey = "",
-  stageTitle = "",
-  pathwayStepId = "",
-  stepKey = "",
   stepTitle = "",
   exactAssessmentTitle,
   isExactStepContext = false,
@@ -194,40 +183,14 @@ export default function CleanPathwayStepActionRow({
   const [hasVisitedMiniCheck, setHasVisitedMiniCheck] = useState(false);
   const [miniCheckOutcome, setMiniCheckOutcome] =
     useState<PracticeOutcome>("not_started");
-  const [worksheetEvidenceModalOpen, setWorksheetEvidenceModalOpen] = useState(false);
-  const [localLatestEvidenceEntry, setLocalLatestEvidenceEntry] =
-    useState<CleanEvidenceEntry | null>(latestEvidenceEntry);
 
   const completedPracticeTaskCount = getCompletedCount(practiceItems, completedTaskIds);
   const completedMiniCheckCount = getCompletedCount(miniCheckItems, completedTaskIds);
   const hasOptionalDigitalTools = Boolean(activity || practiceHref || assessHref);
-
-  useEffect(() => {
-    setLocalLatestEvidenceEntry(latestEvidenceEntry);
-  }, [latestEvidenceEntry]);
-
-  useEffect(() => {
-    if (!worksheetResource) return;
-
-    function handleOpenWorksheetEvidence(event: Event) {
-      const detail = (event as CustomEvent<{ pathwayStepId?: string; stepKey?: string }>).detail;
-      const requestedPathwayStepId = detail?.pathwayStepId;
-      const requestedStepKey = detail?.stepKey;
-      const currentPathwayStepId = pathwayStepId || worksheetResource?.pathwayStepId;
-      const currentStepKey = stepKey || worksheetResource?.stepKey;
-      const matchesPathwayStep = requestedPathwayStepId === currentPathwayStepId;
-      const matchesStepKey =
-        !requestedPathwayStepId && requestedStepKey === currentStepKey;
-
-      if (!matchesPathwayStep && !matchesStepKey) return;
-      setWorksheetEvidenceModalOpen(true);
-    }
-
-    window.addEventListener("mylearna:open-worksheet-evidence", handleOpenWorksheetEvidence);
-    return () => {
-      window.removeEventListener("mylearna:open-worksheet-evidence", handleOpenWorksheetEvidence);
-    };
-  }, [pathwayStepId, stepKey, worksheetResource]);
+  const worksheetEvidenceCaptureHref =
+    worksheetResource && captureHref
+      ? appendWorksheetEvidenceParams(captureHref, worksheetResource)
+      : captureHref;
 
   function updateResponse(taskId: string, value: string) {
     setResponses((current) => ({
@@ -296,80 +259,88 @@ export default function CleanPathwayStepActionRow({
   return (
     <>
       {worksheetResource ? (
-        <WorksheetEvidenceCapture
-          familyId={familyId}
-          learnerId={learnerId}
-          subjectKey={subjectKey}
-          subjectTitle={subjectTitle}
-          strandKey={strandKey}
-          strandTitle={strandTitle}
-          stageKey={stageKey}
-          stageTitle={stageTitle}
-          pathwayStepId={pathwayStepId || worksheetResource.pathwayStepId}
-          stepKey={stepKey || worksheetResource.stepKey}
-          stepTitle={stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
-          worksheetResource={worksheetResource}
-          latestEvidenceEntry={localLatestEvidenceEntry}
-          onEvidenceSaved={setLocalLatestEvidenceEntry}
-        />
-      ) : null}
-
-      {worksheetResource && worksheetEvidenceModalOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Add completed worksheet evidence for ${stepTitle || worksheetResource.title}`}
-          style={worksheetEvidenceModalBackdropStyle}
-          onClick={() => setWorksheetEvidenceModalOpen(false)}
+        <section
+          style={{
+            border: "1px solid #E7EAF2",
+            borderRadius: 18,
+            background: "#FFFFFF",
+            padding: "clamp(14px, 2.4vw, 20px)",
+            display: "grid",
+            gap: 14,
+            boxShadow: "0 8px 22px rgba(23,32,75,0.045)",
+          }}
+          data-pathway-worksheet-evidence="route-to-capture"
+          data-worksheet-evidence-card="active"
         >
-          <div
-            style={worksheetEvidenceModalPanelStyle}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
+          <div style={{ display: "grid", gap: 7 }}>
+            <span
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "flex-start",
+                color: "#6C4DF6",
+                fontSize: 12,
+                fontWeight: 850,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
               }}
             >
-              <div style={{ display: "grid", gap: 4 }}>
-                <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 850 }}>
-                  Worksheet evidence
-                </span>
-                <strong style={{ color: "#17204B", fontSize: 18, lineHeight: 1.25 }}>
-                  Add completed work
-                </strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => setWorksheetEvidenceModalOpen(false)}
-                style={modalCloseButtonStyle}
-                aria-label="Close worksheet evidence form"
-              >
-                Close
-              </button>
-            </div>
-            <WorksheetEvidenceCapture
-              familyId={familyId}
-              learnerId={learnerId}
-              subjectKey={subjectKey}
-              subjectTitle={subjectTitle}
-              strandKey={strandKey}
-              strandTitle={strandTitle}
-              stageKey={stageKey}
-              stageTitle={stageTitle}
-              pathwayStepId={pathwayStepId || worksheetResource.pathwayStepId}
-              stepKey={stepKey || worksheetResource.stepKey}
-              stepTitle={stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
-              worksheetResource={worksheetResource}
-              latestEvidenceEntry={localLatestEvidenceEntry}
-              initialFormOpen
-              onEvidenceSaved={setLocalLatestEvidenceEntry}
-            />
+              Complete this step with the worksheet
+            </span>
+            <strong style={{ color: "#17204B", fontSize: 18, lineHeight: 1.25 }}>
+              {stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
+            </strong>
+            <span style={{ color: "#5B6478", fontSize: 14, lineHeight: 1.45 }}>
+              Open the worksheet, then add a photo in My Capture. It will be linked to this step.
+            </span>
           </div>
-        </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <a
+              href={worksheetResource.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={buttonStyle}
+            >
+              Open worksheet
+            </a>
+            <Link
+              href={worksheetEvidenceCaptureHref}
+              style={buttonStyle}
+              data-worksheet-evidence-action="add-completed-work"
+            >
+              Add completed work
+            </Link>
+            <a
+              href={worksheetResource.href}
+              download={worksheetResource.fileName}
+              style={secondaryButtonStyle}
+            >
+              Download PDF
+            </a>
+          </div>
+          {latestEvidenceEntry ? (
+            <div
+              style={{
+                border: "1px solid #D9D0FF",
+                borderRadius: 16,
+                background: "#F8F5FF",
+                padding: 12,
+                display: "grid",
+                gap: 5,
+              }}
+            >
+              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850 }}>
+                Latest evidence
+              </span>
+              <strong style={{ color: "#17204B", fontSize: 14 }}>
+                {latestEvidenceProgressLabel(latestEvidenceEntry)}
+              </strong>
+              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                {formatLatestEvidenceDate(latestEvidenceEntry)}
+                {latestEvidenceEntry.imageUrl || latestEvidenceEntry.attachmentUrls.length
+                  ? " / Photo attached"
+                  : ""}
+              </span>
+            </div>
+          ) : null}
+        </section>
       ) : null}
 
       {worksheetResource && hasOptionalDigitalTools ? (
