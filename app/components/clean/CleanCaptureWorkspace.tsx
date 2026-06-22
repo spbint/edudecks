@@ -1315,54 +1315,117 @@ function CleanCaptureWorkspaceBody() {
                         gap: 10,
                       }}
                     >
-                      <label
-                        data-capture-photo-action="take-or-upload"
+                      <div
                         style={{
-                          border: "1px solid #D9D0FF",
-                          borderRadius: 16,
-                          background: "#FFFFFF",
-                          padding: 14,
-                          minHeight: 86,
                           display: "grid",
-                          gap: 7,
-                          cursor: submitting ? "default" : "pointer",
-                          boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
+                          gap: 10,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
                         }}
                       >
-                        <span style={{ color: "#17204B", fontWeight: 850 }}>
-                          Take or upload photo
-                        </span>
-                        <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
-                          Use your camera or choose an image.
-                        </span>
-                        <span style={{ color: "#64748B", fontSize: 12, lineHeight: 1.45 }}>
-                          If your camera does not open, allow camera access for this browser or choose an existing photo.
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          disabled={submitting}
-                          onClick={() => {
-                            setPhotoSelectionMessage("Choose a photo or take a new one.");
-                          }}
-                          onBlur={() => {
-                            if (!photoFile) {
-                              setPhotoSelectionMessage(
-                                "No photo was selected. You can try again or save progress without a photo.",
-                              );
-                            }
-                          }}
-                          onChange={handlePhotoChange}
-                          data-capture-photo-input="active"
+                        <label
+                          data-capture-photo-action="take-photo"
                           style={{
-                            position: "absolute",
-                            width: 1,
-                            height: 1,
-                            opacity: 0,
+                            border: "1px solid #D9D0FF",
+                            borderRadius: 16,
+                            background: "#FFFFFF",
+                            padding: 14,
+                            minHeight: 104,
+                            display: "grid",
+                            gap: 7,
+                            cursor: submitting ? "default" : "pointer",
+                            boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
                           }}
-                        />
-                      </label>
+                        >
+                          <span style={{ color: "#17204B", fontWeight: 850 }}>
+                            Take photo
+                          </span>
+                          <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
+                            Use your camera to photograph the completed worksheet.
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            disabled={submitting}
+                            onClick={() => {
+                              setPhotoSelectionMessage("Camera opening. Take a photo or cancel to return here.");
+                            }}
+                            onBlur={() => {
+                              if (!photoFile) {
+                                setPhotoSelectionMessage(
+                                  "No photo was selected. You can try again or save progress without a photo.",
+                                );
+                              }
+                            }}
+                            onChange={handlePhotoChange}
+                            data-capture-photo-input-camera="active"
+                            style={{
+                              position: "absolute",
+                              width: 1,
+                              height: 1,
+                              opacity: 0,
+                            }}
+                          />
+                        </label>
+
+                        <label
+                          data-capture-photo-action="choose-library"
+                          style={{
+                            border: "1px solid #D9D0FF",
+                            borderRadius: 16,
+                            background: "#FFFFFF",
+                            padding: 14,
+                            minHeight: 104,
+                            display: "grid",
+                            gap: 7,
+                            cursor: submitting ? "default" : "pointer",
+                            boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
+                          }}
+                        >
+                          <span style={{ color: "#17204B", fontWeight: 850 }}>
+                            Choose from photo library
+                          </span>
+                          <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
+                            Select an image you already took.
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={submitting}
+                            onClick={() => {
+                              setPhotoSelectionMessage("Photo library opening. Choose a photo or cancel to return here.");
+                            }}
+                            onBlur={() => {
+                              if (!photoFile) {
+                                setPhotoSelectionMessage(
+                                  "No photo was selected. You can try again or save progress without a photo.",
+                                );
+                              }
+                            }}
+                            onChange={handlePhotoChange}
+                            data-capture-photo-input-library="active"
+                            style={{
+                              position: "absolute",
+                              width: 1,
+                              height: 1,
+                              opacity: 0,
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.45 }}>
+                        If the camera does not open, allow camera access for your browser or choose from your photo library.
+                      </p>
+                      <details style={{ color: "#64748B", fontSize: 12 }}>
+                        <summary style={{ cursor: "pointer", fontWeight: 800 }}>
+                          Camera not working?
+                        </summary>
+                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, display: "grid", gap: 4 }}>
+                          <li>Make sure camera access is allowed for Safari or Chrome.</li>
+                          <li>On iPhone, go to Settings, Privacy & Security, Camera and allow your browser.</li>
+                          <li>You can also take a photo first, then choose it from your photo library.</li>
+                        </ul>
+                      </details>
                       <div
                         style={{
                           border: photoFile ? "1px solid #BBF7D0" : "1px solid #E2E8F0",
@@ -1404,10 +1467,9 @@ function CleanCaptureWorkspaceBody() {
                                 <input
                                   type="file"
                                   accept="image/*"
-                                  capture="environment"
                                   disabled={submitting}
                                   onClick={() => {
-                                    setPhotoSelectionMessage("Choose a replacement photo.");
+                                    setPhotoSelectionMessage("Choose a replacement photo from your library.");
                                   }}
                                   onChange={handlePhotoChange}
                                   style={{
