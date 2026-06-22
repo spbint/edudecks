@@ -339,6 +339,64 @@ export default function CleanReportPreview({
                     {item.segmentTitle ? ` - Week / segment: ${item.segmentTitle}` : ""}
                     {item.blockTitle ? ` - Block: ${item.blockTitle}` : ""}
                   </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {item.sourceLabel ? (
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "4px 10px",
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Source: {item.sourceLabel}
+                      </span>
+                    ) : null}
+                    {item.stepLabel ? (
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "4px 10px",
+                          background: "#f8fafc",
+                          color: "#475569",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.stepLabel}
+                      </span>
+                    ) : null}
+                    {item.progressLevel ? (
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "4px 10px",
+                          background: "#f0fdf4",
+                          color: "#166534",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.progressLevel}
+                      </span>
+                    ) : null}
+                    {item.hasAttachment ? (
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "4px 10px",
+                          background: "#f0fdfa",
+                          color: "#0f766e",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Photo/evidence attached
+                      </span>
+                    ) : null}
+                  </div>
                   <p
                     style={{
                       margin: 0,

@@ -16,6 +16,7 @@ import {
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
+import { getEvidencePresentationMeta } from "@/lib/clean/portfolio/evidencePresentation";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import {
   listAssessmentLearningEvidenceEventsForLearner,
@@ -1990,6 +1991,7 @@ function CleanReportsWorkspaceBody() {
                               const repeatedPathwayStep = pathwayMeta
                                 ? (selectedPathwayEvidenceSummary.repeatedStepsByKey.get(pathwayMeta.key)?.count ?? 0) > 1
                                 : false;
+                              const evidenceMeta = getEvidencePresentationMeta(item);
 
                               return (
                                 <div
@@ -2010,6 +2012,48 @@ function CleanReportsWorkspaceBody() {
                                   <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                                     {formatDateLabel(item.evidence.observedOn)}
                                     {item.evidence.learningArea ? ` | ${item.evidence.learningArea}` : ""}
+                                  </div>
+                                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    <span
+                                      style={{
+                                        borderRadius: 999,
+                                        padding: "4px 10px",
+                                        background: "#eff6ff",
+                                        color: "#1d4ed8",
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      Source: {evidenceMeta.sourceLabel}
+                                    </span>
+                                    {evidenceMeta.progressLevel ? (
+                                      <span
+                                        style={{
+                                          borderRadius: 999,
+                                          padding: "4px 10px",
+                                          background: "#f0fdf4",
+                                          color: "#166534",
+                                          fontSize: 12,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {evidenceMeta.progressLevel}
+                                      </span>
+                                    ) : null}
+                                    {evidenceMeta.hasAttachment ? (
+                                      <span
+                                        style={{
+                                          borderRadius: 999,
+                                          padding: "4px 10px",
+                                          background: "#f0fdfa",
+                                          color: "#0f766e",
+                                          fontSize: 12,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        Photo attached
+                                      </span>
+                                    ) : null}
                                   </div>
                                   {pathwayMeta ? (
                                     <div

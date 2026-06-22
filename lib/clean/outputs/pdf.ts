@@ -34,6 +34,14 @@ export type CleanReportPdfEvidenceItem = {
   whatHappened: string;
   reflection: string | null;
   portfolioNote: string | null;
+  sourceLabel?: string | null;
+  pathwayLabel?: string | null;
+  strandLabel?: string | null;
+  stageLabel?: string | null;
+  stepLabel?: string | null;
+  progressLevel?: string | null;
+  hasAttachment?: boolean;
+  attachmentCount?: number;
 };
 
 export type CleanReportPdfModel = {
@@ -123,6 +131,10 @@ function formatDateRange(period: CleanReportingPeriod | null) {
 
 function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
   const parts = [
+    safe(item.sourceLabel) ? `Source: ${safe(item.sourceLabel)}` : "",
+    safe(item.stepLabel) ? safe(item.stepLabel) : "",
+    safe(item.progressLevel) ? `Progress: ${safe(item.progressLevel)}` : "",
+    item.hasAttachment ? "Photo/evidence attached" : "",
     safe(item.programTitle) ? `Program: ${safe(item.programTitle)}` : "",
     safe(item.segmentTitle) ? `Week / segment: ${safe(item.segmentTitle)}` : "",
     safe(item.blockTitle) ? `Block: ${safe(item.blockTitle)}` : "",
@@ -323,8 +335,8 @@ function buildLearningRecordMetricTiles(
       label: "Selected evidence",
       value: String(model.evidenceItems.length),
       helper: model.evidenceItems.length
-        ? "Portfolio-linked evidence entries"
-        : "Waiting for first selected evidence",
+        ? "Report-included evidence entries"
+        : "Waiting for first report evidence",
       tone: "accent",
     },
     {
@@ -858,6 +870,14 @@ function drawEvidenceDetailCard(
     ? wrapText(contextLine, composer.regular, 9.5, width)
     : [];
   const narrativeBlocks = [
+    ...(buildEvidenceContextLine(item)
+      ? [
+          {
+            label: "Evidence context",
+            lines: wrapText(buildEvidenceContextLine(item), composer.regular, 10.75, width),
+          },
+        ]
+      : []),
     {
       label: "What happened",
       lines: wrapText(normalizeText(item.whatHappened), composer.regular, 10.75, width),
@@ -1254,7 +1274,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   });
   composer = drawTextBlock(
     composer,
-    "Grouped summary of selected portfolio evidence. Full individual evidence entries are included later in the appendix.",
+    "Grouped summary of report-included evidence. Full individual evidence entries are included later in the appendix.",
     {
       fontSize: 10.75,
       lineHeight: 15,
@@ -1267,7 +1287,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   } else {
     composer = drawTextBlock(
       composer,
-      "No selected portfolio evidence is attached to this report yet.",
+      "No report-included evidence is attached to this report yet.",
       {
         fontSize: 10.5,
         lineHeight: 14,
@@ -1320,7 +1340,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   });
   composer = drawTextBlock(
     composer,
-    "These notes sit behind the written report and make it easier to trace the learning record back to the source entries.",
+    "These notes sit behind the written report and make it easier to trace the learning record back to the source entries, including My Pathways worksheet evidence.",
     {
       fontSize: 10.75,
       lineHeight: 15,
@@ -1342,7 +1362,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   } else {
     composer = drawTextBlock(
       composer,
-      "No selected evidence details are available for this report yet.",
+      "No report-included evidence details are available for this report yet.",
       {
         fontSize: 10.5,
         lineHeight: 14,

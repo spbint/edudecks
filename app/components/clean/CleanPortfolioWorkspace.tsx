@@ -29,6 +29,7 @@ import {
   deleteCleanPortfolioHighlight,
   listCleanPortfolioItems,
 } from "@/lib/clean/portfolio/client";
+import { getEvidencePresentationMeta } from "@/lib/clean/portfolio/evidencePresentation";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import { parseAssessmentEvidenceLinkFromNodeIds } from "@/lib/clean/assessments/client";
 import {
@@ -865,6 +866,7 @@ function CleanPortfolioWorkspaceBody() {
                       linkedCalendarItem?.programSegmentId
                         ? segmentLabelById.get(linkedCalendarItem.programSegmentId) ?? null
                         : null;
+                    const evidenceMeta = getEvidencePresentationMeta(item);
 
                     return (
                       <div
@@ -897,6 +899,66 @@ function CleanPortfolioWorkspaceBody() {
                                 : ""}
                             </div>
                           </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              border: "1px solid #dbeafe",
+                              background: "#eff6ff",
+                              color: "#1d4ed8",
+                              borderRadius: 999,
+                              padding: "4px 9px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Source: {evidenceMeta.sourceLabel}
+                          </span>
+                          {evidenceMeta.progressLevel ? (
+                            <span
+                              style={{
+                                border: "1px solid #bbf7d0",
+                                background: "#f0fdf4",
+                                color: "#166534",
+                                borderRadius: 999,
+                                padding: "4px 9px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {evidenceMeta.progressLevel}
+                            </span>
+                          ) : null}
+                          {evidenceMeta.hasAttachment ? (
+                            <span
+                              style={{
+                                border: "1px solid #ccfbf1",
+                                background: "#f0fdfa",
+                                color: "#0f766e",
+                                borderRadius: 999,
+                                padding: "4px 9px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                              }}
+                            >
+                              Photo attached
+                            </span>
+                          ) : null}
+                          {item.evidence.includeInReport ? (
+                            <span
+                              style={{
+                                border: "1px solid #ddd6fe",
+                                background: "#f5f3ff",
+                                color: "#6d28d9",
+                                borderRadius: 999,
+                                padding: "4px 9px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                              }}
+                            >
+                              Reports
+                            </span>
+                          ) : null}
                         </div>
                         {!item.evidence.title ? (
                           <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
@@ -971,7 +1033,7 @@ function CleanPortfolioWorkspaceBody() {
                           >
                             Open capture
                           </Link>
-                          {item.isHighlighted ? (
+                          {item.evidence.includeInReport ? (
                             <Link
                               href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`}
                               style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}

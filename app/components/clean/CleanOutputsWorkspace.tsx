@@ -35,6 +35,7 @@ import {
 import type { CleanReportExport } from "@/lib/clean/outputs/types";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
+import { buildReportPdfEvidenceItems } from "@/lib/clean/portfolio/evidencePresentation";
 import {
   listCleanProgramSegments,
   listCleanPrograms,
@@ -344,37 +345,12 @@ function CleanOutputsWorkspaceBody() {
   );
   const previewEvidenceItems = useMemo<CleanReportPdfEvidenceItem[]>(
     () =>
-      portfolioItems.map((item) => {
-        const linkedCalendarItem = item.evidence.calendarItemId
-          ? calendarItemById.get(item.evidence.calendarItemId) ?? null
-          : null;
-        const programTitle =
-          (item.evidence.programId
-            ? programLabelById.get(item.evidence.programId) ?? null
-            : null) ||
-          (linkedCalendarItem?.programId
-            ? programLabelById.get(linkedCalendarItem.programId) ?? null
-            : null);
-        const segmentTitle =
-          linkedCalendarItem?.programSegmentId
-            ? segmentLabelById.get(linkedCalendarItem.programSegmentId) ?? null
-            : null;
-
-        return {
-          id: item.evidence.id,
-          title: item.evidence.title || item.evidence.whatHappened,
-          observedOn: item.evidence.observedOn,
-          learnerLabel:
-            learnerLabelById.get(item.evidence.learnerId) || selectedLearnerLabel || "Unknown learner",
-          learningArea:
-            item.evidence.learningArea || linkedCalendarItem?.learningArea || null,
-          programTitle,
-          segmentTitle,
-          blockTitle: linkedCalendarItem?.title || null,
-          whatHappened: item.evidence.whatHappened,
-          reflection: item.evidence.reflection,
-          portfolioNote: item.highlight?.note ?? null,
-        };
+      buildReportPdfEvidenceItems(portfolioItems, {
+        calendarItemById,
+        learnerLabelById,
+        programLabelById,
+        segmentLabelById,
+        selectedLearnerLabel,
       }),
     [
       calendarItemById,
@@ -496,7 +472,7 @@ function CleanOutputsWorkspaceBody() {
           learnerId: selectedReport.learnerId,
           fromDate: selectedPeriod?.startsOn ?? null,
           toDate: selectedPeriod?.endsOn ?? null,
-          highlightedOnly: true,
+          reportIncludedOnly: true,
           limit: 100,
         }),
         listCleanPrograms(workspace.profile.id, { limit: 60 }),
