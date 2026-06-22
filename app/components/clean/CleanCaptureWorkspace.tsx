@@ -177,10 +177,14 @@ function uploadPhaseErrorMessage(phase: string, error: Error) {
     return "Storage permission error. Please try again or contact support.";
   }
   if (phase === "attachment-update") {
-    return "Photo uploaded, but could not be linked to the evidence entry.";
+    return "Photo uploaded, but MyLearna could not attach it to this evidence record. Please try again.";
   }
   return "Photo upload failed. Check your connection and try again.";
 }
+
+type WorksheetAttachmentUpdateError = Error & {
+  uploadedAttachments?: UploadedFamilyEvidenceFile[];
+};
 
 async function compressWorksheetEvidenceImage(file: File) {
   if (!file.type.startsWith("image/")) return file;
@@ -397,6 +401,9 @@ function CleanCaptureWorkspaceBody() {
   const [pendingAttachmentEvidenceId, setPendingAttachmentEvidenceId] = useState("");
   const [pendingAttachmentError, setPendingAttachmentError] = useState("");
   const [pendingAttachmentFileName, setPendingAttachmentFileName] = useState("");
+  const [pendingUploadedAttachments, setPendingUploadedAttachments] = useState<
+    UploadedFamilyEvidenceFile[]
+  >([]);
   const [savePhase, setSavePhase] = useState("");
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -621,6 +628,10 @@ function CleanCaptureWorkspaceBody() {
       return "";
     });
     setSavedAttachments([]);
+    setPendingAttachmentEvidenceId("");
+    setPendingAttachmentError("");
+    setPendingAttachmentFileName("");
+    setPendingUploadedAttachments([]);
     if (!options.keepCurriculumContext) {
       setFormCurriculumContext(null);
     }
@@ -640,6 +651,7 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
     setMessage(null);
     setSavedAttachments([]);
+    setPendingUploadedAttachments([]);
     setPhotoFile(file);
     setPhotoName(file?.name ?? "");
     setPhotoSelectionMessage(
@@ -675,8 +687,51 @@ function CleanCaptureWorkspaceBody() {
     });
   }
 
+  async function finaliseWorksheetPhotoAttachment(
+    evidenceId: string,
+    uploadedAttachments: UploadedFamilyEvidenceFile[],
+  ) {
+    setSavePhase("Finalising attachment...");
+    logWorksheetUploadDiagnostic("attachment-update-started", {
+      evidenceEntryId: evidenceId,
+      uploadedCount: uploadedAttachments.length,
+      uploadedPaths: uploadedAttachments.map((attachment) =>
+        attachment.path.split("/").slice(0, 6).join("/"),
+      ),
+    });
+
+    const updateResult = await updateFamilyEvidenceEntryAttachments({
+      evidenceId,
+      attachmentUrls: uploadedAttachments.map((attachment) => ({
+        path: attachment.path,
+        name: attachment.label,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        kind: attachment.kind,
+      })),
+      imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
+    });
+
+    const storedAttachmentText = updateResult.attachmentUrls.join("\n");
+    const missingAttachment = uploadedAttachments.find(
+      (attachment) =>
+        !storedAttachmentText.includes(attachment.path) &&
+        updateResult.imageUrl !== attachment.path,
+    );
+
+    if (missingAttachment) {
+      throw new Error("Evidence attachment update did not confirm the uploaded photo reference.");
+    }
+
+    logWorksheetUploadDiagnostic("attachment-update-succeeded", {
+      evidenceEntryId: evidenceId,
+      uploadedCount: uploadedAttachments.length,
+      storedAttachmentCount: updateResult.attachmentUrls.length,
+      imageUrlPresent: Boolean(updateResult.imageUrl),
+    });
+  }
+
   async function uploadWorksheetPhotoForEvidence(evidenceId: string, file: File) {
-    let phase = "context";
     if (!workspace.profile) {
       throw new Error("Family workspace is required before uploading a photo.");
     }
@@ -696,7 +751,6 @@ function CleanCaptureWorkspaceBody() {
       userIdPresent: Boolean(user?.id),
     });
 
-    phase = "compression";
     const preparedFile = await compressWorksheetEvidenceImage(file);
     logWorksheetUploadDiagnostic("compression-complete", {
       evidenceEntryId: evidenceId,
@@ -711,7 +765,6 @@ function CleanCaptureWorkspaceBody() {
 
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
-        phase = "storage-upload";
         setSavePhase(attempt === 1 ? "Uploading photo..." : "Retrying photo upload...");
         logWorksheetUploadDiagnostic("upload-started", {
           evidenceEntryId: evidenceId,
@@ -753,41 +806,48 @@ function CleanCaptureWorkspaceBody() {
           uploadedCount: uploadedAttachments.length,
           paths: uploadedAttachments.map((attachment) => attachment.path.split("/").slice(0, 6).join("/")),
         });
-        phase = "attachment-update";
-        setSavePhase("Finalising attachment...");
-        logWorksheetUploadDiagnostic("attachment-update-started", {
-          evidenceEntryId: evidenceId,
-          uploadedCount: uploadedAttachments.length,
-        });
-        await updateFamilyEvidenceEntryAttachments({
-          evidenceId,
-          attachmentUrls: uploadedAttachments.map((attachment) => ({
-            path: attachment.path,
-            name: attachment.label,
-            mimeType: attachment.mimeType,
-            size: attachment.size,
-            kind: attachment.kind,
-          })),
-          imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
-        });
 
-        logWorksheetUploadDiagnostic("attachment-update-succeeded", {
-          evidenceEntryId: evidenceId,
-          uploadedCount: uploadedAttachments.length,
-        });
+        try {
+          await finaliseWorksheetPhotoAttachment(evidenceId, uploadedAttachments);
+        } catch (attachmentError) {
+          const rawAttachmentError =
+            attachmentError instanceof Error
+              ? attachmentError
+              : new Error("The photo could not be linked to the evidence entry.");
+          logWorksheetUploadDiagnostic("phase-failed", {
+            evidenceEntryId: evidenceId,
+            phase: "attachment-update",
+            attempt,
+            errorName: rawAttachmentError.name,
+            errorMessage: rawAttachmentError.message,
+            errorCode: (rawAttachmentError as unknown as { code?: unknown }).code ?? null,
+            errorStatus: (rawAttachmentError as unknown as { status?: unknown }).status ?? null,
+          });
+          const nextError = new Error(
+            uploadPhaseErrorMessage("attachment-update", rawAttachmentError),
+          ) as WorksheetAttachmentUpdateError;
+          nextError.uploadedAttachments = uploadedAttachments;
+          throw nextError;
+        }
+
         return uploadedAttachments;
       } catch (error) {
         const rawError = error instanceof Error ? error : new Error("The photo could not be uploaded.");
+        const uploadedAttachments =
+          (rawError as WorksheetAttachmentUpdateError).uploadedAttachments ?? [];
+        if (uploadedAttachments.length) {
+          throw rawError;
+        }
         logWorksheetUploadDiagnostic("phase-failed", {
           evidenceEntryId: evidenceId,
-          phase,
+          phase: "storage-upload",
           attempt,
           errorName: rawError.name,
           errorMessage: rawError.message,
           errorCode: (rawError as unknown as { code?: unknown }).code ?? null,
           errorStatus: (rawError as unknown as { status?: unknown }).status ?? null,
         });
-        lastError = new Error(uploadPhaseErrorMessage(phase, rawError));
+        lastError = new Error(uploadPhaseErrorMessage("storage-upload", rawError));
         if (attempt >= 2) break;
       }
     }
@@ -1078,6 +1138,10 @@ function CleanCaptureWorkspaceBody() {
             uploadError instanceof Error
               ? uploadError.message
               : "The photo could not be uploaded. Check your connection and try again.";
+          const uploadedAttachments =
+            uploadError instanceof Error
+              ? ((uploadError as WorksheetAttachmentUpdateError).uploadedAttachments ?? [])
+              : [];
           setLastSavedCurriculumContext(null);
           setLastSavedPathwayContext(nextPathwayContext);
           setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
@@ -1086,6 +1150,7 @@ function CleanCaptureWorkspaceBody() {
           setPendingAttachmentEvidenceId(savedEntry.id);
           setPendingAttachmentError(errorMessage);
           setPendingAttachmentFileName(photoFile.name);
+          setPendingUploadedAttachments(uploadedAttachments);
           setMessage(null);
           setActionError(null);
           await reloadEntries();
@@ -1151,6 +1216,45 @@ function CleanCaptureWorkspaceBody() {
       setPendingAttachmentEvidenceId("");
       setPendingAttachmentError("");
       setPendingAttachmentFileName("");
+      setPendingUploadedAttachments([]);
+      setMessage("Evidence saved for this worksheet step.");
+      setPhotoFile(null);
+      setPhotoName("");
+      setPhotoPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return "";
+      });
+      await reloadEntries();
+    } catch (error) {
+      setPendingAttachmentError(
+        error instanceof Error
+          ? error.message
+          : "The photo could not be uploaded. Check your connection and try again.",
+      );
+    } finally {
+      setSavePhase("");
+      setSubmitting(false);
+    }
+  }
+
+  async function retryPendingAttachmentLink() {
+    if (!pendingAttachmentEvidenceId || !pendingUploadedAttachments.length) return;
+
+    setSubmitting(true);
+    setActionError(null);
+    setPendingAttachmentError("");
+    try {
+      await finaliseWorksheetPhotoAttachment(
+        pendingAttachmentEvidenceId,
+        pendingUploadedAttachments,
+      );
+      const uploadedAttachments = pendingUploadedAttachments;
+      setSavedAttachments(uploadedAttachments);
+      setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      setPendingAttachmentEvidenceId("");
+      setPendingAttachmentError("");
+      setPendingAttachmentFileName("");
+      setPendingUploadedAttachments([]);
       setMessage("Evidence saved for this worksheet step.");
       setPhotoFile(null);
       setPhotoName("");
@@ -1964,11 +2068,22 @@ function CleanCaptureWorkspaceBody() {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      onClick={retryPendingPhotoUpload}
-                      disabled={submitting || !photoFile}
+                      onClick={
+                        pendingUploadedAttachments.length
+                          ? retryPendingAttachmentLink
+                          : retryPendingPhotoUpload
+                      }
+                      disabled={
+                        submitting ||
+                        (!pendingUploadedAttachments.length && !photoFile)
+                      }
                       style={buttonStyle}
                     >
-                      {submitting ? savePhase || "Retrying photo upload..." : "Retry photo upload"}
+                      {submitting
+                        ? savePhase || "Retrying photo upload..."
+                        : pendingUploadedAttachments.length
+                          ? "Retry attaching photo"
+                          : "Retry photo upload"}
                     </button>
                     <button
                       type="button"
@@ -1976,6 +2091,7 @@ function CleanCaptureWorkspaceBody() {
                         setPendingAttachmentError("");
                         setPendingAttachmentEvidenceId("");
                         setPendingAttachmentFileName("");
+                        setPendingUploadedAttachments([]);
                         setLastSavedPhotoAttached(false);
                         setSavedAttachments([]);
                         setMessage("Evidence saved for this worksheet step.");

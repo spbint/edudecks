@@ -362,6 +362,54 @@ function serializeAttachmentValues(values: Array<string | StoredFamilyEvidenceAt
   return unique(values.map((value) => serializeStoredAttachmentValue(value)));
 }
 
+function logFamilyEvidenceAttachmentDiagnostic(
+  phase: string,
+  details: Record<string, unknown>,
+) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info("[family-evidence-attachments]", {
+    phase,
+    ...details,
+  });
+}
+
+function isEvidenceAttachmentSchemaError(error: unknown) {
+  const row = asObject(error);
+  const code = safe(row?.code);
+  const message = safe(row?.message);
+  const details = safe(row?.details);
+  const hint = safe(row?.hint);
+  const combined = `${code} ${message} ${details} ${hint}`;
+
+  return (
+    code === "PGRST204" ||
+    /schema cache|could not find|column .* does not exist|attachment_urls|image_url|audio_url|file_url/i.test(
+      combined,
+    )
+  );
+}
+
+function attachmentPathSet(values: string[]) {
+  const paths = new Set<string>();
+  values.forEach((value) => {
+    const raw = safe(value);
+    const stored =
+      normalizeStoredAttachment(value) ||
+      (raw.startsWith("{")
+        ? (() => {
+            try {
+              return normalizeStoredAttachment(JSON.parse(raw));
+            } catch {
+              return null;
+            }
+          })()
+        : null);
+    const path = safe(stored?.path) || (looksLikeStoragePath(raw) ? raw : "");
+    if (path) paths.add(path);
+  });
+  return paths;
+}
+
 export function summarizeFamilyEvidenceAttachments(input: {
   attachment_urls?: unknown;
   image_url?: unknown;
@@ -620,7 +668,11 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
   imageUrl?: string | null;
   audioUrl?: string | null;
   fileUrl?: string | null;
-}) {
+}): Promise<{
+  id: string;
+  attachmentUrls: string[];
+  imageUrl: string | null;
+}> {
   const evidenceId = safe(input.evidenceId);
   const studentId = safe(input.studentId);
   if (!evidenceId) {
@@ -628,25 +680,110 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
   }
 
   const attachmentUrls = serializeAttachmentValues(input.attachmentUrls);
+  const updatePayload: Record<string, unknown> = {};
+  const hasAttachmentUrls = Object.prototype.hasOwnProperty.call(input, "attachmentUrls");
+  const hasImageUrl = Object.prototype.hasOwnProperty.call(input, "imageUrl");
+  const hasAudioUrl = Object.prototype.hasOwnProperty.call(input, "audioUrl");
+  const hasFileUrl = Object.prototype.hasOwnProperty.call(input, "fileUrl");
+
+  if (hasAttachmentUrls) {
+    updatePayload.attachment_urls = attachmentUrls.length ? attachmentUrls : null;
+  }
+  if (hasImageUrl) {
+    updatePayload.image_url = safe(input.imageUrl) || null;
+  }
+  if (hasAudioUrl) {
+    updatePayload.audio_url = safe(input.audioUrl) || null;
+  }
+  if (hasFileUrl) {
+    updatePayload.file_url = safe(input.fileUrl) || null;
+  }
+
+  if (!Object.keys(updatePayload).length) {
+    throw new Error("No attachment fields were provided for this evidence entry.");
+  }
 
   let query = supabase
     .from("evidence_entries")
-    .update({
-      attachment_urls: attachmentUrls.length ? attachmentUrls : null,
-      image_url: safe(input.imageUrl) || null,
-      audio_url: safe(input.audioUrl) || null,
-      file_url: safe(input.fileUrl) || null,
-    })
+    .update(updatePayload)
     .eq("id", evidenceId);
 
   if (studentId) {
     query = query.eq("student_id", studentId);
   }
 
-  const response = await query.select("id").single();
+  logFamilyEvidenceAttachmentDiagnostic("update-started", {
+    evidenceId,
+    filteredByLegacyStudentId: Boolean(studentId),
+    updatedColumns: Object.keys(updatePayload),
+    attachmentCount: attachmentUrls.length,
+  });
 
-  if (response.error) throw response.error;
-  return { id: safe(response.data?.id) || evidenceId };
+  const response = await query
+    .select("id,attachment_urls,image_url")
+    .single();
+
+  if (response.error) {
+    logFamilyEvidenceAttachmentDiagnostic("update-failed", {
+      evidenceId,
+      code: safe((response.error as unknown as { code?: unknown }).code) || null,
+      message: response.error.message,
+      details: safe((response.error as unknown as { details?: unknown }).details) || null,
+      hint: safe((response.error as unknown as { hint?: unknown }).hint) || null,
+      status: safe((response.error as unknown as { status?: unknown }).status) || null,
+    });
+
+    if (isEvidenceAttachmentSchemaError(response.error)) {
+      throw new Error(
+        "Evidence attachment columns are not available in the live schema cache. Run the evidence attachment migration and refresh the Supabase schema cache.",
+      );
+    }
+
+    throw response.error;
+  }
+
+  const row = (response.data ?? {}) as {
+    id?: unknown;
+    attachment_urls?: unknown;
+    image_url?: unknown;
+  };
+  const storedAttachmentValues = serializeAttachmentValues(
+    flattenAttachmentValues(row.attachment_urls)
+      .map((value) => {
+        const stored = normalizeStoredAttachment(value);
+        return stored ?? safe(value);
+      })
+      .filter(Boolean) as Array<string | StoredFamilyEvidenceAttachment>,
+  );
+  const expectedPaths = attachmentPathSet(attachmentUrls);
+  const storedPaths = attachmentPathSet(storedAttachmentValues);
+  const storedImageUrl = safe(row.image_url) || null;
+  const expectedImageUrl = safe(input.imageUrl) || null;
+  const hasStoredAllExpectedAttachments =
+    !expectedPaths.size ||
+    Array.from(expectedPaths).every((path) => storedPaths.has(path));
+  const hasStoredExpectedImage =
+    !expectedImageUrl ||
+    storedImageUrl === expectedImageUrl ||
+    storedPaths.has(expectedImageUrl);
+
+  logFamilyEvidenceAttachmentDiagnostic("update-succeeded", {
+    evidenceId,
+    storedAttachmentCount: storedAttachmentValues.length,
+    storedImageUrlPresent: Boolean(storedImageUrl),
+    verifiedAttachments: hasStoredAllExpectedAttachments,
+    verifiedImage: hasStoredExpectedImage,
+  });
+
+  if (!hasStoredAllExpectedAttachments || !hasStoredExpectedImage) {
+    throw new Error("Evidence attachment update did not persist the uploaded photo reference.");
+  }
+
+  return {
+    id: safe(row.id) || evidenceId,
+    attachmentUrls: storedAttachmentValues,
+    imageUrl: storedImageUrl,
+  };
 }
 
 export async function uploadFamilyEvidenceFiles(input: {

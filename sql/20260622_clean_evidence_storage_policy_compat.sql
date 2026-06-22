@@ -46,6 +46,40 @@ alter table if exists public.evidence_entries
 alter table if exists public.evidence_entries
   add column if not exists image_url text;
 
+alter table if exists public.evidence_entries
+  add column if not exists file_url text;
+
+alter table if exists public.evidence_entries
+  add column if not exists audio_url text;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'evidence_entries'
+      and column_name = 'family_id'
+  ) then
+    alter table public.evidence_entries enable row level security;
+
+    drop policy if exists "mylearna clean evidence entries select own family" on public.evidence_entries;
+    create policy "mylearna clean evidence entries select own family"
+    on public.evidence_entries
+    for select
+    to authenticated
+    using (public.is_family_member(family_id));
+
+    drop policy if exists "mylearna clean evidence entries update own family" on public.evidence_entries;
+    create policy "mylearna clean evidence entries update own family"
+    on public.evidence_entries
+    for update
+    to authenticated
+    using (public.is_family_member(family_id))
+    with check (public.is_family_member(family_id));
+  end if;
+end $$;
+
 create or replace function public.mylearna_evidence_entry_owned_by_auth(
   target_evidence_id text,
   target_learner_id text
