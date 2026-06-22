@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ChangeEvent } from "react";
 import { encodePathwayContextNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import { createCleanEvidenceEntry } from "@/lib/clean/evidence/client";
@@ -164,6 +164,9 @@ export default function WorksheetEvidenceCapture({
 }: WorksheetEvidenceCaptureProps) {
   const [progressLevel, setProgressLevel] =
     useState<WorksheetEvidenceProgressLevel>("consolidating");
+  const [captureFormOpen, setCaptureFormOpen] = useState(!latestEvidenceEntry);
+  const [localLatestEvidenceEntry, setLocalLatestEvidenceEntry] =
+    useState<CleanEvidenceEntry | null>(latestEvidenceEntry ?? null);
   const [note, setNote] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoName, setPhotoName] = useState("");
@@ -179,16 +182,23 @@ export default function WorksheetEvidenceCapture({
     () => progressOptions.find((option) => option.value === progressLevel) ?? progressOptions[2],
     [progressLevel],
   );
+  useEffect(() => {
+    setLocalLatestEvidenceEntry(latestEvidenceEntry ?? null);
+    if (!latestEvidenceEntry) {
+      setCaptureFormOpen(true);
+    }
+  }, [latestEvidenceEntry]);
+
   const latestProgress = useMemo(
-    () => getProgressFromEvidence(latestEvidenceEntry),
-    [latestEvidenceEntry],
+    () => getProgressFromEvidence(localLatestEvidenceEntry),
+    [localLatestEvidenceEntry],
   );
   const latestParentNote = useMemo(
-    () => getParentNoteFromEvidence(latestEvidenceEntry),
-    [latestEvidenceEntry],
+    () => getParentNoteFromEvidence(localLatestEvidenceEntry),
+    [localLatestEvidenceEntry],
   );
   const latestHasPhoto = Boolean(
-    latestEvidenceEntry?.imageUrl || latestEvidenceEntry?.attachmentUrls.length,
+    localLatestEvidenceEntry?.imageUrl || localLatestEvidenceEntry?.attachmentUrls.length,
   );
 
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -202,6 +212,17 @@ export default function WorksheetEvidenceCapture({
     setPhotoPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return file ? URL.createObjectURL(file) : "";
+    });
+  }
+
+  function removePhoto() {
+    setPhotoFile(null);
+    setPhotoName("");
+    setSavedAttachment(null);
+    setSavedPhotoPreviewUrl("");
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return "";
     });
   }
 
@@ -303,11 +324,20 @@ export default function WorksheetEvidenceCapture({
 
       setSavedAttachment(uploadedAttachment);
       setSavedPhotoPreviewUrl(uploadedAttachment ? photoPreviewUrl : "");
+      setLocalLatestEvidenceEntry({
+        ...entry,
+        attachmentUrls: uploadedAttachment ? [uploadedAttachment.path] : [],
+        imageUrl: uploadedAttachment?.path ?? null,
+      });
       setSavedMessage(
         uploadedAttachment
           ? `Saved worksheet evidence and uploaded ${uploadedAttachment.label}.`
           : `Saved worksheet evidence as ${selectedProgress.label}.`,
       );
+      setCaptureFormOpen(false);
+      setNote("");
+      setPhotoFile(null);
+      setPhotoName("");
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Unable to save worksheet evidence.");
     } finally {
@@ -336,16 +366,6 @@ export default function WorksheetEvidenceCapture({
         >
           Open worksheet
         </a>
-        <label style={primaryButtonStyle}>
-          Add completed work
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoChange}
-            style={hiddenFileInputStyle}
-          />
-        </label>
         <a
           href={worksheetResource.href}
           download={worksheetResource.fileName}
@@ -355,7 +375,7 @@ export default function WorksheetEvidenceCapture({
         </a>
       </div>
 
-      {latestEvidenceEntry ? (
+      {localLatestEvidenceEntry ? (
         <div style={latestEvidenceStyle}>
           <div style={{ display: "grid", gap: 5 }}>
             <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850 }}>
@@ -365,7 +385,9 @@ export default function WorksheetEvidenceCapture({
               {latestProgress?.label || "Evidence saved"}
             </strong>
             <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-              {formatEvidenceDate(latestEvidenceEntry.observedOn || latestEvidenceEntry.createdAt)}
+              {formatEvidenceDate(
+                localLatestEvidenceEntry.observedOn || localLatestEvidenceEntry.createdAt,
+              )}
               {latestHasPhoto ? " / Photo attached" : ""}
             </span>
             {latestParentNote ? (
@@ -380,89 +402,126 @@ export default function WorksheetEvidenceCapture({
         </div>
       ) : null}
 
-      <div style={uploadBoxStyle}>
-        <label style={{ display: "grid", gap: 8, cursor: "pointer" }}>
-          <span style={{ color: "#17204B", fontWeight: 800 }}>1. Add photo</span>
-          <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
-            Take a photo on mobile or upload an image of the completed worksheet.
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoChange}
-            style={fileInputStyle}
-          />
-        </label>
-        {photoPreviewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photoPreviewUrl}
-            alt="Selected worksheet evidence preview"
-            style={{
-              width: "100%",
-              maxHeight: 180,
-              objectFit: "cover",
-              borderRadius: 14,
-              border: "1px solid #e2e8f0",
-            }}
-          />
-        ) : null}
-        {photoName ? (
-          <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-            {savedAttachment ? "Uploaded" : "Selected"}: {photoName}
-          </span>
-        ) : null}
-      </div>
-
-      <div style={{ display: "grid", gap: 8 }}>
-        <span style={{ color: "#17204B", fontWeight: 800 }}>2. How did it go?</span>
-        <div style={progressGridStyle}>
-          {progressOptions.map((option) => {
-            const selected = option.value === progressLevel;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setProgressLevel(option.value)}
-                style={{
-                  border: `1px solid ${selected ? option.color : option.border}`,
-                  borderRadius: 16,
-                  background: selected ? option.background : "#FFFFFF",
-                  color: selected ? option.color : "#17204B",
-                  padding: "12px 13px",
-                  textAlign: "left",
-                  display: "grid",
-                  gap: 4,
-                  minHeight: 72,
-                  cursor: "pointer",
-                  font: "inherit",
-                }}
-              >
-                <strong style={{ fontSize: 14 }}>{option.label}</strong>
-                <span style={{ fontSize: 12, color: selected ? option.color : "#64748b" }}>
-                  {option.helper}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <label style={{ display: "grid", gap: 7 }}>
-        <span style={{ color: "#17204B", fontWeight: 800 }}>Optional note</span>
-        <textarea
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="What helped? What needs another pass?"
-          rows={3}
-          style={textareaStyle}
-        />
-      </label>
-
-      <button type="button" onClick={saveEvidence} disabled={saving} style={saveButtonStyle}>
-        {saving ? "Saving..." : "Save evidence"}
+      <button
+        type="button"
+        onClick={() => setCaptureFormOpen(true)}
+        style={addWorkButtonStyle}
+      >
+        {localLatestEvidenceEntry ? "Add another photo or update progress" : "Add completed work"}
       </button>
+
+      {captureFormOpen ? (
+        <div style={captureFormStyle}>
+          <div style={uploadBoxStyle}>
+            <label style={uploadActionStyle}>
+              <span style={{ color: "#17204B", fontWeight: 850 }}>Take or upload photo</span>
+              <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
+                Use your phone camera or choose an image of the completed worksheet.
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+                style={hiddenFileInputStyle}
+              />
+            </label>
+            {photoPreviewUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photoPreviewUrl}
+                  alt="Selected worksheet evidence preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: 180,
+                    objectFit: "cover",
+                    borderRadius: 14,
+                    border: "1px solid #e2e8f0",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                    {savedAttachment ? "Uploaded" : "Selected"}: {photoName}
+                  </span>
+                  <label style={smallSoftButtonStyle}>
+                    Replace photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoChange}
+                      style={hiddenFileInputStyle}
+                    />
+                  </label>
+                  <button type="button" onClick={removePhoto} style={smallSoftButtonStyle}>
+                    Remove photo
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <span style={{ color: "#17204B", fontWeight: 800 }}>How did it go?</span>
+            <div style={progressGridStyle}>
+              {progressOptions.map((option) => {
+                const selected = option.value === progressLevel;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setProgressLevel(option.value)}
+                    style={{
+                      border: `1px solid ${selected ? option.color : option.border}`,
+                      borderRadius: 16,
+                      background: selected ? option.background : "#FFFFFF",
+                      color: selected ? option.color : "#17204B",
+                      padding: "12px 13px",
+                      textAlign: "left",
+                      display: "grid",
+                      gap: 4,
+                      minHeight: 72,
+                      cursor: "pointer",
+                      font: "inherit",
+                    }}
+                  >
+                    <strong style={{ fontSize: 14 }}>{option.label}</strong>
+                    <span style={{ fontSize: 12, color: selected ? option.color : "#64748b" }}>
+                      {option.helper}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label style={{ display: "grid", gap: 7 }}>
+            <span style={{ color: "#17204B", fontWeight: 800 }}>Optional note</span>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="What helped? What needs another pass?"
+              rows={3}
+              style={textareaStyle}
+            />
+          </label>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" onClick={saveEvidence} disabled={saving} style={saveButtonStyle}>
+              {saving ? "Saving..." : photoFile ? "Save evidence" : "Save without photo"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCaptureFormOpen(false)}
+              disabled={saving}
+              style={cancelButtonStyle}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {savedAttachment && savedPhotoPreviewUrl ? (
         <div style={savedAttachmentStyle}>
@@ -546,6 +605,22 @@ const secondaryButtonStyle = {
   color: "#17204B",
 } satisfies CSSProperties;
 
+const addWorkButtonStyle = {
+  ...primaryButtonStyle,
+  width: "100%",
+  cursor: "pointer",
+  boxShadow: "0 8px 20px rgba(108,77,246,0.14)",
+} satisfies CSSProperties;
+
+const captureFormStyle = {
+  border: "1px solid #D9D0FF",
+  borderRadius: 18,
+  background: "#FBFAFF",
+  padding: "clamp(12px, 2.2vw, 16px)",
+  display: "grid",
+  gap: 14,
+} satisfies CSSProperties;
+
 const hiddenFileInputStyle = {
   position: "absolute",
   width: 1,
@@ -561,6 +636,18 @@ const uploadBoxStyle = {
   padding: 14,
   display: "grid",
   gap: 10,
+} satisfies CSSProperties;
+
+const uploadActionStyle = {
+  border: "1px solid #D9D0FF",
+  borderRadius: 16,
+  background: "#FFFFFF",
+  padding: 14,
+  minHeight: 86,
+  display: "grid",
+  gap: 7,
+  cursor: "pointer",
+  boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
 } satisfies CSSProperties;
 
 const latestEvidenceStyle = {
@@ -585,16 +672,6 @@ const photoAttachedBadgeStyle = {
   fontWeight: 850,
 } satisfies CSSProperties;
 
-const fileInputStyle = {
-  width: "100%",
-  minHeight: 44,
-  border: "1px solid #E7EAF2",
-  borderRadius: 12,
-  background: "#FFFFFF",
-  padding: 9,
-  color: "#17204B",
-} satisfies CSSProperties;
-
 const progressGridStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
@@ -613,8 +690,28 @@ const textareaStyle = {
 
 const saveButtonStyle = {
   ...primaryButtonStyle,
-  width: "100%",
+  flex: "1 1 220px",
   cursor: "pointer",
+} satisfies CSSProperties;
+
+const cancelButtonStyle = {
+  ...secondaryButtonStyle,
+  flex: "1 1 140px",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const smallSoftButtonStyle = {
+  border: "1px solid #CBD5E1",
+  borderRadius: 999,
+  background: "#FFFFFF",
+  color: "#17204B",
+  padding: "7px 10px",
+  fontSize: 12,
+  fontWeight: 800,
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 } satisfies CSSProperties;
 
 const successStyle = {
