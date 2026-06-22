@@ -85,6 +85,36 @@ drop policy if exists "mylearna evidence storage insert own" on storage.objects;
 drop policy if exists "mylearna evidence storage update own" on storage.objects;
 drop policy if exists "mylearna evidence storage delete own" on storage.objects;
 
+do $$
+declare
+  dependent_policy record;
+begin
+  for dependent_policy in
+    select
+      policy_namespace.nspname as schema_name,
+      policy_table.relname as table_name,
+      policy_record.polname as policy_name
+    from pg_policy policy_record
+    join pg_class policy_table
+      on policy_table.oid = policy_record.polrelid
+    join pg_namespace policy_namespace
+      on policy_namespace.oid = policy_table.relnamespace
+    where (
+      pg_get_expr(policy_record.polqual, policy_record.polrelid) ilike '%mylearna_evidence_storage_object_owned_by_auth%'
+      or pg_get_expr(policy_record.polwithcheck, policy_record.polrelid) ilike '%mylearna_evidence_storage_object_owned_by_auth%'
+      or pg_get_expr(policy_record.polqual, policy_record.polrelid) ilike '%mylearna_evidence_entry_owned_by_auth%'
+      or pg_get_expr(policy_record.polwithcheck, policy_record.polrelid) ilike '%mylearna_evidence_entry_owned_by_auth%'
+    )
+  loop
+    execute format(
+      'drop policy if exists %I on %I.%I',
+      dependent_policy.policy_name,
+      dependent_policy.schema_name,
+      dependent_policy.table_name
+    );
+  end loop;
+end $$;
+
 drop function if exists public.mylearna_evidence_storage_object_owned_by_auth(text);
 drop function if exists public.mylearna_evidence_entry_owned_by_auth(text, text);
 
