@@ -157,6 +157,49 @@ function getWorksheetParentNote(reflection: string) {
     .join("\n");
 }
 
+async function compressWorksheetEvidenceImage(file: File) {
+  if (!file.type.startsWith("image/")) return file;
+  if (typeof document === "undefined" || typeof Image === "undefined") return file;
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const nextImage = new Image();
+      nextImage.onload = () => resolve(nextImage);
+      nextImage.onerror = () => reject(new Error("The selected image could not be prepared for upload."));
+      nextImage.src = objectUrl;
+    });
+
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+    if (scale >= 1 && file.size <= 2.5 * 1024 * 1024) {
+      return file;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.82);
+    });
+    if (!blob || blob.size >= file.size) return file;
+
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "worksheet-evidence";
+    return new File([blob], `${baseName}-compressed.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -326,6 +369,10 @@ function CleanCaptureWorkspaceBody() {
   const [lastSavedReturnPath, setLastSavedReturnPath] = useState("");
   const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
   const [lastSavedPhotoAttached, setLastSavedPhotoAttached] = useState(false);
+  const [pendingAttachmentEvidenceId, setPendingAttachmentEvidenceId] = useState("");
+  const [pendingAttachmentError, setPendingAttachmentError] = useState("");
+  const [pendingAttachmentFileName, setPendingAttachmentFileName] = useState("");
+  const [savePhase, setSavePhase] = useState("");
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -603,6 +650,60 @@ function CleanCaptureWorkspaceBody() {
     });
   }
 
+  async function uploadWorksheetPhotoForEvidence(evidenceId: string, file: File) {
+    if (!workspace.profile) {
+      throw new Error("Family workspace is required before uploading a photo.");
+    }
+    if (!learnerId) {
+      throw new Error("Choose a learner before uploading a photo.");
+    }
+
+    const preparedFile = await compressWorksheetEvidenceImage(file);
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        setSavePhase(attempt === 1 ? "Uploading photo..." : "Retrying photo upload...");
+        const uploadResult = await uploadFamilyEvidenceFiles({
+          familyProfileId: workspace.profile.id,
+          studentId: learnerId,
+          evidenceId,
+          files: [preparedFile],
+        });
+
+        if (uploadResult.failed.length) {
+          throw new Error(
+            uploadResult.failed
+              .map((failure) => `${failure.name}: ${failure.message}`)
+              .join(" "),
+          );
+        }
+
+        const uploadedAttachments = uploadResult.uploaded;
+        setSavePhase("Finalising attachment...");
+        await updateFamilyEvidenceEntryAttachments({
+          evidenceId,
+          studentId: learnerId,
+          attachmentUrls: uploadedAttachments.map((attachment) => ({
+            path: attachment.path,
+            name: attachment.label,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            kind: attachment.kind,
+          })),
+          imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
+        });
+
+        return uploadedAttachments;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("The photo could not be uploaded.");
+        if (attempt >= 2) break;
+      }
+    }
+
+    throw lastError ?? new Error("The photo could not be uploaded.");
+  }
+
   useEffect(() => {
     if (
       !workspace.profile ||
@@ -754,6 +855,10 @@ function CleanCaptureWorkspaceBody() {
     setLastSavedReturnPath("");
     setLastSavedWorksheetProgress("");
     setLastSavedPhotoAttached(false);
+    setPendingAttachmentEvidenceId("");
+    setPendingAttachmentError("");
+    setPendingAttachmentFileName("");
+    setSavePhase("");
     setLastAppliedContextKey(captureContextKey);
   }, [
     calendarItemIdFromQuery,
@@ -794,6 +899,9 @@ function CleanCaptureWorkspaceBody() {
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
+    setPendingAttachmentError("");
+    setPendingAttachmentEvidenceId("");
+    setSavePhase("Saving evidence...");
 
     try {
       if (worksheetEvidenceMode && !worksheetProgressLevel) {
@@ -853,15 +961,6 @@ function CleanCaptureWorkspaceBody() {
           },
           user?.id,
         );
-        setMessage(
-          worksheetEvidenceMode
-            ? "Evidence saved for this worksheet step."
-            : nextPathwayContext
-            ? "Evidence saved for this pathway step."
-            : nextCurriculumContext
-            ? "Evidence saved to My Data."
-            : "Capture note updated.",
-        );
       } else {
         savedEntry = await createCleanEvidenceEntry(workspace.profile.id, payload);
         trackProductEvent(
@@ -877,56 +976,54 @@ function CleanCaptureWorkspaceBody() {
           },
           user?.id,
         );
-        setMessage(
-          worksheetEvidenceMode
-            ? "Evidence saved for this worksheet step."
-            : !entries.length
-            ? "First evidence captured. Your learning record is starting to build."
-            : nextPathwayContext
-              ? "Evidence saved for this pathway step."
-              : nextCurriculumContext
-                ? "Evidence saved to My Data."
-                : "Capture note saved.",
-        );
       }
 
       let uploadedAttachments: UploadedFamilyEvidenceFile[] = [];
       if (photoFile) {
-        const uploadResult = await uploadFamilyEvidenceFiles({
-          familyProfileId: workspace.profile.id,
-          studentId: learnerId,
-          evidenceId: savedEntry.id,
-          files: [photoFile],
-        });
-
-        if (uploadResult.failed.length) {
-          throw new Error(
-            uploadResult.failed
-              .map((failure) => `${failure.name}: ${failure.message}`)
-              .join(" "),
-          );
+        try {
+          uploadedAttachments = await uploadWorksheetPhotoForEvidence(savedEntry.id, photoFile);
+        } catch (uploadError) {
+          const errorMessage =
+            uploadError instanceof Error
+              ? uploadError.message
+              : "The photo could not be uploaded. Check your connection and try again.";
+          setLastSavedCurriculumContext(null);
+          setLastSavedPathwayContext(nextPathwayContext);
+          setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
+          setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
+          setLastSavedPhotoAttached(false);
+          setPendingAttachmentEvidenceId(savedEntry.id);
+          setPendingAttachmentError(errorMessage);
+          setPendingAttachmentFileName(photoFile.name);
+          setMessage(null);
+          setActionError(null);
+          await reloadEntries();
+          return;
         }
-
-        uploadedAttachments = uploadResult.uploaded;
-        await updateFamilyEvidenceEntryAttachments({
-          evidenceId: savedEntry.id,
-          studentId: learnerId,
-          attachmentUrls: uploadedAttachments.map((attachment) => ({
-            path: attachment.path,
-            name: attachment.label,
-            mimeType: attachment.mimeType,
-            size: attachment.size,
-            kind: attachment.kind,
-          })),
-          imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
-        });
       }
 
       setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
       setLastSavedPathwayContext(nextPathwayContext);
       setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
       setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
-      setLastSavedPhotoAttached(Boolean(photoFile));
+      setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      setMessage(
+        worksheetEvidenceMode
+          ? "Evidence saved for this worksheet step."
+          : editingEntryId
+            ? nextPathwayContext
+              ? "Evidence saved for this pathway step."
+              : nextCurriculumContext
+                ? "Evidence saved to My Data."
+                : "Capture note updated."
+            : !entries.length
+              ? "First evidence captured. Your learning record is starting to build."
+              : nextPathwayContext
+                ? "Evidence saved for this pathway step."
+                : nextCurriculumContext
+                  ? "Evidence saved to My Data."
+                  : "Capture note saved.",
+      );
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
       setSavedAttachments(uploadedAttachments);
@@ -942,6 +1039,43 @@ function CleanCaptureWorkspaceBody() {
         ),
       );
     } finally {
+      setSavePhase("");
+      setSubmitting(false);
+    }
+  }
+
+  async function retryPendingPhotoUpload() {
+    if (!pendingAttachmentEvidenceId || !photoFile) return;
+
+    setSubmitting(true);
+    setActionError(null);
+    setPendingAttachmentError("");
+    try {
+      const uploadedAttachments = await uploadWorksheetPhotoForEvidence(
+        pendingAttachmentEvidenceId,
+        photoFile,
+      );
+      setSavedAttachments(uploadedAttachments);
+      setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      setPendingAttachmentEvidenceId("");
+      setPendingAttachmentError("");
+      setPendingAttachmentFileName("");
+      setMessage("Evidence saved for this worksheet step.");
+      setPhotoFile(null);
+      setPhotoName("");
+      setPhotoPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return "";
+      });
+      await reloadEntries();
+    } catch (error) {
+      setPendingAttachmentError(
+        error instanceof Error
+          ? error.message
+          : "The photo could not be uploaded. Check your connection and try again.",
+      );
+    } finally {
+      setSavePhase("");
       setSubmitting(false);
     }
   }
@@ -1684,7 +1818,7 @@ function CleanCaptureWorkspaceBody() {
                   >
                     {submitting
                       ? worksheetEvidenceMode
-                        ? "Saving evidence..."
+                        ? savePhase || "Saving evidence..."
                         : "Saving..."
                       : worksheetEvidenceMode
                         ? photoFile
@@ -1713,6 +1847,64 @@ function CleanCaptureWorkspaceBody() {
                   <p style={{ margin: 0, color: "#b91c1c" }}>{linkingError}</p>
                 ) : null}
               </form>
+
+              {pendingAttachmentError ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #FED7AA",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#FFF7ED",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <strong style={{ color: "#C2410C", fontSize: 16 }}>
+                    Progress saved, but photo upload failed.
+                  </strong>
+                  <p style={{ margin: 0, color: "#9A3412", lineHeight: 1.5 }}>
+                    {pendingAttachmentFileName ? `${pendingAttachmentFileName}: ` : ""}
+                    {pendingAttachmentError}
+                  </p>
+                  <p style={{ margin: 0, color: "#9A3412", fontSize: 13, lineHeight: 1.45 }}>
+                    Check your connection and try again. Your progress note has been saved.
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={retryPendingPhotoUpload}
+                      disabled={submitting || !photoFile}
+                      style={buttonStyle}
+                    >
+                      {submitting ? savePhase || "Retrying photo upload..." : "Retry photo upload"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAttachmentError("");
+                        setPendingAttachmentEvidenceId("");
+                        setPendingAttachmentFileName("");
+                        setLastSavedPhotoAttached(false);
+                        setSavedAttachments([]);
+                        setMessage("Evidence saved for this worksheet step.");
+                      }}
+                      disabled={submitting}
+                      style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
+                    >
+                      Save without photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(lastSavedReturnPath || pathwaysReturnPath)}
+                      disabled={submitting}
+                      style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
+                    >
+                      Return to pathway
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {message ? (
                 <div
