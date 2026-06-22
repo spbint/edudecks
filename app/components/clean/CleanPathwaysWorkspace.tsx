@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -52,6 +52,8 @@ import {
   getPathwayPracticeActivityByStepId,
 } from "@/lib/clean/pathways/practiceActivities";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
+import { supabase } from "@/lib/supabaseClient";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
   buildUnifiedPathwayStepStateIndex,
   getUnifiedPathwayStepState,
@@ -272,6 +274,52 @@ const statusMeta: Record<
   },
 };
 
+const worksheetEvidenceProgressMeta: Record<
+  string,
+  { label: string; fill: string; border: string; text: string; dot: string; helper: string }
+> = {
+  "needs support": {
+    label: "Needs support",
+    fill: "#fff1f2",
+    border: "#fecdd3",
+    text: "#be123c",
+    dot: "#fb7185",
+    helper: "Worksheet evidence saved. This step still needs support.",
+  },
+  "working towards": {
+    label: "Working towards",
+    fill: "#fff7ed",
+    border: "#fed7aa",
+    text: "#c2410c",
+    dot: "#fb923c",
+    helper: "Worksheet evidence saved. This step is developing.",
+  },
+  consolidating: {
+    label: "Consolidating",
+    fill: "#fffbeb",
+    border: "#fde68a",
+    text: "#92400e",
+    dot: "#f59e0b",
+    helper: "Worksheet evidence saved. This step is close to secure.",
+  },
+  "goal achieved": {
+    label: "Goal achieved",
+    fill: "#ecfdf5",
+    border: "#bbf7d0",
+    text: "#166534",
+    dot: "#22c55e",
+    helper: "Worksheet evidence saved. This step is achieved.",
+  },
+  "goal achieved + extension": {
+    label: "Goal achieved + extension",
+    fill: "#eef2ff",
+    border: "#c7d2fe",
+    text: "#3730a3",
+    dot: "#6366f1",
+    helper: "Worksheet evidence saved with extension.",
+  },
+};
+
 type StageSummaryCounts = {
   steps: number;
   secure: number;
@@ -284,6 +332,31 @@ type StageSummaryCounts = {
 function getLearnerLabel(learner: Learner | null) {
   if (!learner) return "No learner selected";
   return learner.preferredName || learner.firstName;
+}
+
+function getWorksheetEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefined) {
+  const text = `${entry?.whatHappened || ""}\n${entry?.reflection || ""}`;
+  const match = text.match(/Progress level:\s*([^\n.]+)/i);
+  return match?.[1]?.trim() || null;
+}
+
+function getWorksheetEvidenceProgressMeta(entry: CleanEvidenceEntry | null | undefined) {
+  const label = getWorksheetEvidenceProgressLabel(entry);
+  if (!label) return null;
+  return worksheetEvidenceProgressMeta[label.toLowerCase()] ?? null;
+}
+
+function formatWorksheetEvidenceDate(entry: CleanEvidenceEntry | null | undefined) {
+  const value = entry?.observedOn || entry?.createdAt || "";
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value.slice(0, 10) || null;
+
+  return parsed.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function getPathwayInteractionKey(
@@ -932,53 +1005,96 @@ function PathwaysWorkspaceBody() {
   const selectedStrandIsActive =
     selectedSubjectSupportsDetailedPathways && hasExplicitStrandSelection;
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadUnifiedPathwayStepState() {
-      if (
-        !workspace.profile ||
-        workspace.schemaMissing ||
-        workspace.requiresFamilyCreation ||
-        !selectedLearnerId
-      ) {
-        setUnifiedPathwayStepStateIndex(new Map());
-        return;
-      }
-
-      try {
-        const [evidenceEntries, assessmentStatuses] = await Promise.all([
-          listCleanEvidenceEntries(workspace.profile.id, {
-            learnerId: selectedLearnerId,
-          }),
-          listCleanAssessmentSkillStatuses(workspace.profile.id, selectedLearnerId),
-        ]);
-
-        if (!active) return;
-
-        setUnifiedPathwayStepStateIndex(
-          buildUnifiedPathwayStepStateIndex({
-            evidenceEntries,
-            assessmentStatuses,
-          }),
-        );
-      } catch {
-        if (!active) return;
-        setUnifiedPathwayStepStateIndex(new Map());
-      }
+  const reloadUnifiedPathwayStepState = useCallback(async () => {
+    if (
+      !workspace.profile ||
+      workspace.schemaMissing ||
+      workspace.requiresFamilyCreation ||
+      !selectedLearnerId
+    ) {
+      setUnifiedPathwayStepStateIndex(new Map());
+      return;
     }
 
-    void loadUnifiedPathwayStepState();
+    try {
+      const [evidenceEntries, assessmentStatuses] = await Promise.all([
+        listCleanEvidenceEntries(workspace.profile.id, {
+          learnerId: selectedLearnerId,
+        }),
+        listCleanAssessmentSkillStatuses(workspace.profile.id, selectedLearnerId),
+      ]);
 
-    return () => {
-      active = false;
-    };
+      setUnifiedPathwayStepStateIndex(
+        buildUnifiedPathwayStepStateIndex({
+          evidenceEntries,
+          assessmentStatuses,
+        }),
+      );
+    } catch {
+      setUnifiedPathwayStepStateIndex(new Map());
+    }
   }, [
     selectedLearnerId,
     workspace.profile,
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+
+  useEffect(() => {
+    let active = true;
+
+    void Promise.resolve().then(() => {
+      if (active) {
+        void reloadUnifiedPathwayStepState();
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [reloadUnifiedPathwayStepState]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void reloadUnifiedPathwayStepState();
+      }
+    }
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [reloadUnifiedPathwayStepState]);
+
+  useEffect(() => {
+    if (!workspace.profile || !selectedLearnerId) return;
+
+    const channel = supabase
+      .channel(`pathway-evidence-${workspace.profile.id}-${selectedLearnerId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "evidence_entries",
+          filter: `learner_id=eq.${selectedLearnerId}`,
+        },
+        () => {
+          void reloadUnifiedPathwayStepState();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [reloadUnifiedPathwayStepState, selectedLearnerId, workspace.profile]);
 
   useEffect(() => {
     let active = true;
@@ -1255,6 +1371,24 @@ function PathwaysWorkspaceBody() {
         stageKey: selectedPlacementStep.stageKey,
       })
     : null;
+  const selectedPlacementStageTitle =
+    selectedPlacementWorksheet?.stageDisplay ||
+    selectedPlacementStep?.stageTitle ||
+    selectedWorkspaceCurrentStageTitle;
+  const selectedPlacementUnifiedState = selectedPlacementStep
+    ? getUnifiedPathwayStepState(unifiedPathwayStepStateIndex, selectedPlacementStep.id)
+    : null;
+  const selectedPlacementLatestEvidenceEntry =
+    selectedPlacementUnifiedState?.latestEvidenceEntry ?? null;
+  const selectedPlacementEvidenceProgressMeta = getWorksheetEvidenceProgressMeta(
+    selectedPlacementLatestEvidenceEntry,
+  );
+  const selectedPlacementHasEvidenceAttachment =
+    Boolean(selectedPlacementLatestEvidenceEntry?.imageUrl) ||
+    Boolean(selectedPlacementLatestEvidenceEntry?.attachmentUrls.length);
+  const selectedPlacementEvidenceDate = formatWorksheetEvidenceDate(
+    selectedPlacementLatestEvidenceEntry,
+  );
   const selectedPlacementWorksheetEvidenceHref = useMemo(() => {
     if (!selectedPlacementStep || !selectedPlacementWorksheet) return "";
 
@@ -1266,7 +1400,7 @@ function PathwaysWorkspaceBody() {
         pathwayKey: selectedPlacementStep.strandKey,
         pathwayLabel: selectedSubjectWorkspace?.title || selectedPlacementStep.strandKey,
         stageKey: selectedPlacementStep.stageKey,
-        stageLabel: selectedPlacementStep.stageTitle,
+        stageLabel: selectedPlacementStageTitle,
         pathwayStepId: selectedPlacementStep.id,
         stepKey: selectedPlacementStep.stepKey,
         stepNumber: String(selectedPlacementStep.legacyStepNumber || selectedPlacementStep.stepOrder || selectedPlacementStep.stepKey),
@@ -1291,6 +1425,7 @@ function PathwaysWorkspaceBody() {
     selectedLearnerId,
     selectedPlacementReturnHref,
     selectedPlacementStep,
+    selectedPlacementStageTitle,
     selectedPlacementWorksheet,
     selectedSubject.title,
     selectedSubjectWorkspace?.title,
@@ -1455,11 +1590,19 @@ function PathwaysWorkspaceBody() {
           style={{
             ...cardStyle,
             padding: "clamp(20px, 3vw, 30px)",
-            border: selectedPlacementStep ? "1px solid #D9D0FF" : cardStyle.border,
-            background: selectedPlacementStep
+            border: selectedPlacementEvidenceProgressMeta
+              ? `1px solid ${selectedPlacementEvidenceProgressMeta.border}`
+              : selectedPlacementStep
+              ? "1px solid #D9D0FF"
+              : cardStyle.border,
+            background: selectedPlacementEvidenceProgressMeta
+              ? selectedPlacementEvidenceProgressMeta.fill
+              : selectedPlacementStep
               ? "linear-gradient(135deg, #FFFFFF 0%, #F7F3FF 100%)"
               : "#ffffff",
-            boxShadow: selectedPlacementStep
+            boxShadow: selectedPlacementEvidenceProgressMeta
+              ? "0 14px 34px rgba(23,32,75,0.08)"
+              : selectedPlacementStep
               ? "0 14px 34px rgba(108,77,246,0.10)"
               : cardStyle.boxShadow,
           }}
@@ -1510,7 +1653,7 @@ function PathwaysWorkspaceBody() {
                 </span>
                 <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
                 <span style={curriculumChipStyle}>
-                  {selectedPlacementStep.stageTitle || selectedWorkspaceCurrentStageTitle}
+                  {selectedPlacementStageTitle}
                 </span>
                 <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
                 <span style={{ ...curriculumChipStyle, color: "#5B6478" }}>
@@ -1535,6 +1678,78 @@ function PathwaysWorkspaceBody() {
                   <span style={{ ...curriculumChipStyle, color: "#5B6478" }}>
                     {topSnapshotNextAction}
                   </span>
+                  {selectedPlacementEvidenceProgressMeta ? (
+                    <span
+                      style={{
+                        ...curriculumChipStyle,
+                        borderColor: selectedPlacementEvidenceProgressMeta.border,
+                        background: "#ffffff",
+                        color: selectedPlacementEvidenceProgressMeta.text,
+                      }}
+                    >
+                      {selectedPlacementEvidenceProgressMeta.label}
+                    </span>
+                  ) : null}
+                  {selectedPlacementUnifiedState?.linkedEvidenceCount ? (
+                    <span
+                      style={{
+                        ...curriculumChipStyle,
+                        borderColor: selectedPlacementEvidenceProgressMeta?.border || "#bfdbfe",
+                        background: "#ffffff",
+                        color: selectedPlacementEvidenceProgressMeta?.text || "#1d4ed8",
+                      }}
+                    >
+                      Evidence attached
+                    </span>
+                  ) : null}
+                  {selectedPlacementEvidenceDate ? (
+                    <span
+                      style={{
+                        ...curriculumChipStyle,
+                        borderColor: "#e2e8f0",
+                        background: "#ffffff",
+                        color: "#475569",
+                      }}
+                    >
+                      Saved {selectedPlacementEvidenceDate}
+                    </span>
+                  ) : null}
+                  {selectedPlacementHasEvidenceAttachment ? (
+                    <span
+                      style={{
+                        ...curriculumChipStyle,
+                        borderColor: "#ccfbf1",
+                        background: "#f0fdfa",
+                        color: "#0f766e",
+                      }}
+                    >
+                      Photo attached
+                    </span>
+                  ) : null}
+                  {selectedPlacementLatestEvidenceEntry?.includeInPortfolio ? (
+                    <span
+                      style={{
+                        ...curriculumChipStyle,
+                        borderColor: "#dbeafe",
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                      }}
+                    >
+                      Portfolio
+                    </span>
+                  ) : null}
+                  {selectedPlacementLatestEvidenceEntry?.includeInReport ? (
+                    <span
+                      style={{
+                        ...curriculumChipStyle,
+                        borderColor: "#ddd6fe",
+                        background: "#f5f3ff",
+                        color: "#6d28d9",
+                      }}
+                    >
+                      Reports
+                    </span>
+                  ) : null}
                 </div>
                 <strong style={{ color: "#17204B", fontSize: "clamp(22px, 3vw, 28px)", lineHeight: 1.15, fontWeight: 650 }}>
                   {selectedPlacementStep.stepTitle}
@@ -2798,6 +3013,7 @@ function NumberRevealStepCard({
     strandKey: pathwayStepStrandKey,
     stageKey: step.stageKey,
   });
+  const displayedStageTitle = worksheetResource?.stageDisplay || step.stageTitle;
   const stepStrandKey = exactStepAssessment?.strandKey ??
     exactStepPractice?.strandKey ??
     pathwayStepStrandKey;
@@ -2852,7 +3068,7 @@ function NumberRevealStepCard({
             pathwayKey: stepStrandKey,
             pathwayLabel: stepStrandKey,
             stageKey: step.stageKey,
-            stageLabel: step.stageTitle,
+            stageLabel: displayedStageTitle,
             pathwayStepId: step.pathwayStepId,
             stepKey: step.stepKey,
             stepNumber: String(getRevealStepDisplayNumber(step)),
@@ -2930,7 +3146,7 @@ function NumberRevealStepCard({
           {step.title}
         </div>
         <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
-          {step.stageTitle}
+          {displayedStageTitle}
           {step.alignment ? ` · ${step.alignment.bank.shortTitle}` : ""}
         </div>
       </div>
@@ -3653,6 +3869,9 @@ function DetailedMathematicsStepCard({
     unifiedPathwayStepStateIndex,
   );
   const status = statusState.status;
+  const statusPathwayStepId = statusState.pathwayStepId;
+  const stageKey = stage.key;
+  const strandKey = strand.key;
   const meta = statusMeta[status];
   const exactStepContext = supportsExactStepPathwayContext(selectedSubjectKey, strand.key);
   const displayStepNumber =
@@ -3664,151 +3883,104 @@ function DetailedMathematicsStepCard({
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
   const stepUnifiedState = getUnifiedPathwayStepState(
     unifiedPathwayStepStateIndex,
-    statusState.pathwayStepId,
+    statusPathwayStepId,
   );
   const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
+  const latestEvidenceEntry = stepUnifiedState?.latestEvidenceEntry ?? null;
+  const evidenceProgressMeta = getWorksheetEvidenceProgressMeta(latestEvidenceEntry);
   const statusChipMeta =
-    exactStepContext && confidenceStatusLabel === "Not checked yet"
+    evidenceProgressMeta ||
+    (exactStepContext && confidenceStatusLabel === "Not checked yet"
       ? statusMeta["Not started"]
-      : meta;
+      : meta);
   const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const canonicalStepKey = useMemo(
     () => buildPathwayRegistryStepKey(step.title, step.id),
     [step.id, step.title],
   );
-  const numberAssessmentAlignment = useMemo(
-    () =>
-      isNumberPathwayContext(selectedSubjectKey, strand.key)
-        ? getNumberAssessmentAlignmentForPathwayStep({
-            subjectKey: selectedSubjectKey,
-            strandKey: strand.key,
-            stageKey: stage.key,
-            pathwayStepId: statusState.pathwayStepId,
-            stepKey: canonicalStepKey,
-          })
-        : null,
-    [canonicalStepKey, selectedSubjectKey, stage.key, statusState.pathwayStepId, strand.key],
-  );
+  const numberAssessmentAlignment = isNumberPathwayContext(selectedSubjectKey, strandKey)
+    ? getNumberAssessmentAlignmentForPathwayStep({
+        subjectKey: selectedSubjectKey,
+        strandKey,
+        stageKey,
+        pathwayStepId: statusPathwayStepId,
+        stepKey: canonicalStepKey,
+      })
+    : null;
   const numberAssessmentBank = numberAssessmentAlignment?.bank ?? null;
-  const canonicalPathwayStepId = useMemo(
-    () =>
-      statusState.pathwayStepId ||
-      resolveCanonicalPathwayStepIdFromParts({
-        subjectKey: selectedSubjectKey,
-        pathwayKey: strand.key,
-        stageKey: stage.key,
-        stepKey: canonicalStepKey,
-        stepNumber: String(step.id),
-      }),
-    [
-      canonicalStepKey,
-      selectedSubjectKey,
-      stage.key,
-      statusState.pathwayStepId,
-      step.id,
-      strand.key,
-    ],
-  );
-  const practiceActivity = useMemo(
-    () =>
-      canonicalPathwayStepId
-        ? getPathwayPracticeActivityByStepId(canonicalPathwayStepId)
-        : null,
-    [canonicalPathwayStepId],
-  );
-  const exactStepAssessment = useMemo(
-    () =>
-      getStepAssessmentForPathwayStep({
-        pathwayStepId: canonicalPathwayStepId,
-        stepKey: canonicalStepKey,
-        strandKey: strand.key,
-      }),
-    [canonicalPathwayStepId, canonicalStepKey, strand.key],
-  );
-  const exactStepPractice = useMemo(
-    () =>
-      getStepPracticeForPathwayStep({
-        pathwayStepId: canonicalPathwayStepId,
-        stepKey: canonicalStepKey,
-        strandKey: strand.key,
-      }),
-    [canonicalPathwayStepId, canonicalStepKey, strand.key],
-  );
-  const worksheetResource = useMemo(
-    () =>
-      getWorksheetResourceForPathwayStep({
-        pathwayStepId: canonicalPathwayStepId,
-        stepKey: canonicalStepKey,
-        subjectKey: selectedSubjectKey,
-        strandKey: strand.key,
-        stageKey: stage.key,
-      }),
-    [canonicalPathwayStepId, canonicalStepKey, selectedSubjectKey, stage.key, strand.key],
-  );
-  const captureHref = useMemo(() => {
-    const returnTo = buildPathwayStepReturnHref({
-      pathname: returnPath,
+  const canonicalPathwayStepId =
+    statusPathwayStepId ||
+    resolveCanonicalPathwayStepIdFromParts({
       subjectKey: selectedSubjectKey,
-      strandKey: strand.key,
-      learnerId: selectedLearnerId,
-      detailPanelId,
+      pathwayKey: strandKey,
+      stageKey,
+      stepKey: canonicalStepKey,
+      stepNumber: String(step.id),
     });
-    const params = buildPathwayCaptureSearchParams(
-      {
-        source: "my-pathways",
-        subjectKey: selectedSubjectKey,
-        subjectLabel: selectedSubjectTitle,
-        pathwayKey: strand.key,
-        pathwayLabel: strand.pathwayLabel,
-        stageKey: stage.key,
-        stageLabel: stage.title,
-        pathwayStepId: canonicalPathwayStepId,
-        stepKey: canonicalStepKey,
-        stepNumber: String(step.id),
-        stepTitle: step.title,
-        stepMeaning: step.meaning,
-        skillFocus: step.skillFocus,
-      },
-      {
-        learnerId: selectedLearnerId || null,
-        learningAreaKey: selectedSubjectKey,
-        learningAreaLabel: selectedSubjectTitle,
-      },
-    );
-
-    const baseHref = `${capturePathBase}?${params.toString()}`;
-    return worksheetResource
-      ? appendWorksheetEvidenceCaptureParams(baseHref, worksheetResource, returnTo)
-      : baseHref;
-  }, [
-    canonicalPathwayStepId,
-    canonicalStepKey,
-    capturePathBase,
+  const practiceActivity = canonicalPathwayStepId
+    ? getPathwayPracticeActivityByStepId(canonicalPathwayStepId)
+    : null;
+  const exactStepAssessment = getStepAssessmentForPathwayStep({
+    pathwayStepId: canonicalPathwayStepId,
+    stepKey: canonicalStepKey,
+    strandKey,
+  });
+  const exactStepPractice = getStepPracticeForPathwayStep({
+    pathwayStepId: canonicalPathwayStepId,
+    stepKey: canonicalStepKey,
+    strandKey,
+  });
+  const worksheetResource = getWorksheetResourceForPathwayStep({
+    pathwayStepId: canonicalPathwayStepId,
+    stepKey: canonicalStepKey,
+    subjectKey: selectedSubjectKey,
+    strandKey,
+    stageKey,
+  });
+  const displayedStageTitle = worksheetResource?.stageDisplay || stage.title;
+  const captureReturnTo = buildPathwayStepReturnHref({
+    pathname: returnPath,
+    subjectKey: selectedSubjectKey,
+    strandKey,
+    learnerId: selectedLearnerId,
     detailPanelId,
-    returnPath,
-    selectedLearnerId,
-    selectedSubjectKey,
-    selectedSubjectTitle,
-    strand.key,
-    stage.key,
-    stage.title,
-    step.id,
-    step.meaning,
-    step.skillFocus,
-    step.title,
-    strand.pathwayLabel,
-    worksheetResource,
-  ]);
-  const assessHref = useMemo(() => {
+  });
+  const captureParams = buildPathwayCaptureSearchParams(
+    {
+      source: "my-pathways",
+      subjectKey: selectedSubjectKey,
+      subjectLabel: selectedSubjectTitle,
+      pathwayKey: strandKey,
+      pathwayLabel: strand.pathwayLabel,
+      stageKey,
+      stageLabel: displayedStageTitle,
+      pathwayStepId: canonicalPathwayStepId,
+      stepKey: canonicalStepKey,
+      stepNumber: String(step.id),
+      stepTitle: step.title,
+      stepMeaning: step.meaning,
+      skillFocus: step.skillFocus,
+    },
+    {
+      learnerId: selectedLearnerId || null,
+      learningAreaKey: selectedSubjectKey,
+      learningAreaLabel: selectedSubjectTitle,
+    },
+  );
+  const captureBaseHref = `${capturePathBase}?${captureParams.toString()}`;
+  const captureHref = worksheetResource
+    ? appendWorksheetEvidenceCaptureParams(captureBaseHref, worksheetResource, captureReturnTo)
+    : captureBaseHref;
+  const assessHref = (() => {
     if (!canonicalPathwayStepId) {
       return assessPathBase;
     }
 
-    const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strand.key);
+    const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strandKey);
     const returnTo = buildPathwayStepReturnHref({
       pathname: returnPath,
       subjectKey: selectedSubjectKey,
-      strandKey: strand.key,
+      strandKey,
       learnerId: selectedLearnerId,
       detailPanelId,
     });
@@ -3840,8 +4012,8 @@ function DetailedMathematicsStepCard({
     params.set("source", "my-pathways");
     params.set("openStep", canonicalStepKey);
     params.set("subjectKey", selectedSubjectKey);
-    params.set("strandKey", strand.key);
-    params.set("stageKey", stage.key);
+    params.set("strandKey", strandKey);
+    params.set("stageKey", stageKey);
     params.set("pathwayStepId", canonicalPathwayStepId);
     params.set("stepKey", canonicalStepKey);
     params.set("returnTo", returnTo);
@@ -3851,19 +4023,8 @@ function DetailedMathematicsStepCard({
     }
 
     return `${assessPathBase}?${params.toString()}`;
-  }, [
-    assessPathBase,
-    canonicalPathwayStepId,
-    canonicalStepKey,
-    detailPanelId,
-    exactStepAssessment,
-    returnPath,
-    selectedLearnerId,
-    selectedSubjectKey,
-    stage.key,
-    strand.key,
-  ]);
-  const exactPracticeHref = useMemo(() => {
+  })();
+  const exactPracticeHref = (() => {
     if (!exactStepPractice) return "";
 
     const params = new URLSearchParams();
@@ -3890,47 +4051,44 @@ function DetailedMathematicsStepCard({
     }
 
     return `/practice/number-targeted?${params.toString()}`;
-  }, [
-    canonicalPathwayStepId,
-    canonicalStepKey,
-    detailPanelId,
-    exactStepPractice,
-    returnPath,
-    selectedLearnerId,
-  ]);
-  const autoCheckStatus = useMemo(
-    () =>
-      numberAssessmentAlignment
-        ? getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment)
-        : exactStepAssessment
-          ? getExactStepAutoCheckStatusForPathwayStep(assessmentAttempts, {
-              subjectKey: exactStepAssessment.subjectKey,
-              strandKey: exactStepAssessment.strandKey,
-              pathwayStepId: exactStepAssessment.pathwayStepId,
-              stepKey: exactStepAssessment.stepKey,
-              stepAssessmentKey: exactStepAssessment.key,
-            })
-          : {
-              status: "Not checked yet" as const,
-              attempt: null,
-              scope: "none" as const,
-            },
-    [assessmentAttempts, exactStepAssessment, numberAssessmentAlignment],
-  );
+  })();
+  const autoCheckStatus = numberAssessmentAlignment
+    ? getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment)
+    : exactStepAssessment
+      ? getExactStepAutoCheckStatusForPathwayStep(assessmentAttempts, {
+          subjectKey: exactStepAssessment.subjectKey,
+          strandKey: exactStepAssessment.strandKey,
+          pathwayStepId: exactStepAssessment.pathwayStepId,
+          stepKey: exactStepAssessment.stepKey,
+          stepAssessmentKey: exactStepAssessment.key,
+        })
+      : {
+          status: "Not checked yet" as const,
+          attempt: null,
+          scope: "none" as const,
+        };
   const worksheetStatus = worksheetResource ? "Worksheet ready" : "No worksheet";
   const worksheetFileName = worksheetResource?.fileName || "";
+  const hasEvidenceAttachment =
+    Boolean(latestEvidenceEntry?.imageUrl) ||
+    Boolean(latestEvidenceEntry?.attachmentUrls.length);
+  const latestEvidenceDate = formatWorksheetEvidenceDate(latestEvidenceEntry);
 
   return (
     <article
       data-guidance-id="pathways-step-card"
       style={{
-        border: "1px solid #E7EAF2",
+        border: evidenceProgressMeta
+          ? `1px solid ${evidenceProgressMeta.border}`
+          : "1px solid #E7EAF2",
         borderRadius: 14,
-        background: "#ffffff",
+        background: evidenceProgressMeta ? evidenceProgressMeta.fill : "#ffffff",
         padding: densityMode === "compact" ? "9px 10px" : "11px 12px",
         display: "grid",
         gap: densityMode === "compact" ? 7 : 9,
-        boxShadow: "0 3px 10px rgba(23,32,75,0.025)",
+        boxShadow: evidenceProgressMeta
+          ? "0 8px 22px rgba(23,32,75,0.06)"
+          : "0 3px 10px rgba(23,32,75,0.025)",
       }}
     >
       <div
@@ -3970,7 +4128,8 @@ function DetailedMathematicsStepCard({
             <div
               data-guidance-id="pathways-progress-status"
               title={
-                exactStepContext ? confidenceStatusLabel : meta.helper
+                evidenceProgressMeta?.helper ||
+                (exactStepContext ? confidenceStatusLabel : meta.helper)
               }
               style={{
                 border: `1px solid ${statusChipMeta.border}`,
@@ -3993,7 +4152,9 @@ function DetailedMathematicsStepCard({
                 }}
               />
               <strong style={{ color: statusChipMeta.text, fontSize: 12, fontWeight: 650 }}>
-                {exactStepContext && confidenceStatusLabel !== "Not checked yet"
+                {evidenceProgressMeta
+                  ? evidenceProgressMeta.label
+                  : exactStepContext && confidenceStatusLabel !== "Not checked yet"
                   ? confidenceStatusLabel
                   : status}
               </strong>
@@ -4018,7 +4179,57 @@ function DetailedMathematicsStepCard({
           {evidenceLinkedCount > 0 ? (
             <span
               style={{
-                border: "1px solid #bfdbfe",
+                border: evidenceProgressMeta
+                  ? `1px solid ${evidenceProgressMeta.border}`
+                  : "1px solid #bfdbfe",
+                borderRadius: 999,
+                background: "#ffffff",
+                color: evidenceProgressMeta?.text || "#1d4ed8",
+                padding: "4px 7px",
+                fontSize: 12,
+                fontWeight: 650,
+              }}
+            >
+              Evidence attached
+            </span>
+          ) : null}
+
+          {latestEvidenceDate ? (
+            <span
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 999,
+                background: "#ffffff",
+                color: "#475569",
+                padding: "4px 7px",
+                fontSize: 12,
+                fontWeight: 650,
+              }}
+            >
+              Saved {latestEvidenceDate}
+            </span>
+          ) : null}
+
+          {hasEvidenceAttachment ? (
+            <span
+              style={{
+                border: "1px solid #ccfbf1",
+                borderRadius: 999,
+                background: "#f0fdfa",
+                color: "#0f766e",
+                padding: "4px 7px",
+                fontSize: 12,
+                fontWeight: 650,
+              }}
+            >
+              Photo attached
+            </span>
+          ) : null}
+
+          {latestEvidenceEntry?.includeInPortfolio ? (
+            <span
+              style={{
+                border: "1px solid #dbeafe",
                 borderRadius: 999,
                 background: "#eff6ff",
                 color: "#1d4ed8",
@@ -4027,7 +4238,23 @@ function DetailedMathematicsStepCard({
                 fontWeight: 650,
               }}
             >
-              {evidenceLinkedCount} evidence
+              Portfolio
+            </span>
+          ) : null}
+
+          {latestEvidenceEntry?.includeInReport ? (
+            <span
+              style={{
+                border: "1px solid #ddd6fe",
+                borderRadius: 999,
+                background: "#f5f3ff",
+                color: "#6d28d9",
+                padding: "4px 7px",
+                fontSize: 12,
+                fontWeight: 650,
+              }}
+            >
+              Reports
             </span>
           ) : null}
 
@@ -4090,7 +4317,7 @@ function DetailedMathematicsStepCard({
         strandKey={strand.key}
         strandTitle={strand.title}
         stageKey={stage.key}
-        stageTitle={stage.title}
+        stageTitle={displayedStageTitle}
         pathwayStepId={canonicalPathwayStepId || ""}
         stepKey={canonicalStepKey}
         stepTitle={step.title}

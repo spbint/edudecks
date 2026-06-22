@@ -894,7 +894,7 @@ function CleanReportsWorkspaceBody() {
           learnerId: activeLearnerId,
           fromDate: activePeriod?.startsOn ?? null,
           toDate: activePeriod?.endsOn ?? null,
-          highlightedOnly: true,
+          reportIncludedOnly: true,
           limit: 100,
         }),
         listAssessmentLearningEvidenceEventsForLearner(
@@ -952,6 +952,24 @@ function CleanReportsWorkspaceBody() {
 
   useEffect(() => {
     void reloadPortfolioItems();
+  }, [reloadPortfolioItems]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void reloadPortfolioItems();
+      }
+    }
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [reloadPortfolioItems]);
 
   useEffect(() => {

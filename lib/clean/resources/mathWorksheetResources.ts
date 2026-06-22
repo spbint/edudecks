@@ -1287,12 +1287,12 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   },
   {
     pathwayStepId:
-      "mathematics::geometry-and-spatial-reasoning::lower-secondary::reason-about-geometric-relationships-and-transformations",
+      "mathematics::geometry-and-spatial-reasoning::upper-primary::reason-about-geometric-relationships-and-transformations",
     stepKey: "reason-about-geometric-relationships-and-transformations",
     subjectKey: "mathematics",
     strandKey: "geometry-and-spatial-reasoning",
-    stageKey: "lower-secondary",
-    stageDisplay: "Lower Secondary",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
     stepNumber: 1,
     pathwayStepTitle: "Reason about geometric relationships and transformations",
     title: "Reason About Geometric Relationships And Transformations",
@@ -1300,17 +1300,17 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Identify slides, flips and turns, describe transformations, reason about shape properties, and connect geometry to real-world design.",
     includesAnswerSheet: false,
     fileName: GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
     pathwayStepId:
-      "mathematics::geometry-and-spatial-reasoning::lower-secondary::apply-spatial-reasoning-in-design-mapping-and-layout",
+      "mathematics::geometry-and-spatial-reasoning::upper-primary::apply-spatial-reasoning-in-design-mapping-and-layout",
     stepKey: "apply-spatial-reasoning-in-design-mapping-and-layout",
     subjectKey: "mathematics",
     strandKey: "geometry-and-spatial-reasoning",
-    stageKey: "lower-secondary",
-    stageDisplay: "Lower Secondary",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
     stepNumber: 2,
     pathwayStepTitle: "Apply spatial reasoning in design, mapping, and layout",
     title: "Apply Spatial Reasoning In Design, Mapping, And Layout",
@@ -1318,17 +1318,17 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Read maps, follow routes, design layouts, reason about floor plans, use scale, and apply compass directions in practical spatial planning.",
     includesAnswerSheet: false,
     fileName: GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
     pathwayStepId:
-      "mathematics::geometry-and-spatial-reasoning::years-9-10-consolidation::use-geometry-to-model-and-interpret-space",
+      "mathematics::geometry-and-spatial-reasoning::upper-primary::use-geometry-to-model-and-interpret-space",
     stepKey: "use-geometry-to-model-and-interpret-space",
     subjectKey: "mathematics",
     strandKey: "geometry-and-spatial-reasoning",
-    stageKey: "years-9-10-consolidation",
-    stageDisplay: "Years 9-10 / consolidation",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
     stepNumber: 1,
     pathwayStepTitle: "Use geometry to model and interpret space",
     title: "Use Geometry To Model And Interpret Space",
@@ -1336,17 +1336,17 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Use classroom layouts, floor plans, architecture, block structures, scale drawings, maps and spatial designs to model and interpret space.",
     includesAnswerSheet: false,
     fileName: GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
     pathwayStepId:
-      "mathematics::geometry-and-spatial-reasoning::years-9-10-consolidation::refine-spatial-judgement-and-explanation",
+      "mathematics::geometry-and-spatial-reasoning::upper-primary::refine-spatial-judgement-and-explanation",
     stepKey: "refine-spatial-judgement-and-explanation",
     subjectKey: "mathematics",
     strandKey: "geometry-and-spatial-reasoning",
-    stageKey: "years-9-10-consolidation",
-    stageDisplay: "Years 9-10 / consolidation",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
     stepNumber: 2,
     pathwayStepTitle: "Refine spatial judgement and explanation",
     title: "Refine Spatial Judgement And Explanation",
@@ -1354,7 +1354,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Visualise, analyse maps, compare layouts, predict rotations, judge real spaces, build and explain structures, and evaluate spatial designs.",
     includesAnswerSheet: false,
     fileName: GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2354,19 +2354,29 @@ export function getWorksheetResourceForPathwayStep(
   const strandKey = safe(context.strandKey);
   const stageKey = safe(context.stageKey);
 
-  return (
-    MATH_WORKSHEET_RESOURCES.find((resource) => {
-      if (pathwayStepId && resource.pathwayStepId === pathwayStepId) {
-        return true;
-      }
+  const exactResource = MATH_WORKSHEET_RESOURCES.find((resource) => {
+    if (pathwayStepId && resource.pathwayStepId === pathwayStepId) {
+      return true;
+    }
 
-      return (
-        Boolean(stepKey) &&
-        resource.stepKey === stepKey &&
-        resource.subjectKey === subjectKey &&
-        resource.strandKey === strandKey &&
-        resource.stageKey === stageKey
-      );
-    }) ?? null
+    return (
+      Boolean(stepKey) &&
+      resource.stepKey === stepKey &&
+      resource.subjectKey === subjectKey &&
+      resource.strandKey === strandKey &&
+      resource.stageKey === stageKey
+    );
+  });
+
+  if (exactResource) return exactResource;
+
+  const stageAgnosticMatches = MATH_WORKSHEET_RESOURCES.filter(
+    (resource) =>
+      Boolean(stepKey) &&
+      resource.stepKey === stepKey &&
+      resource.subjectKey === subjectKey &&
+      resource.strandKey === strandKey,
   );
+
+  return stageAgnosticMatches.length === 1 ? stageAgnosticMatches[0] : null;
 }

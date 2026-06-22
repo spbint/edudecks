@@ -154,7 +154,7 @@ export async function listCleanPortfolioItems(
       .map((highlight) => [highlight.evidenceEntryId as string, highlight]),
   );
 
-  const items = evidenceEntries.map((evidence) => {
+  let items = evidenceEntries.map((evidence) => {
     const highlight = highlightByEvidenceId.get(evidence.id) ?? null;
     return {
       evidence,
@@ -163,7 +163,19 @@ export async function listCleanPortfolioItems(
     };
   });
 
-  return options.highlightedOnly ? items.filter((item) => item.isHighlighted) : items;
+  if (options.portfolioIncludedOnly) {
+    items = items.filter((item) => item.evidence.includeInPortfolio);
+  }
+
+  if (options.reportIncludedOnly) {
+    items = items.filter((item) => item.evidence.includeInReport);
+  }
+
+  if (options.highlightedOnly) {
+    items = items.filter((item) => item.isHighlighted);
+  }
+
+  return items;
 }
 
 export async function createCleanPortfolioHighlight(

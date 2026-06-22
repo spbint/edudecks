@@ -11,6 +11,8 @@ export type CleanPortfolioItemsOptions = {
   fromDate?: string | null;
   toDate?: string | null;
   highlightedOnly?: boolean;
+  reportIncludedOnly?: boolean;
+  portfolioIncludedOnly?: boolean;
   limit?: number;
 };
 

@@ -359,6 +359,7 @@ function CleanPortfolioWorkspaceBody() {
       const [nextItems, nextPrograms, nextCalendarItems, nextAssessmentEvidenceEvents] = await Promise.all([
         listCleanPortfolioItems(workspace.profile.id, {
           learnerId: selectedLearnerId || null,
+          portfolioIncludedOnly: true,
           limit: 50,
         }),
         listCleanPrograms(workspace.profile.id, { limit: 50 }),
@@ -410,6 +411,24 @@ function CleanPortfolioWorkspaceBody() {
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void reloadItems();
+      }
+    }
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [reloadItems]);
 
   async function handleToggleHighlight(item: CleanPortfolioItem) {
     if (!workspace.profile) return;
