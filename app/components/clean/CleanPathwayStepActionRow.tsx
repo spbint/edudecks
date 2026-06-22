@@ -162,7 +162,7 @@ export default function CleanPathwayStepActionRow({
 
   const completedPracticeTaskCount = getCompletedCount(practiceItems, completedTaskIds);
   const completedMiniCheckCount = getCompletedCount(miniCheckItems, completedTaskIds);
-  const hasOptionalDigitalTools = Boolean(activity || practiceHref || assessHref || captureHref);
+  const hasOptionalDigitalTools = Boolean(activity || practiceHref || assessHref);
 
   function updateResponse(taskId: string, value: string) {
     setResponses((current) => ({
@@ -341,15 +341,6 @@ export default function CleanPathwayStepActionRow({
                   Legacy digital check
                 </Link>
               ) : null}
-              <Link
-                data-guidance-id="pathways-next-capture"
-                href={captureHref}
-                style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                title="Open My Capture with this pathway step already connected."
-                aria-label="Capture evidence for this pathway step in My Capture"
-              >
-                Open My Capture
-              </Link>
             </div>
 
             {activity ? (

@@ -1700,18 +1700,15 @@ function PathwaysWorkspaceBody() {
                 >
                   <strong style={{ color: "#166534" }}>Pathway started</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Ready to keep going. Capture a learning moment or continue practising.
+                    Ready to keep going. Open the current step to add worksheet evidence directly.
                   </p>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Link href={capturePathBase} style={buttonStyle}>
-                      Continue to My Capture
-                    </Link>
                     <button
                       type="button"
                       onClick={scrollToCurrentStepPanel}
-                      style={secondaryButtonStyle}
+                      style={buttonStyle}
                     >
-                      Keep working on this pathway
+                      Open current step
                     </button>
                   </div>
                 </div>
