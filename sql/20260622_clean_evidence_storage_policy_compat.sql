@@ -80,6 +80,14 @@ begin
   end if;
 end $$;
 
+drop policy if exists "mylearna evidence storage select own" on storage.objects;
+drop policy if exists "mylearna evidence storage insert own" on storage.objects;
+drop policy if exists "mylearna evidence storage update own" on storage.objects;
+drop policy if exists "mylearna evidence storage delete own" on storage.objects;
+
+drop function if exists public.mylearna_evidence_storage_object_owned_by_auth(text);
+drop function if exists public.mylearna_evidence_entry_owned_by_auth(text, text);
+
 create or replace function public.mylearna_evidence_entry_owned_by_auth(
   target_evidence_id text,
   target_learner_id text
