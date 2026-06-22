@@ -201,6 +201,21 @@ export default function WorksheetEvidenceCapture({
     localLatestEvidenceEntry?.imageUrl || localLatestEvidenceEntry?.attachmentUrls.length,
   );
 
+  useEffect(() => {
+    function handleOpenCapture(event: Event) {
+      const detail = (event as CustomEvent<{ pathwayStepId?: string; stepKey?: string }>).detail;
+      const matchesPathwayStep = detail?.pathwayStepId && detail.pathwayStepId === pathwayStepId;
+      const matchesStepKey = detail?.stepKey && detail.stepKey === stepKey;
+      if (!matchesPathwayStep && !matchesStepKey) return;
+      setCaptureFormOpen(true);
+    }
+
+    window.addEventListener("mylearna:open-worksheet-evidence", handleOpenCapture);
+    return () => {
+      window.removeEventListener("mylearna:open-worksheet-evidence", handleOpenCapture);
+    };
+  }, [pathwayStepId, stepKey]);
+
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     setSaveError("");
@@ -346,7 +361,13 @@ export default function WorksheetEvidenceCapture({
   }
 
   return (
-    <section style={shellStyle} data-pathway-worksheet-evidence="active">
+    <section
+      style={shellStyle}
+      data-pathway-worksheet-evidence="active"
+      data-worksheet-evidence-card="active"
+      data-worksheet-evidence-step-id={pathwayStepId}
+      data-worksheet-evidence-step-key={stepKey}
+    >
       <div style={{ display: "grid", gap: 8 }}>
         <span style={eyebrowStyle}>Complete this step with the worksheet</span>
         <h3 style={{ margin: 0, color: "#17204B", fontSize: 18, lineHeight: 1.25 }}>
@@ -370,6 +391,7 @@ export default function WorksheetEvidenceCapture({
           type="button"
           onClick={() => setCaptureFormOpen(true)}
           style={{ ...primaryButtonStyle, cursor: "pointer" }}
+          data-worksheet-evidence-action="add-completed-work"
         >
           {localLatestEvidenceEntry ? "Add another or update" : "Add completed work"}
         </button>
@@ -414,13 +436,14 @@ export default function WorksheetEvidenceCapture({
           type="button"
           onClick={() => setCaptureFormOpen(true)}
           style={addWorkButtonStyle}
+          data-worksheet-evidence-action="add-completed-work"
         >
           Add another photo or update progress
         </button>
       ) : null}
 
       {captureFormOpen ? (
-        <div style={captureFormStyle}>
+        <div style={captureFormStyle} data-worksheet-evidence-form="open">
           <div style={uploadBoxStyle}>
             <label style={uploadActionStyle}>
               <span style={{ color: "#17204B", fontWeight: 850 }}>Take or upload photo</span>

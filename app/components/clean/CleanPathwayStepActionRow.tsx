@@ -251,6 +251,7 @@ export default function CleanPathwayStepActionRow({
       {worksheetResource && hasOptionalDigitalTools ? (
         <details
           data-guidance-id="pathways-practise-assess"
+          data-optional-digital-tools="collapsed"
           style={{
             border: "1px solid #E7EAF2",
             borderRadius: 14,

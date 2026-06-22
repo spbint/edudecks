@@ -1330,6 +1330,21 @@ function PathwaysWorkspaceBody() {
     setPathwayInteractionVersion((current) => current + 1);
   }
 
+  function openSelectedPlacementWorksheetEvidence() {
+    markSelectedPathwayInteraction();
+    scrollToCurrentStepPanel();
+    window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("mylearna:open-worksheet-evidence", {
+          detail: {
+            pathwayStepId: selectedPlacementStep?.id,
+            stepKey: selectedPlacementStep?.stepKey,
+          },
+        }),
+      );
+    }, 180);
+  }
+
   function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("subjectKey", nextSubjectKey);
@@ -1485,15 +1500,25 @@ function PathwaysWorkspaceBody() {
                 </p>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {selectedPlacementWorksheet ? (
-                    <Link
-                      href={selectedPlacementWorksheet.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={markSelectedPathwayInteraction}
-                      style={buttonStyle}
-                    >
-                      Open worksheet
-                    </Link>
+                    <>
+                      <Link
+                        href={selectedPlacementWorksheet.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={markSelectedPathwayInteraction}
+                        style={buttonStyle}
+                      >
+                        Open worksheet
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={openSelectedPlacementWorksheetEvidence}
+                        style={buttonStyle}
+                        data-worksheet-evidence-action="add-completed-work"
+                      >
+                        Add completed work
+                      </button>
+                    </>
                   ) : selectedPlacementPracticeHref ? (
                     <Link
                       href={selectedPlacementPracticeHref}
@@ -1530,29 +1555,53 @@ function PathwaysWorkspaceBody() {
                   }}
                 >
                   {selectedPlacementWorksheet ? (
-                    <Link
-                      href={selectedPlacementWorksheet.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={markSelectedPathwayInteraction}
-                      style={{
-                        ...summaryCardStyle,
-                        minHeight: 78,
-                        borderColor: "#D9D0FF",
-                        background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
-                        textDecoration: "none",
-                        padding: 12,
-                      }}
-                      aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
-                    >
-                      <span style={eyebrowStyle}>Worksheet</span>
-                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                        Complete this step on paper.
-                      </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        Open worksheet
-                      </span>
-                    </Link>
+                    <>
+                      <Link
+                        href={selectedPlacementWorksheet.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={markSelectedPathwayInteraction}
+                        style={{
+                          ...summaryCardStyle,
+                          minHeight: 78,
+                          borderColor: "#D9D0FF",
+                          background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
+                          textDecoration: "none",
+                          padding: 12,
+                        }}
+                        aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
+                      >
+                        <span style={eyebrowStyle}>Worksheet</span>
+                        <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
+                          Complete this step on paper.
+                        </strong>
+                        <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
+                          Open worksheet
+                        </span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={openSelectedPlacementWorksheetEvidence}
+                        style={{
+                          ...summaryCardStyle,
+                          minHeight: 78,
+                          borderColor: "#D9D0FF",
+                          background: "#FFFFFF",
+                          textAlign: "left",
+                          padding: 12,
+                          cursor: "pointer",
+                        }}
+                        data-worksheet-evidence-action="add-completed-work"
+                      >
+                        <span style={eyebrowStyle}>Evidence</span>
+                        <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
+                          Add completed work.
+                        </strong>
+                        <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
+                          Take or upload a photo
+                        </span>
+                      </button>
+                    </>
                   ) : selectedPlacementPracticeHref ? (
                     <Link
                       href={selectedPlacementPracticeHref}
@@ -1608,6 +1657,7 @@ function PathwaysWorkspaceBody() {
                 </div>
                 {selectedPlacementWorksheet ? (
                   <details
+                    data-optional-digital-tools="collapsed"
                     style={{
                       border: "1px solid #E7EAF2",
                       borderRadius: 14,
@@ -2745,6 +2795,22 @@ function NumberRevealStepCard({
       })()
     : "";
 
+  function openWorksheetEvidenceForRevealStep() {
+    const detailPanelId = `pathway-step-${stepStrandKey}-${step.stageKey}-${step.id}`;
+    const target = document.getElementById(detailPanelId);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("mylearna:open-worksheet-evidence", {
+          detail: {
+            pathwayStepId: step.pathwayStepId,
+            stepKey: step.stepKey,
+          },
+        }),
+      );
+    }, 180);
+  }
+
   return (
     <div
       className="mylearna-compact-pathway-row"
@@ -2832,8 +2898,23 @@ function NumberRevealStepCard({
               >
                 Open worksheet
               </Link>
+              <button
+                type="button"
+                onClick={openWorksheetEvidenceForRevealStep}
+                style={{
+                  ...secondaryButtonStyle,
+                  width: "fit-content",
+                  minHeight: 34,
+                  padding: "7px 10px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+                data-worksheet-evidence-action="add-completed-work"
+              >
+                Add completed work
+              </button>
               {(practiceHref || assessmentHref) ? (
-                <details style={{ fontSize: 12, color: "#64748b" }}>
+                <details style={{ fontSize: 12, color: "#64748b" }} data-optional-digital-tools="collapsed">
                   <summary style={{ cursor: "pointer", fontWeight: 700 }}>
                     Optional digital tools
                   </summary>
