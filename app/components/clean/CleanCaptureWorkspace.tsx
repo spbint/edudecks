@@ -117,6 +117,8 @@ const WORKSHEET_PROGRESS_OPTIONS = [
   { value: "Goal achieved + extension", status: "Strong" },
 ] as const;
 
+type WorksheetProgressLevel = (typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"];
+
 function getTodayDate() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -132,6 +134,27 @@ function formatDateLabel(value: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatFileSize(bytes: number | null | undefined) {
+  if (!bytes || !Number.isFinite(bytes)) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getWorksheetParentNote(reflection: string) {
+  return reflection
+    .split("\n")
+    .filter((line) => {
+      const clean = line.trim();
+      return (
+        clean &&
+        !/^Progress level:/i.test(clean) &&
+        !/^Source:/i.test(clean) &&
+        !/^Worksheet:/i.test(clean)
+      );
+    })
+    .join("\n");
 }
 
 function getLearnerLabel(firstName: string, preferredName: string | null) {
@@ -290,16 +313,19 @@ function CleanCaptureWorkspaceBody() {
     useState<CleanPathwayCaptureContext | null>(null);
   const [pathwayObservedSkillStatus, setPathwayObservedSkillStatus] = useState("");
   const [worksheetProgressLevel, setWorksheetProgressLevel] =
-    useState<(typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"]>("Consolidating");
+    useState<WorksheetProgressLevel | "">("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoName, setPhotoName] = useState("");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [photoSelectionMessage, setPhotoSelectionMessage] = useState("No photo attached yet.");
   const [savedAttachments, setSavedAttachments] = useState<UploadedFamilyEvidenceFile[]>([]);
   const [lastSavedCurriculumContext, setLastSavedCurriculumContext] =
     useState<CleanCurriculumCaptureContext | null>(null);
   const [lastSavedPathwayContext, setLastSavedPathwayContext] =
     useState<CleanPathwayCaptureContext | null>(null);
   const [lastSavedReturnPath, setLastSavedReturnPath] = useState("");
+  const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
+  const [lastSavedPhotoAttached, setLastSavedPhotoAttached] = useState(false);
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -334,6 +360,7 @@ function CleanCaptureWorkspaceBody() {
   const worksheetTitleFromQuery = safeQueryValue(searchParams.get("worksheetTitle"));
   const worksheetHrefFromQuery = safeQueryValue(searchParams.get("worksheetHref"));
   const worksheetIdFromQuery = safeQueryValue(searchParams.get("worksheetId"));
+  const worksheetProgressFromQuery = safeQueryValue(searchParams.get("progressLevel"));
   const returnToFromQuery = safeQueryValue(searchParams.get("returnTo"));
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
@@ -513,9 +540,10 @@ function CleanCaptureWorkspaceBody() {
     setProgramId("");
     setCalendarItemId("");
     setPathwayObservedSkillStatus("");
-    setWorksheetProgressLevel("Consolidating");
+    setWorksheetProgressLevel("");
     setPhotoFile(null);
     setPhotoName("");
+    setPhotoSelectionMessage("No photo attached yet.");
     setPhotoPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return "";
@@ -542,6 +570,9 @@ function CleanCaptureWorkspaceBody() {
     setSavedAttachments([]);
     setPhotoFile(file);
     setPhotoName(file?.name ?? "");
+    setPhotoSelectionMessage(
+      file ? "Photo attached." : "No photo was selected. You can try again or save progress without a photo.",
+    );
     setPhotoPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return file ? URL.createObjectURL(file) : "";
@@ -551,13 +582,14 @@ function CleanCaptureWorkspaceBody() {
   function removePhoto() {
     setPhotoFile(null);
     setPhotoName("");
+    setPhotoSelectionMessage("No photo attached yet.");
     setPhotoPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return "";
     });
   }
 
-  function updateWorksheetProgress(nextProgress: (typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"]) {
+  function updateWorksheetProgress(nextProgress: WorksheetProgressLevel) {
     const selected = WORKSHEET_PROGRESS_OPTIONS.find((option) => option.value === nextProgress);
     setWorksheetProgressLevel(nextProgress);
     setPathwayObservedSkillStatus(selected?.status || "");
@@ -650,9 +682,15 @@ function CleanCaptureWorkspaceBody() {
       nextPathwayContext,
       nextLearnerLabel,
     );
+    const progressQueryMatch = WORKSHEET_PROGRESS_OPTIONS.find(
+      (option) => option.value === worksheetProgressFromQuery,
+    );
+    if (worksheetEvidenceMode && progressQueryMatch && !worksheetProgressLevel) {
+      setWorksheetProgressLevel(progressQueryMatch.value);
+    }
     const worksheetProgress = WORKSHEET_PROGRESS_OPTIONS.find(
-      (option) => option.value === worksheetProgressLevel,
-    ) ?? WORKSHEET_PROGRESS_OPTIONS[2];
+      (option) => option.value === (worksheetProgressLevel || progressQueryMatch?.value),
+    ) ?? null;
     const worksheetTitleSuggestion =
       worksheetEvidenceMode && nextPathwayContext
         ? `${safeQueryValue(nextPathwayContext.stepTitle) || "Completed worksheet"} - worksheet evidence`
@@ -685,7 +723,7 @@ function CleanCaptureWorkspaceBody() {
     setReflection(
       worksheetEvidenceMode
         ? [
-            `Progress level: ${worksheetProgress.value}`,
+            worksheetProgress ? `Progress level: ${worksheetProgress.value}` : "",
             "Source: worksheet_evidence",
             worksheetHrefFromQuery ? `Worksheet: ${worksheetHrefFromQuery}` : "",
           ].filter(Boolean).join("\n")
@@ -706,7 +744,7 @@ function CleanCaptureWorkspaceBody() {
     setFormPathwayContext(nextPathwayContext);
     setPathwayObservedSkillStatus(
       worksheetEvidenceMode
-        ? worksheetProgress.status
+        ? worksheetProgress?.status || ""
         : safeQueryValue(nextPathwayContext?.observedSkillStatus),
     );
     setMessage(null);
@@ -714,6 +752,8 @@ function CleanCaptureWorkspaceBody() {
     setLastSavedCurriculumContext(null);
     setLastSavedPathwayContext(null);
     setLastSavedReturnPath("");
+    setLastSavedWorksheetProgress("");
+    setLastSavedPhotoAttached(false);
     setLastAppliedContextKey(captureContextKey);
   }, [
     calendarItemIdFromQuery,
@@ -742,6 +782,7 @@ function CleanCaptureWorkspaceBody() {
     worksheetEvidenceMode,
     worksheetHrefFromQuery,
     worksheetIdFromQuery,
+    worksheetProgressFromQuery,
     worksheetProgressLevel,
     worksheetTitleFromQuery,
   ]);
@@ -755,6 +796,10 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
 
     try {
+      if (worksheetEvidenceMode && !worksheetProgressLevel) {
+        throw new Error("Choose how it went before saving.");
+      }
+
       if (photoFile && !photoFile.type.startsWith("image/")) {
         throw new Error("Please choose an image file for worksheet evidence.");
       }
@@ -880,6 +925,8 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
       setLastSavedPathwayContext(nextPathwayContext);
       setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
+      setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
+      setLastSavedPhotoAttached(Boolean(photoFile));
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
       setSavedAttachments(uploadedAttachments);
@@ -1068,7 +1115,11 @@ function CleanCaptureWorkspaceBody() {
 
         {readyForCapture && workspace.profile && workspace.learners.length ? (
           <>
-            <section data-guidance-id="capture-add-evidence" style={cardStyle}>
+            <section
+              data-guidance-id="capture-add-evidence"
+              data-capture-mode={worksheetEvidenceMode ? "worksheet-evidence" : "general"}
+              style={cardStyle}
+            >
             <div
               style={{
                 display: "flex",
@@ -1153,42 +1204,6 @@ function CleanCaptureWorkspaceBody() {
                           Open worksheet
                         </Link>
                       ) : null}
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <span style={{ color: "#17204B", fontWeight: 800 }}>
-                          How did it go?
-                        </span>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                            gap: 8,
-                          }}
-                        >
-                          {WORKSHEET_PROGRESS_OPTIONS.map((option) => {
-                            const selected = worksheetProgressLevel === option.value;
-                            return (
-                              <button
-                                key={option.value}
-                                type="button"
-                                onClick={() => updateWorksheetProgress(option.value)}
-                                style={{
-                                  border: `1px solid ${selected ? "#6C4DF6" : "#E7EAF2"}`,
-                                  borderRadius: 14,
-                                  background: selected ? "#F2EDFF" : "#FFFFFF",
-                                  color: selected ? "#5B21B6" : "#17204B",
-                                  padding: "11px 12px",
-                                  minHeight: 48,
-                                  fontWeight: 800,
-                                  cursor: "pointer",
-                                  textAlign: "left",
-                                }}
-                              >
-                                {option.value}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -1288,6 +1303,200 @@ function CleanCaptureWorkspaceBody() {
                   </label>
                 </div>
 
+                {worksheetEvidenceMode ? (
+                  <>
+                    <div
+                      style={{
+                        border: "1px dashed #CBD5E1",
+                        borderRadius: 16,
+                        background: "#F8FAFC",
+                        padding: 14,
+                        display: "grid",
+                        gap: 10,
+                      }}
+                    >
+                      <label
+                        data-capture-photo-action="take-or-upload"
+                        style={{
+                          border: "1px solid #D9D0FF",
+                          borderRadius: 16,
+                          background: "#FFFFFF",
+                          padding: 14,
+                          minHeight: 86,
+                          display: "grid",
+                          gap: 7,
+                          cursor: submitting ? "default" : "pointer",
+                          boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
+                        }}
+                      >
+                        <span style={{ color: "#17204B", fontWeight: 850 }}>
+                          Take or upload photo
+                        </span>
+                        <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
+                          Use your camera or choose an image.
+                        </span>
+                        <span style={{ color: "#64748B", fontSize: 12, lineHeight: 1.45 }}>
+                          If your camera does not open, allow camera access for this browser or choose an existing photo.
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          disabled={submitting}
+                          onClick={() => {
+                            setPhotoSelectionMessage("Choose a photo or take a new one.");
+                          }}
+                          onBlur={() => {
+                            if (!photoFile) {
+                              setPhotoSelectionMessage(
+                                "No photo was selected. You can try again or save progress without a photo.",
+                              );
+                            }
+                          }}
+                          onChange={handlePhotoChange}
+                          data-capture-photo-input="active"
+                          style={{
+                            position: "absolute",
+                            width: 1,
+                            height: 1,
+                            opacity: 0,
+                          }}
+                        />
+                      </label>
+                      <div
+                        style={{
+                          border: photoFile ? "1px solid #BBF7D0" : "1px solid #E2E8F0",
+                          borderRadius: 14,
+                          background: photoFile ? "#F0FDF4" : "#FFFFFF",
+                          padding: 12,
+                          display: "grid",
+                          gap: 8,
+                        }}
+                      >
+                        <strong style={{ color: photoFile ? "#15803D" : "#475569", fontSize: 14 }}>
+                          {photoFile ? "Photo attached" : "No photo attached yet"}
+                        </strong>
+                        <span style={{ color: "#64748B", fontSize: 13, lineHeight: 1.45 }}>
+                          {photoSelectionMessage}
+                        </span>
+                        {photoPreviewUrl ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={photoPreviewUrl}
+                              alt="Selected worksheet evidence preview"
+                              data-capture-photo-preview="attached"
+                              style={{
+                                width: "100%",
+                                maxHeight: 220,
+                                objectFit: "cover",
+                                borderRadius: 14,
+                                border: "1px solid #BBF7D0",
+                              }}
+                            />
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                              <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>
+                                {photoName}
+                                {formatFileSize(photoFile?.size) ? ` / ${formatFileSize(photoFile?.size)}` : ""}
+                              </span>
+                              <label style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}>
+                                Replace photo
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  disabled={submitting}
+                                  onClick={() => {
+                                    setPhotoSelectionMessage("Choose a replacement photo.");
+                                  }}
+                                  onChange={handlePhotoChange}
+                                  style={{
+                                    position: "absolute",
+                                    width: 1,
+                                    height: 1,
+                                    opacity: 0,
+                                  }}
+                                />
+                              </label>
+                              <button type="button" onClick={removePhoto} disabled={submitting} style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}>
+                                Remove photo
+                              </button>
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 8 }} data-capture-progress-options="active">
+                      <span style={{ color: "#17204B", fontWeight: 800 }}>
+                        How did it go?
+                      </span>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                          gap: 8,
+                        }}
+                      >
+                        {WORKSHEET_PROGRESS_OPTIONS.map((option) => {
+                          const selected = worksheetProgressLevel === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => updateWorksheetProgress(option.value)}
+                              disabled={submitting}
+                              style={{
+                                border: `1px solid ${selected ? "#6C4DF6" : "#E7EAF2"}`,
+                                borderRadius: 14,
+                                background: selected ? "#F2EDFF" : "#FFFFFF",
+                                color: selected ? "#5B21B6" : "#17204B",
+                                padding: "11px 12px",
+                                minHeight: 48,
+                                fontWeight: 800,
+                                cursor: submitting ? "default" : "pointer",
+                                textAlign: "left",
+                              }}
+                            >
+                              {option.value}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {!worksheetProgressLevel ? (
+                        <span style={{ color: "#B45309", fontSize: 13, fontWeight: 750 }}>
+                          Choose how it went before saving.
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                        Optional note
+                      </span>
+                      <textarea
+                        value={getWorksheetParentNote(reflection)}
+                        onChange={(event) => {
+                          const progressLine = worksheetProgressLevel
+                            ? `Progress level: ${worksheetProgressLevel}`
+                            : "";
+                          setReflection(
+                            [
+                              progressLine,
+                              "Source: worksheet_evidence",
+                              worksheetHrefFromQuery ? `Worksheet: ${worksheetHrefFromQuery}` : "",
+                              event.target.value,
+                            ].filter(Boolean).join("\n"),
+                          );
+                        }}
+                        placeholder="What helped? What needs another pass?"
+                        style={textAreaStyle}
+                      />
+                    </label>
+                  </>
+                ) : null}
+
+                {!worksheetEvidenceMode ? (
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -1298,7 +1507,9 @@ function CleanCaptureWorkspaceBody() {
                   }
                   style={inputStyle}
                 />
+                ) : null}
 
+                {!worksheetEvidenceMode ? (
                 <div data-guidance-id="capture-note-field">
                   <textarea
                     value={whatHappened}
@@ -1307,87 +1518,20 @@ function CleanCaptureWorkspaceBody() {
                     style={textAreaStyle}
                   />
                 </div>
+                ) : null}
                 {curriculumCaptureActive ? (
                   <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                     What does this learning show?
                   </div>
                 ) : null}
 
+                {!worksheetEvidenceMode ? (
                 <textarea
                   value={reflection}
                   onChange={(event) => setReflection(event.target.value)}
                   placeholder={reflectionPlaceholder}
                   style={textAreaStyle}
                 />
-
-                {worksheetEvidenceMode ? (
-                  <div
-                    style={{
-                      border: "1px dashed #CBD5E1",
-                      borderRadius: 16,
-                      background: "#F8FAFC",
-                      padding: 14,
-                      display: "grid",
-                      gap: 10,
-                    }}
-                  >
-                    <label
-                      style={{
-                        border: "1px solid #D9D0FF",
-                        borderRadius: 16,
-                        background: "#FFFFFF",
-                        padding: 14,
-                        minHeight: 86,
-                        display: "grid",
-                        gap: 7,
-                        cursor: "pointer",
-                        boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
-                      }}
-                    >
-                      <span style={{ color: "#17204B", fontWeight: 850 }}>
-                        Take or upload photo
-                      </span>
-                      <span style={{ color: "#5B6478", fontSize: 13, lineHeight: 1.4 }}>
-                        Use your phone camera or choose an image of the completed worksheet.
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handlePhotoChange}
-                        style={{
-                          position: "absolute",
-                          width: 1,
-                          height: 1,
-                          opacity: 0,
-                        }}
-                      />
-                    </label>
-                    {photoPreviewUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={photoPreviewUrl}
-                          alt="Selected worksheet evidence preview"
-                          style={{
-                            width: "100%",
-                            maxHeight: 220,
-                            objectFit: "cover",
-                            borderRadius: 14,
-                            border: "1px solid #E2E8F0",
-                          }}
-                        />
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>
-                            Selected: {photoName}
-                          </span>
-                          <button type="button" onClick={removePhoto} style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}>
-                            Remove photo
-                          </button>
-                        </div>
-                      </>
-                    ) : null}
-                  </div>
                 ) : null}
 
                 {pathwayObservedStatusFieldVisible ? (
@@ -1414,6 +1558,7 @@ function CleanCaptureWorkspaceBody() {
                   </label>
                 ) : null}
 
+                {!worksheetEvidenceMode ? (
                 <div data-guidance-id="capture-learning-area">
                   <input
                     value={learningArea}
@@ -1422,7 +1567,9 @@ function CleanCaptureWorkspaceBody() {
                     style={inputStyle}
                   />
                 </div>
+                ) : null}
 
+                {!worksheetEvidenceMode ? (
                 <div
                   style={{
                     display: "grid",
@@ -1457,10 +1604,31 @@ function CleanCaptureWorkspaceBody() {
                     </select>
                   </label>
                 </div>
+                ) : null}
 
                 <div data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="submit" style={buttonStyle} disabled={submitting}>
-                    {submitting ? "Saving..." : "Save capture"}
+                  <button
+                    type="submit"
+                    style={{
+                      ...buttonStyle,
+                      opacity: worksheetEvidenceMode && !worksheetProgressLevel ? 0.68 : 1,
+                      cursor:
+                        submitting || (worksheetEvidenceMode && !worksheetProgressLevel)
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                    disabled={submitting || (worksheetEvidenceMode && !worksheetProgressLevel)}
+                    data-capture-save={worksheetEvidenceMode ? "active" : undefined}
+                  >
+                    {submitting
+                      ? worksheetEvidenceMode
+                        ? "Saving evidence..."
+                        : "Saving..."
+                      : worksheetEvidenceMode
+                        ? photoFile
+                          ? "Save evidence"
+                          : "Save progress without photo"
+                        : "Save capture"}
                   </button>
                   {editingEntryId ? (
                     <button
@@ -1486,6 +1654,7 @@ function CleanCaptureWorkspaceBody() {
 
               {message ? (
                 <div
+                  data-capture-success={lastSavedPathwayContext ? "saved" : undefined}
                   style={{
                     marginTop: 16,
                     border: "1px solid #99f6e4",
@@ -1496,20 +1665,53 @@ function CleanCaptureWorkspaceBody() {
                     gap: 10,
                   }}
                 >
-                  <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+                  <strong style={{ margin: 0, color: "#0f766e", fontSize: 16 }}>
+                    {lastSavedPathwayContext ? "Evidence saved" : message}
+                  </strong>
+                  {lastSavedPathwayContext ? (
+                    <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
+                      {lastSavedWorksheetProgress ? (
+                        <span>Progress level: {lastSavedWorksheetProgress}</span>
+                      ) : null}
+                      <span>
+                        Photo attached: {lastSavedPhotoAttached ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        {worksheetTitleFromQuery || lastSavedPathwayContext.stepTitle || "Worksheet step"}
+                      </span>
+                      <span>Included for portfolio and reports.</span>
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+                  )}
                   {savedAttachments.length ? (
                     <p style={{ margin: 0, color: "#0f766e", fontWeight: 700 }}>
                       Photo attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
                     </p>
                   ) : null}
                   {lastSavedPathwayContext ? (
-                    <div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         type="button"
                         style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
                         onClick={() => router.push(lastSavedReturnPath || pathwaysReturnPath)}
                       >
                         {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
+                      </button>
+                      <Link href="/my-portfolio" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                        Open My Portfolio
+                      </Link>
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => {
+                          setMessage(null);
+                          setLastSavedPathwayContext(null);
+                          setLastSavedWorksheetProgress("");
+                          setLastSavedPhotoAttached(false);
+                        }}
+                      >
+                        Add another capture
                       </button>
                     </div>
                   ) : null}
