@@ -366,6 +366,13 @@ export default function WorksheetEvidenceCapture({
         >
           Open worksheet
         </a>
+        <button
+          type="button"
+          onClick={() => setCaptureFormOpen(true)}
+          style={{ ...primaryButtonStyle, cursor: "pointer" }}
+        >
+          {localLatestEvidenceEntry ? "Add another or update" : "Add completed work"}
+        </button>
         <a
           href={worksheetResource.href}
           download={worksheetResource.fileName}
@@ -402,13 +409,15 @@ export default function WorksheetEvidenceCapture({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setCaptureFormOpen(true)}
-        style={addWorkButtonStyle}
-      >
-        {localLatestEvidenceEntry ? "Add another photo or update progress" : "Add completed work"}
-      </button>
+      {localLatestEvidenceEntry ? (
+        <button
+          type="button"
+          onClick={() => setCaptureFormOpen(true)}
+          style={addWorkButtonStyle}
+        >
+          Add another photo or update progress
+        </button>
+      ) : null}
 
       {captureFormOpen ? (
         <div style={captureFormStyle}>
