@@ -59,11 +59,6 @@ const outputNavItems: HeaderNavItem[] = [
     href: "/my-reports",
     matches: ["/my-reports", "/clean-my-reports"],
   },
-  {
-    label: "My Outputs",
-    href: "/my-outputs",
-    matches: ["/my-outputs", "/clean-my-outputs"],
-  },
 ];
 
 const communityNavItem: HeaderNavItem = {
@@ -295,7 +290,7 @@ export default function CleanAppHeader() {
                     scrollSnapAlign: "start",
                   }}
                 >
-                  My Outputs
+                  Evidence & Reports
                   <span
                     aria-hidden="true"
                     style={{
@@ -313,7 +308,7 @@ export default function CleanAppHeader() {
                       <div
                         ref={outputsMenuRef}
                         role="menu"
-                        aria-label="My Outputs"
+                        aria-label="Evidence and reports"
                         style={{
                           position: "fixed",
                           left: menuPosition.left,

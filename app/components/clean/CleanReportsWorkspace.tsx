@@ -591,6 +591,18 @@ function CleanReportsWorkspaceBody() {
   const outputsPathBase = pathname.startsWith("/clean-my-reports")
     ? "/clean-my-outputs"
     : "/my-outputs";
+  const buildOutputsHref = useCallback(
+    (report: CleanReport | null | undefined) => {
+      if (!report) return outputsPathBase;
+      const params = new URLSearchParams();
+      params.set("learner_id", report.learnerId);
+      params.set("report_id", report.id);
+      params.set("report_period_id", report.reportingPeriodId);
+      params.set("report_title", report.title);
+      return `${outputsPathBase}?${params.toString()}`;
+    },
+    [outputsPathBase],
+  );
   const readyForReports =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const brentModeActive = useMemo(
@@ -1256,7 +1268,7 @@ function CleanReportsWorkspaceBody() {
     if (!selectedReport) return;
 
     await handleUpdateReportStatus(selectedReport, "ready");
-    window.location.assign(outputsPathBase);
+    window.location.assign(buildOutputsHref(selectedReport));
   }
 
   const introPrimaryAction = !selectedReport ? (
@@ -2253,7 +2265,7 @@ function CleanReportsWorkspaceBody() {
                     secondaryAction={
                       selectedReport.status === "ready" ? (
                         <Link
-                          href={outputsPathBase}
+                          href={buildOutputsHref(selectedReport)}
                           style={{
                             ...buttonStyle,
                             textDecoration: "none",
@@ -2294,7 +2306,7 @@ function CleanReportsWorkspaceBody() {
                     </div>
                     <GuidanceSetupNextAction
                       stepId="reports"
-                      nextHref={outputsPathBase}
+                      nextHref={buildOutputsHref(selectedReport)}
                       label="Continue to My Outputs"
                       skipLabel="Skip reports for now"
                       helperText="You have seen how reports are previewed. Continue to outputs when you are ready."
@@ -2449,7 +2461,7 @@ function CleanReportsWorkspaceBody() {
 
                       {selectedReport.status === "ready" ? (
                         <Link
-                          href={outputsPathBase}
+                          href={buildOutputsHref(selectedReport)}
                           style={{
                             ...secondaryButtonStyle,
                             textDecoration: "none",

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -234,6 +235,7 @@ function getReportStatusStyles(status: CleanReportStatus): React.CSSProperties {
 function CleanOutputsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
+  const searchParams = useSearchParams();
   const [periods, setPeriods] = useState<CleanReportingPeriod[]>([]);
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
@@ -252,6 +254,7 @@ function CleanOutputsWorkspaceBody() {
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
   const [dataError, setDataError] = useState<string | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -286,6 +289,18 @@ function CleanOutputsWorkspaceBody() {
   const calendarItemById = useMemo(
     () => new Map(calendarItems.map((item) => [item.id, item])),
     [calendarItems],
+  );
+  const requestedLearnerId = searchParams.get("learner_id") || "";
+  const requestedReportId =
+    searchParams.get("report_id") || searchParams.get("reportId") || "";
+  const requestedReportPeriodId =
+    searchParams.get("report_period_id") ||
+    searchParams.get("reporting_period_id") ||
+    searchParams.get("reportPeriodId") ||
+    "";
+  const requestedReportTitle = searchParams.get("report_title") || "";
+  const hasRequestedReportContext = Boolean(
+    requestedLearnerId || requestedReportId || requestedReportPeriodId,
   );
 
   const filteredReports = useMemo(() => {
@@ -548,6 +563,14 @@ function CleanOutputsWorkspaceBody() {
       return;
     }
 
+    if (
+      requestedLearnerId &&
+      workspace.learners.some((learner) => learner.id === requestedLearnerId)
+    ) {
+      setSelectedLearnerId(requestedLearnerId);
+      return;
+    }
+
     setSelectedLearnerId((current) => {
       if (current && workspace.learners.some((learner) => learner.id === current)) {
         return current;
@@ -555,9 +578,38 @@ function CleanOutputsWorkspaceBody() {
 
       return workspace.profile?.defaultLearnerId || workspace.learners[0]?.id || "";
     });
-  }, [workspace.learners, workspace.profile]);
+  }, [requestedLearnerId, workspace.learners, workspace.profile]);
 
   useEffect(() => {
+    setContextError(null);
+
+    if (requestedReportId) {
+      const requestedReport = reports.find((report) => report.id === requestedReportId) ?? null;
+      if (requestedReport) {
+        const learnerMismatch =
+          requestedLearnerId && requestedReport.learnerId !== requestedLearnerId;
+        const periodMismatch =
+          requestedReportPeriodId &&
+          requestedReport.reportingPeriodId !== requestedReportPeriodId;
+
+        if (learnerMismatch || periodMismatch) {
+          setSelectedReportId("");
+          setContextError("We could not open this report. Return to My Reports.");
+          return;
+        }
+
+        setSelectedLearnerId(requestedReport.learnerId);
+        setSelectedReportId(requestedReport.id);
+        return;
+      }
+
+      if (!catalogLoading && reports.length) {
+        setSelectedReportId("");
+        setContextError("We could not open this report. Return to My Reports.");
+      }
+      return;
+    }
+
     if (!readyReports.length) {
       setSelectedReportId("");
       return;
@@ -568,7 +620,14 @@ function CleanOutputsWorkspaceBody() {
         ? current
         : readyReports[0]?.id ?? "",
     );
-  }, [readyReports]);
+  }, [
+    catalogLoading,
+    readyReports,
+    reports,
+    requestedLearnerId,
+    requestedReportId,
+    requestedReportPeriodId,
+  ]);
 
   useEffect(() => {
     void reloadSections();
@@ -1094,6 +1153,66 @@ function CleanOutputsWorkspaceBody() {
 
         {readyForOutputs && workspace.profile && workspace.learners.length ? (
           <>
+            {contextError ? (
+              <section
+                style={{
+                  ...cardStyle,
+                  borderColor: "#fecdd3",
+                  background: "#fff1f2",
+                }}
+              >
+                <h2 style={{ marginTop: 0, color: "#9f1239" }}>Report not found</h2>
+                <p style={{ margin: 0, color: "#9f1239", lineHeight: 1.6 }}>
+                  {contextError}
+                </p>
+              </section>
+            ) : null}
+
+            {hasRequestedReportContext ? (
+              <section
+                style={{
+                  ...cardStyle,
+                  borderColor: "#dbeafe",
+                  background: "#f8fbff",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    color: "#1d4ed8",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                  }}
+                >
+                  Report context
+                </div>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>
+                  {selectedReport?.title || requestedReportTitle || "Selected report"}
+                </h2>
+                <div style={{ color: "#475569", lineHeight: 1.6, marginTop: 8 }}>
+                  Learner:{" "}
+                  <strong style={{ color: "#0f172a" }}>
+                    {selectedLearnerLabel ||
+                      learnerLabelById.get(requestedLearnerId) ||
+                      "Loading learner"}
+                  </strong>
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Report period:{" "}
+                  <strong style={{ color: "#0f172a" }}>
+                    {selectedPeriod?.title || "Loading report period"}
+                  </strong>
+                  {selectedPeriod
+                    ? ` - ${formatDateRange(selectedPeriod.startsOn, selectedPeriod.endsOn)}`
+                    : ""}
+                </div>
+              </section>
+            ) : null}
+
+            {!hasRequestedReportContext ? (
+              <>
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage Record</h2>
@@ -1197,6 +1316,8 @@ function CleanOutputsWorkspaceBody() {
                 </div>
               </div>
             </section>
+              </>
+            ) : null}
 
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
@@ -1215,7 +1336,11 @@ function CleanOutputsWorkspaceBody() {
               >
                 <select
                   value={selectedLearnerId}
-                  onChange={(event) => setSelectedLearnerId(event.target.value)}
+                  onChange={(event) => {
+                    setContextError(null);
+                    setSelectedLearnerId(event.target.value);
+                    setSelectedReportId("");
+                  }}
                   style={inputStyle}
                 >
                   <option value="">All learners with reports</option>
@@ -1228,7 +1353,15 @@ function CleanOutputsWorkspaceBody() {
 
                 <select
                   value={selectedReportId}
-                  onChange={(event) => setSelectedReportId(event.target.value)}
+                  onChange={(event) => {
+                    setContextError(null);
+                    const nextReportId = event.target.value;
+                    const nextReport = reports.find((report) => report.id === nextReportId);
+                    if (nextReport) {
+                      setSelectedLearnerId(nextReport.learnerId);
+                    }
+                    setSelectedReportId(nextReportId);
+                  }}
                   style={inputStyle}
                 >
                   <option value="">Select ready report</option>
