@@ -458,6 +458,12 @@ function CleanCaptureWorkspaceBody() {
   const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-pathways"
     : "/my-pathways";
+  const portfolioReturnPath = `${pathname.startsWith("/clean-my-capture") ? "/clean-my-portfolio" : "/my-portfolio"}${
+    learnerIdFromQuery ? `?learner_id=${encodeURIComponent(learnerIdFromQuery)}` : ""
+  }`;
+  const portfolioLearningRecordPath = `${portfolioReturnPath}${
+    portfolioReturnPath.includes("?") ? "&" : "?"
+  }focus=learning-record`;
   const worksheetReturnPath =
     returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
       ? returnToFromQuery
@@ -2159,8 +2165,11 @@ function CleanCaptureWorkspaceBody() {
                       >
                         {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
                       </button>
-                      <Link href="/my-portfolio" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
-                        Open My Portfolio
+                      <Link href={portfolioReturnPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                        View portfolio
+                      </Link>
+                      <Link href={portfolioLearningRecordPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                        Download learning record
                       </Link>
                       <button
                         type="button"

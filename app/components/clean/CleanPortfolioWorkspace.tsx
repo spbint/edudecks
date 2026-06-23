@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -31,6 +31,7 @@ import {
   listCleanPortfolioItems,
 } from "@/lib/clean/portfolio/client";
 import {
+  buildReportPdfEvidenceItems,
   getEvidencePresentationMeta,
   getEvidencePreviewImage,
 } from "@/lib/clean/portfolio/evidencePresentation";
@@ -47,6 +48,11 @@ import {
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
 import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
+import {
+  buildCleanReportPdfFilename,
+  generateCleanReportPdfBytes,
+} from "@/lib/clean/outputs/pdf";
+import type { CleanReport } from "@/lib/clean/reports/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -117,6 +123,19 @@ function formatDateLabel(value: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.click();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 }
 
 function formatEvidenceEventDateLabel(value: string | null) {
@@ -195,6 +214,7 @@ function getPathwayStepEvidenceMeta(item: CleanPortfolioItem): PathwayStepEviden
 function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [selectedLearningArea, setSelectedLearningArea] = useState("");
@@ -225,6 +245,11 @@ function CleanPortfolioWorkspaceBody() {
         label: getLearnerLabel(learner.firstName, learner.preferredName),
       })),
     [workspace.learners],
+  );
+  const learnerIdFromQuery = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
+  const learnerLabelById = useMemo(
+    () => new Map(learnerOptions.map((option) => [option.value, option.label])),
+    [learnerOptions],
   );
 
   const capturePathBase = pathname.startsWith("/clean-my-portfolio")
@@ -418,6 +443,12 @@ function CleanPortfolioWorkspaceBody() {
   ]);
 
   useEffect(() => {
+    if (!learnerIdFromQuery) return;
+    if (!learnerOptions.some((option) => option.value === learnerIdFromQuery)) return;
+    setSelectedLearnerId(learnerIdFromQuery);
+  }, [learnerIdFromQuery, learnerOptions]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     function refreshWhenVisible() {
@@ -510,9 +541,113 @@ function CleanPortfolioWorkspaceBody() {
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const selectedLearnerLabel =
     learnerOptions.find((option) => option.value === selectedLearnerId)?.label || "";
+  const quickRecordEvidenceItems = useMemo(
+    () =>
+      selectedLearnerId
+        ? sortPortfolioItems(
+            items.filter(
+              (item) =>
+                item.evidence.learnerId === selectedLearnerId &&
+                item.evidence.includeInReport,
+            ),
+          )
+        : [],
+    [items, selectedLearnerId],
+  );
+  const quickRecordAssessmentEvidenceItems = useMemo(
+    () =>
+      selectedLearnerId
+        ? assessmentEvidenceEvents.filter((event) => event.learnerId === selectedLearnerId)
+        : [],
+    [assessmentEvidenceEvents, selectedLearnerId],
+  );
+  const quickRecordPdfEvidenceItems = useMemo(
+    () =>
+      buildReportPdfEvidenceItems(quickRecordEvidenceItems, {
+        calendarItemById,
+        learnerLabelById,
+        programLabelById,
+        segmentLabelById,
+        selectedLearnerLabel,
+      }),
+    [
+      calendarItemById,
+      learnerLabelById,
+      programLabelById,
+      quickRecordEvidenceItems,
+      segmentLabelById,
+      selectedLearnerLabel,
+    ],
+  );
   const portfolioHeading = selectedLearnerLabel
     ? `${selectedLearnerLabel}'s portfolio`
     : "My Portfolio";
+
+  async function handleDownloadLearningRecord() {
+    if (!workspace.profile || !selectedLearnerId || !selectedLearnerLabel) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const observedDates = quickRecordEvidenceItems
+        .map((item) => item.evidence.observedOn)
+        .filter(Boolean)
+        .sort();
+      const startsOn = observedDates[0] || today;
+      const endsOn = observedDates[observedDates.length - 1] || today;
+      const title = `${selectedLearnerLabel} learning record`;
+      const report: CleanReport = {
+        id: "portfolio-learning-record",
+        familyId: workspace.profile.id,
+        learnerId: selectedLearnerId,
+        reportingPeriodId: "portfolio-learning-record",
+        title,
+        status: "ready",
+        createdByUserId: workspace.profile.createdByUserId,
+        createdAt: null,
+        updatedAt: null,
+      };
+
+      const pdfBytes = await generateCleanReportPdfBytes({
+        report,
+        learnerLabel: selectedLearnerLabel,
+        reportingPeriod: {
+          id: "portfolio-learning-record",
+          familyId: workspace.profile.id,
+          learnerId: selectedLearnerId,
+          title: "Portfolio learning record",
+          startsOn,
+          endsOn,
+          createdByUserId: workspace.profile.createdByUserId,
+          createdAt: null,
+          updatedAt: null,
+        },
+        sections: [],
+        evidenceItems: quickRecordPdfEvidenceItems,
+        assessmentEvidenceItems: quickRecordAssessmentEvidenceItems,
+        preparedOnLabel: formatDateLabel(today),
+        statusLabel: "Ready",
+      });
+
+      downloadPdf(
+        pdfBytes,
+        buildCleanReportPdfFilename(selectedLearnerLabel, "portfolio-learning-record"),
+      );
+      setMessage("Learning record PDF downloaded.");
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not create this learning record PDF right now.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div style={shellStyle}>
@@ -550,6 +685,24 @@ function CleanPortfolioWorkspaceBody() {
             <div>
               <GuidancePageAction tourId="my-portfolio" />
             </div>
+            {selectedLearnerLabel ? (
+              <div
+                style={{
+                  marginTop: 4,
+                  display: "inline-flex",
+                  width: "fit-content",
+                  border: "1px solid #dbeafe",
+                  borderRadius: 999,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  padding: "6px 10px",
+                  fontSize: 13,
+                  fontWeight: 800,
+                }}
+              >
+                Active learner: {selectedLearnerLabel}
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -598,6 +751,116 @@ function CleanPortfolioWorkspaceBody() {
 
         {readyForPortfolio && workspace.profile && workspace.learners.length ? (
           <>
+            <section
+              style={{
+                ...cardStyle,
+                borderColor: "#dbeafe",
+                background: "#f8fbff",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gap: 16,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                }}
+              >
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      color: "#1d4ed8",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Learning record
+                  </div>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                    Download a quick evidence PDF
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Use captured evidence directly from Portfolio. My Reports is still available for a fuller edited report.
+                  </p>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {selectedLearnerLabel ? (
+                      <>
+                        <strong style={{ color: "#0f172a" }}>{selectedLearnerLabel}</strong>
+                        {" - "}
+                        {quickRecordEvidenceItems.length} report-included evidence{" "}
+                        {quickRecordEvidenceItems.length === 1 ? "item" : "items"}
+                        {quickRecordAssessmentEvidenceItems.length
+                          ? ` and ${quickRecordAssessmentEvidenceItems.length} pathway checks`
+                          : ""}
+                      </>
+                    ) : (
+                      "Choose one learner to download a learning record."
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
+                  <select
+                    value={selectedLearnerId}
+                    onChange={(event) => setSelectedLearnerId(event.target.value)}
+                    style={{
+                      ...inputStyle,
+                      minHeight: 44,
+                      background: "#ffffff",
+                    }}
+                    aria-label="Choose learner for learning record"
+                  >
+                    <option value="">Choose learner</option>
+                    {learnerOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    style={{
+                      ...buttonStyle,
+                      minHeight: 46,
+                      opacity:
+                        selectedLearnerId &&
+                        (quickRecordEvidenceItems.length ||
+                          quickRecordAssessmentEvidenceItems.length)
+                          ? 1
+                          : 0.6,
+                    }}
+                    onClick={() => void handleDownloadLearningRecord()}
+                    disabled={
+                      submitting ||
+                      !selectedLearnerId ||
+                      (!quickRecordEvidenceItems.length &&
+                        !quickRecordAssessmentEvidenceItems.length)
+                    }
+                  >
+                    {submitting ? "Preparing PDF..." : "Download learning record"}
+                  </button>
+                  <Link
+                    href={
+                      selectedLearnerId
+                        ? `${reportsPathBase}?learner_id=${selectedLearnerId}`
+                        : reportsPathBase
+                    }
+                    style={{
+                      ...secondaryButtonStyle,
+                      minHeight: 44,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Create full report
+                  </Link>
+                </div>
+              </div>
+            </section>
+
             <section data-guidance-id="portfolio-review-progress" style={cardStyle}>
               <div
                 style={{
