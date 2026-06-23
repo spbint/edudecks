@@ -8,6 +8,7 @@ import type {
 } from "@/lib/clean/reports/types";
 import type { CleanReportPdfEvidenceItem } from "@/lib/clean/outputs/pdf";
 import type { LearningEvidenceEvent } from "@/lib/clean/evidence/learningEvidenceEvents";
+import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 
 const previewWrapStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
@@ -397,6 +398,17 @@ export default function CleanReportPreview({
                       </span>
                     ) : null}
                   </div>
+                  {item.previewImageUrl || item.previewImageStoragePath ? (
+                    <EvidenceThumbnail
+                      image={{
+                        url: item.previewImageUrl ?? null,
+                        storagePath: item.previewImageStoragePath ?? null,
+                        fileName: null,
+                        altText: item.previewImageAlt || `Evidence photo for ${item.title}`,
+                      }}
+                      title="Evidence photo"
+                    />
+                  ) : null}
                   <p
                     style={{
                       margin: 0,

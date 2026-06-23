@@ -9,6 +9,7 @@ import CleanFamilyWorkspaceProvider, {
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
@@ -16,7 +17,10 @@ import {
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
-import { getEvidencePresentationMeta } from "@/lib/clean/portfolio/evidencePresentation";
+import {
+  getEvidencePresentationMeta,
+  getEvidencePreviewImage,
+} from "@/lib/clean/portfolio/evidencePresentation";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import {
   listAssessmentLearningEvidenceEventsForLearner,
@@ -1992,6 +1996,7 @@ function CleanReportsWorkspaceBody() {
                                 ? (selectedPathwayEvidenceSummary.repeatedStepsByKey.get(pathwayMeta.key)?.count ?? 0) > 1
                                 : false;
                               const evidenceMeta = getEvidencePresentationMeta(item);
+                              const previewImage = getEvidencePreviewImage(item.evidence);
 
                               return (
                                 <div
@@ -2055,6 +2060,12 @@ function CleanReportsWorkspaceBody() {
                                       </span>
                                     ) : null}
                                   </div>
+                                  {previewImage ? (
+                                    <EvidenceThumbnail
+                                      image={previewImage}
+                                      title="Evidence photo"
+                                    />
+                                  ) : null}
                                   {pathwayMeta ? (
                                     <div
                                       style={{

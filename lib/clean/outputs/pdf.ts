@@ -21,6 +21,8 @@ import {
   type DashboardPdfPalette,
   type DashboardPdfTone,
 } from "@/lib/clean/outputs/dashboardPdfPrimitives";
+import { supabase } from "@/lib/supabaseClient";
+import { FAMILY_EVIDENCE_STORAGE_BUCKET } from "@/lib/familyEvidence";
 
 export type CleanReportPdfEvidenceItem = {
   id: string;
@@ -42,6 +44,9 @@ export type CleanReportPdfEvidenceItem = {
   progressLevel?: string | null;
   hasAttachment?: boolean;
   attachmentCount?: number;
+  previewImageUrl?: string | null;
+  previewImageStoragePath?: string | null;
+  previewImageAlt?: string | null;
 };
 
 export type CleanReportPdfModel = {
@@ -80,6 +85,7 @@ type PdfComposer = {
 const DISCLAIMER_TEXT =
   "Family learning record. Check local home education requirements before submitting.";
 const LOGO_PATH = "/branding/mylearna-logo.png";
+const MAX_PDF_EVIDENCE_IMAGE_BYTES = 2.5 * 1024 * 1024;
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -411,6 +417,66 @@ async function loadSafeLogoImage(doc: PDFDocument) {
     if (!response.ok) return null;
     const bytes = await response.arrayBuffer();
     return await doc.embedPng(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function inferImageFormat(url: string, contentType: string | null) {
+  const normalizedContentType = safe(contentType).toLowerCase();
+  const normalizedUrl = safe(url).split("?")[0]?.toLowerCase() ?? "";
+  if (normalizedContentType.includes("png") || normalizedUrl.endsWith(".png")) return "png";
+  if (
+    normalizedContentType.includes("jpeg") ||
+    normalizedContentType.includes("jpg") ||
+    normalizedUrl.endsWith(".jpg") ||
+    normalizedUrl.endsWith(".jpeg")
+  ) {
+    return "jpg";
+  }
+  return null;
+}
+
+async function getEvidenceThumbnailUrl(item: CleanReportPdfEvidenceItem) {
+  const directUrl = safe(item.previewImageUrl);
+  if (directUrl) return directUrl;
+
+  const storagePath = safe(item.previewImageStoragePath);
+  if (!storagePath || typeof window === "undefined") return null;
+
+  try {
+    const response = await supabase.storage
+      .from(FAMILY_EVIDENCE_STORAGE_BUCKET)
+      .createSignedUrl(storagePath, 10 * 60);
+    return safe(response.data?.signedUrl) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadSafeEvidenceThumbnailImage(
+  doc: PDFDocument,
+  item: CleanReportPdfEvidenceItem,
+): Promise<PDFImage | null> {
+  const url = await getEvidenceThumbnailUrl(item);
+  if (!url || typeof window === "undefined") return null;
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return null;
+
+    const contentLength = Number(response.headers.get("content-length") || "0");
+    if (contentLength > MAX_PDF_EVIDENCE_IMAGE_BYTES) return null;
+
+    const contentType = response.headers.get("content-type");
+    const format = inferImageFormat(url, contentType);
+    if (!format) return null;
+
+    const bytes = await response.arrayBuffer();
+    if (!bytes.byteLength || bytes.byteLength > MAX_PDF_EVIDENCE_IMAGE_BYTES) return null;
+
+    if (format === "png") return await doc.embedPng(bytes);
+    return await doc.embedJpg(bytes);
   } catch {
     return null;
   }
@@ -843,11 +909,18 @@ function drawReportSectionCard(
   return next;
 }
 
-function drawEvidenceDetailCard(
+async function drawEvidenceDetailCard(
   composer: PdfComposer,
   item: CleanReportPdfEvidenceItem,
   index: number,
 ) {
+  const thumbnailImage = await loadSafeEvidenceThumbnailImage(composer.doc, item);
+  const thumbnailMaxWidth = 132;
+  const thumbnailMaxHeight = 88;
+  const thumbnailDimensions = thumbnailImage
+    ? thumbnailImage.scaleToFit(thumbnailMaxWidth, thumbnailMaxHeight)
+    : null;
+  const thumbnailHeight = thumbnailDimensions ? thumbnailMaxHeight + 12 : 0;
   const width = composer.width - composer.margin * 2 - 28;
   const titleLines = wrapText(
     `${index + 1}. ${item.title}`,
@@ -909,6 +982,7 @@ function drawEvidenceDetailCard(
     10 +
     (metaLines.length ? measureWrappedLines(metaLines, 13) + 6 : 0) +
     (contextLines.length ? measureWrappedLines(contextLines, 12) + 8 : 0) +
+    thumbnailHeight +
     narrativeHeight +
     10;
   const next = ensureSpace(composer, totalHeight + 10);
@@ -950,6 +1024,27 @@ function drawEvidenceDetailCard(
       color: next.theme.muted,
     });
     cursor -= 8;
+  }
+
+  if (thumbnailImage && thumbnailDimensions) {
+    const imageX = next.margin + 14;
+    const imageY = cursor - thumbnailDimensions.height;
+    next.page.drawRectangle({
+      x: imageX - 3,
+      y: imageY - 3,
+      width: thumbnailDimensions.width + 6,
+      height: thumbnailDimensions.height + 6,
+      color: rgb(0.973, 0.98, 0.988),
+      borderColor: next.theme.accent,
+      borderWidth: 1,
+    });
+    next.page.drawImage(thumbnailImage, {
+      x: imageX,
+      y: imageY,
+      width: thumbnailDimensions.width,
+      height: thumbnailDimensions.height,
+    });
+    cursor = imageY - 14;
   }
 
   narrativeBlocks.forEach((block, blockIndex) => {
@@ -1350,15 +1445,15 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   );
   if (model.evidenceItems.length) {
     let evidenceIndex = 0;
-    groupEvidenceItemsByArea(model.evidenceItems).forEach((group) => {
+    for (const group of groupEvidenceItemsByArea(model.evidenceItems)) {
       composer = drawHeading(composer, group.area, 3, {
         minFollowingSpace: 120,
       });
-      group.items.forEach((item) => {
+      for (const item of group.items) {
         evidenceIndex += 1;
-        composer = drawEvidenceDetailCard(composer, item, evidenceIndex - 1);
-      });
-    });
+        composer = await drawEvidenceDetailCard(composer, item, evidenceIndex - 1);
+      }
+    }
   } else {
     composer = drawTextBlock(
       composer,

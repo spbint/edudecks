@@ -2,6 +2,7 @@ import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import type { CleanReportPdfEvidenceItem } from "@/lib/clean/outputs/pdf";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 
 export type EvidencePresentationMeta = {
   sourceLabel: string;
@@ -12,6 +13,65 @@ export type EvidencePresentationMeta = {
   progressLevel: string | null;
   hasAttachment: boolean;
 };
+
+export type EvidencePreviewImage = {
+  url: string | null;
+  storagePath: string | null;
+  fileName: string | null;
+  altText: string;
+};
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isDirectImageUrl(value: string) {
+  return /^(https?:|data:image\/|blob:|\/)/i.test(value);
+}
+
+function fileNameFromReference(value: string) {
+  const clean = safe(value);
+  if (!clean) return null;
+  const withoutQuery = clean.split("?")[0] ?? clean;
+  const parts = withoutQuery.split("/");
+  return parts[parts.length - 1] || null;
+}
+
+function looksLikeImageReference(value: string) {
+  return /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(value.split("?")[0] ?? value);
+}
+
+function normalizeImageReference(value: string | null | undefined) {
+  const clean = safe(value);
+  if (!clean) return null;
+  return {
+    url: isDirectImageUrl(clean) ? clean : null,
+    storagePath: isDirectImageUrl(clean) ? null : clean,
+    fileName: fileNameFromReference(clean),
+  };
+}
+
+export function getEvidencePreviewImage(
+  evidence: Pick<CleanEvidenceEntry, "title" | "whatHappened" | "imageUrl" | "attachmentUrls">,
+): EvidencePreviewImage | null {
+  const title = safe(evidence.title) || safe(evidence.whatHappened) || "learning evidence";
+  const primaryImage = normalizeImageReference(evidence.imageUrl);
+  if (primaryImage) {
+    return {
+      ...primaryImage,
+      altText: `Evidence photo for ${title}`,
+    };
+  }
+
+  const attachment = evidence.attachmentUrls.find((reference) => looksLikeImageReference(reference));
+  const normalizedAttachment = normalizeImageReference(attachment);
+  if (!normalizedAttachment) return null;
+
+  return {
+    ...normalizedAttachment,
+    altText: `Evidence photo for ${title}`,
+  };
+}
 
 export function getEvidenceProgressLevel(reflection: string | null | undefined) {
   const match = String(reflection ?? "").match(/Progress level:\s*([^\n.]+)/i);
@@ -63,6 +123,7 @@ export function buildReportPdfEvidenceItems(
         ? options.segmentLabelById.get(linkedCalendarItem.programSegmentId) ?? null
         : null;
     const meta = getEvidencePresentationMeta(item);
+    const previewImage = getEvidencePreviewImage(item.evidence);
 
     return {
       id: item.evidence.id,
@@ -87,6 +148,9 @@ export function buildReportPdfEvidenceItems(
       progressLevel: meta.progressLevel,
       hasAttachment: meta.hasAttachment,
       attachmentCount: item.evidence.attachmentUrls.length,
+      previewImageUrl: previewImage?.url ?? null,
+      previewImageStoragePath: previewImage?.storagePath ?? null,
+      previewImageAlt: previewImage?.altText ?? null,
     };
   });
 }

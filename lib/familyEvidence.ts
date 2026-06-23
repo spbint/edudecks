@@ -6,9 +6,9 @@ type StorageClient = Pick<typeof supabase, "storage">;
 
 // Evidence attachments are child and compliance sensitive.
 // New attachment records store private storage paths in metadata, not public URLs.
-// Signed URLs are created only at render time, and exports intentionally use
-// names and counts only. Legacy public URL records remain supported temporarily
-// for compatibility and should be migrated to private paths later.
+// Signed URLs are created only at render/export time. Legacy public URL records
+// remain supported temporarily for compatibility and should be migrated to
+// private paths later.
 export const FAMILY_EVIDENCE_STORAGE_BUCKET = "evidence";
 const FAMILY_EVIDENCE_SIGNED_URL_TTL_SECONDS = 10 * 60;
 

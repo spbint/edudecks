@@ -9,6 +9,7 @@ import CleanFamilyWorkspaceProvider, {
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
@@ -29,7 +30,10 @@ import {
   deleteCleanPortfolioHighlight,
   listCleanPortfolioItems,
 } from "@/lib/clean/portfolio/client";
-import { getEvidencePresentationMeta } from "@/lib/clean/portfolio/evidencePresentation";
+import {
+  getEvidencePresentationMeta,
+  getEvidencePreviewImage,
+} from "@/lib/clean/portfolio/evidencePresentation";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
 import { parseAssessmentEvidenceLinkFromNodeIds } from "@/lib/clean/assessments/client";
 import {
@@ -867,6 +871,7 @@ function CleanPortfolioWorkspaceBody() {
                         ? segmentLabelById.get(linkedCalendarItem.programSegmentId) ?? null
                         : null;
                     const evidenceMeta = getEvidencePresentationMeta(item);
+                    const previewImage = getEvidencePreviewImage(item.evidence);
 
                     return (
                       <div
@@ -960,6 +965,12 @@ function CleanPortfolioWorkspaceBody() {
                             </span>
                           ) : null}
                         </div>
+                        {previewImage ? (
+                          <EvidenceThumbnail
+                            image={previewImage}
+                            title="Evidence photo"
+                          />
+                        ) : null}
                         {!item.evidence.title ? (
                           <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
                             {item.evidence.whatHappened}
