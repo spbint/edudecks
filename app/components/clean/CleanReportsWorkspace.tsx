@@ -18,6 +18,7 @@ import {
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import {
+  buildReportPdfEvidenceItems,
   getEvidencePresentationMeta,
   getEvidencePreviewImage,
 } from "@/lib/clean/portfolio/evidencePresentation";
@@ -52,6 +53,11 @@ import { isBrentAuthorityTemplateActive } from "@/lib/clean/authority/brent";
 import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import { listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
+import {
+  buildCleanReportPdfFilename,
+  generateCleanReportPdfBytes,
+} from "@/lib/clean/outputs/pdf";
+import { createCleanReportExport } from "@/lib/clean/outputs/client";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -187,6 +193,19 @@ function formatEvidenceEventDateLabel(value: string | null) {
 
 function formatDateRange(startsOn: string, endsOn: string) {
   return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
+}
+
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.click();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 }
 
 function getTodayDate() {
@@ -695,6 +714,19 @@ function CleanReportsWorkspaceBody() {
       repeatedSteps,
     };
   }, [portfolioItems]);
+  const reportPdfEvidenceItems = useMemo(
+    () =>
+      buildReportPdfEvidenceItems(portfolioItems, {
+        calendarItemById: new Map(),
+        learnerLabelById: new Map(
+          learnerOptions.map((option) => [option.value, option.label]),
+        ),
+        programLabelById: new Map(),
+        segmentLabelById: new Map(),
+        selectedLearnerLabel: selectedReportLearnerLabel,
+      }),
+    [learnerOptions, portfolioItems, selectedReportLearnerLabel],
+  );
   const suggestedReportTitle = useMemo(
     () =>
       buildDefaultReportTitle(
@@ -1269,6 +1301,64 @@ function CleanReportsWorkspaceBody() {
 
     await handleUpdateReportStatus(selectedReport, "ready");
     window.location.assign(buildOutputsHref(selectedReport));
+  }
+
+  async function handleDownloadReportPdf() {
+    if (!workspace.profile || !selectedReport || !selectedPeriod) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      if (selectedReport.status !== "ready") {
+        await updateCleanReport(workspace.profile.id, selectedReport.id, {
+          status: "ready",
+        });
+      }
+
+      const pdfBytes = await generateCleanReportPdfBytes({
+        report: selectedReport.status === "ready"
+          ? selectedReport
+          : { ...selectedReport, status: "ready" },
+        learnerLabel: selectedReportLearnerLabel,
+        reportingPeriod: selectedPeriod,
+        sections,
+        evidenceItems: reportPdfEvidenceItems,
+        assessmentEvidenceItems: assessmentEvidenceEvents,
+        preparedOnLabel: formatDateLabel(new Date().toISOString().slice(0, 10)),
+        statusLabel: getReportStatusLabel("ready"),
+      });
+      const filename = buildCleanReportPdfFilename(
+        selectedReportLearnerLabel,
+        selectedPeriod.title || selectedReport.title,
+      );
+
+      downloadPdf(pdfBytes, filename);
+
+      try {
+        await createCleanReportExport(workspace.profile.id, {
+          reportId: selectedReport.id,
+          learnerId: selectedReport.learnerId,
+          exportFormat: "pdf",
+        });
+      } catch {
+        // The PDF is already downloaded; output history can still be recovered from My Outputs later.
+      }
+
+      setSelectedReportId(selectedReport.id);
+      setMessage("Report PDF downloaded.");
+      await reloadReports();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not create this PDF right now. Please try again or check the report evidence.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const introPrimaryAction = !selectedReport ? (
@@ -2264,18 +2354,16 @@ function CleanReportsWorkspaceBody() {
                     }
                     secondaryAction={
                       selectedReport.status === "ready" ? (
-                        <Link
-                          href={buildOutputsHref(selectedReport)}
+                        <button
+                          type="button"
                           style={{
                             ...buttonStyle,
-                            textDecoration: "none",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
                           }}
+                          onClick={() => void handleDownloadReportPdf()}
+                          disabled={submitting || !reportCanMoveToOutput}
                         >
-                          Go to My Outputs
-                        </Link>
+                          {submitting ? "Preparing PDF..." : "Download report PDF"}
+                        </button>
                       ) : reportCanMoveToOutput ? (
                         <button
                           type="button"
@@ -2307,9 +2395,9 @@ function CleanReportsWorkspaceBody() {
                     <GuidanceSetupNextAction
                       stepId="reports"
                       nextHref={buildOutputsHref(selectedReport)}
-                      label="Continue to My Outputs"
+                      label="Open output history"
                       skipLabel="Skip reports for now"
-                      helperText="You have seen how reports are previewed. Continue to outputs when you are ready."
+                      helperText="You can download the PDF here. Output history remains available if you need it."
                     />
                   </ReportBuildStepCard>
                 </div>
@@ -2448,6 +2536,17 @@ function CleanReportsWorkspaceBody() {
                         >
                           Open My Portfolio
                         </Link>
+                      ) : null}
+
+                      {selectedPeriod ? (
+                        <button
+                          type="button"
+                          style={successButtonStyle}
+                          onClick={() => void handleDownloadReportPdf()}
+                          disabled={submitting}
+                        >
+                          {submitting ? "Preparing PDF..." : "Download report PDF"}
+                        </button>
                       ) : null}
 
                       <button
