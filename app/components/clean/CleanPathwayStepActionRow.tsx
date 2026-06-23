@@ -260,6 +260,7 @@ export default function CleanPathwayStepActionRow({
     <>
       {worksheetResource ? (
         <section
+          className="mylearna-worksheet-action-card"
           style={{
             border: "1px solid #E7EAF2",
             borderRadius: 18,
@@ -272,7 +273,7 @@ export default function CleanPathwayStepActionRow({
           data-pathway-worksheet-evidence="route-to-capture"
           data-worksheet-evidence-card="active"
         >
-          <div style={{ display: "grid", gap: 7 }}>
+          <div className="mylearna-worksheet-action-copy" style={{ display: "grid", gap: 7 }}>
             <span
               style={{
                 color: "#6C4DF6",
@@ -291,7 +292,7 @@ export default function CleanPathwayStepActionRow({
               Open the worksheet, then add a photo in My Capture. It will be linked to this step.
             </span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="mylearna-worksheet-action-buttons" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <a
               href={worksheetResource.href}
               target="_blank"

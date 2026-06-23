@@ -399,6 +399,7 @@ function CleanCaptureWorkspaceBody() {
   const [lastSavedEvidenceId, setLastSavedEvidenceId] = useState("");
   const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
   const [lastSavedPhotoAttached, setLastSavedPhotoAttached] = useState(false);
+  const [lastSavedPhotoPreviewUrl, setLastSavedPhotoPreviewUrl] = useState("");
   const [pendingAttachmentEvidenceId, setPendingAttachmentEvidenceId] = useState("");
   const [pendingAttachmentError, setPendingAttachmentError] = useState("");
   const [pendingAttachmentFileName, setPendingAttachmentFileName] = useState("");
@@ -475,6 +476,17 @@ function CleanCaptureWorkspaceBody() {
     returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
       ? returnToFromQuery
       : pathwaysReturnPath;
+  function appendSavedEvidenceReturnParams(href: string) {
+    const [withoutHash, hash = ""] = href.split("#");
+    const separator = withoutHash.includes("?") ? "&" : "?";
+    const nextHref = lastSavedEvidenceId
+      ? `${withoutHash}${separator}latestEvidenceId=${encodeURIComponent(lastSavedEvidenceId)}&source=my-capture`
+      : withoutHash;
+    return hash ? `${nextHref}#${hash}` : nextHref;
+  }
+  const savedEvidencePathwayReturnPath = appendSavedEvidenceReturnParams(
+    lastSavedReturnPath || pathwaysReturnPath,
+  );
 
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === programId) ?? null,
@@ -1178,6 +1190,10 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedEvidenceId(savedEntry.id);
       setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      setLastSavedPhotoPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
+      });
       setMessage(
         worksheetEvidenceMode
           ? "Evidence saved for this worksheet step."
@@ -1228,6 +1244,10 @@ function CleanCaptureWorkspaceBody() {
       );
       setSavedAttachments(uploadedAttachments);
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      setLastSavedPhotoPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
+      });
       setPendingAttachmentEvidenceId("");
       setPendingAttachmentError("");
       setPendingAttachmentFileName("");
@@ -1266,6 +1286,10 @@ function CleanCaptureWorkspaceBody() {
       const uploadedAttachments = pendingUploadedAttachments;
       setSavedAttachments(uploadedAttachments);
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      setLastSavedPhotoPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
+      });
       setPendingAttachmentEvidenceId("");
       setPendingAttachmentError("");
       setPendingAttachmentFileName("");
@@ -1379,6 +1403,28 @@ function CleanCaptureWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
+        <style jsx global>{`
+          @media (max-width: 720px) {
+            .mylearna-capture-success-panel {
+              padding: 14px !important;
+              gap: 10px !important;
+            }
+
+            .mylearna-capture-success-actions {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-capture-success-actions > * {
+              width: 100% !important;
+              min-height: 46px !important;
+            }
+
+            .mylearna-capture-form-intro {
+              display: none !important;
+            }
+          }
+        `}</style>
         <CleanFirstRunSetupGate currentStep="capture" />
         <GuidanceSetupProgress
           stepId="capture"
@@ -1475,7 +1521,7 @@ function CleanCaptureWorkspaceBody() {
               >
                 <div>
                   <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>Add evidence</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
+                  <p className="mylearna-capture-form-intro" style={{ margin: "8px 0 0", color: "#475569" }}>
                     Write what happened and keep the useful links.
                   </p>
                 </div>
@@ -2118,7 +2164,7 @@ function CleanCaptureWorkspaceBody() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => router.push(lastSavedReturnPath || pathwaysReturnPath)}
+                      onClick={() => router.push(savedEvidencePathwayReturnPath)}
                       disabled={submitting}
                       style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
                     >
@@ -2130,6 +2176,7 @@ function CleanCaptureWorkspaceBody() {
 
               {message ? (
                 <div
+                  className="mylearna-capture-success-panel"
                   data-capture-success={lastSavedPathwayContext ? "saved" : undefined}
                   style={{
                     marginTop: 16,
@@ -2142,7 +2189,12 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <strong style={{ margin: 0, color: "#0f766e", fontSize: 16 }}>
-                    {lastSavedPathwayContext ? "Evidence saved" : message}
+                    {lastSavedPathwayContext
+                      ? lastSavedWorksheetProgress === "Goal achieved" ||
+                        lastSavedWorksheetProgress === "Goal achieved + extension"
+                        ? "Saved - this step is now complete"
+                        : "Saved - progress recorded"
+                      : message}
                   </strong>
                   {lastSavedPathwayContext ? (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
@@ -2160,17 +2212,32 @@ function CleanCaptureWorkspaceBody() {
                   ) : (
                     <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
                   )}
+                  {lastSavedPhotoPreviewUrl ? (
+                    <div
+                      role="img"
+                      aria-label="Saved worksheet evidence preview"
+                      style={{
+                        width: 124,
+                        height: 86,
+                        borderRadius: 12,
+                        border: "1px solid #99f6e4",
+                        backgroundImage: `url(${lastSavedPhotoPreviewUrl})`,
+                        backgroundPosition: "center",
+                        backgroundSize: "cover",
+                      }}
+                    />
+                  ) : null}
                   {savedAttachments.length ? (
                     <p style={{ margin: 0, color: "#0f766e", fontWeight: 700 }}>
                       Photo attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
                     </p>
                   ) : null}
                   {lastSavedPathwayContext ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div className="mylearna-capture-success-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         type="button"
                         style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                        onClick={() => router.push(lastSavedReturnPath || pathwaysReturnPath)}
+                        onClick={() => router.push(savedEvidencePathwayReturnPath)}
                       >
                         {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
                       </button>
@@ -2189,6 +2256,10 @@ function CleanCaptureWorkspaceBody() {
                           setLastSavedEvidenceId("");
                           setLastSavedWorksheetProgress("");
                           setLastSavedPhotoAttached(false);
+                          setLastSavedPhotoPreviewUrl((current) => {
+                            if (current) URL.revokeObjectURL(current);
+                            return "";
+                          });
                         }}
                       >
                         Add another capture

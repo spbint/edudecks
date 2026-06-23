@@ -669,6 +669,36 @@ function CleanPortfolioWorkspaceBody() {
 
   return (
     <div style={shellStyle}>
+      <style jsx global>{`
+        @media (max-width: 720px) {
+          .mylearna-portfolio-learning-record-hub {
+            padding: 14px !important;
+          }
+
+          .mylearna-portfolio-learning-record-hub p {
+            display: none !important;
+          }
+
+          .mylearna-portfolio-learner-select.is-selected {
+            min-height: 38px !important;
+            font-size: 13px !important;
+          }
+
+          .mylearna-portfolio-download-record {
+            width: 100% !important;
+            min-height: 48px !important;
+            font-size: 15px !important;
+          }
+
+          .mylearna-portfolio-just-captured {
+            padding: 14px !important;
+          }
+
+          .mylearna-portfolio-review-progress {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="portfolio" />
@@ -770,6 +800,7 @@ function CleanPortfolioWorkspaceBody() {
         {readyForPortfolio && workspace.profile && workspace.learners.length ? (
           <>
             <section
+              className="mylearna-portfolio-learning-record-hub"
               style={{
                 ...cardStyle,
                 borderColor: "#dbeafe",
@@ -826,6 +857,7 @@ function CleanPortfolioWorkspaceBody() {
 
                 <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
                   <select
+                    className={selectedLearnerId ? "mylearna-portfolio-learner-select is-selected" : "mylearna-portfolio-learner-select"}
                     value={selectedLearnerId}
                     onChange={(event) => setSelectedLearnerId(event.target.value)}
                     style={{
@@ -843,6 +875,7 @@ function CleanPortfolioWorkspaceBody() {
                     ))}
                   </select>
                   <button
+                    className="mylearna-portfolio-download-record"
                     type="button"
                     style={{
                       ...buttonStyle,
@@ -887,6 +920,7 @@ function CleanPortfolioWorkspaceBody() {
 
             {justCapturedItem && justCapturedMeta ? (
               <section
+                className="mylearna-portfolio-just-captured"
                 style={{
                   ...cardStyle,
                   borderColor: "#99f6e4",
@@ -992,7 +1026,11 @@ function CleanPortfolioWorkspaceBody() {
               </section>
             ) : null}
 
-            <section data-guidance-id="portfolio-review-progress" style={cardStyle}>
+            <section
+              className="mylearna-portfolio-review-progress"
+              data-guidance-id="portfolio-review-progress"
+              style={cardStyle}
+            >
               <div
                 style={{
                   display: "grid",

@@ -819,6 +819,10 @@ function PathwaysWorkspaceBody() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const latestEvidenceIdFromQuery = searchParams.get("latestEvidenceId") || "";
+  const sourceFromQuery = searchParams.get("source") || "";
+  const showPathwayEvidenceUpdatedBanner =
+    Boolean(latestEvidenceIdFromQuery) && sourceFromQuery === "my-capture";
   const regionalStageContext =
     workspace.profile?.countryCode || workspace.profile?.jurisdictionCode || null;
   const persistedUiState = useMemo(() => readPersistedPathwaysUiState(), []);
@@ -1668,6 +1672,78 @@ function PathwaysWorkspaceBody() {
         *::after {
           box-sizing: border-box;
         }
+
+        .mylearna-pathway-guidance-mobile {
+          display: none;
+        }
+
+        @media (max-width: 720px) {
+          .mylearna-pathway-return-banner {
+            align-items: flex-start !important;
+          }
+
+          .mylearna-pathway-step-card {
+            padding: 10px !important;
+            gap: 8px !important;
+            border-radius: 14px !important;
+          }
+
+          .mylearna-pathway-step-card-header,
+          .mylearna-pathway-step-status-row {
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+          }
+
+          .mylearna-pathway-step-title-block > div:nth-child(2) {
+            display: none !important;
+          }
+
+          .mylearna-pathway-step-status-row {
+            width: 100% !important;
+          }
+
+          .mylearna-pathway-step-status-row > * {
+            min-height: 34px !important;
+          }
+
+          .mylearna-worksheet-action-card {
+            padding: 12px !important;
+            gap: 10px !important;
+            box-shadow: none !important;
+          }
+
+          .mylearna-worksheet-action-copy span:last-child {
+            display: none !important;
+          }
+
+          .mylearna-worksheet-action-buttons {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+          }
+
+          .mylearna-worksheet-action-buttons > a,
+          .mylearna-worksheet-action-buttons > button {
+            width: 100% !important;
+            min-height: 46px !important;
+          }
+
+          .mylearna-pathway-guidance-desktop {
+            display: none !important;
+          }
+
+          .mylearna-pathway-guidance-mobile {
+            display: block !important;
+            grid-column: 1 / -1;
+          }
+
+          .mylearna-pathway-guidance-mobile > summary {
+            min-height: 42px;
+            cursor: pointer;
+            color: #1d4ed8;
+            font-size: 14px;
+            font-weight: 800;
+          }
+        }
       `}</style>
       <div style={wrapStyle}>
         <section
@@ -2330,6 +2406,45 @@ function PathwaysWorkspaceBody() {
             <CleanFeedbackPrompt pageName="My Pathways" />
           </div>
         </details>
+
+        {showPathwayEvidenceUpdatedBanner ? (
+          <section
+            className="mylearna-pathway-return-banner"
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 16,
+              background: "#f0fdf4",
+              padding: "12px 14px",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "grid", gap: 3 }}>
+              <strong style={{ color: "#166534", fontSize: 15 }}>
+                Step updated from your latest evidence
+              </strong>
+              <span style={{ color: "#166534", fontSize: 13 }}>
+                The step card now uses the newest saved progress.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("latestEvidenceId");
+                params.delete("source");
+                const nextQuery = params.toString();
+                router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+              }}
+              style={{ ...secondaryButtonStyle, minHeight: 38, padding: "7px 10px" }}
+            >
+              Dismiss
+            </button>
+          </section>
+        ) : null}
 
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 16 }}>
@@ -3363,6 +3478,10 @@ function NumberRevealStepCard({
         </div>
       ) : null}
       <style jsx global>{`
+        .mylearna-pathway-guidance-mobile {
+          display: none;
+        }
+
         @media (max-width: 720px) {
           .mylearna-compact-pathway-row {
             grid-template-columns: 1fr !important;
@@ -3370,6 +3489,68 @@ function NumberRevealStepCard({
 
           .mylearna-compact-pathway-row > div:nth-child(2) {
             justify-content: flex-start !important;
+          }
+
+          .mylearna-pathway-step-card {
+            padding: 10px !important;
+            gap: 8px !important;
+            border-radius: 14px !important;
+          }
+
+          .mylearna-pathway-step-card-header,
+          .mylearna-pathway-step-status-row {
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+          }
+
+          .mylearna-pathway-step-title-block > div:nth-child(2) {
+            display: none !important;
+          }
+
+          .mylearna-pathway-step-status-row {
+            width: 100% !important;
+          }
+
+          .mylearna-pathway-step-status-row > * {
+            min-height: 34px !important;
+          }
+
+          .mylearna-worksheet-action-card {
+            padding: 12px !important;
+            gap: 10px !important;
+            box-shadow: none !important;
+          }
+
+          .mylearna-worksheet-action-copy span:last-child {
+            display: none !important;
+          }
+
+          .mylearna-worksheet-action-buttons {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+          }
+
+          .mylearna-worksheet-action-buttons > a,
+          .mylearna-worksheet-action-buttons > button {
+            width: 100% !important;
+            min-height: 46px !important;
+          }
+
+          .mylearna-pathway-guidance-desktop {
+            display: none !important;
+          }
+
+          .mylearna-pathway-guidance-mobile {
+            display: block !important;
+            grid-column: 1 / -1;
+          }
+
+          .mylearna-pathway-guidance-mobile > summary {
+            min-height: 42px;
+            cursor: pointer;
+            color: #1d4ed8;
+            font-size: 14px;
+            font-weight: 800;
           }
         }
       `}</style>
@@ -4161,9 +4342,33 @@ function DetailedMathematicsStepCard({
     Boolean(latestEvidenceEntry?.imageUrl) ||
     Boolean(latestEvidenceEntry?.attachmentUrls.length);
   const latestEvidenceDate = formatWorksheetEvidenceDate(latestEvidenceEntry);
+  const isStepSecure =
+    evidenceProgressMeta?.label === "Goal achieved" ||
+    evidenceProgressMeta?.label === "Goal achieved + extension" ||
+    status === "Secure";
+  const nextDetailedStep = (() => {
+    const currentStageStep = stage.steps[stepIndex + 1] || null;
+    if (currentStageStep) {
+      return { stage, step: currentStageStep };
+    }
+
+    const nextStage = strand.stages[stageIndex + 1] || null;
+    const nextStageStep = nextStage?.steps[0] || null;
+    return nextStage && nextStageStep ? { stage: nextStage, step: nextStageStep } : null;
+  })();
+  const nextDetailedStepHref = nextDetailedStep
+    ? buildPathwayStepReturnHref({
+        pathname: returnPath,
+        subjectKey: selectedSubjectKey,
+        strandKey,
+        learnerId: selectedLearnerId,
+        detailPanelId: `pathway-step-${strand.key}-${nextDetailedStep.stage.key}-${nextDetailedStep.step.id}`,
+      })
+    : "";
 
   return (
     <article
+      className="mylearna-pathway-step-card"
       data-guidance-id="pathways-step-card"
       style={{
         border: evidenceProgressMeta
@@ -4180,6 +4385,7 @@ function DetailedMathematicsStepCard({
       }}
     >
       <div
+        className="mylearna-pathway-step-card-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -4188,7 +4394,7 @@ function DetailedMathematicsStepCard({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "grid", gap: 4, maxWidth: 760, minWidth: 0 }}>
+        <div className="mylearna-pathway-step-title-block" style={{ display: "grid", gap: 4, maxWidth: 760, minWidth: 0 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <span
               style={{
@@ -4212,7 +4418,7 @@ function DetailedMathematicsStepCard({
           ) : null}
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="mylearna-pathway-step-status-row" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <div
               data-guidance-id="pathways-progress-status"
               title={
@@ -4385,6 +4591,25 @@ function DetailedMathematicsStepCard({
               v
             </span>
           </button>
+          {isStepSecure && nextDetailedStepHref ? (
+            <Link
+              href={nextDetailedStepHref}
+              style={{
+                border: "1px solid #bbf7d0",
+                background: "#ffffff",
+                color: "#166534",
+                borderRadius: 999,
+                padding: "4px 7px",
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+            >
+              Next step
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -4451,16 +4676,28 @@ function DetailedMathematicsStepCard({
             : { display: "none" }
         }
       >
-        <PathwayStepGuidanceSection title="What this means" content={step.meaning} />
-        <PathwayStepGuidanceSection title="Skill focus" content={step.skillFocus} />
-        <PathwayStepGuidanceSection title="Learning goal" content={step.learningIntention} />
-        <PathwayStepGuidanceListSection title="Success looks like" items={step.successCriteria} />
-        <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
-        <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
-        <PathwayStepGuidanceSection
-          title="Assess later"
-          content={step.assessmentCheck}
-        />
+        <div className="mylearna-pathway-guidance-desktop" style={{ display: "contents" }}>
+          <PathwayStepGuidanceSection title="What this means" content={step.meaning} />
+          <PathwayStepGuidanceSection title="Skill focus" content={step.skillFocus} />
+          <PathwayStepGuidanceSection title="Learning goal" content={step.learningIntention} />
+          <PathwayStepGuidanceListSection title="Success looks like" items={step.successCriteria} />
+          <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
+          <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
+          <PathwayStepGuidanceSection
+            title="Assess later"
+            content={step.assessmentCheck}
+          />
+        </div>
+        <details className="mylearna-pathway-guidance-mobile">
+          <summary>More learning support</summary>
+          <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+            <PathwayStepGuidanceSection title="What this means" content={step.meaning} />
+            <PathwayStepGuidanceSection title="Learning goal" content={step.learningIntention} />
+            <PathwayStepGuidanceListSection title="Success looks like" items={step.successCriteria} />
+            <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
+            <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
+          </div>
+        </details>
       </div>
     </article>
   );
