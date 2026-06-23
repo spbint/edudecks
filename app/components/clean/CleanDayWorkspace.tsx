@@ -936,6 +936,61 @@ function CleanDayWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 640px) {
+            .mylearna-day-header {
+              padding: 18px !important;
+            }
+
+            .mylearna-day-header p:last-child,
+            .mylearna-day-getting-started,
+            .mylearna-day-continue-card {
+              display: none !important;
+            }
+
+            .mylearna-day-plan-card {
+              padding: 12px !important;
+            }
+
+            .mylearna-day-overview-card {
+              border-radius: 16px !important;
+              padding: 16px !important;
+              gap: 12px !important;
+            }
+
+            .mylearna-day-overview-card h2 {
+              font-size: 22px !important;
+              letter-spacing: 0 !important;
+            }
+
+            .mylearna-day-overview-card p,
+            .mylearna-day-next-step-copy,
+            .mylearna-day-timeline-helper {
+              display: none !important;
+            }
+
+            .mylearna-day-progress-panel {
+              padding: 12px !important;
+              border-radius: 14px !important;
+            }
+
+            .mylearna-day-progress-panel button,
+            .mylearna-day-actions button,
+            .mylearna-day-actions a {
+              min-height: 44px !important;
+            }
+
+            .mylearna-day-next-step-card {
+              padding: 12px !important;
+            }
+
+            .mylearna-day-actions {
+              width: 100% !important;
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+          }
+        `}</style>
         <CleanFirstRunSetupGate currentStep="day" />
         <GuidanceSetupProgress
           stepId="day"
@@ -981,7 +1036,7 @@ function CleanDayWorkspaceBody() {
           </section>
         ) : null}
 
-        <section data-guidance-id="my-day-header" style={cardStyle}>
+        <section className="mylearna-day-header" data-guidance-id="my-day-header" style={cardStyle}>
           <div style={{ display: "grid", gap: 10 }}>
             <div
               style={{
@@ -1024,9 +1079,11 @@ function CleanDayWorkspaceBody() {
           </div>
         </section>
 
-        <GuidanceGettingStartedCard />
+        <div className="mylearna-day-getting-started">
+          <GuidanceGettingStartedCard />
+        </div>
 
-        <div data-guidance-id="my-day-next-steps">
+        <div className="mylearna-day-continue-card" data-guidance-id="my-day-next-steps">
           <CleanContinueWhereYouLeftOffCard actions={continueActions} />
         </div>
 
@@ -1092,6 +1149,7 @@ function CleanDayWorkspaceBody() {
             ) : null}
 
             <section
+              className="mylearna-day-plan-card"
               data-guidance-id="my-day-today-plan"
               style={{
                 ...cardStyle,
@@ -1105,6 +1163,7 @@ function CleanDayWorkspaceBody() {
                 }}
               >
                 <div
+                  className="mylearna-day-overview-card"
                   style={{
                     border: "1px solid #dbeafe",
                     borderRadius: 20,
@@ -1154,6 +1213,7 @@ function CleanDayWorkspaceBody() {
                       </p>
                     </div>
                     <div
+                      className="mylearna-day-progress-panel"
                       data-guidance-id="my-day-progress-summary"
                       style={{
                         display: "grid",
@@ -1260,6 +1320,7 @@ function CleanDayWorkspaceBody() {
                   </div>
 
                   <div
+                    className="mylearna-day-next-step-card"
                     style={{
                       border: "1px solid #dbeafe",
                       borderRadius: 18,
@@ -1280,7 +1341,7 @@ function CleanDayWorkspaceBody() {
                     >
                       Today&apos;s next step
                     </div>
-                    <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                    <div className="mylearna-day-next-step-copy" style={{ color: "#475569", lineHeight: 1.7 }}>
                       Use My Day for today&apos;s learning. Add a quick block, open My
                       Calendar for fuller planning, then capture evidence when something
                       useful happens.
@@ -1301,11 +1362,11 @@ function CleanDayWorkspaceBody() {
                     <strong style={{ color: "#0f172a", fontSize: 20, letterSpacing: "-0.02em" }}>
                       Family timeline
                     </strong>
-                    <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
+                    <p className="mylearna-day-timeline-helper" style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
                       Learning blocks stay small until you open the details.
                     </p>
                   </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <div className="mylearna-day-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                     <button type="button" onClick={openQuickAdd} style={primaryButtonStyle}>
                       Add a quick block
                     </button>

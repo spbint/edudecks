@@ -697,6 +697,11 @@ function CleanPortfolioWorkspaceBody() {
           .mylearna-portfolio-review-progress {
             display: none !important;
           }
+
+          .mylearna-portfolio-intro p,
+          .mylearna-portfolio-filter-panel {
+            display: none !important;
+          }
         }
       `}</style>
       <div style={wrapStyle}>
@@ -714,7 +719,7 @@ function CleanPortfolioWorkspaceBody() {
           promptDescription="See how to choose the strongest learning moments."
         />
 
-        <section style={cardStyle}>
+        <section className="mylearna-portfolio-intro" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -1055,7 +1060,7 @@ function CleanPortfolioWorkspaceBody() {
               </div>
             </section>
 
-            <section data-guidance-id="portfolio-filter-learner" style={cardStyle}>
+            <section className="mylearna-portfolio-filter-panel" data-guidance-id="portfolio-filter-learner" style={cardStyle}>
               <div
                 style={{
                   display: "flex",

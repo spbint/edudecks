@@ -991,6 +991,33 @@ function CleanOutputsWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 640px) {
+            .mylearna-outputs-intro {
+              padding: 18px !important;
+            }
+
+            .mylearna-outputs-intro p {
+              display: none !important;
+            }
+
+            .mylearna-outputs-advanced-export,
+            .mylearna-outputs-report-picker-copy,
+            .mylearna-outputs-summary-metrics,
+            .mylearna-outputs-next-guidance {
+              display: none !important;
+            }
+
+            .mylearna-outputs-actions {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-outputs-actions button {
+              min-height: 44px !important;
+            }
+          }
+        `}</style>
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="outputs" />
         <GuidanceSetupProgress
@@ -1005,7 +1032,7 @@ function CleanOutputsWorkspaceBody() {
           promptDescription="Watch a quick guide to see how to preview and download records, reports and portfolio summaries."
         />
 
-        <section data-guidance-id="outputs-download-share" style={cardStyle}>
+        <section className="mylearna-outputs-intro" data-guidance-id="outputs-download-share" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -1020,7 +1047,7 @@ function CleanOutputsWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Outputs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Review ready records and download the version you want to keep.
+              Download history and advanced exports live here. Most learning records can now be downloaded from Portfolio or Reports.
             </p>
             <div>
               <GuidancePageAction tourId="my-outputs" />
@@ -1070,7 +1097,7 @@ function CleanOutputsWorkspaceBody() {
 
         {readyForOutputs && workspace.profile && brentModeActive ? (
           <>
-            <section style={cardStyle}>
+            <section className="mylearna-outputs-advanced-export" style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>{BRENT_OUTPUT_TITLE}</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -1143,7 +1170,7 @@ function CleanOutputsWorkspaceBody() {
         ) : null}
 
         {readyForOutputs && !workspace.learners.length ? (
-            <section style={cardStyle}>
+            <section className="mylearna-outputs-advanced-export" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
               <p style={{ margin: 0, color: "#475569" }}>
               Add a learner before previewing or downloading report PDFs.
@@ -1322,12 +1349,13 @@ function CleanOutputsWorkspaceBody() {
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>Choose a ready report</h2>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                <p className="mylearna-outputs-report-picker-copy" style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                   Only reports marked ready appear as output candidates. Draft and archived reports stay visible below so you know what still needs attention.
                 </p>
               </div>
 
               <div
+                className="mylearna-outputs-summary-metrics"
                 style={{
                   display: "grid",
                   gap: 12,
@@ -1455,6 +1483,7 @@ function CleanOutputsWorkspaceBody() {
                 </div>
 
               <section
+                className="mylearna-outputs-next-guidance"
                 style={{
                   border: "1px solid #e2e8f0",
                   borderRadius: 14,
@@ -1472,6 +1501,7 @@ function CleanOutputsWorkspaceBody() {
               </section>
 
               <div
+                className="mylearna-outputs-actions"
                 style={{
                   display: "flex",
                   gap: 10,

@@ -4571,7 +4571,7 @@ function DetailedMathematicsStepCard({
               gap: 8,
             }}
           >
-            <span>{isOpen ? "Hide details" : "Details"}</span>
+            <span>{isOpen ? "Hide support" : "More support"}</span>
             <span
               aria-hidden="true"
               style={{

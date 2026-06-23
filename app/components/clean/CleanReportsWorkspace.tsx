@@ -1297,13 +1297,6 @@ function CleanReportsWorkspaceBody() {
     }
   }
 
-  async function handleSendToOutputs() {
-    if (!selectedReport) return;
-
-    await handleUpdateReportStatus(selectedReport, "ready");
-    window.location.assign(buildOutputsHref(selectedReport));
-  }
-
   async function handleDownloadReportPdf() {
     if (!workspace.profile || !selectedReport || !selectedPeriod) return;
 
@@ -1397,14 +1390,40 @@ function CleanReportsWorkspaceBody() {
       ? "in-progress"
       : "locked";
   const step3Text = selectedReport?.status === "ready"
-    ? "Step 3 complete - this learning record is ready in My Outputs."
+    ? "Step 3 complete - this learning record is ready to download."
     : reportCanMoveToOutput
-      ? "Step 3 in progress - send this learning record to My Outputs when you are ready."
+      ? "Step 3 in progress - download the learning record when you are ready."
       : "Step 3 locked - finish Step 1 first.";
 
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 640px) {
+            .mylearna-reports-intro,
+            .mylearna-reports-setup {
+              padding: 18px !important;
+            }
+
+            .mylearna-reports-intro p,
+            .mylearna-reports-helper-detail {
+              display: none !important;
+            }
+
+            .mylearna-reports-setup h2 {
+              font-size: 20px !important;
+            }
+
+            .mylearna-reports-setup p {
+              margin-top: 4px !important;
+            }
+
+            .mylearna-reports-setup button,
+            .mylearna-reports-setup a {
+              min-height: 44px !important;
+            }
+          }
+        `}</style>
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="reports" />
         <GuidanceSetupProgress
@@ -1419,7 +1438,7 @@ function CleanReportsWorkspaceBody() {
           promptDescription="See how to turn selected evidence into a parent-ready report."
         />
 
-        <section data-guidance-id="reports-preview-output" style={cardStyle}>
+        <section className="mylearna-reports-intro" data-guidance-id="reports-preview-output" style={cardStyle}>
             <div style={{ display: "grid", gap: 8 }}>
               <div
                 style={{
@@ -1499,12 +1518,12 @@ function CleanReportsWorkspaceBody() {
               </section>
             ) : null}
 
-            <section style={cardStyle}>
+            <section className="mylearna-reports-setup" style={cardStyle}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Output preparation</h2>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Report setup</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    Choose the report period MyLearna should use when gathering evidence.
+                    Choose the learner and dates.
                   </p>
                 </div>
                 <div
@@ -1523,7 +1542,7 @@ function CleanReportsWorkspaceBody() {
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{introPrimaryAction}</div>
                 </div>
-                <div style={helperCardStyle}>
+                <div className="mylearna-reports-helper-detail" style={helperCardStyle}>
                   <strong style={{ color: "#0f172a" }}>How reports are built</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                     Your report brings together selected portfolio evidence, written reflections, and learner context into one learning record.
@@ -2337,11 +2356,11 @@ function CleanReportsWorkspaceBody() {
                 <div data-guidance-id="reports-generate-output">
                   <ReportBuildStepCard
                     stepNumber={3}
-                    title={selectedReport.status === "ready" ? "Send to My Outputs" : "Prepare for My Outputs"}
+                    title={selectedReport.status === "ready" ? "Download report PDF" : "Prepare report PDF"}
                     helperText={
                       selectedReport.status === "ready"
-                        ? "Open My Outputs when you want to export PDF or work with the finished learning record."
-                        : "Preview the learning record, then send it to My Outputs when you are ready."
+                        ? "Download the finished learning record here. Output history stays available if you need it."
+                        : "Preview the learning record, then download the PDF when you are ready."
                     }
                     completionTone={step3Tone}
                     completionText={step3Text}
@@ -2369,10 +2388,10 @@ function CleanReportsWorkspaceBody() {
                         <button
                           type="button"
                           style={successButtonStyle}
-                          onClick={() => void handleSendToOutputs()}
+                          onClick={() => void handleDownloadReportPdf()}
                           disabled={submitting}
                         >
-                          Send to My Outputs
+                          {submitting ? "Preparing PDF..." : "Download report PDF"}
                         </button>
                       ) : undefined
                     }
@@ -2380,16 +2399,16 @@ function CleanReportsWorkspaceBody() {
                     <div style={helperCardStyle}>
                       <strong style={{ color: "#0f172a" }}>
                         {selectedReport.status === "ready"
-                          ? "This learning record is already available in My Outputs."
+                          ? "This learning record is ready to download."
                           : reportCanMoveToOutput
-                            ? "The learning record is ready for the output step."
+                            ? "The learning record is ready for PDF download."
                             : "Finish the current learning record details first."}
                       </strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                         {selectedReport.status === "ready"
-                          ? "Go to My Outputs when you want to work with the finished learning record, or return the report to draft if you need more edits."
+                          ? "Download it here, or return the report to draft if you need more edits."
                           : reportCanMoveToOutput
-                            ? "Use the preview one last time if you want, then send this learning record to My Outputs."
+                            ? "Use the preview one last time if you want, then download the report PDF."
                             : "Choose the learner and report period first, then return here to move into output."}
                       </p>
                     </div>
