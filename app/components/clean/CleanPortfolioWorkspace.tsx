@@ -247,6 +247,9 @@ function CleanPortfolioWorkspaceBody() {
     [workspace.learners],
   );
   const learnerIdFromQuery = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
+  const latestEvidenceIdFromQuery =
+    searchParams.get("latestEvidenceId") || searchParams.get("evidence_entry_id") || "";
+  const sourceFromQuery = searchParams.get("source") || "";
   const learnerLabelById = useMemo(
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
@@ -579,6 +582,20 @@ function CleanPortfolioWorkspaceBody() {
       selectedLearnerLabel,
     ],
   );
+  const justCapturedItem = useMemo(() => {
+    if (latestEvidenceIdFromQuery) {
+      return items.find((item) => item.evidence.id === latestEvidenceIdFromQuery) ?? null;
+    }
+
+    if (sourceFromQuery !== "my-capture" || !selectedLearnerId) return null;
+    return sortPortfolioItems(
+      items.filter((item) => item.evidence.learnerId === selectedLearnerId),
+    )[0] ?? null;
+  }, [items, latestEvidenceIdFromQuery, selectedLearnerId, sourceFromQuery]);
+  const justCapturedMeta = justCapturedItem ? getEvidencePresentationMeta(justCapturedItem) : null;
+  const justCapturedImage = justCapturedItem
+    ? getEvidencePreviewImage(justCapturedItem.evidence)
+    : null;
   const portfolioHeading = selectedLearnerLabel
     ? `${selectedLearnerLabel}'s portfolio`
     : "My Portfolio";
@@ -778,7 +795,9 @@ function CleanPortfolioWorkspaceBody() {
                     Learning record
                   </div>
                   <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                    Download a quick evidence PDF
+                    {selectedLearnerLabel
+                      ? `Learning record for ${selectedLearnerLabel}`
+                      : "Download a quick evidence PDF"}
                   </h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                     Use captured evidence directly from Portfolio. My Reports is still available for a fuller edited report.
@@ -786,7 +805,11 @@ function CleanPortfolioWorkspaceBody() {
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     {selectedLearnerLabel ? (
                       <>
-                        <strong style={{ color: "#0f172a" }}>{selectedLearnerLabel}</strong>
+                        <strong style={{ color: "#0f172a" }}>
+                          {quickRecordEvidenceItems.length} evidence{" "}
+                          {quickRecordEvidenceItems.length === 1 ? "item" : "items"} ready
+                        </strong>
+                        {" for this learning record"}
                         {" - "}
                         {quickRecordEvidenceItems.length} report-included evidence{" "}
                         {quickRecordEvidenceItems.length === 1 ? "item" : "items"}
@@ -860,6 +883,113 @@ function CleanPortfolioWorkspaceBody() {
                 </div>
               </div>
             </section>
+
+            {justCapturedItem && justCapturedMeta ? (
+              <section
+                style={{
+                  ...cardStyle,
+                  borderColor: "#99f6e4",
+                  background: "#f0fdfa",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 14,
+                    flexWrap: "wrap",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 8, minWidth: 0, flex: "1 1 260px" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        color: "#0f766e",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Just captured
+                    </div>
+                    <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
+                      {portfolioCardTitle(justCapturedItem)}
+                    </h2>
+                    <div style={{ color: "#0f766e", lineHeight: 1.6 }}>
+                      {formatDateLabel(justCapturedItem.evidence.observedOn)}
+                      {justCapturedItem.evidence.learningArea
+                        ? ` - ${justCapturedItem.evidence.learningArea}`
+                        : ""}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "4px 10px",
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
+                        Source: {justCapturedMeta.sourceLabel}
+                      </span>
+                      {justCapturedMeta.progressLevel ? (
+                        <span
+                          style={{
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                            background: "#f0fdf4",
+                            color: "#166534",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {justCapturedMeta.progressLevel}
+                        </span>
+                      ) : null}
+                      {justCapturedMeta.hasAttachment ? (
+                        <span
+                          style={{
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                            background: "#ccfbf1",
+                            color: "#0f766e",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Photo attached
+                        </span>
+                      ) : null}
+                      {justCapturedItem.evidence.includeInReport ? (
+                        <span
+                          style={{
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                            background: "#f5f3ff",
+                            color: "#6d28d9",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Reports
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  {justCapturedImage ? (
+                    <EvidenceThumbnail
+                      image={justCapturedImage}
+                      width={180}
+                      height={120}
+                      title="Evidence photo"
+                    />
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
 
             <section data-guidance-id="portfolio-review-progress" style={cardStyle}>
               <div
@@ -1299,7 +1429,7 @@ function CleanPortfolioWorkspaceBody() {
                             onClick={() => void handleToggleHighlight(item)}
                             disabled={submitting}
                           >
-                            {item.isHighlighted ? "Remove from portfolio" : "Add to portfolio"}
+                            {item.isHighlighted ? "Remove highlight" : "Highlight evidence"}
                           </button>
                           <Link
                             href={`${capturePathBase}?evidence_entry_id=${item.evidence.id}`}

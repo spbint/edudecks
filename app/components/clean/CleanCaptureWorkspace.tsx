@@ -396,6 +396,7 @@ function CleanCaptureWorkspaceBody() {
   const [lastSavedPathwayContext, setLastSavedPathwayContext] =
     useState<CleanPathwayCaptureContext | null>(null);
   const [lastSavedReturnPath, setLastSavedReturnPath] = useState("");
+  const [lastSavedEvidenceId, setLastSavedEvidenceId] = useState("");
   const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
   const [lastSavedPhotoAttached, setLastSavedPhotoAttached] = useState(false);
   const [pendingAttachmentEvidenceId, setPendingAttachmentEvidenceId] = useState("");
@@ -464,6 +465,12 @@ function CleanCaptureWorkspaceBody() {
   const portfolioLearningRecordPath = `${portfolioReturnPath}${
     portfolioReturnPath.includes("?") ? "&" : "?"
   }focus=learning-record`;
+  const savedEvidencePortfolioPath = lastSavedEvidenceId
+    ? `${portfolioReturnPath}${portfolioReturnPath.includes("?") ? "&" : "?"}latestEvidenceId=${encodeURIComponent(lastSavedEvidenceId)}&source=my-capture`
+    : portfolioReturnPath;
+  const savedEvidenceLearningRecordPath = lastSavedEvidenceId
+    ? `${savedEvidencePortfolioPath}&focus=learning-record`
+    : portfolioLearningRecordPath;
   const worksheetReturnPath =
     returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
       ? returnToFromQuery
@@ -1151,6 +1158,7 @@ function CleanCaptureWorkspaceBody() {
           setLastSavedCurriculumContext(null);
           setLastSavedPathwayContext(nextPathwayContext);
           setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
+          setLastSavedEvidenceId(savedEntry.id);
           setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
           setLastSavedPhotoAttached(false);
           setPendingAttachmentEvidenceId(savedEntry.id);
@@ -1167,6 +1175,7 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
       setLastSavedPathwayContext(nextPathwayContext);
       setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
+      setLastSavedEvidenceId(savedEntry.id);
       setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
       setMessage(
@@ -2165,10 +2174,10 @@ function CleanCaptureWorkspaceBody() {
                       >
                         {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
                       </button>
-                      <Link href={portfolioReturnPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                      <Link href={savedEvidencePortfolioPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
                         View portfolio
                       </Link>
-                      <Link href={portfolioLearningRecordPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                      <Link href={savedEvidenceLearningRecordPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
                         Download learning record
                       </Link>
                       <button
@@ -2177,6 +2186,7 @@ function CleanCaptureWorkspaceBody() {
                         onClick={() => {
                           setMessage(null);
                           setLastSavedPathwayContext(null);
+                          setLastSavedEvidenceId("");
                           setLastSavedWorksheetProgress("");
                           setLastSavedPhotoAttached(false);
                         }}

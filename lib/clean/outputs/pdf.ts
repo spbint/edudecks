@@ -108,6 +108,23 @@ function normalizeText(value: string | null | undefined) {
     .trim();
 }
 
+function cleanParentFacingEvidenceText(value: string | null | undefined) {
+  return normalizeText(value)
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false;
+      if (/^worksheet\s*(href|url|link|id|resource)/i.test(line)) return false;
+      if (/^source\s*:\s*(worksheet_evidence|my_pathways|my-capture|my_capture)/i.test(line)) return false;
+      if (/^photo\s*:\s*(attached|evidence\/|worksheet-evidence\/)/i.test(line)) return false;
+      if (/^attachment/i.test(line) && /evidence\/|worksheet-evidence\/|storage/i.test(line)) return false;
+      if (/https?:\/\/|worksheet-evidence\/|storage\/v1|\.pdf(\?|$)/i.test(line)) return false;
+      return true;
+    })
+    .join("\n")
+    .trim();
+}
+
 function sanitizeFilePart(value: string, fallback: string) {
   const clean = safe(value)
     .normalize("NFKD")
@@ -138,9 +155,11 @@ function formatDateRange(period: CleanReportingPeriod | null) {
 function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
   const parts = [
     safe(item.sourceLabel) ? `Source: ${safe(item.sourceLabel)}` : "",
+    safe(item.learningArea) ? `Subject: ${safe(item.learningArea)}` : "",
+    safe(item.strandLabel) ? `Strand: ${safe(item.strandLabel)}` : "",
     safe(item.stepLabel) ? safe(item.stepLabel) : "",
     safe(item.progressLevel) ? `Progress: ${safe(item.progressLevel)}` : "",
-    item.hasAttachment ? "Photo/evidence attached" : "",
+    item.hasAttachment ? "Evidence: Photo attached" : "",
     safe(item.programTitle) ? `Program: ${safe(item.programTitle)}` : "",
     safe(item.segmentTitle) ? `Week / segment: ${safe(item.segmentTitle)}` : "",
     safe(item.blockTitle) ? `Block: ${safe(item.blockTitle)}` : "",
@@ -915,8 +934,8 @@ async function drawEvidenceDetailCard(
   index: number,
 ) {
   const thumbnailImage = await loadSafeEvidenceThumbnailImage(composer.doc, item);
-  const thumbnailMaxWidth = 132;
-  const thumbnailMaxHeight = 88;
+  const thumbnailMaxWidth = 176;
+  const thumbnailMaxHeight = 124;
   const thumbnailDimensions = thumbnailImage
     ? thumbnailImage.scaleToFit(thumbnailMaxWidth, thumbnailMaxHeight)
     : null;
@@ -953,13 +972,13 @@ async function drawEvidenceDetailCard(
       : []),
     {
       label: "What happened",
-      lines: wrapText(normalizeText(item.whatHappened), composer.regular, 10.75, width),
+      lines: wrapText(cleanParentFacingEvidenceText(item.whatHappened), composer.regular, 10.75, width),
     },
-    ...(normalizeText(item.reflection)
+    ...(cleanParentFacingEvidenceText(item.reflection)
       ? [
           {
             label: "Reflection",
-            lines: wrapText(normalizeText(item.reflection), composer.regular, 10.75, width),
+            lines: wrapText(cleanParentFacingEvidenceText(item.reflection), composer.regular, 10.75, width),
           },
         ]
       : []),
