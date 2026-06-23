@@ -1398,6 +1398,11 @@ function CleanCaptureWorkspaceBody() {
   const recentNotesPanelId = "clean-capture-recent-notes";
   const selectedLearnerLabel =
     learnerOptions.find((option) => option.value === learnerId)?.label || "";
+  const worksheetCaptureStepTitle =
+    safeQueryValue(formPathwayContext?.stepTitle) ||
+    worksheetTitleFromQuery ||
+    "Completed worksheet";
+  const worksheetCaptureLearnerLabel = selectedLearnerLabel || "Selected learner";
 
   return (
     <div style={shellStyle}>
@@ -1423,6 +1428,89 @@ function CleanCaptureWorkspaceBody() {
             .mylearna-capture-form-intro {
               display: none !important;
             }
+
+            .mylearna-capture-intro {
+              display: none !important;
+            }
+
+            .mylearna-capture-card {
+              padding: 14px !important;
+            }
+
+            .mylearna-capture-card-header {
+              align-items: flex-start !important;
+            }
+
+            .mylearna-capture-card-header h2 {
+              font-size: 22px !important;
+            }
+
+            .mylearna-capture-refresh,
+            .mylearna-capture-context-detail,
+            .mylearna-capture-learner-date,
+            .mylearna-capture-photo-help,
+            .mylearna-capture-photo-action span:last-child {
+              display: none !important;
+            }
+
+            .mylearna-capture-mobile-context {
+              display: grid !important;
+            }
+
+            .mylearna-capture-pathway-context {
+              padding: 12px !important;
+              margin-top: 12px !important;
+              gap: 6px !important;
+            }
+
+            .mylearna-capture-photo-section,
+            .mylearna-capture-progress-section,
+            .mylearna-capture-note-section {
+              border-radius: 14px !important;
+              padding: 12px !important;
+            }
+
+            .mylearna-capture-photo-actions {
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-capture-photo-action {
+              min-height: 54px !important;
+              padding: 13px 14px !important;
+            }
+
+            .mylearna-capture-photo-action:first-child span:first-child {
+              font-size: 0 !important;
+            }
+
+            .mylearna-capture-photo-action:first-child span:first-child::after {
+              content: "Take or upload photo";
+              font-size: 15px !important;
+            }
+
+            .mylearna-capture-progress-grid {
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-capture-progress-grid button {
+              min-height: 48px !important;
+              text-align: center !important;
+            }
+
+            .mylearna-capture-note-section textarea {
+              min-height: 74px !important;
+            }
+
+            .mylearna-capture-save-row {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-capture-save-row button {
+              width: 100% !important;
+              min-height: 48px !important;
+              justify-content: center !important;
+            }
           }
         `}</style>
         <CleanFirstRunSetupGate currentStep="capture" />
@@ -1438,7 +1526,7 @@ function CleanCaptureWorkspaceBody() {
           promptDescription="See how to save a quick learning moment."
         />
 
-        <section style={cardStyle}>
+        <section className="mylearna-capture-intro" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -1506,11 +1594,13 @@ function CleanCaptureWorkspaceBody() {
         {readyForCapture && workspace.profile && workspace.learners.length ? (
           <>
             <section
+              className={worksheetEvidenceMode ? "mylearna-capture-card" : undefined}
               data-guidance-id="capture-add-evidence"
               data-capture-mode={worksheetEvidenceMode ? "worksheet-evidence" : "general"}
               style={cardStyle}
             >
             <div
+              className="mylearna-capture-card-header"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -1520,12 +1610,34 @@ function CleanCaptureWorkspaceBody() {
                 }}
               >
                 <div>
-                  <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>Add evidence</h2>
+                  <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>
+                    {worksheetEvidenceMode ? "Add completed work" : "Add evidence"}
+                  </h2>
                   <p className="mylearna-capture-form-intro" style={{ margin: "8px 0 0", color: "#475569" }}>
                     Write what happened and keep the useful links.
                   </p>
+                  {worksheetEvidenceMode ? (
+                    <div
+                      className="mylearna-capture-mobile-context"
+                      style={{
+                        display: "none",
+                        gap: 4,
+                        marginTop: 8,
+                        color: "#475569",
+                        fontSize: 14,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <strong style={{ color: "#0f172a" }}>
+                        {worksheetCaptureLearnerLabel}
+                      </strong>
+                      <span>{worksheetCaptureStepTitle}</span>
+                      <span style={{ color: "#64748b", fontSize: 12 }}>My Pathways</span>
+                    </div>
+                  ) : null}
                 </div>
                 <button
+                  className="mylearna-capture-refresh"
                   type="button"
                   style={buttonStyle}
                   onClick={() => {
@@ -1540,6 +1652,7 @@ function CleanCaptureWorkspaceBody() {
 
               {pathwayCaptureActive && formPathwayContext ? (
                 <div
+                  className="mylearna-capture-pathway-context"
                   style={{
                     marginTop: 16,
                     border: "1px solid #bfdbfe",
@@ -1551,24 +1664,24 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <strong style={{ color: "#0f172a" }}>Pathway evidence</strong>
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  <div className="mylearna-capture-context-detail" style={{ color: "#475569", lineHeight: 1.6 }}>
                     You are capturing evidence for:
                   </div>
                   <div style={{ color: "#0f172a", lineHeight: 1.6, fontWeight: 700 }}>
                     {pathwayStepLabel}
                   </div>
-                  <div style={{ display: "grid", gap: 4 }}>
+                  <div className="mylearna-capture-context-detail" style={{ display: "grid", gap: 4 }}>
                     {pathwayContextRows.map((row) => (
                       <div key={row.label} style={{ color: "#334155", lineHeight: 1.6 }}>
                         <strong style={{ color: "#0f172a" }}>{row.label}:</strong> {row.value}
                       </div>
                     ))}
                   </div>
-                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  <div className="mylearna-capture-context-detail" style={{ color: "#64748b", lineHeight: 1.6 }}>
                     This evidence can help show progress through My Pathways and support curriculum coverage, reports, and outputs.
                   </div>
                   {worksheetEvidenceMode ? (
-                    <div
+                    <div className="mylearna-capture-context-detail"
                       style={{
                         border: "1px solid #D9D0FF",
                         borderRadius: 14,
@@ -1659,6 +1772,7 @@ function CleanCaptureWorkspaceBody() {
 
               <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
                 <div
+                  className={worksheetEvidenceMode ? "mylearna-capture-learner-date" : undefined}
                   style={{
                     display: "grid",
                     gap: 12,
@@ -1696,6 +1810,7 @@ function CleanCaptureWorkspaceBody() {
                 {worksheetEvidenceMode ? (
                   <>
                     <div
+                      className="mylearna-capture-photo-section"
                       style={{
                         border: "1px dashed #CBD5E1",
                         borderRadius: 16,
@@ -1706,6 +1821,7 @@ function CleanCaptureWorkspaceBody() {
                       }}
                     >
                       <div
+                        className="mylearna-capture-photo-actions"
                         style={{
                           display: "grid",
                           gap: 10,
@@ -1713,6 +1829,7 @@ function CleanCaptureWorkspaceBody() {
                         }}
                       >
                         <label
+                          className="mylearna-capture-photo-action"
                           data-capture-photo-action="take-photo"
                           style={{
                             border: "1px solid #D9D0FF",
@@ -1759,6 +1876,7 @@ function CleanCaptureWorkspaceBody() {
                         </label>
 
                         <label
+                          className="mylearna-capture-photo-action"
                           data-capture-photo-action="choose-library"
                           style={{
                             border: "1px solid #D9D0FF",
@@ -1804,9 +1922,9 @@ function CleanCaptureWorkspaceBody() {
                         </label>
                       </div>
                       <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.45 }}>
-                        If the camera does not open, allow camera access for your browser or choose from your photo library.
+                        Add a photo of the completed work.
                       </p>
-                      <details style={{ color: "#64748B", fontSize: 12 }}>
+                      <details className="mylearna-capture-photo-help" style={{ color: "#64748B", fontSize: 12 }}>
                         <summary style={{ cursor: "pointer", fontWeight: 800 }}>
                           Camera not working?
                         </summary>
@@ -1879,11 +1997,12 @@ function CleanCaptureWorkspaceBody() {
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", gap: 8 }} data-capture-progress-options="active">
+                    <div className="mylearna-capture-progress-section" style={{ display: "grid", gap: 8 }} data-capture-progress-options="active">
                       <span style={{ color: "#17204B", fontWeight: 800 }}>
                         How did it go?
                       </span>
                       <div
+                        className="mylearna-capture-progress-grid"
                         style={{
                           display: "grid",
                           gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
@@ -1922,7 +2041,7 @@ function CleanCaptureWorkspaceBody() {
                       ) : null}
                     </div>
 
-                    <label style={{ display: "grid", gap: 6 }}>
+                    <label className="mylearna-capture-note-section" style={{ display: "grid", gap: 6 }}>
                       <span style={{ fontWeight: 700, color: "#0f172a" }}>
                         Optional note
                       </span>
@@ -1941,7 +2060,7 @@ function CleanCaptureWorkspaceBody() {
                             ].filter(Boolean).join("\n"),
                           );
                         }}
-                        placeholder="What helped? What needs another pass?"
+                        placeholder="Optional: add a quick note."
                         style={textAreaStyle}
                       />
                     </label>
@@ -2058,7 +2177,7 @@ function CleanCaptureWorkspaceBody() {
                 </div>
                 ) : null}
 
-                <div data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div className={worksheetEvidenceMode ? "mylearna-capture-save-row" : undefined} data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button
                     type="submit"
                     style={{
