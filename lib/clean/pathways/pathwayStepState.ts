@@ -30,6 +30,10 @@ export type UnifiedPathwayStepState = {
   latestEvidenceEntry: CleanEvidenceEntry | null;
   latestObservedSkillStatus: CleanAssessmentStatusValue | null;
   pathwayProgressFromEvidence: PathwayProgressStatus | null;
+  latestEvidenceProgressLevel: string | null;
+  latestEvidenceStatusAt: number;
+  latestAssessmentStatusAt: number;
+  latestStatusSource: "evidence" | "assessment" | null;
 };
 
 export type UnifiedPathwayStepStateIndex = Map<string, UnifiedPathwayStepState>;
@@ -83,9 +87,17 @@ function safe(value: unknown) {
 
 function evidenceSortValue(entry: CleanEvidenceEntry) {
   return (
-    Date.parse(`${safe(entry.observedOn)}T00:00:00`) ||
     Date.parse(safe(entry.updatedAt)) ||
     Date.parse(safe(entry.createdAt)) ||
+    Date.parse(`${safe(entry.observedOn)}T00:00:00`) ||
+    0
+  );
+}
+
+function assessmentStatusSortValue(status: CleanAssessmentSkillStatus | null | undefined) {
+  return (
+    Date.parse(safe(status?.updatedAt)) ||
+    Date.parse(safe(status?.createdAt)) ||
     0
   );
 }
@@ -360,6 +372,10 @@ function ensureState(
     latestEvidenceEntry: null,
     latestObservedSkillStatus: null,
     pathwayProgressFromEvidence: null,
+    latestEvidenceProgressLevel: null,
+    latestEvidenceStatusAt: 0,
+    latestAssessmentStatusAt: 0,
+    latestStatusSource: null,
   };
 
   index.set(normalizedPathwayStepId, created);
@@ -401,6 +417,7 @@ export function buildUnifiedPathwayStepStateIndex(
     );
     state.assessmentStatusRecord = latestRecord;
     state.assessmentConfidence = latestRecord.status;
+    state.latestAssessmentStatusAt = assessmentStatusSortValue(latestRecord);
   });
 
   [...(input.evidenceEntries || [])]
@@ -429,6 +446,8 @@ export function buildUnifiedPathwayStepStateIndex(
         state.latestObservedSkillStatus = normalizeObservedSkillStatus(
           pathwayContext?.observedSkillStatus,
         ) || mapEvidenceProgressLevelToObservedStatus(getEvidenceProgressLevel(entry));
+        state.latestEvidenceProgressLevel = getEvidenceProgressLevel(entry);
+        state.latestEvidenceStatusAt = evidenceSortValue(entry);
       }
     });
 
@@ -445,12 +464,34 @@ export function buildUnifiedPathwayStepStateIndex(
     const latestObservedSkillStatus =
       normalizeObservedSkillStatus(latestPathwayContext?.observedSkillStatus) ||
       mapEvidenceProgressLevelToObservedStatus(getEvidenceProgressLevel(state.latestEvidenceEntry));
-    state.latestObservedSkillStatus = latestObservedSkillStatus;
-    state.pathwayProgressFromEvidence =
+    const latestEvidenceProgressLevel = getEvidenceProgressLevel(state.latestEvidenceEntry);
+    const latestEvidenceStatusAt = state.latestEvidenceEntry
+      ? evidenceSortValue(state.latestEvidenceEntry)
+      : 0;
+    const latestAssessmentStatusAt = assessmentStatusSortValue(state.assessmentStatusRecord);
+    const evidencePathwayProgress =
       mapObservedSkillStatusToPathwayProgress(latestObservedSkillStatus) ||
-      mapEvidenceProgressLevelToPathwayProgress(
-        getEvidenceProgressLevel(state.latestEvidenceEntry),
-      ) ||
+      mapEvidenceProgressLevelToPathwayProgress(latestEvidenceProgressLevel);
+    const assessmentPathwayProgress = mapObservedSkillStatusToPathwayProgress(
+      state.assessmentConfidence,
+    );
+    const evidenceIsLatest =
+      Boolean(evidencePathwayProgress) &&
+      (!assessmentPathwayProgress || latestEvidenceStatusAt >= latestAssessmentStatusAt);
+    state.latestObservedSkillStatus = latestObservedSkillStatus;
+    state.latestEvidenceProgressLevel = latestEvidenceProgressLevel;
+    state.latestEvidenceStatusAt = latestEvidenceStatusAt;
+    state.latestAssessmentStatusAt = latestAssessmentStatusAt;
+    state.latestStatusSource = evidenceIsLatest
+      ? "evidence"
+      : assessmentPathwayProgress
+        ? "assessment"
+        : state.linkedEvidenceCount > 0
+          ? "evidence"
+          : null;
+    state.pathwayProgressFromEvidence =
+      (evidenceIsLatest ? evidencePathwayProgress : assessmentPathwayProgress) ||
+      evidencePathwayProgress ||
       (state.linkedEvidenceCount > 0 ? "Evidence started" : null);
   });
 

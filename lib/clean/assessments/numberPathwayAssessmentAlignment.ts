@@ -57,6 +57,11 @@ export type NumberPathwayRevealStep = NumberPathwayRevealStepInput & {
   group: NumberPathwayRevealGroupKey;
 };
 
+export type NumberPathwayEvidenceStatusOverride = {
+  status: NumberAutoCheckStatus;
+  updatedAt: number;
+};
+
 export type NumberPathwayRevealGroups = {
   hasSavedAttempts: boolean;
   highestSecureOrder: number;
@@ -584,7 +589,7 @@ export function getNumberPathwayRevealGroups(
   options: {
     subjectKey?: string;
     strandKey?: string;
-    evidenceStatusByPathwayStepId?: Map<string, NumberAutoCheckStatus>;
+    evidenceStatusByPathwayStepId?: Map<string, NumberPathwayEvidenceStatusOverride>;
   } = {},
 ): NumberPathwayRevealGroups {
   const subjectKey = options.subjectKey || "mathematics";
@@ -612,11 +617,23 @@ export function getNumberPathwayRevealGroups(
             stepAssessmentKey: exactStepAssessment.key,
           })
         : getAutoCheckStatusForPathwayStep(attempts, alignment);
-    const evidenceStatus = options.evidenceStatusByPathwayStepId?.get(step.pathwayStepId) ?? null;
-    const autoCheck = evidenceStatus
+    const evidenceStatusOverride =
+      options.evidenceStatusByPathwayStepId?.get(step.pathwayStepId) ?? null;
+    const assessmentUpdatedAt =
+      Date.parse(
+        safe(
+          assessmentAutoCheck.attempt?.completedAt ||
+            assessmentAutoCheck.attempt?.updatedAt ||
+            assessmentAutoCheck.attempt?.createdAt,
+        ),
+      ) || 0;
+    const evidenceIsLatest =
+      evidenceStatusOverride &&
+      (!assessmentAutoCheck.attempt || evidenceStatusOverride.updatedAt >= assessmentUpdatedAt);
+    const autoCheck = evidenceIsLatest
       ? {
           ...assessmentAutoCheck,
-          status: evidenceStatus,
+          status: evidenceStatusOverride.status,
         }
       : assessmentAutoCheck;
 

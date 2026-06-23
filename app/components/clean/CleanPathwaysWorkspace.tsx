@@ -22,6 +22,7 @@ import {
   getNumberAssessmentAlignmentForPathwayStep,
   getNumberPathwayRevealGroups,
   type NumberAutoCheckStatus,
+  type NumberPathwayEvidenceStatusOverride,
   type NumberPathwayRevealGroups,
   type NumberPathwayRevealStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
@@ -1253,15 +1254,18 @@ function PathwaysWorkspaceBody() {
       }),
     ).map((step, index) => ({ ...step, displayOrder: index + 1 }));
 
-    const evidenceStatusByPathwayStepId = new Map<string, NumberAutoCheckStatus>();
+    const evidenceStatusByPathwayStepId = new Map<string, NumberPathwayEvidenceStatusOverride>();
     orderedSteps.forEach((step) => {
       const stepState = getUnifiedPathwayStepState(unifiedPathwayStepStateIndex, step.pathwayStepId);
       const evidenceStatus = getNumberAutoCheckStatusFromEvidence(
         stepState?.pathwayProgressFromEvidence,
-        getWorksheetEvidenceProgressLabel(stepState?.latestEvidenceEntry),
+        stepState?.latestEvidenceProgressLevel,
       );
       if (evidenceStatus) {
-        evidenceStatusByPathwayStepId.set(step.pathwayStepId, evidenceStatus);
+        evidenceStatusByPathwayStepId.set(step.pathwayStepId, {
+          status: evidenceStatus,
+          updatedAt: stepState?.latestEvidenceStatusAt || 0,
+        });
       }
     });
 
@@ -1359,7 +1363,7 @@ function PathwaysWorkspaceBody() {
       );
       const placedEvidenceStatus = getNumberAutoCheckStatusFromEvidence(
         placedStepState?.pathwayProgressFromEvidence,
-        getWorksheetEvidenceProgressLabel(placedStepState?.latestEvidenceEntry),
+        placedStepState?.latestEvidenceProgressLevel,
       );
       if (placedEvidenceStatus === "Secure") {
         focusStepId = currentLearningZoneStartStep.pathwayStepId;
@@ -1460,9 +1464,10 @@ function PathwaysWorkspaceBody() {
     : null;
   const selectedPlacementLatestEvidenceEntry =
     selectedPlacementUnifiedState?.latestEvidenceEntry ?? null;
-  const selectedPlacementEvidenceProgressMeta = getWorksheetEvidenceProgressMeta(
-    selectedPlacementLatestEvidenceEntry,
-  );
+  const selectedPlacementEvidenceProgressMeta =
+    selectedPlacementUnifiedState?.latestStatusSource === "evidence"
+      ? getWorksheetEvidenceProgressMeta(selectedPlacementLatestEvidenceEntry)
+      : null;
   const selectedPlacementHasEvidenceAttachment =
     Boolean(selectedPlacementLatestEvidenceEntry?.imageUrl) ||
     Boolean(selectedPlacementLatestEvidenceEntry?.attachmentUrls.length);
@@ -3967,7 +3972,10 @@ function DetailedMathematicsStepCard({
   );
   const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
   const latestEvidenceEntry = stepUnifiedState?.latestEvidenceEntry ?? null;
-  const evidenceProgressMeta = getWorksheetEvidenceProgressMeta(latestEvidenceEntry);
+  const evidenceProgressMeta =
+    stepUnifiedState?.latestStatusSource === "evidence"
+      ? getWorksheetEvidenceProgressMeta(latestEvidenceEntry)
+      : null;
   const statusChipMeta =
     evidenceProgressMeta ||
     (exactStepContext && confidenceStatusLabel === "Not checked yet"

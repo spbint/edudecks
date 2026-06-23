@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
+import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
+import {
+  getNumberPathwayRevealGroups,
+  type NumberPathwayEvidenceStatusOverride,
+} from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
+import { getStepAssessmentForPathwayStep } from "@/lib/clean/assessments/stepAssessmentRegistry";
 import { buildCurriculumCoverageSummary } from "@/lib/clean/curriculum/coverageSummary";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import { buildCurriculumCoveragePdfModel } from "@/lib/clean/outputs/curriculumCoveragePdf";
@@ -18,6 +24,119 @@ import {
   buildUnifiedPathwayStepStateIndex,
   getUnifiedPathwayStepState,
 } from "@/lib/clean/pathways/pathwayStepState";
+
+const OPERATIONS_STEP_2_ID = buildPathwayStepId(
+  "mathematics",
+  "operations-and-calculation",
+  "foundation-kindergarten",
+  "share-compare-and-notice-simple-differences",
+);
+
+function buildOperationsStep2Evidence(
+  progressLevel: string,
+  overrides: Partial<CleanEvidenceEntry> = {},
+): CleanEvidenceEntry {
+  const pathwayContext = buildPathwayCaptureContext({
+    source: "my-pathways",
+    subjectKey: "mathematics",
+    subjectLabel: "Mathematics",
+    pathwayKey: "operations-and-calculation",
+    pathwayLabel: "Operations and calculation pathway",
+    stageKey: "foundation-kindergarten",
+    stageLabel: "Kindergarten / Early Elementary",
+    pathwayStepId: OPERATIONS_STEP_2_ID,
+    stepKey: "share-compare-and-notice-simple-differences",
+    stepNumber: "2",
+    stepTitle: "Share, compare, and notice simple differences",
+  });
+
+  return {
+    id: `evidence-${progressLevel}`,
+    familyId: "family-1",
+    learnerId: "learner-1",
+    programId: null,
+    calendarItemId: null,
+    observedOn: "2026-06-22",
+    title: "Share, compare, and notice simple differences - worksheet evidence",
+    whatHappened:
+      "Completed worksheet evidence for Operations and calculation pathway / Share, compare, and notice simple differences.",
+    reflection: `Progress level: ${progressLevel}\nSource: worksheet_evidence`,
+    learningArea: "Mathematics",
+    curriculumNodeIds: encodePathwayContextNodeIds([], pathwayContext),
+    attachmentUrls: [],
+    imageUrl: null,
+    includeInPortfolio: true,
+    includeInReport: true,
+    createdByUserId: "user-1",
+    createdAt: "2026-06-22T10:00:00.000Z",
+    updatedAt: "2026-06-22T10:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function buildOperationsStep2Status(
+  status: CleanAssessmentSkillStatus["status"],
+  overrides: Partial<CleanAssessmentSkillStatus> = {},
+): CleanAssessmentSkillStatus {
+  return {
+    id: `status-${status}`,
+    familyId: "family-1",
+    learnerId: "learner-1",
+    subjectKey: "mathematics",
+    skillKey: OPERATIONS_STEP_2_ID,
+    stageKey: "foundation-kindergarten",
+    status,
+    note: null,
+    createdByUserId: "user-1",
+    createdAt: "2026-06-22T09:00:00.000Z",
+    updatedAt: "2026-06-22T09:00:00.000Z",
+    pathwayStepId: OPERATIONS_STEP_2_ID,
+    strandKey: "operations-and-calculation",
+    stepKey: "share-compare-and-notice-simple-differences",
+    ...overrides,
+  };
+}
+
+function buildOperationsStep2Attempt(overrides: Partial<CleanAssessmentAttempt> = {}): CleanAssessmentAttempt {
+  const exactStepAssessment = getStepAssessmentForPathwayStep({
+    pathwayStepId: OPERATIONS_STEP_2_ID,
+    stepKey: "share-compare-and-notice-simple-differences",
+    strandKey: "operations-and-calculation",
+  });
+
+  return {
+    id: "attempt-1",
+    familyId: "family-1",
+    learnerId: "learner-1",
+    subjectKey: "mathematics",
+    strandKey: "operations-and-calculation",
+    stageKey: "foundation-kindergarten",
+    pathwayStepId: OPERATIONS_STEP_2_ID,
+    stepKey: "share-compare-and-notice-simple-differences",
+    progressionBandKey: null,
+    itemBankKey: "number-foundations",
+    mode: "post_check",
+    sourceRoute: "/my-pathways",
+    status: "completed",
+    itemCount: 3,
+    attemptedCount: 3,
+    autoCorrectCount: 1,
+    autoIncorrectCount: 2,
+    reviewNeededCount: 0,
+    summarySnapshot: {
+      autoCheckStatus: "Developing",
+      prototypeMetadata: {
+        stepAssessmentKey: exactStepAssessment?.key ?? null,
+      },
+    },
+    startedAt: "2026-06-22T09:00:00.000Z",
+    completedAt: "2026-06-22T09:05:00.000Z",
+    createdByUserId: "user-1",
+    createdAt: "2026-06-22T09:00:00.000Z",
+    updatedAt: "2026-06-22T09:05:00.000Z",
+    ...overrides,
+  };
+}
 
 describe("pathway step state", () => {
   it("unifies assessment confidence and evidence on one canonical technologies step", () => {
@@ -206,6 +325,148 @@ describe("pathway step state", () => {
 
     expect(unifiedStepState?.latestObservedSkillStatus).toBe("Strong");
     expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Secure");
+  });
+
+  it("lets newer Goal achieved worksheet evidence override an older developing status", () => {
+    const developingStatus = buildOperationsStep2Status("Developing", {
+      updatedAt: "2026-06-22T09:00:00.000Z",
+    });
+    const goalAchievedEvidence = buildOperationsStep2Evidence("Goal achieved", {
+      updatedAt: "2026-06-22T10:00:00.000Z",
+    });
+
+    const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+      assessmentStatuses: [developingStatus],
+      evidenceEntries: [goalAchievedEvidence],
+    });
+    const unifiedStepState = getUnifiedPathwayStepState(unifiedStateIndex, OPERATIONS_STEP_2_ID);
+
+    expect(unifiedStepState?.assessmentConfidence).toBe("Developing");
+    expect(unifiedStepState?.latestStatusSource).toBe("evidence");
+    expect(unifiedStepState?.latestEvidenceProgressLevel).toBe("Goal achieved");
+    expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Secure");
+  });
+
+  it("lets newer Working towards worksheet evidence replace older Goal achieved evidence", () => {
+    const oldGoalEvidence = buildOperationsStep2Evidence("Goal achieved", {
+      id: "old-goal-evidence",
+      updatedAt: "2026-06-22T09:00:00.000Z",
+    });
+    const newerWorkingTowardsEvidence = buildOperationsStep2Evidence("Working towards", {
+      id: "newer-working-towards-evidence",
+      updatedAt: "2026-06-22T10:00:00.000Z",
+    });
+
+    const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+      evidenceEntries: [oldGoalEvidence, newerWorkingTowardsEvidence],
+    });
+    const unifiedStepState = getUnifiedPathwayStepState(unifiedStateIndex, OPERATIONS_STEP_2_ID);
+
+    expect(unifiedStepState?.latestEvidenceEntry?.id).toBe("newer-working-towards-evidence");
+    expect(unifiedStepState?.latestEvidenceProgressLevel).toBe("Working towards");
+    expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Evidence started");
+  });
+
+  it("uses the same latest evidence status for the current focus grouping", () => {
+    const evidenceOverrides = new Map<string, NumberPathwayEvidenceStatusOverride>([
+      [OPERATIONS_STEP_2_ID, { status: "Secure", updatedAt: Date.parse("2026-06-22T10:00:00.000Z") }],
+    ]);
+    const olderDevelopingAttempt = buildOperationsStep2Attempt({
+      completedAt: "2026-06-22T09:05:00.000Z",
+      updatedAt: "2026-06-22T09:05:00.000Z",
+    });
+
+    const groups = getNumberPathwayRevealGroups(
+      [
+        {
+          id: 1,
+          displayOrder: 1,
+          title: "Act out joining and taking away in everyday stories",
+          stageKey: "foundation-kindergarten",
+          stageTitle: "Kindergarten / Early Elementary",
+          stepKey: "act-out-joining-and-taking-away-in-everyday-stories",
+          pathwayStepId: buildPathwayStepId(
+            "mathematics",
+            "operations-and-calculation",
+            "foundation-kindergarten",
+            "act-out-joining-and-taking-away-in-everyday-stories",
+          ),
+        },
+        {
+          id: 2,
+          displayOrder: 2,
+          title: "Share, compare, and notice simple differences",
+          stageKey: "foundation-kindergarten",
+          stageTitle: "Kindergarten / Early Elementary",
+          stepKey: "share-compare-and-notice-simple-differences",
+          pathwayStepId: OPERATIONS_STEP_2_ID,
+        },
+        {
+          id: 3,
+          displayOrder: 3,
+          title: "Use counting strategies and known facts more efficiently",
+          stageKey: "lower-primary",
+          stageTitle: "Lower Primary",
+          stepKey: "use-counting-strategies-and-known-facts-more-efficiently",
+          pathwayStepId: buildPathwayStepId(
+            "mathematics",
+            "operations-and-calculation",
+            "lower-primary",
+            "use-counting-strategies-and-known-facts-more-efficiently",
+          ),
+        },
+      ],
+      [olderDevelopingAttempt],
+      {
+        subjectKey: "mathematics",
+        strandKey: "operations-and-calculation",
+        evidenceStatusByPathwayStepId: evidenceOverrides,
+      },
+    );
+
+    expect(groups.secureHistory.some((step) => step.pathwayStepId === OPERATIONS_STEP_2_ID)).toBe(
+      true,
+    );
+    expect(groups.currentLearningZone[0]?.pathwayStepId).toBe(
+      buildPathwayStepId(
+        "mathematics",
+        "operations-and-calculation",
+        "lower-primary",
+        "use-counting-strategies-and-known-facts-more-efficiently",
+      ),
+    );
+  });
+
+  it("keeps a newer digital attempt ahead of older worksheet evidence", () => {
+    const evidenceOverrides = new Map<string, NumberPathwayEvidenceStatusOverride>([
+      [OPERATIONS_STEP_2_ID, { status: "Secure", updatedAt: Date.parse("2026-06-22T09:00:00.000Z") }],
+    ]);
+    const newerDevelopingAttempt = buildOperationsStep2Attempt({
+      completedAt: "2026-06-22T10:05:00.000Z",
+      updatedAt: "2026-06-22T10:05:00.000Z",
+    });
+
+    const groups = getNumberPathwayRevealGroups(
+      [
+        {
+          id: 2,
+          displayOrder: 2,
+          title: "Share, compare, and notice simple differences",
+          stageKey: "foundation-kindergarten",
+          stageTitle: "Kindergarten / Early Elementary",
+          stepKey: "share-compare-and-notice-simple-differences",
+          pathwayStepId: OPERATIONS_STEP_2_ID,
+        },
+      ],
+      [newerDevelopingAttempt],
+      {
+        subjectKey: "mathematics",
+        strandKey: "operations-and-calculation",
+        evidenceStatusByPathwayStepId: evidenceOverrides,
+      },
+    );
+
+    expect(groups.currentLearningZone[0]?.autoCheck.status).toBe("Developing");
   });
 
   it("maps arts music pathway evidence into curriculum area and element coverage", () => {
