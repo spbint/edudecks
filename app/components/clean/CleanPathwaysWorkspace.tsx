@@ -21,6 +21,7 @@ import {
   getAutoCheckStatusForPathwayStep,
   getNumberAssessmentAlignmentForPathwayStep,
   getNumberPathwayRevealGroups,
+  type NumberAutoCheckStatus,
   type NumberPathwayRevealGroups,
   type NumberPathwayRevealStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
@@ -344,6 +345,39 @@ function getWorksheetEvidenceProgressMeta(entry: CleanEvidenceEntry | null | und
   const label = getWorksheetEvidenceProgressLabel(entry);
   if (!label) return null;
   return worksheetEvidenceProgressMeta[label.toLowerCase()] ?? null;
+}
+
+function getNumberAutoCheckStatusFromEvidence(
+  progress: PathwayProgressStatus | null | undefined,
+  progressLabel: string | null | undefined,
+): NumberAutoCheckStatus | null {
+  const normalizedLabel = String(progressLabel ?? "").trim().toLowerCase();
+
+  if (normalizedLabel === "needs support") {
+    return "Needs support";
+  }
+
+  if (normalizedLabel === "working towards") {
+    return "Developing";
+  }
+
+  if (normalizedLabel === "consolidating") {
+    return "Consolidating";
+  }
+
+  if (normalizedLabel === "goal achieved" || normalizedLabel === "goal achieved + extension") {
+    return "Secure";
+  }
+
+  if (progress === "Secure") {
+    return "Secure";
+  }
+
+  if (progress === "Evidence started" || progress === "Practising") {
+    return "Developing";
+  }
+
+  return null;
 }
 
 function formatWorksheetEvidenceDate(entry: CleanEvidenceEntry | null | undefined) {
@@ -1219,11 +1253,30 @@ function PathwaysWorkspaceBody() {
       }),
     ).map((step, index) => ({ ...step, displayOrder: index + 1 }));
 
+    const evidenceStatusByPathwayStepId = new Map<string, NumberAutoCheckStatus>();
+    orderedSteps.forEach((step) => {
+      const stepState = getUnifiedPathwayStepState(unifiedPathwayStepStateIndex, step.pathwayStepId);
+      const evidenceStatus = getNumberAutoCheckStatusFromEvidence(
+        stepState?.pathwayProgressFromEvidence,
+        getWorksheetEvidenceProgressLabel(stepState?.latestEvidenceEntry),
+      );
+      if (evidenceStatus) {
+        evidenceStatusByPathwayStepId.set(step.pathwayStepId, evidenceStatus);
+      }
+    });
+
     return getNumberPathwayRevealGroups(orderedSteps, assessmentAttempts, {
       subjectKey: selectedSubjectKey,
       strandKey: selectedSubjectWorkspace.key,
+      evidenceStatusByPathwayStepId,
     });
-  }, [assessmentAttempts, regionalStageContext, selectedSubjectKey, selectedSubjectWorkspace]);
+  }, [
+    assessmentAttempts,
+    regionalStageContext,
+    selectedSubjectKey,
+    selectedSubjectWorkspace,
+    unifiedPathwayStepStateIndex,
+  ]);
   const currentLearningZoneStartStep =
     numberPathwayRevealGroups?.currentLearningZone[0] || null;
   const selectedWorkspaceCurrentStageTitle = selectedWorkspaceCurrentStage
@@ -1289,10 +1342,37 @@ function PathwaysWorkspaceBody() {
     );
   }, [selectedLearner, selectedStrandKey, selectedSubjectKey]);
   const selectedPlacementStep = useMemo(() => {
-    const focusStepId = requestedPathwayStepId || selectedPlacement?.pathwayStepId || "";
+    let focusStepId =
+      requestedPathwayStepId ||
+      selectedPlacement?.pathwayStepId ||
+      currentLearningZoneStartStep?.pathwayStepId ||
+      "";
+    if (
+      !requestedPathwayStepId &&
+      selectedPlacement?.pathwayStepId &&
+      currentLearningZoneStartStep?.pathwayStepId &&
+      selectedPlacement.pathwayStepId !== currentLearningZoneStartStep.pathwayStepId
+    ) {
+      const placedStepState = getUnifiedPathwayStepState(
+        unifiedPathwayStepStateIndex,
+        selectedPlacement.pathwayStepId,
+      );
+      const placedEvidenceStatus = getNumberAutoCheckStatusFromEvidence(
+        placedStepState?.pathwayProgressFromEvidence,
+        getWorksheetEvidenceProgressLabel(placedStepState?.latestEvidenceEntry),
+      );
+      if (placedEvidenceStatus === "Secure") {
+        focusStepId = currentLearningZoneStartStep.pathwayStepId;
+      }
+    }
     if (!focusStepId) return null;
     return getAllPathwaySteps().find((step) => step.id === focusStepId) || null;
-  }, [requestedPathwayStepId, selectedPlacement?.pathwayStepId]);
+  }, [
+    currentLearningZoneStartStep,
+    requestedPathwayStepId,
+    selectedPlacement,
+    unifiedPathwayStepStateIndex,
+  ]);
   const selectedPlacementStrandSteps = useMemo(
     () =>
       selectedPlacementStep

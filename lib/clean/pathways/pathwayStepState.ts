@@ -9,6 +9,7 @@ import {
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { PathwayProgressStatus } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
+  buildPathwayRegistryStepKey,
   buildPathwayStepId,
   getAllPathwaySteps,
   parsePathwayStepId,
@@ -112,6 +113,56 @@ function normalizeObservedSkillStatus(
 
   if (normalizedValue === "strong") {
     return "Strong";
+  }
+
+  return null;
+}
+
+function getEvidenceProgressLevel(entry: CleanEvidenceEntry | null | undefined) {
+  const text = `${entry?.whatHappened || ""}\n${entry?.reflection || ""}`;
+  const match = text.match(/Progress level:\s*([^\n.]+)/i);
+  return match?.[1]?.trim() || null;
+}
+
+function mapEvidenceProgressLevelToObservedStatus(
+  progressLevel: string | null | undefined,
+): CleanAssessmentStatusValue | null {
+  const normalizedLevel = safe(progressLevel).toLowerCase();
+
+  if (normalizedLevel === "needs support") {
+    return "Still developing";
+  }
+
+  if (normalizedLevel === "working towards" || normalizedLevel === "consolidating") {
+    return "Developing";
+  }
+
+  if (normalizedLevel === "goal achieved") {
+    return "Secure";
+  }
+
+  if (normalizedLevel === "goal achieved + extension") {
+    return "Strong";
+  }
+
+  return null;
+}
+
+export function mapEvidenceProgressLevelToPathwayProgress(
+  progressLevel: string | null | undefined,
+): PathwayProgressStatus | null {
+  const normalizedLevel = safe(progressLevel).toLowerCase();
+
+  if (normalizedLevel === "goal achieved" || normalizedLevel === "goal achieved + extension") {
+    return "Secure";
+  }
+
+  if (
+    normalizedLevel === "needs support" ||
+    normalizedLevel === "working towards" ||
+    normalizedLevel === "consolidating"
+  ) {
+    return "Evidence started";
   }
 
   return null;
@@ -260,13 +311,26 @@ export function resolvePathwayStepIdFromContext(
 ) {
   if (!context) return null;
 
-  return resolveCanonicalPathwayStepIdFromParts({
+  const exactMatch = resolveCanonicalPathwayStepIdFromParts({
     subjectKey: context.subjectKey,
     pathwayKey: context.pathwayKey,
     stageKey: context.stageKey,
     stepKey: context.stepKey,
     stepNumber: context.stepNumber,
     pathwayStepId: context.pathwayStepId,
+  });
+  if (exactMatch) return exactMatch;
+
+  const titleStepKey = buildPathwayRegistryStepKey(
+    context.stepTitle || "",
+    context.stepNumber || context.stepKey || "item",
+  );
+  return resolveCanonicalPathwayStepIdFromParts({
+    subjectKey: context.subjectKey,
+    pathwayKey: context.pathwayKey,
+    stageKey: context.stageKey,
+    stepKey: titleStepKey,
+    stepNumber: context.stepNumber,
   });
 }
 
@@ -364,7 +428,7 @@ export function buildUnifiedPathwayStepStateIndex(
         state.latestEvidenceEntry = entry;
         state.latestObservedSkillStatus = normalizeObservedSkillStatus(
           pathwayContext?.observedSkillStatus,
-        );
+        ) || mapEvidenceProgressLevelToObservedStatus(getEvidenceProgressLevel(entry));
       }
     });
 
@@ -375,8 +439,18 @@ export function buildUnifiedPathwayStepStateIndex(
     state.linkedEvidenceEntries = sortedEvidenceEntries;
     state.linkedEvidenceCount = sortedEvidenceEntries.length;
     state.latestEvidenceEntry = sortedEvidenceEntries[0] ?? state.latestEvidenceEntry;
+    const latestPathwayContext = state.latestEvidenceEntry
+      ? parsePathwayContextFromNodeIds(state.latestEvidenceEntry.curriculumNodeIds)
+      : null;
+    const latestObservedSkillStatus =
+      normalizeObservedSkillStatus(latestPathwayContext?.observedSkillStatus) ||
+      mapEvidenceProgressLevelToObservedStatus(getEvidenceProgressLevel(state.latestEvidenceEntry));
+    state.latestObservedSkillStatus = latestObservedSkillStatus;
     state.pathwayProgressFromEvidence =
-      mapObservedSkillStatusToPathwayProgress(state.latestObservedSkillStatus) ||
+      mapObservedSkillStatusToPathwayProgress(latestObservedSkillStatus) ||
+      mapEvidenceProgressLevelToPathwayProgress(
+        getEvidenceProgressLevel(state.latestEvidenceEntry),
+      ) ||
       (state.linkedEvidenceCount > 0 ? "Evidence started" : null);
   });
 

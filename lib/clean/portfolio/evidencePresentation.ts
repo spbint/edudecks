@@ -97,6 +97,41 @@ export function getEvidencePresentationMeta(item: CleanPortfolioItem): EvidenceP
   };
 }
 
+function cleanParentFacingEvidenceText(value: string | null | undefined) {
+  return safe(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false;
+      if (/^worksheet\s*(href|url|link|id|resource)/i.test(line)) return false;
+      if (/^source\s*:\s*(worksheet_evidence|my_pathways|my-capture|my_capture)/i.test(line)) {
+        return false;
+      }
+      if (/^photo\s*:\s*(attached|evidence\/|worksheet-evidence\/)/i.test(line)) return false;
+      if (/^attachment/i.test(line) && /evidence\/|worksheet-evidence\/|storage/i.test(line)) {
+        return false;
+      }
+      if (/https?:\/\/|worksheet-evidence\/|storage\/v1|\.pdf(\?|$)/i.test(line)) return false;
+      return true;
+    })
+    .join("\n");
+}
+
+function stripStepPrefix(value: string | null | undefined) {
+  return safe(value).replace(/^Step\s+\S+\s*[-–]\s*/i, "");
+}
+
+export function getParentFacingEvidenceSummary(item: CleanPortfolioItem) {
+  const meta = getEvidencePresentationMeta(item);
+  if (meta.sourceLabel === "My Pathways") {
+    const strand = safe(meta.strandLabel) || safe(item.evidence.learningArea) || "this pathway";
+    const step = stripStepPrefix(meta.stepLabel) || safe(item.evidence.title) || "this step";
+    return `Completed worksheet evidence for ${strand}: ${step}.`;
+  }
+
+  return cleanParentFacingEvidenceText(item.evidence.whatHappened) || item.evidence.whatHappened;
+}
+
 export function buildReportPdfEvidenceItems(
   portfolioItems: CleanPortfolioItem[],
   options: {
@@ -137,7 +172,7 @@ export function buildReportPdfEvidenceItems(
       programTitle,
       segmentTitle,
       blockTitle: linkedCalendarItem?.title || null,
-      whatHappened: item.evidence.whatHappened,
+      whatHappened: getParentFacingEvidenceSummary(item),
       reflection: item.evidence.reflection,
       portfolioNote: item.highlight?.note ?? null,
       sourceLabel: meta.sourceLabel,

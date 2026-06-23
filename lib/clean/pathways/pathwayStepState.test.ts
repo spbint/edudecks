@@ -99,6 +99,115 @@ describe("pathway step state", () => {
     expect(technologiesSummary?.secureOrStrongCount).toBeGreaterThanOrEqual(1);
   });
 
+  it("treats pathway worksheet Goal achieved evidence as secure for the exact operations step", () => {
+    const pathwayStepId = buildPathwayStepId(
+      "mathematics",
+      "operations-and-calculation",
+      "foundation-kindergarten",
+      "share-compare-and-notice-simple-differences",
+    );
+
+    const pathwayContext = buildPathwayCaptureContext({
+      source: "my-pathways",
+      subjectKey: "mathematics",
+      subjectLabel: "Mathematics",
+      pathwayKey: "operations-and-calculation",
+      pathwayLabel: "Operations and calculation pathway",
+      stageKey: "foundation-kindergarten",
+      stageLabel: "Kindergarten / Early Elementary",
+      pathwayStepId,
+      stepKey: "share-compare-and-notice-simple-differences",
+      stepNumber: "2",
+      stepTitle: "Share, compare, and notice simple differences",
+      stepMeaning:
+        "Compare two quantities, talk about fairness, and describe whether one amount is more, less, or the same.",
+      skillFocus: "comparison and sharing language",
+      observedSkillStatus: "Secure",
+    });
+
+    const evidenceEntry: CleanEvidenceEntry = {
+      id: "operations-step-2-evidence",
+      familyId: "family-1",
+      learnerId: "learner-1",
+      programId: null,
+      calendarItemId: null,
+      observedOn: "2026-06-22",
+      title: "Share, compare, and notice simple differences - worksheet evidence",
+      whatHappened:
+        "Completed worksheet evidence for Operations and calculation pathway / Share, compare, and notice simple differences.",
+      reflection: "Progress level: Goal achieved\nSource: worksheet_evidence",
+      learningArea: "Mathematics",
+      curriculumNodeIds: encodePathwayContextNodeIds([], pathwayContext),
+      attachmentUrls: ["worksheet-evidence/family-1/learner-1/photo.jpg"],
+      imageUrl: "worksheet-evidence/family-1/learner-1/photo.jpg",
+      includeInPortfolio: true,
+      includeInReport: true,
+      createdByUserId: "user-1",
+      createdAt: "2026-06-22T10:00:00.000Z",
+      updatedAt: "2026-06-22T10:00:00.000Z",
+    };
+
+    const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+      evidenceEntries: [evidenceEntry],
+    });
+    const unifiedStepState = getUnifiedPathwayStepState(unifiedStateIndex, pathwayStepId);
+
+    expect(unifiedStepState?.latestEvidenceEntry?.id).toBe("operations-step-2-evidence");
+    expect(unifiedStepState?.linkedEvidenceCount).toBe(1);
+    expect(unifiedStepState?.latestObservedSkillStatus).toBe("Secure");
+    expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Secure");
+  });
+
+  it("falls back to worksheet progress text when older pathway evidence lacks observed status", () => {
+    const pathwayStepId = buildPathwayStepId(
+      "mathematics",
+      "operations-and-calculation",
+      "foundation-kindergarten",
+      "share-compare-and-notice-simple-differences",
+    );
+
+    const pathwayContext = buildPathwayCaptureContext({
+      source: "my-pathways",
+      subjectKey: "mathematics",
+      subjectLabel: "Mathematics",
+      pathwayKey: "operations-and-calculation",
+      pathwayLabel: "Operations and calculation pathway",
+      stageKey: "foundation-kindergarten",
+      stageLabel: "Kindergarten / Early Elementary",
+      stepNumber: "2",
+      stepTitle: "Share, compare, and notice simple differences",
+    });
+
+    const evidenceEntry: CleanEvidenceEntry = {
+      id: "legacy-progress-evidence",
+      familyId: "family-1",
+      learnerId: "learner-1",
+      programId: null,
+      calendarItemId: null,
+      observedOn: "2026-06-22",
+      title: "Worksheet evidence",
+      whatHappened: "Completed worksheet evidence.",
+      reflection: "Progress level: Goal achieved + extension",
+      learningArea: "Mathematics",
+      curriculumNodeIds: encodePathwayContextNodeIds([], pathwayContext),
+      attachmentUrls: [],
+      imageUrl: null,
+      includeInPortfolio: true,
+      includeInReport: true,
+      createdByUserId: "user-1",
+      createdAt: "2026-06-22T10:00:00.000Z",
+      updatedAt: "2026-06-22T10:00:00.000Z",
+    };
+
+    const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+      evidenceEntries: [evidenceEntry],
+    });
+    const unifiedStepState = getUnifiedPathwayStepState(unifiedStateIndex, pathwayStepId);
+
+    expect(unifiedStepState?.latestObservedSkillStatus).toBe("Strong");
+    expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Secure");
+  });
+
   it("maps arts music pathway evidence into curriculum area and element coverage", () => {
     const pathwayStepId = buildPathwayStepId(
       "arts",

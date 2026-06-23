@@ -584,6 +584,7 @@ export function getNumberPathwayRevealGroups(
   options: {
     subjectKey?: string;
     strandKey?: string;
+    evidenceStatusByPathwayStepId?: Map<string, NumberAutoCheckStatus>;
   } = {},
 ): NumberPathwayRevealGroups {
   const subjectKey = options.subjectKey || "mathematics";
@@ -601,7 +602,7 @@ export function getNumberPathwayRevealGroups(
       pathwayStepId: step.pathwayStepId,
       stepKey: step.stepKey,
     });
-    const autoCheck =
+    const assessmentAutoCheck =
       exactStepAssessment && strandKey !== NUMBER_STRAND_KEY
         ? getExactStepAutoCheckStatusForPathwayStep(attempts, {
             subjectKey,
@@ -611,6 +612,13 @@ export function getNumberPathwayRevealGroups(
             stepAssessmentKey: exactStepAssessment.key,
           })
         : getAutoCheckStatusForPathwayStep(attempts, alignment);
+    const evidenceStatus = options.evidenceStatusByPathwayStepId?.get(step.pathwayStepId) ?? null;
+    const autoCheck = evidenceStatus
+      ? {
+          ...assessmentAutoCheck,
+          status: evidenceStatus,
+        }
+      : assessmentAutoCheck;
 
     return {
       ...step,

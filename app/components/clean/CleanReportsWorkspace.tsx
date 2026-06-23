@@ -19,6 +19,7 @@ import {
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
 import {
   buildReportPdfEvidenceItems,
+  getParentFacingEvidenceSummary,
   getEvidencePresentationMeta,
   getEvidencePreviewImage,
 } from "@/lib/clean/portfolio/evidencePresentation";
@@ -324,7 +325,7 @@ function portfolioEvidenceTitle(item: CleanPortfolioItem) {
 }
 
 function summarizeEvidence(item: CleanPortfolioItem) {
-  const text = item.evidence.whatHappened.trim();
+  const text = getParentFacingEvidenceSummary(item).trim();
   if (text.length <= 180) return text;
   return `${text.slice(0, 177).trimEnd()}...`;
 }

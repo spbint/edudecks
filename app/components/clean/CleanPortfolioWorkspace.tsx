@@ -32,6 +32,7 @@ import {
 } from "@/lib/clean/portfolio/client";
 import {
   buildReportPdfEvidenceItems,
+  getParentFacingEvidenceSummary,
   getEvidencePresentationMeta,
   getEvidencePreviewImage,
 } from "@/lib/clean/portfolio/evidencePresentation";
@@ -1364,15 +1365,9 @@ function CleanPortfolioWorkspaceBody() {
                             title="Evidence photo"
                           />
                         ) : null}
-                        {!item.evidence.title ? (
-                          <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                            {item.evidence.whatHappened}
-                          </p>
-                        ) : (
-                          <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                            {item.evidence.whatHappened}
-                          </p>
-                        )}
+                        <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+                          {getParentFacingEvidenceSummary(item)}
+                        </p>
                         {pathwayMeta ? (
                           <div
                             style={{
