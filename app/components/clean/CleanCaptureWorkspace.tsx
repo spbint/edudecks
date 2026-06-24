@@ -2460,6 +2460,7 @@ function CleanCaptureWorkspaceBody() {
               </section>
             ) : null}
 
+            {!worksheetEvidenceMode && !lastSavedPathwayContext ? (
             <section data-guidance-id="capture-next-portfolio" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Portfolio</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -2477,6 +2478,7 @@ function CleanCaptureWorkspaceBody() {
                 Open My Portfolio
               </Link>
             </section>
+            ) : null}
 
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 14 }}>

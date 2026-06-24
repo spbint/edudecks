@@ -453,6 +453,14 @@ function CleanPortfolioWorkspaceBody() {
   }, [learnerIdFromQuery, learnerOptions]);
 
   useEffect(() => {
+    if (learnerIdFromQuery || !latestEvidenceIdFromQuery || selectedLearnerId) return;
+    const latestItem = items.find((item) => item.evidence.id === latestEvidenceIdFromQuery);
+    if (!latestItem?.evidence.learnerId) return;
+    if (!learnerOptions.some((option) => option.value === latestItem.evidence.learnerId)) return;
+    setSelectedLearnerId(latestItem.evidence.learnerId);
+  }, [items, latestEvidenceIdFromQuery, learnerIdFromQuery, learnerOptions, selectedLearnerId]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     function refreshWhenVisible() {
@@ -834,7 +842,7 @@ function CleanPortfolioWorkspaceBody() {
                   <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
                     {selectedLearnerLabel
                       ? `Learning record for ${selectedLearnerLabel}`
-                      : "Download a quick evidence PDF"}
+                      : "Download learning record"}
                   </h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                     Use captured evidence directly from Portfolio. My Reports is still available for a fuller edited report.

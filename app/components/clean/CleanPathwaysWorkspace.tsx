@@ -924,6 +924,7 @@ function PathwaysWorkspaceBody() {
   );
   const [pathwayInteractionVersion, setPathwayInteractionVersion] = useState(0);
   const [exploreStepsOpen, setExploreStepsOpen] = useState(false);
+  const [worksheetOpenedForStepId, setWorksheetOpenedForStepId] = useState("");
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
@@ -1613,6 +1614,17 @@ function PathwaysWorkspaceBody() {
     setPathwayInteractionVersion((current) => current + 1);
   }
 
+  function markSelectedWorksheetOpened() {
+    markSelectedPathwayInteraction();
+    if (selectedPlacementStep) {
+      setWorksheetOpenedForStepId(
+        selectedPlacementStep.stepKey ||
+          selectedPlacementStep.legacyStepNumber ||
+          selectedPlacementStep.stepTitle,
+      );
+    }
+  }
+
   function replacePathwayViewParams(nextSubjectKey: PathwaySubjectKey, nextStrandKey: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("subjectKey", nextSubjectKey);
@@ -1743,6 +1755,27 @@ function PathwaysWorkspaceBody() {
             font-size: 14px;
             font-weight: 800;
           }
+
+          .mylearna-pathways-hero-copy,
+          .mylearna-pathways-subject-description,
+          .mylearna-pathways-selected-strand-description {
+            display: none !important;
+          }
+
+          .mylearna-pathways-selected-strand-card {
+            padding: 12px !important;
+          }
+
+          .mylearna-pathways-current-actions {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+          }
+
+          .mylearna-pathways-current-actions > * {
+            width: 100% !important;
+            min-height: 46px !important;
+            justify-content: center !important;
+          }
         }
       `}</style>
       <div style={wrapStyle}>
@@ -1792,7 +1825,7 @@ function PathwaysWorkspaceBody() {
                 <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 32px)", lineHeight: 1.1, fontWeight: 650 }}>
                   My Pathways
                 </h1>
-                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.5, maxWidth: 760 }}>
+                <p className="mylearna-pathways-hero-copy" style={{ margin: 0, color: "#5B6478", lineHeight: 1.5, maxWidth: 760 }}>
                   Choose the next skill, practise with support, then check understanding.
                 </p>
               </div>
@@ -1915,17 +1948,17 @@ function PathwaysWorkspaceBody() {
                 <strong style={{ color: "#17204B", fontSize: "clamp(22px, 3vw, 28px)", lineHeight: 1.15, fontWeight: 650 }}>
                   {selectedPlacementStep.stepTitle}
                 </strong>
-                <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.55, maxWidth: 860 }}>
+                <p className="mylearna-pathways-hero-copy" style={{ margin: 0, color: "#5B6478", lineHeight: 1.55, maxWidth: 860 }}>
                   {selectedPlacementStep.stepDescription}
                 </p>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div className="mylearna-pathways-current-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {selectedPlacementWorksheet ? (
                     <>
                       <Link
                         href={selectedPlacementWorksheet.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={markSelectedPathwayInteraction}
+                        onClick={markSelectedWorksheetOpened}
                         style={buttonStyle}
                       >
                         Open worksheet
@@ -1960,6 +1993,26 @@ function PathwaysWorkspaceBody() {
                     View pathway map
                   </button>
                 </div>
+                {selectedPlacementWorksheet &&
+                worksheetOpenedForStepId ===
+                  (selectedPlacementStep.stepKey ||
+                    selectedPlacementStep.legacyStepNumber ||
+                    selectedPlacementStep.stepTitle) ? (
+                  <div
+                    style={{
+                      border: "1px solid #bfdbfe",
+                      borderRadius: 999,
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      padding: "8px 12px",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      width: "fit-content",
+                    }}
+                  >
+                    Worksheet opened. Next: add completed work.
+                  </div>
+                ) : null}
               </div>
               <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1980,7 +2033,7 @@ function PathwaysWorkspaceBody() {
                         href={selectedPlacementWorksheet.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={markSelectedPathwayInteraction}
+                        onClick={markSelectedWorksheetOpened}
                         style={{
                           ...summaryCardStyle,
                           minHeight: 78,
@@ -2511,7 +2564,7 @@ function PathwaysWorkspaceBody() {
                   </span>
                 </div>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>{selectedSubject.title}</strong>
-                <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                <div className="mylearna-pathways-subject-description" style={{ color: "#475569", lineHeight: 1.5 }}>
                   {selectedSubject.description}
                 </div>
               </div>
@@ -2521,7 +2574,7 @@ function PathwaysWorkspaceBody() {
 
         {selectedSubjectSupportsDetailedPathways ? (
           <>
-            <section style={cardStyle}>
+            <section className="mylearna-pathways-selected-strand-card" style={cardStyle}>
               <div style={{ display: "grid", gap: 10 }}>
                 {selectedStrandIsActive && !strandSelectorExpanded ? (
                   <div
@@ -2538,7 +2591,7 @@ function PathwaysWorkspaceBody() {
                       <strong style={{ color: "#0f172a", fontSize: 20 }}>
                         {selectedSubjectDomain.title}
                       </strong>
-                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                      <div className="mylearna-pathways-selected-strand-description" style={{ color: "#64748b", lineHeight: 1.5 }}>
                         {selectedSubjectDomain.description}
                       </div>
                     </div>
