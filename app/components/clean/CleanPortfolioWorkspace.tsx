@@ -50,7 +50,7 @@ import {
 } from "@/lib/clean/programs/client";
 import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
 import {
-  buildCleanReportPdfFilename,
+  buildCleanLearningRecordPdfFilename,
   generateCleanReportPdfBytes,
 } from "@/lib/clean/outputs/pdf";
 import type { CleanReport } from "@/lib/clean/reports/types";
@@ -660,7 +660,7 @@ function CleanPortfolioWorkspaceBody() {
 
       downloadPdf(
         pdfBytes,
-        buildCleanReportPdfFilename(selectedLearnerLabel, "portfolio-learning-record"),
+        buildCleanLearningRecordPdfFilename(selectedLearnerLabel, today),
       );
       setMessage("Learning record PDF downloaded.");
     } catch (error) {

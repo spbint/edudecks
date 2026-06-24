@@ -1300,7 +1300,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Identify slides, flips and turns, describe transformations, reason about shape properties, and connect geometry to real-world design.",
     includesAnswerSheet: false,
     fileName: GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_GEOMETRIC_RELATIONSHIPS_TRANSFORMATIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1318,7 +1318,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Read maps, follow routes, design layouts, reason about floor plans, use scale, and apply compass directions in practical spatial planning.",
     includesAnswerSheet: false,
     fileName: GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/lower-secondary/${GSR_SPATIAL_REASONING_DESIGN_MAPPING_LAYOUT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1336,7 +1336,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Use classroom layouts, floor plans, architecture, block structures, scale drawings, maps and spatial designs to model and interpret space.",
     includesAnswerSheet: false,
     fileName: GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1354,7 +1354,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Visualise, analyse maps, compare layouts, predict rotations, judge real spaces, build and explain structures, and evaluate spatial designs.",
     includesAnswerSheet: false,
     fileName: GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE,
-    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/upper-primary/${GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/geometry-and-spatial-reasoning/years-9-10-consolidation/${GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

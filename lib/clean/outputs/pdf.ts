@@ -1264,6 +1264,15 @@ export function buildCleanReportPdfFilename(
   return `MyLearna-Report-${learnerPart}-${periodPart}.pdf`;
 }
 
+export function buildCleanLearningRecordPdfFilename(
+  learnerLabel: string | null | undefined,
+  generatedOn: string | null | undefined,
+) {
+  const learnerPart = sanitizeFilePart(learnerLabel || "", "Learner");
+  const datePart = sanitizeFilePart(generatedOn || "", new Date().toISOString().slice(0, 10));
+  return `MyLearna-Learning-Record-${learnerPart}-${datePart}.pdf`;
+}
+
 export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
