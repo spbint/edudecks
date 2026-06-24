@@ -2653,6 +2653,43 @@ function CleanCalendarWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 720px) {
+            .mylearna-calendar-intro {
+              padding: 16px !important;
+            }
+
+            .mylearna-calendar-intro p,
+            .mylearna-calendar-board-copy,
+            .mylearna-calendar-secondary-copy {
+              display: none !important;
+            }
+
+            .mylearna-calendar-board {
+              padding: 14px !important;
+            }
+
+            .mylearna-calendar-board h2 {
+              font-size: 21px !important;
+            }
+
+            .mylearna-calendar-board-actions {
+              width: 100% !important;
+              display: grid !important;
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            }
+
+            .mylearna-calendar-board-actions button {
+              min-height: 44px !important;
+              padding-left: 10px !important;
+              padding-right: 10px !important;
+            }
+
+            .mylearna-calendar-print-action {
+              grid-column: 1 / -1 !important;
+            }
+          }
+        `}</style>
         {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
         <CleanFirstRunSetupGate currentStep="calendar" />
         <GuidanceSetupProgress
@@ -2674,7 +2711,7 @@ function CleanCalendarWorkspaceBody() {
         />
         ) : null}
 
-        <section data-guidance-id="calendar-week-view" style={cardStyle}>
+        <section className="mylearna-calendar-intro" data-guidance-id="calendar-week-view" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -2740,7 +2777,7 @@ function CleanCalendarWorkspaceBody() {
 
         {readyForCalendar && workspace.profile && workspace.learners.length ? (
           <>
-            <section style={cardStyle}>
+            <section className="mylearna-calendar-board" style={cardStyle}>
               <div style={{ display: "grid", gap: 18 }}>
                 <div
                   style={{
@@ -2764,12 +2801,13 @@ function CleanCalendarWorkspaceBody() {
                       Master planning calendar
                     </div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>{calendarBoardLabel}</h2>
-                    <p style={secondaryTextStyle}>
+                    <p className="mylearna-calendar-board-copy" style={secondaryTextStyle}>
                       Plan learning blocks here. Today&apos;s blocks flow through to My Day.
                     </p>
                   </div>
 
                   <div
+                    className="mylearna-calendar-board-actions"
                     style={{
                       display: "flex",
                       gap: 8,
@@ -2852,7 +2890,7 @@ function CleanCalendarWorkspaceBody() {
                         Month
                       </button>
                     </div>
-                    <div style={{ position: "relative" }}>
+                    <div className="mylearna-calendar-print-action" style={{ position: "relative" }}>
                       <button
                         type="button"
                         style={mutedButtonStyle}

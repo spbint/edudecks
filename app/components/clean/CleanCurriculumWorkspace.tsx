@@ -668,6 +668,32 @@ function CurriculumWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 720px) {
+            .mylearna-data-intro {
+              padding: 16px !important;
+            }
+
+            .mylearna-data-intro p,
+            .mylearna-data-helper,
+            .mylearna-data-framework-detail,
+            .mylearna-data-assessment-evidence,
+            .mylearna-data-coverage-helper,
+            .mylearna-data-detailed-helper {
+              display: none !important;
+            }
+
+            .mylearna-data-learner-card,
+            .mylearna-data-coverage-card {
+              padding: 14px !important;
+            }
+
+            .mylearna-data-coverage-card button {
+              width: 100% !important;
+              min-height: 46px !important;
+            }
+          }
+        `}</style>
         <CleanWorkflowRibbon />
 
         <CleanPageIntroVideo
@@ -676,7 +702,7 @@ function CurriculumWorkspaceBody() {
           promptDescription="See the signals that guide the next learning step."
         />
 
-        <section style={{ ...cardStyle, padding: 24 }}>
+        <section className="mylearna-data-intro" style={{ ...cardStyle, padding: 24 }}>
           <div style={{ display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gap: 10 }}>
               <div style={eyebrowStyle}>Learning signals</div>
@@ -690,7 +716,7 @@ function CurriculumWorkspaceBody() {
               </p>
             </div>
 
-            <div style={helperCardStyle}>
+            <div className="mylearna-data-helper" style={helperCardStyle}>
               <strong style={{ color: "#0f172a", fontWeight: 650 }}>What does this show?</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                 Decide what to practise, capture or report next.
@@ -709,7 +735,7 @@ function CurriculumWorkspaceBody() {
                   gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                 }}
               >
-                <div style={compactCardStyle}>
+                <div className="mylearna-data-framework-detail" style={compactCardStyle}>
                   <div style={eyebrowStyle}>Current framework</div>
                   <strong style={{ color: "#0f172a", fontSize: 16 }}>
                     {resolvedFramework.frameworkDisplayLabel}
@@ -735,7 +761,7 @@ function CurriculumWorkspaceBody() {
                   ) : null}
                 </div>
 
-                <div style={compactCardStyle}>
+                <div className="mylearna-data-learner-card" style={compactCardStyle}>
                   <div style={eyebrowStyle}>Current learner</div>
                   <label style={{ color: "#334155", fontWeight: 700 }}>
                     Viewing learning record for
@@ -774,7 +800,7 @@ function CurriculumWorkspaceBody() {
             !workspace.requiresFamilyCreation &&
             workspace.profile &&
             workspace.learners.length ? (
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+              <div className="mylearna-data-framework-detail" style={{ color: "#64748b", lineHeight: 1.6 }}>
                 {resolvedFramework.helperCopy} {resolvedFramework.settingsHint}
               </div>
             ) : null}
@@ -858,7 +884,7 @@ function CurriculumWorkspaceBody() {
               coverageError={coverageError}
             />
 
-            <section style={{ ...cardStyle, padding: 18 }}>
+            <section className="mylearna-data-assessment-evidence" style={{ ...cardStyle, padding: 18 }}>
               <div style={{ display: "grid", gap: 14 }}>
                 <div style={{ display: "grid", gap: 8 }}>
                   <div style={eyebrowStyle}>Assessment evidence</div>
@@ -928,9 +954,10 @@ function CurriculumWorkspaceBody() {
               </div>
             </section>
 
-            <section style={{ ...cardStyle, padding: 18 }}>
+            <section className="mylearna-data-coverage-card" style={{ ...cardStyle, padding: 18 }}>
               <div style={{ display: "grid", gap: 10 }}>
                 <div
+                  className="mylearna-data-coverage-helper"
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -1057,7 +1084,7 @@ function CurriculumWorkspaceBody() {
                   </button>
                 </div>
                 {!showDetailedCoverageMap ? (
-                  <div style={helperCardStyle}>
+                  <div className="mylearna-data-detailed-helper" style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>Older reporting support view</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                       Closed by default so Learning Intelligence stays front and centre. Open it when you need area-level evidence placement, capture links, or reporting support checks.

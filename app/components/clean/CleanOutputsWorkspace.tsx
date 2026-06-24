@@ -1240,7 +1240,7 @@ function CleanOutputsWorkspaceBody() {
 
             {!hasRequestedReportContext ? (
               <>
-            <section style={cardStyle}>
+            <section className="mylearna-outputs-advanced-export" style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage Record</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -1297,7 +1297,7 @@ function CleanOutputsWorkspaceBody() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section className="mylearna-outputs-advanced-export" style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>Calendar outputs</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>

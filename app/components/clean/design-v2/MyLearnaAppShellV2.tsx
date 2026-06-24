@@ -28,15 +28,15 @@ export const v2Tokens = {
 };
 
 const navItems = [
-  { href: "/my-day", label: "My Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
-  { href: "/my-calendar", label: "My Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
-  { href: "/my-pathways", label: "My Pathways", icon: "route", matches: ["/my-pathways"] },
-  { href: "/my-review", label: "My Review", icon: "review", matches: ["/my-review"] },
-  { href: "/my-capture", label: "My Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
-  { href: "/my-portfolio", label: "My Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
-  { href: "/my-data", label: "My Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
-  { href: "/my-reports", label: "My Reports", icon: "file", matches: ["/my-reports", "/reports"] },
-  { href: "/my-settings", label: "My Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
+  { href: "/my-day", label: "My Day", shortLabel: "Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
+  { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
+  { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways"] },
+  { href: "/my-review", label: "My Review", shortLabel: "Review", icon: "review", matches: ["/my-review"] },
+  { href: "/my-capture", label: "My Capture", shortLabel: "Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
+  { href: "/my-portfolio", label: "My Portfolio", shortLabel: "Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
+  { href: "/my-data", label: "My Data", shortLabel: "Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum"] },
+  { href: "/my-reports", label: "My Reports", shortLabel: "Reports", icon: "file", matches: ["/my-reports", "/reports"] },
+  { href: "/my-settings", label: "My Settings", shortLabel: "Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
 ] as const;
 
 type ShellIconName = (typeof navItems)[number]["icon"] | "help";
@@ -476,6 +476,14 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             padding-bottom: 4px !important;
           }
 
+          .mylearna-v2-nav-label-full {
+            display: none !important;
+          }
+
+          .mylearna-v2-nav-label-short {
+            display: inline !important;
+          }
+
           .mylearna-v2-encouragement {
             display: none !important;
           }
@@ -556,7 +564,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                   >
                     <ShellIcon name={item.icon} />
                   </span>
-                  <span>{item.label}</span>
+                  <span className="mylearna-v2-nav-label-full">{item.label}</span>
+                  <span className="mylearna-v2-nav-label-short" style={{ display: "none" }}>
+                    {item.shortLabel}
+                  </span>
                 </Link>
               );
             })}

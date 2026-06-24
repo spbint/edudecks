@@ -456,6 +456,30 @@ function CleanProfileWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 720px) {
+            .mylearna-profile-intro {
+              padding: 16px !important;
+            }
+
+            .mylearna-profile-intro p,
+            .mylearna-profile-guidance,
+            .mylearna-profile-summary {
+              display: none !important;
+            }
+
+            .mylearna-profile-form-card,
+            .mylearna-profile-learners-card {
+              padding: 14px !important;
+            }
+
+            .mylearna-profile-form-card button,
+            .mylearna-profile-learners-card button,
+            .mylearna-profile-learners-card a {
+              min-height: 44px !important;
+            }
+          }
+        `}</style>
         {!firstSetupMode ? (
           <CleanPageIntroVideo
             config={PAGE_INTRO_VIDEOS.myProfile}
@@ -464,7 +488,7 @@ function CleanProfileWorkspaceBody() {
           />
         ) : null}
 
-        <section style={cardStyle}>
+        <section className="mylearna-profile-intro" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -493,14 +517,20 @@ function CleanProfileWorkspaceBody() {
           task={profileSetupTask}
         />
 
-        {!firstSetupMode ? <GuidanceGettingStartedCard /> : null}
+        {!firstSetupMode ? (
+          <div className="mylearna-profile-guidance">
+            <GuidanceGettingStartedCard />
+          </div>
+        ) : null}
 
         {!firstSetupMode ? (
-          <CleanPageGuidance
-            title="Family basics"
-            copy="Keep learners clear before planning, capture, and reports."
-            items={guidanceItems}
-          />
+          <div className="mylearna-profile-guidance">
+            <CleanPageGuidance
+              title="Family basics"
+              copy="Keep learners clear before planning, capture, and reports."
+              items={guidanceItems}
+            />
+          </div>
         ) : null}
 
         {signupPrefill &&
@@ -571,6 +601,7 @@ function CleanProfileWorkspaceBody() {
 
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
           <section
+            className="mylearna-profile-form-card"
             id="create-family-profile"
             data-guidance-id="profile-family-details"
             style={cardStyle}
@@ -602,7 +633,7 @@ function CleanProfileWorkspaceBody() {
 
         {!workspace.loading && !workspace.schemaMissing && workspace.profile ? (
           <>
-            <section data-guidance-id="profile-family-details" style={cardStyle}>
+            <section className="mylearna-profile-summary" data-guidance-id="profile-family-details" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Family profile</h2>
               <div style={{ display: "grid", gap: 8, color: "#334155" }}>
                 <div>
@@ -625,7 +656,7 @@ function CleanProfileWorkspaceBody() {
               </div>
             </section>
 
-            <section data-guidance-id="profile-learner-details" style={cardStyle}>
+            <section className="mylearna-profile-learners-card" data-guidance-id="profile-learner-details" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners</h2>
               {expectedLearnerCount ? (
                 <p style={{ marginTop: 0, color: "#1d4ed8", fontWeight: 800, lineHeight: 1.6 }}>

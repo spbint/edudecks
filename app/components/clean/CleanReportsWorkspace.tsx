@@ -799,15 +799,15 @@ function CleanReportsWorkspaceBody() {
   const reportCanMoveToOutput = Boolean(selectedReport && selectedPeriod);
   const nextReportGuidance = useMemo(() => {
     if (!selectedReport) {
-      return "Choose the report period, then review selected portfolio evidence and written reflections before moving the learning record to My Outputs.";
+      return "Choose the learner and report period, then review the evidence for this report.";
     }
 
     if (selectedReport.status === "archived") {
-      return "This report is archived. Return it to draft when you want to review it again or send it to output.";
+      return "This report is archived. Return it to draft when you want to review it again.";
     }
 
     if (selectedReport.status === "ready") {
-      return "This learning record is ready. Review the preview below or head straight to My Outputs.";
+      return "This learning record is ready to download.";
     }
 
     if (!selectedPeriod) {
@@ -818,7 +818,7 @@ function CleanReportsWorkspaceBody() {
       return "Preview the prepared learning record. If you need more evidence later, return to My Portfolio and choose stronger highlights first.";
     }
 
-    return "Preview the prepared learning record, then send it to My Outputs when you are ready.";
+    return "Preview the prepared learning record, then download the PDF when you are ready.";
   }, [
     portfolioItems.length,
     selectedPeriod,
@@ -1870,7 +1870,7 @@ function CleanReportsWorkspaceBody() {
                 <ReportBuildStepCard
                   stepNumber={2}
                   title="Preview prepared learning record"
-                  helperText="Check the prepared learning record before you send it to My Outputs or export PDF."
+                  helperText="Check the prepared learning record before you download the PDF."
                   completionTone={step2Tone}
                   completionText={step2Text}
                   emphasis
@@ -2345,7 +2345,7 @@ function CleanReportsWorkspaceBody() {
                               background: "#fcfdff",
                             }}
                           >
-                            No saved report content is linked to this learning record yet. You can still review the learner, report period, and evidence before sending it to My Outputs.
+                            No saved report content is linked to this learning record yet. You can still review the learner, report period, and evidence before downloading the PDF.
                           </div>
                         )}
                       </section>
@@ -2589,7 +2589,7 @@ function CleanReportsWorkspaceBody() {
                             justifyContent: "center",
                           }}
                         >
-                          Go to My Outputs
+                          Output history
                         </Link>
                       ) : null}
 

@@ -797,6 +797,29 @@ function CleanSettingsWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <style jsx global>{`
+          @media (max-width: 720px) {
+            .mylearna-settings-intro {
+              padding: 16px !important;
+            }
+
+            .mylearna-settings-intro p,
+            .mylearna-settings-guidance,
+            .mylearna-settings-summary,
+            .mylearna-settings-signup-context,
+            .mylearna-settings-form-copy {
+              display: none !important;
+            }
+
+            .mylearna-settings-form-card {
+              padding: 14px !important;
+            }
+
+            .mylearna-settings-form-card button {
+              min-height: 44px !important;
+            }
+          }
+        `}</style>
         {!firstSetupMode ? (
           <CleanPageIntroVideo
             config={PAGE_INTRO_VIDEOS.mySettings}
@@ -805,7 +828,7 @@ function CleanSettingsWorkspaceBody() {
           />
         ) : null}
 
-        <section style={cardStyle}>
+        <section className="mylearna-settings-intro" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -834,11 +857,13 @@ function CleanSettingsWorkspaceBody() {
         />
 
         {!firstSetupMode ? (
-          <CleanPageGuidance
-            title="Family context"
-            copy="Use these settings to keep plans, evidence, and reports aligned."
-            items={guidanceItems}
-          />
+          <div className="mylearna-settings-guidance">
+            <CleanPageGuidance
+              title="Family context"
+              copy="Use these settings to keep plans, evidence, and reports aligned."
+              items={guidanceItems}
+            />
+          </div>
         ) : null}
 
         {workspace.loading ? (
@@ -869,7 +894,7 @@ function CleanSettingsWorkspaceBody() {
 
         {!workspace.loading && !workspace.schemaMissing && workspace.profile ? (
           <>
-            <section style={cardStyle}>
+            <section className="mylearna-settings-summary" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Current family settings</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                 These settings shape how MyLearna frames planning, portfolios, and reports for your family.
@@ -935,10 +960,14 @@ function CleanSettingsWorkspaceBody() {
               </div>
             </section>
 
-            {!firstSetupMode ? <GuidanceSettingsCard /> : null}
+            {!firstSetupMode ? (
+              <div className="mylearna-settings-guidance">
+                <GuidanceSettingsCard />
+              </div>
+            ) : null}
 
             {signupPrefill && !safe(workspace.profile.countryCode) ? (
-              <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
+              <section className="mylearna-settings-signup-context" style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#f8fbff" }}>
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>Signup context</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                   You shared this while starting your account. Use it as a guide when choosing your
@@ -965,12 +994,13 @@ function CleanSettingsWorkspaceBody() {
 
             {draft ? (
               <section
+                className="mylearna-settings-form-card"
                 id="edit-family-settings"
                 data-guidance-id="settings-region-curriculum"
                 style={cardStyle}
               >
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>Edit family settings</h2>
-                <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                <p className="mylearna-settings-form-copy" style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                   Keep this simple: choose your family context, how you want weeks to start, and how MyLearna should frame reports.
                 </p>
 
