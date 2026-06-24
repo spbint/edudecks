@@ -1368,7 +1368,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     pathwayStepTitle: "Recognise small quantities without counting",
     title: "Recognise Small Quantities Without Counting",
     fileName: SMALL_QUANTITIES_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${SMALL_QUANTITIES_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${SMALL_QUANTITIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1384,7 +1384,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     curriculumCode: "AC9MFN02",
     concept: "Match spoken number names to quantities",
     fileName: NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${NUMBER_WORDS_TO_GROUPS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1399,7 +1399,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Identify Numerals 0 to 10",
     concept: "Recognise numerals from 0 to 10",
     fileName: IDENTIFY_NUMERALS_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${IDENTIFY_NUMERALS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${IDENTIFY_NUMERALS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1414,7 +1414,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Count Objects to 10",
     concept: "Count objects accurately to 10",
     fileName: COUNT_OBJECTS_TO_10_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${COUNT_OBJECTS_TO_10_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${COUNT_OBJECTS_TO_10_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1429,7 +1429,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Count Objects to 20",
     concept: "Count objects accurately to 20",
     fileName: COUNT_OBJECTS_TO_20_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${COUNT_OBJECTS_TO_20_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${COUNT_OBJECTS_TO_20_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1444,7 +1444,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Compare Groups: More, Fewer or Same",
     concept: "Compare groups as more, fewer or the same",
     fileName: COMPARE_GROUPS_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${COMPARE_GROUPS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${COMPARE_GROUPS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1459,7 +1459,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Order Numbers in a Short Sequence",
     concept: "Order numbers in a short sequence",
     fileName: ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${ORDER_NUMBERS_SEQUENCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1474,7 +1474,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Partition and Combine Small Collections up to 10",
     concept: "Partition and combine small collections up to 10",
     fileName: PARTITION_COMBINE_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${PARTITION_COMBINE_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${PARTITION_COMBINE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1489,7 +1489,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Represent Addition and Subtraction Stories with Objects",
     concept: "Use objects to represent simple addition and subtraction stories",
     fileName: OBJECT_STORIES_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${OBJECT_STORIES_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${OBJECT_STORIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -1504,7 +1504,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     title: "Share Small Collections Equally",
     concept: "Share small collections equally into groups",
     fileName: SHARE_EQUALLY_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/foundation/${SHARE_EQUALLY_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/foundation/${SHARE_EQUALLY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2189,7 +2189,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Use and interpret numbers written in standard form, including very large and very small numbers.",
     includesAnswerSheet: false,
     fileName: WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${WORK_WITH_STANDARD_FORM_VERY_LARGE_SMALL_NUMBERS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2207,7 +2207,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Apply index laws, powers and roots to simplify expressions and solve real-world problems.",
     includesAnswerSheet: false,
     fileName: USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${USE_POWERS_ROOTS_INDICES_CONTEXT_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2227,7 +2227,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Calculate exactly using fractions and multiples of pi, leaving answers in simplest exact form where appropriate.",
     includesAnswerSheet: false,
     fileName: CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${CALCULATE_EXACTLY_FRACTIONS_MULTIPLES_PI_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2245,7 +2245,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Solve problems involving percentage increase, decrease, compound growth and compound decay.",
     includesAnswerSheet: false,
     fileName: WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${WORK_WITH_PERCENTAGE_CHANGE_GROWTH_DECAY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2263,7 +2263,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Solve problems using ratio, proportion and rates of change in real-life contexts.",
     includesAnswerSheet: false,
     fileName: APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${APPLY_RATIO_PROPORTION_RATES_CHANGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2281,7 +2281,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Apply number skills to simplify algebraic expressions, solve equations and interpret graphs.",
     includesAnswerSheet: false,
     fileName: USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${USE_NUMBER_SKILLS_ALGEBRAIC_GRAPHICAL_CONTEXTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2299,7 +2299,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Solve multi-step financial and real-world modelling problems involving money, budgets, best buys, measurement, time and practical decision-making.",
     includesAnswerSheet: false,
     fileName: SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${SOLVE_FINANCIAL_REAL_WORLD_MODELLING_PROBLEMS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2317,7 +2317,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Solve problems involving limits of accuracy, estimates and rounding in real-life contexts.",
     includesAnswerSheet: false,
     fileName: INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${INTERPRET_LIMITS_ACCURACY_ROUNDING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
@@ -2336,7 +2336,7 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
       "Choose and use efficient calculation strategies for unfamiliar problems, explaining strategy choice clearly.",
     includesAnswerSheet: false,
     fileName: SELECT_EFFICIENT_CALCULATION_STRATEGIES_WORKSHEET_FILE,
-    href: `/worksheets/mathematics/number-place-value/high-school-foundations/${SELECT_EFFICIENT_CALCULATION_STRATEGIES_WORKSHEET_FILE}`,
+    href: `/resources/worksheets/maths/number-and-place-value/years-9-10-consolidation/${SELECT_EFFICIENT_CALCULATION_STRATEGIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
 ];

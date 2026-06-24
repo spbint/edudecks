@@ -6,6 +6,7 @@ import { MATH_WORKSHEET_RESOURCES } from "@/lib/clean/resources/mathWorksheetRes
 
 const WORKSHEET_FILENAME_PATTERN =
   /^MYL-MATH-[A-Z]+-[A-Z0-9]+-S\d{3}-[A-Za-z0-9-]+\.pdf$/;
+const CANONICAL_WORKSHEET_HREF_PREFIX = "/resources/worksheets/maths/";
 
 function publicPathFromHref(href: string) {
   const normalizedHref = href.split(/[?#]/)[0] ?? "";
@@ -16,11 +17,16 @@ describe("math worksheet resource references", () => {
   it("point to existing public PDF files with stable worksheet filenames", () => {
     const missingFiles: string[] = [];
     const invalidFilenames: string[] = [];
+    const nonCanonicalHrefs: string[] = [];
     const doublePdfFilenames: string[] = [];
     const filenameCounts = new Map<string, number>();
 
     MATH_WORKSHEET_RESOURCES.forEach((resource) => {
       filenameCounts.set(resource.fileName, (filenameCounts.get(resource.fileName) ?? 0) + 1);
+
+      if (!resource.href.startsWith(CANONICAL_WORKSHEET_HREF_PREFIX)) {
+        nonCanonicalHrefs.push(`${resource.fileName} -> ${resource.href}`);
+      }
 
       if (!WORKSHEET_FILENAME_PATTERN.test(resource.fileName)) {
         invalidFilenames.push(resource.fileName);
@@ -49,6 +55,7 @@ describe("math worksheet resource references", () => {
     }
 
     expect(invalidFilenames).toEqual([]);
+    expect(nonCanonicalHrefs).toEqual([]);
     expect(doublePdfFilenames).toEqual([]);
     expect(missingFiles).toEqual([]);
   });
