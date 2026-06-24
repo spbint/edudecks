@@ -82,7 +82,7 @@ import {
   generateCleanWeeklyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
 import {
-  buildCurriculumCoveragePdfFilename,
+  buildCleanCoverageRecordPdfFilename,
   buildCurriculumCoveragePdfModel,
   CURRICULUM_COVERAGE_EMPTY_COPY,
   generateCurriculumCoveragePdfBytes,
@@ -804,10 +804,7 @@ function CleanOutputsWorkspaceBody() {
 
       downloadPdf(
         pdfBytes,
-        buildCleanWeeklyPlannerPdfFilename(
-          workspace.profile.displayName || null,
-          currentWeekStart,
-        ),
+        buildCleanWeeklyPlannerPdfFilename(currentWeekStart),
       );
       setMessage("Weekly planner downloaded.");
     } catch (error) {
@@ -848,7 +845,7 @@ function CleanOutputsWorkspaceBody() {
 
       downloadPdf(
         pdfBytes,
-        buildCurriculumCoveragePdfFilename(model.learnerName, model.generatedOnLabel),
+        buildCleanCoverageRecordPdfFilename(model.learnerName, new Date().getFullYear()),
       );
       setMessage(
         model.coverageSummary.hasLinkedEvidence

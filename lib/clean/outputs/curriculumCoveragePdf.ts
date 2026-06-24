@@ -393,13 +393,21 @@ export function buildCurriculumCoveragePdfModel(
   };
 }
 
-export function buildCurriculumCoveragePdfFilename(
+export function buildCleanCoverageRecordPdfFilename(
   learnerName: string,
-  generatedOnLabel: string,
+  year: string | number | null | undefined,
 ) {
   const learnerPart = sanitizeFilePart(learnerName || "learner", "learner");
-  const datePart = sanitizeFilePart(generatedOnLabel || "coverage-record", "coverage-record");
-  return `MyLearna-Curriculum-Coverage-Record-${learnerPart}-${datePart}.pdf`;
+  const yearPart = resolveCoverageFilenameYear(year);
+  return `MyLearna-Coverage-Record-${learnerPart}-${yearPart}.pdf`;
+}
+
+export const buildCurriculumCoveragePdfFilename = buildCleanCoverageRecordPdfFilename;
+
+function resolveCoverageFilenameYear(value: string | number | null | undefined) {
+  const clean = safe(value);
+  const explicitYear = clean.match(/\b(20\d{2}|19\d{2})\b/)?.[1];
+  return explicitYear || String(new Date().getFullYear());
 }
 
 async function loadSafeLogoImage(doc: PDFDocument) {

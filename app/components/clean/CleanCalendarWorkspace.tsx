@@ -2506,10 +2506,7 @@ function CleanCalendarWorkspaceBody() {
 
       downloadPdf(
         pdfBytes,
-        buildCleanWeeklyPlannerPdfFilename(
-          workspace.profile.displayName || null,
-          selectedWeekStart,
-        ),
+        buildCleanWeeklyPlannerPdfFilename(selectedWeekStart),
       );
       trackProductEvent(
         "weekly_plan_pdf_downloaded",

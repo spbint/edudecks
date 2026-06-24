@@ -37,7 +37,7 @@ import {
   type CurriculumCoverageStatus,
 } from "@/lib/clean/curriculum/coverageSummary";
 import {
-  buildCurriculumCoveragePdfFilename,
+  buildCleanCoverageRecordPdfFilename,
   buildCurriculumCoveragePdfModel,
   CURRICULUM_COVERAGE_EMPTY_COPY,
   generateCurriculumCoveragePdfBytes,
@@ -646,7 +646,7 @@ function CurriculumWorkspaceBody() {
 
       downloadPdf(
         pdfBytes,
-        buildCurriculumCoveragePdfFilename(model.learnerName, model.generatedOnLabel),
+        buildCleanCoverageRecordPdfFilename(model.learnerName, new Date().getFullYear()),
       );
       setCoverageMessage(
         model.coverageSummary.hasLinkedEvidence
