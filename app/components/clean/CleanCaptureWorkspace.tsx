@@ -1511,6 +1511,10 @@ function CleanCaptureWorkspaceBody() {
               min-height: 48px !important;
               justify-content: center !important;
             }
+
+            .mylearna-capture-later-additions {
+              display: none !important;
+            }
           }
         `}</style>
         <CleanFirstRunSetupGate currentStep="capture" />
@@ -2199,7 +2203,7 @@ function CleanCaptureWorkspaceBody() {
                         ? photoFile
                           ? "Save evidence"
                           : "Save progress without photo"
-                        : "Save capture"}
+                        : "Save evidence"}
                   </button>
                   {editingEntryId ? (
                     <button
@@ -2416,7 +2420,14 @@ function CleanCaptureWorkspaceBody() {
             </section>
 
             {!worksheetEvidenceMode ? (
-              <section style={cardStyle}>
+              <section
+                className="mylearna-capture-later-additions"
+                style={{
+                  ...cardStyle,
+                  background: "#f8fafc",
+                  borderStyle: "dashed",
+                }}
+              >
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>Later additions</h2>
                 <p style={{ marginTop: 0, color: "#475569" }}>
                   This phase stays text-first. Media and file capture can come later.
