@@ -2311,22 +2311,23 @@ function CleanCaptureWorkspaceBody() {
                     {lastSavedPathwayContext
                       ? lastSavedWorksheetProgress === "Goal achieved" ||
                         lastSavedWorksheetProgress === "Goal achieved + extension"
-                        ? "Saved - this step is now complete"
-                        : "Saved - progress recorded"
+                        ? "Saved — this step is now complete"
+                        : "Saved — progress recorded"
                       : message}
                   </strong>
                   {lastSavedPathwayContext ? (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
+                      {selectedLearnerLabel ? <span>{selectedLearnerLabel}</span> : null}
                       {lastSavedWorksheetProgress ? (
-                        <span>Progress level: {lastSavedWorksheetProgress}</span>
+                        <span>{lastSavedWorksheetProgress}</span>
                       ) : null}
-                      <span>
-                        Photo attached: {lastSavedPhotoAttached ? "Yes" : "No"}
-                      </span>
                       <span>
                         {worksheetTitleFromQuery || lastSavedPathwayContext.stepTitle || "Worksheet step"}
                       </span>
-                      <span>Included for portfolio and reports.</span>
+                      <span>
+                        {lastSavedPhotoAttached ? "Photo attached · " : ""}
+                        Portfolio · Reports
+                      </span>
                     </div>
                   ) : (
                     <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
