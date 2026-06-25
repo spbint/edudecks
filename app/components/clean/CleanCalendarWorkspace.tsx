@@ -867,6 +867,7 @@ function CleanCalendarWorkspaceBody() {
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
 
   const [setupLoading, setSetupLoading] = useState(false);
+  const [setupDataLoaded, setSetupDataLoaded] = useState(false);
   const [templateBlocksLoading, setTemplateBlocksLoading] = useState(false);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -945,7 +946,7 @@ function CleanCalendarWorkspaceBody() {
   const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
   const [liveWeekViewTouched, setLiveWeekViewTouched] = useState(false);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
-  const [learningPeriodsOpen, setLearningPeriodsOpen] = useState(true);
+  const [learningPeriodsOpen, setLearningPeriodsOpen] = useState(false);
   const [learningPeriodsOpenInitialized, setLearningPeriodsOpenInitialized] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
@@ -1080,6 +1081,8 @@ function CleanCalendarWorkspaceBody() {
       : !masterWeekStartedEnough
         ? "master-week"
         : "ready";
+  const shouldShowLearningPeriodsManagement =
+    setupDataLoaded && (learningPeriodsOpen || !hasRealLearningPeriod);
   const activeLearningPeriod = useMemo(() => {
     const today = getTodayDate();
     return (
@@ -1398,6 +1401,7 @@ function CleanCalendarWorkspaceBody() {
       !readyForCalendar ||
       !workspace.profile ||
       !workspace.learners.length ||
+      !setupDataLoaded ||
       setupLoading ||
       learningPeriodsOpenInitialized
     ) {
@@ -1410,6 +1414,7 @@ function CleanCalendarWorkspaceBody() {
     hasRealLearningPeriod,
     learningPeriodsOpenInitialized,
     readyForCalendar,
+    setupDataLoaded,
     setupLoading,
     workspace.learners.length,
     workspace.profile,
@@ -1471,6 +1476,7 @@ function CleanCalendarWorkspaceBody() {
         ),
       );
     } finally {
+      setSetupDataLoaded(true);
       setSetupLoading(false);
     }
   }, [workspace.profile]);
@@ -1543,6 +1549,9 @@ function CleanCalendarWorkspaceBody() {
       setProgramSegments([]);
       setGenerationRuns([]);
       setItems([]);
+      setSetupDataLoaded(false);
+      setLearningPeriodsOpen(false);
+      setLearningPeriodsOpenInitialized(false);
       return;
     }
 
@@ -3578,39 +3587,72 @@ function CleanCalendarWorkspaceBody() {
               }}
             >
               <div
-                style={{ display: "grid", gap: learningPeriodsOpen || !hasRealLearningPeriod ? 16 : 0 }}
+                style={{ display: "grid", gap: shouldShowLearningPeriodsManagement ? 16 : 0 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 14,
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Planning setup</h2>
-                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
-                      Learning periods, term dates, and year settings.
-                    </p>
-                    {!learningPeriodsOpen && hasRealLearningPeriod ? (
-                      <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                {hasRealLearningPeriod ? (
+                  <button
+                    type="button"
+                    onClick={() => setLearningPeriodsOpen((current) => !current)}
+                    aria-expanded={learningPeriodsOpen}
+                    aria-controls="learning-periods-panel"
+                    style={{
+                      width: "100%",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 18,
+                      background: "#ffffff",
+                      padding: "14px 16px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 14,
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span style={{ display: "grid", gap: 4, minWidth: 0 }}>
+                      <span style={{ color: "#0f172a", fontSize: 16, fontWeight: 850 }}>
+                        Planning setup
+                      </span>
+                      <span style={{ color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
                         {learningPeriodsSummary}
-                      </p>
-                    ) : null}
-                  </div>
-                  {hasRealLearningPeriod ? (
-                    <button
-                      type="button"
-                      style={mutedButtonStyle}
-                      onClick={() => setLearningPeriodsOpen((current) => !current)}
-                      aria-expanded={learningPeriodsOpen}
-                      aria-controls="learning-periods-panel"
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 999,
+                        background: learningPeriodsOpen ? "#e2e8f0" : "#dbeafe",
+                        color: learningPeriodsOpen ? "#334155" : "#1d4ed8",
+                        fontSize: 13,
+                        fontWeight: 850,
+                        whiteSpace: "nowrap",
+                      }}
                     >
-                      {learningPeriodsOpen ? "Hide learning periods" : "Edit learning periods"}
-                    </button>
-                  ) : (
+                      {learningPeriodsOpen ? "Hide term dates" : "Edit term dates"}
+                    </span>
+                  </button>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 14,
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                      <h2 style={{ margin: 0, color: "#0f172a" }}>Planning setup</h2>
+                      <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                        Learning periods, term dates, and year settings.
+                      </p>
+                      <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                        {setupDataLoaded
+                          ? learningPeriodsSummary
+                          : "Loading your planning setup..."}
+                      </p>
+                    </div>
                     <span
                       style={{
                         padding: "8px 12px",
@@ -3623,10 +3665,10 @@ function CleanCalendarWorkspaceBody() {
                     >
                       Setup needed
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {learningPeriodsOpen || !hasRealLearningPeriod ? (
+                {shouldShowLearningPeriodsManagement ? (
                 <div
                   id="learning-periods-panel"
                   style={{
