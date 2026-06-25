@@ -867,7 +867,6 @@ function CleanCalendarWorkspaceBody() {
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
 
   const [setupLoading, setSetupLoading] = useState(false);
-  const [setupDataLoaded, setSetupDataLoaded] = useState(false);
   const [templateBlocksLoading, setTemplateBlocksLoading] = useState(false);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -947,7 +946,6 @@ function CleanCalendarWorkspaceBody() {
   const [liveWeekViewTouched, setLiveWeekViewTouched] = useState(false);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
   const [learningPeriodsOpen, setLearningPeriodsOpen] = useState(false);
-  const [learningPeriodsOpenInitialized, setLearningPeriodsOpenInitialized] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -1084,7 +1082,7 @@ function CleanCalendarWorkspaceBody() {
         ? "master-week"
         : "ready";
   const shouldShowLearningPeriodsManagement =
-    setupDataLoaded && (learningPeriodsOpen || !hasExistingPlanningSetup);
+    learningPeriodsOpen || !hasExistingPlanningSetup;
   const activeLearningPeriod = useMemo(() => {
     const today = getTodayDate();
     return (
@@ -1397,30 +1395,6 @@ function CleanCalendarWorkspaceBody() {
   const readyForCalendar =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
 
-  useEffect(() => {
-    if (
-      !readyForCalendar ||
-      !workspace.profile ||
-      !workspace.learners.length ||
-      !setupDataLoaded ||
-      setupLoading ||
-      learningPeriodsOpenInitialized
-    ) {
-      return;
-    }
-
-    setLearningPeriodsOpen(!hasExistingPlanningSetup);
-    setLearningPeriodsOpenInitialized(true);
-  }, [
-    hasExistingPlanningSetup,
-    learningPeriodsOpenInitialized,
-    readyForCalendar,
-    setupDataLoaded,
-    setupLoading,
-    workspace.learners.length,
-    workspace.profile,
-  ]);
-
   const reloadSetupData = useCallback(async () => {
     if (!workspace.profile) return;
 
@@ -1477,7 +1451,6 @@ function CleanCalendarWorkspaceBody() {
         ),
       );
     } finally {
-      setSetupDataLoaded(true);
       setSetupLoading(false);
     }
   }, [workspace.profile]);
@@ -1550,9 +1523,7 @@ function CleanCalendarWorkspaceBody() {
       setProgramSegments([]);
       setGenerationRuns([]);
       setItems([]);
-      setSetupDataLoaded(false);
       setLearningPeriodsOpen(false);
-      setLearningPeriodsOpenInitialized(false);
       return;
     }
 
@@ -3649,9 +3620,7 @@ function CleanCalendarWorkspaceBody() {
                         Learning periods, term dates, and year settings.
                       </p>
                       <p style={{ ...secondaryTextStyle, margin: 0 }}>
-                        {setupDataLoaded
-                          ? learningPeriodsSummary
-                          : "Loading your planning setup..."}
+                        {learningPeriodsSummary}
                       </p>
                     </div>
                     <span
@@ -3664,7 +3633,7 @@ function CleanCalendarWorkspaceBody() {
                         fontWeight: 800,
                       }}
                     >
-                      {setupDataLoaded ? "Setup needed" : "Loading"}
+                      Setup needed
                     </span>
                   </div>
                 )}
