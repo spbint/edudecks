@@ -2737,23 +2737,17 @@ function CleanCalendarWorkspaceBody() {
           }
 
           .mylearna-calendar-planner-shell {
-            height: clamp(520px, 72dvh, 780px);
-            max-height: calc(100dvh - 180px);
             overflow: hidden;
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
+            display: block;
           }
 
           .mylearna-calendar-planner-content {
-            min-height: 0;
             display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
-            gap: 18px;
+            gap: 0;
           }
 
           .mylearna-calendar-planner-header {
-            position: sticky;
-            top: 0;
+            position: relative;
             z-index: 10;
             background: rgba(255, 255, 255, 0.96);
             backdrop-filter: blur(10px);
@@ -2762,23 +2756,21 @@ function CleanCalendarWorkspaceBody() {
           }
 
           .mylearna-calendar-planner-scroll {
-            min-height: 0;
+            height: clamp(520px, 72dvh, 780px);
+            max-height: calc(100dvh - 220px);
             overflow-y: auto;
             overflow-x: hidden;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
             scrollbar-gutter: stable;
-            padding-right: 4px;
+            display: grid;
+            gap: 14px;
+            padding: 14px 4px 4px 0;
           }
 
           @media (max-width: 720px) {
-            .mylearna-calendar-planner-shell {
-              height: clamp(460px, 68dvh, 720px);
-              max-height: calc(100dvh - 150px);
-            }
-
             .mylearna-calendar-planner-content {
-              gap: 14px;
+              gap: 0;
             }
 
             .mylearna-calendar-planner-header {
@@ -2786,7 +2778,9 @@ function CleanCalendarWorkspaceBody() {
             }
 
             .mylearna-calendar-planner-scroll {
-              padding-right: 0;
+              height: clamp(460px, 64dvh, 720px);
+              max-height: calc(100dvh - 180px);
+              padding: 12px 0 0;
             }
           }
         `}</style>
@@ -3119,35 +3113,6 @@ function CleanCalendarWorkspaceBody() {
                   </div>
                 ) : null}
 
-                {!itemsLoading && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
-                  <div
-                    style={{
-                      border: "1px solid #dbeafe",
-                      borderRadius: 14,
-                      background: "#f8fbff",
-                      color: "#475569",
-                      padding: 14,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
-                      No learning blocks planned yet.
-                    </strong>
-                    <span>Add a block to start building your week.</span>
-                    <button
-                      type="button"
-                      style={{
-                        ...buttonStyle,
-                        width: "100%",
-                        minHeight: 44,
-                        marginTop: 12,
-                      }}
-                      onClick={() => openCreatePopover(calendarBoardDates[0] ?? selectedWeekStart)}
-                    >
-                      Add block
-                    </button>
-                  </div>
-                ) : null}
                 </div>
 
                 <div
@@ -3164,6 +3129,36 @@ function CleanCalendarWorkspaceBody() {
                     paddingBottom: 4,
                   }}
                 >
+                  {!itemsLoading && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
+                    <div
+                      style={{
+                        border: "1px solid #dbeafe",
+                        borderRadius: 14,
+                        background: "#f8fbff",
+                        color: "#475569",
+                        padding: 14,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
+                        No learning blocks planned yet.
+                      </strong>
+                      <span>Add a block to start building your week.</span>
+                      <button
+                        type="button"
+                        style={{
+                          ...buttonStyle,
+                          width: "100%",
+                          minHeight: 44,
+                          marginTop: 12,
+                        }}
+                        onClick={() => openCreatePopover(calendarBoardDates[0] ?? selectedWeekStart)}
+                      >
+                        Add block
+                      </button>
+                    </div>
+                  ) : null}
+
                   <div
                     className={
                       calendarBoardView === "week" ? "mylearna-calendar-week-grid" : undefined
