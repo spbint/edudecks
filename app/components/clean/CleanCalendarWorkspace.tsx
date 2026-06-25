@@ -1062,6 +1062,8 @@ function CleanCalendarWorkspaceBody() {
   );
   const hasLearningYear = academicYears.length > 0;
   const hasRealLearningPeriod = learningTermsForSelectedYear.length > 0;
+  const planningSetupPeriodCount = visibleLearningPeriods.length;
+  const hasExistingPlanningSetup = hasLearningYear && planningSetupPeriodCount > 0;
   const hasMasterWeekBlock = templateBlocks.length > 0;
   const masterWeekStartedEnough = hasMasterWeekBlock || masterWeekSkipped;
   const calendarSetupReady = hasRealLearningPeriod && masterWeekStartedEnough;
@@ -1082,33 +1084,32 @@ function CleanCalendarWorkspaceBody() {
         ? "master-week"
         : "ready";
   const shouldShowLearningPeriodsManagement =
-    setupDataLoaded && (learningPeriodsOpen || !hasRealLearningPeriod);
+    setupDataLoaded && (learningPeriodsOpen || !hasExistingPlanningSetup);
   const activeLearningPeriod = useMemo(() => {
     const today = getTodayDate();
     return (
-      learningTermsForSelectedYear.find(
+      visibleLearningPeriods.find(
         (period) => period.startsOn <= today && period.endsOn >= today,
       ) ?? null
     );
-  }, [learningTermsForSelectedYear]);
+  }, [visibleLearningPeriods]);
   const learningPeriodsSummary = useMemo(() => {
     if (!hasLearningYear) return "Set up your learning year to organise your calendar.";
-    if (!hasRealLearningPeriod) return "Set up your first learning period to start planning.";
+    if (!hasExistingPlanningSetup) return "Set up your first learning period to start planning.";
 
-    const periodCount = visibleLearningPeriods.length;
     const summaryParts = [
-      selectedAcademicYear?.title ? `Current year: ${selectedAcademicYear.title}` : null,
+      selectedAcademicYear?.title ?? "Learning year set",
       activeLearningPeriod?.title ? `Active period: ${activeLearningPeriod.title}` : null,
-      `${periodCount} learning period${periodCount === 1 ? "" : "s"} set`,
+      `${planningSetupPeriodCount} learning period${planningSetupPeriodCount === 1 ? "" : "s"} set`,
     ].filter(Boolean);
 
-    return `${summaryParts.join(" - ")}. Expand to edit dates.`;
+    return `${summaryParts.join(" - ")}.`;
   }, [
     activeLearningPeriod?.title,
+    hasExistingPlanningSetup,
     hasLearningYear,
-    hasRealLearningPeriod,
+    planningSetupPeriodCount,
     selectedAcademicYear?.title,
-    visibleLearningPeriods.length,
   ]);
 
   const selectedWeekInsideLearningYear = useMemo(
@@ -1408,10 +1409,10 @@ function CleanCalendarWorkspaceBody() {
       return;
     }
 
-    setLearningPeriodsOpen(!hasRealLearningPeriod);
+    setLearningPeriodsOpen(!hasExistingPlanningSetup);
     setLearningPeriodsOpenInitialized(true);
   }, [
-    hasRealLearningPeriod,
+    hasExistingPlanningSetup,
     learningPeriodsOpenInitialized,
     readyForCalendar,
     setupDataLoaded,
@@ -3589,7 +3590,7 @@ function CleanCalendarWorkspaceBody() {
               <div
                 style={{ display: "grid", gap: shouldShowLearningPeriodsManagement ? 16 : 0 }}
               >
-                {hasRealLearningPeriod ? (
+                {hasExistingPlanningSetup ? (
                   <button
                     type="button"
                     onClick={() => setLearningPeriodsOpen((current) => !current)}
@@ -3663,7 +3664,7 @@ function CleanCalendarWorkspaceBody() {
                         fontWeight: 800,
                       }}
                     >
-                      Setup needed
+                      {setupDataLoaded ? "Setup needed" : "Loading"}
                     </span>
                   </div>
                 )}
