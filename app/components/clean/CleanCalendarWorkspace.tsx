@@ -2735,6 +2735,60 @@ function CleanCalendarWorkspaceBody() {
               display: none !important;
             }
           }
+
+          .mylearna-calendar-planner-shell {
+            height: clamp(520px, 72dvh, 780px);
+            max-height: calc(100dvh - 180px);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+          }
+
+          .mylearna-calendar-planner-content {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 18px;
+          }
+
+          .mylearna-calendar-planner-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 14px;
+          }
+
+          .mylearna-calendar-planner-scroll {
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-gutter: stable;
+            padding-right: 4px;
+          }
+
+          @media (max-width: 720px) {
+            .mylearna-calendar-planner-shell {
+              height: clamp(460px, 68dvh, 720px);
+              max-height: calc(100dvh - 150px);
+            }
+
+            .mylearna-calendar-planner-content {
+              gap: 14px;
+            }
+
+            .mylearna-calendar-planner-header {
+              padding-bottom: 12px;
+            }
+
+            .mylearna-calendar-planner-scroll {
+              padding-right: 0;
+            }
+          }
         `}</style>
         {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
         <CleanFirstRunSetupGate currentStep="calendar" />
@@ -2823,8 +2877,14 @@ function CleanCalendarWorkspaceBody() {
 
         {readyForCalendar && workspace.profile && workspace.learners.length ? (
           <>
-            <section className="mylearna-calendar-board" style={cardStyle}>
-              <div style={{ display: "grid", gap: 18 }}>
+            <section
+              className="mylearna-calendar-board mylearna-calendar-planner-shell"
+              style={cardStyle}
+              role="region"
+              aria-label="Calendar planner board"
+            >
+              <div className="mylearna-calendar-planner-content" style={{ display: "grid", gap: 18 }}>
+                <div className="mylearna-calendar-planner-header" style={{ display: "grid", gap: 18 }}>
                 <div
                   style={{
                     display: "flex",
@@ -3088,10 +3148,13 @@ function CleanCalendarWorkspaceBody() {
                     </button>
                   </div>
                 ) : null}
+                </div>
 
                 <div
                   className={
-                    calendarBoardView === "week" ? "mylearna-calendar-week-scroll" : undefined
+                    calendarBoardView === "week"
+                      ? "mylearna-calendar-week-scroll mylearna-calendar-planner-scroll"
+                      : "mylearna-calendar-planner-scroll"
                   }
                   style={{
                     overflowX:
