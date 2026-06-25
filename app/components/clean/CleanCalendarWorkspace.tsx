@@ -2674,6 +2674,7 @@ function CleanCalendarWorkspaceBody() {
               width: 100% !important;
               display: grid !important;
               grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              align-items: stretch !important;
             }
 
             .mylearna-calendar-board-actions button {
@@ -2682,8 +2683,56 @@ function CleanCalendarWorkspaceBody() {
               padding-right: 10px !important;
             }
 
+            .mylearna-calendar-board-segmented,
             .mylearna-calendar-print-action {
               grid-column: 1 / -1 !important;
+              width: 100% !important;
+            }
+
+            .mylearna-calendar-board-segmented {
+              display: grid !important;
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+
+            .mylearna-calendar-print-action > button,
+            .mylearna-calendar-board-segmented > button {
+              width: 100% !important;
+            }
+
+            .mylearna-calendar-print-menu {
+              left: 0 !important;
+              right: 0 !important;
+              width: 100% !important;
+            }
+
+            .mylearna-calendar-week-scroll {
+              overflow-x: visible !important;
+            }
+
+            .mylearna-calendar-week-grid {
+              grid-template-columns: minmax(0, 1fr) !important;
+              min-width: 0 !important;
+            }
+
+            .mylearna-calendar-day-card {
+              width: 100% !important;
+              min-width: 0 !important;
+            }
+
+            .mylearna-calendar-day-header {
+              display: grid !important;
+              grid-template-columns: minmax(0, 1fr) !important;
+              align-items: stretch !important;
+            }
+
+            .mylearna-calendar-day-header button,
+            .mylearna-calendar-day-empty-action {
+              width: 100% !important;
+              min-height: 44px !important;
+            }
+
+            .mylearna-calendar-empty-repeated-copy {
+              display: none !important;
             }
           }
         `}</style>
@@ -2851,6 +2900,7 @@ function CleanCalendarWorkspaceBody() {
                       Next
                     </button>
                     <div
+                      className="mylearna-calendar-board-segmented"
                       style={{
                         display: "inline-flex",
                         border: "1px solid #cbd5e1",
@@ -2899,6 +2949,7 @@ function CleanCalendarWorkspaceBody() {
                       </button>
                       {printMenuOpen ? (
                         <div
+                          className="mylearna-calendar-print-menu"
                           style={{
                             position: "absolute",
                             right: 0,
@@ -2940,6 +2991,7 @@ function CleanCalendarWorkspaceBody() {
                     </div>
                     {calendarBoardView === "week" ? (
                       <div
+                        className="mylearna-calendar-board-segmented"
                         style={{
                           display: "inline-flex",
                           border: "1px solid #cbd5e1",
@@ -3007,7 +3059,40 @@ function CleanCalendarWorkspaceBody() {
                   </div>
                 ) : null}
 
+                {!itemsLoading && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
+                  <div
+                    style={{
+                      border: "1px solid #dbeafe",
+                      borderRadius: 14,
+                      background: "#f8fbff",
+                      color: "#475569",
+                      padding: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
+                      No learning blocks planned yet.
+                    </strong>
+                    <span>Add a block to start building your week.</span>
+                    <button
+                      type="button"
+                      style={{
+                        ...buttonStyle,
+                        width: "100%",
+                        minHeight: 44,
+                        marginTop: 12,
+                      }}
+                      onClick={() => openCreatePopover(calendarBoardDates[0] ?? selectedWeekStart)}
+                    >
+                      Add block
+                    </button>
+                  </div>
+                ) : null}
+
                 <div
+                  className={
+                    calendarBoardView === "week" ? "mylearna-calendar-week-scroll" : undefined
+                  }
                   style={{
                     overflowX:
                       calendarBoardView === "week" && liveWeekView === "full"
@@ -3017,6 +3102,9 @@ function CleanCalendarWorkspaceBody() {
                   }}
                 >
                   <div
+                    className={
+                      calendarBoardView === "week" ? "mylearna-calendar-week-grid" : undefined
+                    }
                     style={{
                       display: "grid",
                       gap: calendarBoardView === "month" ? 8 : 12,
@@ -3059,6 +3147,9 @@ function CleanCalendarWorkspaceBody() {
 
                       return (
                         <div
+                          className={
+                            calendarBoardView === "week" ? "mylearna-calendar-day-card" : undefined
+                          }
                           key={dateValue}
                           style={{
                             border: `1px solid ${isToday ? "#a78bfa" : "#dbeafe"}`,
@@ -3077,6 +3168,11 @@ function CleanCalendarWorkspaceBody() {
                           }}
                         >
                           <div
+                            className={
+                              calendarBoardView === "week"
+                                ? "mylearna-calendar-day-header"
+                                : undefined
+                            }
                             style={{
                               display: "flex",
                               justifyContent: "space-between",
@@ -3262,6 +3358,11 @@ function CleanCalendarWorkspaceBody() {
                           ) : (
                             <button
                               type="button"
+                              className={
+                                calendarBoardView === "week"
+                                  ? "mylearna-calendar-day-empty-action"
+                                  : undefined
+                              }
                               style={{
                                 ...getInteractiveZoneStyle(
                                   activeSurfaceId === emptyZoneSurfaceId,
@@ -3284,7 +3385,10 @@ function CleanCalendarWorkspaceBody() {
                             >
                               <strong style={{ color: "#0f172a", fontSize: 14 }}>Add block</strong>
                               {calendarBoardView === "week" ? (
-                                <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                                <span
+                                  className="mylearna-calendar-empty-repeated-copy"
+                                  style={{ color: "#475569", lineHeight: 1.5 }}
+                                >
                                   No learning blocks planned yet.
                                 </span>
                               ) : null}
@@ -3296,20 +3400,6 @@ function CleanCalendarWorkspaceBody() {
                   </div>
                 </div>
 
-                {!itemsLoading && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
-                  <div
-                    style={{
-                      border: "1px solid #dbeafe",
-                      borderRadius: 14,
-                      background: "#f8fbff",
-                      color: "#475569",
-                      padding: 14,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    No learning blocks planned yet. Add a block to start building your week.
-                  </div>
-                ) : null}
               </div>
             </section>
 
@@ -5340,8 +5430,13 @@ function CleanCalendarWorkspaceBody() {
                         <p style={{ margin: 0, color: "#b91c1c" }}>{setupError}</p>
                       ) : null}
 
-                      <div data-guidance-id="calendar-learning-block" style={{ overflowX: liveWeekView === "school" ? "visible" : "auto", paddingBottom: 4 }}>
+                      <div
+                        className="mylearna-calendar-week-scroll"
+                        data-guidance-id="calendar-learning-block"
+                        style={{ overflowX: liveWeekView === "school" ? "visible" : "auto", paddingBottom: 4 }}
+                      >
                         <div
+                          className="mylearna-calendar-week-grid"
                           style={{
                             display: "grid",
                             gap: 12,
@@ -5358,6 +5453,7 @@ function CleanCalendarWorkspaceBody() {
 
                           return (
                             <div
+                              className="mylearna-calendar-day-card"
                               key={dateValue}
                               style={{
                                 border: "1px solid #dbeafe",
@@ -5369,6 +5465,7 @@ function CleanCalendarWorkspaceBody() {
                               }}
                             >
                               <div
+                                className="mylearna-calendar-day-header"
                                 style={{
                                   display: "flex",
                                   justifyContent: "space-between",
@@ -5539,6 +5636,7 @@ function CleanCalendarWorkspaceBody() {
                               ) : (
                                 <button
                                   type="button"
+                                  className="mylearna-calendar-day-empty-action"
                                   style={getInteractiveZoneStyle(
                                     activeSurfaceId === emptyZoneSurfaceId,
                                   )}
