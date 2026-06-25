@@ -3566,7 +3566,7 @@ function CleanCalendarWorkspaceBody() {
                     type="button"
                     onClick={() => setLearningPeriodsOpen((current) => !current)}
                     aria-expanded={learningPeriodsOpen}
-                    aria-controls="learning-periods-panel"
+                    aria-controls="planning-setup-management-panel"
                     style={{
                       width: "100%",
                       border: "1px solid #cbd5e1",
@@ -3640,7 +3640,7 @@ function CleanCalendarWorkspaceBody() {
 
                 {shouldShowLearningPeriodsManagement ? (
                 <div
-                  id="learning-periods-panel"
+                  id="planning-setup-management-panel"
                   style={{
                     display: "flex",
                     gap: 16,
