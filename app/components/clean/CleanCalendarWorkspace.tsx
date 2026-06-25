@@ -945,6 +945,8 @@ function CleanCalendarWorkspaceBody() {
   const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
   const [liveWeekViewTouched, setLiveWeekViewTouched] = useState(false);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const [learningPeriodsOpen, setLearningPeriodsOpen] = useState(true);
+  const [learningPeriodsOpenInitialized, setLearningPeriodsOpenInitialized] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -1078,6 +1080,33 @@ function CleanCalendarWorkspaceBody() {
       : !masterWeekStartedEnough
         ? "master-week"
         : "ready";
+  const activeLearningPeriod = useMemo(() => {
+    const today = getTodayDate();
+    return (
+      learningTermsForSelectedYear.find(
+        (period) => period.startsOn <= today && period.endsOn >= today,
+      ) ?? null
+    );
+  }, [learningTermsForSelectedYear]);
+  const learningPeriodsSummary = useMemo(() => {
+    if (!hasLearningYear) return "Set up your learning year to organise your calendar.";
+    if (!hasRealLearningPeriod) return "Set up your first learning period to start planning.";
+
+    const periodCount = visibleLearningPeriods.length;
+    const summaryParts = [
+      selectedAcademicYear?.title ? `Current year: ${selectedAcademicYear.title}` : null,
+      activeLearningPeriod?.title ? `Active period: ${activeLearningPeriod.title}` : null,
+      `${periodCount} learning period${periodCount === 1 ? "" : "s"} set`,
+    ].filter(Boolean);
+
+    return `${summaryParts.join(" - ")}. Expand to edit dates.`;
+  }, [
+    activeLearningPeriod?.title,
+    hasLearningYear,
+    hasRealLearningPeriod,
+    selectedAcademicYear?.title,
+    visibleLearningPeriods.length,
+  ]);
 
   const selectedWeekInsideLearningYear = useMemo(
     () =>
@@ -1363,6 +1392,28 @@ function CleanCalendarWorkspaceBody() {
 
   const readyForCalendar =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+
+  useEffect(() => {
+    if (
+      !readyForCalendar ||
+      !workspace.profile ||
+      !workspace.learners.length ||
+      setupLoading ||
+      learningPeriodsOpenInitialized
+    ) {
+      return;
+    }
+
+    setLearningPeriodsOpen(!hasRealLearningPeriod);
+    setLearningPeriodsOpenInitialized(true);
+  }, [
+    hasRealLearningPeriod,
+    learningPeriodsOpenInitialized,
+    readyForCalendar,
+    setupLoading,
+    workspace.learners.length,
+    workspace.profile,
+  ]);
 
   const reloadSetupData = useCallback(async () => {
     if (!workspace.profile) return;
@@ -1685,6 +1736,7 @@ function CleanCalendarWorkspaceBody() {
   }
 
   function openLearningPeriodEditor(period: CleanLearningPeriod) {
+    setLearningPeriodsOpen(true);
     setEditingLearningPeriodId(period.id);
     setEditingLearningPeriodTitle(period.title);
     setEditingLearningPeriodType(
@@ -1754,11 +1806,13 @@ function CleanCalendarWorkspaceBody() {
   }
 
   function focusLearningYearSetup() {
+    setLearningPeriodsOpen(true);
     setShowYearComposer(true);
     scrollToCalendarSection("learning-year-setup");
   }
 
   function focusLearningPeriodSetup() {
+    setLearningPeriodsOpen(true);
     openLearningPeriodComposer("term");
     scrollToCalendarSection("learning-period-setup");
   }
@@ -1804,6 +1858,7 @@ function CleanCalendarWorkspaceBody() {
   }
 
   function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
+    setLearningPeriodsOpen(true);
     setLearningPeriodComposerMode(mode);
     setShowLearningPeriodComposer(true);
     setPeriodIsBreak(mode === "break");
@@ -3515,16 +3570,65 @@ function CleanCalendarWorkspaceBody() {
             </section>
             ) : null}
 
-            <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 16 }}>
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Learning periods</h2>
-                  <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                    A learning period is the span of time you want MyLearna to plan inside, for example Term 1, Autumn term, Semester 1, or a custom unit block.
-                  </p>
+            <section
+              style={{
+                ...cardStyle,
+                background: "#f8fafc",
+                borderColor: "#dbe3ee",
+              }}
+            >
+              <div
+                style={{ display: "grid", gap: learningPeriodsOpen || !hasRealLearningPeriod ? 16 : 0 }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 14,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Planning setup</h2>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      Learning periods, term dates, and year settings.
+                    </p>
+                    {!learningPeriodsOpen && hasRealLearningPeriod ? (
+                      <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                        {learningPeriodsSummary}
+                      </p>
+                    ) : null}
+                  </div>
+                  {hasRealLearningPeriod ? (
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() => setLearningPeriodsOpen((current) => !current)}
+                      aria-expanded={learningPeriodsOpen}
+                      aria-controls="learning-periods-panel"
+                    >
+                      {learningPeriodsOpen ? "Hide learning periods" : "Edit learning periods"}
+                    </button>
+                  ) : (
+                    <span
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 999,
+                        background: "#dbeafe",
+                        color: "#1d4ed8",
+                        fontSize: 13,
+                        fontWeight: 800,
+                      }}
+                    >
+                      Setup needed
+                    </span>
+                  )}
                 </div>
 
+                {learningPeriodsOpen || !hasRealLearningPeriod ? (
                 <div
+                  id="learning-periods-panel"
                   style={{
                     display: "flex",
                     gap: 16,
@@ -4305,6 +4409,7 @@ function CleanCalendarWorkspaceBody() {
                     </div>
                   )}
                 </div>
+                ) : null}
               </div>
             </section>
 
