@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -139,16 +139,20 @@ type SpeechRecognitionLike = {
   interimResults: boolean;
   lang: string;
   onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
 };
 
+type SpeechRecognitionErrorEventLike = {
+  error?: string;
+};
+
 type SpeechRecognitionResultEventLike = {
   resultIndex: number;
   results: ArrayLike<{
-    0: { transcript: string };
+    0?: { transcript?: string };
     isFinal: boolean;
   }>;
 };
@@ -306,6 +310,30 @@ function buildLearningFromLifeReflection({
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function getSpeechRecognitionErrorMessage(errorCode: string | undefined) {
+  if (errorCode === "not-allowed" || errorCode === "service-not-allowed") {
+    return "Microphone access was blocked. You can allow it in your browser settings or type instead.";
+  }
+
+  if (errorCode === "no-speech") {
+    return "I couldn't catch anything. Try again, or type what happened.";
+  }
+
+  if (errorCode === "audio-capture") {
+    return "I couldn't access the microphone. You can try again or type instead.";
+  }
+
+  if (errorCode === "network") {
+    return "Speech input stopped. Try again, or type what happened.";
+  }
+
+  if (errorCode === "aborted") {
+    return "Listening stopped. You can try again or type what happened.";
+  }
+
+  return "Speech input stopped. Try again, or type what happened.";
 }
 
 function getWorksheetParentNote(reflection: string) {
@@ -588,6 +616,10 @@ function CleanCaptureWorkspaceBody() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const speechSessionHadTextRef = useRef(false);
+  const speechSessionStoppedManuallyRef = useRef(false);
+  const speechStartInProgressRef = useRef(false);
 
   const learnerOptions = useMemo(
     () =>
@@ -775,6 +807,23 @@ function CleanCaptureWorkspaceBody() {
   ]);
 
   useEffect(() => {
+    return () => {
+      const recognition = speechRecognitionRef.current;
+      if (!recognition) return;
+
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {
+        // The browser may already have ended the speech session.
+      }
+      speechRecognitionRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!workspace.learners.length) {
       setLearnerId("");
       return;
@@ -826,6 +875,21 @@ function CleanCaptureWorkspaceBody() {
     setLifeAddToPortfolio(true);
     setLifeIncludeInReport(true);
     setLifeSuggestionsReady(false);
+    speechSessionHadTextRef.current = false;
+    speechSessionStoppedManuallyRef.current = false;
+    speechStartInProgressRef.current = false;
+    const activeRecognition = speechRecognitionRef.current;
+    if (activeRecognition) {
+      activeRecognition.onresult = null;
+      activeRecognition.onerror = null;
+      activeRecognition.onend = null;
+    }
+    try {
+      activeRecognition?.stop();
+    } catch {
+      // The browser may already have ended the speech session.
+    }
+    speechRecognitionRef.current = null;
     setSpeechListening(false);
     setSpeechMessage("Speech input is optional.");
     setProgramId("");
@@ -900,6 +964,12 @@ function CleanCaptureWorkspaceBody() {
   }
 
   function applyLearningFromLifeSuggestions() {
+    if (!whatHappened.trim()) {
+      setActionError("Add a short description first so MyLearna can suggest evidence details.");
+      setMessage(null);
+      return;
+    }
+
     const learnerLabel =
       learnerOptions.find((option) => option.value === learnerId)?.label || "The learner";
     const suggestion = buildLearningFromLifeSuggestion(whatHappened, learnerLabel);
@@ -917,8 +987,35 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
   }
 
-  function startSpeechInput() {
+  function appendSpeechTranscript(transcript: string) {
+    const nextTranscript = transcript.trim();
+    if (!nextTranscript) return;
+
+    speechSessionHadTextRef.current = true;
+    setWhatHappened((current) =>
+      [current.trim(), nextTranscript].filter(Boolean).join(" "),
+    );
+    setLifeSuggestionsReady(false);
+    setSpeechMessage("Transcript ready. Edit anything before saving.");
+  }
+
+  function clearActiveSpeechRecognition() {
+    const recognition = speechRecognitionRef.current;
+    speechStartInProgressRef.current = false;
+    if (!recognition) return;
+
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onend = null;
+    speechRecognitionRef.current = null;
+  }
+
+  async function startSpeechInput() {
     if (typeof window === "undefined") return;
+
+    if (speechRecognitionRef.current || speechStartInProgressRef.current) {
+      return;
+    }
 
     const recognitionConstructor =
       (window as SpeechWindow).SpeechRecognition ||
@@ -926,38 +1023,100 @@ function CleanCaptureWorkspaceBody() {
 
     if (!recognitionConstructor) {
       setSpeechSupported(false);
-      setSpeechMessage("Speech input is not available in this browser. Typing still works.");
+      setSpeechMessage("Speech input is not supported in this browser. You can type instead.");
       return;
+    }
+
+    speechStartInProgressRef.current = true;
+    setSpeechSupported(true);
+    setSpeechListening(false);
+    setSpeechMessage("Checking microphone permission...");
+    speechSessionHadTextRef.current = false;
+    speechSessionStoppedManuallyRef.current = false;
+    setActionError(null);
+    setMessage(null);
+
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (error) {
+        const name = error instanceof DOMException ? error.name : "";
+        setSpeechListening(false);
+        setSpeechMessage(
+          name === "NotAllowedError" || name === "SecurityError"
+            ? "Microphone access was blocked. You can allow it in your browser settings or type instead."
+            : "Speech input stopped. Try again, or type what happened.",
+        );
+        speechStartInProgressRef.current = false;
+        return;
+      }
     }
 
     const recognition = new recognitionConstructor();
     recognition.continuous = false;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
     recognition.lang = "en-AU";
-    setSpeechSupported(true);
+    speechRecognitionRef.current = recognition;
+    speechStartInProgressRef.current = false;
     setSpeechListening(true);
-    setSpeechMessage("Listening. You can edit the words before saving.");
+    setSpeechMessage("Listening... speak now.");
 
     recognition.onresult = (event) => {
       let transcript = "";
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        transcript += event.results[index][0].transcript;
+        transcript += ` ${event.results[index]?.[0]?.transcript ?? ""}`;
       }
       if (transcript.trim()) {
-        setWhatHappened((current) =>
-          [current.trim(), transcript.trim()].filter(Boolean).join(" "),
-        );
+        appendSpeechTranscript(transcript);
       }
     };
-    recognition.onerror = () => {
-      setSpeechMessage("Speech input stopped. You can keep typing.");
+    recognition.onerror = (event) => {
+      clearActiveSpeechRecognition();
+      speechSessionStoppedManuallyRef.current = event.error === "aborted";
       setSpeechListening(false);
+      setSpeechMessage(getSpeechRecognitionErrorMessage(event.error));
     };
     recognition.onend = () => {
+      const capturedText = speechSessionHadTextRef.current;
+      const stoppedManually = speechSessionStoppedManuallyRef.current;
+      clearActiveSpeechRecognition();
       setSpeechListening(false);
-      setSpeechMessage("Transcript ready. Edit anything before saving.");
+      if (capturedText) {
+        setSpeechMessage("Transcript ready. Edit anything before saving.");
+      } else if (stoppedManually) {
+        setSpeechMessage("Listening stopped. You can try again or type what happened.");
+      } else {
+        setSpeechMessage("I couldn't catch anything. Try again, or type what happened.");
+      }
     };
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch {
+      clearActiveSpeechRecognition();
+      speechStartInProgressRef.current = false;
+      setSpeechListening(false);
+      setSpeechMessage("Speech input stopped. Try again, or type what happened.");
+    }
+  }
+
+  function stopSpeechInput() {
+    const recognition = speechRecognitionRef.current;
+    if (!recognition) return;
+
+    speechSessionStoppedManuallyRef.current = true;
+    try {
+      recognition.stop();
+    } catch {
+      clearActiveSpeechRecognition();
+      setSpeechListening(false);
+      setSpeechMessage(
+        speechSessionHadTextRef.current
+          ? "Transcript ready. Edit anything before saving."
+          : "Listening stopped. You can try again or type what happened.",
+      );
+    }
   }
 
   function updateWorksheetProgress(nextProgress: WorksheetProgressLevel) {
@@ -2198,8 +2357,8 @@ function CleanCaptureWorkspaceBody() {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <button
                           type="button"
-                          onClick={startSpeechInput}
-                          disabled={submitting || speechListening}
+                          onClick={speechListening ? stopSpeechInput : startSpeechInput}
+                          disabled={submitting}
                           style={{
                             ...buttonStyle,
                             background: speechListening ? "#6C4DF6" : "#FFFFFF",
@@ -2208,7 +2367,7 @@ function CleanCaptureWorkspaceBody() {
                             minHeight: 44,
                           }}
                         >
-                          {speechListening ? "Listening..." : "Speak description"}
+                          {speechListening ? "Stop listening" : "Speak description"}
                         </button>
                         <span style={{ color: "#64748B", fontSize: 13 }}>
                           {speechSupported || speechMessage !== "Speech input is optional."
@@ -2333,7 +2492,7 @@ function CleanCaptureWorkspaceBody() {
                         <button
                           type="button"
                           onClick={applyLearningFromLifeSuggestions}
-                          disabled={submitting || !whatHappened.trim()}
+                          disabled={submitting}
                           style={{
                             ...buttonStyle,
                             minHeight: 44,
