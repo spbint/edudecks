@@ -61,6 +61,7 @@ const SECONDARY_NAV = [
   { href: "/my-outputs", label: "My Outputs" },
 ] as const;
 
+const LEARNA_NAV = { href: "/my-learna", label: "My Learna" } as const;
 const DATA_NAV = { href: "/my-data", label: "My Data" } as const;
 
 function normalizeOutputRoute(pathname: string) {
@@ -80,6 +81,7 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
   if (pathname === "/my-programs") return "/my-programs";
   if (pathname === "/my-pathways") return "/my-pathways";
+  if (pathname === "/my-learna") return "/my-learna";
   if (
     pathname === "/curriculum" ||
     pathname === "/curriculum-map" ||
@@ -99,6 +101,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/capture" || pathname === "/my-capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/my-pathways") return "My Pathways";
+  if (pathname === "/my-learna") return "My Learna";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
   if (
     pathname === "/curriculum-map" ||
@@ -146,6 +149,9 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   }
   if (pathname === "/my-pathways") {
     return "Follow the next useful learning step with more confidence";
+  }
+  if (pathname === "/my-learna") {
+    return "See the live learner story in one visual profile";
   }
   if (pathname === "/capture" || pathname === "/my-capture") {
     return "Curate evidence while the learning is still fresh";
@@ -196,6 +202,9 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/my-pathways") {
     return "Use guided pathways to see what comes next, what to practise, and how progress can later become evidence and reporting.";
+  }
+  if (pathname === "/my-learna") {
+    return "Evidence, progress, and record-ready learning in a visual learner profile.";
   }
   if (pathname === "/capture" || pathname === "/my-capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
@@ -358,6 +367,7 @@ export default function FamilyTopNavShell({
     pathname === "/my-community" ||
     pathname.startsWith("/my-community/");
   const dataActive = normalizedPath === DATA_NAV.href;
+  const learnaActive = normalizedPath === LEARNA_NAV.href;
   const workspaceStatusLabel = workspace.syncIssue
     ? "Sync issue"
     : workspace.storageMode === "database"
@@ -403,6 +413,19 @@ export default function FamilyTopNavShell({
                 })}
 
                 <OutputsDropdown pathname={pathname} />
+
+                <Link
+                  href={LEARNA_NAV.href}
+                  aria-current={learnaActive ? "page" : undefined}
+                  className={cx(
+                    "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
+                    learnaActive
+                      ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
+                      : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
+                  )}
+                >
+                  {LEARNA_NAV.label}
+                </Link>
 
                 <Link
                   href={DATA_NAV.href}
