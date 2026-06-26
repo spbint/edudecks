@@ -119,6 +119,45 @@ const WORKSHEET_PROGRESS_OPTIONS = [
 
 type WorksheetProgressLevel = (typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"];
 
+type CapturePath = "standard" | "life";
+
+type LearningFromLifeSuggestion = {
+  title: string;
+  evidenceType: string;
+  learningArea: string;
+  tags: string[];
+  observation: string;
+  draftReportSentence: string;
+  includeInPortfolio: boolean;
+  includeInReport: boolean;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionResultEventLike = {
+  resultIndex: number;
+  results: ArrayLike<{
+    0: { transcript: string };
+    isFinal: boolean;
+  }>;
+};
+
+type SpeechWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
 function getTodayDate() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -140,6 +179,133 @@ function formatFileSize(bytes: number | null | undefined) {
   if (!bytes || !Number.isFinite(bytes)) return "";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function buildLearningFromLifeSuggestion(
+  description: string,
+  learnerLabel: string,
+): LearningFromLifeSuggestion {
+  // Future AI suggestion services should plug in before this deterministic fallback.
+  const text = description.toLowerCase();
+  const learner = learnerLabel || "The learner";
+  const fallback: LearningFromLifeSuggestion = {
+    title: "Learning from life",
+    evidenceType: "Real-world learning",
+    learningArea: "Life skills",
+    tags: ["real-world learning"],
+    observation: `${learner} took part in a real-world learning activity.`,
+    draftReportSentence: `${learner} used practical learning skills during a real-world activity.`,
+    includeInPortfolio: true,
+    includeInReport: true,
+  };
+
+  const mappings: Array<{
+    keywords: string[];
+    title: string;
+    learningArea: string;
+    tags: string[];
+    observation: string;
+    draftReportSentence: string;
+  }> = [
+    {
+      keywords: ["baking", "cook", "recipe", "kitchen"],
+      title: "Cooking and measurement",
+      learningArea: "Maths, Science, Life skills",
+      tags: ["measurement", "fractions", "procedural language"],
+      observation: `${learner} followed practical steps, measured ingredients, and noticed changes during cooking.`,
+      draftReportSentence: `${learner} applied measurement, sequencing, and observation skills through cooking.`,
+    },
+    {
+      keywords: ["garden", "plant", "watering", "seed", "soil"],
+      title: "Gardening observation",
+      learningArea: "Science, Maths, Life skills",
+      tags: ["plants", "growth", "measurement", "responsibility"],
+      observation: `${learner} observed plants and took responsibility for a practical gardening task.`,
+      draftReportSentence: `${learner} developed observation and responsibility through gardening and plant care.`,
+    },
+    {
+      keywords: ["shop", "shopping", "budget", "money", "price", "receipt"],
+      title: "Shopping and budgeting",
+      learningArea: "Maths, English, Life skills",
+      tags: ["money", "estimation", "reading labels", "budgeting"],
+      observation: `${learner} used money, estimation, and decision-making in a shopping context.`,
+      draftReportSentence: `${learner} applied practical money and reading skills during shopping and budgeting.`,
+    },
+    {
+      keywords: ["nature", "walk", "beach", "park", "bird", "animal", "weather"],
+      title: "Nature walk observation",
+      learningArea: "Science, Geography, English",
+      tags: ["observation", "place", "vocabulary", "environment"],
+      observation: `${learner} noticed and described features of the natural environment.`,
+      draftReportSentence: `${learner} built observation, vocabulary, and place awareness during a nature walk.`,
+    },
+    {
+      keywords: ["lego", "building", "blocks", "build", "construction", "model"],
+      title: "Building and design",
+      learningArea: "Maths, Design and Technology",
+      tags: ["spatial reasoning", "design", "problem solving"],
+      observation: `${learner} planned, built, adjusted, and explained a practical design.`,
+      draftReportSentence: `${learner} used spatial reasoning, design thinking, and problem solving while building.`,
+    },
+    {
+      keywords: ["read", "reading", "aloud", "book", "story"],
+      title: "Reading aloud",
+      learningArea: "English",
+      tags: ["reading", "oral language", "comprehension"],
+      observation: `${learner} engaged with text and practised oral language through reading.`,
+      draftReportSentence: `${learner} strengthened reading fluency, vocabulary, and comprehension through reading aloud.`,
+    },
+    {
+      keywords: ["craft", "design", "draw", "paint", "making"],
+      title: "Creative project",
+      learningArea: "Arts, Design and Technology",
+      tags: ["design", "fine motor", "creative choices"],
+      observation: `${learner} made creative choices and refined a practical work sample.`,
+      draftReportSentence: `${learner} developed creative decision-making and practical design skills through project work.`,
+    },
+    {
+      keywords: ["game", "board game", "cards", "dice"],
+      title: "Game-based learning",
+      learningArea: "Maths, English, Social skills",
+      tags: ["turn-taking", "strategy", "number", "reasoning"],
+      observation: `${learner} practised strategy, reasoning, and turn-taking through a game.`,
+      draftReportSentence: `${learner} used reasoning, communication, and strategy during game-based learning.`,
+    },
+  ];
+
+  const match = mappings.find((mapping) =>
+    mapping.keywords.some((keyword) => text.includes(keyword)),
+  );
+
+  if (!match) return fallback;
+
+  return {
+    evidenceType: "Real-world learning",
+    includeInPortfolio: true,
+    includeInReport: true,
+    ...match,
+  };
+}
+
+function buildLearningFromLifeReflection({
+  evidenceType,
+  tags,
+  observation,
+  draftReportSentence,
+}: {
+  evidenceType: string;
+  tags: string;
+  observation: string;
+  draftReportSentence: string;
+}) {
+  return [
+    evidenceType ? `Evidence type: ${evidenceType}` : "",
+    tags ? `Tags: ${tags}` : "",
+    observation ? `Parent observation: ${observation}` : "",
+    draftReportSentence ? `Draft report sentence: ${draftReportSentence}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function getWorksheetParentNote(reflection: string) {
@@ -369,6 +535,7 @@ function CleanCaptureWorkspaceBody() {
   const [linkingLoading, setLinkingLoading] = useState(false);
   const [linkingError, setLinkingError] = useState<string | null>(null);
   const [recentNotesOpen, setRecentNotesOpen] = useState(false);
+  const [capturePath, setCapturePath] = useState<CapturePath>("standard");
 
   const [learnerId, setLearnerId] = useState("");
   const [observedOn, setObservedOn] = useState(getTodayDate);
@@ -390,6 +557,16 @@ function CleanCaptureWorkspaceBody() {
   const [photoName, setPhotoName] = useState("");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [photoSelectionMessage, setPhotoSelectionMessage] = useState("No photo attached yet.");
+  const [lifeEvidenceType, setLifeEvidenceType] = useState("Real-world learning");
+  const [lifeTags, setLifeTags] = useState("");
+  const [lifeObservation, setLifeObservation] = useState("");
+  const [lifeDraftReportSentence, setLifeDraftReportSentence] = useState("");
+  const [lifeAddToPortfolio, setLifeAddToPortfolio] = useState(true);
+  const [lifeIncludeInReport, setLifeIncludeInReport] = useState(true);
+  const [lifeSuggestionsReady, setLifeSuggestionsReady] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechListening, setSpeechListening] = useState(false);
+  const [speechMessage, setSpeechMessage] = useState("Speech input is optional.");
   const [savedAttachments, setSavedAttachments] = useState<UploadedFamilyEvidenceFile[]>([]);
   const [lastSavedCurriculumContext, setLastSavedCurriculumContext] =
     useState<CleanCurriculumCaptureContext | null>(null);
@@ -438,6 +615,7 @@ function CleanCaptureWorkspaceBody() {
   const worksheetEvidenceMode =
     safeQueryValue(searchParams.get("worksheetEvidence")) === "1" ||
     safeQueryValue(searchParams.get("evidenceSource")) === "worksheet_evidence";
+  const learningFromLifeActive = capturePath === "life" && !worksheetEvidenceMode;
   const worksheetTitleFromQuery = safeQueryValue(searchParams.get("worksheetTitle"));
   const worksheetHrefFromQuery = safeQueryValue(searchParams.get("worksheetHref"));
   const worksheetIdFromQuery = safeQueryValue(searchParams.get("worksheetId"));
@@ -641,6 +819,15 @@ function CleanCaptureWorkspaceBody() {
     setWhatHappened("");
     setReflection("");
     setLearningArea("");
+    setLifeEvidenceType("Real-world learning");
+    setLifeTags("");
+    setLifeObservation("");
+    setLifeDraftReportSentence("");
+    setLifeAddToPortfolio(true);
+    setLifeIncludeInReport(true);
+    setLifeSuggestionsReady(false);
+    setSpeechListening(false);
+    setSpeechMessage("Speech input is optional.");
     setProgramId("");
     setCalendarItemId("");
     setPathwayObservedSkillStatus("");
@@ -671,6 +858,20 @@ function CleanCaptureWorkspaceBody() {
     router.replace(pathname);
   }
 
+  function switchCapturePath(nextPath: CapturePath) {
+    setCapturePath(nextPath);
+    setMessage(null);
+    setActionError(null);
+    if (nextPath === "life") {
+      setFormCurriculumContext(null);
+      setFormPathwayContext(null);
+      setProgramId("");
+      setCalendarItemId("");
+      setPathwayObservedSkillStatus("");
+      setLifeEvidenceType((current) => current || "Real-world learning");
+    }
+  }
+
   function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     setActionError(null);
@@ -696,6 +897,67 @@ function CleanCaptureWorkspaceBody() {
       if (current) URL.revokeObjectURL(current);
       return "";
     });
+  }
+
+  function applyLearningFromLifeSuggestions() {
+    const learnerLabel =
+      learnerOptions.find((option) => option.value === learnerId)?.label || "The learner";
+    const suggestion = buildLearningFromLifeSuggestion(whatHappened, learnerLabel);
+
+    setTitle(suggestion.title);
+    setLifeEvidenceType(suggestion.evidenceType);
+    setLearningArea(suggestion.learningArea);
+    setLifeTags(suggestion.tags.join(", "));
+    setLifeObservation(suggestion.observation);
+    setLifeDraftReportSentence(suggestion.draftReportSentence);
+    setLifeAddToPortfolio(suggestion.includeInPortfolio);
+    setLifeIncludeInReport(suggestion.includeInReport);
+    setLifeSuggestionsReady(true);
+    setMessage(null);
+    setActionError(null);
+  }
+
+  function startSpeechInput() {
+    if (typeof window === "undefined") return;
+
+    const recognitionConstructor =
+      (window as SpeechWindow).SpeechRecognition ||
+      (window as SpeechWindow).webkitSpeechRecognition;
+
+    if (!recognitionConstructor) {
+      setSpeechSupported(false);
+      setSpeechMessage("Speech input is not available in this browser. Typing still works.");
+      return;
+    }
+
+    const recognition = new recognitionConstructor();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-AU";
+    setSpeechSupported(true);
+    setSpeechListening(true);
+    setSpeechMessage("Listening. You can edit the words before saving.");
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        transcript += event.results[index][0].transcript;
+      }
+      if (transcript.trim()) {
+        setWhatHappened((current) =>
+          [current.trim(), transcript.trim()].filter(Boolean).join(" "),
+        );
+      }
+    };
+    recognition.onerror = () => {
+      setSpeechMessage("Speech input stopped. You can keep typing.");
+      setSpeechListening(false);
+    };
+    recognition.onend = () => {
+      setSpeechListening(false);
+      setSpeechMessage("Transcript ready. Edit anything before saving.");
+    };
+    recognition.start();
   }
 
   function updateWorksheetProgress(nextProgress: WorksheetProgressLevel) {
@@ -1084,8 +1346,12 @@ function CleanCaptureWorkspaceBody() {
         throw new Error("Choose how it went before saving.");
       }
 
+      if (learningFromLifeActive && !whatHappened.trim()) {
+        throw new Error("Add what happened before saving this evidence.");
+      }
+
       if (photoFile && !photoFile.type.startsWith("image/")) {
-        throw new Error("Please choose an image file for worksheet evidence.");
+        throw new Error("Please choose an image file for this evidence.");
       }
 
       const maxImageSizeBytes = 10 * 1024 * 1024;
@@ -1107,18 +1373,28 @@ function CleanCaptureWorkspaceBody() {
         curriculumNodeIds,
         nextPathwayContext,
       );
+      const learningFromLifeReflection = learningFromLifeActive
+        ? buildLearningFromLifeReflection({
+            evidenceType: lifeEvidenceType,
+            tags: lifeTags,
+            observation: lifeObservation,
+            draftReportSentence: lifeDraftReportSentence,
+          })
+        : "";
       const payload = {
         learnerId,
         observedOn,
-        title: title || null,
+        title: title || (learningFromLifeActive ? "Learning from life" : null),
         whatHappened,
-        reflection: reflection || null,
+        reflection: learningFromLifeActive
+          ? learningFromLifeReflection || null
+          : reflection || null,
         learningArea: learningArea || nextCurriculumContext?.learningAreaLabel || null,
         programId: programId || null,
         calendarItemId: calendarItemId || null,
         curriculumNodeIds: evidenceNodeIds,
-        includeInPortfolio: true,
-        includeInReport: true,
+        includeInPortfolio: learningFromLifeActive ? lifeAddToPortfolio : true,
+        includeInReport: learningFromLifeActive ? lifeIncludeInReport : true,
       };
       let savedEntry: CleanEvidenceEntry;
 
@@ -1133,7 +1409,13 @@ function CleanCaptureWorkspaceBody() {
             hasEvidence: true,
             subject: nextPathwayContext?.subjectKey ?? nextCurriculumContext?.learningAreaKey ?? null,
             strand: nextPathwayContext?.pathwayKey ?? null,
-            source: nextPathwayContext ? "my_pathways" : nextCurriculumContext ? "curriculum" : "manual",
+            source: learningFromLifeActive
+              ? "learning_from_life"
+              : nextPathwayContext
+                ? "my_pathways"
+                : nextCurriculumContext
+                  ? "curriculum"
+                  : "manual",
           },
           user?.id,
         );
@@ -1148,7 +1430,13 @@ function CleanCaptureWorkspaceBody() {
             hasEvidence: true,
             subject: nextPathwayContext?.subjectKey ?? nextCurriculumContext?.learningAreaKey ?? null,
             strand: nextPathwayContext?.pathwayKey ?? null,
-            source: nextPathwayContext ? "my_pathways" : nextCurriculumContext ? "curriculum" : "manual",
+            source: learningFromLifeActive
+              ? "learning_from_life"
+              : nextPathwayContext
+                ? "my_pathways"
+                : nextCurriculumContext
+                  ? "curriculum"
+                  : "manual",
           },
           user?.id,
         );
@@ -1202,6 +1490,8 @@ function CleanCaptureWorkspaceBody() {
               ? "Evidence saved for this pathway step."
               : nextCurriculumContext
                 ? "Evidence saved to My Data."
+                : learningFromLifeActive
+                  ? "Learning from life evidence saved."
                 : "Capture note updated."
             : !entries.length
               ? "First evidence captured. Your learning record is starting to build."
@@ -1209,6 +1499,8 @@ function CleanCaptureWorkspaceBody() {
                 ? "Evidence saved for this pathway step."
                 : nextCurriculumContext
                   ? "Evidence saved to My Data."
+                  : learningFromLifeActive
+                    ? "Learning from life evidence saved."
                   : "Capture note saved.",
       );
       const nextLearnerId = learnerId;
@@ -1600,7 +1892,13 @@ function CleanCaptureWorkspaceBody() {
             <section
               className={worksheetEvidenceMode ? "mylearna-capture-card" : undefined}
               data-guidance-id="capture-add-evidence"
-              data-capture-mode={worksheetEvidenceMode ? "worksheet-evidence" : "general"}
+              data-capture-mode={
+                worksheetEvidenceMode
+                  ? "worksheet-evidence"
+                  : learningFromLifeActive
+                    ? "learning-from-life"
+                    : "general"
+              }
               style={cardStyle}
             >
             <div
@@ -1615,10 +1913,16 @@ function CleanCaptureWorkspaceBody() {
               >
                 <div>
                   <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>
-                    {worksheetEvidenceMode ? "Add completed work" : "Add evidence"}
+                    {worksheetEvidenceMode
+                      ? "Add completed work"
+                      : learningFromLifeActive
+                        ? "Add learning from life"
+                        : "Add evidence"}
                   </h2>
                   <p className="mylearna-capture-form-intro" style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Write what happened and keep the useful links.
+                    {learningFromLifeActive
+                      ? "MyLearna can suggest details for your review. You stay in control."
+                      : "Write what happened and keep the useful links."}
                   </p>
                   {worksheetEvidenceMode ? (
                     <div
@@ -1653,6 +1957,62 @@ function CleanCaptureWorkspaceBody() {
                   {entriesLoading || linkingLoading ? "Refreshing..." : "Refresh"}
                 </button>
               </div>
+
+              {!worksheetEvidenceMode ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    display: "grid",
+                    gap: 10,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => switchCapturePath("life")}
+                    style={{
+                      border: `1px solid ${learningFromLifeActive ? "#6C4DF6" : "#E2E8F0"}`,
+                      borderRadius: 16,
+                      background: learningFromLifeActive ? "#F2EDFF" : "#FFFFFF",
+                      color: "#17204B",
+                      padding: 14,
+                      minHeight: 74,
+                      display: "grid",
+                      gap: 4,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
+                    }}
+                  >
+                    <strong style={{ fontSize: 16 }}>Add learning from life</strong>
+                    <span style={{ color: "#5B6478", fontSize: 13 }}>
+                      Real-world learning, parent reviewed.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchCapturePath("standard")}
+                    style={{
+                      border: `1px solid ${!learningFromLifeActive ? "#6C4DF6" : "#E2E8F0"}`,
+                      borderRadius: 16,
+                      background: !learningFromLifeActive ? "#F2EDFF" : "#FFFFFF",
+                      color: "#17204B",
+                      padding: 14,
+                      minHeight: 74,
+                      display: "grid",
+                      gap: 4,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
+                    }}
+                  >
+                    <strong style={{ fontSize: 16 }}>Quick capture</strong>
+                    <span style={{ color: "#5B6478", fontSize: 13 }}>
+                      Existing note workflow.
+                    </span>
+                  </button>
+                </div>
+              ) : null}
 
               {pathwayCaptureActive && formPathwayContext ? (
                 <div
@@ -1810,6 +2170,262 @@ function CleanCaptureWorkspaceBody() {
                     />
                   </label>
                 </div>
+
+                {learningFromLifeActive ? (
+                  <div style={{ display: "grid", gap: 14 }}>
+                    <div
+                      style={{
+                        border: "1px solid #D9D0FF",
+                        borderRadius: 16,
+                        background: "#FBFAFF",
+                        padding: 14,
+                        display: "grid",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ color: "#17204B", fontSize: 16 }}>
+                        Speak or type what happened
+                      </strong>
+                      <textarea
+                        value={whatHappened}
+                        onChange={(event) => {
+                          setWhatHappened(event.target.value);
+                          setLifeSuggestionsReady(false);
+                        }}
+                        placeholder="Example: We baked muffins and measured the ingredients..."
+                        style={{ ...textAreaStyle, minHeight: 110 }}
+                      />
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={startSpeechInput}
+                          disabled={submitting || speechListening}
+                          style={{
+                            ...buttonStyle,
+                            background: speechListening ? "#6C4DF6" : "#FFFFFF",
+                            borderColor: "#D9D0FF",
+                            color: speechListening ? "#FFFFFF" : "#17204B",
+                            minHeight: 44,
+                          }}
+                        >
+                          {speechListening ? "Listening..." : "Speak description"}
+                        </button>
+                        <span style={{ color: "#64748B", fontSize: 13 }}>
+                          {speechSupported || speechMessage !== "Speech input is optional."
+                            ? speechMessage
+                            : "Typing works on every device."}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className="mylearna-capture-photo-section"
+                      style={{
+                        border: "1px dashed #CBD5E1",
+                        borderRadius: 16,
+                        background: "#F8FAFC",
+                        padding: 14,
+                        display: "grid",
+                        gap: 10,
+                      }}
+                    >
+                      <strong style={{ color: "#17204B" }}>Optional photo</strong>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 10,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                        }}
+                      >
+                        <label
+                          style={{
+                            border: "1px solid #D9D0FF",
+                            borderRadius: 16,
+                            background: "#FFFFFF",
+                            padding: 14,
+                            minHeight: 82,
+                            display: "grid",
+                            gap: 6,
+                            cursor: submitting ? "default" : "pointer",
+                          }}
+                        >
+                          <span style={{ color: "#17204B", fontWeight: 800 }}>
+                            Take or upload photo
+                          </span>
+                          <span style={{ color: "#5B6478", fontSize: 13 }}>
+                            Add a real-world learning image.
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            disabled={submitting}
+                            onChange={handlePhotoChange}
+                            style={{
+                              position: "absolute",
+                              width: 1,
+                              height: 1,
+                              opacity: 0,
+                            }}
+                          />
+                        </label>
+                        <div
+                          style={{
+                            border: photoFile ? "1px solid #BBF7D0" : "1px solid #E2E8F0",
+                            borderRadius: 16,
+                            background: photoFile ? "#F0FDF4" : "#FFFFFF",
+                            padding: 12,
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <strong style={{ color: photoFile ? "#15803D" : "#475569", fontSize: 14 }}>
+                            {photoFile ? "Photo attached" : "No photo yet"}
+                          </strong>
+                          <span style={{ color: "#64748B", fontSize: 13 }}>{photoSelectionMessage}</span>
+                          {photoPreviewUrl ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={photoPreviewUrl}
+                                alt="Selected learning from life evidence preview"
+                                style={{
+                                  width: "100%",
+                                  maxHeight: 180,
+                                  objectFit: "cover",
+                                  borderRadius: 14,
+                                  border: "1px solid #BBF7D0",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={removePhoto}
+                                disabled={submitting}
+                                style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
+                              >
+                                Remove photo
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid #E2E8F0",
+                        borderRadius: 16,
+                        background: "#FFFFFF",
+                        padding: 14,
+                        display: "grid",
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                        <div style={{ display: "grid", gap: 4 }}>
+                          <strong style={{ color: "#17204B", fontSize: 16 }}>
+                            Review MyLearna&apos;s suggestions
+                          </strong>
+                          <span style={{ color: "#64748B", fontSize: 13 }}>
+                            Edit anything before saving.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={applyLearningFromLifeSuggestions}
+                          disabled={submitting || !whatHappened.trim()}
+                          style={{
+                            ...buttonStyle,
+                            minHeight: 44,
+                            opacity: whatHappened.trim() ? 1 : 0.65,
+                          }}
+                        >
+                          Suggest evidence details
+                        </button>
+                      </div>
+
+                      {lifeSuggestionsReady ? (
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <input
+                            value={title}
+                            onChange={(event) => setTitle(event.target.value)}
+                            placeholder="Evidence title"
+                            style={inputStyle}
+                          />
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: 10,
+                              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            }}
+                          >
+                            <input
+                              value={lifeEvidenceType}
+                              onChange={(event) => setLifeEvidenceType(event.target.value)}
+                              placeholder="Evidence type"
+                              style={inputStyle}
+                            />
+                            <input
+                              value={learningArea}
+                              onChange={(event) => setLearningArea(event.target.value)}
+                              placeholder="Learning area"
+                              style={inputStyle}
+                            />
+                          </div>
+                          <input
+                            value={lifeTags}
+                            onChange={(event) => setLifeTags(event.target.value)}
+                            placeholder="Tags"
+                            style={inputStyle}
+                          />
+                          <textarea
+                            value={lifeObservation}
+                            onChange={(event) => setLifeObservation(event.target.value)}
+                            placeholder="Short parent observation"
+                            style={{ ...textAreaStyle, minHeight: 86 }}
+                          />
+                          <textarea
+                            value={lifeDraftReportSentence}
+                            onChange={(event) => setLifeDraftReportSentence(event.target.value)}
+                            placeholder="Optional draft report sentence"
+                            style={{ ...textAreaStyle, minHeight: 86 }}
+                          />
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <label style={{ display: "inline-flex", gap: 8, alignItems: "center", minHeight: 44 }}>
+                              <input
+                                type="checkbox"
+                                checked={lifeAddToPortfolio}
+                                onChange={(event) => setLifeAddToPortfolio(event.target.checked)}
+                              />
+                              Add to portfolio
+                            </label>
+                            <label style={{ display: "inline-flex", gap: 8, alignItems: "center", minHeight: 44 }}>
+                              <input
+                                type="checkbox"
+                                checked={lifeIncludeInReport}
+                                onChange={(event) => setLifeIncludeInReport(event.target.checked)}
+                              />
+                              Report ready
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            border: "1px dashed #CBD5E1",
+                            borderRadius: 14,
+                            background: "#F8FAFC",
+                            padding: 12,
+                            color: "#64748B",
+                            fontSize: 13,
+                          }}
+                        >
+                          MyLearna can suggest details for your review. Nothing is saved until you approve.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
 
                 {worksheetEvidenceMode ? (
                   <>
@@ -2071,7 +2687,7 @@ function CleanCaptureWorkspaceBody() {
                   </>
                 ) : null}
 
-                {!worksheetEvidenceMode ? (
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -2084,7 +2700,7 @@ function CleanCaptureWorkspaceBody() {
                 />
                 ) : null}
 
-                {!worksheetEvidenceMode ? (
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <div data-guidance-id="capture-note-field">
                   <textarea
                     value={whatHappened}
@@ -2100,7 +2716,7 @@ function CleanCaptureWorkspaceBody() {
                   </div>
                 ) : null}
 
-                {!worksheetEvidenceMode ? (
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <textarea
                   value={reflection}
                   onChange={(event) => setReflection(event.target.value)}
@@ -2133,7 +2749,7 @@ function CleanCaptureWorkspaceBody() {
                   </label>
                 ) : null}
 
-                {!worksheetEvidenceMode ? (
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <div data-guidance-id="capture-learning-area">
                   <input
                     value={learningArea}
@@ -2144,7 +2760,7 @@ function CleanCaptureWorkspaceBody() {
                 </div>
                 ) : null}
 
-                {!worksheetEvidenceMode ? (
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <div
                   style={{
                     display: "grid",
@@ -2419,7 +3035,7 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
             </section>
 
-            {!worksheetEvidenceMode ? (
+            {!worksheetEvidenceMode && !learningFromLifeActive ? (
               <section
                 className="mylearna-capture-later-additions"
                 style={{
