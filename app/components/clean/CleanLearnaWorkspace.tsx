@@ -17,6 +17,7 @@ import {
   buildLearnaStrandSummaries,
   buildLearnaTrendSeries,
   getLearnaProgressLabel,
+  inferLearnaEvidenceStrand,
   isLearnaSecureProgress,
   LEARNA_MATH_STRANDS,
 } from "@/lib/clean/learna/metrics";
@@ -39,6 +40,21 @@ const statusColours: Record<string, { bg: string; fg: string; border: string }> 
   "Goal achieved + extension": { bg: "#eff6ff", fg: "#1d4ed8", border: "#bfdbfe" },
 };
 
+type LearnaIconName =
+  | "learner"
+  | "focus"
+  | "camera"
+  | "check"
+  | "record"
+  | "report"
+  | "shape"
+  | "trend"
+  | "balance"
+  | "capture"
+  | "milestone"
+  | "strand"
+  | "star";
+
 function getLearnerLabel(learner: Learner | null | undefined) {
   if (!learner) return "Learner";
   return learner.preferredName || learner.firstName || "Learner";
@@ -59,6 +75,153 @@ function formatCompactDate(value: string | null | undefined) {
   const parsed = new Date(clean);
   if (Number.isNaN(parsed.getTime())) return clean.slice(0, 10);
   return parsed.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function statusShortLabel(value: string | null | undefined) {
+  const clean = String(value ?? "").trim();
+  if (/goal achieved \+ extension/i.test(clean)) return "Extension";
+  if (/goal achieved/i.test(clean)) return "Goal achieved";
+  if (/working towards/i.test(clean)) return "Working";
+  if (/needs support/i.test(clean)) return "Support";
+  return clean || "Open";
+}
+
+function milestoneShortLabel(milestone: LearnaMilestone) {
+  if (milestone.id === "first-evidence") return "First";
+  if (milestone.id === "ten-evidence") return "10";
+  if (milestone.id === "first-secure" || milestone.id === "five-secure") return "Secure";
+  if (milestone.id === "report-ready") return "Report";
+  if (milestone.id === "photo-evidence") return "Photo";
+  return milestone.label.split(/\s+/)[0] || milestone.label;
+}
+
+function milestoneIconName(milestone: LearnaMilestone): LearnaIconName {
+  if (milestone.id === "photo-evidence") return "camera";
+  if (milestone.id === "report-ready") return "report";
+  if (milestone.id === "first-secure" || milestone.id === "five-secure") return "check";
+  if (milestone.id === "ten-evidence") return "star";
+  return "milestone";
+}
+
+function LearnaIcon({ name, size = 22 }: { name: LearnaIconName; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  if (name === "learner") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="7.7" r="3.1" />
+        <path d="M5.7 19.2a6.3 6.3 0 0 1 12.6 0" />
+      </svg>
+    );
+  }
+  if (name === "focus") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="7.5" />
+        <circle cx="12" cy="12" r="3.2" />
+        <path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4" />
+      </svg>
+    );
+  }
+  if (name === "camera" || name === "capture") {
+    return (
+      <svg {...common}>
+        <path d="M5 8.5A2.5 2.5 0 0 1 7.5 6H9l1.2-1.5h3.6L15 6h1.5A2.5 2.5 0 0 1 19 8.5v7A2.5 2.5 0 0 1 16.5 18h-9A2.5 2.5 0 0 1 5 15.5v-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  if (name === "check") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8.2" />
+        <path d="m8.5 12.2 2.2 2.2 4.9-5" />
+      </svg>
+    );
+  }
+  if (name === "record" || name === "report") {
+    return (
+      <svg {...common}>
+        <path d="M7 3.8h6.5L18 8.3v11.9H7V3.8Z" />
+        <path d="M13.5 4v4.5H18" />
+        <path d="M9.6 12.2h4.8" />
+        <path d="M9.6 15.3h4.8" />
+      </svg>
+    );
+  }
+  if (name === "shape") {
+    return (
+      <svg {...common}>
+        <path d="M12 3.5 19 8v8l-7 4.5L5 16V8l7-4.5Z" />
+        <path d="M12 3.5v17M5 8l14 8M19 8 5 16" />
+      </svg>
+    );
+  }
+  if (name === "trend") {
+    return (
+      <svg {...common}>
+        <path d="M4 18h16" />
+        <path d="m5 15 4.2-4 3.4 2.2L19 6.5" />
+        <path d="M16 6.5h3v3" />
+      </svg>
+    );
+  }
+  if (name === "balance") {
+    return (
+      <svg {...common}>
+        <path d="M4 17h16" />
+        <path d="M7 17V9" />
+        <path d="M12 17V5" />
+        <path d="M17 17v-6" />
+      </svg>
+    );
+  }
+  if (name === "star") {
+    return (
+      <svg {...common}>
+        <path d="m12 3.8 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3.8Z" />
+      </svg>
+    );
+  }
+  if (name === "milestone") {
+    return (
+      <svg {...common}>
+        <path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" />
+        <path d="M8 5H5.5A2.5 2.5 0 0 0 8 10" />
+        <path d="M16 5h2.5A2.5 2.5 0 0 1 16 10" />
+        <path d="M12 11v4" />
+        <path d="M8.5 20h7" />
+        <path d="M10 15h4l1 5H9l1-5Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z" />
+      <path d="M8.5 12h7" />
+    </svg>
+  );
+}
+
+function TileHeading({ icon, label }: { icon: LearnaIconName; label: string }) {
+  return (
+    <div className="learna-tile-heading">
+      <span className="learna-icon-pill">
+        <LearnaIcon name={icon} size={18} />
+      </span>
+      <span>{label}</span>
+    </div>
+  );
 }
 
 function startOfWeek(value: Date) {
@@ -98,10 +261,11 @@ function ProgressRing({
   size?: number;
 }) {
   const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+  const ringLabel = label || `${safeValue}%`;
   return (
     <div
       className="learna-progress-ring"
-      aria-label={`${label}: ${safeValue}%`}
+      aria-label={`${ringLabel}: ${safeValue}%`}
       style={
         {
           "--ring-colour": colour,
@@ -111,7 +275,7 @@ function ProgressRing({
         } as React.CSSProperties
       }
     >
-      <span>{label}</span>
+      <span>{ringLabel}</span>
     </div>
   );
 }
@@ -148,8 +312,8 @@ function RadarChart({ summaries }: { summaries: LearnaStrandSummary[] }) {
             })
             .join(" ")}
           fill="none"
-          stroke="#dbe4ef"
-          strokeWidth="1"
+          stroke="#cbd5e1"
+          strokeWidth="1.2"
         />
       ))}
       {points.map((point) => (
@@ -159,21 +323,21 @@ function RadarChart({ summaries }: { summaries: LearnaStrandSummary[] }) {
           y1={cy}
           x2={point.axisX}
           y2={point.axisY}
-          stroke="#dbe4ef"
-          strokeWidth="1"
+          stroke="#cbd5e1"
+          strokeWidth="1.2"
         />
       ))}
-      <polygon points={polygon} fill="rgba(37,99,235,0.22)" stroke="#2563eb" strokeWidth="2.5" />
+      <polygon points={polygon} fill="rgba(37,99,235,0.3)" stroke="#1d4ed8" strokeWidth="3.2" />
       {points.map((point) => (
         <g key={point.summary.code}>
-          <circle cx={point.valueX} cy={point.valueY} r="3.5" fill={point.summary.colour} />
+          <circle cx={point.valueX} cy={point.valueY} r="4.2" fill={point.summary.colour} />
           <text
             x={point.labelX}
             y={point.labelY}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize="10"
-            fontWeight="800"
+            fontSize="11"
+            fontWeight="900"
             fill="#334155"
           >
             {point.summary.code}
@@ -195,6 +359,7 @@ function TrendLine({ points }: { points: LearnaTrendPoint[] }) {
     return { x, y, point };
   });
   const line = coords.map((coord) => `${coord.x},${coord.y}`).join(" ");
+  const latest = coords[coords.length - 1];
 
   return (
     <svg className="learna-trend" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evidence trend by week">
@@ -204,13 +369,13 @@ function TrendLine({ points }: { points: LearnaTrendPoint[] }) {
         points={line}
         fill="none"
         stroke="#0d9488"
-        strokeWidth="3"
+        strokeWidth="4.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {coords.map((coord) => (
         <g key={coord.point.weekStart}>
-          <circle cx={coord.x} cy={coord.y} r="4" fill="#0d9488" />
+          <circle cx={coord.x} cy={coord.y} r={coord === latest ? "6" : "4"} fill="#0d9488" />
           <text x={coord.x} y={height - 3} textAnchor="middle" fontSize="8" fontWeight="700" fill="#64748b">
             {coord.point.label.split(" ")[0]}
           </text>
@@ -251,41 +416,67 @@ function BalanceBar({ summaries }: { summaries: LearnaStrandSummary[] }) {
 function StatTile({
   heading,
   value,
-  meta,
+  chips,
   href,
+  icon,
   colour = "#2563eb",
+  ringValue,
 }: {
   heading: string;
   value: string;
-  meta: string;
+  chips: string[];
   href: string;
+  icon: LearnaIconName;
   colour?: string;
+  ringValue?: number;
 }) {
   return (
     <Link className="learna-tile learna-stat-tile" href={href}>
-      <span>{heading}</span>
-      <strong style={{ color: colour }}>{value}</strong>
-      <small>{meta}</small>
+      <TileHeading icon={icon} label={heading} />
+      <div className="learna-stat-main">
+        <strong style={{ color: colour }}>{value}</strong>
+        {typeof ringValue === "number" ? (
+          <ProgressRing value={ringValue} label={`${Math.round(ringValue)}%`} colour={colour} size={48} />
+        ) : null}
+      </div>
+      <div className="learna-chip-row">
+        {chips.map((chip) => (
+          <small key={chip}>{chip}</small>
+        ))}
+      </div>
     </Link>
   );
 }
 
 function StrandTile({ summary, learnerId }: { summary: LearnaStrandSummary; learnerId: string }) {
   const ratio = summary.totalSteps > 0 ? (summary.secureSteps / summary.totalSteps) * 100 : 0;
+  const active = summary.evidenceCount > 0 || summary.secureSteps > 0;
   return (
-    <Link className="learna-tile learna-strand-tile" href={pathwayHref(learnerId, summary.key)}>
+    <Link
+      className={`learna-tile learna-strand-tile ${active ? "is-active" : "is-quiet"}`}
+      href={pathwayHref(learnerId, summary.key)}
+      style={
+        active
+          ? ({
+              "--strand-colour": summary.colour,
+              background: `linear-gradient(135deg, #ffffff 0%, ${summary.colour}14 100%)`,
+            } as React.CSSProperties)
+          : ({ "--strand-colour": summary.colour } as React.CSSProperties)
+      }
+      aria-label={`${summary.shortLabel}: ${summary.secureSteps} secure, ${summary.evidenceCount} evidence`}
+    >
       <div className="learna-tile-row">
-        <span className="learna-strand-code" style={{ color: summary.colour, borderColor: summary.colour }}>
-          {summary.code}
+        <span className="learna-strand-icon" style={{ color: summary.colour }}>
+          <LearnaIcon name="strand" size={22} />
         </span>
         <ProgressRing value={ratio} label={`${summary.secureSteps}`} colour={summary.colour} size={54} />
       </div>
       <strong>{summary.shortLabel}</strong>
       <div className="learna-strand-metrics">
-        <span>{summary.secureSteps} secure</span>
-        <span>{summary.evidenceCount} evidence</span>
+        <span>{summary.code}</span>
+        <span>{summary.evidenceCount}</span>
       </div>
-      {summary.latestStatus ? <em>{summary.latestStatus}</em> : null}
+      {summary.latestStatus ? <em>{statusShortLabel(summary.latestStatus)}</em> : <em>{active ? "Active" : "Quiet"}</em>}
     </Link>
   );
 }
@@ -295,13 +486,19 @@ function MilestonesTile({ milestones }: { milestones: LearnaMilestone[] }) {
   return (
     <section className="learna-tile learna-wide-tile">
       <div className="learna-section-head">
-        <span>Milestones</span>
+        <TileHeading icon="milestone" label="Milestones" />
         <strong>{active.length}</strong>
       </div>
-      <div className="learna-badge-row">
+      <div className="learna-milestone-grid">
         {milestones.map((milestone) => (
-          <span key={milestone.id} className={milestone.active ? "is-active" : ""}>
-            {milestone.label}
+          <span
+            key={milestone.id}
+            className={milestone.active ? "is-active" : ""}
+            aria-label={`${milestone.label}: ${milestone.active ? "active" : "not yet"}`}
+            title={milestone.label}
+          >
+            <LearnaIcon name={milestoneIconName(milestone)} size={20} />
+            {milestoneShortLabel(milestone)}
           </span>
         ))}
       </div>
@@ -454,6 +651,10 @@ function CleanLearnaWorkspaceBody() {
   const reportRatio = evidenceEntries.length > 0 ? (reportReadyCount / evidenceEntries.length) * 100 : 0;
   const focusColour = focusStrand?.colour || "#2563eb";
   const focusChip = focusStatus ? statusColours[focusStatus] || statusColours.Consolidating : null;
+  const focusStepTitle =
+    focusContext?.stepTitle || latestPathwayEvidence?.title || focusStrand?.shortLabel || "Choose step";
+  const focusStepNumber = focusContext?.stepNumber || "Next";
+  const latestTrendValue = trendSeries[trendSeries.length - 1]?.count ?? 0;
 
   return (
     <section className="learna-shell">
@@ -506,17 +707,55 @@ function CleanLearnaWorkspaceBody() {
           border: 1px solid #dbe4ef;
           border-radius: 22px;
           background: #ffffff;
-          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
-          padding: 16px;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
+          padding: 14px;
           text-decoration: none;
           color: inherit;
           overflow: hidden;
         }
 
+        .learna-tile-heading {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+        }
+
+        .learna-icon-pill,
+        .learna-strand-icon {
+          display: inline-grid;
+          place-items: center;
+          width: 34px;
+          height: 34px;
+          flex: 0 0 auto;
+          border-radius: 13px;
+          background: #f1f5f9;
+          color: #334155;
+        }
+
+        .learna-screen-reader-only {
+          position: absolute;
+          right: 14px;
+          top: 14px;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
         .learna-identity {
           grid-column: span 3;
           display: grid;
-          gap: 14px;
+          gap: 12px;
         }
 
         .learna-avatar-row {
@@ -545,8 +784,8 @@ function CleanLearnaWorkspaceBody() {
           font-weight: 950;
         }
 
-        .learna-identity span,
-        .learna-section-head span,
+        .learna-identity > span,
+        .learna-section-head > span,
         .learna-stat-tile > span {
           color: #64748b;
           font-size: 12px;
@@ -570,14 +809,14 @@ function CleanLearnaWorkspaceBody() {
           grid-column: span 5;
           display: grid;
           grid-template-columns: auto minmax(0, 1fr);
-          gap: 16px;
+          gap: 14px;
           align-items: center;
           background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
         }
 
         .learna-focus h2 {
           margin: 0;
-          font-size: clamp(22px, 3vw, 34px);
+          font-size: clamp(28px, 4vw, 46px);
           line-height: 1.05;
           font-weight: 950;
         }
@@ -586,7 +825,7 @@ function CleanLearnaWorkspaceBody() {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
-          margin-top: 10px;
+          margin-top: 8px;
         }
 
         .learna-chip {
@@ -606,7 +845,7 @@ function CleanLearnaWorkspaceBody() {
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
-          margin-top: 14px;
+          margin-top: 12px;
         }
 
         .learna-button {
@@ -633,8 +872,15 @@ function CleanLearnaWorkspaceBody() {
         .learna-stat-tile {
           grid-column: span 2;
           display: grid;
-          gap: 8px;
-          min-height: 140px;
+          gap: 10px;
+          min-height: 128px;
+        }
+
+        .learna-stat-main {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
         }
 
         .learna-stat-tile strong {
@@ -643,17 +889,29 @@ function CleanLearnaWorkspaceBody() {
           font-weight: 950;
         }
 
-        .learna-stat-tile small {
+        .learna-chip-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .learna-chip-row small {
+          display: inline-flex;
+          align-items: center;
+          min-height: 28px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          padding: 0 9px;
           color: #64748b;
-          font-size: 13px;
-          font-weight: 800;
+          font-size: 12px;
+          font-weight: 900;
         }
 
         .learna-chart-tile {
           grid-column: span 4;
           display: grid;
-          gap: 12px;
-          min-height: 260px;
+          gap: 10px;
+          min-height: 238px;
         }
 
         .learna-section-head {
@@ -678,7 +936,7 @@ function CleanLearnaWorkspaceBody() {
 
         .learna-balance-bar {
           display: flex;
-          height: 38px;
+          height: 42px;
           overflow: hidden;
           border-radius: 999px;
           background: #eef2f7;
@@ -720,8 +978,29 @@ function CleanLearnaWorkspaceBody() {
         .learna-strand-tile {
           grid-column: span 2;
           display: grid;
-          gap: 11px;
-          min-height: 178px;
+          gap: 9px;
+          min-height: 154px;
+          border-color: color-mix(in srgb, var(--strand-colour) 22%, #dbe4ef);
+          position: relative;
+        }
+
+        .learna-strand-tile.is-active {
+          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+        }
+
+        .learna-strand-tile.is-active::before {
+          content: "";
+          display: block;
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          background: var(--strand-colour);
+          position: absolute;
+        }
+
+        .learna-strand-tile.is-quiet {
+          opacity: 0.62;
+          box-shadow: none;
         }
 
         .learna-tile-row {
@@ -744,7 +1023,7 @@ function CleanLearnaWorkspaceBody() {
         }
 
         .learna-strand-tile strong {
-          font-size: 20px;
+          font-size: 22px;
           line-height: 1.05;
           font-weight: 950;
         }
@@ -774,13 +1053,13 @@ function CleanLearnaWorkspaceBody() {
         .learna-captures {
           grid-column: span 8;
           display: grid;
-          gap: 12px;
+          gap: 10px;
         }
 
         .learna-capture-strip {
           display: grid;
           grid-auto-flow: column;
-          grid-auto-columns: minmax(138px, 1fr);
+          grid-auto-columns: minmax(136px, 1fr);
           gap: 10px;
           overflow-x: auto;
           padding-bottom: 4px;
@@ -792,26 +1071,50 @@ function CleanLearnaWorkspaceBody() {
           border: 1px solid #e2e8f0;
           border-radius: 16px;
           background: #f8fafc;
-          padding: 10px;
+          padding: 8px;
           display: grid;
-          gap: 8px;
+          gap: 7px;
           color: inherit;
           text-decoration: none;
         }
 
-        .learna-capture-card strong {
-          overflow: hidden;
-          color: #0f172a;
-          font-size: 13px;
-          font-weight: 900;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+        .learna-capture-media {
+          position: relative;
+          min-height: 86px;
         }
 
-        .learna-capture-card span {
+        .learna-capture-status {
+          position: absolute;
+          left: 8px;
+          bottom: 8px;
+          max-width: calc(100% - 16px);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          border: 1px solid rgba(255,255,255,0.85);
+          border-radius: 999px;
+          background: rgba(15,23,42,0.82);
+          color: #ffffff !important;
+          padding: 4px 8px;
+          font-size: 11px !important;
+          font-weight: 950 !important;
+        }
+
+        .learna-capture-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .learna-capture-meta span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
           color: #64748b;
           font-size: 12px;
-          font-weight: 800;
+          font-weight: 950;
         }
 
         .learna-wide-tile {
@@ -820,7 +1123,28 @@ function CleanLearnaWorkspaceBody() {
           gap: 14px;
         }
 
-        .learna-badge-row span.is-active {
+        .learna-milestone-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .learna-milestone-grid span {
+          display: grid;
+          place-items: center;
+          gap: 5px;
+          min-height: 72px;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          background: #f8fafc;
+          color: #94a3b8;
+          font-size: 12px;
+          font-weight: 950;
+          text-align: center;
+        }
+
+        .learna-milestone-grid span.is-active {
+          border-color: #bbf7d0;
           background: #ecfdf5;
           color: #047857;
         }
@@ -904,7 +1228,7 @@ function CleanLearnaWorkspaceBody() {
 
       <div className="learna-grid">
         <section className="learna-tile learna-identity">
-          <span>Learner</span>
+          <TileHeading icon="learner" label="Learner" />
           <div className="learna-avatar-row">
             <div className="learna-avatar" aria-hidden="true">
               {getLearnerInitials(selectedLearnerLabel)}
@@ -935,27 +1259,29 @@ function CleanLearnaWorkspaceBody() {
           </select>
         </section>
 
-        <section className="learna-tile learna-focus">
-          <ProgressRing value={focusStrand?.radarValue ?? 0} label={focusStrand?.code ?? "Focus"} colour={focusColour} />
+        <section className="learna-tile learna-focus" aria-label={`Current focus: ${focusStepTitle}`}>
+          <ProgressRing
+            value={focusStrand?.radarValue ?? 0}
+            label={focusStepNumber === "Next" ? "Next" : `S${focusStepNumber}`}
+            colour={focusColour}
+          />
           <div>
             <div className="learna-section-head">
-              <span>Current Focus</span>
+              <TileHeading icon="focus" label="Focus" />
               {focusChip ? (
                 <span
                   className="learna-chip"
                   style={{ background: focusChip.bg, borderColor: focusChip.border, color: focusChip.fg }}
                 >
-                  {focusStatus}
+                  {statusShortLabel(focusStatus)}
                 </span>
               ) : null}
             </div>
-            <h2>
-              {focusContext?.stepTitle || latestPathwayEvidence?.title || focusStrand?.shortLabel || "Choose step"}
-            </h2>
+            <h2 title={focusStepTitle}>{focusStrand?.shortLabel || "Maths"}</h2>
             <div className="learna-focus-meta">
-              {focusContext?.stepNumber ? <span className="learna-chip">Step {focusContext.stepNumber}</span> : null}
-              <span className="learna-chip">{focusStrand?.shortLabel || "Maths"}</span>
+              <span className="learna-chip">Step {focusStepNumber}</span>
               {focusContext?.stageLabel ? <span className="learna-chip">{focusContext.stageLabel}</span> : null}
+              <span className="learna-screen-reader-only">{focusStepTitle}</span>
             </div>
             <div className="learna-action-row">
               <Link className="learna-button" href={pathwayHref(selectedLearnerId, focusStrand?.key)}>
@@ -971,35 +1297,41 @@ function CleanLearnaWorkspaceBody() {
         <StatTile
           heading="Evidence"
           value={String(evidenceEntries.length)}
-          meta={`+${evidenceThisWeek} week - ${photoEvidenceCount} photo`}
+          chips={[`+${evidenceThisWeek}`, `${photoEvidenceCount} photos`]}
           href={learnerQueryHref("/my-portfolio", selectedLearnerId)}
+          icon="camera"
           colour="#2563eb"
         />
         <StatTile
           heading="Secure"
           value={`${secureStepCount}`}
-          meta={`${Math.round(secureRatio)}% steps`}
+          chips={[`${Math.round(secureRatio)}%`, "steps"]}
           href={pathwayHref(selectedLearnerId)}
+          icon="check"
           colour="#16a34a"
+          ringValue={secureRatio}
         />
         <StatTile
           heading="Record"
           value={evidenceEntries.length > 0 ? "Ready" : "0"}
-          meta="Download"
+          chips={["Download"]}
           href={learnerQueryHref("/my-portfolio", selectedLearnerId)}
+          icon="record"
           colour="#0f172a"
         />
         <StatTile
           heading="Reports"
           value={String(reportReadyCount)}
-          meta={`${Math.round(reportRatio)}% ready`}
+          chips={[`${Math.round(reportRatio)}%`, "ready"]}
           href={learnerQueryHref("/my-reports", selectedLearnerId)}
+          icon="report"
           colour="#7c3aed"
+          ringValue={reportRatio}
         />
 
         <section className="learna-tile learna-chart-tile">
           <div className="learna-section-head">
-            <span>Learning Shape</span>
+            <TileHeading icon="shape" label="Learning Shape" />
             <strong>{strandSummaries.filter((summary) => summary.evidenceCount > 0).length}/6</strong>
           </div>
           <RadarChart summaries={strandSummaries} />
@@ -1007,16 +1339,16 @@ function CleanLearnaWorkspaceBody() {
 
         <section className="learna-tile learna-chart-tile">
           <div className="learna-section-head">
-            <span>Trend</span>
-            <strong>{evidenceThisWeek}</strong>
+            <TileHeading icon="trend" label="Trend" />
+            <strong>{latestTrendValue}</strong>
           </div>
           <TrendLine points={trendSeries} />
         </section>
 
         <section className="learna-tile learna-chart-tile">
           <div className="learna-section-head">
-            <span>Balance</span>
-            <strong>{photoEvidenceCount}</strong>
+            <TileHeading icon="balance" label="Balance" />
+            <strong>{strandSummaries.filter((summary) => summary.evidenceCount > 0).length}</strong>
           </div>
           <BalanceBar summaries={strandSummaries} />
         </section>
@@ -1027,7 +1359,7 @@ function CleanLearnaWorkspaceBody() {
 
         <section className="learna-tile learna-captures">
           <div className="learna-section-head">
-            <span>Latest Captures</span>
+            <TileHeading icon="capture" label="Latest Captures" />
             <strong>{latestCaptures.length}</strong>
           </div>
           {latestCaptures.length ? (
@@ -1035,6 +1367,9 @@ function CleanLearnaWorkspaceBody() {
               {latestCaptures.map((entry) => {
                 const preview = getEvidencePreviewImage(entry);
                 const pathwayContext = parsePathwayContextFromNodeIds(entry.curriculumNodeIds);
+                const captureStrandKey = inferLearnaEvidenceStrand(entry);
+                const captureStrand = strandSummaries.find((summary) => summary.key === captureStrandKey);
+                const progressLabel = statusShortLabel(getLearnaProgressLabel(entry));
                 return (
                   <Link
                     key={entry.id}
@@ -1045,10 +1380,20 @@ function CleanLearnaWorkspaceBody() {
                       entry.id,
                     )}
                   >
-                    {preview ? <EvidenceThumbnail image={preview} width={118} height={76} /> : <div className="learna-empty">Capture</div>}
-                    <strong>{entry.title || entry.whatHappened || "Evidence"}</strong>
-                    <span>{formatCompactDate(entry.observedOn)}</span>
-                    <span>{pathwayContext?.pathwayLabel || entry.learningArea || "Portfolio"}</span>
+                    <div className="learna-capture-media">
+                      {preview ? (
+                        <EvidenceThumbnail image={preview} width={128} height={86} />
+                      ) : (
+                        <div className="learna-empty">Capture</div>
+                      )}
+                      <span className="learna-capture-status">{progressLabel}</span>
+                    </div>
+                    <div className="learna-capture-meta">
+                      <span style={{ color: captureStrand?.colour || "#64748b" }}>
+                        {captureStrand?.shortLabel || pathwayContext?.pathwayLabel || entry.learningArea || "Portfolio"}
+                      </span>
+                      <span>{formatCompactDate(entry.observedOn)}</span>
+                    </div>
                   </Link>
                 );
               })}
