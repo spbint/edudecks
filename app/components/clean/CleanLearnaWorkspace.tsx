@@ -53,7 +53,13 @@ type LearnaIconName =
   | "capture"
   | "milestone"
   | "strand"
-  | "star";
+  | "star"
+  | "number"
+  | "calculation"
+  | "fractions"
+  | "patterns"
+  | "measure"
+  | "geometry";
 
 function getLearnerLabel(learner: Learner | null | undefined) {
   if (!learner) return "Learner";
@@ -101,6 +107,16 @@ function milestoneIconName(milestone: LearnaMilestone): LearnaIconName {
   if (milestone.id === "first-secure" || milestone.id === "five-secure") return "check";
   if (milestone.id === "ten-evidence") return "star";
   return "milestone";
+}
+
+function strandIconName(strandKey: LearnaMathStrandKey): LearnaIconName {
+  if (strandKey === "number-and-place-value") return "number";
+  if (strandKey === "operations-and-calculation") return "calculation";
+  if (strandKey === "fractions-decimals-percentages") return "fractions";
+  if (strandKey === "algebra-patterns-and-functions") return "patterns";
+  if (strandKey === "measurement") return "measure";
+  if (strandKey === "geometry-and-spatial-reasoning") return "geometry";
+  return "strand";
 }
 
 function LearnaIcon({ name, size = 22 }: { name: LearnaIconName; size?: number }) {
@@ -190,6 +206,66 @@ function LearnaIcon({ name, size = 22 }: { name: LearnaIconName; size?: number }
     return (
       <svg {...common}>
         <path d="m12 3.8 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3.8Z" />
+      </svg>
+    );
+  }
+  if (name === "number") {
+    return (
+      <svg {...common}>
+        <path d="M9 4.5 7.5 19.5" />
+        <path d="M16.5 4.5 15 19.5" />
+        <path d="M5 9h15" />
+        <path d="M4 15h15" />
+      </svg>
+    );
+  }
+  if (name === "calculation") {
+    return (
+      <svg {...common}>
+        <path d="M6 7h6" />
+        <path d="M9 4v6" />
+        <path d="M15 7h4" />
+        <path d="M6 17h6" />
+        <path d="m15.5 14.5 3 3" />
+        <path d="m18.5 14.5-3 3" />
+      </svg>
+    );
+  }
+  if (name === "fractions") {
+    return (
+      <svg {...common}>
+        <path d="M6 18 18 6" />
+        <circle cx="7.5" cy="7.5" r="2.2" />
+        <circle cx="16.5" cy="16.5" r="2.2" />
+      </svg>
+    );
+  }
+  if (name === "patterns") {
+    return (
+      <svg {...common}>
+        <rect x="4" y="4" width="6" height="6" rx="1.5" />
+        <rect x="14" y="4" width="6" height="6" rx="1.5" />
+        <rect x="4" y="14" width="6" height="6" rx="1.5" />
+        <path d="M15 17h4" />
+        <path d="M17 15v4" />
+      </svg>
+    );
+  }
+  if (name === "measure") {
+    return (
+      <svg {...common}>
+        <path d="m4.5 15.5 11-11 4 4-11 11-4-4Z" />
+        <path d="m8 12 2 2" />
+        <path d="m10.5 9.5 1.5 1.5" />
+        <path d="m13 7 2 2" />
+      </svg>
+    );
+  }
+  if (name === "geometry") {
+    return (
+      <svg {...common}>
+        <path d="M12 4 20 18H4L12 4Z" />
+        <circle cx="15.8" cy="9" r="2.2" />
       </svg>
     );
   }
@@ -467,7 +543,7 @@ function StrandTile({ summary, learnerId }: { summary: LearnaStrandSummary; lear
     >
       <div className="learna-tile-row">
         <span className="learna-strand-icon" style={{ color: summary.colour }}>
-          <LearnaIcon name="strand" size={22} />
+          <LearnaIcon name={strandIconName(summary.key)} size={22} />
         </span>
         <ProgressRing value={ratio} label={`${summary.secureSteps}`} colour={summary.colour} size={54} />
       </div>
@@ -681,34 +757,34 @@ function CleanLearnaWorkspaceBody() {
 
         .learna-title-row h1 {
           margin: 0;
-          font-size: clamp(28px, 5vw, 52px);
-          line-height: 0.95;
+          font-size: clamp(26px, 4vw, 42px);
+          line-height: 1;
           letter-spacing: 0;
-          font-weight: 950;
+          font-weight: 780;
         }
 
         .learna-title-row span {
           color: #64748b;
-          font-size: 13px;
-          font-weight: 900;
+          font-size: 11px;
+          font-weight: 720;
           text-transform: uppercase;
-          letter-spacing: 0.16em;
+          letter-spacing: 0.12em;
         }
 
         .learna-grid {
           display: grid;
           grid-template-columns: repeat(12, minmax(0, 1fr));
-          gap: 14px;
+          gap: 10px;
           align-items: stretch;
         }
 
         .learna-tile {
           min-width: 0;
           border: 1px solid #dbe4ef;
-          border-radius: 22px;
+          border-radius: 18px;
           background: #ffffff;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
-          padding: 14px;
+          box-shadow: 0 7px 18px rgba(23, 32, 75, 0.045);
+          padding: 12px;
           text-decoration: none;
           color: inherit;
           overflow: hidden;
@@ -720,28 +796,27 @@ function CleanLearnaWorkspaceBody() {
           gap: 8px;
           min-width: 0;
           color: #64748b;
-          font-size: 12px;
-          font-weight: 950;
+          font-size: 11px;
+          font-weight: 720;
           text-transform: uppercase;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.08em;
         }
 
         .learna-icon-pill,
         .learna-strand-icon {
           display: inline-grid;
           place-items: center;
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
           flex: 0 0 auto;
-          border-radius: 13px;
-          background: #f1f5f9;
-          color: #334155;
+          border: 1px solid #e7eaf2;
+          border-radius: 12px;
+          background: #f8fafc;
+          color: #17204b;
         }
 
         .learna-screen-reader-only {
           position: absolute;
-          right: 14px;
-          top: 14px;
           width: 1px;
           height: 1px;
           padding: 0;
@@ -767,29 +842,29 @@ function CleanLearnaWorkspaceBody() {
         .learna-avatar {
           display: grid;
           place-items: center;
-          width: 64px;
-          height: 64px;
-          border-radius: 22px;
-          background: #0f172a;
+          width: 56px;
+          height: 56px;
+          border-radius: 18px;
+          background: #17204b;
           color: #ffffff;
-          font-size: 22px;
-          font-weight: 950;
+          font-size: 21px;
+          font-weight: 760;
         }
 
         .learna-identity strong,
         .learna-section-head strong {
           display: block;
-          font-size: 26px;
+          font-size: 24px;
           line-height: 1;
-          font-weight: 950;
+          font-weight: 780;
         }
 
         .learna-identity > span,
         .learna-section-head > span,
         .learna-stat-tile > span {
           color: #64748b;
-          font-size: 12px;
-          font-weight: 900;
+          font-size: 11px;
+          font-weight: 720;
           text-transform: uppercase;
           letter-spacing: 0.16em;
         }
@@ -802,23 +877,23 @@ function CleanLearnaWorkspaceBody() {
           background: #f8fafc;
           color: #0f172a;
           padding: 0 12px;
-          font-weight: 800;
+          font-weight: 720;
         }
 
         .learna-focus {
           grid-column: span 5;
           display: grid;
           grid-template-columns: auto minmax(0, 1fr);
-          gap: 14px;
+          gap: 12px;
           align-items: center;
-          background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+          background: linear-gradient(135deg, #ffffff 0%, #f3f7ff 100%);
         }
 
         .learna-focus h2 {
           margin: 0;
           font-size: clamp(28px, 4vw, 46px);
           line-height: 1.05;
-          font-weight: 950;
+          font-weight: 800;
         }
 
         .learna-focus-meta {
@@ -831,14 +906,14 @@ function CleanLearnaWorkspaceBody() {
         .learna-chip {
           display: inline-flex;
           align-items: center;
-          min-height: 30px;
+          min-height: 28px;
           border: 1px solid #dbe4ef;
           border-radius: 999px;
           background: #f8fafc;
           padding: 0 10px;
           color: #475569;
           font-size: 12px;
-          font-weight: 900;
+          font-weight: 720;
         }
 
         .learna-action-row {
@@ -859,7 +934,7 @@ function CleanLearnaWorkspaceBody() {
           color: #ffffff;
           padding: 0 14px;
           font-size: 14px;
-          font-weight: 900;
+          font-weight: 760;
           text-decoration: none;
         }
 
@@ -873,7 +948,7 @@ function CleanLearnaWorkspaceBody() {
           grid-column: span 2;
           display: grid;
           gap: 10px;
-          min-height: 128px;
+          min-height: 116px;
         }
 
         .learna-stat-main {
@@ -886,7 +961,7 @@ function CleanLearnaWorkspaceBody() {
         .learna-stat-tile strong {
           font-size: clamp(30px, 5vw, 46px);
           line-height: 1;
-          font-weight: 950;
+          font-weight: 820;
         }
 
         .learna-chip-row {
@@ -904,14 +979,14 @@ function CleanLearnaWorkspaceBody() {
           padding: 0 9px;
           color: #64748b;
           font-size: 12px;
-          font-weight: 900;
+          font-weight: 720;
         }
 
         .learna-chart-tile {
           grid-column: span 4;
           display: grid;
           gap: 10px;
-          min-height: 238px;
+          min-height: 218px;
         }
 
         .learna-section-head {
@@ -966,7 +1041,7 @@ function CleanLearnaWorkspaceBody() {
           padding: 0 9px;
           color: #475569;
           font-size: 12px;
-          font-weight: 900;
+          font-weight: 720;
         }
 
         .learna-mini-legend i {
@@ -996,10 +1071,12 @@ function CleanLearnaWorkspaceBody() {
           border-radius: 999px;
           background: var(--strand-colour);
           position: absolute;
+          right: 12px;
+          top: 12px;
         }
 
         .learna-strand-tile.is-quiet {
-          opacity: 0.62;
+          opacity: 0.5;
           box-shadow: none;
         }
 
@@ -1019,20 +1096,20 @@ function CleanLearnaWorkspaceBody() {
           border: 1px solid;
           border-radius: 999px;
           font-size: 12px;
-          font-weight: 950;
+          font-weight: 760;
         }
 
         .learna-strand-tile strong {
-          font-size: 22px;
+          font-size: 21px;
           line-height: 1.05;
-          font-weight: 950;
+          font-weight: 780;
         }
 
         .learna-strand-tile em {
           color: #64748b;
           font-size: 12px;
           font-style: normal;
-          font-weight: 900;
+          font-weight: 720;
         }
 
         .learna-progress-ring {
@@ -1047,7 +1124,7 @@ function CleanLearnaWorkspaceBody() {
         .learna-progress-ring span {
           color: #0f172a;
           font-size: 15px;
-          font-weight: 950;
+          font-weight: 780;
         }
 
         .learna-captures {
@@ -1059,7 +1136,7 @@ function CleanLearnaWorkspaceBody() {
         .learna-capture-strip {
           display: grid;
           grid-auto-flow: column;
-          grid-auto-columns: minmax(136px, 1fr);
+          grid-auto-columns: minmax(132px, 1fr);
           gap: 10px;
           overflow-x: auto;
           padding-bottom: 4px;
@@ -1069,7 +1146,7 @@ function CleanLearnaWorkspaceBody() {
         .learna-capture-card {
           min-width: 0;
           border: 1px solid #e2e8f0;
-          border-radius: 16px;
+          border-radius: 14px;
           background: #f8fafc;
           padding: 8px;
           display: grid;
@@ -1097,7 +1174,7 @@ function CleanLearnaWorkspaceBody() {
           color: #ffffff !important;
           padding: 4px 8px;
           font-size: 11px !important;
-          font-weight: 950 !important;
+          font-weight: 760 !important;
         }
 
         .learna-capture-meta {
@@ -1114,13 +1191,13 @@ function CleanLearnaWorkspaceBody() {
           white-space: nowrap;
           color: #64748b;
           font-size: 12px;
-          font-weight: 950;
+          font-weight: 760;
         }
 
         .learna-wide-tile {
           grid-column: span 4;
           display: grid;
-          gap: 14px;
+          gap: 10px;
         }
 
         .learna-milestone-grid {
@@ -1133,13 +1210,13 @@ function CleanLearnaWorkspaceBody() {
           display: grid;
           place-items: center;
           gap: 5px;
-          min-height: 72px;
+          min-height: 66px;
           border: 1px solid #e2e8f0;
           border-radius: 16px;
           background: #f8fafc;
           color: #94a3b8;
           font-size: 12px;
-          font-weight: 950;
+          font-weight: 760;
           text-align: center;
         }
 
