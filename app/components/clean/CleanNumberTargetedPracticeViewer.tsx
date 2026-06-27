@@ -572,18 +572,18 @@ function getStatisticsStep1VisualLabels(id: string) {
 
   const suffix = id.slice(-3);
   const cardsBySuffix: Record<string, string[]> = {
-    "001": ["apple", "banana", "ball", "sock"],
-    "002": ["blue car", "red cup", "green leaf"],
-    "003": ["circle button", "square tile", "triangle flag"],
-    "004": ["dog", "bird", "cat", "chair", "spoon"],
-    "005": ["pear", "orange", "truck"],
-    "006": ["red ball", "red hat", "blue book"],
-    "007": ["big button", "small button"],
-    "008": ["snacks", "things with wheels", "things that fly"],
-    "009": ["red blocks", "blue blocks"],
-    "010": ["shells", "stones"],
-    "011": ["toy cars", "toy trains"],
-    "012": ["leaves", "flowers"],
+    "001": ["apple", "banana", "train", "truck"],
+    "002": ["apple", "banana", "train", "truck"],
+    "003": ["apple", "banana", "truck", "grape"],
+    "004": ["bird", "butterfly", "flower", "tree"],
+    "005": ["bird", "butterfly", "flower", "tree"],
+    "006": ["bird", "butterfly", "bird", "butterfly"],
+    "007": ["car", "truck", "train"],
+    "008": ["red apple", "red ball", "blue truck", "yellow banana"],
+    "009": ["pear", "orange", "grape", "truck"],
+    "010": ["grape", "train", "flower", "bird"],
+    "011": ["sock", "shirt", "hat"],
+    "012": ["rose", "tree", "flower"],
   };
 
   return cardsBySuffix[suffix] ?? null;
@@ -611,7 +611,13 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
     margin: "0 auto",
   };
 
-  if (normalised.includes("car") || normalised.includes("truck") || normalised.includes("wheels")) {
+  if (
+    normalised.includes("car") ||
+    normalised.includes("truck") ||
+    normalised.includes("train") ||
+    normalised.includes("vehicle") ||
+    normalised.includes("wheels")
+  ) {
     const isTruck = normalised.includes("truck");
     return (
       <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
@@ -633,7 +639,7 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
     );
   }
 
-  if (normalised.includes("leaf") || normalised.includes("leaves") || normalised.includes("flower") || normalised.includes("tree")) {
+  if (normalised.includes("leaf") || normalised.includes("leaves") || normalised.includes("flower") || normalised.includes("rose") || normalised.includes("tree") || normalised.includes("plant")) {
     return (
       <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
         <path d="M60 62 C22 42 34 14 72 18 C94 36 82 64 60 62 Z" fill={normalised.includes("flower") ? "#f9a8d4" : "#22c55e"} stroke={stroke} strokeWidth="4" />
@@ -643,7 +649,7 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
     );
   }
 
-  if (normalised.includes("apple") || normalised.includes("pear") || normalised.includes("orange") || normalised.includes("banana") || normalised.includes("fruit") || normalised.includes("snack") || normalised.includes("sandwich")) {
+  if (normalised.includes("apple") || normalised.includes("pear") || normalised.includes("orange") || normalised.includes("banana") || normalised.includes("grape") || normalised.includes("fruit") || normalised.includes("snack") || normalised.includes("sandwich")) {
     return (
       <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
         {normalised.includes("banana") ? (
@@ -669,7 +675,7 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
     );
   }
 
-  if (normalised.includes("book") || normalised.includes("clothing") || normalised.includes("sock")) {
+  if (normalised.includes("book") || normalised.includes("clothing") || normalised.includes("clothes") || normalised.includes("sock") || normalised.includes("shirt") || normalised.includes("hat")) {
     return (
       <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
         {normalised.includes("sock") || normalised.includes("clothing") ? (
@@ -681,7 +687,7 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
     );
   }
 
-  if (normalised.includes("cat") || normalised.includes("dog") || normalised.includes("bird") || normalised.includes("animal")) {
+  if (normalised.includes("cat") || normalised.includes("dog") || normalised.includes("bird") || normalised.includes("butterfly") || normalised.includes("animal")) {
     return (
       <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
         <circle cx="60" cy="42" r="25" fill="#fde68a" stroke={stroke} strokeWidth="4" />

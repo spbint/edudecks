@@ -264,8 +264,28 @@ const GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S011-Use-Geometry-To-Model-And-Interpret-Space.pdf";
 const GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S012-Refine-Spatial-Judgement-And-Explanation.pdf";
+const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
+  "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::foundation-kindergarten::sort-and-group-familiar-information",
+    stepKey: "sort-and-group-familiar-information",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Kindergarten / Early Elementary",
+    stepNumber: 1,
+    pathwayStepTitle: "Sort and group familiar information",
+    title: "Sort And Group Familiar Information",
+    concept:
+      "Sort familiar items into sensible groups, count each group, and explain a simple sorting rule.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/foundation-kindergarten/${STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
   {
     pathwayStepId:
       "mathematics::operations-and-calculation::foundation-kindergarten::act-out-joining-and-taking-away-in-everyday-stories",
