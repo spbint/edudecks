@@ -570,9 +570,11 @@ function renderGeometryPracticeVisual(taskId: string) {
 function getStatisticsStep1VisualLabels(id: string) {
   const isStep1 = id.startsWith("statistics-data-step-1-");
   const isStep2 = id.startsWith("statistics-data-step-2-");
+  const isStep3 = id.startsWith("statistics-data-step-3-");
+  const isStep4 = id.startsWith("statistics-data-step-4-");
   const isStep5 = id.startsWith("statistics-data-step-5-");
   const isStep6 = id.startsWith("statistics-data-step-6-");
-  if (!isStep1 && !isStep2 && !isStep5 && !isStep6) return null;
+  if (!isStep1 && !isStep2 && !isStep3 && !isStep4 && !isStep5 && !isStep6) return null;
 
   const suffix = id.slice(-3);
   const step1CardsBySuffix: Record<string, string[]> = {
@@ -605,6 +607,36 @@ function getStatisticsStep1VisualLabels(id: string) {
     "012": ["heart", "heart", "heart", "heart", "star", "star", "star", "star"],
   };
 
+  const step3CardsBySuffix: Record<string, string[]> = {
+    "001": ["tally chart", "apple", "apple", "apple", "apple", "apple", "banana", "banana", "banana", "grape", "grape", "grape", "orange", "orange"],
+    "002": ["tally chart", "apple", "apple", "apple", "apple", "apple", "banana", "banana", "banana", "grape", "grape", "grape", "orange", "orange"],
+    "003": ["table", "banana 3", "grapes 3", "apple 5", "orange 2"],
+    "004": ["tally chart", "cat", "cat", "cat", "dog", "dog", "dog", "dog", "dog", "fish", "fish"],
+    "005": ["tally chart", "red crayon", "red crayon", "red crayon", "red crayon", "blue crayon", "blue crayon", "blue crayon", "green crayon"],
+    "006": ["tally chart", "ball", "ball", "ball", "car", "car", "car", "teddy", "teddy", "teddy", "teddy", "teddy"],
+    "007": ["tally chart", "dog", "dog", "dog", "dog", "dog"],
+    "008": ["picture graph", "one square", "one vote"],
+    "009": ["tally chart", "apple", "apple", "apple", "apple", "apple", "picture graph"],
+    "010": ["tally chart", "chocolate", "chocolate", "chocolate", "chocolate", "strawberry", "strawberry", "vanilla", "vanilla", "vanilla", "vanilla"],
+    "011": ["tally chart", "chocolate", "chocolate", "chocolate", "chocolate", "strawberry", "strawberry", "vanilla", "vanilla", "vanilla", "vanilla"],
+    "012": ["table", "chocolate 4", "strawberry 2", "vanilla 4"],
+  };
+
+  const step4CardsBySuffix: Record<string, string[]> = {
+    "001": ["picture graph", "red crayon", "red crayon", "red crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "green crayon", "green crayon", "green crayon", "green crayon", "yellow crayon", "yellow crayon"],
+    "002": ["picture graph", "red crayon", "red crayon", "red crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "green crayon", "green crayon", "green crayon", "green crayon", "yellow crayon", "yellow crayon"],
+    "003": ["picture graph", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon"],
+    "004": ["picture graph", "red 3", "blue 6", "green 4", "yellow 2"],
+    "005": ["picture graph", "dog", "dog", "dog", "dog", "dog", "cat", "cat", "cat", "fish", "fish", "bird"],
+    "006": ["picture graph", "cat", "cat", "cat"],
+    "007": ["picture graph", "fish", "fish"],
+    "008": ["dog", "dog", "dog", "dog", "dog", "bird"],
+    "009": ["bar graph", "apple bar 5", "banana bar 3", "grapes bar 4", "orange bar 2"],
+    "010": ["bar graph", "apple bar 5", "banana bar 3", "grapes bar 4", "orange bar 2"],
+    "011": ["bar graph", "banana bar 3"],
+    "012": ["bar graph", "apple bar 5", "orange bar 2"],
+  };
+
   const step5CardsBySuffix: Record<string, string[]> = {
     "001": ["tally chart", "apple", "apple", "apple", "apple", "banana", "banana", "banana", "banana", "banana", "banana", "grape", "grape"],
     "002": ["tally chart", "apple 4", "banana 6", "grape 2"],
@@ -635,6 +667,8 @@ function getStatisticsStep1VisualLabels(id: string) {
     "012": ["line graph", "Mon 19", "Tue 22", "Wed 26", "Thu 30"],
   };
 
+  if (isStep4) return step4CardsBySuffix[suffix] ?? null;
+  if (isStep3) return step3CardsBySuffix[suffix] ?? null;
   if (isStep6) return step6CardsBySuffix[suffix] ?? null;
   if (isStep5) return step5CardsBySuffix[suffix] ?? null;
   return (isStep2 ? step2CardsBySuffix : step1CardsBySuffix)[suffix] ?? null;
@@ -2229,6 +2263,8 @@ function TaskCard({
               !shapeVisual &&
               (task.id.startsWith("statistics-data-step-1-") ||
                 task.id.startsWith("statistics-data-step-2-") ||
+                task.id.startsWith("statistics-data-step-3-") ||
+                task.id.startsWith("statistics-data-step-4-") ||
                 task.id.startsWith("statistics-data-step-5-") ||
                 task.id.startsWith("statistics-data-step-6-"))
                 ? renderStatisticsSortingVisualCard(option, isSelected)

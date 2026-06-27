@@ -268,6 +268,10 @@ const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-KEE-S002-Talk-About-Most-Least-And-Same-In-Simple-Data.pdf";
+const STATISTICS_COLLECT_RECORD_SIMPLE_DATA_WORKSHEET_FILE =
+  "MYL-MATH-SDA-EE-S003-Collect-And-Record-Simple-Data.pdf";
+const STATISTICS_READ_DISCUSS_SIMPLE_GRAPHS_WORKSHEET_FILE =
+  "MYL-MATH-SDA-EE-S004-Read-And-Discuss-Simple-Graphs.pdf";
 const STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-MP-S005-Choose-Useful-Ways-To-Organise-And-Display-Data.pdf";
 const STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE =
@@ -308,6 +312,42 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/foundation-kindergarten/${STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::lower-primary::collect-and-record-simple-data",
+    stepKey: "collect-and-record-simple-data",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 3,
+    pathwayStepTitle: "Collect and record simple data",
+    title: "Collect And Record Simple Data",
+    concept:
+      "Collect answers to a simple question, record them using tally marks, and use words such as most, least and same to describe the data.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_COLLECT_RECORD_SIMPLE_DATA_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/lower-primary/${STATISTICS_COLLECT_RECORD_SIMPLE_DATA_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::lower-primary::read-and-discuss-simple-graphs",
+    stepKey: "read-and-discuss-simple-graphs",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 4,
+    pathwayStepTitle: "Read and discuss simple graphs",
+    title: "Read And Discuss Simple Graphs",
+    concept:
+      "Read simple picture graphs and bar graphs, use a key, identify most and least, count category values, compare categories and talk about what the graph shows.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_READ_DISCUSS_SIMPLE_GRAPHS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/lower-primary/${STATISTICS_READ_DISCUSS_SIMPLE_GRAPHS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
