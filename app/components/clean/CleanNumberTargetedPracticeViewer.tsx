@@ -570,7 +570,8 @@ function renderGeometryPracticeVisual(taskId: string) {
 function getStatisticsStep1VisualLabels(id: string) {
   const isStep1 = id.startsWith("statistics-data-step-1-");
   const isStep2 = id.startsWith("statistics-data-step-2-");
-  if (!isStep1 && !isStep2) return null;
+  const isStep5 = id.startsWith("statistics-data-step-5-");
+  if (!isStep1 && !isStep2 && !isStep5) return null;
 
   const suffix = id.slice(-3);
   const step1CardsBySuffix: Record<string, string[]> = {
@@ -603,6 +604,22 @@ function getStatisticsStep1VisualLabels(id: string) {
     "012": ["heart", "heart", "heart", "heart", "star", "star", "star", "star"],
   };
 
+  const step5CardsBySuffix: Record<string, string[]> = {
+    "001": ["tally chart", "apple", "apple", "apple", "apple", "banana", "banana", "banana", "banana", "banana", "banana", "grape", "grape"],
+    "002": ["tally chart", "apple 4", "banana 6", "grape 2"],
+    "003": ["picture graph", "apple", "apple", "apple", "apple", "banana", "banana", "banana", "banana", "banana", "banana", "grape", "grape"],
+    "004": ["bar graph", "apple bar 4", "banana bar 6", "grape bar 2"],
+    "005": ["tally chart", "picture graph", "bar graph"],
+    "006": ["tally chart", "table", "picture graph"],
+    "007": ["picture graph", "apple", "banana", "grape"],
+    "008": ["bar graph", "vanilla bar 3", "chocolate bar 7", "strawberry bar 4"],
+    "009": ["vanilla", "chocolate", "strawberry", "bar graph"],
+    "010": ["table", "fiction 8", "comics 5", "information 3"],
+    "011": ["dog bar 5", "cat bar 2", "bird bar 4"],
+    "012": ["bar graph", "apple bar 4", "banana bar 6", "grape bar 2"],
+  };
+
+  if (isStep5) return step5CardsBySuffix[suffix] ?? null;
   return (isStep2 ? step2CardsBySuffix : step1CardsBySuffix)[suffix] ?? null;
 }
 
@@ -686,6 +703,51 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
       <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
         <path d="M28 54 L76 18 L94 36 L46 72 Z" fill={colour} stroke={stroke} strokeWidth="4" strokeLinejoin="round" />
         <path d="M76 18 L86 8 L104 26 L94 36" fill="#f8fafc" stroke={stroke} strokeWidth="4" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("tally")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <rect x="18" y="14" width="84" height="52" rx="8" fill="#eff6ff" stroke={stroke} strokeWidth="4" />
+        <path d="M36 24 V56 M48 24 V56 M60 24 V56 M72 24 V56 M32 56 L76 24" stroke="#2563eb" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("bar graph") || normalised.includes(" bar ")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <path d="M22 64 H100 M24 18 V66" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
+        <rect x="34" y="40" width="12" height="24" rx="3" fill="#60a5fa" />
+        <rect x="54" y="24" width="12" height="40" rx="3" fill="#f97316" />
+        <rect x="74" y="34" width="12" height="30" rx="3" fill="#22c55e" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("picture graph")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <rect x="20" y="16" width="80" height="50" rx="8" fill="#f8fafc" stroke={stroke} strokeWidth="4" />
+        <circle cx="42" cy="32" r="7" fill="#ef4444" />
+        <circle cx="58" cy="32" r="7" fill="#ef4444" />
+        <circle cx="42" cy="50" r="7" fill="#facc15" />
+        <circle cx="58" cy="50" r="7" fill="#facc15" />
+        <circle cx="74" cy="50" r="7" fill="#facc15" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("table")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <rect x="20" y="16" width="80" height="50" rx="7" fill="#ffffff" stroke={stroke} strokeWidth="4" />
+        <path d="M20 32 H100 M20 48 H100 M58 16 V66" stroke="#94a3b8" strokeWidth="3" />
+        <circle cx="40" cy="40" r="5" fill="#2563eb" />
+        <circle cx="78" cy="40" r="5" fill="#f97316" />
+        <circle cx="40" cy="56" r="5" fill="#22c55e" />
       </svg>
     );
   }
@@ -2135,7 +2197,8 @@ function TaskCard({
             const statisticsVisual =
               !shapeVisual &&
               (task.id.startsWith("statistics-data-step-1-") ||
-                task.id.startsWith("statistics-data-step-2-"))
+                task.id.startsWith("statistics-data-step-2-") ||
+                task.id.startsWith("statistics-data-step-5-"))
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
             const step2Visual =

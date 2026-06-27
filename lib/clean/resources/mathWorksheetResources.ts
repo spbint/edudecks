@@ -268,6 +268,8 @@ const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-KEE-S002-Talk-About-Most-Least-And-Same-In-Simple-Data.pdf";
+const STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE =
+  "MYL-MATH-SDA-MP-S005-Choose-Useful-Ways-To-Organise-And-Display-Data.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -304,6 +306,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/foundation-kindergarten/${STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::middle-primary::choose-useful-ways-to-organise-and-display-data",
+    stepKey: "choose-useful-ways-to-organise-and-display-data",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 5,
+    pathwayStepTitle: "Choose useful ways to organise and display data",
+    title: "Choose Useful Ways To Organise And Display Data",
+    concept:
+      "Choose the most useful way to organise and display simple data using tally charts, picture graphs and bar graphs.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/middle-primary/${STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
