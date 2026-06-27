@@ -568,10 +568,12 @@ function renderGeometryPracticeVisual(taskId: string) {
 }
 
 function getStatisticsStep1VisualLabels(id: string) {
-  if (!id.startsWith("statistics-data-step-1-")) return null;
+  const isStep1 = id.startsWith("statistics-data-step-1-");
+  const isStep2 = id.startsWith("statistics-data-step-2-");
+  if (!isStep1 && !isStep2) return null;
 
   const suffix = id.slice(-3);
-  const cardsBySuffix: Record<string, string[]> = {
+  const step1CardsBySuffix: Record<string, string[]> = {
     "001": ["apple", "banana", "train", "truck"],
     "002": ["apple", "banana", "train", "truck"],
     "003": ["apple", "banana", "truck", "grape"],
@@ -586,13 +588,29 @@ function getStatisticsStep1VisualLabels(id: string) {
     "012": ["rose", "tree", "flower"],
   };
 
-  return cardsBySuffix[suffix] ?? null;
+  const step2CardsBySuffix: Record<string, string[]> = {
+    "001": ["apple", "apple", "apple", "apple", "apple", "banana", "banana", "banana", "grape", "grape"],
+    "002": ["blue balloon", "blue balloon", "blue balloon", "blue balloon", "red balloon", "red balloon", "red balloon", "red balloon", "red balloon", "red balloon", "yellow balloon", "yellow balloon"],
+    "003": ["fish bowl A", "fish bowl A", "fish bowl A", "fish bowl B", "fish bowl B", "fish bowl B", "fish bowl B", "fish bowl B", "fish bowl C", "fish bowl C", "fish bowl C"],
+    "004": ["star", "star", "star", "star group 2", "star group 2", "star group 2", "star group 2", "star group 2", "star group 2", "star group 3", "star group 3", "star group 3", "star group 3"],
+    "005": ["cat", "cat", "cat", "cat", "dog", "dog", "dog", "dog", "dog", "dog", "bird", "bird"],
+    "006": ["car", "car", "car", "car", "train", "train", "train", "train", "train", "train", "bike", "bike", "bike", "bike"],
+    "007": ["red crayon", "red crayon", "red crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "blue crayon", "green crayon", "green crayon", "green crayon", "green crayon", "green crayon"],
+    "008": ["cat", "cat", "cat", "dog", "dog", "dog", "dog", "dog"],
+    "009": ["red block", "red block", "red block", "red block", "red block", "blue block", "blue block"],
+    "010": ["star", "star", "star", "star", "heart", "heart", "heart", "heart", "moon", "moon", "moon", "moon", "moon", "moon"],
+    "011": ["star", "star", "target star", "target star", "target star", "target star", "target star"],
+    "012": ["heart", "heart", "heart", "heart", "star", "star", "star", "star"],
+  };
+
+  return (isStep2 ? step2CardsBySuffix : step1CardsBySuffix)[suffix] ?? null;
 }
 
 function getObjectColour(label: string) {
   const normalised = label.toLowerCase();
   if (normalised.includes("blue")) return "#2563eb";
   if (normalised.includes("red")) return "#dc2626";
+  if (normalised.includes("purple")) return "#9333ea";
   if (normalised.includes("green") || normalised.includes("leaf")) return "#16a34a";
   if (normalised.includes("orange")) return "#f97316";
   if (normalised.includes("banana") || normalised.includes("yellow")) return "#facc15";
@@ -625,6 +643,49 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
         <rect x={isTruck ? 62 : 34} y={isTruck ? 18 : 24} width={isTruck ? 32 : 42} height="20" rx="5" fill="#dbeafe" stroke={stroke} strokeWidth="4" />
         <circle cx="35" cy="60" r="8" fill="#0f172a" />
         <circle cx="84" cy="60" r="8" fill="#0f172a" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("bike")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <circle cx="38" cy="56" r="15" fill="none" stroke={stroke} strokeWidth="5" />
+        <circle cx="82" cy="56" r="15" fill="none" stroke={stroke} strokeWidth="5" />
+        <path d="M38 56 L56 34 L70 56 H38 M56 34 H76 L82 56" fill="none" stroke={colour} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("balloon")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <ellipse cx="60" cy="32" rx="22" ry="25" fill={colour} stroke={stroke} strokeWidth="4" />
+        <path d="M60 58 C54 64 66 64 60 58 Z" fill={stroke} />
+        <path d="M60 60 C54 68 66 72 58 78" fill="none" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("star") || normalised.includes("heart") || normalised.includes("moon")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        {normalised.includes("heart") ? (
+          <path d="M60 66 C30 44 30 22 50 20 C58 20 60 28 60 28 C60 28 64 20 72 20 C92 22 90 44 60 66 Z" fill="#fb7185" stroke={stroke} strokeWidth="4" />
+        ) : normalised.includes("moon") ? (
+          <path d="M72 12 C54 20 48 46 68 66 C42 62 28 40 38 20 C44 8 58 6 72 12 Z" fill="#fde68a" stroke={stroke} strokeWidth="4" />
+        ) : (
+          <path d="M60 12 L70 34 L94 36 L76 52 L82 74 L60 62 L38 74 L44 52 L26 36 L50 34 Z" fill="#facc15" stroke={stroke} strokeWidth="4" strokeLinejoin="round" />
+        )}
+      </svg>
+    );
+  }
+
+  if (normalised.includes("crayon")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <path d="M28 54 L76 18 L94 36 L46 72 Z" fill={colour} stroke={stroke} strokeWidth="4" strokeLinejoin="round" />
+        <path d="M76 18 L86 8 L104 26 L94 36" fill="#f8fafc" stroke={stroke} strokeWidth="4" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -2072,7 +2133,9 @@ function TaskCard({
               ? renderGeometryShapeVisualCard(option, isSelected)
               : null;
             const statisticsVisual =
-              !shapeVisual && task.id.startsWith("statistics-data-step-1-")
+              !shapeVisual &&
+              (task.id.startsWith("statistics-data-step-1-") ||
+                task.id.startsWith("statistics-data-step-2-"))
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
             const step2Visual =

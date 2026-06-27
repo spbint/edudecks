@@ -266,6 +266,8 @@ const GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S012-Refine-Spatial-Judgement-And-Explanation.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
+const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
+  "MYL-MATH-SDA-KEE-S002-Talk-About-Most-Least-And-Same-In-Simple-Data.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -284,6 +286,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/foundation-kindergarten/${STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::foundation-kindergarten::talk-about-most-least-and-same-in-simple-data",
+    stepKey: "talk-about-most-least-and-same-in-simple-data",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Kindergarten / Early Elementary",
+    stepNumber: 2,
+    pathwayStepTitle: "Talk about most, least, and same in simple data",
+    title: "Talk About Most, Least, And Same In Simple Data",
+    concept:
+      "Compare picture data using most, least, more, fewer and same.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/foundation-kindergarten/${STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
