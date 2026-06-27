@@ -1881,7 +1881,8 @@ function getStatisticsStep1VisualLabels(id: string) {
   const isStep1 = id.startsWith("statistics-data-step-1-");
   const isStep2 = id.startsWith("statistics-data-step-2-");
   const isStep5 = id.startsWith("statistics-data-step-5-");
-  if (!isStep1 && !isStep2 && !isStep5) return null;
+  const isStep6 = id.startsWith("statistics-data-step-6-");
+  if (!isStep1 && !isStep2 && !isStep5 && !isStep6) return null;
 
   const suffix = id.slice(-3);
   const step1CardsBySuffix: Record<string, string[]> = {
@@ -1929,6 +1930,22 @@ function getStatisticsStep1VisualLabels(id: string) {
     "012": ["bar graph", "apple bar 4", "banana bar 6", "grape bar 2"],
   };
 
+  const step6CardsBySuffix: Record<string, string[]> = {
+    "001": ["line graph", "Mon 5", "Tue 7", "Wed 10", "Thu 12", "Fri 7"],
+    "002": ["line graph", "Mon 5", "Tue 7", "Wed 10", "Thu 12", "Fri 7"],
+    "003": ["line graph", "Mon 5", "Tue 7", "Wed 10"],
+    "004": ["line graph", "Thu 12", "Fri 7"],
+    "005": ["table", "Tue 7", "Fri 7", "Thu 12"],
+    "006": ["bar graph", "soccer bar 7", "basketball bar 6", "netball bar 5", "swimming bar 2", "tennis bar 1"],
+    "007": ["bar graph", "soccer bar 7", "basketball bar 6", "netball bar 5", "swimming bar 2", "tennis bar 1"],
+    "008": ["bar graph", "basketball bar 6"],
+    "009": ["soccer bar 7", "netball bar 5"],
+    "010": ["bar graph", "apple bar 6", "banana bar 5", "grapes bar 4", "orange bar 4"],
+    "011": ["line graph", "Mon 19", "Tue 22", "Wed 26", "Thu 30", "Fri 23"],
+    "012": ["line graph", "Mon 19", "Tue 22", "Wed 26", "Thu 30"],
+  };
+
+  if (isStep6) return step6CardsBySuffix[suffix] ?? null;
   if (isStep5) return step5CardsBySuffix[suffix] ?? null;
   return (isStep2 ? step2CardsBySuffix : step1CardsBySuffix)[suffix] ?? null;
 }
@@ -2033,6 +2050,20 @@ function renderStatisticsObjectIcon(label: string, selected = false) {
         <rect x="34" y="40" width="12" height="24" rx="3" fill="#60a5fa" />
         <rect x="54" y="24" width="12" height="40" rx="3" fill="#f97316" />
         <rect x="74" y="34" width="12" height="30" rx="3" fill="#22c55e" />
+      </svg>
+    );
+  }
+
+  if (normalised.includes("line graph") || normalised.includes("trend")) {
+    return (
+      <svg viewBox="0 0 120 80" role="img" aria-label={label} style={commonStyle}>
+        <path d="M22 64 H100 M24 18 V66" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
+        <polyline points="30,56 46,48 62,34 78,22 94,46" fill="none" stroke="#2563eb" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="30" cy="56" r="4" fill="#2563eb" />
+        <circle cx="46" cy="48" r="4" fill="#2563eb" />
+        <circle cx="62" cy="34" r="4" fill="#2563eb" />
+        <circle cx="78" cy="22" r="4" fill="#2563eb" />
+        <circle cx="94" cy="46" r="4" fill="#2563eb" />
       </svg>
     );
   }
@@ -4571,7 +4602,8 @@ function CleanNumberAssessmentPlayerBody() {
               !shapeVisual &&
               (currentItem.id.startsWith("statistics-data-step-1-") ||
                 currentItem.id.startsWith("statistics-data-step-2-") ||
-                currentItem.id.startsWith("statistics-data-step-5-"))
+                currentItem.id.startsWith("statistics-data-step-5-") ||
+                currentItem.id.startsWith("statistics-data-step-6-"))
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
             const step2Visual =

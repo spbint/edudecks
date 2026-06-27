@@ -270,6 +270,8 @@ const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-KEE-S002-Talk-About-Most-Least-And-Same-In-Simple-Data.pdf";
 const STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-MP-S005-Choose-Useful-Ways-To-Organise-And-Display-Data.pdf";
+const STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE =
+  "MYL-MATH-SDA-MP-S006-Compare-Categories-And-Describe-Trends.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -324,6 +326,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/middle-primary/${STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::middle-primary::compare-categories-and-describe-trends",
+    stepKey: "compare-categories-and-describe-trends",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 6,
+    pathwayStepTitle: "Compare categories and describe trends",
+    title: "Compare Categories And Describe Trends",
+    concept:
+      "Compare categories using simple charts and graphs, and describe trends using words such as increased, decreased and stayed the same.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/middle-primary/${STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
