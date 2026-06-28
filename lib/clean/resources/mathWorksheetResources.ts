@@ -284,6 +284,10 @@ const STATISTICS_PERCENTAGES_COMPARISONS_TRENDS_WORKSHEET_FILE =
   "MYL-MATH-SDA-UEMS-S009-Interpret-Data-Using-Percentages-Comparisons-And-Trends.pdf";
 const STATISTICS_DATA_SUPPORTS_CLAIM_WORKSHEET_FILE =
   "MYL-MATH-SDA-MS-S010-Judge-Whether-Data-Supports-A-Claim.pdf";
+const STATISTICS_INTERPRET_DATA_CRITICALLY_REAL_CONTEXTS_WORKSHEET_FILE =
+  "MYL-MATH-SDA-HSF-S011-Interpret-Data-Critically-Across-Real-Contexts.pdf";
+const STATISTICS_REFINE_EXPLANATION_QUESTIONING_EVIDENCE_WORKSHEET_FILE =
+  "MYL-MATH-SDA-HSF-S012-Refine-Explanation-Questioning-And-Evidence-Use.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -465,6 +469,42 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_DATA_SUPPORTS_CLAIM_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/lower-secondary/${STATISTICS_DATA_SUPPORTS_CLAIM_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::years-9-10-consolidation::interpret-data-critically-across-real-contexts",
+    stepKey: "interpret-data-critically-across-real-contexts",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 11,
+    pathwayStepTitle: "Interpret data critically across real contexts",
+    title: "Interpret Data Critically Across Real Contexts",
+    concept:
+      "Interpret data in real-world situations, compare displays, evaluate claims, recognise context, and explain conclusions using evidence.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_INTERPRET_DATA_CRITICALLY_REAL_CONTEXTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/years-9-10-consolidation/${STATISTICS_INTERPRET_DATA_CRITICALLY_REAL_CONTEXTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::years-9-10-consolidation::refine-explanation-questioning-and-evidence-use",
+    stepKey: "refine-explanation-questioning-and-evidence-use",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 12,
+    pathwayStepTitle: "Refine explanation, questioning, and evidence use",
+    title: "Refine Explanation, Questioning, And Evidence Use",
+    concept:
+      "Use data carefully to ask thoughtful questions, give clear explanations, connect data to real situations, and support ideas with strong evidence.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_REFINE_EXPLANATION_QUESTIONING_EVIDENCE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/years-9-10-consolidation/${STATISTICS_REFINE_EXPLANATION_QUESTIONING_EVIDENCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
