@@ -198,6 +198,11 @@ import {
   renderStep59WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
+  isStatisticsDataStep8Activity,
+  renderStatisticsDataStep8OptionCard,
+  renderStatisticsDataStep8PromptVisual,
+} from "@/app/components/clean/math/StatisticsDataWorksheetVisuals";
+import {
   createAssessmentAttempt,
   createAssessmentAttemptResponses,
 } from "@/lib/clean/assessments/attemptClient";
@@ -2476,6 +2481,9 @@ function parseEarlyNumberVisual(description: string | undefined) {
 }
 
 function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
+  const statisticsDataStep8Visual = renderStatisticsDataStep8PromptVisual(item.id);
+  if (statisticsDataStep8Visual) return statisticsDataStep8Visual;
+
   const geometryVisual = renderGeometryShapeVisual(item);
   if (geometryVisual) return geometryVisual;
 
@@ -4642,8 +4650,12 @@ function CleanNumberAssessmentPlayerBody() {
                 currentItem.id.startsWith("statistics-data-step-6-"))
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
+            const statisticsDataStep8Visual =
+              !shapeVisual && !statisticsVisual && isStatisticsDataStep8Activity(currentItem.id)
+                ? renderStatisticsDataStep8OptionCard({ option, selected: isSelected })
+                : null;
             const step2Visual =
-              !shapeVisual && !statisticsVisual && step2NumberWordOptions
+              !shapeVisual && !statisticsVisual && !statisticsDataStep8Visual && step2NumberWordOptions
                 ? renderStep2WorksheetOptionCard({
                     option,
                     visual: step2VisualModel,
@@ -4651,7 +4663,7 @@ function CleanNumberAssessmentPlayerBody() {
                   })
                 : null;
             const step3Visual =
-              !shapeVisual && !statisticsVisual && !step2Visual && step3NumeralOptions
+              !shapeVisual && !statisticsVisual && !statisticsDataStep8Visual && !step2Visual && step3NumeralOptions
                 ? renderStep3WorksheetOptionCard({
                     option,
                     visual: step3VisualModel,
@@ -6490,6 +6502,7 @@ function CleanNumberAssessmentPlayerBody() {
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
+              statisticsDataStep8Visual ??
               step2Visual ??
               step3Visual ??
               step4Visual ??

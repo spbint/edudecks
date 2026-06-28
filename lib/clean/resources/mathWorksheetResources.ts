@@ -276,6 +276,8 @@ const STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-MP-S005-Choose-Useful-Ways-To-Organise-And-Display-Data.pdf";
 const STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE =
   "MYL-MATH-SDA-MP-S006-Compare-Categories-And-Describe-Trends.pdf";
+const STATISTICS_QUESTION_DISPLAYS_DATA_CLAIMS_WORKSHEET_FILE =
+  "MYL-MATH-SDA-UE-S008-Question-Displays-And-Simple-Data-Claims.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -384,6 +386,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/middle-primary/${STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::upper-primary::question-displays-and-simple-data-claims",
+    stepKey: "question-displays-and-simple-data-claims",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 8,
+    pathwayStepTitle: "Question displays and simple data claims",
+    title: "Question Displays And Simple Data Claims",
+    concept:
+      "Ask questions about data displays and make simple evidence-based claims using information from pictographs, bar graphs, tables, line graphs and summary measures.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_QUESTION_DISPLAYS_DATA_CLAIMS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/upper-primary/${STATISTICS_QUESTION_DISPLAYS_DATA_CLAIMS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {

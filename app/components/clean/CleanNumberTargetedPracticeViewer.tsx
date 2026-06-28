@@ -194,6 +194,11 @@ import {
   renderStep59WorksheetPromptVisual,
 } from "@/app/components/clean/math/EarlyNumberWorksheetVisuals";
 import {
+  isStatisticsDataStep8Activity,
+  renderStatisticsDataStep8OptionCard,
+  renderStatisticsDataStep8PromptVisual,
+} from "@/app/components/clean/math/StatisticsDataWorksheetVisuals";
+import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
   getNumberPracticeModuleById,
   type NumberPracticeModule,
@@ -1270,6 +1275,9 @@ function parseEarlyNumberVisual(description: string | undefined) {
 }
 
 function renderEarlyNumberPracticeVisual(task: NumberPracticeTask) {
+  const statisticsDataStep8Visual = renderStatisticsDataStep8PromptVisual(task.id);
+  if (statisticsDataStep8Visual) return statisticsDataStep8Visual;
+
   const geometryVisual = renderGeometryPracticeVisual(task.id);
   if (geometryVisual) return geometryVisual;
 
@@ -2269,8 +2277,12 @@ function TaskCard({
                 task.id.startsWith("statistics-data-step-6-"))
                 ? renderStatisticsSortingVisualCard(option, isSelected)
                 : null;
+            const statisticsDataStep8Visual =
+              !shapeVisual && !statisticsVisual && isStatisticsDataStep8Activity(task.id)
+                ? renderStatisticsDataStep8OptionCard({ option, selected: isSelected })
+                : null;
             const step2Visual =
-              !shapeVisual && !statisticsVisual && step2NumberWordOptions
+              !shapeVisual && !statisticsVisual && !statisticsDataStep8Visual && step2NumberWordOptions
                 ? renderStep2WorksheetOptionCard({
                     option,
                     visual: step2VisualModel,
@@ -2278,7 +2290,7 @@ function TaskCard({
                   })
                 : null;
             const step3Visual =
-              !shapeVisual && !statisticsVisual && !step2Visual && step3NumeralOptions
+              !shapeVisual && !statisticsVisual && !statisticsDataStep8Visual && !step2Visual && step3NumeralOptions
                 ? renderStep3WorksheetOptionCard({
                     option,
                     visual: step3VisualModel,
@@ -2324,6 +2336,7 @@ function TaskCard({
             const step8Visual =
               !shapeVisual &&
               !statisticsVisual &&
+              !statisticsDataStep8Visual &&
               !step2Visual &&
               !step3Visual &&
               !step4Visual &&
@@ -2338,6 +2351,7 @@ function TaskCard({
             const operationsStep2Visual =
               !shapeVisual &&
               !statisticsVisual &&
+              !statisticsDataStep8Visual &&
               !step2Visual &&
               !step3Visual &&
               !step4Visual &&
@@ -2353,6 +2367,7 @@ function TaskCard({
             const operationsStep4Visual =
               !shapeVisual &&
               !statisticsVisual &&
+              !statisticsDataStep8Visual &&
               !step2Visual &&
               !step3Visual &&
               !step4Visual &&
@@ -2369,6 +2384,7 @@ function TaskCard({
             const operationsStep5Visual =
               !shapeVisual &&
               !statisticsVisual &&
+              !statisticsDataStep8Visual &&
               !step2Visual &&
               !step3Visual &&
               !step4Visual &&
@@ -4117,6 +4133,7 @@ function TaskCard({
             const visualOption =
               shapeVisual ??
               statisticsVisual ??
+              statisticsDataStep8Visual ??
               step2Visual ??
               step3Visual ??
               step4Visual ??
