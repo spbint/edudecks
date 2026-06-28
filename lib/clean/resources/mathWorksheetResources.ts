@@ -276,8 +276,14 @@ const STATISTICS_ORGANISE_DISPLAY_DATA_WORKSHEET_FILE =
   "MYL-MATH-SDA-MP-S005-Choose-Useful-Ways-To-Organise-And-Display-Data.pdf";
 const STATISTICS_COMPARE_CATEGORIES_TRENDS_WORKSHEET_FILE =
   "MYL-MATH-SDA-MP-S006-Compare-Categories-And-Describe-Trends.pdf";
+const STATISTICS_RICHER_GRAPHS_SUMMARY_MEASURES_WORKSHEET_FILE =
+  "MYL-MATH-SDA-UE-S007-Interpret-Richer-Graphs-And-Summary-Measures.pdf";
 const STATISTICS_QUESTION_DISPLAYS_DATA_CLAIMS_WORKSHEET_FILE =
   "MYL-MATH-SDA-UE-S008-Question-Displays-And-Simple-Data-Claims.pdf";
+const STATISTICS_PERCENTAGES_COMPARISONS_TRENDS_WORKSHEET_FILE =
+  "MYL-MATH-SDA-UEMS-S009-Interpret-Data-Using-Percentages-Comparisons-And-Trends.pdf";
+const STATISTICS_DATA_SUPPORTS_CLAIM_WORKSHEET_FILE =
+  "MYL-MATH-SDA-MS-S010-Judge-Whether-Data-Supports-A-Claim.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   {
@@ -390,6 +396,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
   },
   {
     pathwayStepId:
+      "mathematics::statistics-and-data::upper-primary::interpret-richer-graphs-and-summary-measures",
+    stepKey: "interpret-richer-graphs-and-summary-measures",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 7,
+    pathwayStepTitle: "Interpret richer graphs and summary measures",
+    title: "Interpret Richer Graphs And Summary Measures",
+    concept:
+      "Interpret richer graphs and use summary measures such as maximum, minimum, range, total, mean, median, quartiles and interquartile range to answer questions about data.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_RICHER_GRAPHS_SUMMARY_MEASURES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/upper-primary/${STATISTICS_RICHER_GRAPHS_SUMMARY_MEASURES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
       "mathematics::statistics-and-data::upper-primary::question-displays-and-simple-data-claims",
     stepKey: "question-displays-and-simple-data-claims",
     subjectKey: "mathematics",
@@ -404,6 +428,43 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: STATISTICS_QUESTION_DISPLAYS_DATA_CLAIMS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/statistics-and-data/upper-primary/${STATISTICS_QUESTION_DISPLAYS_DATA_CLAIMS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::lower-secondary::interpret-data-using-percentages-comparisons-and-trends",
+    stepKey: "interpret-data-using-percentages-comparisons-and-trends",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 9,
+    pathwayStepTitle:
+      "Interpret data using percentages, comparisons, and trends",
+    title: "Interpret Data Using Percentages, Comparisons, And Trends",
+    concept:
+      "Interpret data using percentages, comparisons, and trends to answer questions and make evidence-based statements.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_PERCENTAGES_COMPARISONS_TRENDS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/lower-secondary/${STATISTICS_PERCENTAGES_COMPARISONS_TRENDS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::statistics-and-data::lower-secondary::judge-whether-data-supports-a-claim",
+    stepKey: "judge-whether-data-supports-a-claim",
+    subjectKey: "mathematics",
+    strandKey: "statistics-and-data",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 10,
+    pathwayStepTitle: "Judge whether data supports a claim",
+    title: "Judge Whether Data Supports A Claim",
+    concept:
+      "Decide whether data supports a claim and explain reasoning using evidence from data displays, tables and summary measures.",
+    includesAnswerSheet: false,
+    fileName: STATISTICS_DATA_SUPPORTS_CLAIM_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/statistics-and-data/lower-secondary/${STATISTICS_DATA_SUPPORTS_CLAIM_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
