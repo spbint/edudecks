@@ -266,6 +266,8 @@ const GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S012-Refine-Spatial-Judgement-And-Explanation.pdf";
 const FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE =
   "MYL-MATH-FRM-KEE-S001-Recognise-Money-And-Simple-Exchange-In-Play.pdf";
+const FINANCIAL_WANTS_NEEDS_CHOICES_WORKSHEET_FILE =
+  "MYL-MATH-FRM-KEE-S002-Compare-Simple-Wants-Needs-And-Choices.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -308,6 +310,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/foundation-kindergarten/${FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::foundation-kindergarten::compare-simple-wants-needs-and-choices",
+    stepKey: "compare-simple-wants-needs-and-choices",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Kindergarten / Early Elementary",
+    stepNumber: 2,
+    pathwayStepTitle: "Compare simple wants, needs, and choices",
+    title: "Compare Simple Wants, Needs, And Choices",
+    concept:
+      "Distinguish simple wants and needs, make choices based on needs, and talk about everyday family decisions.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_WANTS_NEEDS_CHOICES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/foundation-kindergarten/${FINANCIAL_WANTS_NEEDS_CHOICES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
