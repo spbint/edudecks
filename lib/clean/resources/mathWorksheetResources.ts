@@ -268,6 +268,8 @@ const FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE =
   "MYL-MATH-FRM-KEE-S001-Recognise-Money-And-Simple-Exchange-In-Play.pdf";
 const FINANCIAL_WANTS_NEEDS_CHOICES_WORKSHEET_FILE =
   "MYL-MATH-FRM-KEE-S002-Compare-Simple-Wants-Needs-And-Choices.pdf";
+const FINANCIAL_MONEY_AMOUNTS_PRACTICAL_TASKS_WORKSHEET_FILE =
+  "MYL-MATH-FRM-EE-S003-Use-Money-Amounts-In-Simple-Practical-Tasks.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -328,6 +330,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_WANTS_NEEDS_CHOICES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/foundation-kindergarten/${FINANCIAL_WANTS_NEEDS_CHOICES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::lower-primary::use-money-amounts-in-simple-practical-tasks",
+    stepKey: "use-money-amounts-in-simple-practical-tasks",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 3,
+    pathwayStepTitle: "Use money amounts in simple practical tasks",
+    title: "Use Money Amounts In Simple Practical Tasks",
+    concept:
+      "Use simple prices, count generic dollar coins and notes, pay for items, make money amounts, find simple change, and solve practical money tasks.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_MONEY_AMOUNTS_PRACTICAL_TASKS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/lower-primary/${FINANCIAL_MONEY_AMOUNTS_PRACTICAL_TASKS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
