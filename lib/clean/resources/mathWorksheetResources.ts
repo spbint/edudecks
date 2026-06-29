@@ -264,6 +264,8 @@ const GSR_GEOMETRY_MODEL_INTERPRET_SPACE_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S011-Use-Geometry-To-Model-And-Interpret-Space.pdf";
 const GSR_REFINE_SPATIAL_JUDGEMENT_EXPLANATION_WORKSHEET_FILE =
   "MYL-MATH-GSR-UE-S012-Refine-Spatial-Judgement-And-Explanation.pdf";
+const FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE =
+  "MYL-MATH-FRM-KEE-S001-Recognise-Money-And-Simple-Exchange-In-Play.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -290,6 +292,24 @@ const STATISTICS_REFINE_EXPLANATION_QUESTIONING_EVIDENCE_WORKSHEET_FILE =
   "MYL-MATH-SDA-HSF-S012-Refine-Explanation-Questioning-And-Evidence-Use.pdf";
 
 export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::foundation-kindergarten::recognise-money-and-simple-exchange-in-play",
+    stepKey: "recognise-money-and-simple-exchange-in-play",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Kindergarten / Early Elementary",
+    stepNumber: 1,
+    pathwayStepTitle: "Recognise money and simple exchange in play",
+    title: "Recognise Money And Simple Exchange In Play",
+    concept:
+      "Recognise money and use it in simple pretend buying, paying, swapping and exchanging.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/foundation-kindergarten/${FINANCIAL_MONEY_SIMPLE_EXCHANGE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
   {
     pathwayStepId:
       "mathematics::statistics-and-data::foundation-kindergarten::sort-and-group-familiar-information",
