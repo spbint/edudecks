@@ -274,6 +274,8 @@ const FINANCIAL_SAVING_SPENDING_CHOOSING_WORKSHEET_FILE =
   "MYL-MATH-FRM-EE-S004-Talk-About-Saving-Spending-And-Choosing.pdf";
 const FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE =
   "MYL-MATH-FRM-MP-S005-Plan-Simple-Budgets-And-Spending-Choices.pdf";
+const FINANCIAL_COMPARE_VALUE_CHANGE_WORKSHEET_FILE =
+  "MYL-MATH-FRM-UE-S006-Compare-Value-And-Change-In-Practical-Situations.pdf";
 const FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE =
   "MYL-MATH-FRM-UE-S007-Use-Percentages-And-Comparisons-In-Shopping-Decisions.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
@@ -390,6 +392,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/middle-primary/${FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::middle-primary::compare-value-and-change-in-practical-situations",
+    stepKey: "compare-value-and-change-in-practical-situations",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "middle-primary",
+    stageDisplay: "Upper Elementary",
+    stepNumber: 6,
+    pathwayStepTitle: "Compare value and change in practical situations",
+    title: "Compare Value And Change In Practical Situations",
+    concept:
+      "Compare prices, order values, calculate change, decide better value, and solve practical shopping and budget problems.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_COMPARE_VALUE_CHANGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/upper-primary/${FINANCIAL_COMPARE_VALUE_CHANGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
