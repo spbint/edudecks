@@ -272,6 +272,8 @@ const FINANCIAL_MONEY_AMOUNTS_PRACTICAL_TASKS_WORKSHEET_FILE =
   "MYL-MATH-FRM-EE-S003-Use-Money-Amounts-In-Simple-Practical-Tasks.pdf";
 const FINANCIAL_SAVING_SPENDING_CHOOSING_WORKSHEET_FILE =
   "MYL-MATH-FRM-EE-S004-Talk-About-Saving-Spending-And-Choosing.pdf";
+const FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE =
+  "MYL-MATH-FRM-MP-S005-Plan-Simple-Budgets-And-Spending-Choices.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -368,6 +370,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_SAVING_SPENDING_CHOOSING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/lower-primary/${FINANCIAL_SAVING_SPENDING_CHOOSING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::middle-primary::plan-simple-budgets-and-spending-choices",
+    stepKey: "plan-simple-budgets-and-spending-choices",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 5,
+    pathwayStepTitle: "Plan simple budgets and spending choices",
+    title: "Plan Simple Budgets And Spending Choices",
+    concept:
+      "Plan simple budgets, choose items within a budget, compare spending choices, save toward a goal, and decide whether choices are affordable and sensible.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/middle-primary/${FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
