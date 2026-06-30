@@ -278,6 +278,8 @@ const FINANCIAL_COMPARE_VALUE_CHANGE_WORKSHEET_FILE =
   "MYL-MATH-FRM-UE-S006-Compare-Value-And-Change-In-Practical-Situations.pdf";
 const FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE =
   "MYL-MATH-FRM-UE-S007-Use-Percentages-And-Comparisons-In-Shopping-Decisions.pdf";
+const FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE =
+  "MYL-MATH-FRM-UE-S008-Plan-Savings-Or-Spending-Over-Time.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -428,6 +430,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/upper-primary/${FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::upper-primary::plan-savings-or-spending-over-time",
+    stepKey: "plan-savings-or-spending-over-time",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 8,
+    pathwayStepTitle: "Plan savings or spending over time",
+    title: "Plan Savings Or Spending Over Time",
+    concept:
+      "Plan how to save or spend money over time, set a goal, decide regular saving amounts, calculate time needed, and show savings growth using tables and number lines.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/upper-primary/${FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
