@@ -274,6 +274,8 @@ const FINANCIAL_SAVING_SPENDING_CHOOSING_WORKSHEET_FILE =
   "MYL-MATH-FRM-EE-S004-Talk-About-Saving-Spending-And-Choosing.pdf";
 const FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE =
   "MYL-MATH-FRM-MP-S005-Plan-Simple-Budgets-And-Spending-Choices.pdf";
+const FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE =
+  "MYL-MATH-FRM-UE-S007-Use-Percentages-And-Comparisons-In-Shopping-Decisions.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -388,6 +390,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/middle-primary/${FINANCIAL_SIMPLE_BUDGETS_SPENDING_CHOICES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::upper-primary::use-percentages-and-comparisons-in-shopping-decisions",
+    stepKey: "use-percentages-and-comparisons-in-shopping-decisions",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 7,
+    pathwayStepTitle: "Use percentages and comparisons in shopping decisions",
+    title: "Use Percentages And Comparisons In Shopping Decisions",
+    concept:
+      "Use percentages, discounts, unit prices, comparisons and shopping budgets to decide better value and make smart shopping decisions.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/upper-primary/${FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
