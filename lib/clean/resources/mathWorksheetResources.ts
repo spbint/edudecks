@@ -280,6 +280,8 @@ const FINANCIAL_PERCENTAGES_COMPARISONS_SHOPPING_WORKSHEET_FILE =
   "MYL-MATH-FRM-UE-S007-Use-Percentages-And-Comparisons-In-Shopping-Decisions.pdf";
 const FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE =
   "MYL-MATH-FRM-UE-S008-Plan-Savings-Or-Spending-Over-Time.pdf";
+const FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE =
+  "MYL-MATH-FRM-LS-S009-Use-Several-Mathematical-Ideas-In-Financial-Decisions.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -448,6 +450,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/upper-primary/${FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::lower-secondary::use-several-mathematical-ideas-in-financial-decisions",
+    stepKey: "use-several-mathematical-ideas-in-financial-decisions",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 9,
+    pathwayStepTitle: "Use several mathematical ideas in financial decisions",
+    title: "Use Several Mathematical Ideas In Financial Decisions",
+    concept:
+      "Use numbers, calculations, percentages, comparisons, tables, budgets, savings plans and reasoning to make smart financial choices.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/lower-secondary/${FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
