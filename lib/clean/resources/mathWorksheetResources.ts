@@ -282,6 +282,8 @@ const FINANCIAL_SAVINGS_SPENDING_OVER_TIME_WORKSHEET_FILE =
   "MYL-MATH-FRM-UE-S008-Plan-Savings-Or-Spending-Over-Time.pdf";
 const FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE =
   "MYL-MATH-FRM-LS-S009-Use-Several-Mathematical-Ideas-In-Financial-Decisions.pdf";
+const FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE =
+  "MYL-MATH-FRM-LS-S010-Interpret-Financial-Information-Critically.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -468,6 +470,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/lower-secondary/${FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::lower-secondary::interpret-financial-information-critically",
+    stepKey: "interpret-financial-information-critically",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 10,
+    pathwayStepTitle: "Interpret financial information critically",
+    title: "Interpret Financial Information Critically",
+    concept:
+      "Read advertisements, offers, financial tables and graphs critically, compare claims, check calculations, and make evidence-based financial decisions.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/lower-secondary/${FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
