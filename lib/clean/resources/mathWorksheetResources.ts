@@ -284,6 +284,8 @@ const FINANCIAL_SEVERAL_IDEAS_DECISIONS_WORKSHEET_FILE =
   "MYL-MATH-FRM-LS-S009-Use-Several-Mathematical-Ideas-In-Financial-Decisions.pdf";
 const FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE =
   "MYL-MATH-FRM-LS-S010-Interpret-Financial-Information-Critically.pdf";
+const FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE =
+  "MYL-MATH-FRM-HSF-S011-Use-Financial-Mathematics-In-Realistic-Planning.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -488,6 +490,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/lower-secondary/${FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::years-9-10-consolidation::use-financial-mathematics-in-realistic-planning",
+    stepKey: "use-financial-mathematics-in-realistic-planning",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 11,
+    pathwayStepTitle: "Use financial mathematics in realistic planning",
+    title: "Use Financial Mathematics In Realistic Planning",
+    concept:
+      "Use financial mathematics in realistic planning, including budgets, discounts, weekly spending, savings plans, trip costs, future goals, priorities and trade-offs.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/years-9-10-consolidation/${FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
