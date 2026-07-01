@@ -286,6 +286,8 @@ const FINANCIAL_INFORMATION_CRITICALLY_WORKSHEET_FILE =
   "MYL-MATH-FRM-LS-S010-Interpret-Financial-Information-Critically.pdf";
 const FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE =
   "MYL-MATH-FRM-HSF-S011-Use-Financial-Mathematics-In-Realistic-Planning.pdf";
+const FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE =
+  "MYL-MATH-FRM-HSF-S012-Refine-Judgement-Explanation-And-Evidence-Use-In-Finance.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -508,6 +510,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/years-9-10-consolidation/${FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::financial-and-real-world-mathematics::years-9-10-consolidation::refine-judgement-explanation-and-evidence-use-in-finance",
+    stepKey: "refine-judgement-explanation-and-evidence-use-in-finance",
+    subjectKey: "mathematics",
+    strandKey: "financial-and-real-world-mathematics",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 12,
+    pathwayStepTitle:
+      "Refine judgement, explanation, and evidence use in finance",
+    title: "Refine Judgement, Explanation, And Evidence Use In Finance",
+    concept:
+      "Refine financial judgement, explain decisions clearly, use evidence and calculations to justify choices, and evaluate whether plans, deals and recommendations are sensible.",
+    includesAnswerSheet: false,
+    fileName: FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/financial-and-real-world-mathematics/years-9-10-consolidation/${FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
