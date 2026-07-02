@@ -1,0 +1,8 @@
+⨯ Error: Missing Supabase public environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY before using MyLearna.
+    at cE (C:\Users\seanb\edu-dashboard\.next\server\chunks\ssr\_2e2acc1a._.js:56:283)
+    at cG (C:\Users\seanb\edu-dashboard\.next\server\chunks\ssr\_2e2acc1a._.js:56:711)
+    at async cH (C:\Users\seanb\edu-dashboard\.next\server\chunks\ssr\_2e2acc1a._.js:60:5324)
+    at async cI (C:\Users\seanb\edu-dashboard\.next\server\chunks\ssr\_2e2acc1a._.js:60:5432)
+    at async f (C:\Users\seanb\edu-dashboard\.next\server\chunks\ssr\app_fc082c5f._.js:2:5413) {
+  digest: '2389893233'
+}

@@ -288,6 +288,8 @@ const FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE =
   "MYL-MATH-FRM-HSF-S011-Use-Financial-Mathematics-In-Realistic-Planning.pdf";
 const FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE =
   "MYL-MATH-FRM-HSF-S012-Refine-Judgement-Explanation-And-Evidence-Use-In-Finance.pdf";
+const PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE =
+  "MYL-MATH-PC-KEE-S002-Notice-Fairness-In-Simple-Games.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -529,6 +531,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/years-9-10-consolidation/${FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::foundation-kindergarten::notice-fairness-in-simple-games",
+    stepKey: "notice-fairness-in-simple-games",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 2,
+    pathwayStepTitle: "Notice fairness in simple games",
+    title: "Notice Fairness In Simple Games",
+    concept:
+      "Notice whether simple games are fair by looking at rules, turns, equal chances, and whether each player has the same opportunity.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/foundation-kindergarten/${PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
