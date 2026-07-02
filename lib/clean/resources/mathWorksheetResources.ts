@@ -288,6 +288,8 @@ const FINANCIAL_REALISTIC_PLANNING_WORKSHEET_FILE =
   "MYL-MATH-FRM-HSF-S011-Use-Financial-Mathematics-In-Realistic-Planning.pdf";
 const FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE =
   "MYL-MATH-FRM-HSF-S012-Refine-Judgement-Explanation-And-Evidence-Use-In-Finance.pdf";
+const PROBABILITY_EVERYDAY_CHANCE_LANGUAGE_WORKSHEET_FILE =
+  "MYL-MATH-PC-KEE-S001-Use-Everyday-Chance-Language-Meaningfully.pdf";
 const PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE =
   "MYL-MATH-PC-KEE-S002-Notice-Fairness-In-Simple-Games.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
@@ -531,6 +533,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/financial-and-real-world-mathematics/years-9-10-consolidation/${FINANCIAL_JUDGEMENT_EVIDENCE_FINANCE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::foundation-kindergarten::use-everyday-chance-language-meaningfully",
+    stepKey: "use-everyday-chance-language-meaningfully",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 1,
+    pathwayStepTitle: "Use everyday chance language meaningfully",
+    title: "Use Everyday Chance Language Meaningfully",
+    concept:
+      "Use everyday chance words such as certain, likely, unlikely and impossible to describe events meaningfully.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_EVERYDAY_CHANCE_LANGUAGE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/foundation-kindergarten/${PROBABILITY_EVERYDAY_CHANCE_LANGUAGE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
