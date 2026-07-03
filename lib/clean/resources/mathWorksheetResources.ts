@@ -300,6 +300,8 @@ const PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE =
   "MYL-MATH-PC-MP-S005-Use-Simple-Fraction-Ideas-To-Describe-Chance.pdf";
 const PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE =
   "MYL-MATH-PC-MP-S006-Compare-Expected-And-Actual-Outcomes.pdf";
+const PROBABILITY_REPRESENT_CHANCE_WORKSHEET_FILE =
+  "MYL-MATH-PC-UEMS-S007-Represent-Chance-With-Fractions-Decimals-Or-Percentages.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -649,6 +651,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/middle-primary/${PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::upper-primary::represent-chance-with-fractions-decimals-or-percentages",
+    stepKey: "represent-chance-with-fractions-decimals-or-percentages",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 7,
+    pathwayStepTitle:
+      "Represent chance with fractions, decimals, or percentages",
+    title: "Represent Chance With Fractions Decimals Or Percentages",
+    concept:
+      "Represent chance using fractions, decimals and percentages, convert between representations, compare chances, and use representations to make predictions.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_REPRESENT_CHANCE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/upper-primary/${PROBABILITY_REPRESENT_CHANCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
