@@ -294,6 +294,8 @@ const PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE =
   "MYL-MATH-PC-KEE-S002-Notice-Fairness-In-Simple-Games.pdf";
 const PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE =
   "MYL-MATH-PC-EE-S003-Compare-Likely-And-Unlikely-Events.pdf";
+const PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE =
+  "MYL-MATH-PC-EE-S004-Record-Simple-Chance-Outcomes-From-Repeated-Trials.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -589,6 +591,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/lower-primary/${PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::lower-primary::record-simple-chance-outcomes-from-repeated-trials",
+    stepKey: "record-simple-chance-outcomes-from-repeated-trials",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 4,
+    pathwayStepTitle: "Record simple chance outcomes from repeated trials",
+    title: "Record Simple Chance Outcomes From Repeated Trials",
+    concept:
+      "Record simple outcomes from repeated chance trials, use tally marks and totals, and compare which outcomes happened more often or less often.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/lower-primary/${PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
