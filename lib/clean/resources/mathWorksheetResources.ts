@@ -306,6 +306,8 @@ const PROBABILITY_JUDGE_FAIRNESS_LIKELIHOOD_WORKSHEET_FILE =
   "MYL-MATH-PC-UEMS-S008-Judge-Fairness-And-Likelihood-More-Precisely.pdf";
 const PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE =
   "MYL-MATH-PC-LS-S009-Compare-Theoretical-And-Experimental-Probability.pdf";
+const PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE =
+  "MYL-MATH-PC-LS-S010-Use-Probability-To-Judge-Risk-And-Uncertainty.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -710,6 +712,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/lower-secondary/${PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::lower-secondary::use-probability-to-judge-risk-and-uncertainty",
+    stepKey: "use-probability-to-judge-risk-and-uncertainty",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 10,
+    pathwayStepTitle: "Use probability to judge risk and uncertainty",
+    title: "Use Probability To Judge Risk And Uncertainty",
+    concept:
+      "Use probability to judge risk and uncertainty, compare likelihoods, estimate risk levels, interpret real-life probability situations, and make safer or better decisions.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/lower-secondary/${PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
