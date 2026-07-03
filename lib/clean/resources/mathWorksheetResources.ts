@@ -302,6 +302,10 @@ const PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE =
   "MYL-MATH-PC-MP-S006-Compare-Expected-And-Actual-Outcomes.pdf";
 const PROBABILITY_REPRESENT_CHANCE_WORKSHEET_FILE =
   "MYL-MATH-PC-UEMS-S007-Represent-Chance-With-Fractions-Decimals-Or-Percentages.pdf";
+const PROBABILITY_JUDGE_FAIRNESS_LIKELIHOOD_WORKSHEET_FILE =
+  "MYL-MATH-PC-UEMS-S008-Judge-Fairness-And-Likelihood-More-Precisely.pdf";
+const PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE =
+  "MYL-MATH-PC-LS-S009-Compare-Theoretical-And-Experimental-Probability.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -670,6 +674,42 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_REPRESENT_CHANCE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/upper-primary/${PROBABILITY_REPRESENT_CHANCE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::upper-primary::judge-fairness-and-likelihood-more-precisely",
+    stepKey: "judge-fairness-and-likelihood-more-precisely",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 8,
+    pathwayStepTitle: "Judge fairness and likelihood more precisely",
+    title: "Judge Fairness And Likelihood More Precisely",
+    concept:
+      "Judge fairness and likelihood more precisely using fractions, decimals, percentages, event comparisons, ordering, and reasoning.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_JUDGE_FAIRNESS_LIKELIHOOD_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/upper-primary/${PROBABILITY_JUDGE_FAIRNESS_LIKELIHOOD_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::lower-secondary::compare-theoretical-and-experimental-probability",
+    stepKey: "compare-theoretical-and-experimental-probability",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 9,
+    pathwayStepTitle: "Compare theoretical and experimental probability",
+    title: "Compare Theoretical And Experimental Probability",
+    concept:
+      "Compare theoretical probability with experimental probability using repeated trials, outcome tables, probability differences, predictions, and explanations.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/lower-secondary/${PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
