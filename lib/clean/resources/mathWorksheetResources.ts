@@ -296,6 +296,8 @@ const PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE =
   "MYL-MATH-PC-EE-S003-Compare-Likely-And-Unlikely-Events.pdf";
 const PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE =
   "MYL-MATH-PC-EE-S004-Record-Simple-Chance-Outcomes-From-Repeated-Trials.pdf";
+const PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE =
+  "MYL-MATH-PC-MP-S005-Use-Simple-Fraction-Ideas-To-Describe-Chance.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -609,6 +611,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/lower-primary/${PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::middle-primary::use-simple-fraction-ideas-to-describe-chance",
+    stepKey: "use-simple-fraction-ideas-to-describe-chance",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 5,
+    pathwayStepTitle: "Use simple fraction ideas to describe chance",
+    title: "Use Simple Fraction Ideas To Describe Chance",
+    concept:
+      "Use simple fractions to describe chance, compare chances, connect fractions to likely/unlikely/certain/impossible, and record simple trial results as fractions of the total.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/middle-primary/${PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
