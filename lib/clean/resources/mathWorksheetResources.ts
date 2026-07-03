@@ -292,6 +292,8 @@ const PROBABILITY_EVERYDAY_CHANCE_LANGUAGE_WORKSHEET_FILE =
   "MYL-MATH-PC-KEE-S001-Use-Everyday-Chance-Language-Meaningfully.pdf";
 const PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE =
   "MYL-MATH-PC-KEE-S002-Notice-Fairness-In-Simple-Games.pdf";
+const PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE =
+  "MYL-MATH-PC-EE-S003-Compare-Likely-And-Unlikely-Events.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -569,6 +571,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/foundation-kindergarten/${PROBABILITY_NOTICE_FAIRNESS_SIMPLE_GAMES_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::lower-primary::compare-likely-and-unlikely-events",
+    stepKey: "compare-likely-and-unlikely-events",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 3,
+    pathwayStepTitle: "Compare likely and unlikely events",
+    title: "Compare Likely And Unlikely Events",
+    concept:
+      "Compare likely and unlikely events, recognise equally likely outcomes, order simple chances, and explain chance thinking using visual examples.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/lower-primary/${PROBABILITY_COMPARE_LIKELY_UNLIKELY_EVENTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
