@@ -298,6 +298,8 @@ const PROBABILITY_REPEATED_TRIAL_OUTCOMES_WORKSHEET_FILE =
   "MYL-MATH-PC-EE-S004-Record-Simple-Chance-Outcomes-From-Repeated-Trials.pdf";
 const PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE =
   "MYL-MATH-PC-MP-S005-Use-Simple-Fraction-Ideas-To-Describe-Chance.pdf";
+const PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE =
+  "MYL-MATH-PC-MP-S006-Compare-Expected-And-Actual-Outcomes.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -629,6 +631,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/middle-primary/${PROBABILITY_SIMPLE_FRACTION_CHANCE_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::middle-primary::compare-expected-and-actual-outcomes",
+    stepKey: "compare-expected-and-actual-outcomes",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 6,
+    pathwayStepTitle: "Compare expected and actual outcomes",
+    title: "Compare Expected And Actual Outcomes",
+    concept:
+      "Make predictions about chance activities, record repeated trial results, compare expected and actual outcomes, and use simple graphs to show results.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/middle-primary/${PROBABILITY_EXPECTED_ACTUAL_OUTCOMES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
