@@ -326,6 +326,8 @@ const RATIO_SIMPLE_RATES_PRACTICAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-RPR-MP-S006-Use-Simple-Rates-In-Practical-Contexts.pdf";
 const RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FILE =
   "MYL-MATH-RPR-UP-S007-Use-Fractions-Decimals-Or-Percentages-In-Proportional-Comparison.pdf";
+const RATIO_SCALE_UNIT_COMPARISON_REAL_TASKS_WORKSHEET_FILE =
+  "MYL-MATH-RPR-UP-S008-Apply-Scale-And-Unit-Comparison-In-Real-Tasks.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -916,6 +918,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     fileName:
       RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/upper-primary/${RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::upper-primary::apply-scale-and-unit-comparison-in-real-tasks",
+    stepKey: "apply-scale-and-unit-comparison-in-real-tasks",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 8,
+    pathwayStepTitle: "Apply scale and unit comparison in real tasks",
+    title: "Apply Scale And Unit Comparison In Real Tasks",
+    concept:
+      "Apply map scale, unit conversion, scale drawings, unit comparison, recipes, paint coverage and real-world proportional reasoning to solve practical tasks.",
+    includesAnswerSheet: false,
+    fileName: RATIO_SCALE_UNIT_COMPARISON_REAL_TASKS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/upper-primary/${RATIO_SCALE_UNIT_COMPARISON_REAL_TASKS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
