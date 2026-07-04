@@ -316,6 +316,8 @@ const RATIO_COMPARE_GROUPS_FAIRNESS_WORKSHEET_FILE =
   "MYL-MATH-RPR-KEE-S001-Compare-Groups-And-Talk-About-Fairness.pdf";
 const RATIO_DOUBLE_HALF_SAME_AMOUNT_WORKSHEET_FILE =
   "MYL-MATH-RPR-KEE-S002-Use-Double-Half-And-Same-Amount-In-Practical-Play.pdf";
+const RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE =
+  "MYL-MATH-RPR-EE-S003-Describe-Simple-Multiplicative-Comparisons.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -811,6 +813,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: RATIO_DOUBLE_HALF_SAME_AMOUNT_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/foundation-kindergarten/${RATIO_DOUBLE_HALF_SAME_AMOUNT_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::lower-primary::describe-simple-multiplicative-comparisons",
+    stepKey: "describe-simple-multiplicative-comparisons",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 3,
+    pathwayStepTitle: "Describe simple multiplicative comparisons",
+    title: "Describe Simple Multiplicative Comparisons",
+    concept:
+      "Describe simple multiplicative comparisons using more, less, times as many, and as many as in visual and practical contexts.",
+    includesAnswerSheet: false,
+    fileName: RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/lower-primary/${RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
