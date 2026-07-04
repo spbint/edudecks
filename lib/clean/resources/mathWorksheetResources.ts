@@ -318,6 +318,8 @@ const RATIO_DOUBLE_HALF_SAME_AMOUNT_WORKSHEET_FILE =
   "MYL-MATH-RPR-KEE-S002-Use-Double-Half-And-Same-Amount-In-Practical-Play.pdf";
 const RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE =
   "MYL-MATH-RPR-EE-S003-Describe-Simple-Multiplicative-Comparisons.pdf";
+const RATIO_SCALE_SIMPLE_TASKS_WORKSHEET_FILE =
+  "MYL-MATH-RPR-EE-S004-Scale-Simple-Tasks-Up-And-Down.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -831,6 +833,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/lower-primary/${RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::lower-primary::scale-simple-tasks-up-and-down",
+    stepKey: "scale-simple-tasks-up-and-down",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "lower-primary",
+    stageDisplay: "Lower Primary",
+    stepNumber: 4,
+    pathwayStepTitle: "Scale simple tasks up and down",
+    title: "Scale Simple Tasks Up And Down",
+    concept:
+      "Scale simple quantities up and down using whole-number multipliers and simple fractional amounts such as 1/2, 1/3 and 1/5 in practical contexts.",
+    includesAnswerSheet: false,
+    fileName: RATIO_SCALE_SIMPLE_TASKS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/lower-primary/${RATIO_SCALE_SIMPLE_TASKS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
