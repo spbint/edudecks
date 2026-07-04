@@ -308,6 +308,8 @@ const PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE =
   "MYL-MATH-PC-LS-S009-Compare-Theoretical-And-Experimental-Probability.pdf";
 const PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE =
   "MYL-MATH-PC-LS-S010-Use-Probability-To-Judge-Risk-And-Uncertainty.pdf";
+const PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE =
+  "MYL-MATH-PC-HSF-S012-Refine-Critique-Explanation-And-Fairness-Reasoning.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -730,6 +732,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/lower-secondary/${PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::years-9-10-consolidation::refine-critique-explanation-and-fairness-reasoning",
+    stepKey: "refine-critique-explanation-and-fairness-reasoning",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 12,
+    pathwayStepTitle: "Refine critique, explanation, and fairness reasoning",
+    title: "Refine Critique Explanation And Fairness Reasoning",
+    concept:
+      "Refine probability critique, explanation and fairness reasoning by using data, probability calculations, evidence, and clear mathematical justification.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/years-9-10-consolidation/${PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
