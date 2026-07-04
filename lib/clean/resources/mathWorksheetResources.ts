@@ -320,6 +320,8 @@ const RATIO_MULTIPLICATIVE_COMPARISONS_WORKSHEET_FILE =
   "MYL-MATH-RPR-EE-S003-Describe-Simple-Multiplicative-Comparisons.pdf";
 const RATIO_SCALE_SIMPLE_TASKS_WORKSHEET_FILE =
   "MYL-MATH-RPR-EE-S004-Scale-Simple-Tasks-Up-And-Down.pdf";
+const RATIO_TABLES_DIAGRAMS_RELATED_QUANTITIES_WORKSHEET_FILE =
+  "MYL-MATH-RPR-MP-S005-Use-Tables-Or-Diagrams-To-Compare-Related-Quantities.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -851,6 +853,25 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: RATIO_SCALE_SIMPLE_TASKS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/lower-primary/${RATIO_SCALE_SIMPLE_TASKS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::middle-primary::use-tables-or-diagrams-to-compare-related-quantities",
+    stepKey: "use-tables-or-diagrams-to-compare-related-quantities",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "middle-primary",
+    stageDisplay: "Middle Primary",
+    stepNumber: 5,
+    pathwayStepTitle:
+      "Use tables or diagrams to compare related quantities",
+    title: "Use Tables Or Diagrams To Compare Related Quantities",
+    concept:
+      "Use tables, diagrams, bar charts and pictographs to compare related quantities, complete missing values, identify simple rules, and solve real-life quantity comparison problems.",
+    includesAnswerSheet: false,
+    fileName: RATIO_TABLES_DIAGRAMS_RELATED_QUANTITIES_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/middle-primary/${RATIO_TABLES_DIAGRAMS_RELATED_QUANTITIES_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
