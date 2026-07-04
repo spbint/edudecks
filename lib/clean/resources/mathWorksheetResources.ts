@@ -308,6 +308,8 @@ const PROBABILITY_THEORETICAL_EXPERIMENTAL_WORKSHEET_FILE =
   "MYL-MATH-PC-LS-S009-Compare-Theoretical-And-Experimental-Probability.pdf";
 const PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE =
   "MYL-MATH-PC-LS-S010-Use-Probability-To-Judge-Risk-And-Uncertainty.pdf";
+const PROBABILITY_DATA_RICH_CONTEXTS_WORKSHEET_FILE =
+  "MYL-MATH-PC-HSF-S011-Interpret-Probability-In-Data-Rich-And-Realistic-Contexts.pdf";
 const PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE =
   "MYL-MATH-PC-HSF-S012-Refine-Critique-Explanation-And-Fairness-Reasoning.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
@@ -732,6 +734,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/lower-secondary/${PROBABILITY_RISK_UNCERTAINTY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::probability-and-chance::years-9-10-consolidation::interpret-probability-in-data-rich-and-realistic-contexts",
+    stepKey: "interpret-probability-in-data-rich-and-realistic-contexts",
+    subjectKey: "mathematics",
+    strandKey: "probability-and-chance",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 11,
+    pathwayStepTitle: "Interpret probability in data-rich and realistic contexts",
+    title: "Interpret Probability In Data-Rich And Realistic Contexts",
+    concept:
+      "Interpret probability in data-rich and realistic contexts using survey data, tables, graphs, real records, experimental probability, percentages, and evidence-based reasoning.",
+    includesAnswerSheet: false,
+    fileName: PROBABILITY_DATA_RICH_CONTEXTS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/probability-and-chance/years-9-10-consolidation/${PROBABILITY_DATA_RICH_CONTEXTS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
