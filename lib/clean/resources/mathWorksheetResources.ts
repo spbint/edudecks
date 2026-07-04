@@ -312,6 +312,8 @@ const PROBABILITY_DATA_RICH_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-PC-HSF-S011-Interpret-Probability-In-Data-Rich-And-Realistic-Contexts.pdf";
 const PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE =
   "MYL-MATH-PC-HSF-S012-Refine-Critique-Explanation-And-Fairness-Reasoning.pdf";
+const RATIO_COMPARE_GROUPS_FAIRNESS_WORKSHEET_FILE =
+  "MYL-MATH-RPR-KEE-S001-Compare-Groups-And-Talk-About-Fairness.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -770,6 +772,24 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/probability-and-chance/years-9-10-consolidation/${PROBABILITY_CRITIQUE_FAIRNESS_REASONING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::foundation-kindergarten::compare-groups-and-talk-about-fairness",
+    stepKey: "compare-groups-and-talk-about-fairness",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "foundation-kindergarten",
+    stageDisplay: "Foundation / Kindergarten",
+    stepNumber: 1,
+    pathwayStepTitle: "Compare groups and talk about fairness",
+    title: "Compare Groups And Talk About Fairness",
+    concept:
+      "Compare two simple groups, use more, fewer and same, notice whether sharing is fair, and explain how to make groups equal.",
+    includesAnswerSheet: false,
+    fileName: RATIO_COMPARE_GROUPS_FAIRNESS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/foundation-kindergarten/${RATIO_COMPARE_GROUPS_FAIRNESS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
