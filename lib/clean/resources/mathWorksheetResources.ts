@@ -324,6 +324,8 @@ const RATIO_TABLES_DIAGRAMS_RELATED_QUANTITIES_WORKSHEET_FILE =
   "MYL-MATH-RPR-MP-S005-Use-Tables-Or-Diagrams-To-Compare-Related-Quantities.pdf";
 const RATIO_SIMPLE_RATES_PRACTICAL_CONTEXTS_WORKSHEET_FILE =
   "MYL-MATH-RPR-MP-S006-Use-Simple-Rates-In-Practical-Contexts.pdf";
+const RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FILE =
+  "MYL-MATH-RPR-UP-S007-Use-Fractions-Decimals-Or-Percentages-In-Proportional-Comparison.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -892,6 +894,28 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: RATIO_SIMPLE_RATES_PRACTICAL_CONTEXTS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/middle-primary/${RATIO_SIMPLE_RATES_PRACTICAL_CONTEXTS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::upper-primary::use-fractions-decimals-or-percentages-in-proportional-comparison",
+    stepKey:
+      "use-fractions-decimals-or-percentages-in-proportional-comparison",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "upper-primary",
+    stageDisplay: "Upper Primary",
+    stepNumber: 7,
+    pathwayStepTitle:
+      "Use fractions, decimals, or percentages in proportional comparison",
+    title:
+      "Use Fractions, Decimals, Or Percentages In Proportional Comparison",
+    concept:
+      "Use fractions, decimals and percentages to compare proportional amounts, convert between equivalent forms, and solve practical proportional comparison problems.",
+    includesAnswerSheet: false,
+    fileName:
+      RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/upper-primary/${RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
