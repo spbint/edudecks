@@ -328,6 +328,14 @@ const RATIO_FRACTIONS_DECIMALS_PERCENTAGES_PROPORTIONAL_COMPARISON_WORKSHEET_FIL
   "MYL-MATH-RPR-UP-S007-Use-Fractions-Decimals-Or-Percentages-In-Proportional-Comparison.pdf";
 const RATIO_SCALE_UNIT_COMPARISON_REAL_TASKS_WORKSHEET_FILE =
   "MYL-MATH-RPR-E-S008-Apply-Scale-And-Unit-Comparison-In-Real-Tasks.pdf";
+const RATIO_UNIT_RATES_PRACTICAL_PROBLEMS_WORKSHEET_FILE =
+  "MYL-MATH-RPR-E-S009-Use-Ratio-Tables-And-Unit-Rates-To-Solve-Practical-Problems.pdf";
+const RATIO_FAIRNESS_VALUE_EFFICIENCY_WORKSHEET_FILE =
+  "MYL-MATH-RPR-E-S010-Judge-Fairness-Value-And-Efficiency-Proportionally.pdf";
+const RATIO_GRAPHS_FINANCE_MODELLING_WORKSHEET_FILE =
+  "MYL-MATH-RPR-E-S011-Apply-Proportional-Reasoning-In-Graphs-Finance-And-Modelling.pdf";
+const RATIO_JUDGEMENT_COMMUNICATION_PROBLEMS_WORKSHEET_FILE =
+  "MYL-MATH-RPR-E-S012-Refine-Judgement-And-Communication-In-Proportional-Problems.pdf";
 const STATISTICS_SORT_GROUP_FAMILIAR_INFORMATION_WORKSHEET_FILE =
   "MYL-MATH-STA-KEE-S001-Sort-And-Group-Familiar-Information.pdf";
 const STATISTICS_MOST_LEAST_SAME_SIMPLE_DATA_WORKSHEET_FILE =
@@ -936,6 +944,82 @@ export const MATH_WORKSHEET_RESOURCES: MathWorksheetResource[] = [
     includesAnswerSheet: false,
     fileName: RATIO_SCALE_UNIT_COMPARISON_REAL_TASKS_WORKSHEET_FILE,
     href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/upper-primary/${RATIO_SCALE_UNIT_COMPARISON_REAL_TASKS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::lower-secondary::use-ratio-tables-and-unit-rates-to-solve-practical-problems",
+    stepKey: "use-ratio-tables-and-unit-rates-to-solve-practical-problems",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 9,
+    pathwayStepTitle:
+      "Use ratio tables and unit rates to solve practical problems",
+    title: "Use Ratio Tables And Unit Rates To Solve Practical Problems",
+    concept:
+      "Use ratio tables and unit rates to solve practical problems, compare related quantities, find unit costs or amounts, and distinguish unit-rate situations from ratio situations.",
+    includesAnswerSheet: false,
+    fileName: RATIO_UNIT_RATES_PRACTICAL_PROBLEMS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/lower-secondary/${RATIO_UNIT_RATES_PRACTICAL_PROBLEMS_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::lower-secondary::judge-fairness-value-and-efficiency-proportionally",
+    stepKey: "judge-fairness-value-and-efficiency-proportionally",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "lower-secondary",
+    stageDisplay: "Lower Secondary",
+    stepNumber: 10,
+    pathwayStepTitle:
+      "Judge fairness, value, and efficiency proportionally",
+    title: "Judge Fairness Value And Efficiency Proportionally",
+    concept:
+      "Judge fairness, value and efficiency proportionally using equal shares, unit prices, rates, best-value comparisons, real-life choices and proportional reasoning.",
+    includesAnswerSheet: false,
+    fileName: RATIO_FAIRNESS_VALUE_EFFICIENCY_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/lower-secondary/${RATIO_FAIRNESS_VALUE_EFFICIENCY_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::years-9-10-consolidation::apply-proportional-reasoning-in-graphs-finance-and-modelling",
+    stepKey: "apply-proportional-reasoning-in-graphs-finance-and-modelling",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 11,
+    pathwayStepTitle:
+      "Apply proportional reasoning in graphs, finance, and modelling",
+    title: "Apply Proportional Reasoning In Graphs Finance And Modelling",
+    concept:
+      "Apply proportional reasoning in graphs, finance and modelling, including constant speed graphs, simple interest, best-value finance, proportional graphs, recipes, discounts, scale drawings and water-tank modelling.",
+    includesAnswerSheet: false,
+    fileName: RATIO_GRAPHS_FINANCE_MODELLING_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/years-9-10-consolidation/${RATIO_GRAPHS_FINANCE_MODELLING_WORKSHEET_FILE}`,
+    resourceType: "worksheet-pdf",
+  },
+  {
+    pathwayStepId:
+      "mathematics::ratio-and-proportional-reasoning::years-9-10-consolidation::refine-judgement-and-communication-in-proportional-problems",
+    stepKey: "refine-judgement-and-communication-in-proportional-problems",
+    subjectKey: "mathematics",
+    strandKey: "ratio-and-proportional-reasoning",
+    stageKey: "years-9-10-consolidation",
+    stageDisplay: "Years 9-10 / consolidation",
+    stepNumber: 12,
+    pathwayStepTitle:
+      "Refine judgement and communication in proportional problems",
+    title: "Refine Judgement And Communication In Proportional Problems",
+    concept:
+      "Refine judgement and communication in proportional problems by checking reasonableness, explaining methods, comparing solutions, communicating scale and unit-rate reasoning, and justifying real-life proportional decisions.",
+    includesAnswerSheet: false,
+    fileName: RATIO_JUDGEMENT_COMMUNICATION_PROBLEMS_WORKSHEET_FILE,
+    href: `/resources/worksheets/maths/ratio-and-proportional-reasoning/years-9-10-consolidation/${RATIO_JUDGEMENT_COMMUNICATION_PROBLEMS_WORKSHEET_FILE}`,
     resourceType: "worksheet-pdf",
   },
   {
