@@ -1,18 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
-import CleanPathwayPracticePlayer from "@/app/components/clean/CleanPathwayPracticePlayer";
-import {
-  buildMiniCheckPlayerItems,
-  buildPracticePlayerItems,
-  countMiniCheckTasks,
-  countPracticeTasks,
-  type PathwayPracticeActivity,
-  type PracticeOutcome,
-  type PracticePlayerTaskItem,
-} from "@/lib/clean/pathways/practiceActivities";
+import React from "react";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import type { PathwayPracticeActivity } from "@/lib/clean/pathways/practiceActivities";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
 type CleanPathwayStepActionRowProps = {
@@ -65,51 +56,6 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
-const disabledButtonStyle: React.CSSProperties = {
-  ...secondaryButtonStyle,
-  opacity: 0.72,
-  cursor: "default",
-};
-
-const chipStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  borderRadius: 999,
-  padding: "5px 9px",
-  fontSize: 12,
-  fontWeight: 600,
-  lineHeight: 1.2,
-};
-
-function getCompletedCount(
-  items: PracticePlayerTaskItem[],
-  completedTaskIds: string[],
-) {
-  return items.filter((item) => completedTaskIds.includes(item.task.id)).length;
-}
-
-function getResumeIndex(
-  items: PracticePlayerTaskItem[],
-  completedTaskIds: string[],
-  currentIndex: number,
-) {
-  if (!items.length) return 0;
-
-  const currentItem = items[currentIndex];
-  if (currentItem && !completedTaskIds.includes(currentItem.task.id)) {
-    return currentIndex;
-  }
-
-  const firstIncompleteIndex = items.findIndex(
-    (item) => !completedTaskIds.includes(item.task.id),
-  );
-  if (firstIncompleteIndex >= 0) {
-    return firstIncompleteIndex;
-  }
-
-  return Math.max(0, items.length - 1);
-}
-
 function appendWorksheetEvidenceParams(
   href: string,
   worksheetResource: MathWorksheetResource,
@@ -146,133 +92,32 @@ function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefine
 }
 
 export default function CleanPathwayStepActionRow({
-  activity,
-  assessHref,
   captureHref,
-  practiceHref,
-  practiceTitle,
   stepTitle = "",
-  exactAssessmentTitle,
-  isExactStepContext = false,
   worksheetResource,
   latestEvidenceEntry = null,
 }: CleanPathwayStepActionRowProps) {
-  const practiceItems = useMemo(
-    () => (activity ? buildPracticePlayerItems(activity) : []),
-    [activity],
-  );
-  const miniCheckItems = useMemo(
-    () => (activity ? buildMiniCheckPlayerItems(activity) : []),
-    [activity],
-  );
-  const practiceTaskTotal = useMemo(
-    () => (activity ? countPracticeTasks(activity) : 0),
-    [activity],
-  );
-  const miniCheckTaskTotal = useMemo(
-    () => (activity ? countMiniCheckTasks(activity) : 0),
-    [activity],
-  );
-
-  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
-  const [responses, setResponses] = useState<Record<string, string>>({});
-  const [practicePlayerOpen, setPracticePlayerOpen] = useState(false);
-  const [miniCheckPlayerOpen, setMiniCheckPlayerOpen] = useState(false);
-  const [practicePlayerIndex, setPracticePlayerIndex] = useState(0);
-  const [miniCheckPlayerIndex, setMiniCheckPlayerIndex] = useState(0);
-  const [hasVisitedMiniCheck, setHasVisitedMiniCheck] = useState(false);
-  const [miniCheckOutcome, setMiniCheckOutcome] =
-    useState<PracticeOutcome>("not_started");
-
-  const completedPracticeTaskCount = getCompletedCount(practiceItems, completedTaskIds);
-  const completedMiniCheckCount = getCompletedCount(miniCheckItems, completedTaskIds);
-  const hasOptionalDigitalTools = Boolean(activity || practiceHref || assessHref);
   const worksheetEvidenceCaptureHref =
     worksheetResource && captureHref
       ? appendWorksheetEvidenceParams(captureHref, worksheetResource)
       : captureHref;
 
-  function updateResponse(taskId: string, value: string) {
-    setResponses((current) => ({
-      ...current,
-      [taskId]: value,
-    }));
-  }
-
-  function markTaskComplete(taskId: string) {
-    setCompletedTaskIds((current) =>
-      current.includes(taskId) ? current : [...current, taskId],
-    );
-  }
-
-  function openPracticePlayer() {
-    if (!activity) return;
-    setPracticePlayerIndex((current) =>
-      getResumeIndex(practiceItems, completedTaskIds, current),
-    );
-    setPracticePlayerOpen(true);
-  }
-
-  function openMiniCheckPlayer() {
-    if (!activity) return;
-    setHasVisitedMiniCheck(true);
-    setMiniCheckPlayerIndex((current) =>
-      getResumeIndex(miniCheckItems, completedTaskIds, current),
-    );
-    setMiniCheckPlayerOpen(true);
-  }
-
-  function handlePracticeBack() {
-    setPracticePlayerIndex((current) => Math.max(0, current - 1));
-  }
-
-  function handlePracticeNext() {
-    const currentItem = practiceItems[practicePlayerIndex];
-    if (!currentItem) return;
-
-    markTaskComplete(currentItem.task.id);
-    if (practicePlayerIndex >= practiceItems.length - 1) {
-      setPracticePlayerOpen(false);
-      return;
-    }
-
-    setPracticePlayerIndex((current) => current + 1);
-  }
-
-  function handleMiniCheckBack() {
-    setMiniCheckPlayerIndex((current) => Math.max(0, current - 1));
-  }
-
-  function handleMiniCheckNext() {
-    const currentItem = miniCheckItems[miniCheckPlayerIndex];
-    if (!currentItem) return;
-
-    markTaskComplete(currentItem.task.id);
-    if (miniCheckPlayerIndex >= miniCheckItems.length - 1) {
-      setMiniCheckPlayerOpen(false);
-      return;
-    }
-
-    setMiniCheckPlayerIndex((current) => current + 1);
-  }
-
   return (
-    <>
+    <section
+      className="mylearna-worksheet-action-card"
+      style={{
+        border: "1px solid #E7EAF2",
+        borderRadius: 18,
+        background: "#FFFFFF",
+        padding: "clamp(14px, 2.4vw, 20px)",
+        display: "grid",
+        gap: 14,
+        boxShadow: "0 8px 22px rgba(23,32,75,0.045)",
+      }}
+      data-pathway-worksheet-evidence="route-to-capture"
+    >
       {worksheetResource ? (
-        <section
-          className="mylearna-worksheet-action-card"
-          style={{
-            border: "1px solid #E7EAF2",
-            borderRadius: 18,
-            background: "#FFFFFF",
-            padding: "clamp(14px, 2.4vw, 20px)",
-            display: "grid",
-            gap: 14,
-            boxShadow: "0 8px 22px rgba(23,32,75,0.045)",
-          }}
-          data-pathway-worksheet-evidence="route-to-capture"
-          data-worksheet-evidence-card="active"
-        >
+        <>
           <div className="mylearna-worksheet-action-copy" style={{ display: "grid", gap: 7 }}>
             <span
               style={{
@@ -289,7 +134,7 @@ export default function CleanPathwayStepActionRow({
               {stepTitle || worksheetResource.pathwayStepTitle || worksheetResource.title}
             </strong>
             <span style={{ color: "#5B6478", fontSize: 14, lineHeight: 1.45 }}>
-              Open the worksheet, then add a photo in My Capture. It will be linked to this step.
+              Open the worksheet, then add a photo or note in My Capture. It will be linked to this pathway step.
             </span>
           </div>
           <div className="mylearna-worksheet-action-buttons" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -316,411 +161,67 @@ export default function CleanPathwayStepActionRow({
               Download PDF
             </a>
           </div>
-          {latestEvidenceEntry ? (
-            <div
+        </>
+      ) : (
+        <>
+          <div className="mylearna-worksheet-action-copy" style={{ display: "grid", gap: 7 }}>
+            <span
               style={{
-                border: "1px solid #D9D0FF",
-                borderRadius: 16,
-                background: "#F8F5FF",
-                padding: 12,
-                display: "grid",
-                gap: 5,
+                color: "#64748b",
+                fontSize: 12,
+                fontWeight: 850,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
               }}
             >
-              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850 }}>
-                Latest evidence
-              </span>
-              <strong style={{ color: "#17204B", fontSize: 14 }}>
-                {latestEvidenceProgressLabel(latestEvidenceEntry)}
-              </strong>
-              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-                {formatLatestEvidenceDate(latestEvidenceEntry)}
-                {latestEvidenceEntry.imageUrl || latestEvidenceEntry.attachmentUrls.length
-                  ? " / Photo attached"
-                  : ""}
-              </span>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
+              Evidence step
+            </span>
+            <strong style={{ color: "#17204B", fontSize: 17, lineHeight: 1.25 }}>
+              {stepTitle || "Capture learning evidence"}
+            </strong>
+            <span style={{ color: "#5B6478", fontSize: 14, lineHeight: 1.45 }}>
+              Add a quick note, photo, or work sample when this step is ready to record.
+            </span>
+          </div>
+          <div>
+            <Link
+              data-guidance-id="pathways-next-capture"
+              href={captureHref}
+              style={buttonStyle}
+              title="Open My Capture with this pathway step already connected."
+              aria-label="Capture evidence for this pathway step"
+            >
+              Capture evidence
+            </Link>
+          </div>
+        </>
+      )}
 
-      {worksheetResource && hasOptionalDigitalTools ? (
-        <details
-          data-guidance-id="pathways-practise-assess"
-          data-optional-digital-tools="collapsed"
+      {latestEvidenceEntry ? (
+        <div
           style={{
-            border: "1px solid #E7EAF2",
-            borderRadius: 14,
-            background: "#F8FAFC",
-            padding: "9px 11px",
-            marginTop: 4,
+            border: "1px solid #D9D0FF",
+            borderRadius: 16,
+            background: "#F8F5FF",
+            padding: 12,
+            display: "grid",
+            gap: 5,
           }}
         >
-          <summary
-            style={{
-              cursor: "pointer",
-              color: "#64748b",
-              fontSize: 12,
-              fontWeight: 800,
-            }}
-          >
-            Optional digital tools
-          </summary>
-          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-            <p style={{ margin: 0, color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-              These are optional. The worksheet evidence is the main record for this step.
-            </p>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {activity ? (
-                <>
-                  {practiceHref ? (
-                    <Link
-                      data-guidance-id="pathways-practise-button"
-                      href={practiceHref}
-                      style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                      title={
-                        practiceTitle
-                          ? `Practise ${practiceTitle}.`
-                          : "Open exact practice for this pathway step."
-                      }
-                    >
-                      Try interactive practice
-                    </Link>
-                  ) : (
-                    <button
-                      data-guidance-id="pathways-practise-button"
-                      type="button"
-                      onClick={openPracticePlayer}
-                      style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                      aria-label="Open optional interactive practice for this pathway step"
-                    >
-                      Try interactive practice
-                    </button>
-                  )}
-                  {!isExactStepContext ? (
-                    <button
-                      type="button"
-                      onClick={openMiniCheckPlayer}
-                      style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                      aria-label="Open optional mini check for this pathway step"
-                    >
-                      Legacy digital check
-                    </button>
-                  ) : null}
-                </>
-              ) : practiceHref ? (
-                <Link
-                  data-guidance-id="pathways-practise-button"
-                  href={practiceHref}
-                  style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                  title={
-                    practiceTitle
-                      ? `Practise ${practiceTitle}.`
-                      : "Practise this pathway step."
-                  }
-                >
-                  Try interactive practice
-                </Link>
-              ) : null}
-
-              {assessHref ? (
-                <Link
-                  data-guidance-id="pathways-assess-button"
-                  href={assessHref}
-                  style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                  title={
-                    exactAssessmentTitle
-                      ? `Assess understanding with ${exactAssessmentTitle}.`
-                      : "Assess understanding for this pathway step."
-                  }
-                  aria-label="Open optional legacy digital check for this pathway step"
-                >
-                  Legacy digital check
-                </Link>
-              ) : null}
-            </div>
-
-            {activity ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <span
-                  style={{
-                    ...chipStyle,
-                    border: "1px solid #dbeafe",
-                    background: "#ffffff",
-                    color: "#1d4ed8",
-                  }}
-                >
-                  {completedPracticeTaskCount}/{practiceTaskTotal} practise tasks
-                </span>
-                <span
-                  style={{
-                    ...chipStyle,
-                    border: "1px solid #ccfbf1",
-                    background: "#ffffff",
-                    color: "#0f766e",
-                  }}
-                >
-                  {completedMiniCheckCount}/{miniCheckTaskTotal} mini check tasks
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </details>
+          <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850 }}>
+            Latest evidence
+          </span>
+          <strong style={{ color: "#17204B", fontSize: 14 }}>
+            {latestEvidenceProgressLabel(latestEvidenceEntry)}
+          </strong>
+          <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+            {formatLatestEvidenceDate(latestEvidenceEntry)}
+            {latestEvidenceEntry.imageUrl || latestEvidenceEntry.attachmentUrls.length
+              ? " / Photo attached"
+              : ""}
+          </span>
+        </div>
       ) : null}
-
-      {!worksheetResource ? (
-      <div
-        data-guidance-id="pathways-practise-assess"
-        style={{
-          display: "flex",
-          gap: 6,
-          flexWrap: "wrap",
-          alignItems: "center",
-          marginTop: 0,
-        }}
-      >
-        {activity ? (
-          <>
-            {practiceHref ? (
-              <Link
-                data-guidance-id="pathways-practise-button"
-                href={practiceHref}
-                style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
-                title={
-                  practiceTitle
-                    ? `Practise ${practiceTitle}.`
-                    : "Open exact practice for this pathway step."
-                }
-              >
-                Practise
-              </Link>
-            ) : (
-              <button
-                data-guidance-id="pathways-practise-button"
-                type="button"
-                onClick={openPracticePlayer}
-                style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
-                aria-label="Open practice for this pathway step"
-              >
-                Practise
-              </button>
-            )}
-            {!isExactStepContext ? (
-              <button
-                type="button"
-                onClick={openMiniCheckPlayer}
-                style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                aria-label="Open mini assessment for this pathway step"
-              >
-                Mini-assess
-              </button>
-            ) : null}
-          </>
-        ) : practiceHref ? (
-          <>
-            <Link
-              data-guidance-id="pathways-practise-button"
-              href={practiceHref}
-              style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
-              title={
-                practiceTitle
-                  ? `Practise ${practiceTitle}.`
-                  : "Practise this pathway step."
-              }
-            >
-              Practise
-            </Link>
-            {!isExactStepContext ? (
-              <button
-                type="button"
-                style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                disabled
-                title="Mini assessment for this pathway step is coming later."
-                aria-label="Mini assessment for this pathway step is coming later"
-              >
-                Mini-assess
-              </button>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
-              disabled
-              title="Practice is coming soon for this pathway step."
-              aria-label="Practice is coming soon for this pathway step"
-            >
-              Practise
-            </button>
-            {!isExactStepContext ? (
-              <button
-                type="button"
-                style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
-                disabled
-                title="Mini assessment for this pathway step is coming later."
-                aria-label="Mini assessment for this pathway step is coming later"
-              >
-                Mini-assess
-              </button>
-            ) : null}
-          </>
-        )}
-
-        {assessHref ? (
-          <Link
-            data-guidance-id="pathways-assess-button"
-            href={assessHref}
-            style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
-            title={
-              exactAssessmentTitle
-                ? `Assess understanding with ${exactAssessmentTitle}.`
-                : "Assess understanding for this pathway step."
-            }
-            aria-label="Assess this pathway step"
-          >
-            {exactAssessmentTitle ? "Start assessment" : "Assess"}
-          </Link>
-        ) : (
-          <button
-            data-guidance-id="pathways-assess-button"
-            type="button"
-            style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}
-            disabled
-            title="Assessment is coming soon for this step."
-            aria-label="Assessment is coming soon for this pathway step"
-          >
-            Assess
-          </button>
-        )}
-        <Link
-          data-guidance-id="pathways-next-capture"
-          href={captureHref}
-          style={{ ...buttonStyle, padding: "7px 10px", fontSize: 12 }}
-          title="Open My Capture with this pathway step already connected."
-          aria-label="Capture evidence for this pathway step"
-        >
-          Capture
-        </Link>
-      </div>
-      ) : null}
-
-      {activity && !worksheetResource ? (
-        <details style={{ marginTop: 2 }}>
-          <summary style={{ cursor: "pointer", color: "#64748b", fontSize: 12, fontWeight: 800 }}>
-            Practice progress
-          </summary>
-          <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <span
-              style={{
-                ...chipStyle,
-                border: "1px solid #dbeafe",
-                background: "#f8fbff",
-                color: "#1d4ed8",
-              }}
-            >
-              {completedPracticeTaskCount}/{practiceTaskTotal} practise tasks
-            </span>
-            <span
-              style={{
-                ...chipStyle,
-                border: "1px solid #ccfbf1",
-                background: "#f0fdfa",
-                color: "#0f766e",
-              }}
-            >
-              {completedMiniCheckCount}/{miniCheckTaskTotal} mini assessment tasks
-            </span>
-            {miniCheckOutcome !== "not_started" ? (
-              <span
-                style={{
-                  ...chipStyle,
-                  border: "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: "#475569",
-                }}
-              >
-                Mini assessment outcome:{" "}
-                <strong style={{ color: "#0f172a", marginLeft: 6 }}>
-                  {miniCheckOutcome === "needs_support"
-                    ? "Needs support"
-                    : miniCheckOutcome === "secure"
-                      ? "Secure"
-                      : "Developing"}
-                </strong>
-              </span>
-            ) : null}
-            </div>
-
-            {hasVisitedMiniCheck ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>
-                Mini assessment outcome:
-              </span>
-              {([
-                ["secure", "Secure"],
-                ["developing", "Developing"],
-                ["needs_support", "Needs support"],
-              ] as const).map(([value, label]) => {
-                const selected = miniCheckOutcome === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setMiniCheckOutcome(value)}
-                    style={{
-                      border: `1px solid ${selected ? "#0f172a" : "#cbd5e1"}`,
-                      background: selected ? "#0f172a" : "#ffffff",
-                      color: selected ? "#ffffff" : "#0f172a",
-                      borderRadius: 999,
-                      padding: "7px 10px",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-              </div>
-            ) : null}
-          </div>
-        </details>
-      ) : null}
-
-      {activity ? (
-        <CleanPathwayPracticePlayer
-          open={practicePlayerOpen}
-          mode="practice"
-          title={activity.title}
-          items={practiceItems}
-          currentIndex={practicePlayerIndex}
-          responses={responses}
-          completedTaskIds={completedTaskIds}
-          onClose={() => setPracticePlayerOpen(false)}
-          onBack={handlePracticeBack}
-          onNext={handlePracticeNext}
-          onResponseChange={updateResponse}
-        />
-      ) : null}
-
-      {activity ? (
-        <CleanPathwayPracticePlayer
-          open={miniCheckPlayerOpen}
-          mode="mini_check"
-          title={`${activity.title} / Mini Assessment`}
-          items={miniCheckItems}
-          currentIndex={miniCheckPlayerIndex}
-          responses={responses}
-          completedTaskIds={completedTaskIds}
-          onClose={() => setMiniCheckPlayerOpen(false)}
-          onBack={handleMiniCheckBack}
-          onNext={handleMiniCheckNext}
-          onResponseChange={updateResponse}
-        />
-      ) : null}
-    </>
+    </section>
   );
 }

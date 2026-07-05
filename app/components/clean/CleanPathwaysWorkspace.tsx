@@ -363,7 +363,7 @@ const statusMeta: Record<
     border: "#ddd6fe",
     text: "#6d28d9",
     dot: "#8b5cf6",
-    helper: "This step looks ready for a gentle understanding check.",
+    helper: "This step looks ready for a progress check-in.",
   },
   Secure: {
     fill: "#ecfdf5",
@@ -373,6 +373,12 @@ const statusMeta: Record<
     helper: "Confidence looks more settled at this step.",
   },
 };
+
+function getCustomerPathwayStatusLabel(status: string) {
+  if (status === "Ready to assess") return "Ready for check-in";
+  if (status === "Practising") return "In progress";
+  return status;
+}
 
 const worksheetEvidenceProgressMeta: Record<
   string,
@@ -1419,9 +1425,9 @@ function PathwaysWorkspaceBody() {
     selectedWorkspaceCurrentStageTitle ||
     "Choose a strand below";
   const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
-    ? "Assess understanding"
+    ? "Record evidence"
     : selectedWorkspaceSnapshot?.practising || selectedWorkspaceSnapshot?.evidenceStarted
-      ? "Practise"
+      ? "Continue the step"
       : "Open the current focus";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
     ? selectedSubjectWorkspace?.title ||
@@ -1556,20 +1562,6 @@ function PathwaysWorkspaceBody() {
         detailPanelId: `pathway-step-${selectedPlacementStep.strandKey}-${selectedPlacementStep.stageKey}-${selectedPlacementStep.stepKey}`,
       })
     : pathname;
-  const selectedPlacementPractice = selectedPlacementStep
-    ? getStepPracticeForPathwayStep({
-        pathwayStepId: selectedPlacementStep.id,
-        stepKey: selectedPlacementStep.stepKey,
-        strandKey: selectedPlacementStep.strandKey,
-      })
-    : null;
-  const selectedPlacementAssessment = selectedPlacementStep
-    ? getStepAssessmentForPathwayStep({
-        pathwayStepId: selectedPlacementStep.id,
-        stepKey: selectedPlacementStep.stepKey,
-        strandKey: selectedPlacementStep.strandKey,
-      })
-    : null;
   const selectedPlacementWorksheet = selectedPlacementStep
     ? getWorksheetResourceForPathwayStep({
         pathwayStepId: selectedPlacementStep.id,
@@ -1598,6 +1590,45 @@ function PathwaysWorkspaceBody() {
   const selectedPlacementEvidenceDate = formatWorksheetEvidenceDate(
     selectedPlacementLatestEvidenceEntry,
   );
+  const selectedPlacementCaptureHref = useMemo(() => {
+    if (!selectedPlacementStep) return capturePathBase;
+
+    const params = buildPathwayCaptureSearchParams(
+      {
+        source: "my-pathways",
+        subjectKey: selectedPlacementStep.subjectKey,
+        subjectLabel: selectedSubject.title,
+        pathwayKey: selectedPlacementStep.strandKey,
+        pathwayLabel: selectedSubjectWorkspace?.title || selectedPlacementStep.strandKey,
+        stageKey: selectedPlacementStep.stageKey,
+        stageLabel: selectedPlacementStageTitle,
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
+        stepNumber: String(
+          selectedPlacementStep.legacyStepNumber ||
+            selectedPlacementStep.stepOrder ||
+            selectedPlacementStep.stepKey,
+        ),
+        stepTitle: selectedPlacementStep.stepTitle,
+        stepMeaning: selectedPlacementStep.stepDescription,
+        skillFocus: selectedPlacementStep.stepTitle,
+      },
+      {
+        learnerId: selectedLearnerId || null,
+        learningAreaKey: selectedPlacementStep.subjectKey,
+        learningAreaLabel: selectedSubject.title,
+      },
+    );
+
+    return `${capturePathBase}?${params.toString()}`;
+  }, [
+    capturePathBase,
+    selectedLearnerId,
+    selectedPlacementStageTitle,
+    selectedPlacementStep,
+    selectedSubject.title,
+    selectedSubjectWorkspace?.title,
+  ]);
   const selectedPlacementWorksheetEvidenceHref = useMemo(() => {
     if (!selectedPlacementStep || !selectedPlacementWorksheet) return "";
 
@@ -1647,38 +1678,6 @@ function PathwaysWorkspaceBody() {
           selectedPlacementStep.strandKey,
         ) || pathwayInteractionVersion > 0
       : false;
-  const selectedPlacementPracticeHref = selectedPlacementPractice
-    ? (() => {
-        const params = new URLSearchParams();
-        params.set("stepPracticeKey", selectedPlacementPractice.key);
-        params.set("subjectKey", selectedPlacementPractice.subjectKey);
-        params.set("strandKey", selectedPlacementPractice.strandKey);
-        params.set("stageKey", selectedPlacementPractice.stageKey);
-        params.set("pathwayStepId", selectedPlacementPractice.pathwayStepId);
-        params.set("stepKey", selectedPlacementStep?.stepKey || selectedPlacementPractice.stepKey);
-        params.set("returnTo", selectedPlacementReturnHref);
-        if (selectedLearnerId) params.set("learnerId", selectedLearnerId);
-        return `/practice/number-targeted?${params.toString()}`;
-      })()
-    : "";
-  const selectedPlacementAssessmentHref = selectedPlacementAssessment
-    ? (() => {
-        const params = new URLSearchParams();
-        params.set("source", "my-pathways");
-        params.set("stepAssessmentKey", selectedPlacementAssessment.key);
-        params.set("subjectKey", selectedPlacementAssessment.subjectKey);
-        params.set("strandKey", selectedPlacementAssessment.strandKey);
-        params.set("stageKey", selectedPlacementAssessment.stageKey);
-        params.set("pathwayStepId", selectedPlacementAssessment.pathwayStepId);
-        params.set("stepKey", selectedPlacementStep?.stepKey || selectedPlacementAssessment.stepKey);
-        params.set("returnTo", selectedPlacementReturnHref);
-        params.set("progressionBandKey", selectedPlacementAssessment.progressionBandKey);
-        params.set("itemBankKey", selectedPlacementAssessment.parentItemBankKey);
-        if (selectedLearnerId) params.set("learnerId", selectedLearnerId);
-        return `/assessments/number?${params.toString()}`;
-      })()
-    : "";
-
   function updateCurrentPathwayStep(
     nextStep: typeof selectedPlacementStep,
     method: PathwayPlacementMethod,
@@ -2119,14 +2118,6 @@ function PathwaysWorkspaceBody() {
                         Add completed work
                       </Link>
                     </>
-                  ) : selectedPlacementPracticeHref ? (
-                    <Link
-                      href={selectedPlacementPracticeHref}
-                      onClick={markSelectedPathwayInteraction}
-                      style={buttonStyle}
-                    >
-                      Start practise
-                    </Link>
                   ) : (
                     <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
                       Start learning
@@ -2164,7 +2155,7 @@ function PathwaysWorkspaceBody() {
               <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                    {selectedPlacementWorksheet ? "Worksheet evidence" : "Practise / Assess"}
+                    {selectedPlacementWorksheet ? "Worksheet evidence" : "Evidence and next step"}
                   </div>
                 </div>
                 <div
@@ -2223,94 +2214,31 @@ function PathwaysWorkspaceBody() {
                         </span>
                       </Link>
                     </>
-                  ) : selectedPlacementPracticeHref ? (
+                  ) : !selectedPlacementWorksheet ? (
                     <Link
-                      href={selectedPlacementPracticeHref}
+                      href={selectedPlacementCaptureHref}
                       onClick={markSelectedPathwayInteraction}
                       style={{
                         ...summaryCardStyle,
                         minHeight: 78,
                         borderColor: "#D9D0FF",
-                        background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
-                        textDecoration: "none",
+                        background: "#FFFFFF",
+                        textAlign: "left",
                         padding: 12,
+                        cursor: "pointer",
+                        textDecoration: "none",
                       }}
                     >
-                      <span style={eyebrowStyle}>Practise</span>
-                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>Try it with support.</strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        Start practise
-                      </span>
-                    </Link>
-                  ) : null}
-                  {!selectedPlacementWorksheet && selectedPlacementAssessmentHref ? (
-                    <Link
-                      href={selectedPlacementAssessmentHref}
-                      onClick={markSelectedPathwayInteraction}
-                      style={{
-                        ...summaryCardStyle,
-                        minHeight: 78,
-                        borderColor: "#CDEFD9",
-                        background: "linear-gradient(180deg, #FFFFFF 0%, #ECFDF4 100%)",
-                        textDecoration: "none",
-                        padding: 12,
-                      }}
-                    >
-                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
+                      <span style={eyebrowStyle}>Evidence</span>
                       <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                        Check understanding.
+                        Capture this step.
                       </strong>
                       <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        Start assessment
+                        Add a note or photo
                       </span>
                     </Link>
-                  ) : !selectedPlacementWorksheet ? (
-                    <div style={{ ...summaryCardStyle, minHeight: 78, opacity: 0.72, background: "#F8FAFC", padding: 12 }}>
-                      <span style={{ ...eyebrowStyle, color: "#2F9D68" }}>Assess</span>
-                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                        Assessment coming
-                      </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        This assessment is coming soon.
-                      </span>
-                    </div>
                   ) : null}
                 </div>
-                {selectedPlacementWorksheet ? (
-                  <details
-                    data-optional-digital-tools="collapsed"
-                    style={{
-                      border: "1px solid #E7EAF2",
-                      borderRadius: 14,
-                      background: "#ffffff",
-                      padding: "8px 10px",
-                    }}
-                  >
-                    <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
-                      Optional digital tools
-                    </summary>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                      {selectedPlacementPracticeHref ? (
-                        <Link
-                          href={selectedPlacementPracticeHref}
-                          onClick={markSelectedPathwayInteraction}
-                          style={{ ...secondaryButtonStyle, minHeight: 36, padding: "7px 10px", fontSize: 13 }}
-                        >
-                          Try interactive practice
-                        </Link>
-                      ) : null}
-                      {selectedPlacementAssessmentHref ? (
-                        <Link
-                          href={selectedPlacementAssessmentHref}
-                          onClick={markSelectedPathwayInteraction}
-                          style={{ ...secondaryButtonStyle, minHeight: 36, padding: "7px 10px", fontSize: 13 }}
-                        >
-                          Legacy digital check
-                        </Link>
-                      ) : null}
-                    </div>
-                  </details>
-                ) : null}
                 <details style={{ border: "1px solid #E7EAF2", borderRadius: 14, background: "#ffffff", padding: "8px 10px" }}>
                   <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
                     Adjust this step
@@ -2556,18 +2484,18 @@ function PathwaysWorkspaceBody() {
                   borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <div style={eyebrowStyle}>Latest assessment</div>
+                <div style={eyebrowStyle}>Latest check-in</div>
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
                   {latestAssessmentAttempt
                     ? getAssessmentAttemptDisplayTitle(latestAssessmentAttempt)
-                    : "No assessment saved yet"}
+                    : "No check-in saved yet"}
                 </strong>
                 <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
                   {latestAssessmentAttempt
                     ? `Saved ${formatAssessmentAttemptSavedAt(
                         latestAssessmentAttempt.completedAt || latestAssessmentAttempt.createdAt,
                       ) || "recently"}`
-                    : "Use Assess when ready."}
+                    : "Use worksheet evidence or capture when ready."}
                 </div>
               </div>
 
@@ -2887,7 +2815,7 @@ function PathwaysWorkspaceBody() {
                       valueColor: "#166534",
                     },
                     {
-                      label: "Assessments ready",
+                      label: "Check-ins ready",
                       value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
                       valueColor: "#6d28d9",
                     },
@@ -2897,7 +2825,7 @@ function PathwaysWorkspaceBody() {
                       valueColor: "#1d4ed8",
                     },
                     {
-                      label: "Practise activities",
+                      label: "In progress",
                       value: String(selectedWorkspaceSnapshot?.practising || 0),
                       valueColor: "#c2410c",
                     },
@@ -3254,16 +3182,6 @@ function NumberRevealStepCard({
 }) {
   const tone = getAutoCheckTone(step.autoCheck.status);
   const pathwayStepStrandKey = getStrandKeyFromPathwayStepId(step.pathwayStepId);
-  const exactStepAssessment = getStepAssessmentForPathwayStep({
-    pathwayStepId: step.pathwayStepId,
-    stepKey: step.stepKey,
-    strandKey: pathwayStepStrandKey,
-  });
-  const exactStepPractice = getStepPracticeForPathwayStep({
-    pathwayStepId: step.pathwayStepId,
-    stepKey: step.stepKey,
-    strandKey: pathwayStepStrandKey,
-  });
   const worksheetResource = getWorksheetResourceForPathwayStep({
     pathwayStepId: step.pathwayStepId,
     stepKey: step.stepKey,
@@ -3272,9 +3190,7 @@ function NumberRevealStepCard({
     stageKey: step.stageKey,
   });
   const displayedStageTitle = worksheetResource?.stageDisplay || step.stageTitle;
-  const stepStrandKey = exactStepAssessment?.strandKey ??
-    exactStepPractice?.strandKey ??
-    pathwayStepStrandKey;
+  const stepStrandKey = pathwayStepStrandKey;
   const stepReturnHref = buildPathwayStepReturnHref({
     pathname: returnPath,
     subjectKey: "mathematics",
@@ -3282,37 +3198,6 @@ function NumberRevealStepCard({
     learnerId,
     detailPanelId: `pathway-step-${stepStrandKey}-${step.stageKey}-${step.id}`,
   });
-  const assessmentHref = exactStepAssessment
-    ? (() => {
-        const params = new URLSearchParams();
-        params.set("source", "my-pathways");
-        params.set("stepAssessmentKey", exactStepAssessment.key);
-        params.set("subjectKey", exactStepAssessment.subjectKey);
-        params.set("strandKey", exactStepAssessment.strandKey);
-        params.set("stageKey", exactStepAssessment.stageKey);
-        params.set("pathwayStepId", step.pathwayStepId);
-        params.set("stepKey", step.stepKey);
-        params.set("returnTo", stepReturnHref);
-        params.set("progressionBandKey", exactStepAssessment.progressionBandKey);
-        params.set("itemBankKey", exactStepAssessment.parentItemBankKey);
-        if (learnerId) params.set("learnerId", learnerId);
-        return `/assessments/number?${params.toString()}`;
-      })()
-    : "";
-  const practiceHref = exactStepPractice
-    ? (() => {
-        const params = new URLSearchParams();
-        params.set("stepPracticeKey", exactStepPractice.key);
-        params.set("subjectKey", exactStepPractice.subjectKey);
-        params.set("strandKey", exactStepPractice.strandKey);
-        params.set("stageKey", exactStepPractice.stageKey);
-        params.set("pathwayStepId", step.pathwayStepId);
-        params.set("stepKey", step.stepKey);
-        params.set("returnTo", stepReturnHref);
-        if (learnerId) params.set("learnerId", learnerId);
-        return `/practice/number-targeted?${params.toString()}`;
-      })()
-    : "";
   const worksheetEvidenceHref = worksheetResource
     ? (() => {
         const captureBase = returnPath.startsWith("/clean-my-pathways")
@@ -3408,7 +3293,7 @@ function NumberRevealStepCard({
           {step.alignment ? ` · ${step.alignment.bank.shortTitle}` : ""}
         </div>
       </div>
-      {assessmentHref || practiceHref || worksheetResource ? (
+      {worksheetResource ? (
         <div
           style={{
             display: "flex",
@@ -3418,123 +3303,41 @@ function NumberRevealStepCard({
             alignItems: "center",
           }}
         >
-          {worksheetResource ? (
-            <>
-              <Link
-                href={worksheetResource.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  ...secondaryButtonStyle,
-                  width: "fit-content",
-                  minHeight: 34,
-                  padding: "7px 10px",
-                  fontSize: 13,
-                }}
-                aria-label={`Open worksheet for ${worksheetResource.title}`}
-              >
-                Open worksheet
-              </Link>
-              <Link
-                href={worksheetEvidenceHref}
-                style={{
-                  ...secondaryButtonStyle,
-                  width: "fit-content",
-                  minHeight: 34,
-                  padding: "7px 10px",
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-                data-worksheet-evidence-action="add-completed-work"
-              >
-                Add completed work
-              </Link>
-              {(practiceHref || assessmentHref) ? (
-                <details style={{ fontSize: 12, color: "#64748b" }} data-optional-digital-tools="collapsed">
-                  <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-                    Optional digital tools
-                  </summary>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                    {practiceHref ? (
-                      <Link
-                        href={practiceHref}
-                        style={{
-                          ...secondaryButtonStyle,
-                          width: "fit-content",
-                          minHeight: 32,
-                          padding: "6px 9px",
-                          fontSize: 12,
-                        }}
-                      >
-                        Try interactive practice
-                      </Link>
-                    ) : null}
-                    {assessmentHref ? (
-                      <Link
-                        href={assessmentHref}
-                        style={{
-                          ...secondaryButtonStyle,
-                          width: "fit-content",
-                          minHeight: 32,
-                          padding: "6px 9px",
-                          fontSize: 12,
-                        }}
-                      >
-                        Legacy digital check
-                      </Link>
-                    ) : null}
-                  </div>
-                </details>
-              ) : null}
-            </>
-          ) : (
-            <>
-              {practiceHref ? (
-                <Link
-                  href={practiceHref}
-                  style={{
-                    ...secondaryButtonStyle,
-                    width: "fit-content",
-                    minHeight: 34,
-                    padding: "7px 10px",
-                    fontSize: 13,
-                  }}
-                >
-                  Continue practise
-                </Link>
-              ) : null}
-              {assessmentHref ? (
-                <Link
-                  href={assessmentHref}
-                  style={{
-                    ...secondaryButtonStyle,
-                    width: "fit-content",
-                    minHeight: 34,
-                    padding: "7px 10px",
-                    fontSize: 13,
-                  }}
-                >
-                  Assess
-                </Link>
-              ) : null}
-            </>
-          )}
+          <Link
+            href={worksheetResource.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              ...secondaryButtonStyle,
+              width: "fit-content",
+              minHeight: 34,
+              padding: "7px 10px",
+              fontSize: 13,
+            }}
+            aria-label={`Open worksheet for ${worksheetResource.title}`}
+          >
+            Open worksheet
+          </Link>
+          <Link
+            href={worksheetEvidenceHref}
+            style={{
+              ...secondaryButtonStyle,
+              width: "fit-content",
+              minHeight: 34,
+              padding: "7px 10px",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+            data-worksheet-evidence-action="add-completed-work"
+          >
+            Add completed work
+          </Link>
         </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Learning activity coming soon.
+          Open the full pathway card to capture evidence for this step.
         </div>
       )}
-      {!worksheetResource && !practiceHref && assessmentHref ? (
-        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Practise is coming soon.
-        </div>
-      ) : null}
-      {!worksheetResource && !assessmentHref && practiceHref ? (
-        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Assessment is coming soon.
-        </div>
-      ) : null}
       <style jsx global>{`
         .mylearna-pathway-guidance-mobile {
           display: none;
@@ -4163,7 +3966,7 @@ function DetailedMathematicsStageCard({
     summary.readyToAssess > 0
       ? {
           key: "ready",
-          label: `${summary.readyToAssess} ready to assess`,
+          label: `${summary.readyToAssess} ready for check-in`,
           border: "#ddd6fe",
           background: "#f5f3ff",
           color: "#6d28d9",
@@ -4774,8 +4577,8 @@ function DetailedMathematicsStepCard({
                 {evidenceProgressMeta
                   ? evidenceProgressMeta.label
                   : exactStepContext && confidenceStatusLabel !== "Not checked yet"
-                  ? confidenceStatusLabel
-                  : status}
+                    ? getCustomerPathwayStatusLabel(confidenceStatusLabel)
+                    : getCustomerPathwayStatusLabel(status)}
               </strong>
             </div>
 
@@ -5011,7 +4814,7 @@ function DetailedMathematicsStepCard({
         isExactStepContext={exactStepContext}
         noAssessmentMessage={
           exactStepContext && !exactStepAssessment
-            ? "Assessment is coming soon for this step."
+            ? "Digital check-in is internal only for now."
             : null
         }
         worksheetResource={worksheetResource}
@@ -5043,7 +4846,7 @@ function DetailedMathematicsStepCard({
           <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
           <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
           <PathwayStepGuidanceSection
-            title="Assess later"
+            title="Check later"
             content={step.assessmentCheck}
           />
         </div>

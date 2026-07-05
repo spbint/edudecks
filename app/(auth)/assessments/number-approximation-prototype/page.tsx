@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import CleanNumberAssessmentPlayer from "@/app/components/clean/CleanNumberAssessmentPlayer";
+import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 
 export const metadata: Metadata = {
   title: "Number Assessment | MyLearna",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function NumberApproximationAssessmentPage() {
-  return <CleanNumberAssessmentPlayer />;
+  return (
+    <AssessmentAccessGate mode="legacy">
+      <CleanNumberAssessmentPlayer />
+    </AssessmentAccessGate>
+  );
 }

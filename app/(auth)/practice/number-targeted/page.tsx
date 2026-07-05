@@ -1,5 +1,10 @@
 import CleanNumberTargetedPracticeViewer from "@/app/components/clean/CleanNumberTargetedPracticeViewer";
+import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 
 export default function NumberTargetedPracticePage() {
-  return <CleanNumberTargetedPracticeViewer />;
+  return (
+    <AssessmentAccessGate mode="legacy">
+      <CleanNumberTargetedPracticeViewer />
+    </AssessmentAccessGate>
+  );
 }

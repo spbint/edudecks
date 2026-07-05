@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import CleanPathwayPracticeWorkspace from "@/app/components/clean/CleanPathwayPracticeWorkspace";
 import { makeNumbersTo10Practice } from "@/lib/clean/pathways/practiceActivities";
 
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function PathwayPracticePage() {
-  return <CleanPathwayPracticeWorkspace activity={makeNumbersTo10Practice} />;
+  return (
+    <AssessmentAccessGate mode="legacy">
+      <CleanPathwayPracticeWorkspace activity={makeNumbersTo10Practice} />
+    </AssessmentAccessGate>
+  );
 }
