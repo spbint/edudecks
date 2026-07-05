@@ -104,7 +104,12 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
   const itemStartedAt = useRef(0);
   const currentItem = items[currentIndex] || null;
   const summary = useMemo(() => summarizeAssessmentAttempt(items, responses), [items, responses]);
-  const complete = started && responses.length === items.length && items.length > 0;
+  const complete =
+    started &&
+    !submittedResponse &&
+    responses.length === items.length &&
+    currentIndex >= items.length - 1 &&
+    items.length > 0;
 
   if (!items.length) {
     return <section style={shellStyle}>No assessment items available.</section>;

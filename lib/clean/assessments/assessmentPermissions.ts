@@ -12,6 +12,8 @@ export type AssessmentProfile = {
   is_admin?: boolean | null;
 };
 
+// TODO: Replace these future-compatible fields with the canonical staff role/claim
+// once the auth profile schema is finalized for internal MyLearna staff tooling.
 export function isInternalUser(
   viewer?: AssessmentViewer | null,
   profile?: AssessmentProfile | null,
