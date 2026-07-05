@@ -14,24 +14,12 @@ import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import {
-  NUMBER_ASSESSMENT_BANKS,
-} from "@/lib/clean/assessments/numberAssessmentBanks";
-import {
-  getExactStepAutoCheckStatusForPathwayStep,
-  getAutoCheckStatusForPathwayStep,
-  getNumberAssessmentAlignmentForPathwayStep,
   getNumberPathwayRevealGroups,
   type NumberAutoCheckStatus,
   type NumberPathwayEvidenceStatusOverride,
   type NumberPathwayRevealGroups,
   type NumberPathwayRevealStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
-import {
-  getStepAssessmentForPathwayStep,
-} from "@/lib/clean/assessments/stepAssessmentRegistry";
-import {
-  getStepPracticeForPathwayStep,
-} from "@/lib/clean/practice/stepPracticeRegistry";
 import { getRegionalStageLabel } from "@/lib/clean/regionalStageLabels";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
@@ -50,9 +38,6 @@ import {
   buildPathwayRegistryStepKey,
   getAllPathwaySteps,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
-import {
-  getPathwayPracticeActivityByStepId,
-} from "@/lib/clean/pathways/practiceActivities";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
@@ -349,7 +334,7 @@ const statusMeta: Record<
     border: "#fed7aa",
     text: "#c2410c",
     dot: "#f97316",
-    helper: "This step is active for practice and repetition.",
+    helper: "This step is active in the pathway.",
   },
   "Evidence started": {
     fill: "#eff6ff",
@@ -363,7 +348,7 @@ const statusMeta: Record<
     border: "#ddd6fe",
     text: "#6d28d9",
     dot: "#8b5cf6",
-    helper: "This step looks ready for a progress check-in.",
+    helper: "This step looks ready for more evidence or completion.",
   },
   Secure: {
     fill: "#ecfdf5",
@@ -375,7 +360,7 @@ const statusMeta: Record<
 };
 
 function getCustomerPathwayStatusLabel(status: string) {
-  if (status === "Ready to assess") return "Ready for check-in";
+  if (status === "Ready to assess") return "Ready for evidence";
   if (status === "Practising") return "In progress";
   return status;
 }
@@ -553,10 +538,6 @@ function writePathwayInteractionStarted(
   }
 }
 
-function isNumberPathwayContext(subjectKey: string, strandKey: string) {
-  return subjectKey === "mathematics" && strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY;
-}
-
 function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) {
   return (
     subjectKey === "mathematics" &&
@@ -655,47 +636,6 @@ function appendWorksheetEvidenceCaptureParams(
   params.set("includeInReport", "1");
   params.set("returnTo", returnTo);
   return `${path}?${params.toString()}`;
-}
-
-function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
-  return (
-    NUMBER_ASSESSMENT_BANKS.find(
-      (bank) =>
-        bank.itemBankKey === attempt.itemBankKey ||
-        bank.progressionBandKey === attempt.progressionBandKey ||
-        bank.pathwayStepId === attempt.pathwayStepId ||
-        bank.stepKey === attempt.stepKey,
-    ) ?? null
-  );
-}
-
-function getAttemptPrototypeMetadata(attempt: CleanAssessmentAttempt) {
-  const summarySnapshot = attempt.summarySnapshot;
-  const metadata =
-    summarySnapshot && typeof summarySnapshot === "object"
-      ? summarySnapshot.prototypeMetadata
-      : null;
-  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
-    ? (metadata as Record<string, unknown>)
-    : null;
-}
-
-function getAssessmentAttemptDisplayTitle(attempt: CleanAssessmentAttempt) {
-  const prototypeMetadata = getAttemptPrototypeMetadata(attempt);
-  const stepTitle = String(prototypeMetadata?.stepTitle ?? "").trim();
-  if (stepTitle) return stepTitle;
-
-  return getNumberBankForAttempt(attempt)?.shortTitle || "Assessment saved";
-}
-
-function formatAssessmentAttemptSavedAt(value: string | null) {
-  const parsed = Date.parse(value || "");
-  if (Number.isNaN(parsed)) return null;
-
-  return new Intl.DateTimeFormat("en-AU", {
-    day: "numeric",
-    month: "short",
-  }).format(parsed);
 }
 
 function getPathwayStageTone(stageIndex: number, currentStageIndex: number) {
@@ -1337,17 +1277,6 @@ function PathwaysWorkspaceBody() {
     selectedWorkspaceStageIndex,
     unifiedPathwayStepStateIndex,
   ]);
-  const visibleAssessmentAttempts = useMemo(
-    () =>
-      assessmentAttempts.filter(
-        (attempt) =>
-          attempt.learnerId === selectedLearnerId &&
-          attempt.subjectKey === selectedSubjectKey &&
-          attempt.strandKey === selectedStrandKey,
-      ),
-    [assessmentAttempts, selectedLearnerId, selectedStrandKey, selectedSubjectKey],
-  );
-  const latestAssessmentAttempt = visibleAssessmentAttempts[0] ?? null;
   const numberPathwayRevealGroups = useMemo(() => {
     if (
       !selectedSubjectWorkspace ||
@@ -1424,11 +1353,9 @@ function PathwaysWorkspaceBody() {
     currentLearningZoneStartStep?.stageTitle ||
     selectedWorkspaceCurrentStageTitle ||
     "Choose a strand below";
-  const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
-    ? "Record evidence"
-    : selectedWorkspaceSnapshot?.practising || selectedWorkspaceSnapshot?.evidenceStarted
-      ? "Continue the step"
-      : "Open the current focus";
+  const nextActionLabel = selectedWorkspaceSnapshot?.evidenceStarted
+    ? "Add evidence"
+    : "Open current step";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
     ? selectedSubjectWorkspace?.title ||
       selectedSubjectDomain.title ||
@@ -1459,9 +1386,6 @@ function PathwaysWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
     : "/my-capture";
-  const assessPathBase = pathname.startsWith("/clean-my-pathways")
-    ? "/clean-my-assessments"
-    : "/my-assessments";
   const pathwaysPathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-pathways"
     : "/my-pathways";
@@ -1972,7 +1896,7 @@ function PathwaysWorkspaceBody() {
                   My Pathways
                 </h1>
                 <p className="mylearna-pathways-hero-copy" style={{ margin: 0, color: "#5B6478", lineHeight: 1.5, maxWidth: 760 }}>
-                  Choose the next skill, practise with support, then check understanding.
+                  Choose one useful step, complete the worksheet, then add evidence.
                 </p>
               </div>
               <div
@@ -2484,18 +2408,16 @@ function PathwaysWorkspaceBody() {
                   borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <div style={eyebrowStyle}>Latest check-in</div>
+                <div style={eyebrowStyle}>Latest evidence</div>
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
-                  {latestAssessmentAttempt
-                    ? getAssessmentAttemptDisplayTitle(latestAssessmentAttempt)
-                    : "No check-in saved yet"}
+                  {selectedWorkspaceSnapshot?.evidenceStarted
+                    ? `${selectedWorkspaceSnapshot.evidenceStarted} example${
+                        selectedWorkspaceSnapshot.evidenceStarted === 1 ? "" : "s"
+                      } added`
+                    : "No evidence added yet"}
                 </strong>
                 <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
-                  {latestAssessmentAttempt
-                    ? `Saved ${formatAssessmentAttemptSavedAt(
-                        latestAssessmentAttempt.completedAt || latestAssessmentAttempt.createdAt,
-                      ) || "recently"}`
-                    : "Use worksheet evidence or capture when ready."}
+                  Use worksheet evidence or capture when ready.
                 </div>
               </div>
 
@@ -2815,19 +2737,9 @@ function PathwaysWorkspaceBody() {
                       valueColor: "#166534",
                     },
                     {
-                      label: "Check-ins ready",
-                      value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
-                      valueColor: "#6d28d9",
-                    },
-                    {
                       label: "Evidence examples",
                       value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
                       valueColor: "#1d4ed8",
-                    },
-                    {
-                      label: "In progress",
-                      value: String(selectedWorkspaceSnapshot?.practising || 0),
-                      valueColor: "#c2410c",
                     },
                     {
                       label: "Other steps",
@@ -2883,8 +2795,6 @@ function PathwaysWorkspaceBody() {
                     selectedLearnerId={selectedLearner?.id || ""}
                     returnPath={pathname}
                     capturePathBase={capturePathBase}
-                    assessPathBase={assessPathBase}
-                    assessmentAttempts={assessmentAttempts}
                     worksheetFilter={worksheetFilter}
                     onWorksheetFilterChange={setWorksheetFilter}
                     densityMode={densityMode}
@@ -3431,11 +3341,7 @@ function NumberRevealStepList({
   compact?: boolean;
 }) {
   if (!steps.length) {
-    return (
-      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
-        Nothing to show in this group yet.
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -3471,8 +3377,6 @@ function PathwayStageJourney({
   selectedLearnerId,
   returnPath,
   capturePathBase,
-  assessPathBase,
-  assessmentAttempts,
   worksheetFilter,
   onWorksheetFilterChange,
   densityMode,
@@ -3495,8 +3399,6 @@ function PathwayStageJourney({
   selectedLearnerId: string;
   returnPath: string;
   capturePathBase: string;
-  assessPathBase: string;
-  assessmentAttempts: CleanAssessmentAttempt[];
   worksheetFilter: PathwayWorksheetFilter;
   onWorksheetFilterChange: (filter: PathwayWorksheetFilter) => void;
   densityMode: PathwayDensityMode;
@@ -3522,9 +3424,7 @@ function PathwayStageJourney({
           unifiedPathwayStepStateIndex,
         )
       : null;
-  const completedCount = activeSummary
-    ? activeSummary.secure + activeSummary.readyToAssess
-    : 0;
+  const completedCount = activeSummary ? activeSummary.secure : 0;
   const progressPercent =
     activeSummary && activeSummary.steps
       ? Math.round((completedCount / activeSummary.steps) * 100)
@@ -3692,8 +3592,6 @@ function PathwayStageJourney({
           selectedLearnerId={selectedLearnerId}
           returnPath={returnPath}
           capturePathBase={capturePathBase}
-          assessPathBase={assessPathBase}
-          assessmentAttempts={assessmentAttempts}
           worksheetFilter={worksheetFilter}
           densityMode={densityMode}
           expandedStepId={expandedStepId}
@@ -3763,6 +3661,12 @@ function NumberPathwayRevealPanel({
 }) {
   const starterSteps = groups.laterPathway.slice(0, 4);
   const currentStartStep = groups.currentLearningZone[0] ?? starterSteps[0] ?? null;
+  const remainingCurrentFocusSteps = groups.currentLearningZone.filter(
+    (step) => step.pathwayStepId !== currentStartStep?.pathwayStepId,
+  );
+  const remainingStarterSteps = starterSteps.filter(
+    (step) => step.pathwayStepId !== currentStartStep?.pathwayStepId,
+  );
 
   return (
     <section
@@ -3802,7 +3706,7 @@ function NumberPathwayRevealPanel({
         >
           {groups.hasSavedAttempts
             ? `${learnerLabel}'s next focus`
-            : `Start with a ${strandTitle} check`}
+            : `Start with ${strandTitle}`}
         </h3>
       </div>
 
@@ -3830,7 +3734,7 @@ function NumberPathwayRevealPanel({
             <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
               <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Needs polish</div>
               <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-                Skills that may need another practice round.
+                Skills that may need another worksheet, resource, or evidence example.
               </div>
               <NumberRevealStepList
                 steps={groups.needsPolish}
@@ -3840,48 +3744,52 @@ function NumberPathwayRevealPanel({
             </section>
           ) : null}
 
-          <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
-            <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Current focus</div>
-            <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-              Current focus and next steps.
-            </div>
-            <NumberRevealStepList
-              steps={groups.currentLearningZone.filter(
-                (step) => step.pathwayStepId !== currentStartStep?.pathwayStepId,
-              )}
+          {remainingCurrentFocusSteps.length ? (
+            <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
+              <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Current focus</div>
+              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
+                Current focus and next steps.
+              </div>
+              <NumberRevealStepList
+                steps={remainingCurrentFocusSteps}
+                learnerId={learnerId}
+                returnPath={returnPath}
+              />
+            </section>
+          ) : null}
+
+          {groups.secureHistory.length ? (
+            <NumberRevealLazyStepSection
+              title="Secure history"
+              steps={groups.secureHistory}
               learnerId={learnerId}
               returnPath={returnPath}
+              compact
             />
-          </section>
-
-          <NumberRevealLazyStepSection
-            title="Secure history"
-            steps={groups.secureHistory}
-            learnerId={learnerId}
-            returnPath={returnPath}
-            compact
-          />
-          <NumberRevealLazyStepSection
-            title="Later pathway"
-            steps={groups.laterPathway}
-            learnerId={learnerId}
-            returnPath={returnPath}
-            compact
-          />
+          ) : null}
+          {groups.laterPathway.length ? (
+            <NumberRevealLazyStepSection
+              title="Later pathway"
+              steps={groups.laterPathway}
+              learnerId={learnerId}
+              returnPath={returnPath}
+              compact
+            />
+          ) : null}
         </>
       ) : (
         <section style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
           <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>Start here</div>
           <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-            Choose an early check or open the pathway map.
+            Open the first useful step or use the pathway map.
           </div>
-          <NumberRevealStepList
-            steps={starterSteps.filter(
-              (step) => step.pathwayStepId !== currentStartStep?.pathwayStepId,
-            )}
-            learnerId={learnerId}
-            returnPath={returnPath}
-          />
+          {remainingStarterSteps.length ? (
+            <NumberRevealStepList
+              steps={remainingStarterSteps}
+              learnerId={learnerId}
+              returnPath={returnPath}
+            />
+          ) : null}
         </section>
       )}
     </section>
@@ -3900,8 +3808,6 @@ function DetailedMathematicsStageCard({
   selectedLearnerId,
   returnPath,
   capturePathBase,
-  assessPathBase,
-  assessmentAttempts,
   worksheetFilter,
   densityMode,
   expandedStepId,
@@ -3921,8 +3827,6 @@ function DetailedMathematicsStageCard({
   selectedLearnerId: string;
   returnPath: string;
   capturePathBase: string;
-  assessPathBase: string;
-  assessmentAttempts: CleanAssessmentAttempt[];
   worksheetFilter: PathwayWorksheetFilter;
   densityMode: PathwayDensityMode;
   expandedStepId: string | null;
@@ -3961,15 +3865,6 @@ function DetailedMathematicsStageCard({
           border: "#bbf7d0",
           background: "#ecfdf5",
           color: "#166534",
-        }
-      : null,
-    summary.readyToAssess > 0
-      ? {
-          key: "ready",
-          label: `${summary.readyToAssess} ready for check-in`,
-          border: "#ddd6fe",
-          background: "#f5f3ff",
-          color: "#6d28d9",
         }
       : null,
     summary.evidenceStarted > 0
@@ -4132,8 +4027,6 @@ function DetailedMathematicsStageCard({
             selectedLearnerId={selectedLearnerId}
             returnPath={returnPath}
             capturePathBase={capturePathBase}
-            assessPathBase={assessPathBase}
-            assessmentAttempts={assessmentAttempts}
             isOpen={expandedStepId === detailPanelId}
             onToggle={() =>
             onExpandedStepChange(expandedStepId === detailPanelId ? null : detailPanelId)
@@ -4181,8 +4074,6 @@ function DetailedMathematicsStepCard({
   selectedLearnerId,
   returnPath,
   capturePathBase,
-  assessPathBase,
-  assessmentAttempts,
   isOpen,
   onToggle,
   densityMode,
@@ -4202,8 +4093,6 @@ function DetailedMathematicsStepCard({
   selectedLearnerId: string;
   returnPath: string;
   capturePathBase: string;
-  assessPathBase: string;
-  assessmentAttempts: CleanAssessmentAttempt[];
   isOpen: boolean;
   onToggle: () => void;
   densityMode: PathwayDensityMode;
@@ -4253,16 +4142,6 @@ function DetailedMathematicsStepCard({
     () => buildPathwayRegistryStepKey(step.title, step.id),
     [step.id, step.title],
   );
-  const numberAssessmentAlignment = isNumberPathwayContext(selectedSubjectKey, strandKey)
-    ? getNumberAssessmentAlignmentForPathwayStep({
-        subjectKey: selectedSubjectKey,
-        strandKey,
-        stageKey,
-        pathwayStepId: statusPathwayStepId,
-        stepKey: canonicalStepKey,
-      })
-    : null;
-  const numberAssessmentBank = numberAssessmentAlignment?.bank ?? null;
   const canonicalPathwayStepId =
     statusPathwayStepId ||
     resolveCanonicalPathwayStepIdFromParts({
@@ -4273,19 +4152,6 @@ function DetailedMathematicsStepCard({
       stepNumber: String(step.id),
     });
   const manualComplete = Boolean(manualCompletion?.completed);
-  const practiceActivity = canonicalPathwayStepId
-    ? getPathwayPracticeActivityByStepId(canonicalPathwayStepId)
-    : null;
-  const exactStepAssessment = getStepAssessmentForPathwayStep({
-    pathwayStepId: canonicalPathwayStepId,
-    stepKey: canonicalStepKey,
-    strandKey,
-  });
-  const exactStepPractice = getStepPracticeForPathwayStep({
-    pathwayStepId: canonicalPathwayStepId,
-    stepKey: canonicalStepKey,
-    strandKey,
-  });
   const worksheetResource = getWorksheetResourceForPathwayStep({
     pathwayStepId: canonicalPathwayStepId,
     stepKey: canonicalStepKey,
@@ -4330,102 +4196,6 @@ function DetailedMathematicsStepCard({
   const captureHref = worksheetResource
     ? appendWorksheetEvidenceCaptureParams(captureBaseHref, worksheetResource, captureReturnTo)
     : captureBaseHref;
-  const assessHref = (() => {
-    if (!canonicalPathwayStepId) {
-      return assessPathBase;
-    }
-
-    const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strandKey);
-    const returnTo = buildPathwayStepReturnHref({
-      pathname: returnPath,
-      subjectKey: selectedSubjectKey,
-      strandKey,
-      learnerId: selectedLearnerId,
-      detailPanelId,
-    });
-
-    if (exactStepAssessment) {
-        const params = new URLSearchParams();
-        params.set("source", "my-pathways");
-        params.set("stepAssessmentKey", exactStepAssessment.key);
-        params.set("subjectKey", exactStepAssessment.subjectKey);
-        params.set("strandKey", exactStepAssessment.strandKey);
-        params.set("stageKey", exactStepAssessment.stageKey);
-        params.set("pathwayStepId", canonicalPathwayStepId);
-        params.set("stepKey", canonicalStepKey);
-        params.set("returnTo", returnTo);
-        params.set("progressionBandKey", exactStepAssessment.progressionBandKey);
-        params.set("itemBankKey", exactStepAssessment.parentItemBankKey);
-        if (selectedLearnerId) {
-          params.set("learnerId", selectedLearnerId);
-        }
-
-        return `/assessments/number?${params.toString()}`;
-    }
-
-    if (isNumberContext) {
-      return "";
-    }
-
-    const params = new URLSearchParams();
-    params.set("source", "my-pathways");
-    params.set("openStep", canonicalStepKey);
-    params.set("subjectKey", selectedSubjectKey);
-    params.set("strandKey", strandKey);
-    params.set("stageKey", stageKey);
-    params.set("pathwayStepId", canonicalPathwayStepId);
-    params.set("stepKey", canonicalStepKey);
-    params.set("returnTo", returnTo);
-
-    if (selectedLearnerId) {
-      params.set("learnerId", selectedLearnerId);
-    }
-
-    return `${assessPathBase}?${params.toString()}`;
-  })();
-  const exactPracticeHref = (() => {
-    if (!exactStepPractice) return "";
-
-    const params = new URLSearchParams();
-    const pathwayStepId = canonicalPathwayStepId || exactStepPractice.pathwayStepId;
-    params.set("source", "my-pathways");
-    params.set("stepPracticeKey", exactStepPractice.key);
-    params.set("subjectKey", exactStepPractice.subjectKey);
-    params.set("strandKey", exactStepPractice.strandKey);
-    params.set("stageKey", exactStepPractice.stageKey);
-    params.set("pathwayStepId", pathwayStepId);
-    params.set("stepKey", canonicalStepKey);
-    params.set(
-      "returnTo",
-      buildPathwayStepReturnHref({
-        pathname: returnPath,
-        subjectKey: exactStepPractice.subjectKey,
-        strandKey: exactStepPractice.strandKey,
-        learnerId: selectedLearnerId,
-        detailPanelId,
-      }),
-    );
-    if (selectedLearnerId) {
-      params.set("learnerId", selectedLearnerId);
-    }
-
-    return `/practice/number-targeted?${params.toString()}`;
-  })();
-  const autoCheckStatus = numberAssessmentAlignment
-    ? getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment)
-    : exactStepAssessment
-      ? getExactStepAutoCheckStatusForPathwayStep(assessmentAttempts, {
-          subjectKey: exactStepAssessment.subjectKey,
-          strandKey: exactStepAssessment.strandKey,
-          pathwayStepId: exactStepAssessment.pathwayStepId,
-          stepKey: exactStepAssessment.stepKey,
-          stepAssessmentKey: exactStepAssessment.key,
-        })
-      : {
-          status: "Not checked yet" as const,
-          attempt: null,
-          scope: "none" as const,
-        };
   const worksheetStatus = worksheetResource ? "Worksheet ready" : "No worksheet";
   const worksheetFileName = worksheetResource?.fileName || "";
   const hasEvidenceAttachment =
@@ -4776,15 +4546,7 @@ function DetailedMathematicsStepCard({
       ) : null}
 
       <CleanPathwayStepActionRow
-        activity={
-          exactStepContext
-            ? null
-            : practiceActivity
-        }
-        assessHref={assessHref}
         captureHref={captureHref}
-        practiceHref={exactPracticeHref}
-        practiceTitle={exactStepPractice?.title ?? null}
         familyId={familyId}
         learnerId={selectedLearnerId}
         subjectKey={selectedSubjectKey}
@@ -4796,27 +4558,8 @@ function DetailedMathematicsStepCard({
         pathwayStepId={canonicalPathwayStepId || ""}
         stepKey={canonicalStepKey}
         stepTitle={step.title}
-        assessmentBankTitle={
-          exactStepAssessment
-            ? numberAssessmentBank?.title ?? exactStepAssessment.parentBankTitle
-            : null
-        }
-        exactAssessmentTitle={exactStepAssessment?.title ?? null}
-        autoCheckStatusLabel={
-          exactStepAssessment ? autoCheckStatus.status : null
-        }
-        autoCheckStatusScope={
-          exactStepAssessment && autoCheckStatus.scope !== "none"
-            ? autoCheckStatus.scope
-            : null
-        }
         confidenceStatusLabel={confidenceStatusLabel}
         isExactStepContext={exactStepContext}
-        noAssessmentMessage={
-          exactStepContext && !exactStepAssessment
-            ? "Digital check-in is internal only for now."
-            : null
-        }
         worksheetResource={worksheetResource}
         latestEvidenceEntry={stepUnifiedState?.latestEvidenceEntry ?? null}
       />
@@ -4843,7 +4586,7 @@ function DetailedMathematicsStepCard({
           <PathwayStepGuidanceSection title="Skill focus" content={step.skillFocus} />
           <PathwayStepGuidanceSection title="Learning goal" content={step.learningIntention} />
           <PathwayStepGuidanceListSection title="Success looks like" items={step.successCriteria} />
-          <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
+          <PathwayStepGuidanceSection title="Support activity" content={step.practiceActivity} />
           <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
           <PathwayStepGuidanceSection
             title="Check later"
@@ -4856,7 +4599,7 @@ function DetailedMathematicsStepCard({
             <PathwayStepGuidanceSection title="What this means" content={step.meaning} />
             <PathwayStepGuidanceSection title="Learning goal" content={step.learningIntention} />
             <PathwayStepGuidanceListSection title="Success looks like" items={step.successCriteria} />
-            <PathwayStepGuidanceSection title="Try this activity" content={step.practiceActivity} />
+            <PathwayStepGuidanceSection title="Support activity" content={step.practiceActivity} />
             <PathwayStepGuidanceListSection title="Evidence idea" items={step.evidenceExamples.slice(0, 2)} />
           </div>
         </details>

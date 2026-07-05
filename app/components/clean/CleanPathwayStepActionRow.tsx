@@ -3,15 +3,10 @@
 import Link from "next/link";
 import React from "react";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
-import type { PathwayPracticeActivity } from "@/lib/clean/pathways/practiceActivities";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
 type CleanPathwayStepActionRowProps = {
-  activity: PathwayPracticeActivity | null;
-  assessHref: string;
   captureHref: string;
-  practiceHref?: string | null;
-  practiceTitle?: string | null;
   familyId?: string;
   learnerId?: string;
   subjectKey?: string;
@@ -23,13 +18,8 @@ type CleanPathwayStepActionRowProps = {
   pathwayStepId?: string;
   stepKey?: string;
   stepTitle?: string;
-  assessmentBankTitle?: string | null;
-  exactAssessmentTitle?: string | null;
-  autoCheckStatusLabel?: string | null;
-  autoCheckStatusScope?: "bank" | "sub-element" | null;
   confidenceStatusLabel?: string | null;
   isExactStepContext?: boolean;
-  noAssessmentMessage?: string | null;
   worksheetResource?: MathWorksheetResource | null;
   latestEvidenceEntry?: CleanEvidenceEntry | null;
 };

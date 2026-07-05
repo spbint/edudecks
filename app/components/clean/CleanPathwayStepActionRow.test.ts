@@ -1,0 +1,48 @@
+// @vitest-environment jsdom
+
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
+import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
+
+const worksheetResource: MathWorksheetResource = {
+  pathwayStepId: "mathematics:number-and-place-value:upper-elementary:step-1",
+  stepKey: "use-place-value",
+  subjectKey: "mathematics",
+  strandKey: "number-and-place-value",
+  stageKey: "upper-elementary",
+  stageDisplay: "Upper Elementary",
+  stepNumber: 1,
+  pathwayStepTitle: "Use place value",
+  title: "Use Place Value",
+  fileName: "MYL-MATH-NPV-UE-S001-Use-Place-Value.pdf",
+  href: "/resources/worksheets/maths/number-and-place-value/upper-elementary/MYL-MATH-NPV-UE-S001-Use-Place-Value.pdf",
+  resourceType: "worksheet-pdf",
+};
+
+describe("CleanPathwayStepActionRow", () => {
+  it("renders customer-safe worksheet and evidence actions without retired practice or assessment labels", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: "Use place value",
+        worksheetResource,
+      }),
+    );
+
+    expect(screen.getByRole("link", { name: "Open worksheet" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Download PDF" })).toBeTruthy();
+
+    const visibleText = container.textContent || "";
+    expect(visibleText).not.toMatch(/Digital Practice/i);
+    expect(visibleText).not.toMatch(/Practice activities/i);
+    expect(visibleText).not.toMatch(/Practise/i);
+    expect(visibleText).not.toMatch(/Assessments ready/i);
+    expect(visibleText).not.toMatch(/Latest assessment/i);
+    expect(visibleText).not.toMatch(/Start assessment/i);
+    expect(visibleText).not.toMatch(/Start practice/i);
+    expect(visibleText).not.toMatch(/Optional digital tools/i);
+  });
+});
