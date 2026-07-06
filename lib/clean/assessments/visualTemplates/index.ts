@@ -1,0 +1,9 @@
+export { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates/AssessmentStimulus";
+export { ArrayVisual } from "@/lib/clean/assessments/visualTemplates/ArrayVisual";
+export { CounterSetVisual } from "@/lib/clean/assessments/visualTemplates/CounterSetVisual";
+export { FractionBarVisual } from "@/lib/clean/assessments/visualTemplates/FractionBarVisual";
+export { InvalidStimulus } from "@/lib/clean/assessments/visualTemplates/InvalidStimulus";
+export { NumberLineVisual } from "@/lib/clean/assessments/visualTemplates/NumberLineVisual";
+export { PlaceValueBlocksVisual } from "@/lib/clean/assessments/visualTemplates/PlaceValueBlocksVisual";
+export { ShapeSetVisual } from "@/lib/clean/assessments/visualTemplates/ShapeSetVisual";
+export { TenFrameVisual } from "@/lib/clean/assessments/visualTemplates/TenFrameVisual";

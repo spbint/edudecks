@@ -17,9 +17,9 @@ describe("AssessmentPlayerV1", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
 
-    expect(screen.getByText("Question 1 of 2")).toBeTruthy();
+    expect(screen.getByText(/Question\s+1\s+of\s+8/)).toBeTruthy();
     expect(screen.getByLabelText("Four counters shown in a scattered arrangement.")).toBeTruthy();
-    expect(container.querySelectorAll('circle[fill="#6C4DF6"]')).toHaveLength(4);
+    expect(container.querySelectorAll('[data-testid="counter"]')).toHaveLength(4);
 
     fireEvent.click(screen.getByRole("radio", { name: "4" }));
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
@@ -28,19 +28,28 @@ describe("AssessmentPlayerV1", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Next question" }));
 
-    expect(screen.getByText("Question 2 of 2")).toBeTruthy();
+    expect(screen.getByText(/Question\s+2\s+of\s+8/)).toBeTruthy();
     expect(screen.getByLabelText("Five counters shown in a clear five-frame arrangement.")).toBeTruthy();
-    expect(container.querySelectorAll('circle[fill="#6C4DF6"]')).toHaveLength(5);
+    expect(container.querySelectorAll('[data-testid="counter"]')).toHaveLength(5);
 
     fireEvent.click(screen.getByRole("radio", { name: "4" }));
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
 
     expect(screen.getByText("Not quite. Look again at the full row of counters.")).toBeTruthy();
 
+    for (let index = 2; index < MYLEARNA_ASSESS_DEMO_ITEMS.length; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "Next question" }));
+      const currentItem = MYLEARNA_ASSESS_DEMO_ITEMS[index];
+      const correctOptionId = currentItem.response.correctOptionIds?.[0] || "";
+      const correctOption = currentItem.response.options?.find((option) => option.id === correctOptionId);
+      fireEvent.click(screen.getByRole("radio", { name: correctOption?.label || "" }));
+      fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+    }
+
     fireEvent.click(screen.getByRole("button", { name: "View summary" }));
 
-    expect(screen.getByText("You answered 1 of 2 correctly.")).toBeTruthy();
-    expect(screen.getByText("50%")).toBeTruthy();
+    expect(screen.getByText("You answered 7 of 8 correctly.")).toBeTruthy();
+    expect(screen.getByText("88%")).toBeTruthy();
     expect(screen.getByText("Suggested next step")).toBeTruthy();
   });
 });

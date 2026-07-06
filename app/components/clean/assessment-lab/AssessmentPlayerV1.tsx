@@ -9,7 +9,7 @@ import {
   scoreAssessmentItem,
   summarizeAssessmentAttempt,
 } from "@/lib/clean/assessments/mylearnaAssessScoring";
-import { buildCounterPoints } from "@/lib/clean/assessments/mylearnaAssessVisuals";
+import { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates";
 
 type AssessmentPlayerV1Props = {
   title: string;
@@ -45,54 +45,8 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "#17204B",
 };
 
-function numberFromData(value: unknown, fallback: number) {
-  const next = Number(value);
-  return Number.isFinite(next) ? next : fallback;
-}
-
-function CounterCardChoiceStimulus({ item }: { item: MyLearnaAssessmentItem }) {
-  const quantity = numberFromData(item.stimulus.data.quantity, 0);
-  const seed = numberFromData(item.stimulus.data.seed, 1);
-  const arrangement = String(item.stimulus.data.arrangement || "scattered");
-  const points = buildCounterPoints(quantity, arrangement, seed);
-
-  return (
-    <div
-      style={{
-        border: "1px solid #D9D0FF",
-        borderRadius: 22,
-        background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
-        padding: 18,
-      }}
-    >
-      <svg
-        viewBox="0 0 220 150"
-        role="img"
-        aria-label={item.stimulus.altText || `${quantity} counters`}
-        style={{ width: "100%", maxHeight: 260, display: "block" }}
-      >
-        <rect x="18" y="18" width="184" height="114" rx="22" fill="#ffffff" stroke="#E7EAF2" />
-        {points.map((point, index) => (
-          <g key={`${point.x}-${point.y}-${index}`}>
-            <circle cx={point.x} cy={point.y} r="14" fill="#6C4DF6" />
-            <circle cx={point.x - 4} cy={point.y - 5} r="4" fill="#B9A8FF" opacity="0.8" />
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
 function AssessmentItemRenderer({ item }: { item: MyLearnaAssessmentItem }) {
-  if (item.template === "counter-card-choice") {
-    return <CounterCardChoiceStimulus item={item} />;
-  }
-
-  return (
-    <div style={{ border: "1px solid #E7EAF2", borderRadius: 18, padding: 18 }}>
-      Structured renderer coming for {item.template}.
-    </div>
-  );
+  return <AssessmentStimulus stimulus={item.stimulus} />;
 }
 
 export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1Props) {

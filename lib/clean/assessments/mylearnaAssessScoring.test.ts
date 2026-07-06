@@ -5,7 +5,6 @@ import {
   scoreAssessmentItem,
   summarizeAssessmentAttempt,
 } from "@/lib/clean/assessments/mylearnaAssessScoring";
-import { buildCounterPoints } from "@/lib/clean/assessments/mylearnaAssessVisuals";
 import type { MyLearnaAssessmentItem } from "@/lib/clean/assessments/mylearnaAssessTypes";
 
 describe("MyLearna Assess V1 scoring", () => {
@@ -40,7 +39,7 @@ describe("MyLearna Assess V1 scoring", () => {
       scoreAssessmentItem(MYLEARNA_ASSESS_DEMO_ITEMS[1], ["a"]),
     ];
 
-    const summary = summarizeAssessmentAttempt(MYLEARNA_ASSESS_DEMO_ITEMS, responses);
+    const summary = summarizeAssessmentAttempt(MYLEARNA_ASSESS_DEMO_ITEMS.slice(0, 2), responses);
 
     expect(summary.correctItems).toBe(1);
     expect(summary.totalItems).toBe(2);
@@ -86,18 +85,5 @@ describe("MyLearna Assess V1 visibility", () => {
     };
 
     expect(canUseAssessmentItem(publishedItem, null, null, "customer")).toBe(true);
-  });
-});
-
-describe("counter-card-choice visual data", () => {
-  it("builds exactly one point for each requested counter", () => {
-    expect(buildCounterPoints(4, "scattered", 1204)).toHaveLength(4);
-    expect(buildCounterPoints(5, "five-frame", 1205)).toHaveLength(5);
-  });
-
-  it("keeps generated counter positions deterministic", () => {
-    expect(buildCounterPoints(4, "scattered", 1204)).toEqual(
-      buildCounterPoints(4, "scattered", 1204),
-    );
   });
 });
