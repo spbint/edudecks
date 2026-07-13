@@ -71,6 +71,12 @@ import type {
   CleanLearningPeriodType,
 } from "@/lib/clean/terms/types";
 import {
+  getBreakPeriods,
+  getPeriodForDate,
+  getTeachingPeriods,
+  isBreakLearningPeriod,
+} from "@/lib/clean/setup/setupStatus";
+import {
   buildCleanWeeklyPlannerEntriesFromCalendarItems,
   buildCleanWeeklyPlannerEntriesFromTemplateBlocks,
   buildCleanDailyPlannerPdfFilename,
@@ -329,10 +335,6 @@ function dateRangeCoversWeek(
   weekEndsOn: string,
 ) {
   return startsOn <= weekStartsOn && endsOn >= weekEndsOn;
-}
-
-function isBreakLearningPeriod(period: Pick<CleanLearningPeriod, "isBreak" | "periodType">) {
-  return period.isBreak || period.periodType === "break";
 }
 
 function getLearningYearNameSuggestion(startsOn: string, endsOn: string) {
@@ -1051,17 +1053,18 @@ function CleanCalendarWorkspaceBody() {
   }, [learningPeriods, selectedAcademicYearId]);
 
   const learningTermsForSelectedYear = useMemo(
-    () => visibleLearningPeriods.filter((period) => !isBreakLearningPeriod(period)),
+    () => getTeachingPeriods(visibleLearningPeriods),
     [visibleLearningPeriods],
   );
   const breakPeriodsForSelectedYear = useMemo(
-    () => visibleLearningPeriods.filter((period) => isBreakLearningPeriod(period)),
+    () => getBreakPeriods(visibleLearningPeriods),
     [visibleLearningPeriods],
   );
   const hasLearningYear = academicYears.length > 0;
   const hasRealLearningPeriod = learningTermsForSelectedYear.length > 0;
-  const planningSetupPeriodCount = visibleLearningPeriods.length;
-  const hasExistingPlanningSetup = hasLearningYear && planningSetupPeriodCount > 0;
+  const planningSetupPeriodCount = learningTermsForSelectedYear.length;
+  const planningSetupBreakCount = breakPeriodsForSelectedYear.length;
+  const hasExistingPlanningSetup = hasLearningYear && hasRealLearningPeriod;
   const hasMasterWeekBlock = templateBlocks.length > 0;
   const masterWeekStartedEnough = hasMasterWeekBlock || masterWeekSkipped;
   const calendarSetupReady = hasRealLearningPeriod && masterWeekStartedEnough;
@@ -1085,27 +1088,36 @@ function CleanCalendarWorkspaceBody() {
     learningPeriodsOpen || !hasExistingPlanningSetup;
   const activeLearningPeriod = useMemo(() => {
     const today = getTodayDate();
-    return (
-      visibleLearningPeriods.find(
-        (period) => period.startsOn <= today && period.endsOn >= today,
-      ) ?? null
-    );
-  }, [visibleLearningPeriods]);
+    return getPeriodForDate(learningTermsForSelectedYear, today);
+  }, [learningTermsForSelectedYear]);
+  const currentBreakPeriod = useMemo(
+    () => getPeriodForDate(breakPeriodsForSelectedYear, getTodayDate()),
+    [breakPeriodsForSelectedYear],
+  );
   const learningPeriodsSummary = useMemo(() => {
     if (!hasLearningYear) return "Set up your learning year to organise your calendar.";
-    if (!hasExistingPlanningSetup) return "Set up your first learning period to start planning.";
+    if (!hasExistingPlanningSetup && !planningSetupBreakCount) {
+      return "Set up your first learning period to start planning.";
+    }
 
     const summaryParts = [
       selectedAcademicYear?.title ?? "Learning year set",
       activeLearningPeriod?.title ? `Active period: ${activeLearningPeriod.title}` : null,
+      !activeLearningPeriod && currentBreakPeriod?.title
+        ? `Currently on break: ${currentBreakPeriod.title}`
+        : null,
+      !activeLearningPeriod && !currentBreakPeriod ? "No active learning period" : null,
       `${planningSetupPeriodCount} learning period${planningSetupPeriodCount === 1 ? "" : "s"} set`,
+      `${planningSetupBreakCount} break${planningSetupBreakCount === 1 ? "" : "s"} added`,
     ].filter(Boolean);
 
     return `${summaryParts.join(" - ")}.`;
   }, [
-    activeLearningPeriod?.title,
+    activeLearningPeriod,
+    currentBreakPeriod,
     hasExistingPlanningSetup,
     hasLearningYear,
+    planningSetupBreakCount,
     planningSetupPeriodCount,
     selectedAcademicYear?.title,
   ]);
@@ -1389,7 +1401,7 @@ function CleanCalendarWorkspaceBody() {
 
   const shouldShowYearComposer = showYearComposer || !academicYears.length;
   const shouldShowLearningPeriodComposer =
-    showLearningPeriodComposer || !visibleLearningPeriods.length;
+    showLearningPeriodComposer || !learningTermsForSelectedYear.length;
   const shouldShowTemplateComposer = showTemplateComposer || !masterTemplates.length;
 
   const readyForCalendar =
@@ -2389,6 +2401,15 @@ function CleanCalendarWorkspaceBody() {
 
   async function handlePopoverSave() {
     if (!workspace.profile) return;
+
+    const breakForPlannedDate = getPeriodForDate(breakPeriodsForSelectedYear, popoverDate);
+    if (breakForPlannedDate) {
+      setActionError(
+        `${formatLongDateLabel(popoverDate)} is inside ${breakForPlannedDate.title}, which is marked as a break / holiday. Regular learning blocks are paused for this date.`,
+      );
+      setMessage(null);
+      return;
+    }
 
     setSubmitting(true);
     setMessage(null);
@@ -3819,6 +3840,12 @@ function CleanCalendarWorkspaceBody() {
                           const yearPeriods = learningPeriods.filter(
                             (period) => period.academicYearId === year.id,
                           );
+                          const yearLearningPeriods = yearPeriods.filter(
+                            (period) => !isBreakLearningPeriod(period),
+                          );
+                          const yearBreaks = yearPeriods.filter((period) =>
+                            isBreakLearningPeriod(period),
+                          );
                           const isSelected = selectedAcademicYearId === year.id;
 
                           return (
@@ -3864,9 +3891,10 @@ function CleanCalendarWorkspaceBody() {
                                 {formatWeekRangeLabel(year.startsOn, year.endsOn)}
                               </div>
                               <div style={{ color: "#64748b", fontSize: 13 }}>
-                                {yearPeriods.length
-                                  ? `${yearPeriods.length} learning period${yearPeriods.length === 1 ? "" : "s"}`
-                                  : "No learning periods yet"}
+                                {yearLearningPeriods.length} learning period{yearLearningPeriods.length === 1 ? "" : "s"}
+                                {yearBreaks.length
+                                  ? ` - ${yearBreaks.length} break${yearBreaks.length === 1 ? "" : "s"}`
+                                  : ""}
                               </div>
                             </button>
                           );

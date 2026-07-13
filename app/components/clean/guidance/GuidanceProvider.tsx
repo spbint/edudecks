@@ -136,6 +136,10 @@ function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
 }
 
+function isHardSetupRedirectStep(stepId: string) {
+  return stepId === "profile" || stepId === "settings";
+}
+
 function writePendingTour(tourId: GuidanceTourId) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
@@ -184,6 +188,10 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       if (setupStatus === "active") {
+        if (!isHardSetupRedirectStep(currentSetupStep || "profile")) {
+          setShowWelcomePrompt(false);
+          return;
+        }
         const setupPath = getSetupRoute(
           currentSetupStep || "profile",
           pathname.startsWith("/clean-my-"),

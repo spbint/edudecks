@@ -47,6 +47,8 @@ import {
   resolveCanonicalPathwayStepIdFromParts,
   type UnifiedPathwayStepStateIndex,
 } from "@/lib/clean/pathways/pathwayStepState";
+import { listCleanAcademicYears, listCleanLearningPeriods } from "@/lib/clean/terms/client";
+import { isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -423,6 +425,12 @@ type StageSummaryCounts = {
 function getLearnerLabel(learner: Learner | null) {
   if (!learner) return "No learner selected";
   return learner.preferredName || learner.firstName;
+}
+
+function formatMissingSetupItems(items: string[]) {
+  if (items.length <= 1) return items[0] || "your setup";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 function getWorksheetEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefined) {
@@ -961,6 +969,12 @@ function PathwaysWorkspaceBody() {
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
+  const [planningSetupState, setPlanningSetupState] = useState({
+    loading: true,
+    hasLearningYear: false,
+    hasLearningPeriod: false,
+    hasBreaks: false,
+  });
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -1048,8 +1062,73 @@ function PathwaysWorkspaceBody() {
     });
   }, [selectedLearnerId]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadPlanningSetupState() {
+      if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+        if (active) {
+          setPlanningSetupState({
+            loading: false,
+            hasLearningYear: false,
+            hasLearningPeriod: false,
+            hasBreaks: false,
+          });
+        }
+        return;
+      }
+
+      setPlanningSetupState((current) => ({ ...current, loading: true }));
+
+      try {
+        const [academicYears, learningPeriods] = await Promise.all([
+          listCleanAcademicYears(workspace.profile.id, { limit: 20 }),
+          listCleanLearningPeriods(workspace.profile.id, { limit: 50 }),
+        ]);
+
+        if (!active) return;
+
+        setPlanningSetupState({
+          loading: false,
+          hasLearningYear: academicYears.length > 0,
+          hasLearningPeriod: learningPeriods.some((period) => !isBreakLearningPeriod(period)),
+          hasBreaks: learningPeriods.some((period) => isBreakLearningPeriod(period)),
+        });
+      } catch {
+        if (!active) return;
+        setPlanningSetupState({
+          loading: false,
+          hasLearningYear: false,
+          hasLearningPeriod: false,
+          hasBreaks: false,
+        });
+      }
+    }
+
+    void loadPlanningSetupState();
+
+    return () => {
+      active = false;
+    };
+  }, [workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
+  const learnerSetupKnown = !workspace.loading && !workspace.schemaMissing;
+  const missingLearnerSetup = learnerSetupKnown && workspace.learners.length === 0;
+  const planningSetupKnown = !planningSetupState.loading;
+  const missingLearningYearSetup = planningSetupKnown && !planningSetupState.hasLearningYear;
+  const missingLearningPeriodSetup =
+    planningSetupKnown &&
+    planningSetupState.hasLearningYear &&
+    !planningSetupState.hasLearningPeriod;
+  const missingSetupItems = [
+    missingLearnerSetup ? "a learner" : null,
+    missingLearningYearSetup ? "a learning year" : null,
+    missingLearningPeriodSetup ? "your first learning period" : null,
+  ].filter(Boolean) as string[];
+  const missingSetupSummary = formatMissingSetupItems(missingSetupItems);
+  const showPathwaysSetupBanner = missingSetupItems.length > 0;
   const currentLearnerFocusStageKey = useMemo(
     () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
@@ -1849,6 +1928,45 @@ function PathwaysWorkspaceBody() {
         }
       `}</style>
       <div style={wrapStyle}>
+        {showPathwaysSetupBanner ? (
+          <section
+            style={{
+              ...cardStyle,
+              border: "1px solid #fde68a",
+              background: "#fffbeb",
+              boxShadow: "0 8px 24px rgba(146,64,14,0.08)",
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ ...eyebrowStyle, color: "#92400e" }}>Setup guidance</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
+                Complete your setup to receive personalised pathway recommendations
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Add {missingSetupSummary}
+                {planningSetupState.hasBreaks && missingLearningPeriodSetup
+                  ? ". A break or holiday is saved, but regular pathway planning still needs a genuine learning period."
+                  : " so MyLearna can recommend suitable steps and connect activities to your calendar."}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {missingLearnerSetup ? (
+                <Link href="/my-profile" style={buttonStyle}>
+                  Add or choose a learner
+                </Link>
+              ) : null}
+              {missingLearningYearSetup || missingLearningPeriodSetup ? (
+                <Link href="/my-calendar" style={secondaryButtonStyle}>
+                  Add a learning period
+                </Link>
+              ) : null}
+              <a href="#pathways-map" style={secondaryButtonStyle}>
+                Continue exploring
+              </a>
+            </div>
+          </section>
+        ) : null}
+
         <section
           data-guidance-id="pathways-current-step"
           style={{
@@ -1871,7 +1989,17 @@ function PathwaysWorkspaceBody() {
               : cardStyle.boxShadow,
           }}
         >
-          {!selectedLearner ? (
+          {workspace.loading ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Pathway starting point</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                Loading learner details...
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                We&apos;re checking your family workspace before choosing a pathway view.
+              </p>
+            </div>
+          ) : !selectedLearner ? (
             <div style={{ display: "grid", gap: 10 }}>
               <div style={eyebrowStyle}>Pathway starting point</div>
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
@@ -2261,6 +2389,7 @@ function PathwaysWorkspaceBody() {
         <CleanFirstRunSetupGate currentStep="pathways" />
 
         <section
+          id="pathways-map"
           data-guidance-id="pathways-context-summary"
           style={{
             ...cardStyle,
