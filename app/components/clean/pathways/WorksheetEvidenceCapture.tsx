@@ -287,8 +287,6 @@ export default function WorksheetEvidenceCapture({
         reflection: [
           note ? `Parent note: ${note}` : "",
           photoName ? `Photo: attached (${photoName}).` : "No photo file selected.",
-          `Worksheet: ${worksheetResource.href}`,
-          `Source: worksheet_evidence`,
           progressLevel === "goal_achieved_extension" ? "Extension: true" : "",
         ]
           .filter(Boolean)

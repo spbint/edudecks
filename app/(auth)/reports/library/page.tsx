@@ -16,6 +16,11 @@ import {
 } from "@/lib/reportDrafts";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
 
+type PendingReportAction = {
+  type: "archive" | "delete";
+  row: ReportDraftRow;
+};
+
 function safe(v: unknown) {
   return String(v ?? "").trim();
 }
@@ -230,6 +235,7 @@ export default function ReportsLibraryPage() {
   const [modeFilter, setModeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [busyId, setBusyId] = useState("");
+  const [pendingAction, setPendingAction] = useState<PendingReportAction | null>(null);
 
   async function hydrate() {
     try {
@@ -305,11 +311,6 @@ export default function ReportsLibraryPage() {
   }
 
   async function handleDelete(row: ReportDraftRow) {
-    const ok = window.confirm(
-      `Delete "${titleForRow(row)}"? This cannot be undone.`
-    );
-    if (!ok) return;
-
     try {
       setBusyId(row.id);
       setError("");
@@ -371,6 +372,17 @@ export default function ReportsLibraryPage() {
     } finally {
       setBusyId("");
     }
+  }
+
+  async function handleConfirmReportAction() {
+    if (!pendingAction) return;
+    const action = pendingAction;
+    if (action.type === "delete") {
+      await handleDelete(action.row);
+    } else {
+      await handleArchive(action.row);
+    }
+    setPendingAction(null);
   }
 
   if (loading) {
@@ -667,22 +679,6 @@ export default function ReportsLibraryPage() {
                       </div>
                     ) : null}
 
-                    <div style={S.softCard()}>
-                      <div style={S.label()}>Draft ID</div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                          color: "#334155",
-                          fontFamily:
-                            'ui-monospace, SFMono-Regular, Menlo, monospace',
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {row.id}
-                      </div>
-                    </div>
-
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       {actions.canEdit ? (
                         <Link
@@ -753,7 +749,7 @@ export default function ReportsLibraryPage() {
                       {actions.canArchive ? (
                         <button
                           type="button"
-                          onClick={() => void handleArchive(row)}
+                          onClick={() => setPendingAction({ type: "archive", row })}
                           disabled={isBusy}
                           style={{
                             ...S.button(false),
@@ -780,7 +776,7 @@ export default function ReportsLibraryPage() {
                       {actions.canDelete ? (
                         <button
                           type="button"
-                          onClick={() => void handleDelete(row)}
+                          onClick={() => setPendingAction({ type: "delete", row })}
                           disabled={isBusy}
                           style={{
                             ...S.button(false),
@@ -800,6 +796,93 @@ export default function ReportsLibraryPage() {
           )}
         </section>
       </div>
+
+      {pendingAction ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-action-confirmation-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 60,
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+            background: "rgba(15,23,42,0.38)",
+          }}
+        >
+          <div
+            style={{
+              width: "min(100%, 520px)",
+              border: "1px solid #fecaca",
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: 20,
+              boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <h2
+                id="report-action-confirmation-title"
+                style={{ margin: 0, color: "#0f172a", fontSize: 24 }}
+              >
+                {pendingAction.type === "delete"
+                  ? "Delete this report?"
+                  : "Archive this report?"}
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                {pendingAction.type === "delete"
+                  ? "This removes the saved draft from the reports library. This cannot be undone."
+                  : "This moves the report out of the active reports list. You can still find archived reports with the archive filter."}
+              </p>
+              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                {titleForRow(pendingAction.row)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="button"
+                autoFocus
+                style={S.button(false)}
+                onClick={() => setPendingAction(null)}
+                disabled={busyId === pendingAction.row.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={{
+                  ...S.button(false),
+                  borderColor: pendingAction.type === "delete" ? "#fecdd3" : "#fde68a",
+                  background: pendingAction.type === "delete" ? "#fff1f2" : "#fffbeb",
+                  color: pendingAction.type === "delete" ? "#be123c" : "#92400e",
+                }}
+                onClick={() => void handleConfirmReportAction()}
+                disabled={busyId === pendingAction.row.id}
+              >
+                {busyId === pendingAction.row.id
+                  ? pendingAction.type === "delete"
+                    ? "Deleting..."
+                    : "Archiving..."
+                  : pendingAction.type === "delete"
+                    ? "Delete report"
+                    : "Archive report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

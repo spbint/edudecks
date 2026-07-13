@@ -1198,7 +1198,7 @@ function CleanSettingsWorkspaceBody() {
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                             {draftBrentAuthoritySelection
                               ? BRENT_REPORTING_HELPER_COPY
-                              : "Family summary gives a quick overview across the family&apos;s records."}
+                              : "Family summary gives a quick overview across the family's records."}
                           </p>
                         </div>
                         <div

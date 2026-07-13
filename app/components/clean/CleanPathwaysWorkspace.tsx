@@ -4757,24 +4757,6 @@ function PathwayComingLaterStrandSection({
           <div style={eyebrowStyle}>Selected strand</div>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{domain.title}</h2>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{domain.description}</p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <span
-              style={{
-                border: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                color: "#64748b",
-                borderRadius: 999,
-                padding: "6px 10px",
-                fontSize: 12,
-                fontWeight: 800,
-              }}
-            >
-              Coming later
-            </span>
-            <span style={{ color: "#64748b", fontSize: 13 }}>
-              This strand workspace is being developed.
-            </span>
-          </div>
         </div>
 
         <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>

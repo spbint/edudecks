@@ -31,7 +31,6 @@ const navItems = [
   { href: "/my-day", label: "My Day", shortLabel: "Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
   { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
   { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways"] },
-  { href: "/my-review", label: "My Review", shortLabel: "Review", icon: "review", matches: ["/my-review"] },
   { href: "/my-capture", label: "My Capture", shortLabel: "Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
   { href: "/my-portfolio", label: "My Portfolio", shortLabel: "Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
   { href: "/my-learna", label: "My Learna", shortLabel: "Learna", icon: "learner", matches: ["/my-learna"] },
@@ -40,7 +39,7 @@ const navItems = [
   { href: "/my-settings", label: "My Settings", shortLabel: "Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
 ] as const;
 
-type ShellIconName = (typeof navItems)[number]["icon"] | "help";
+type ShellIconName = (typeof navItems)[number]["icon"] | "review" | "help";
 
 function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) {
   const common = {

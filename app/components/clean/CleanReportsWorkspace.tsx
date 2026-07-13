@@ -60,6 +60,10 @@ import {
 } from "@/lib/clean/outputs/pdf";
 import { createCleanReportExport } from "@/lib/clean/outputs/client";
 
+type PendingReportAction =
+  | { type: "archive"; report: CleanReport }
+  | { type: "delete"; report: CleanReport };
+
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
@@ -587,7 +591,6 @@ function CleanReportsWorkspaceBody() {
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [showReportBuilder, setShowReportBuilder] = useState(false);
   const [showCustomReportTitle, setShowCustomReportTitle] = useState(false);
-  const [showAdvancedCustomisation, setShowAdvancedCustomisation] = useState(false);
   const [showOtherReports, setShowOtherReports] = useState(false);
 
   const [reportLearnerId, setReportLearnerId] = useState("");
@@ -598,6 +601,7 @@ function CleanReportsWorkspaceBody() {
   const [customPeriodEndsOn, setCustomPeriodEndsOn] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [pendingReportAction, setPendingReportAction] = useState<PendingReportAction | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const activeReportRef = useRef<HTMLDivElement>(null);
@@ -1295,6 +1299,19 @@ function CleanReportsWorkspaceBody() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleConfirmReportAction() {
+    if (!pendingReportAction) return;
+    const action = pendingReportAction;
+
+    if (action.type === "delete") {
+      await handleDeleteReport(action.report);
+    } else {
+      await handleUpdateReportStatus(action.report, "archived");
+    }
+
+    setPendingReportAction(null);
   }
 
   async function handleDownloadReportPdf() {
@@ -2597,7 +2614,7 @@ function CleanReportsWorkspaceBody() {
                         <button
                           type="button"
                           style={secondaryButtonStyle}
-                          onClick={() => void handleUpdateReportStatus(selectedReport, "archived")}
+                          onClick={() => setPendingReportAction({ type: "archive", report: selectedReport })}
                           disabled={submitting}
                         >
                           Archive
@@ -2616,7 +2633,7 @@ function CleanReportsWorkspaceBody() {
                       <button
                         type="button"
                         style={destructiveButtonStyle}
-                        onClick={() => void handleDeleteReport(selectedReport)}
+                        onClick={() => setPendingReportAction({ type: "delete", report: selectedReport })}
                         disabled={submitting}
                       >
                         Delete
@@ -2625,105 +2642,6 @@ function CleanReportsWorkspaceBody() {
                   </div>
                 </section>
 
-                <section style={cardStyle}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <h2 style={{ margin: 0, color: "#0f172a" }}>Advanced report customisation</h2>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Keep this closed for the simple output-preparation flow. More report editing options are planned for a later release.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      style={quietButtonStyle}
-                      onClick={() => setShowAdvancedCustomisation((current) => !current)}
-                      aria-expanded={showAdvancedCustomisation}
-                    >
-                      {showAdvancedCustomisation
-                        ? "Hide advanced report customisation"
-                        : "Advanced report customisation - Coming later"}
-                    </button>
-                  </div>
-
-                  {showAdvancedCustomisation ? (
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 12,
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        marginTop: 16,
-                      }}
-                    >
-                      {[
-                        {
-                          title: "Add custom section",
-                          detail: "Create extra report parts beyond the default learning record.",
-                        },
-                        {
-                          title: "Change report structure",
-                          detail: "Adjust the order or layout of the full report.",
-                        },
-                        {
-                          title: "Alternative templates",
-                          detail: "Switch to different report styles or proformas later on.",
-                        },
-                      ].map((item) => (
-                        <div
-                          key={item.title}
-                          style={{
-                            border: "1px dashed #cbd5e1",
-                            borderRadius: 14,
-                            padding: 14,
-                            background: "#ffffff",
-                            display: "grid",
-                            gap: 8,
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 10,
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <strong style={{ color: "#0f172a" }}>{item.title}</strong>
-                            <span
-                              style={{
-                                borderRadius: 999,
-                                padding: "6px 10px",
-                                background: "#eef2ff",
-                                color: "#4338ca",
-                                fontSize: 12,
-                                fontWeight: 800,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              Coming later
-                            </span>
-                          </div>
-                          <div style={{ color: "#64748b", lineHeight: 1.6 }}>{item.detail}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ ...helperCardStyle, marginTop: 16 }}>
-                      <strong style={{ color: "#0f172a" }}>Coming later</strong>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Custom sections, alternative structures, and deeper report editing are planned for a later release.
-                      </p>
-                    </div>
-                  )}
-                </section>
               </>
             ) : null}
 
@@ -2841,7 +2759,7 @@ function CleanReportsWorkspaceBody() {
                               <button
                                 type="button"
                                 style={destructiveButtonStyle}
-                                onClick={() => void handleDeleteReport(report)}
+                                onClick={() => setPendingReportAction({ type: "delete", report })}
                                 disabled={submitting}
                               >
                                 Delete
@@ -2885,6 +2803,91 @@ function CleanReportsWorkspaceBody() {
           </section>
         ) : null}
       </div>
+
+      {pendingReportAction ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-action-confirmation-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 70,
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+            background: "rgba(15,23,42,0.38)",
+          }}
+        >
+          <div
+            style={{
+              width: "min(100%, 520px)",
+              border: "1px solid #fecaca",
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: 20,
+              boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <h2
+                id="report-action-confirmation-title"
+                style={{ margin: 0, color: "#0f172a", fontSize: 24 }}
+              >
+                {pendingReportAction.type === "delete"
+                  ? "Delete this report?"
+                  : "Archive this report?"}
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                {pendingReportAction.type === "delete"
+                  ? "This removes the report from My Reports. This cannot be undone."
+                  : "This moves the report out of the active report list. You can reopen it later if needed."}
+              </p>
+              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                {pendingReportAction.report.title}
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="button"
+                autoFocus
+                style={secondaryButtonStyle}
+                onClick={() => setPendingReportAction(null)}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={
+                  pendingReportAction.type === "delete"
+                    ? destructiveButtonStyle
+                    : secondaryButtonStyle
+                }
+                onClick={() => void handleConfirmReportAction()}
+                disabled={submitting}
+              >
+                {submitting
+                  ? pendingReportAction.type === "delete"
+                    ? "Deleting..."
+                    : "Archiving..."
+                  : pendingReportAction.type === "delete"
+                    ? "Delete report"
+                    : "Archive report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

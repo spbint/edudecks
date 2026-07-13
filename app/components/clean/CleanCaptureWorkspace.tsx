@@ -650,7 +650,6 @@ function CleanCaptureWorkspaceBody() {
   const learningFromLifeActive = capturePath === "life" && !worksheetEvidenceMode;
   const worksheetTitleFromQuery = safeQueryValue(searchParams.get("worksheetTitle"));
   const worksheetHrefFromQuery = safeQueryValue(searchParams.get("worksheetHref"));
-  const worksheetIdFromQuery = safeQueryValue(searchParams.get("worksheetId"));
   const worksheetProgressFromQuery = safeQueryValue(searchParams.get("progressLevel"));
   const returnToFromQuery = safeQueryValue(searchParams.get("returnTo"));
   const observedOnFromQuery =
@@ -1398,8 +1397,6 @@ function CleanCaptureWorkspaceBody() {
         ? [
             `Completed worksheet evidence for ${safeQueryValue(nextPathwayContext.pathwayLabel) || "this pathway"} / ${safeQueryValue(nextPathwayContext.stepTitle) || "this step"}.`,
             worksheetTitleFromQuery ? `Worksheet: ${worksheetTitleFromQuery}.` : "",
-            worksheetHrefFromQuery ? `Worksheet link: ${worksheetHrefFromQuery}.` : "",
-            worksheetIdFromQuery ? `Worksheet resource ID: ${worksheetIdFromQuery}.` : "",
           ].filter(Boolean).join("\n")
         : "";
 
@@ -1422,8 +1419,6 @@ function CleanCaptureWorkspaceBody() {
       worksheetEvidenceMode
         ? [
             worksheetProgress ? `Progress level: ${worksheetProgress.value}` : "",
-            "Source: worksheet_evidence",
-            worksheetHrefFromQuery ? `Worksheet: ${worksheetHrefFromQuery}` : "",
           ].filter(Boolean).join("\n")
         : "",
     );
@@ -1483,7 +1478,6 @@ function CleanCaptureWorkspaceBody() {
     workspace.profile,
     worksheetEvidenceMode,
     worksheetHrefFromQuery,
-    worksheetIdFromQuery,
     worksheetProgressFromQuery,
     worksheetProgressLevel,
     worksheetTitleFromQuery,
@@ -2833,8 +2827,6 @@ function CleanCaptureWorkspaceBody() {
                           setReflection(
                             [
                               progressLine,
-                              "Source: worksheet_evidence",
-                              worksheetHrefFromQuery ? `Worksheet: ${worksheetHrefFromQuery}` : "",
                               event.target.value,
                             ].filter(Boolean).join("\n"),
                           );
@@ -3194,58 +3186,6 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
             </section>
 
-            {!worksheetEvidenceMode && !learningFromLifeActive ? (
-              <section
-                className="mylearna-capture-later-additions"
-                style={{
-                  ...cardStyle,
-                  background: "#f8fafc",
-                  borderStyle: "dashed",
-                }}
-              >
-                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Later additions</h2>
-                <p style={{ marginTop: 0, color: "#475569" }}>
-                  This phase stays text-first. Media and file capture can come later.
-                </p>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  }}
-                >
-                  {["Photo upload", "File upload", "Audio note"].map((label) => (
-                    <div
-                      key={label}
-                      style={{
-                        border: "1px dashed #cbd5e1",
-                        borderRadius: 14,
-                        padding: 14,
-                        display: "grid",
-                        gap: 8,
-                        background: "#f8fafc",
-                      }}
-                      >
-                        <strong style={{ color: "#0f172a" }}>{label}</strong>
-                      <button
-                        type="button"
-                        disabled
-                        style={{
-                          ...buttonStyle,
-                          background: "#e2e8f0",
-                          borderColor: "#cbd5e1",
-                          color: "#475569",
-                          cursor: "not-allowed",
-                        }}
-                      >
-                        Coming later
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             {!worksheetEvidenceMode && !lastSavedPathwayContext ? (
             <section data-guidance-id="capture-next-portfolio" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Portfolio</h2>
@@ -3260,9 +3200,6 @@ function CleanCaptureWorkspaceBody() {
                 skipLabel="Skip capture for now"
                 helperText="Capture an evidence item if you can, or skip this setup step and return later."
               />
-              <Link href="/my-portfolio" style={buttonStyle}>
-                Open My Portfolio
-              </Link>
             </section>
             ) : null}
 

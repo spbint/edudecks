@@ -1182,7 +1182,8 @@ function CleanPortfolioWorkspaceBody() {
             <section data-guidance-id="portfolio-evidence-list" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Pathway checks</h2>
               <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Completed checks are shown as report-ready assessment evidence. Portfolio selection for checks will come later.
+                Recent pathway check-ins are shown here for reference alongside other
+                evidence notes.
               </p>
               {itemsLoading ? (
                 <p style={{ margin: 0, color: "#475569" }}>Loading pathway checks...</p>
@@ -1528,9 +1529,6 @@ function CleanPortfolioWorkspaceBody() {
                 label="Continue to My Reports"
                 helperText="You have reviewed how portfolio evidence is gathered. Continue to report preview."
               />
-              <Link href={reportsPathBase} style={buttonStyle}>
-                Open My Reports
-              </Link>
             </section>
           </>
         ) : null}

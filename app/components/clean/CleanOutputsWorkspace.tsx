@@ -1543,7 +1543,8 @@ function CleanOutputsWorkspaceBody() {
               </div>
 
               <p style={{ margin: "12px 0 0", color: "#475569" }}>
-                Downloading the PDF also records an output entry for this ready report. The file stays in your browser download flow and is not stored online in this phase.
+                Downloading the PDF also records an output entry for this ready report.
+                The file stays in your browser download flow.
               </p>
             </section>
 
@@ -1802,7 +1803,7 @@ function CleanOutputsWorkspaceBody() {
                 <section style={cardStyle}>
                   <h2 style={{ marginTop: 0, color: "#0f172a" }}>Output history</h2>
                   <p style={{ marginTop: 0, color: "#475569" }}>
-                    Each entry shows when a PDF was downloaded for this ready report. The file itself is not stored online in this phase.
+                    Each entry shows when a PDF was downloaded for this ready report.
                   </p>
 
                   {exportsLoading ? (

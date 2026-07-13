@@ -92,6 +92,11 @@ import {
 } from "@/lib/signupPrefill";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
+type PendingCalendarDelete =
+  | { type: "calendar-item"; item: CleanCalendarItem }
+  | { type: "learning-period"; period: CleanLearningPeriod }
+  | { type: "template-block"; block: CleanTemplateBlock };
+
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
@@ -472,7 +477,7 @@ function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boo
 function getSourceLabel(sourceType: string | null) {
   if (sourceType === "generated") return "Added from master week";
   if (sourceType === "template") return "From master week";
-  return "Hand added";
+  return "Added manually";
 }
 
 function getSnapshotStatusLabel(status: string) {
@@ -952,6 +957,7 @@ function CleanCalendarWorkspaceBody() {
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [plannerDownloading, setPlannerDownloading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<PendingCalendarDelete | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeSurfaceId, setActiveSurfaceId] = useState<string | null>(null);
@@ -2105,15 +2111,6 @@ function CleanCalendarWorkspaceBody() {
   async function handleLearningPeriodDelete(period: CleanLearningPeriod) {
     if (!workspace.profile) return;
 
-      const confirmationMessage =
-        period.isBreak || period.periodType === "break"
-          ? "Delete this break / holiday? Learning blocks may be planned for these dates again."
-          : "Delete this learning period? This will not delete your learners or programs, but weekly planning may no longer use these dates.";
-
-    if (!window.confirm(confirmationMessage)) {
-      return;
-    }
-
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
@@ -2247,9 +2244,6 @@ function CleanCalendarWorkspaceBody() {
 
   async function handleTemplateBlockDelete(block: CleanTemplateBlock) {
     if (!workspace.profile) return;
-    if (!window.confirm("Delete this block from the master week?")) {
-      return;
-    }
 
     setSubmitting(true);
     setMessage(null);
@@ -2516,6 +2510,21 @@ function CleanCalendarWorkspaceBody() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleConfirmCalendarDelete() {
+    if (!pendingDelete) return;
+    const deleteRequest = pendingDelete;
+
+    if (deleteRequest.type === "calendar-item") {
+      await handleDeleteItem(deleteRequest.item);
+    } else if (deleteRequest.type === "learning-period") {
+      await handleLearningPeriodDelete(deleteRequest.period);
+    } else {
+      await handleTemplateBlockDelete(deleteRequest.block);
+    }
+
+    setPendingDelete(null);
   }
 
   async function handleWeeklyPlannerDownload() {
@@ -3436,7 +3445,7 @@ function CleanCalendarWorkspaceBody() {
                                             style={dangerButtonStyle}
                                             onClick={(event) => {
                                               event.stopPropagation();
-                                              void handleDeleteItem(item);
+                                              setPendingDelete({ type: "calendar-item", item });
                                             }}
                                           >
                                             Delete
@@ -4231,7 +4240,7 @@ function CleanCalendarWorkspaceBody() {
                                   <button
                                     type="button"
                                     style={dangerButtonStyle}
-                                    onClick={() => void handleLearningPeriodDelete(period)}
+                                    onClick={() => setPendingDelete({ type: "learning-period", period })}
                                     disabled={submitting}
                                   >
                                     Delete
@@ -5799,7 +5808,7 @@ function CleanCalendarWorkspaceBody() {
                                             }}
                                             onClick={(event) => {
                                               event.stopPropagation();
-                                              void handleDeleteItem(item);
+                                              setPendingDelete({ type: "calendar-item", item });
                                             }}
                                           >
                                             Delete
@@ -5919,6 +5928,91 @@ function CleanCalendarWorkspaceBody() {
         ))}
       </datalist>
 
+      {pendingDelete ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="calendar-delete-confirmation-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 70,
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+            background: "rgba(15,23,42,0.38)",
+          }}
+        >
+          <div
+            style={{
+              width: "min(100%, 520px)",
+              border: "1px solid #fecaca",
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: 20,
+              boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <h2
+                id="calendar-delete-confirmation-title"
+                style={{ margin: 0, color: "#0f172a", fontSize: 24 }}
+              >
+                {pendingDelete.type === "learning-period"
+                  ? pendingDelete.period.isBreak || pendingDelete.period.periodType === "break"
+                    ? "Delete this break / holiday?"
+                    : "Delete this learning period?"
+                  : pendingDelete.type === "template-block"
+                    ? "Delete this master week block?"
+                    : "Delete this calendar block?"}
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                {pendingDelete.type === "learning-period"
+                  ? "This removes the date range from planning. Learners and programs are not deleted."
+                  : pendingDelete.type === "template-block"
+                    ? "This removes the block from the master week template."
+                    : "This removes the block from this week."}
+              </p>
+              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                {pendingDelete.type === "learning-period"
+                  ? pendingDelete.period.title
+                  : pendingDelete.type === "template-block"
+                    ? pendingDelete.block.title
+                    : pendingDelete.item.title}
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="button"
+                autoFocus
+                style={mutedButtonStyle}
+                onClick={() => setPendingDelete(null)}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={dangerButtonStyle}
+                onClick={() => void handleConfirmCalendarDelete()}
+                disabled={submitting}
+              >
+                {submitting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <CleanCalendarPopover
         open={popoverOpen}
         mode={editingItemId ? "edit" : "create"}
@@ -5988,7 +6082,7 @@ function CleanCalendarWorkspaceBody() {
         onClose={closeRhythmPopover}
         onDelete={
           editingTemplateBlock
-            ? () => void handleTemplateBlockDelete(editingTemplateBlock)
+            ? () => setPendingDelete({ type: "template-block", block: editingTemplateBlock })
             : undefined
         }
         onSave={() => void handleTemplateBlockSubmit()}

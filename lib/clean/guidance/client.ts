@@ -156,7 +156,7 @@ export function buildCleanGuidanceCards(
       key: "capture",
       title: "Capture today",
       description:
-        "Use one of today&apos;s planned blocks as the anchor for your first learning note.",
+        "Use one of today's planned blocks as the anchor for your first learning note.",
       actionLabel: "Open My Capture",
       actionHref: "/my-capture",
     });
