@@ -274,7 +274,11 @@ function hasGuidanceContext(profile: {
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
-  const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
+  const {
+    enabled: guidanceEnabled,
+    setupStatus: guidanceSetupStatus,
+    completeSetupStep,
+  } = useGuidance();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -535,8 +539,12 @@ function CleanDayWorkspaceBody() {
   const familyGreeting = familyDisplayName
     ? `Welcome back, ${familyDisplayName}.`
     : "Welcome back.";
+  const accountSetup = workspace.setupStatus;
   const firstSetupMode =
-    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
+    guidanceEnabled &&
+    !workspace.setupLoading &&
+    (guidanceSetupStatus === "not_started" || guidanceSetupStatus === "active") &&
+    !accountSetup.hasEvidence;
   const placementPromptLearnerId = useMemo(() => {
     if (selectedLearnerId) return selectedLearnerId;
     if (workspace.learners.length === 1) return workspace.learners[0]?.id || "";
@@ -566,8 +574,10 @@ function CleanDayWorkspaceBody() {
     [pathwaysPathBase, selectedLearnerId],
   );
   const shouldShowPlacementPrompt =
-    firstSetupMode ||
-    (workspace.learners.length > 0 && !hasPlacementForPromptLearner);
+    !workspace.setupLoading &&
+    workspace.learners.length > 0 &&
+    !accountSetup.hasPathway &&
+    !hasPlacementForPromptLearner;
   const continueActions = useMemo(() => {
     const pathwayLabel = selectedLearnerLabel
       ? `Open ${selectedLearnerLabel}'s current pathway`
@@ -822,7 +832,7 @@ function CleanDayWorkspaceBody() {
   }
 
   function skipPlacementCheckForNow() {
-    if (setupStatus === "active") {
+    if (guidanceSetupStatus === "active") {
       completeSetupStep("day");
     }
     router.push(pathwaysPathBase);

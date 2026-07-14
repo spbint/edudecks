@@ -1963,11 +1963,13 @@ function CleanCaptureWorkspaceBody() {
           }
         `}</style>
         <CleanFirstRunSetupGate currentStep="capture" />
-        <GuidanceSetupProgress
-          stepId="capture"
-          title="Capture first learning evidence."
-          body="Add a note, work sample or observation when meaningful learning happens, or skip this setup step for now."
-        />
+        {!workspace.loading && !workspace.setupLoading && !workspace.setupStatus.hasEvidence ? (
+          <GuidanceSetupProgress
+            stepId="capture"
+            title="Capture first learning evidence."
+            body="Add a note, work sample or observation when meaningful learning happens."
+          />
+        ) : null}
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myCapture}
@@ -3186,7 +3188,10 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
             </section>
 
-            {!worksheetEvidenceMode && !lastSavedPathwayContext ? (
+            {!worksheetEvidenceMode &&
+            !lastSavedPathwayContext &&
+            !workspace.setupLoading &&
+            !workspace.setupStatus.hasEvidence ? (
             <section data-guidance-id="capture-next-portfolio" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Portfolio</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -3197,8 +3202,7 @@ function CleanCaptureWorkspaceBody() {
                 stepId="capture"
                 nextHref="/my-portfolio"
                 label="Continue to My Portfolio"
-                skipLabel="Skip capture for now"
-                helperText="Capture an evidence item if you can, or skip this setup step and return later."
+                helperText="Capture an evidence item when something useful has happened."
               />
             </section>
             ) : null}

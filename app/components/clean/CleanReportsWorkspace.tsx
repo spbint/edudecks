@@ -1443,11 +1443,13 @@ function CleanReportsWorkspaceBody() {
         `}</style>
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="reports" />
-        <GuidanceSetupProgress
-          stepId="reports"
-          title="Preview records and reporting."
-          body="See how planning, evidence and portfolio items can become clearer records."
-        />
+        {!workspace.setupLoading && !workspace.setupStatus.hasReport ? (
+          <GuidanceSetupProgress
+            stepId="reports"
+            title="Preview records and reporting."
+            body="See how planning, evidence and portfolio items can become clearer records."
+          />
+        ) : null}
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myReports}
@@ -2429,13 +2431,14 @@ function CleanReportsWorkspaceBody() {
                             : "Choose the learner and report period first, then return here to move into output."}
                       </p>
                     </div>
-                    <GuidanceSetupNextAction
-                      stepId="reports"
-                      nextHref={buildOutputsHref(selectedReport)}
-                      label="Open output history"
-                      skipLabel="Skip reports for now"
-                      helperText="You can download the PDF here. Output history remains available if you need it."
-                    />
+                    {!workspace.setupLoading && !workspace.setupStatus.hasReport ? (
+                      <GuidanceSetupNextAction
+                        stepId="reports"
+                        nextHref={buildOutputsHref(selectedReport)}
+                        label="Open output history"
+                        helperText="You can download the PDF here. Output history remains available if you need it."
+                      />
+                    ) : null}
                   </ReportBuildStepCard>
                 </div>
 

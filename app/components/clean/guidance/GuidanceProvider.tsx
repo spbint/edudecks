@@ -7,7 +7,6 @@ import {
   CURRENT_SETUP_STEP_KEY,
   SETUP_STATUS_KEY,
   getNextSetupStep,
-  getSetupRoute,
 } from "@/lib/clean/setup/setupFlow";
 
 const GUIDANCE_ENABLED_KEY = "mylearna.guidance.enabled";
@@ -136,10 +135,6 @@ function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
 }
 
-function isHardSetupRedirectStep(stepId: string) {
-  return stepId === "profile" || stepId === "settings";
-}
-
 function writePendingTour(tourId: GuidanceTourId) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
@@ -188,18 +183,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       if (setupStatus === "active") {
-        if (!isHardSetupRedirectStep(currentSetupStep || "profile")) {
-          setShowWelcomePrompt(false);
-          return;
-        }
-        const setupPath = getSetupRoute(
-          currentSetupStep || "profile",
-          pathname.startsWith("/clean-my-"),
-        );
-        if (pathname !== setupPath) {
-          setShowWelcomePrompt(false);
-          router.replace(setupPath);
-        }
+        setShowWelcomePrompt(false);
         return;
       }
       if (setupStatus !== "not_started") {

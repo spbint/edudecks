@@ -715,11 +715,13 @@ function CleanPortfolioWorkspaceBody() {
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="portfolio" />
-        <GuidanceSetupProgress
-          stepId="portfolio"
-          title="Review captured evidence."
-          body="See how captured learning can become a clearer portfolio over time."
-        />
+        {!workspace.setupLoading && !workspace.setupStatus.hasPortfolioItem ? (
+          <GuidanceSetupProgress
+            stepId="portfolio"
+            title="Review captured evidence."
+            body="See how captured learning can become a clearer portfolio over time."
+          />
+        ) : null}
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myPortfolio}
@@ -1517,6 +1519,7 @@ function CleanPortfolioWorkspaceBody() {
               ) : null}
             </section>
 
+            {!workspace.setupLoading && workspace.setupStatus.hasPortfolioItem && !workspace.setupStatus.hasReport ? (
             <section data-guidance-id="portfolio-next-reports" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Reports</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -1530,6 +1533,7 @@ function CleanPortfolioWorkspaceBody() {
                 helperText="You have reviewed how portfolio evidence is gathered. Continue to report preview."
               />
             </section>
+            ) : null}
           </>
         ) : null}
 

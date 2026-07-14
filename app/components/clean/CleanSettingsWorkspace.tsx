@@ -469,31 +469,13 @@ function getReportingModeDescription(reportingMode: string) {
   return "Choose the reporting approach that best fits how you want MyLearna to frame your records.";
 }
 
-function hasMyDayContext(profile: FamilyProfile | null) {
-  if (!profile) return false;
-
-  const countryCode = safe(profile.countryCode);
-  const curriculumFrameworkId = safe(profile.curriculumFrameworkId);
-  const jurisdictionCode = safe(profile.jurisdictionCode);
-
-  if (!countryCode || !curriculumFrameworkId) {
-    return false;
-  }
-
-  if (countryCode === "INTL") {
-    return true;
-  }
-
-  return Boolean(jurisdictionCode);
-}
-
 function CleanSettingsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const router = useRouter();
   const {
     completeSetupStep,
     enabled: guidanceEnabled,
-    setupStatus,
+    setupStatus: guidanceSetupStatus,
   } = useGuidance();
   const [draft, setDraft] = useState<SettingsDraft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -557,10 +539,7 @@ function CleanSettingsWorkspaceBody() {
       jurisdictionCode: draft?.jurisdictionCode || "",
     });
 
-  const myDayContextReady = useMemo(
-    () => hasMyDayContext(workspace.profile),
-    [workspace.profile],
-  );
+  const myDayContextReady = workspace.setupStatus.hasLearningSettings;
   const brentModeActive = useMemo(
     () => isBrentAuthorityTemplateActive(workspace.profile),
     [workspace.profile],
@@ -648,7 +627,10 @@ function CleanSettingsWorkspaceBody() {
   const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
   const settingsHeading = familyDisplayName ? `${familyDisplayName} settings` : "My Settings";
   const firstSetupMode =
-    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
+    guidanceEnabled &&
+    !workspace.setupLoading &&
+    (guidanceSetupStatus === "not_started" || guidanceSetupStatus === "active") &&
+    !workspace.setupStatus.hasLearningSettings;
 
   function updateCountry(countryCode: string) {
     setDraft((current) => {
@@ -778,7 +760,7 @@ function CleanSettingsWorkspaceBody() {
       );
       await workspace.reload();
       clearSignupPrefill();
-      if (setupStatus === "active") {
+      if (guidanceSetupStatus === "active") {
         completeSetupStep("settings");
         router.push("/my-calendar");
       }
@@ -1359,7 +1341,7 @@ function CleanSettingsWorkspaceBody() {
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                 After your settings are saved, create a simple weekly plan in My Calendar.
               </p>
-              {setupStatus === "active" ? (
+              {guidanceSetupStatus === "active" ? (
                 <GuidanceSetupNextAction
                   stepId="settings"
                   nextHref="/my-calendar"

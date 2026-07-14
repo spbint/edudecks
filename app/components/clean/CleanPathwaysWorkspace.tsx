@@ -47,8 +47,6 @@ import {
   resolveCanonicalPathwayStepIdFromParts,
   type UnifiedPathwayStepStateIndex,
 } from "@/lib/clean/pathways/pathwayStepState";
-import { listCleanAcademicYears, listCleanLearningPeriods } from "@/lib/clean/terms/client";
-import { isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -969,12 +967,6 @@ function PathwaysWorkspaceBody() {
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
-  const [planningSetupState, setPlanningSetupState] = useState({
-    loading: true,
-    hasLearningYear: false,
-    hasLearningPeriod: false,
-    hasBreaks: false,
-  });
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -1039,14 +1031,8 @@ function PathwaysWorkspaceBody() {
     );
     if (currentIsValid) return selectedLearnerIdOverride;
     if (!workspace.learners.length) return "";
-
-    const defaultLearnerId = workspace.profile?.defaultLearnerId;
-    const defaultIsValid = defaultLearnerId
-      ? workspace.learners.some((learner) => learner.id === defaultLearnerId)
-      : false;
-
-    return defaultIsValid ? defaultLearnerId || "" : workspace.learners[0]?.id || "";
-  }, [selectedLearnerIdOverride, workspace.learners, workspace.profile?.defaultLearnerId]);
+    return workspace.setupStatus.activeLearnerId || "";
+  }, [selectedLearnerIdOverride, workspace.learners, workspace.setupStatus.activeLearnerId]);
 
   const selectedLearner = useMemo(
     () => workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
@@ -1062,66 +1048,16 @@ function PathwaysWorkspaceBody() {
     });
   }, [selectedLearnerId]);
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadPlanningSetupState() {
-      if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
-        if (active) {
-          setPlanningSetupState({
-            loading: false,
-            hasLearningYear: false,
-            hasLearningPeriod: false,
-            hasBreaks: false,
-          });
-        }
-        return;
-      }
-
-      setPlanningSetupState((current) => ({ ...current, loading: true }));
-
-      try {
-        const [academicYears, learningPeriods] = await Promise.all([
-          listCleanAcademicYears(workspace.profile.id, { limit: 20 }),
-          listCleanLearningPeriods(workspace.profile.id, { limit: 50 }),
-        ]);
-
-        if (!active) return;
-
-        setPlanningSetupState({
-          loading: false,
-          hasLearningYear: academicYears.length > 0,
-          hasLearningPeriod: learningPeriods.some((period) => !isBreakLearningPeriod(period)),
-          hasBreaks: learningPeriods.some((period) => isBreakLearningPeriod(period)),
-        });
-      } catch {
-        if (!active) return;
-        setPlanningSetupState({
-          loading: false,
-          hasLearningYear: false,
-          hasLearningPeriod: false,
-          hasBreaks: false,
-        });
-      }
-    }
-
-    void loadPlanningSetupState();
-
-    return () => {
-      active = false;
-    };
-  }, [workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
-
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
   const learnerSetupKnown = !workspace.loading && !workspace.schemaMissing;
-  const missingLearnerSetup = learnerSetupKnown && workspace.learners.length === 0;
-  const planningSetupKnown = !planningSetupState.loading;
-  const missingLearningYearSetup = planningSetupKnown && !planningSetupState.hasLearningYear;
+  const missingLearnerSetup = learnerSetupKnown && !workspace.setupStatus.hasLearner;
+  const planningSetupKnown = !workspace.setupLoading;
+  const missingLearningYearSetup = planningSetupKnown && !workspace.setupStatus.hasLearningYear;
   const missingLearningPeriodSetup =
     planningSetupKnown &&
-    planningSetupState.hasLearningYear &&
-    !planningSetupState.hasLearningPeriod;
+    workspace.setupStatus.hasLearningYear &&
+    !workspace.setupStatus.hasTeachingPeriod;
   const missingSetupItems = [
     missingLearnerSetup ? "a learner" : null,
     missingLearningYearSetup ? "a learning year" : null,
@@ -1944,7 +1880,7 @@ function PathwaysWorkspaceBody() {
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                 Add {missingSetupSummary}
-                {planningSetupState.hasBreaks && missingLearningPeriodSetup
+                {workspace.setupStatus.counts.breaks > 0 && missingLearningPeriodSetup
                   ? ". A break or holiday is saved, but regular pathway planning still needs a genuine learning period."
                   : " so MyLearna can recommend suitable steps and connect activities to your calendar."}
               </p>
