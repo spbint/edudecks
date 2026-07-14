@@ -1,6 +1,11 @@
 "use client";
 
 import React from "react";
+import {
+  CONTROLLED_LEARNING_AREAS,
+  type CalendarTimeMode,
+  type ControlledLearningArea,
+} from "@/lib/clean/calendar/planningIntegrity";
 
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
@@ -78,6 +83,8 @@ export default function CleanCalendarPopover({
   title,
   learnerId,
   learningArea,
+  learningAreaCustom,
+  timeMode,
   startTime,
   endTime,
   description,
@@ -89,6 +96,8 @@ export default function CleanCalendarPopover({
   onChangeTitle,
   onChangeLearnerId,
   onChangeLearningArea,
+  onChangeLearningAreaCustom,
+  onChangeTimeMode,
   onChangeStartTime,
   onChangeEndTime,
   onChangeDescription,
@@ -104,6 +113,8 @@ export default function CleanCalendarPopover({
   title: string;
   learnerId: string;
   learningArea: string;
+  learningAreaCustom: string;
+  timeMode: CalendarTimeMode;
   startTime: string;
   endTime: string;
   description: string;
@@ -115,6 +126,8 @@ export default function CleanCalendarPopover({
   onChangeTitle: (value: string) => void;
   onChangeLearnerId: (value: string) => void;
   onChangeLearningArea: (value: string) => void;
+  onChangeLearningAreaCustom: (value: string) => void;
+  onChangeTimeMode: (value: CalendarTimeMode) => void;
   onChangeStartTime: (value: string) => void;
   onChangeEndTime: (value: string) => void;
   onChangeDescription: (value: string) => void;
@@ -185,14 +198,65 @@ export default function CleanCalendarPopover({
 
           <label style={labelStyle}>
             Learning area
-            <input
+            <select
               value={learningArea}
-              onChange={(event) => onChangeLearningArea(event.target.value)}
-              placeholder="Optional"
+              onChange={(event) =>
+                onChangeLearningArea(event.target.value as ControlledLearningArea | "")
+              }
               style={inputStyle}
-            />
+            >
+              <option value="">No learning area</option>
+              {CONTROLLED_LEARNING_AREAS.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
           </label>
+          {learningArea === "Other" ? (
+            <label style={labelStyle}>
+              Custom label
+              <input
+                value={learningAreaCustom}
+                onChange={(event) => onChangeLearningAreaCustom(event.target.value)}
+                placeholder="Optional"
+                style={inputStyle}
+              />
+            </label>
+          ) : null}
         </div>
+
+        <fieldset
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 14,
+            padding: 12,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <legend style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+            Time
+          </legend>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", color: "#334155" }}>
+            <input
+              type="radio"
+              name="calendar-time-mode"
+              checked={timeMode === "untimed"}
+              onChange={() => onChangeTimeMode("untimed")}
+            />
+            No specific time
+          </label>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", color: "#334155" }}>
+            <input
+              type="radio"
+              name="calendar-time-mode"
+              checked={timeMode === "timed"}
+              onChange={() => onChangeTimeMode("timed")}
+            />
+            Set start and end time
+          </label>
+        </fieldset>
 
         <div
           style={{
@@ -208,6 +272,7 @@ export default function CleanCalendarPopover({
               value={startTime}
               onChange={(event) => onChangeStartTime(event.target.value)}
               style={inputStyle}
+              disabled={timeMode === "untimed"}
             />
           </label>
           <label style={labelStyle}>
@@ -217,6 +282,7 @@ export default function CleanCalendarPopover({
               value={endTime}
               onChange={(event) => onChangeEndTime(event.target.value)}
               style={inputStyle}
+              disabled={timeMode === "untimed"}
             />
           </label>
         </div>

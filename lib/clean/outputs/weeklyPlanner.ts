@@ -6,6 +6,10 @@ import {
 } from "pdf-lib";
 
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
+import {
+  formatCalendarTimeRange,
+  normalizeLearningAreaLabel,
+} from "@/lib/clean/calendar/planningIntegrity";
 import type { CleanTemplateBlock } from "@/lib/clean/templates/types";
 
 export type CleanWeeklyPlannerEntry = {
@@ -163,55 +167,11 @@ function formatMonthLabel(value: string) {
   });
 }
 
-function safeTimeString(value: string | null | undefined) {
-  const time = safe(value);
-  return time.length >= 5 ? time.slice(0, 5) : time;
-}
-
-function formatClockTimeLabel(value: string | null | undefined) {
-  const time = safeTimeString(value);
-  if (!time) return "";
-
-  const [hoursText = "00", minutesText = "00"] = time.split(":");
-  const hours = Number.parseInt(hoursText, 10);
-  const minutes = Number.parseInt(minutesText, 10);
-
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return time;
-  }
-
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatPlannerTimeValue(value: string | null | undefined) {
-  const clean = safe(value);
-  if (!clean) return "";
-
-  const timestamp = new Date(clean);
-  if (!Number.isNaN(timestamp.getTime())) {
-    return timestamp.toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }
-
-  return formatClockTimeLabel(clean);
-}
-
 function buildPlannerTimeLabel(
   startsAt: string | null | undefined,
   endsAt: string | null | undefined,
 ) {
-  const start = formatPlannerTimeValue(startsAt);
-  const end = formatPlannerTimeValue(endsAt);
-
-  if (start && end) return `${start} to ${end}`;
-  return start || end || null;
+  return formatCalendarTimeRange(startsAt, endsAt);
 }
 
 function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: number) {
@@ -655,7 +615,7 @@ export function buildCleanWeeklyPlannerEntriesFromCalendarItems(
     learnerLabel: item.learnerId
       ? labels.learnerLabelById?.get(item.learnerId) ?? "Learner"
       : null,
-    learningArea: item.learningArea ?? null,
+    learningArea: normalizeLearningAreaLabel(item.learningArea) || null,
     programTitle: item.programId
       ? labels.programLabelById?.get(item.programId) ?? null
       : null,
@@ -684,7 +644,7 @@ export function buildCleanWeeklyPlannerEntriesFromTemplateBlocks(
       learnerLabel: block.learnerId
         ? labels.learnerLabelById?.get(block.learnerId) ?? "Learner"
         : null,
-      learningArea: block.learningArea ?? null,
+      learningArea: normalizeLearningAreaLabel(block.learningArea) || null,
       programTitle: block.programId
         ? labels.programLabelById?.get(block.programId) ?? null
         : null,

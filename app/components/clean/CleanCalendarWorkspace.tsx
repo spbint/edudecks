@@ -25,6 +25,16 @@ import {
 } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
+  CONTROLLED_LEARNING_AREAS,
+  findBreakForDate,
+  formatCalendarTimeRange,
+  resolveLearningAreaControl,
+  resolveStoredLearningArea,
+  validateCalendarTimeMode,
+  type CalendarTimeMode,
+  type ControlledLearningArea,
+} from "@/lib/clean/calendar/planningIntegrity";
+import {
   applyCleanGeneratedWeek,
   buildCleanGeneratedWeekPreview,
   listCleanGenerationRuns,
@@ -182,9 +192,14 @@ const secondaryTextStyle: React.CSSProperties = {
 };
 
 const MASTER_WEEK_SKIP_KEY_PREFIX = "mylearna.calendar.masterWeekTemplateSkipped";
+const CALENDAR_VIEW_STATE_KEY_PREFIX = "mylearna.calendar.viewState";
 
 function getMasterWeekSkipKey(familyId?: string | null) {
   return familyId ? `${MASTER_WEEK_SKIP_KEY_PREFIX}.${familyId}` : MASTER_WEEK_SKIP_KEY_PREFIX;
+}
+
+function getCalendarViewStateKey(familyId?: string | null) {
+  return familyId ? `${CALENDAR_VIEW_STATE_KEY_PREFIX}.${familyId}` : CALENDAR_VIEW_STATE_KEY_PREFIX;
 }
 
 const subtleFieldCardStyle: React.CSSProperties = {
@@ -225,17 +240,6 @@ function getClickableCardStyle(isActive: boolean): React.CSSProperties {
     boxShadow: isActive ? "0 0 0 3px rgba(59,130,246,0.14)" : "none",
   };
 }
-
-const AUSTRALIAN_LEARNING_AREAS = [
-  "English",
-  "Mathematics",
-  "Science",
-  "Humanities and Social Sciences",
-  "The Arts",
-  "Languages",
-  "Health and Physical Education",
-  "Technologies",
-];
 
 const PERIOD_TYPES: CleanLearningPeriodType[] = [
   "term",
@@ -408,44 +412,6 @@ function formatMonthLabel(value: string) {
   });
 }
 
-function formatTimeLabel(value: string | null) {
-  if (!value) return "Any time";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatClockTimeLabel(value: string | null) {
-  const time = safeTimeString(value ?? "");
-  if (!time) return "";
-
-  const [hoursText = "00", minutesText = "00"] = time.split(":");
-  const hours = Number.parseInt(hoursText, 10);
-  const minutes = Number.parseInt(minutesText, 10);
-
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return time;
-  }
-
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-
-  return date.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatClockRangeLabel(startsAt: string | null, endsAt: string | null) {
-  const start = formatClockTimeLabel(startsAt);
-  const end = formatClockTimeLabel(endsAt);
-  if (start && end) return `${start} to ${end}`;
-  return start || end || "Any time";
-}
-
 function downloadPdf(bytes: Uint8Array, filename: string) {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -477,7 +443,7 @@ function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boo
 function getSourceLabel(sourceType: string | null) {
   if (sourceType === "generated") return "Added from master week";
   if (sourceType === "template") return "From master week";
-  return "Added manually";
+  return "Added";
 }
 
 function getSnapshotStatusLabel(status: string) {
@@ -519,7 +485,9 @@ function CleanRhythmBlockPopover({
   weekdayLabel,
   title,
   learningArea,
+  learningAreaCustom,
   learnerId,
+  timeMode,
   startTime,
   endTime,
   programId,
@@ -531,7 +499,9 @@ function CleanRhythmBlockPopover({
   segmentOptions,
   onChangeTitle,
   onChangeLearningArea,
+  onChangeLearningAreaCustom,
   onChangeLearnerId,
+  onChangeTimeMode,
   onChangeStartTime,
   onChangeEndTime,
   onChangeProgramId,
@@ -548,7 +518,9 @@ function CleanRhythmBlockPopover({
   weekdayLabel: string;
   title: string;
   learningArea: string;
+  learningAreaCustom: string;
   learnerId: string;
+  timeMode: CalendarTimeMode;
   startTime: string;
   endTime: string;
   programId: string;
@@ -560,7 +532,9 @@ function CleanRhythmBlockPopover({
   segmentOptions: PickerOption[];
   onChangeTitle: (value: string) => void;
   onChangeLearningArea: (value: string) => void;
+  onChangeLearningAreaCustom: (value: string) => void;
   onChangeLearnerId: (value: string) => void;
+  onChangeTimeMode: (value: CalendarTimeMode) => void;
   onChangeStartTime: (value: string) => void;
   onChangeEndTime: (value: string) => void;
   onChangeProgramId: (value: string) => void;
@@ -680,15 +654,73 @@ function CleanRhythmBlockPopover({
             }}
           >
             Learning area
-            <input
+            <select
               value={learningArea}
-              onChange={(event) => onChangeLearningArea(event.target.value)}
-              placeholder="Optional"
-              list="clean-learning-areas"
+              onChange={(event) =>
+                onChangeLearningArea(event.target.value as ControlledLearningArea | "")
+              }
               style={inputStyle}
-            />
+            >
+              <option value="">No learning area</option>
+              {CONTROLLED_LEARNING_AREAS.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
           </label>
+          {learningArea === "Other" ? (
+            <label
+              style={{
+                display: "grid",
+                gap: 6,
+                color: "#334155",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Custom label
+              <input
+                value={learningAreaCustom}
+                onChange={(event) => onChangeLearningAreaCustom(event.target.value)}
+                placeholder="Optional"
+                style={inputStyle}
+              />
+            </label>
+          ) : null}
         </div>
+
+        <fieldset
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 14,
+            padding: 12,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <legend style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+            Time
+          </legend>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", color: "#334155" }}>
+            <input
+              type="radio"
+              name="master-block-time-mode"
+              checked={timeMode === "untimed"}
+              onChange={() => onChangeTimeMode("untimed")}
+            />
+            No specific time
+          </label>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", color: "#334155" }}>
+            <input
+              type="radio"
+              name="master-block-time-mode"
+              checked={timeMode === "timed"}
+              onChange={() => onChangeTimeMode("timed")}
+            />
+            Set start and end time
+          </label>
+        </fieldset>
 
         <div
           style={{
@@ -712,6 +744,7 @@ function CleanRhythmBlockPopover({
               value={startTime}
               onChange={(event) => onChangeStartTime(event.target.value)}
               style={inputStyle}
+              disabled={timeMode === "untimed"}
             />
           </label>
           <label
@@ -729,6 +762,7 @@ function CleanRhythmBlockPopover({
               value={endTime}
               onChange={(event) => onChangeEndTime(event.target.value)}
               style={inputStyle}
+              disabled={timeMode === "untimed"}
             />
           </label>
           <label
@@ -919,7 +953,9 @@ function CleanCalendarWorkspaceBody() {
   const [blockWeekday, setBlockWeekday] = useState("1");
   const [blockTitle, setBlockTitle] = useState("");
   const [blockLearningArea, setBlockLearningArea] = useState("");
+  const [blockLearningAreaCustom, setBlockLearningAreaCustom] = useState("");
   const [blockLearnerId, setBlockLearnerId] = useState("");
+  const [blockTimeMode, setBlockTimeMode] = useState<CalendarTimeMode>("untimed");
   const [blockStartTime, setBlockStartTime] = useState("");
   const [blockEndTime, setBlockEndTime] = useState("");
   const [blockProgramId, setBlockProgramId] = useState("");
@@ -933,6 +969,8 @@ function CleanCalendarWorkspaceBody() {
   const [popoverTitle, setPopoverTitle] = useState("");
   const [popoverLearnerId, setPopoverLearnerId] = useState("");
   const [popoverLearningArea, setPopoverLearningArea] = useState("");
+  const [popoverLearningAreaCustom, setPopoverLearningAreaCustom] = useState("");
+  const [popoverTimeMode, setPopoverTimeMode] = useState<CalendarTimeMode>("untimed");
   const [popoverStartTime, setPopoverStartTime] = useState("");
   const [popoverEndTime, setPopoverEndTime] = useState("");
   const [popoverDescription, setPopoverDescription] = useState("");
@@ -953,6 +991,7 @@ function CleanCalendarWorkspaceBody() {
   const [liveWeekViewTouched, setLiveWeekViewTouched] = useState(false);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
   const [learningPeriodsOpen, setLearningPeriodsOpen] = useState(false);
+  const [calendarViewStateHydrated, setCalendarViewStateHydrated] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -1582,6 +1621,60 @@ function CleanCalendarWorkspaceBody() {
   }, [workspace.profile]);
 
   useEffect(() => {
+    if (!workspace.profile || typeof window === "undefined") {
+      setCalendarViewStateHydrated(false);
+      return;
+    }
+
+    try {
+      const rawState = window.localStorage.getItem(getCalendarViewStateKey(workspace.profile.id));
+      const parsed = rawState ? (JSON.parse(rawState) as Record<string, unknown>) : null;
+      const nextWeekStart =
+        typeof parsed?.selectedWeekStart === "string"
+          ? getWeekStart(parsed.selectedWeekStart)
+          : null;
+      const nextBoardView =
+        parsed?.calendarBoardView === "month" || parsed?.calendarBoardView === "week"
+          ? parsed.calendarBoardView
+          : null;
+      const nextLiveView =
+        parsed?.liveWeekView === "full" || parsed?.liveWeekView === "school"
+          ? parsed.liveWeekView
+          : null;
+
+      if (nextWeekStart) setSelectedWeekStart(nextWeekStart);
+      if (nextBoardView) setCalendarBoardView(nextBoardView);
+      if (nextLiveView) {
+        setLiveWeekView(nextLiveView);
+        setLiveWeekViewTouched(true);
+      }
+    } catch {
+      window.localStorage.removeItem(getCalendarViewStateKey(workspace.profile.id));
+    } finally {
+      setCalendarViewStateHydrated(true);
+    }
+  }, [workspace.profile]);
+
+  useEffect(() => {
+    if (!workspace.profile || !calendarViewStateHydrated || typeof window === "undefined") return;
+
+    window.localStorage.setItem(
+      getCalendarViewStateKey(workspace.profile.id),
+      JSON.stringify({
+        selectedWeekStart,
+        calendarBoardView,
+        liveWeekView,
+      }),
+    );
+  }, [
+    calendarBoardView,
+    calendarViewStateHydrated,
+    liveWeekView,
+    selectedWeekStart,
+    workspace.profile,
+  ]);
+
+  useEffect(() => {
     void reloadTemplateBlocks();
   }, [reloadTemplateBlocks]);
 
@@ -1665,7 +1758,9 @@ function CleanCalendarWorkspaceBody() {
     setBlockWeekday("1");
     setBlockTitle("");
     setBlockLearningArea("");
+    setBlockLearningAreaCustom("");
     setBlockLearnerId("");
+    setBlockTimeMode("untimed");
     setBlockStartTime("");
     setBlockEndTime("");
     setBlockProgramId("");
@@ -1680,6 +1775,8 @@ function CleanCalendarWorkspaceBody() {
     setPopoverTitle("");
     setPopoverLearnerId("");
     setPopoverLearningArea("");
+    setPopoverLearningAreaCustom("");
+    setPopoverTimeMode("untimed");
     setPopoverStartTime("");
     setPopoverEndTime("");
     setPopoverDescription("");
@@ -1700,10 +1797,13 @@ function CleanCalendarWorkspaceBody() {
   function openCreatePopover(dateValue: string) {
     resetPopoverForm();
     setPopoverDate(dateValue);
+    setPopoverLearnerId(workspace.setupStatus.activeLearnerId ?? "");
     if (hasCalendarHandoff) {
       setPopoverTitle(handoffDefaults.title);
-      setPopoverLearnerId(handoffDefaults.learnerId);
-      setPopoverLearningArea(handoffDefaults.learningArea);
+      setPopoverLearnerId(handoffDefaults.learnerId || workspace.setupStatus.activeLearnerId || "");
+      const handoffArea = resolveLearningAreaControl(handoffDefaults.learningArea);
+      setPopoverLearningArea(handoffArea.area);
+      setPopoverLearningAreaCustom(handoffArea.customLabel);
       setPopoverDescription(handoffDefaults.notes);
       setPopoverProgramId(handoffDefaults.programId);
       setPopoverProgramSegmentId(handoffDefaults.segmentId);
@@ -1718,7 +1818,10 @@ function CleanCalendarWorkspaceBody() {
     setPopoverDate(item.plannedDate);
     setPopoverTitle(item.title);
     setPopoverLearnerId(item.learnerId ?? "");
-    setPopoverLearningArea(item.learningArea ?? "");
+    const itemArea = resolveLearningAreaControl(item.learningArea);
+    setPopoverLearningArea(itemArea.area);
+    setPopoverLearningAreaCustom(itemArea.customLabel);
+    setPopoverTimeMode(item.startsAt && item.endsAt ? "timed" : "untimed");
     setPopoverStartTime(toTimeFieldValue(item.startsAt));
     setPopoverEndTime(toTimeFieldValue(item.endsAt));
     setPopoverDescription(item.description ?? "");
@@ -1756,10 +1859,13 @@ function CleanCalendarWorkspaceBody() {
   function openCreateRhythmPopover(weekday: number) {
     resetTemplateBlockForm();
     setBlockWeekday(String(weekday));
+    setBlockLearnerId(workspace.setupStatus.activeLearnerId ?? "");
     if (hasCalendarHandoff) {
       setBlockTitle(handoffDefaults.title);
-      setBlockLearnerId(handoffDefaults.learnerId);
-      setBlockLearningArea(handoffDefaults.learningArea);
+      setBlockLearnerId(handoffDefaults.learnerId || workspace.setupStatus.activeLearnerId || "");
+      const handoffArea = resolveLearningAreaControl(handoffDefaults.learningArea);
+      setBlockLearningArea(handoffArea.area);
+      setBlockLearningAreaCustom(handoffArea.customLabel);
       setBlockNotes(handoffDefaults.notes);
       setBlockProgramId(handoffDefaults.programId);
       setBlockProgramSegmentId(handoffDefaults.segmentId);
@@ -1773,8 +1879,11 @@ function CleanCalendarWorkspaceBody() {
     setEditingTemplateBlockId(block.id);
     setBlockWeekday(String(block.weekday));
     setBlockTitle(block.title);
-    setBlockLearningArea(block.learningArea ?? "");
+    const blockArea = resolveLearningAreaControl(block.learningArea);
+    setBlockLearningArea(blockArea.area);
+    setBlockLearningAreaCustom(blockArea.customLabel);
     setBlockLearnerId(block.learnerId ?? "");
+    setBlockTimeMode(block.startsAt && block.endsAt ? "timed" : "untimed");
     setBlockStartTime(block.startsAt ? safeTimeString(block.startsAt) : "");
     setBlockEndTime(block.endsAt ? safeTimeString(block.endsAt) : "");
     setBlockProgramId(block.programId ?? "");
@@ -2188,6 +2297,17 @@ function CleanCalendarWorkspaceBody() {
   async function handleTemplateBlockSubmit() {
     if (!workspace.profile || !selectedTemplateId) return;
 
+    const timeResult = validateCalendarTimeMode({
+      mode: blockTimeMode,
+      startTime: blockStartTime,
+      endTime: blockEndTime,
+    });
+    if (!timeResult.ok) {
+      setActionError(timeResult.message);
+      setMessage(null);
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
@@ -2197,9 +2317,12 @@ function CleanCalendarWorkspaceBody() {
         learnerId: blockLearnerId || null,
         weekday: Number.parseInt(blockWeekday, 10) || 1,
         title: blockTitle,
-        learningArea: blockLearningArea || null,
-        startsAt: blockStartTime || null,
-        endsAt: blockEndTime || null,
+        learningArea: resolveStoredLearningArea(
+          blockLearningArea as ControlledLearningArea | "",
+          blockLearningAreaCustom,
+        ),
+        startsAt: timeResult.startsAt,
+        endsAt: timeResult.endsAt,
         programId: blockProgramId || null,
         programSegmentId: blockProgramSegmentId || null,
         notes: blockNotes || null,
@@ -2396,11 +2519,25 @@ function CleanCalendarWorkspaceBody() {
   async function handlePopoverSave() {
     if (!workspace.profile) return;
 
-    const breakForPlannedDate = getPeriodForDate(breakPeriodsForSelectedYear, popoverDate);
+    const breakForPlannedDate = findBreakForDate(popoverDate, breakPeriodsForSelectedYear);
     if (breakForPlannedDate) {
       setActionError(
-        `${formatLongDateLabel(popoverDate)} is inside ${breakForPlannedDate.title}, which is marked as a break / holiday. Regular learning blocks are paused for this date.`,
+        `${formatLongDateLabel(popoverDate)} is inside ${breakForPlannedDate.title} (${formatWeekRangeLabel(
+          breakForPlannedDate.startsOn,
+          breakForPlannedDate.endsOn,
+        )}). Regular learning blocks are paused for this break / holiday.`,
       );
+      setMessage(null);
+      return;
+    }
+
+    const timeResult = validateCalendarTimeMode({
+      mode: popoverTimeMode,
+      startTime: popoverStartTime,
+      endTime: popoverEndTime,
+    });
+    if (!timeResult.ok) {
+      setActionError(timeResult.message);
       setMessage(null);
       return;
     }
@@ -2416,9 +2553,16 @@ function CleanCalendarWorkspaceBody() {
         learnerId: popoverLearnerId || null,
         programId: popoverProgramId || null,
         programSegmentId: popoverProgramSegmentId || null,
-        learningArea: popoverLearningArea || null,
-        startsAt: toTimestampFromDateAndTime(popoverDate, popoverStartTime),
-        endsAt: toTimestampFromDateAndTime(popoverDate, popoverEndTime),
+        learningArea: resolveStoredLearningArea(
+          popoverLearningArea as ControlledLearningArea | "",
+          popoverLearningAreaCustom,
+        ),
+        startsAt: timeResult.startsAt
+          ? toTimestampFromDateAndTime(popoverDate, timeResult.startsAt)
+          : null,
+        endsAt: timeResult.endsAt
+          ? toTimestampFromDateAndTime(popoverDate, timeResult.endsAt)
+          : null,
         description: popoverDescription || null,
         sourceType: "manual" as const,
       };
@@ -2925,7 +3069,7 @@ function CleanCalendarWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForCalendar && !workspace.learners.length ? (
+        {readyForCalendar && !workspace.setupLoading && !workspace.learners.length ? (
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={secondaryTextStyle}>
@@ -2935,8 +3079,9 @@ function CleanCalendarWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForCalendar && workspace.profile && workspace.learners.length ? (
+        {readyForCalendar && !workspace.setupLoading && workspace.profile && workspace.learners.length ? (
           <>
+            {hasExistingPlanningSetup ? (
             <section
               className="mylearna-calendar-board mylearna-calendar-planner-shell"
               style={cardStyle}
@@ -3104,7 +3249,7 @@ function CleanCalendarWorkspaceBody() {
                             style={{ ...mutedButtonStyle, width: "100%", textAlign: "left" }}
                             onClick={() => void handleTodayPlannerDownload()}
                           >
-                            Download today&apos;s plan PDF
+                            Download today&apos;s plan - {formatDayMonthLabel(getTodayDate())}
                           </button>
                         </div>
                       ) : null}
@@ -3209,19 +3354,7 @@ function CleanCalendarWorkspaceBody() {
                       <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
                         No learning blocks planned yet.
                       </strong>
-                      <span>Add a block to start building your week.</span>
-                      <button
-                        type="button"
-                        style={{
-                          ...buttonStyle,
-                          width: "100%",
-                          minHeight: 44,
-                          marginTop: 12,
-                        }}
-                        onClick={() => openCreatePopover(calendarBoardDates[0] ?? selectedWeekStart)}
-                      >
-                        Add block
-                      </button>
+                      <span>Use a day below to add the first block for that date.</span>
                     </div>
                   ) : null}
 
@@ -3408,13 +3541,7 @@ function CleanCalendarWorkspaceBody() {
                                         ) : null}
                                       </div>
                                       <div style={{ color: "#475569", fontSize: 13 }}>
-                                        {item.startsAt || item.endsAt
-                                          ? `${formatTimeLabel(item.startsAt)}${
-                                              item.endsAt
-                                                ? ` to ${formatTimeLabel(item.endsAt)}`
-                                                : ""
-                                            }`
-                                          : "Any time"}
+                                        {formatCalendarTimeRange(item.startsAt, item.endsAt)}
                                       </div>
                                       <div style={{ color: "#64748b", fontSize: 13 }}>
                                         {learnerLabel}
@@ -3526,6 +3653,7 @@ function CleanCalendarWorkspaceBody() {
 
               </div>
             </section>
+            ) : null}
 
             {!firstSetupMode ? (
             <section style={cardStyle}>
@@ -5044,7 +5172,7 @@ function CleanCalendarWorkspaceBody() {
                                           >
                                             <strong style={{ color: "#0f172a" }}>{block.title}</strong>
                                             <div style={{ color: "#475569" }}>
-                                              {formatClockRangeLabel(block.startsAt, block.endsAt)}
+                                              {formatCalendarTimeRange(block.startsAt, block.endsAt)}
                                             </div>
                                             <div style={{ color: "#64748b", fontSize: 13 }}>
                                               {learnerLabel}
@@ -5526,12 +5654,7 @@ function CleanCalendarWorkspaceBody() {
                                               </span>
                                             </div>
                                             <div style={{ color: "#64748b" }}>
-                                              {item.startsAt
-                                                ? formatTimeLabel(item.startsAt)
-                                                : "Any time"}
-                                              {item.endsAt
-                                                ? ` to ${formatTimeLabel(item.endsAt)}`
-                                                : ""}
+                                              {formatCalendarTimeRange(item.startsAt, item.endsAt)}
                                             </div>
                                             <div style={{ color: "#475569" }}>
                                               {item.learnerLabel}
@@ -5769,13 +5892,7 @@ function CleanCalendarWorkspaceBody() {
                                           </span>
                                         </div>
                                         <div style={{ color: "#475569" }}>
-                                          {item.startsAt || item.endsAt
-                                            ? `${formatTimeLabel(item.startsAt)}${
-                                                item.endsAt
-                                                  ? ` to ${formatTimeLabel(item.endsAt)}`
-                                                  : ""
-                                              }`
-                                            : "Any time"}
+                                          {formatCalendarTimeRange(item.startsAt, item.endsAt)}
                                         </div>
                                         <div style={{ color: "#64748b" }}>
                                           {learnerLabel}
@@ -5922,12 +6039,6 @@ function CleanCalendarWorkspaceBody() {
         ) : null}
       </div>
 
-      <datalist id="clean-learning-areas">
-        {AUSTRALIAN_LEARNING_AREAS.map((area) => (
-          <option key={area} value={area} />
-        ))}
-      </datalist>
-
       {pendingDelete ? (
         <div
           role="dialog"
@@ -6020,6 +6131,8 @@ function CleanCalendarWorkspaceBody() {
         title={popoverTitle}
         learnerId={popoverLearnerId}
         learningArea={popoverLearningArea}
+        learningAreaCustom={popoverLearningAreaCustom}
+        timeMode={popoverTimeMode}
         startTime={popoverStartTime}
         endTime={popoverEndTime}
         description={popoverDescription}
@@ -6031,6 +6144,14 @@ function CleanCalendarWorkspaceBody() {
         onChangeTitle={setPopoverTitle}
         onChangeLearnerId={setPopoverLearnerId}
         onChangeLearningArea={setPopoverLearningArea}
+        onChangeLearningAreaCustom={setPopoverLearningAreaCustom}
+        onChangeTimeMode={(mode) => {
+          setPopoverTimeMode(mode);
+          if (mode === "untimed") {
+            setPopoverStartTime("");
+            setPopoverEndTime("");
+          }
+        }}
         onChangeStartTime={setPopoverStartTime}
         onChangeEndTime={setPopoverEndTime}
         onChangeDescription={setPopoverDescription}
@@ -6055,7 +6176,9 @@ function CleanCalendarWorkspaceBody() {
         }
         title={blockTitle}
         learningArea={blockLearningArea}
+        learningAreaCustom={blockLearningAreaCustom}
         learnerId={blockLearnerId}
+        timeMode={blockTimeMode}
         startTime={blockStartTime}
         endTime={blockEndTime}
         programId={blockProgramId}
@@ -6067,7 +6190,15 @@ function CleanCalendarWorkspaceBody() {
         segmentOptions={visibleBlockSegments}
         onChangeTitle={setBlockTitle}
         onChangeLearningArea={setBlockLearningArea}
+        onChangeLearningAreaCustom={setBlockLearningAreaCustom}
         onChangeLearnerId={setBlockLearnerId}
+        onChangeTimeMode={(mode) => {
+          setBlockTimeMode(mode);
+          if (mode === "untimed") {
+            setBlockStartTime("");
+            setBlockEndTime("");
+          }
+        }}
         onChangeStartTime={setBlockStartTime}
         onChangeEndTime={setBlockEndTime}
         onChangeProgramId={(value) => {
