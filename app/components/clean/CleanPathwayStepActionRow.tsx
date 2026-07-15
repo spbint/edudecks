@@ -134,7 +134,7 @@ export default function CleanPathwayStepActionRow({
               rel="noopener noreferrer"
               style={buttonStyle}
             >
-              Open worksheet
+              View worksheet
             </a>
             <Link
               href={worksheetEvidenceCaptureHref}
@@ -148,7 +148,7 @@ export default function CleanPathwayStepActionRow({
               download={worksheetResource.fileName}
               style={secondaryButtonStyle}
             >
-              Download PDF
+              Download worksheet
             </a>
           </div>
         </>

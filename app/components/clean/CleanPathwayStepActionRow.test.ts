@@ -31,9 +31,9 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    expect(screen.getByRole("link", { name: "Open worksheet" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View worksheet" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Download PDF" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Download worksheet" })).toBeTruthy();
 
     const visibleText = container.textContent || "";
     expect(visibleText).not.toMatch(/Digital Practice/i);

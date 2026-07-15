@@ -22,7 +22,9 @@ import {
 import {
   buildSubjectCurriculumDashboardSummaries,
   buildUnifiedPathwayStepStateIndex,
+  getUnifiedPathwayStepEvidenceCount,
   getUnifiedPathwayStepState,
+  isUnifiedPathwayStepComplete,
 } from "@/lib/clean/pathways/pathwayStepState";
 
 const OPERATIONS_STEP_2_ID = buildPathwayStepId(
@@ -275,6 +277,43 @@ describe("pathway step state", () => {
     expect(unifiedStepState?.linkedEvidenceCount).toBe(1);
     expect(unifiedStepState?.latestObservedSkillStatus).toBe("Secure");
     expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Secure");
+    expect(isUnifiedPathwayStepComplete(unifiedStepState)).toBe(true);
+  });
+
+  it("treats Goal achieved + extension evidence as completed without conflating evidence count", () => {
+    const extensionEvidence = buildOperationsStep2Evidence("Goal achieved + extension", {
+      id: "extension-evidence",
+    });
+
+    const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+      evidenceEntries: [extensionEvidence],
+    });
+    const unifiedStepState = getUnifiedPathwayStepState(unifiedStateIndex, OPERATIONS_STEP_2_ID);
+
+    expect(unifiedStepState?.latestObservedSkillStatus).toBe("Strong");
+    expect(unifiedStepState?.pathwayProgressFromEvidence).toBe("Secure");
+    expect(isUnifiedPathwayStepComplete(unifiedStepState)).toBe(true);
+    expect(getUnifiedPathwayStepEvidenceCount(unifiedStateIndex, OPERATIONS_STEP_2_ID)).toBe(1);
+  });
+
+  it("keeps completion true once while evidence count reflects every linked work sample", () => {
+    const firstEvidence = buildOperationsStep2Evidence("Goal achieved", {
+      id: "first-goal-evidence",
+      updatedAt: "2026-06-22T10:00:00.000Z",
+    });
+    const secondEvidence = buildOperationsStep2Evidence("Goal achieved", {
+      id: "second-goal-evidence",
+      updatedAt: "2026-06-23T10:00:00.000Z",
+    });
+
+    const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+      evidenceEntries: [firstEvidence, secondEvidence],
+    });
+    const unifiedStepState = getUnifiedPathwayStepState(unifiedStateIndex, OPERATIONS_STEP_2_ID);
+
+    expect(isUnifiedPathwayStepComplete(unifiedStepState)).toBe(true);
+    expect(unifiedStepState?.latestEvidenceEntry?.id).toBe("second-goal-evidence");
+    expect(getUnifiedPathwayStepEvidenceCount(unifiedStateIndex, OPERATIONS_STEP_2_ID)).toBe(2);
   });
 
   it("falls back to worksheet progress text when older pathway evidence lacks observed status", () => {

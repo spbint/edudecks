@@ -524,6 +524,45 @@ export function getEvidenceForPathwayStep(
   return getUnifiedPathwayStepState(index, pathwayStepId)?.linkedEvidenceEntries || [];
 }
 
+export function isCompletedPathwayProgressStatus(
+  value: string | null | undefined,
+) {
+  return safe(value).toLowerCase() === "secure";
+}
+
+export function isCompletedPathwayEvidenceProgressLevel(
+  value: string | null | undefined,
+) {
+  const normalizedValue = safe(value).toLowerCase();
+  return normalizedValue === "goal achieved" || normalizedValue === "goal achieved + extension";
+}
+
+export function isCompletedPathwayAssessmentStatus(
+  value: string | null | undefined,
+) {
+  const normalizedValue = safe(value).toLowerCase();
+  return normalizedValue === "secure" || normalizedValue === "strong";
+}
+
+export function isUnifiedPathwayStepComplete(
+  state: UnifiedPathwayStepState | null | undefined,
+) {
+  return Boolean(
+    state &&
+      (isCompletedPathwayProgressStatus(state.pathwayProgressFromEvidence) ||
+        isCompletedPathwayEvidenceProgressLevel(state.latestEvidenceProgressLevel) ||
+        isCompletedPathwayAssessmentStatus(state.latestObservedSkillStatus) ||
+        isCompletedPathwayAssessmentStatus(state.assessmentConfidence)),
+  );
+}
+
+export function getUnifiedPathwayStepEvidenceCount(
+  index: UnifiedPathwayStepStateIndex,
+  pathwayStepId: string | null | undefined,
+) {
+  return getUnifiedPathwayStepState(index, pathwayStepId)?.linkedEvidenceCount || 0;
+}
+
 function buildStepCounts(
   registryItems: PathwayStepRegistryItem[],
   index: UnifiedPathwayStepStateIndex,

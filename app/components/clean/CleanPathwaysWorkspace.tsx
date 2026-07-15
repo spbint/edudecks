@@ -43,7 +43,9 @@ import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
   buildUnifiedPathwayStepStateIndex,
+  getUnifiedPathwayStepEvidenceCount,
   getUnifiedPathwayStepState,
+  isUnifiedPathwayStepComplete,
   resolveCanonicalPathwayStepIdFromParts,
   type UnifiedPathwayStepStateIndex,
 } from "@/lib/clean/pathways/pathwayStepState";
@@ -414,6 +416,7 @@ const worksheetEvidenceProgressMeta: Record<
 type StageSummaryCounts = {
   steps: number;
   secure: number;
+  evidenceLinked: number;
   readyToAssess: number;
   evidenceStarted: number;
   practising: number;
@@ -760,7 +763,7 @@ function buildWorkspaceStageSummaryCounts(
 ): StageSummaryCounts {
   return stage.steps.reduce(
     (totals, step, stepIndex) => {
-      const { status } = getWorkspaceDisplayedPathwayStatus(
+      const { status, pathwayStepId } = getWorkspaceDisplayedPathwayStatus(
         subjectKey,
         workspace,
         stage,
@@ -770,6 +773,14 @@ function buildWorkspaceStageSummaryCounts(
         stepIndex,
         unifiedPathwayStepStateIndex,
       );
+      const evidenceCount = getUnifiedPathwayStepEvidenceCount(
+        unifiedPathwayStepStateIndex,
+        pathwayStepId,
+      );
+
+      if (evidenceCount > 0) {
+        totals.evidenceLinked += evidenceCount;
+      }
 
       if (status === "Secure") {
         totals.secure += 1;
@@ -788,6 +799,7 @@ function buildWorkspaceStageSummaryCounts(
     {
       steps: stage.steps.length,
       secure: 0,
+      evidenceLinked: 0,
       readyToAssess: 0,
       evidenceStarted: 0,
       practising: 0,
@@ -1368,7 +1380,8 @@ function PathwaysWorkspaceBody() {
     currentLearningZoneStartStep?.stageTitle ||
     selectedWorkspaceCurrentStageTitle ||
     "Choose a strand below";
-  const nextActionLabel = selectedWorkspaceSnapshot?.evidenceStarted
+  const currentStageEvidenceCount = selectedWorkspaceSnapshot?.evidenceLinked || 0;
+  const nextActionLabel = currentStageEvidenceCount
     ? "Add evidence"
     : "Open current step";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
@@ -2305,14 +2318,14 @@ function PathwaysWorkspaceBody() {
             <div style={{ display: "grid", gap: 10 }}>
               <div style={eyebrowStyle}>Pathway starting point</div>
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                Start a pathway for {selectedLearnerLabel}
+                Choose a starting point for {selectedLearnerLabel}
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                 Choose a focus and MyLearna will suggest a calm starting step.
               </p>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Link href={placementEntryHref} style={buttonStyle}>
-                  Start a pathway
+                  Choose a starting point
                 </Link>
                 <Link href={manualPlacementEntryHref} style={secondaryButtonStyle}>
                   Choose manually
@@ -2475,9 +2488,9 @@ function PathwaysWorkspaceBody() {
               >
                 <div style={eyebrowStyle}>Latest evidence</div>
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
-                  {selectedWorkspaceSnapshot?.evidenceStarted
-                    ? `${selectedWorkspaceSnapshot.evidenceStarted} example${
-                        selectedWorkspaceSnapshot.evidenceStarted === 1 ? "" : "s"
+                  {currentStageEvidenceCount
+                    ? `${currentStageEvidenceCount} example${
+                        currentStageEvidenceCount === 1 ? "" : "s"
                       } added`
                     : "No evidence added yet"}
                 </strong>
@@ -2803,7 +2816,7 @@ function PathwaysWorkspaceBody() {
                     },
                     {
                       label: "Evidence examples",
-                      value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
+                      value: String(currentStageEvidenceCount),
                       valueColor: "#1d4ed8",
                     },
                     {
@@ -3494,6 +3507,11 @@ function PathwayStageJourney({
     activeSummary && activeSummary.steps
       ? Math.round((completedCount / activeSummary.steps) * 100)
       : 0;
+  const viewingCurrentStage = activeStageIndex === currentStageIndex;
+  const viewedStagePrefix = viewingCurrentStage ? "Your current stage" : "Viewing stage";
+  const viewedStageHelper = viewingCurrentStage
+    ? "Choose one useful step, then let the pathway guide what comes next."
+    : "Browsing this stage will not change the learner's current step or next step.";
 
   return (
     <div style={{ display: "grid", gap: 14 }} data-guidance-id="pathways-stage-flow">
@@ -3517,12 +3535,12 @@ function PathwayStageJourney({
           className="mylearna-pathway-stage-summary"
         >
           <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
-            <div style={eyebrowStyle}>Your next step</div>
+            <div style={eyebrowStyle}>{viewedStagePrefix}</div>
             <h3 style={{ margin: 0, color: "#17204B", fontSize: "clamp(20px, 3vw, 25px)" }}>
               {activeStageTitle}
             </h3>
             <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.45 }}>
-              Choose one useful step, then let the pathway guide what comes next.
+              {viewedStageHelper}
             </p>
           </div>
           <div
@@ -3599,6 +3617,7 @@ function PathwayStageJourney({
               >
                 {stageIndex < currentStageIndex ? "✓ " : stageIndex === currentStageIndex ? "● " : "○ "}
                 {stageTitle}
+                {selected && !viewingCurrentStage ? " (viewing)" : ""}
               </button>
             );
           })}
@@ -3906,6 +3925,12 @@ function DetailedMathematicsStageCard({
     regionalStageContext,
     stage.title,
   );
+  const stageRelationshipLabel =
+    stageIndex === currentStageIndex
+      ? "Currently working here"
+      : stageIndex < currentStageIndex
+        ? "Earlier stage"
+        : "Later stage";
   const panelId = `${strand.key}-stage-${stage.key}`;
   const summary = buildWorkspaceStageSummaryCounts(
     selectedSubjectKey,
@@ -4012,7 +4037,7 @@ function DetailedMathematicsStageCard({
           </div>
 
           <div style={{ color: tone.text, fontSize: 12, fontWeight: 800 }}>
-            Active stage
+            {stageRelationshipLabel}
           </div>
         </div>
 
@@ -4216,7 +4241,6 @@ function DetailedMathematicsStepCard({
       stepKey: canonicalStepKey,
       stepNumber: String(step.id),
     });
-  const manualComplete = Boolean(manualCompletion?.completed);
   const worksheetResource = getWorksheetResourceForPathwayStep({
     pathwayStepId: canonicalPathwayStepId,
     stepKey: canonicalStepKey,
@@ -4268,9 +4292,12 @@ function DetailedMathematicsStepCard({
     Boolean(latestEvidenceEntry?.attachmentUrls.length);
   const latestEvidenceDate = formatWorksheetEvidenceDate(latestEvidenceEntry);
   const isStepSecure =
+    isUnifiedPathwayStepComplete(stepUnifiedState) ||
     evidenceProgressMeta?.label === "Goal achieved" ||
     evidenceProgressMeta?.label === "Goal achieved + extension" ||
     status === "Secure";
+  const manualComplete = Boolean(manualCompletion?.completed);
+  const stepComplete = manualComplete || isStepSecure;
   const nextDetailedStep = (() => {
     const currentStageStep = stage.steps[stepIndex + 1] || null;
     if (currentStageStep) {
@@ -4296,13 +4323,13 @@ function DetailedMathematicsStepCard({
       className="mylearna-pathway-step-card"
       data-guidance-id="pathways-step-card"
       style={{
-        border: manualComplete
+        border: stepComplete
           ? "1px solid #dbe3ef"
           : evidenceProgressMeta
           ? `1px solid ${evidenceProgressMeta.border}`
           : "1px solid #E7EAF2",
         borderRadius: 14,
-        background: manualComplete
+        background: stepComplete
           ? "#F8FAFC"
           : evidenceProgressMeta
             ? evidenceProgressMeta.fill
@@ -4310,8 +4337,8 @@ function DetailedMathematicsStepCard({
         padding: densityMode === "compact" ? "11px 12px" : "14px 15px",
         display: "grid",
         gap: densityMode === "compact" ? 9 : 11,
-        opacity: manualComplete ? 0.78 : 1,
-        boxShadow: manualComplete
+        opacity: stepComplete ? 0.78 : 1,
+        boxShadow: stepComplete
           ? "none"
           : evidenceProgressMeta
           ? "0 8px 22px rgba(23,32,75,0.06)"
@@ -4353,35 +4380,56 @@ function DetailedMathematicsStepCard({
         </div>
 
         <div className="mylearna-pathway-step-status-row" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
-          <label
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              border: manualComplete ? "1px solid #bbf7d0" : "1px solid #dbeafe",
-              borderRadius: 999,
-              background: manualComplete ? "#f0fdf4" : "#ffffff",
-              color: manualComplete ? "#166534" : "#1d4ed8",
-              padding: "5px 8px",
-              minHeight: 34,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 750,
-              lineHeight: 1.2,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={manualComplete}
-              onChange={(event) =>
-                onManualCompletionChange(canonicalPathwayStepId || "", event.target.checked)
-              }
-              aria-label={`${manualComplete ? "Complete" : "Mark complete"}: ${step.title}`}
-              style={{ width: 16, height: 16, margin: 0, accentColor: "#2F9D68" }}
-            />
-            <span>{manualComplete ? "Complete" : "Mark complete"}</span>
-          </label>
+          {isStepSecure ? (
+            <span
+              style={{
+                border: "1px solid #bbf7d0",
+                borderRadius: 999,
+                background: "#f0fdf4",
+                color: "#166534",
+                padding: "5px 8px",
+                minHeight: 34,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: 12,
+                fontWeight: 750,
+                lineHeight: 1.2,
+              }}
+            >
+              Complete
+            </span>
+          ) : (
+            <label
+              onClick={(event) => event.stopPropagation()}
+              style={{
+                border: manualComplete ? "1px solid #bbf7d0" : "1px solid #dbeafe",
+                borderRadius: 999,
+                background: manualComplete ? "#f0fdf4" : "#ffffff",
+                color: manualComplete ? "#166534" : "#1d4ed8",
+                padding: "5px 8px",
+                minHeight: 34,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 750,
+                lineHeight: 1.2,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={manualComplete}
+                onChange={(event) =>
+                  onManualCompletionChange(canonicalPathwayStepId || "", event.target.checked)
+                }
+                aria-label={`${manualComplete ? "Complete" : "Mark complete"}: ${step.title}`}
+                style={{ width: 16, height: 16, margin: 0, accentColor: "#2F9D68" }}
+              />
+              <span>{manualComplete ? "Complete" : "Mark complete"}</span>
+            </label>
+          )}
             <div
               data-guidance-id="pathways-progress-status"
               title={
