@@ -3,7 +3,6 @@
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
-import { getCleanAssessmentStageTitle } from "@/lib/clean/assessments/types";
 import {
   buildLearningIntelligenceSummary,
   type LearningIntelligenceActivity,
@@ -357,7 +356,6 @@ export default function CleanLearningIntelligenceDashboard(
 
   const latestActivity = summary.recentActivity[0] ?? null;
   const leadNextStep = summary.nextLearningSteps[0] ?? null;
-  const currentStageTitle = getCleanAssessmentStageTitle(summary.learnerStageKey);
   const currentLearningArea =
     summary.activeLearningAreaRows[0]?.title || summary.selectedSubjectTitle;
   const primaryAction = leadNextStep
@@ -444,11 +442,11 @@ export default function CleanLearningIntelligenceDashboard(
                 {buildInitials(props.learnerName)}
               </div>
               <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-                <h2 style={{ margin: 0, color: "#0f172a", fontSize: "clamp(26px, 4vw, 38px)" }}>
-                  {props.learnerName}&rsquo;s learning picture
+                <h2 style={{ margin: 0, color: "#0f172a", fontSize: "clamp(22px, 3vw, 30px)" }}>
+                  Overview
                 </h2>
                 <div style={{ ...mutedTextStyle, fontSize: 14 }}>
-                  {safe(props.learnerYearLevel) || "Year level not recorded"} | {currentStageTitle}
+                  Current learning area: {currentLearningArea}
                 </div>
               </div>
             </div>
@@ -488,7 +486,7 @@ export default function CleanLearningIntelligenceDashboard(
               </>
             ) : summary.isEmpty ? (
               <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                Start building {props.learnerName}&rsquo;s learning picture by choosing a pathway
+                Start building {props.learnerName}&rsquo;s learning overview by choosing a pathway
                 or adding a first observation.
               </div>
             ) : (
@@ -659,7 +657,7 @@ export default function CleanLearningIntelligenceDashboard(
           </div>
         ) : (
           <div style={{ color: "#475569", lineHeight: 1.6 }}>
-            Start building {props.learnerName}&rsquo;s learning picture by adding an observation,
+            Start building {props.learnerName}&rsquo;s learning overview by adding an observation,
             work sample, or photo.
           </div>
         )}

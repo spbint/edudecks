@@ -187,7 +187,7 @@ const REGISTRY_ITEMS = getAllPathwaySteps();
 const DETAILED_SUBJECTS = PATHWAY_SUBJECTS.filter((subject) => subject.status === "detailed");
 const REGISTRY_BY_ID = new Map(REGISTRY_ITEMS.map((item) => [item.id, item]));
 const SUBJECT_PATHWAYS_HREF = "/my-pathways";
-const CONFIDENCE_HREF = "/my-pathways";
+const PROGRESS_HREF = "/my-pathways";
 const EVIDENCE_HREF = "/my-capture";
 
 function safe(value: unknown) {
@@ -600,13 +600,13 @@ function buildActivityItems(
         stageTitle: registryItem.stageTitle,
         pathwayStepId,
         stepTitle: registryItem.stepTitle,
-        label: `Confidence: ${status.status}`,
+        label: `Progress judgement: ${status.status}`,
         summary:
           summarizeText(status.note, 96) ||
-          `Saved confidence for ${registryItem.stepTitle}.`,
+          `Saved progress judgement for ${registryItem.stepTitle}.`,
         dateValue: status.updatedAt || status.createdAt,
         dateLabel: formatRelativeDateLabel(status.updatedAt || status.createdAt, referenceDate),
-        href: CONFIDENCE_HREF,
+        href: PROGRESS_HREF,
       } satisfies LearningIntelligenceActivity;
     })
     .filter(Boolean) as LearningIntelligenceActivity[];
@@ -696,11 +696,11 @@ function buildProgressOverTime(
 
 function buildInsightHelper(row: LearningIntelligenceRow) {
   if (row.readiness === "Ready") {
-    return "Secure or strong confidence is supported by report-ready evidence.";
+    return "Report-ready evidence and progress judgements support this area.";
   }
 
   if (row.developingCount > 0) {
-    return "Several steps are still developing and may benefit from a fresh review.";
+    return "Several steps may benefit from another saved observation.";
   }
 
   if (row.startingEvidenceCount > 0) {
@@ -858,22 +858,22 @@ function buildCandidateReason(
   assessmentConfidence: CleanAssessmentStatusValue,
 ) {
   if (!descriptor.hasEvidence && assessmentConfidence === "Not assessed yet") {
-    return "No linked evidence or saved confidence yet for this step.";
+    return "No completed work is linked to this specific step yet. No progress judgement has been saved for this step yet.";
   }
 
   if (descriptor.hasEvidence && assessmentConfidence === "Not assessed yet") {
-    return "Evidence is linked here and may be ready for a confidence check.";
+    return "Completed work is linked to this step. No progress judgement has been saved for this step yet.";
   }
 
   if (assessmentConfidence === "Still developing") {
-    return "Confidence is still developing and may benefit from another observation.";
+    return "The saved progress judgement shows this step may benefit from another observation.";
   }
 
   if (assessmentConfidence === "Developing") {
-    return "Confidence is developing and may be ready for another short review.";
+    return "The saved progress judgement shows this step is developing and may be ready for another review.";
   }
 
-  return "This is a useful next step based on current pathway coverage.";
+  return "This is a useful next step in the current pathway.";
 }
 
 function buildNextLearningStepForDescriptors(

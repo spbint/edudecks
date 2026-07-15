@@ -33,7 +33,7 @@ import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import {
   buildCurriculumCoverageSummary,
-  type CurriculumCoverageAssessmentSummary,
+  type CurriculumCoverageAreaSummary,
   type CurriculumCoverageStatus,
 } from "@/lib/clean/curriculum/coverageSummary";
 import {
@@ -169,19 +169,44 @@ function formatEvidenceSnippet(entry: CleanEvidenceEntry) {
 }
 
 function getEvidenceItemLabel(count: number) {
-  return `${count} evidence ${count === 1 ? "item" : "items"}`;
+  return `${count} learning ${count === 1 ? "record" : "records"}`;
 }
 
 function getLatestEvidenceSummary(entry: CleanEvidenceEntry | null | undefined) {
-  if (!entry) return "Waiting for first linked note.";
+  if (!entry) return "—";
   return `${formatEvidenceTitle(entry)} - ${formatEvidenceDateLabel(entry.observedOn)}`;
 }
 
-function getAssessmentSummaryLine(summary: CurriculumCoverageAssessmentSummary) {
-  const secureOrStrong = summary.secure + summary.strong;
-  const developing = summary.developing + summary.stillDeveloping;
+function getConsumerCoverageStatus(summary: CurriculumCoverageAreaSummary) {
+  if (summary.count > 1 || summary.assessmentSummary.assessedCount > 0) {
+    return "Active";
+  }
 
-  return `${summary.assessedCount} confidence notes | ${secureOrStrong} secure/strong | ${developing} developing`;
+  if (summary.count === 1) {
+    return "Evidence recorded";
+  }
+
+  return "Not currently active";
+}
+
+function getAreaSortRank(summary: CurriculumCoverageAreaSummary) {
+  const status = getConsumerCoverageStatus(summary);
+  if (status === "Active") return 0;
+  if (status === "Evidence recorded") return 1;
+  return 2;
+}
+
+function sortCoverageAreas(summaries: CurriculumCoverageAreaSummary[]) {
+  return [...summaries].sort((left, right) => {
+    const rankDiff = getAreaSortRank(left) - getAreaSortRank(right);
+    if (rankDiff !== 0) return rankDiff;
+    if (right.count !== left.count) return right.count - left.count;
+    return left.area.label.localeCompare(right.area.label);
+  });
+}
+
+function getPreferredCoverageAreaId(summaries: CurriculumCoverageAreaSummary[]) {
+  return sortCoverageAreas(summaries).find((summary) => getAreaSortRank(summary) < 2)?.area.key ?? "";
 }
 
 function coverageBadgeStyle(status: CurriculumCoverageStatus): React.CSSProperties {
@@ -359,6 +384,7 @@ function CurriculumWorkspaceBody() {
   const [assessmentEvidenceError, setAssessmentEvidenceError] = useState<string | null>(null);
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
+  const [selectedAreaWasChosen, setSelectedAreaWasChosen] = useState(false);
   const [showAuthorityAreas, setShowAuthorityAreas] = useState(false);
   const [showDetailedCoverageMap, setShowDetailedCoverageMap] = useState(false);
   const [coverageSubmitting, setCoverageSubmitting] = useState(false);
@@ -572,6 +598,12 @@ function CurriculumWorkspaceBody() {
     [assessmentStatuses, entries, resolvedFramework],
   );
   const areaSummaries = coverageSummary.areaSummaries;
+  const sortedAreaSummaries = useMemo(() => sortCoverageAreas(areaSummaries), [areaSummaries]);
+
+  useEffect(() => {
+    setSelectedAreaId("");
+    setSelectedAreaWasChosen(false);
+  }, [selectedLearnerId]);
 
   useEffect(() => {
     if (!areaSummaries.length) {
@@ -580,19 +612,11 @@ function CurriculumWorkspaceBody() {
     }
 
     const hasCurrentSelection = areaSummaries.some((item) => item.area.key === selectedAreaId);
-    if (hasCurrentSelection) return;
+    if (hasCurrentSelection && selectedAreaWasChosen) return;
 
-    const firstWithEvidence = areaSummaries.find((item) => item.count > 0);
-    setSelectedAreaId(firstWithEvidence?.area.key || areaSummaries[0]?.area.key || "");
-  }, [areaSummaries, selectedAreaId]);
+    setSelectedAreaId(getPreferredCoverageAreaId(areaSummaries));
+  }, [areaSummaries, selectedAreaId, selectedAreaWasChosen]);
 
-  const selectedAreaSummary =
-    areaSummaries.find((item) => item.area.key === selectedAreaId) ?? areaSummaries[0] ?? null;
-  const selectedAreaTone = selectedAreaSummary
-    ? getLearningAreaTone(selectedAreaSummary.area.key, selectedAreaSummary.area.label)
-    : null;
-
-  const selectedAreaElementSummaries = selectedAreaSummary?.elementSummaries ?? [];
   const authorityAreaSummaries = coverageSummary.supplementaryAreaSummaries;
   const authorityAreasWithEvidenceCount =
     coverageSummary.supplementaryAreasWithEvidenceCount;
@@ -603,7 +627,6 @@ function CurriculumWorkspaceBody() {
   const selectedLearnerDisplayName = selectedLearner
     ? getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)
     : "Learner";
-  const hasLinkedEvidence = coverageSummary.hasLinkedEvidence;
 
   useEffect(() => {
     setCoverageError(null);
@@ -692,6 +715,11 @@ function CurriculumWorkspaceBody() {
               width: 100% !important;
               min-height: 46px !important;
             }
+
+            .mylearna-data-coverage-row {
+              grid-template-columns: 1fr !important;
+              align-items: start !important;
+            }
           }
         `}</style>
         <CleanWorkflowRibbon />
@@ -708,18 +736,13 @@ function CurriculumWorkspaceBody() {
               <div style={eyebrowStyle}>My Data</div>
               <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>
                 {selectedLearnerDisplayName
-                  ? `${selectedLearnerDisplayName}'s learning picture`
+                  ? `${selectedLearnerDisplayName}'s learning overview`
                   : "My Data"}
               </h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
-                See current learning, saved work, pathway progress, and report ingredients in one calm view.
-              </p>
-            </div>
-
-            <div className="mylearna-data-helper" style={helperCardStyle}>
-              <strong style={{ color: "#0f172a", fontWeight: 650 }}>What does this show?</strong>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Decide what to work on, capture, or review next.
+                {selectedLearner
+                  ? `${selectedLearnerDisplayName} has ${getEvidenceItemLabel(entries.length)} saved. Use the overview below for the next useful step.`
+                  : "See current learning, saved work, pathway progress, and report ingredients in one calm view."}
               </p>
             </div>
 
@@ -878,10 +901,10 @@ function CurriculumWorkspaceBody() {
               <div style={{ display: "grid", gap: 14 }}>
                 <div style={{ display: "grid", gap: 8 }}>
                   <div style={eyebrowStyle}>Progress records</div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Pathway confidence notes</h2>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Progress observations</h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Saved pathway confidence notes appear here alongside captured work when they
-                    can support reporting.
+                    Saved progress judgements appear here alongside captured work when they can
+                    support reporting.
                   </p>
                 </div>
                 {assessmentEvidenceLoading ? (
@@ -912,7 +935,7 @@ function CurriculumWorkspaceBody() {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            Report support
+                            Reporting support
                           </span>
                         </div>
                         <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
@@ -936,63 +959,12 @@ function CurriculumWorkspaceBody() {
                   </div>
                 ) : (
                   <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>No pathway confidence notes yet</strong>
+                    <strong style={{ color: "#0f172a" }}>No progress judgement saved yet</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Saved pathway confidence notes will appear here when they are available.
+                      Saved progress judgements will appear here when they are available.
                     </p>
                   </div>
                 )}
-              </div>
-            </section>
-
-            <section className="mylearna-data-coverage-card" style={{ ...cardStyle, padding: 18 }}>
-              <div style={{ display: "grid", gap: 10 }}>
-                <div
-                  className="mylearna-data-coverage-helper"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <div style={eyebrowStyle}>Curriculum Coverage Record</div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Download coverage record</h2>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Export a compact coverage record for reporting, review, and portfolio preparation.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    style={buttonStyle}
-                    onClick={() => void handleDownloadCoverageRecord()}
-                    disabled={!selectedLearner || coverageSubmitting}
-                  >
-                    {coverageSubmitting ? "Preparing record..." : "Download coverage record"}
-                  </button>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    color: "#64748b",
-                    lineHeight: 1.6,
-                    fontSize: 14,
-                  }}
-                >
-                  <span>This uses evidence links from My Data and your selected framework.</span>
-                  {!hasLinkedEvidence ? <span>Waiting for first linked evidence.</span> : null}
-                </div>
-                {coverageError ? (
-                  <div style={{ color: "#b91c1c", lineHeight: 1.6 }}>{coverageError}</div>
-                ) : null}
-                {coverageMessage ? (
-                  <div style={{ color: "#1d4ed8", lineHeight: 1.6 }}>{coverageMessage}</div>
-                ) : null}
               </div>
             </section>
 
@@ -1089,319 +1061,159 @@ function CurriculumWorkspaceBody() {
               ) : null}
 
               {showDetailedCoverageMap ? (
-              <div
-                style={{
-                  display: "grid",
-                  gap: 14,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                }}
-              >
-                {areaSummaries.map((summary) => {
-                  const tone = getLearningAreaTone(summary.area.key, summary.area.label);
-                  const isSelected = summary.area.key === selectedAreaId;
-
-                  return (
-                    <article
-                      key={summary.area.key}
-                      style={{
-                        border: isSelected
-                          ? `1px solid ${tone.border}`
-                          : `1px solid ${tone.mutedBorder}`,
-                        borderRadius: 16,
-                        padding: 14,
-                        background: isSelected ? tone.selectedBackground : tone.softBackground,
-                        display: "grid",
-                        gap: 10,
-                        boxShadow: isSelected ? tone.shadow : "none",
-                      }}
-                    >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <div style={{ display: "grid", gap: 6 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: 999,
-                              background: tone.accent,
-                              boxShadow: `0 0 0 4px ${tone.badgeBackground}`,
-                            }}
-                          />
-                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.label}</strong>
-                          {isSelected ? (
-                            <span
-                              style={{
-                                border: `1px solid ${tone.border}`,
-                                background: tone.badgeBackground,
-                                color: tone.badgeText,
-                                borderRadius: 999,
-                                padding: "4px 8px",
-                                fontSize: 11,
-                                fontWeight: 800,
-                              }}
-                            >
-                              Selected area
-                            </span>
-                          ) : null}
-                        </div>
-                        <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 14 }}>
-                          {summary.area.shortDescription}
-                        </div>
-                      </div>
-                      <span
-                        style={{
-                          ...coverageBadgeStyle(summary.status),
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {summary.status}
-                      </span>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
-                      <div>
-                        <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
-                      </div>
-                      {summary.assessmentSummary.totalSteps > 0 ? (
-                        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                          Progress: {getAssessmentSummaryLine(summary.assessmentSummary)}
-                        </div>
-                      ) : null}
-                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                        Latest evidence: {getLatestEvidenceSummary(summary.latestEntry)}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      style={isSelected ? buttonStyle : secondaryButtonStyle}
-                      onClick={() => setSelectedAreaId(summary.area.key)}
-                    >
-                      View area
-                    </button>
-                    </article>
-                  );
-                })}
-              </div>
-              ) : null}
-            </section>
-
-            {showDetailedCoverageMap && selectedAreaSummary ? (
-              <section style={cardStyle}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 18,
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
-                    marginBottom: 20,
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
-                    <div style={eyebrowStyle}>Selected area</div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>
-                      Area detail: {selectedAreaSummary.area.label}
-                    </h2>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                      Look across the elements below to see where evidence is already forming and where you may want to capture more.
-                    </p>
-                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      {selectedAreaSummary.area.shortDescription}
-                    </div>
-                  </div>
-
+                <div style={{ display: "grid", gap: 10 }}>
                   <div
-                    style={{
-                      ...compactCardStyle,
-                      minWidth: 0,
-                      width: "min(320px, 100%)",
-                      maxWidth: 320,
-                      border: `1px solid ${selectedAreaTone?.border ?? "#bfdbfe"}`,
-                      background: selectedAreaTone?.selectedBackground ?? "#f8fbff",
-                    }}
-                  >
-                    <span
-                      style={{
-                        ...coverageBadgeStyle(selectedAreaSummary.status),
-                        borderRadius: 999,
-                        padding: "6px 10px",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        justifySelf: "start",
-                      }}
-                    >
-                      {selectedAreaSummary.status}
-                    </span>
-                    <div style={{ color: "#0f172a", fontWeight: 800 }}>
-                      {getEvidenceItemLabel(selectedAreaSummary.count)}
-                    </div>
-                    {selectedAreaSummary.assessmentSummary.totalSteps > 0 ? (
-                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        Progress: {getAssessmentSummaryLine(selectedAreaSummary.assessmentSummary)}
-                      </div>
-                    ) : null}
-                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      Latest evidence: {getLatestEvidenceSummary(selectedAreaSummary.latestEntry)}
-                    </div>
-                    <Link
-                      href={buildCaptureHref({
-                        learningAreaKey: selectedAreaSummary.area.key,
-                        learningAreaLabel: selectedAreaSummary.area.label,
-                      })}
-                      style={buttonStyle}
-                    >
-                      Capture evidence
-                    </Link>
-                  </div>
-                </div>
-
-                {selectedAreaElementSummaries.length ? (
-                  <div
+                    className="mylearna-data-coverage-row"
                     style={{
                       display: "grid",
-                      gap: 14,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                      gridTemplateColumns: "minmax(180px, 1.5fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(140px, 0.9fr) auto",
+                      gap: 10,
+                      alignItems: "center",
+                      color: "#64748b",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      padding: "0 10px",
                     }}
                   >
-                    {selectedAreaElementSummaries.map((summary) => (
+                    <span>Learning area</span>
+                    <span>Status</span>
+                    <span>Learning records</span>
+                    <span>Latest activity</span>
+                    <span aria-hidden="true" />
+                  </div>
+                  {sortedAreaSummaries.map((summary) => {
+                    const tone = getLearningAreaTone(summary.area.key, summary.area.label);
+                    const consumerStatus = getConsumerCoverageStatus(summary);
+                    const isSelected = summary.area.key === selectedAreaId;
+                    const isQuiet = consumerStatus === "Not currently active";
+
+                    return (
                       <article
-                        key={summary.element.key}
+                        key={summary.area.key}
                         style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 16,
-                          padding: 16,
+                          border: isSelected ? `1px solid ${tone.border}` : "1px solid #e2e8f0",
+                          borderRadius: 14,
+                          padding: 12,
+                          background: isSelected ? tone.selectedBackground : isQuiet ? "#f8fafc" : "#ffffff",
                           display: "grid",
-                          gap: 12,
-                          background: "#ffffff",
+                          gap: isSelected ? 12 : 0,
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.element.label}</strong>
+                        <div
+                          className="mylearna-data-coverage-row"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "minmax(180px, 1.5fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(140px, 0.9fr) auto",
+                            gap: 10,
+                            alignItems: "center",
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+                            <strong style={{ color: "#0f172a" }}>{summary.area.label}</strong>
+                            {!isQuiet ? (
+                              <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+                                {summary.area.shortDescription}
+                              </span>
+                            ) : null}
+                          </div>
                           <span
                             style={{
-                              ...coverageBadgeStyle(summary.status),
+                              border: `1px solid ${isQuiet ? "#e2e8f0" : tone.border}`,
+                              background: isQuiet ? "#ffffff" : tone.badgeBackground,
+                              color: isQuiet ? "#64748b" : tone.badgeText,
                               borderRadius: 999,
                               padding: "6px 10px",
                               fontSize: 12,
                               fontWeight: 800,
-                              whiteSpace: "nowrap",
+                              width: "fit-content",
                             }}
                           >
-                            {summary.status}
+                            {consumerStatus}
                           </span>
+                          <span style={{ color: "#334155", fontWeight: 750 }}>
+                            {getEvidenceItemLabel(summary.count)}
+                          </span>
+                          <span style={{ color: "#64748b", fontSize: 13 }}>
+                            {getLatestEvidenceSummary(summary.latestEntry)}
+                          </span>
+                          <button
+                            type="button"
+                            style={isSelected ? buttonStyle : secondaryButtonStyle}
+                            onClick={() => {
+                              setSelectedAreaId(isSelected ? "" : summary.area.key);
+                              setSelectedAreaWasChosen(true);
+                            }}
+                          >
+                            {isSelected ? "Hide details" : "View details"}
+                          </button>
                         </div>
 
-                        <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                          {summary.element.shortDescription}
-                        </div>
-
-                        <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
-                          <div>
-                            <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
-                          </div>
-                          {summary.assessmentSummary.totalSteps > 0 ? (
-                            <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                              Progress: {getAssessmentSummaryLine(summary.assessmentSummary)}
-                            </div>
-                          ) : null}
-                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                            Latest evidence: {getLatestEvidenceSummary(summary.latestEntry)}
-                          </div>
-                        </div>
-
-                        {summary.matchedEntries.length ? (
+                        {isSelected ? (
                           <div
                             style={{
                               borderTop: "1px solid #e2e8f0",
-                              paddingTop: 10,
+                              paddingTop: 12,
                               display: "grid",
-                              gap: 8,
+                              gap: 12,
                             }}
                           >
-                            <strong style={{ color: "#0f172a", fontSize: 13 }}>
-                              Linked evidence
-                            </strong>
-                            {summary.matchedEntries.slice(0, 2).map((entry) => (
-                              <div
-                                key={entry.id}
-                                style={{
-                                  border: "1px solid #e2e8f0",
-                                  borderRadius: 12,
-                                  padding: 10,
-                                  background: "#f8fafc",
-                                  display: "grid",
-                                  gap: 4,
-                                }}
-                              >
-                                <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                                  {formatEvidenceTitle(entry)}
-                                </div>
-                                <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                                  {formatEvidenceDateLabel(entry.observedOn)} - {selectedLearnerDisplayName}
-                                </div>
-                                <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.5 }}>
-                                  {formatEvidenceSnippet(entry)}
-                                </div>
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                              {summary.area.shortDescription}
+                            </p>
+                            {isQuiet ? (
+                              <div style={helperCardStyle}>
+                                <strong style={{ color: "#0f172a" }}>Not currently active</strong>
+                                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                  This area is available in the curriculum map, but it is not part of the current pathway or saved records.
+                                </p>
                               </div>
-                            ))}
+                            ) : summary.matchedEntries.length ? (
+                              <div style={{ display: "grid", gap: 8 }}>
+                                <strong style={{ color: "#0f172a" }}>Recent records</strong>
+                                {summary.matchedEntries.slice(0, 3).map((entry) => (
+                                  <div
+                                    key={entry.id}
+                                    style={{
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: 12,
+                                      padding: 10,
+                                      background: "#ffffff",
+                                      display: "grid",
+                                      gap: 4,
+                                    }}
+                                  >
+                                    <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                                      {formatEvidenceTitle(entry)}
+                                    </div>
+                                    <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                                      {formatEvidenceDateLabel(entry.observedOn)} - {selectedLearnerDisplayName}
+                                    </div>
+                                    <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.5 }}>
+                                      {formatEvidenceSnippet(entry)}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                            <div>
+                              <Link
+                                href={buildCaptureHref({
+                                  learningAreaKey: summary.area.key,
+                                  learningAreaLabel: summary.area.label,
+                                })}
+                                style={isQuiet ? secondaryButtonStyle : buttonStyle}
+                              >
+                                Add a learning record
+                              </Link>
+                            </div>
                           </div>
                         ) : null}
-
-                        <Link
-                          href={buildCaptureHref({
-                            learningAreaKey: selectedAreaSummary.area.key,
-                            learningAreaLabel: selectedAreaSummary.area.label,
-                            curriculumElementKey: summary.element.key,
-                            curriculumElementLabel: summary.element.label,
-                          })}
-                          style={buttonStyle}
-                        >
-                          Capture evidence
-                        </Link>
                       </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Foundation view</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      This area will gain more detailed curriculum elements in a later pass. For now, capture evidence using the broad learning area.
-                    </p>
-                    <div>
-                      <Link
-                        href={buildCaptureHref({
-                          learningAreaKey: selectedAreaSummary.area.key,
-                          learningAreaLabel: selectedAreaSummary.area.label,
-                        })}
-                        style={buttonStyle}
-                      >
-                        Capture evidence
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </section>
-            ) : null}
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
 
             {showDetailedCoverageMap && supplementaryEvidenceAreas.length ? (
             <section style={{ ...cardStyle, background: "#fcfdff" }}>

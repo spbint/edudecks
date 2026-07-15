@@ -228,6 +228,22 @@ describe("learning intelligence summary", () => {
     );
   });
 
+  it("uses step-scoped evidence and progress wording for next recommendations", () => {
+    const summary = buildLearningIntelligenceSummary({
+      learnerYearLevel: "Foundation",
+      evidenceEntries: [makePathwayEvidence({ id: "evidence-math-1" })],
+      assessmentStatuses: [],
+      referenceDate: "2026-05-24",
+    });
+
+    const recommendationReasons = summary.nextLearningSteps.map((item) => item.reason);
+
+    expect(recommendationReasons.join(" ")).toContain("specific step");
+    expect(recommendationReasons.join(" ")).toContain("progress judgement");
+    expect(recommendationReasons.join(" ")).not.toContain("saved confidence");
+    expect(recommendationReasons.join(" ")).not.toContain("No linked evidence");
+  });
+
   it("hides trend and strength signals until there is enough evidence history", () => {
     const earlySummary = buildLearningIntelligenceSummary({
       learnerYearLevel: "Foundation",
