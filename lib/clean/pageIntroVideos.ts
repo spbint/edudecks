@@ -45,7 +45,7 @@ export const PAGE_INTRO_VIDEOS = {
     title: "My Data walkthrough",
     shortTitle: "My Data guide",
     description:
-      "See how My Data brings learning activity, evidence, strengths, focus areas and reporting readiness together.",
+      "See how My Data brings current learning, saved work, pathway progress and report ingredients together.",
     youtubeId: "T931VlJu17c",
   },
   myReports: {

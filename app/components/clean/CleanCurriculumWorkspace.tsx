@@ -699,27 +699,27 @@ function CurriculumWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myData}
           promptTitle="New to My Data?"
-          promptDescription="See the signals that guide the next learning step."
+          promptDescription="See current learning, saved work, and report ingredients in one place."
         />
 
         <section className="mylearna-data-intro" style={{ ...cardStyle, padding: 24 }}>
           <div style={{ display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Learning signals</div>
+              <div style={eyebrowStyle}>My Data</div>
               <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>
                 {selectedLearnerDisplayName
                   ? `${selectedLearnerDisplayName}'s learning picture`
                   : "My Data"}
               </h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
-                See progress, evidence and focus areas in one calm view.
+                See current learning, saved work, pathway progress, and report ingredients in one calm view.
               </p>
             </div>
 
             <div className="mylearna-data-helper" style={helperCardStyle}>
               <strong style={{ color: "#0f172a", fontWeight: 650 }}>What does this show?</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Decide what to practise, capture or report next.
+                Decide what to work on, capture, or review next.
               </p>
             </div>
 
@@ -735,32 +735,6 @@ function CurriculumWorkspaceBody() {
                   gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                 }}
               >
-                <div className="mylearna-data-framework-detail" style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Current framework</div>
-                  <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                    {resolvedFramework.frameworkDisplayLabel}
-                  </strong>
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    {resolvedFramework.map.description}
-                  </div>
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    Country / authority:{" "}
-                    {resolvedFramework.countryAuthorityLabel ||
-                      "Framework details can be adjusted in My Settings."}
-                  </div>
-                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    Map type: {resolvedFramework.mapTypeLabel}
-                  </div>
-                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    {resolvedFramework.helperCopy}
-                  </div>
-                  {!safe(workspace.profile.countryCode) || !safe(workspace.profile.curriculumFrameworkId) ? (
-                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      Framework details can be adjusted in My Settings.
-                    </div>
-                  ) : null}
-                </div>
-
                 <div className="mylearna-data-learner-card" style={compactCardStyle}>
                   <div style={eyebrowStyle}>Current learner</div>
                   <label style={{ color: "#334155", fontWeight: 700 }}>
@@ -778,9 +752,34 @@ function CurriculumWorkspaceBody() {
                     ))}
                   </select>
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    Coverage is exploratory. Capture and portfolio workflows stay unchanged.
+                    All sections below use this learner&apos;s records.
                   </div>
                 </div>
+
+                <details className="mylearna-data-framework-detail" style={compactCardStyle}>
+                  <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
+                    Curriculum details
+                  </summary>
+                  <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                    <div style={eyebrowStyle}>Current framework</div>
+                    <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                      {resolvedFramework.frameworkDisplayLabel}
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      {resolvedFramework.map.description}
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Country / authority:{" "}
+                      {resolvedFramework.countryAuthorityLabel ||
+                        "Framework details can be adjusted in My Settings."}
+                    </div>
+                    {!safe(workspace.profile.countryCode) || !safe(workspace.profile.curriculumFrameworkId) ? (
+                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                        Framework details can be adjusted in My Settings.
+                      </div>
+                    ) : null}
+                  </div>
+                </details>
               </div>
             ) : null}
 
@@ -795,15 +794,6 @@ function CurriculumWorkspaceBody() {
               </div>
             ) : null}
 
-            {!workspace.loading &&
-            !workspace.schemaMissing &&
-            !workspace.requiresFamilyCreation &&
-            workspace.profile &&
-            workspace.learners.length ? (
-              <div className="mylearna-data-framework-detail" style={{ color: "#64748b", lineHeight: 1.6 }}>
-                {resolvedFramework.helperCopy} {resolvedFramework.settingsHint}
-              </div>
-            ) : null}
           </div>
         </section>
 
@@ -1012,7 +1002,7 @@ function CurriculumWorkspaceBody() {
                   <div style={eyebrowStyle}>Detailed coverage map</div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Detailed coverage map / reporting support</h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Open this when you want the older curriculum coverage view for reporting checks,
+                    Open this when you need a more detailed curriculum view for reporting checks,
                     evidence placement, or export preparation.
                   </p>
                 </div>

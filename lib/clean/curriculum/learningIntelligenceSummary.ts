@@ -25,6 +25,12 @@ import {
 } from "@/lib/clean/pathways/pathwaySubjects";
 
 export type LearningIntelligenceSubjectFilter = "all" | PathwaySubjectKey;
+export type LearningAreaStatus =
+  | "Active"
+  | "Planned"
+  | "Evidence recorded"
+  | "Not currently active"
+  | "Not explored yet";
 
 export type LearningIntelligenceRow = {
   key: string;
@@ -45,6 +51,8 @@ export type LearningIntelligenceRow = {
   notAssessedCount: number;
   progressPercent: number;
   readiness: "Ready" | "Building" | "Not explored yet";
+  learningAreaStatus: LearningAreaStatus;
+  isActiveLearningArea: boolean;
   latestActivityAt: string | null;
   latestActivityLabel: string;
 };
@@ -108,6 +116,13 @@ export type LearningIntelligenceReportingReadiness = {
   buildingCount: number;
   notExploredCount: number;
   readinessPercent: number;
+  representedAreaCount: number;
+  checklist: Array<{
+    key: string;
+    label: string;
+    complete: boolean;
+    helper: string;
+  }>;
 };
 
 export type LearningIntelligenceSummary = {
@@ -134,6 +149,14 @@ export type LearningIntelligenceSummary = {
   focusAreas: LearningIntelligenceInsightItem[];
   reportingReadiness: LearningIntelligenceReportingReadiness;
   nextLearningSteps: LearningIntelligenceNextStep[];
+  activeLearningAreaRows: LearningIntelligenceRow[];
+  inactiveLearningAreaRows: LearningIntelligenceRow[];
+  activeLearningAreaCount: number;
+  portfolioEvidenceCount: number;
+  reportEvidenceCount: number;
+  hasMeaningfulProgressTrend: boolean;
+  hasMeaningfulStrengths: boolean;
+  areaCountLabel: string;
   isEmpty: boolean;
 };
 
@@ -280,6 +303,35 @@ function getProgressPercent(
   return Math.max(0, Math.min(100, Math.round((weightedScore / totalSteps) * 100)));
 }
 
+function getLearningAreaStatus(
+  rowKind: "subject" | "strand",
+  totals: {
+    evidenceLinkedCount: number;
+    assessedCount: number;
+    secureStrongCount: number;
+    developingCount: number;
+    startingEvidenceCount: number;
+  },
+): LearningAreaStatus {
+  if (totals.assessedCount > 0 || totals.developingCount > 0 || totals.secureStrongCount > 0) {
+    return "Active";
+  }
+
+  if (totals.evidenceLinkedCount > 0 || totals.startingEvidenceCount > 0) {
+    return "Evidence recorded";
+  }
+
+  return rowKind === "subject" ? "Not currently active" : "Not explored yet";
+}
+
+function isActiveLearningAreaStatus(status: LearningAreaStatus) {
+  return status === "Active" || status === "Planned" || status === "Evidence recorded";
+}
+
+export function formatLearningAreaCount(count: number) {
+  return `${count} ${count === 1 ? "area" : "areas"}`;
+}
+
 function buildStepDescriptor(
   item: PathwayStepRegistryItem,
   index: UnifiedPathwayStepStateIndex,
@@ -382,6 +434,7 @@ function buildRowFromDescriptors(
       : totals.evidenceLinkedCount > 0 || totals.assessedCount > 0
         ? "Building"
         : "Not explored yet";
+  const learningAreaStatus = getLearningAreaStatus(kind, totals);
 
   return {
     key,
@@ -402,6 +455,8 @@ function buildRowFromDescriptors(
     notAssessedCount: totals.notAssessedCount,
     progressPercent,
     readiness,
+    learningAreaStatus,
+    isActiveLearningArea: isActiveLearningAreaStatus(learningAreaStatus),
     latestActivityAt:
       totals.latestActivityTimestamp > 0
         ? new Date(totals.latestActivityTimestamp).toISOString()
@@ -649,11 +704,11 @@ function buildInsightHelper(row: LearningIntelligenceRow) {
   }
 
   if (row.startingEvidenceCount > 0) {
-    return "Evidence has started to build and may be ready for confidence saving soon.";
+    return "Learning records have started to build in this area.";
   }
 
-  if (row.notAssessedCount > 0) {
-    return "This area is not currently active. Choose it when it becomes part of the plan.";
+  if (!row.isActiveLearningArea) {
+    return "This area is quiet until it becomes part of the current plan.";
   }
 
   return "This area is beginning to build.";
@@ -670,7 +725,11 @@ function buildStrengths(rows: LearningIntelligenceRow[]) {
       }
       return right.evidenceLinkedCount - left.evidenceLinkedCount;
     })
-    .filter((row) => row.evidenceLinkedCount > 0 || row.assessedCount > 0)
+    .filter(
+      (row) =>
+        row.isActiveLearningArea &&
+        (row.secureStrongCount > 0 || row.evidenceLinkedCount + row.assessedCount >= 3),
+    )
     .slice(0, 3)
     .map((row) => ({
       key: `strength:${row.key}`,
@@ -689,19 +748,18 @@ function buildStrengths(rows: LearningIntelligenceRow[]) {
 function buildFocusAreas(rows: LearningIntelligenceRow[]) {
   return [...rows]
     .sort((left, right) => {
-      if (right.notAssessedCount !== left.notAssessedCount) {
-        return right.notAssessedCount - left.notAssessedCount;
-      }
       if (right.developingCount !== left.developingCount) {
         return right.developingCount - left.developingCount;
+      }
+      if (right.startingEvidenceCount !== left.startingEvidenceCount) {
+        return right.startingEvidenceCount - left.startingEvidenceCount;
       }
       return left.progressPercent - right.progressPercent;
     })
     .filter(
       (row) =>
-        row.notAssessedCount > 0 ||
-        row.developingCount > 0 ||
-        row.startingEvidenceCount > 0,
+        row.isActiveLearningArea &&
+        (row.developingCount > 0 || row.startingEvidenceCount > 0),
     )
     .slice(0, 3)
     .map((row) => ({
@@ -718,22 +776,80 @@ function buildFocusAreas(rows: LearningIntelligenceRow[]) {
     }));
 }
 
-function buildReportingReadiness(rows: LearningIntelligenceRow[]) {
-  const readyCount = rows.filter((row) => row.readiness === "Ready").length;
-  const buildingCount = rows.filter((row) => row.readiness === "Building").length;
-  const notExploredCount = rows.filter(
+function buildReportingReadiness(
+  rows: LearningIntelligenceRow[],
+  evidenceEntries: CleanEvidenceEntry[],
+  assessmentStatuses: CleanAssessmentSkillStatus[],
+) {
+  const activeRows = rows.filter((row) => row.isActiveLearningArea);
+  const rowsForReadiness = activeRows.length ? activeRows : rows.filter((row) => row.readiness !== "Not explored yet");
+  const readyCount = rowsForReadiness.filter((row) => row.readiness === "Ready").length;
+  const buildingCount = rowsForReadiness.filter((row) => row.readiness === "Building").length;
+  const notExploredCount = rowsForReadiness.filter(
     (row) => row.readiness === "Not explored yet",
   ).length;
-  const totalRows = rows.length || 1;
+  const totalRows = rowsForReadiness.length || 1;
   const readinessPercent = Math.round(
     ((readyCount + buildingCount * 0.5) / totalRows) * 100,
   );
+  const portfolioEvidenceCount = evidenceEntries.filter((entry) => entry.includeInPortfolio).length;
+  const reportEvidenceCount = evidenceEntries.filter((entry) => entry.includeInReport).length;
+  const representedAreaCount = activeRows.length;
 
   return {
     readyCount,
     buildingCount,
     notExploredCount,
     readinessPercent,
+    representedAreaCount,
+    checklist: [
+      {
+        key: "learner-details",
+        label: "Learner details",
+        complete: true,
+        helper: "A learner is selected for this view.",
+      },
+      {
+        key: "recent-evidence",
+        label: "Recent learning records",
+        complete: evidenceEntries.length > 0,
+        helper: evidenceEntries.length > 0
+          ? `${evidenceEntries.length} learning ${evidenceEntries.length === 1 ? "record" : "records"} saved.`
+          : "Add a learning record when useful work is completed.",
+      },
+      {
+        key: "portfolio-evidence",
+        label: "Portfolio evidence",
+        complete: portfolioEvidenceCount > 0,
+        helper: portfolioEvidenceCount > 0
+          ? `${portfolioEvidenceCount} ${portfolioEvidenceCount === 1 ? "record is" : "records are"} marked for portfolio.`
+          : "Choose strong examples for My Portfolio when ready.",
+      },
+      {
+        key: "progress-judgements",
+        label: "Progress judgements",
+        complete: assessmentStatuses.length > 0,
+        helper: assessmentStatuses.length > 0
+          ? `${assessmentStatuses.length} progress ${assessmentStatuses.length === 1 ? "judgement" : "judgements"} recorded.`
+          : "Save progress judgements after reviewing completed work.",
+      },
+      {
+        key: "learning-areas",
+        label: "Learning areas represented",
+        complete: representedAreaCount > 0,
+        helper: representedAreaCount > 0
+          ? `${formatLearningAreaCount(representedAreaCount)} represented.`
+          : "Learning areas will appear as pathways or evidence are added.",
+      },
+      {
+        key: "report-evidence",
+        label: "Report-ready evidence",
+        complete: reportEvidenceCount > 0,
+        helper: reportEvidenceCount > 0
+          ? `${reportEvidenceCount} ${reportEvidenceCount === 1 ? "record is" : "records are"} marked for reports.`
+          : "Select report-ready evidence when preparing a report.",
+      },
+    ],
   } satisfies LearningIntelligenceReportingReadiness;
 }
 
@@ -837,7 +953,9 @@ function buildNextLearningSteps(
   learnerStageKey: PathwayStageKey,
   index: UnifiedPathwayStepStateIndex,
 ) {
-  return rows
+  const candidateRows = rows.filter((row) => row.isActiveLearningArea);
+
+  return candidateRows
     .map((row) => {
       const descriptors = REGISTRY_ITEMS.filter((item) => {
         if (row.kind === "subject") {
@@ -911,8 +1029,17 @@ export function buildLearningIntelligenceSummary(
   );
   const strengths = buildStrengths(scopeRows);
   const focusAreas = buildFocusAreas(scopeRows);
-  const reportingReadiness = buildReportingReadiness(scopeRows);
+  const reportingReadiness = buildReportingReadiness(scopeRows, evidenceEntries, assessmentStatuses);
   const nextLearningSteps = buildNextLearningSteps(scopeRows, learnerStageKey, unifiedIndex);
+  const activeLearningAreaRows = scopeRows.filter((row) => row.isActiveLearningArea);
+  const inactiveLearningAreaRows = scopeRows.filter((row) => !row.isActiveLearningArea);
+  const portfolioEvidenceCount = evidenceEntries.filter((entry) => entry.includeInPortfolio).length;
+  const reportEvidenceCount = evidenceEntries.filter((entry) => entry.includeInReport).length;
+  const nonZeroTrendPoints = progressOverTime.filter((point) => point.totalCount > 0);
+  const totalTrendRecords = progressOverTime.reduce((sum, point) => sum + point.totalCount, 0);
+  const hasMeaningfulProgressTrend =
+    totalTrendRecords >= 3 && nonZeroTrendPoints.length >= 2;
+  const hasMeaningfulStrengths = strengths.length > 0;
 
   return {
     selectedSubjectKey,
@@ -944,6 +1071,14 @@ export function buildLearningIntelligenceSummary(
     focusAreas,
     reportingReadiness,
     nextLearningSteps,
+    activeLearningAreaRows,
+    inactiveLearningAreaRows,
+    activeLearningAreaCount: activeLearningAreaRows.length,
+    portfolioEvidenceCount,
+    reportEvidenceCount,
+    hasMeaningfulProgressTrend,
+    hasMeaningfulStrengths,
+    areaCountLabel: formatLearningAreaCount(reportingReadiness.representedAreaCount),
     isEmpty:
       recentActivity.length === 0 &&
       totals.evidenceLinkedCount === 0 &&
