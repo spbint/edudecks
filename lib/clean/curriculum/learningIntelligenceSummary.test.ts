@@ -11,7 +11,7 @@ import {
 import { buildPathwayStepId } from "@/lib/clean/pathways/pathwayStepRegistry";
 
 describe("learning intelligence summary", () => {
-  it("builds subject and strand intelligence from canonical pathway state", () => {
+  it("builds subject and strand intelligence from shared pathway state", () => {
     const pathwayStepId = buildPathwayStepId(
       "arts",
       "music-and-sound",
@@ -109,5 +109,19 @@ describe("learning intelligence summary", () => {
     expect(musicRow?.secureStrongCount).toBeGreaterThanOrEqual(1);
     expect(artsSummary.reportingReadiness.readyCount).toBeGreaterThanOrEqual(1);
     expect(artsSummary.nextLearningSteps.length).toBeGreaterThan(0);
+  });
+
+  it("frames untouched learning areas as not explored rather than deficits", () => {
+    const summary = buildLearningIntelligenceSummary({
+      learnerYearLevel: "Foundation",
+      evidenceEntries: [],
+      assessmentStatuses: [],
+      referenceDate: "2026-05-24",
+    });
+
+    expect(summary.isEmpty).toBe(true);
+    expect(summary.scopeRows.every((row) => row.readiness === "Not explored yet")).toBe(true);
+    expect(summary.reportingReadiness.notExploredCount).toBe(summary.scopeRows.length);
+    expect(summary.reportingReadiness).not.toHaveProperty("needsMoreEvidenceCount");
   });
 });

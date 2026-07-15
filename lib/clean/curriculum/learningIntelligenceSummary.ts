@@ -44,7 +44,7 @@ export type LearningIntelligenceRow = {
   startingEvidenceCount: number;
   notAssessedCount: number;
   progressPercent: number;
-  readiness: "Ready" | "Building" | "Needs more evidence";
+  readiness: "Ready" | "Building" | "Not explored yet";
   latestActivityAt: string | null;
   latestActivityLabel: string;
 };
@@ -106,7 +106,7 @@ export type LearningIntelligenceNextStep = {
 export type LearningIntelligenceReportingReadiness = {
   readyCount: number;
   buildingCount: number;
-  needsMoreEvidenceCount: number;
+  notExploredCount: number;
   readinessPercent: number;
 };
 
@@ -164,7 +164,7 @@ const REGISTRY_ITEMS = getAllPathwaySteps();
 const DETAILED_SUBJECTS = PATHWAY_SUBJECTS.filter((subject) => subject.status === "detailed");
 const REGISTRY_BY_ID = new Map(REGISTRY_ITEMS.map((item) => [item.id, item]));
 const SUBJECT_PATHWAYS_HREF = "/my-pathways";
-const ASSESSMENTS_HREF = "/my-assessments";
+const CONFIDENCE_HREF = "/my-pathways";
 const EVIDENCE_HREF = "/my-capture";
 
 function safe(value: unknown) {
@@ -381,7 +381,7 @@ function buildRowFromDescriptors(
       ? "Ready"
       : totals.evidenceLinkedCount > 0 || totals.assessedCount > 0
         ? "Building"
-        : "Needs more evidence";
+        : "Not explored yet";
 
   return {
     key,
@@ -551,7 +551,7 @@ function buildActivityItems(
           `Saved confidence for ${registryItem.stepTitle}.`,
         dateValue: status.updatedAt || status.createdAt,
         dateLabel: formatRelativeDateLabel(status.updatedAt || status.createdAt, referenceDate),
-        href: ASSESSMENTS_HREF,
+        href: CONFIDENCE_HREF,
       } satisfies LearningIntelligenceActivity;
     })
     .filter(Boolean) as LearningIntelligenceActivity[];
@@ -653,7 +653,7 @@ function buildInsightHelper(row: LearningIntelligenceRow) {
   }
 
   if (row.notAssessedCount > 0) {
-    return "This area may benefit from more evidence or a saved confidence check-in.";
+    return "This area is not currently active. Choose it when it becomes part of the plan.";
   }
 
   return "This area is beginning to build.";
@@ -721,8 +721,8 @@ function buildFocusAreas(rows: LearningIntelligenceRow[]) {
 function buildReportingReadiness(rows: LearningIntelligenceRow[]) {
   const readyCount = rows.filter((row) => row.readiness === "Ready").length;
   const buildingCount = rows.filter((row) => row.readiness === "Building").length;
-  const needsMoreEvidenceCount = rows.filter(
-    (row) => row.readiness === "Needs more evidence",
+  const notExploredCount = rows.filter(
+    (row) => row.readiness === "Not explored yet",
   ).length;
   const totalRows = rows.length || 1;
   const readinessPercent = Math.round(
@@ -732,7 +732,7 @@ function buildReportingReadiness(rows: LearningIntelligenceRow[]) {
   return {
     readyCount,
     buildingCount,
-    needsMoreEvidenceCount,
+    notExploredCount,
     readinessPercent,
   } satisfies LearningIntelligenceReportingReadiness;
 }

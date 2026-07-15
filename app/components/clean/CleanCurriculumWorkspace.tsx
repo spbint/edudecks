@@ -181,7 +181,7 @@ function getAssessmentSummaryLine(summary: CurriculumCoverageAssessmentSummary) 
   const secureOrStrong = summary.secure + summary.strong;
   const developing = summary.developing + summary.stillDeveloping;
 
-  return `${summary.assessedCount} assessed | ${secureOrStrong} secure/strong | ${developing} developing/still developing`;
+  return `${summary.assessedCount} confidence notes | ${secureOrStrong} secure/strong | ${developing} developing`;
 }
 
 function coverageBadgeStyle(status: CurriculumCoverageStatus): React.CSSProperties {
@@ -887,14 +887,15 @@ function CurriculumWorkspaceBody() {
             <section className="mylearna-data-assessment-evidence" style={{ ...cardStyle, padding: 18 }}>
               <div style={{ display: "grid", gap: 14 }}>
                 <div style={{ display: "grid", gap: 8 }}>
-                  <div style={eyebrowStyle}>Assessment evidence</div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Pathway checks</h2>
+                  <div style={eyebrowStyle}>Progress records</div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Pathway confidence notes</h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Completed pathway checks now appear here as report-ready evidence alongside captured notes.
+                    Saved pathway confidence notes appear here alongside captured work when they
+                    can support reporting.
                   </p>
                 </div>
                 {assessmentEvidenceLoading ? (
-                  <p style={{ margin: 0, color: "#475569" }}>Loading pathway check evidence...</p>
+                  <p style={{ margin: 0, color: "#475569" }}>Loading pathway progress records...</p>
                 ) : assessmentEvidenceError ? (
                   <p style={{ margin: 0, color: "#b91c1c" }}>{assessmentEvidenceError}</p>
                 ) : assessmentEvidenceEvents.length ? (
@@ -921,7 +922,7 @@ function CurriculumWorkspaceBody() {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            Report-ready
+                            Report support
                           </span>
                         </div>
                         <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
@@ -945,9 +946,9 @@ function CurriculumWorkspaceBody() {
                   </div>
                 ) : (
                   <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>No pathway checks yet</strong>
+                    <strong style={{ color: "#0f172a" }}>No pathway confidence notes yet</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Completed pathway checks will appear here as report-ready evidence.
+                      Saved pathway confidence notes will appear here when they are available.
                     </p>
                   </div>
                 )}
@@ -1192,7 +1193,7 @@ function CurriculumWorkspaceBody() {
                       </div>
                       {summary.assessmentSummary.totalSteps > 0 ? (
                         <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                          Assessment: {getAssessmentSummaryLine(summary.assessmentSummary)}
+                          Progress: {getAssessmentSummaryLine(summary.assessmentSummary)}
                         </div>
                       ) : null}
                       <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
@@ -1266,7 +1267,7 @@ function CurriculumWorkspaceBody() {
                     </div>
                     {selectedAreaSummary.assessmentSummary.totalSteps > 0 ? (
                       <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        Assessment: {getAssessmentSummaryLine(selectedAreaSummary.assessmentSummary)}
+                        Progress: {getAssessmentSummaryLine(selectedAreaSummary.assessmentSummary)}
                       </div>
                     ) : null}
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
@@ -1330,7 +1331,7 @@ function CurriculumWorkspaceBody() {
                           </div>
                           {summary.assessmentSummary.totalSteps > 0 ? (
                             <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                              Assessment: {getAssessmentSummaryLine(summary.assessmentSummary)}
+                              Progress: {getAssessmentSummaryLine(summary.assessmentSummary)}
                             </div>
                           ) : null}
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>

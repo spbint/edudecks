@@ -253,7 +253,7 @@ function getMetricTone(kind: string): MetricTone {
 function buildHeatCellStyle(
   count: number,
   totalSteps: number,
-  type: "evidence" | "developing" | "secure" | "not-assessed",
+  type: "evidence" | "developing" | "secure" | "not-active",
 ): React.CSSProperties {
   const ratio = totalSteps > 0 ? Math.min(1, count / totalSteps) : 0;
 
@@ -531,12 +531,12 @@ function ProgressRow(props: { row: LearningIntelligenceRow }) {
           <div style={{ color: "#047857", fontSize: 11 }}>Confidence</div>
         </div>
 
-        <div style={buildHeatCellStyle(row.notAssessedCount, row.totalSteps, "not-assessed")}>
-          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Not assessed</div>
+        <div style={buildHeatCellStyle(row.notAssessedCount, row.totalSteps, "not-active")}>
+          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Not explored yet</div>
           <div style={{ color: "#475569", fontSize: 24, fontWeight: 800 }}>
             {row.notAssessedCount}
           </div>
-          <div style={{ color: "#475569", fontSize: 11 }}>Ready to start</div>
+          <div style={{ color: "#475569", fontSize: 11 }}>Available when planned</div>
         </div>
 
         <div
@@ -649,16 +649,16 @@ export default function CleanLearningIntelligenceDashboard(
       helper: null,
     },
     {
-      label: "Not assessed",
+      label: "Not explored yet",
       value: summary.notAssessedCount,
       tone: getMetricTone("neutral"),
       helper: null,
     },
     {
-      label: "Readiness",
-      value: `${summary.reportingReadiness.readinessPercent}%`,
+      label: "Report checklist",
+      value: `${summary.reportingReadiness.readyCount + summary.reportingReadiness.buildingCount}`,
       tone: getMetricTone("secure"),
-      helper: null,
+      helper: "areas taking shape",
     },
   ];
 
@@ -826,8 +826,8 @@ export default function CleanLearningIntelligenceDashboard(
                   A clear overview of {props.learnerName}&rsquo;s learning.
                 </h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
-                  Canonical pathway steps, evidence, confidence, coverage, and next steps in one
-                  calm dashboard.
+                  Current pathway steps, saved work, confidence notes, coverage, and next steps in
+                  one calm dashboard.
                 </p>
               </div>
 
@@ -982,7 +982,7 @@ export default function CleanLearningIntelligenceDashboard(
                     />
                   </div>
                   <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                    {summary.selectedSubjectTitle} | {summary.totalSteps} tracked steps
+                    {summary.selectedSubjectTitle} | {summary.totalSteps} pathway steps
                   </div>
                 </article>
 
@@ -1112,7 +1112,7 @@ export default function CleanLearningIntelligenceDashboard(
                         fontWeight: 700,
                       }}
                     >
-                      Reporting {summary.reportingReadiness.readinessPercent}%
+                      Report checklist
                     </span>
                   </div>
                   {leadNextStep ? (
@@ -1149,7 +1149,7 @@ export default function CleanLearningIntelligenceDashboard(
                     </>
                   ) : (
                     <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
-                      Capture or assess to build the next-step view.
+                      Choose a pathway or add evidence to build the next-step view.
                     </div>
                   )}
                 </article>
@@ -1242,7 +1242,7 @@ export default function CleanLearningIntelligenceDashboard(
                     fontWeight: 700,
                   }}
                 >
-                  Not assessed
+                  Not explored yet
                 </span>
               </div>
             </div>
@@ -1594,7 +1594,7 @@ export default function CleanLearningIntelligenceDashboard(
                         }}
                       >
                         {item.notAssessedCount > 0
-                          ? "May benefit from more evidence"
+                          ? "Not currently active"
                           : "Good next step"}
                       </span>
                     </div>
@@ -1611,9 +1611,9 @@ export default function CleanLearningIntelligenceDashboard(
             </section>
 
             <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 12 }}>
-              <div style={eyebrowStyle}>Reporting Readiness</div>
+              <div style={eyebrowStyle}>Reporting</div>
               <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-                Reporting readiness
+                Report progress
               </h3>
 
               <div
@@ -1634,9 +1634,9 @@ export default function CleanLearningIntelligenceDashboard(
                     alignItems: "center",
                   }}
                 >
-                  <strong style={{ color: "#0f172a" }}>Readiness</strong>
-                  <span style={{ color: "#0f172a", fontSize: 28, fontWeight: 800 }}>
-                    {summary.reportingReadiness.readinessPercent}%
+                  <strong style={{ color: "#0f172a" }}>Your report is taking shape</strong>
+                  <span style={{ color: "#0f172a", fontSize: 18, fontWeight: 800 }}>
+                    {summary.reportingReadiness.readyCount + summary.reportingReadiness.buildingCount} areas
                   </span>
                 </div>
 
@@ -1652,15 +1652,15 @@ export default function CleanLearningIntelligenceDashboard(
                     color: "#8b5cf6",
                   },
                   {
-                    label: "Needs more evidence",
-                    value: summary.reportingReadiness.needsMoreEvidenceCount,
+                    label: "Not explored yet",
+                    value: summary.reportingReadiness.notExploredCount,
                     color: "#f59e0b",
                   },
                 ].map((item) => {
                   const total =
                     summary.reportingReadiness.readyCount +
                       summary.reportingReadiness.buildingCount +
-                      summary.reportingReadiness.needsMoreEvidenceCount || 1;
+                      summary.reportingReadiness.notExploredCount || 1;
                   const width = Math.round((item.value / total) * 100);
 
                   return (
@@ -1700,7 +1700,8 @@ export default function CleanLearningIntelligenceDashboard(
               </div>
 
               <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                Ready means evidence and confidence are both present.
+                Ready means saved work and a confidence note are both present. Untouched areas are
+                listed only as not explored yet, not as deficits.
               </div>
             </section>
           </div>
