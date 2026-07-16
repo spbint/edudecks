@@ -13,11 +13,11 @@ import {
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type {
   CleanAssessmentSkillStatus,
-  CleanAssessmentStatusValue,
 } from "@/lib/clean/assessments/types";
 import {
   buildUnifiedPathwayStepStateIndex,
   getUnifiedPathwayStepState,
+  resolveEffectiveAssessmentConfidence,
 } from "@/lib/clean/pathways/pathwayStepState";
 import {
   getAllPathwaySteps,
@@ -405,8 +405,7 @@ function buildAssessmentSummary(
   return registryItems.reduce(
     (totals, item) => {
       const unifiedState = getUnifiedPathwayStepState(unifiedStateIndex, item.id);
-      const assessmentConfidence =
-        (unifiedState?.assessmentConfidence || "Not assessed yet") as CleanAssessmentStatusValue;
+      const assessmentConfidence = resolveEffectiveAssessmentConfidence(unifiedState);
 
       totals.totalSteps += 1;
       if ((unifiedState?.linkedEvidenceCount || 0) > 0) {

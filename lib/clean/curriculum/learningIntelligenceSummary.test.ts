@@ -11,6 +11,40 @@ import {
 } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import { buildPathwayStepId } from "@/lib/clean/pathways/pathwayStepRegistry";
 
+function makeAssessmentStatus(
+  overrides: Partial<CleanAssessmentSkillStatus> & {
+    id: string;
+    status: CleanAssessmentSkillStatus["status"];
+    pathwayStepId?: string;
+  },
+): CleanAssessmentSkillStatus {
+  const pathwayStepId =
+    overrides.pathwayStepId ??
+    buildPathwayStepId(
+      "mathematics",
+      "number-and-place-value",
+      "foundation-kindergarten",
+      "partition-and-combine-small-collections-up-to-10",
+    );
+
+  return {
+    id: overrides.id,
+    familyId: "family-1",
+    learnerId: "learner-1",
+    subjectKey: "mathematics",
+    skillKey: pathwayStepId,
+    stageKey: "foundation-kindergarten",
+    status: overrides.status,
+    note: overrides.note ?? null,
+    createdByUserId: "user-1",
+    createdAt: overrides.createdAt ?? "2026-05-24T09:00:00.000Z",
+    updatedAt: overrides.updatedAt ?? "2026-05-24T09:00:00.000Z",
+    pathwayStepId,
+    strandKey: "number-and-place-value",
+    stepKey: "partition-and-combine-small-collections-up-to-10",
+  };
+}
+
 function makePathwayEvidence(
   overrides: Partial<CleanEvidenceEntry> & {
     id: string;
@@ -23,6 +57,8 @@ function makePathwayEvidence(
     stepKey?: string;
     stepTitle?: string;
     observedOn?: string;
+    observedSkillStatus?: string | null;
+    progressLevel?: string | null;
   },
 ): CleanEvidenceEntry {
   const subjectKey = overrides.subjectKey ?? "mathematics";
@@ -50,8 +86,14 @@ function makePathwayEvidence(
     stepTitle,
     stepMeaning: "Use concrete materials to show the learning step.",
     skillFocus: "current pathway work",
-    observedSkillStatus: "Evidence started",
+    observedSkillStatus: overrides.observedSkillStatus ?? "Evidence started",
   });
+  const progressLine = overrides.progressLevel
+    ? `Progress level: ${overrides.progressLevel}`
+    : "";
+  const reflection = [progressLine, overrides.reflection ?? null]
+    .filter(Boolean)
+    .join("\n") || null;
 
   return {
     id: overrides.id,
@@ -62,7 +104,7 @@ function makePathwayEvidence(
     observedOn: overrides.observedOn ?? "2026-05-24",
     title: overrides.title ?? `${subjectLabel} learning record`,
     whatHappened: overrides.whatHappened ?? "The learner completed useful pathway work.",
-    reflection: overrides.reflection ?? null,
+    reflection,
     learningArea: overrides.learningArea ?? subjectLabel,
     curriculumNodeIds: encodePathwayContextNodeIds([], pathwayContext),
     attachmentUrls: overrides.attachmentUrls ?? [],
@@ -302,5 +344,108 @@ describe("learning intelligence summary", () => {
     expect(summary.reportingReadiness.checklist.find((item) => item.key === "report-evidence")?.complete).toBe(true);
     expect(summary.areaCountLabel).toBe("1 area");
     expect(formatLearningAreaCount(2)).toBe("2 areas");
+  });
+
+  it.each([
+    "Needs support",
+    "Working towards",
+    "Consolidating",
+    "Secure",
+    "Goal achieved",
+    "Goal achieved + extension",
+  ])("%s counts as a saved progress judgement from evidence", (progressLevel) => {
+    const summary = buildLearningIntelligenceSummary({
+      learnerYearLevel: "Foundation",
+      evidenceEntries: [
+        makePathwayEvidence({
+          id: `evidence-${progressLevel}`,
+          progressLevel,
+          observedSkillStatus:
+            progressLevel === "Goal achieved + extension"
+              ? "Strong"
+              : progressLevel === "Goal achieved" || progressLevel === "Secure"
+                ? "Secure"
+                : "Developing",
+        }),
+      ],
+      assessmentStatuses: [],
+      referenceDate: "2026-05-24",
+    });
+
+    const progressItem = summary.reportingReadiness.checklist.find(
+      (item) => item.key === "progress-judgements",
+    );
+
+    expect(progressItem?.complete).toBe(true);
+    expect(progressItem?.helper).toContain("1 progress judgement recorded");
+  });
+
+  it("does not count empty or missing progress judgements", () => {
+    const summary = buildLearningIntelligenceSummary({
+      learnerYearLevel: "Foundation",
+      evidenceEntries: [makePathwayEvidence({ id: "evidence-math-1" })],
+      assessmentStatuses: [],
+      referenceDate: "2026-05-24",
+    });
+
+    const progressItem = summary.reportingReadiness.checklist.find(
+      (item) => item.key === "progress-judgements",
+    );
+
+    expect(progressItem?.complete).toBe(false);
+    expect(progressItem?.helper).toBe(
+      "Add a progress judgement after reviewing completed work.",
+    );
+  });
+
+  it.each([
+    ["Still developing", "Needs support"],
+    ["Developing", "Working towards"],
+    ["Strong", "Goal achieved + extension"],
+  ] as const)(
+    "keeps historic %s judgement values supported",
+    (status, expectedLabel) => {
+      const summary = buildLearningIntelligenceSummary({
+        learnerYearLevel: "Foundation",
+        evidenceEntries: [],
+        assessmentStatuses: [
+          makeAssessmentStatus({
+            id: `status-${status}`,
+            status,
+          }),
+        ],
+        referenceDate: "2026-05-24",
+      });
+
+      const progressItem = summary.reportingReadiness.checklist.find(
+        (item) => item.key === "progress-judgements",
+      );
+
+      expect(progressItem?.complete).toBe(true);
+      expect(progressItem?.helper).toContain("1 progress judgement recorded");
+      expect(expectedLabel).toBeTruthy();
+    },
+  );
+
+  it("completes the reporting checklist when at least one recognised judgement exists", () => {
+    const summary = buildLearningIntelligenceSummary({
+      learnerYearLevel: "Foundation",
+      evidenceEntries: [
+        makePathwayEvidence({
+          id: "evidence-math-1",
+          progressLevel: "Goal achieved",
+          includeInReport: true,
+          includeInPortfolio: true,
+        }),
+      ],
+      assessmentStatuses: [],
+      referenceDate: "2026-05-24",
+    });
+
+    expect(
+      summary.reportingReadiness.checklist.find(
+        (item) => item.key === "progress-judgements",
+      )?.complete,
+    ).toBe(true);
   });
 });

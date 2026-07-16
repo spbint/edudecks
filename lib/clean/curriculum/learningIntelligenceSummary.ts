@@ -11,6 +11,8 @@ import {
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
   buildUnifiedPathwayStepStateIndex,
+  countRecognizedProgressJudgements,
+  resolveEffectiveAssessmentConfidence,
   resolvePathwayStepIdFromContext,
   type UnifiedPathwayStepState,
   type UnifiedPathwayStepStateIndex,
@@ -284,7 +286,7 @@ function summarizeText(value: string | null | undefined, maxLength = 110) {
 }
 
 function getAssessmentConfidence(state: UnifiedPathwayStepState | null) {
-  return state?.assessmentConfidence ?? "Not assessed yet";
+  return resolveEffectiveAssessmentConfidence(state);
 }
 
 function getProgressPercent(
@@ -794,6 +796,10 @@ function buildReportingReadiness(
   );
   const portfolioEvidenceCount = evidenceEntries.filter((entry) => entry.includeInPortfolio).length;
   const reportEvidenceCount = evidenceEntries.filter((entry) => entry.includeInReport).length;
+  const progressJudgementCount = countRecognizedProgressJudgements({
+    assessmentStatuses,
+    evidenceEntries,
+  });
   const representedAreaCount = activeRows.length;
 
   return {
@@ -828,10 +834,10 @@ function buildReportingReadiness(
       {
         key: "progress-judgements",
         label: "Progress judgements",
-        complete: assessmentStatuses.length > 0,
-        helper: assessmentStatuses.length > 0
-          ? `${assessmentStatuses.length} progress ${assessmentStatuses.length === 1 ? "judgement" : "judgements"} recorded.`
-          : "Save progress judgements after reviewing completed work.",
+        complete: progressJudgementCount > 0,
+        helper: progressJudgementCount > 0
+          ? `${progressJudgementCount} progress ${progressJudgementCount === 1 ? "judgement" : "judgements"} recorded.`
+          : "Add a progress judgement after reviewing completed work.",
       },
       {
         key: "learning-areas",

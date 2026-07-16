@@ -38,6 +38,14 @@ export type UnifiedPathwayStepState = {
 
 export type UnifiedPathwayStepStateIndex = Map<string, UnifiedPathwayStepState>;
 
+export type RecognizedProgressJudgement =
+  | "Needs support"
+  | "Working towards"
+  | "Consolidating"
+  | "Secure"
+  | "Goal achieved"
+  | "Goal achieved + extension";
+
 export type PathwayStrandAssessmentSummary = {
   subjectKey: PathwaySubjectKey;
   subjectTitle: string;
@@ -134,6 +142,94 @@ function getEvidenceProgressLevel(entry: CleanEvidenceEntry | null | undefined) 
   const text = `${entry?.whatHappened || ""}\n${entry?.reflection || ""}`;
   const match = text.match(/Progress level:\s*([^\n.]+)/i);
   return match?.[1]?.trim() || null;
+}
+
+export function normalizeProgressJudgementValue(
+  value: string | null | undefined,
+): RecognizedProgressJudgement | null {
+  const normalizedValue = safe(value)
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+
+  if (!normalizedValue || normalizedValue === "not assessed yet") {
+    return null;
+  }
+
+  if (normalizedValue === "needs support" || normalizedValue === "still developing") {
+    return "Needs support";
+  }
+
+  if (normalizedValue === "working towards" || normalizedValue === "developing") {
+    return "Working towards";
+  }
+
+  if (normalizedValue === "consolidating") {
+    return "Consolidating";
+  }
+
+  if (normalizedValue === "secure") {
+    return "Secure";
+  }
+
+  if (normalizedValue === "goal achieved") {
+    return "Goal achieved";
+  }
+
+  if (normalizedValue === "goal achieved + extension" || normalizedValue === "strong") {
+    return "Goal achieved + extension";
+  }
+
+  return null;
+}
+
+export function isRecognizedProgressJudgement(value: string | null | undefined) {
+  return Boolean(normalizeProgressJudgementValue(value));
+}
+
+export function getEvidenceProgressJudgement(
+  entry: CleanEvidenceEntry | null | undefined,
+) {
+  const pathwayContext = entry
+    ? parsePathwayContextFromNodeIds(entry.curriculumNodeIds)
+    : null;
+
+  return (
+    normalizeProgressJudgementValue(getEvidenceProgressLevel(entry)) ||
+    normalizeProgressJudgementValue(pathwayContext?.observedSkillStatus)
+  );
+}
+
+export function evidenceHasRecognizedProgressJudgement(
+  entry: CleanEvidenceEntry | null | undefined,
+) {
+  return Boolean(getEvidenceProgressJudgement(entry));
+}
+
+export function countRecognizedProgressJudgements(input: {
+  assessmentStatuses?: CleanAssessmentSkillStatus[];
+  evidenceEntries?: CleanEvidenceEntry[];
+}) {
+  const assessmentCount = (input.assessmentStatuses || []).filter((status) =>
+    isRecognizedProgressJudgement(status.status),
+  ).length;
+  const evidenceCount = (input.evidenceEntries || []).filter((entry) =>
+    evidenceHasRecognizedProgressJudgement(entry),
+  ).length;
+
+  return assessmentCount + evidenceCount;
+}
+
+export function resolveEffectiveAssessmentConfidence(
+  state: UnifiedPathwayStepState | null | undefined,
+): CleanAssessmentStatusValue {
+  if (!state) return "Not assessed yet";
+
+  if (state.latestStatusSource === "evidence" && state.latestObservedSkillStatus) {
+    return state.latestObservedSkillStatus;
+  }
+
+  return state.assessmentConfidence || state.latestObservedSkillStatus || "Not assessed yet";
 }
 
 function mapEvidenceProgressLevelToObservedStatus(

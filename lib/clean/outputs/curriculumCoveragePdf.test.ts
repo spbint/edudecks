@@ -108,6 +108,7 @@ async function getPdfPageCount(entries: CleanEvidenceEntry[]) {
   const pdf = await PDFDocument.load(bytes);
   return {
     model,
+    bytes,
     pageCount: pdf.getPageCount(),
   };
 }
@@ -138,6 +139,28 @@ describe("curriculum coverage PDF", () => {
     expect(result.pageCount).toBeGreaterThanOrEqual(2);
     expect(result.pageCount).toBeLessThanOrEqual(4);
     expect(getCoveragePdfActiveAreaSummaries(result.model)).toHaveLength(1);
+  });
+
+  it("omits inactive subject sections and deficit wording from a three-record coverage PDF", async () => {
+    const result = await getPdfPageCount([
+      makeMathEvidence(0),
+      makeMathEvidence(1),
+      makeMathEvidence(2),
+    ]);
+    const activeAreaLabels = getCoveragePdfActiveAreaSummaries(result.model).map(
+      (summary) => summary.area.label,
+    );
+    const decodedPdfBytes = new TextDecoder("latin1").decode(result.bytes);
+
+    expect(result.pageCount).toBeGreaterThanOrEqual(2);
+    expect(result.pageCount).toBeLessThanOrEqual(4);
+    expect(activeAreaLabels).toEqual(["Mathematics"]);
+    expect(activeAreaLabels).not.toContain("English");
+    expect(decodedPdfBytes).not.toContain("waiting for evidence");
+    expect(decodedPdfBytes).not.toContain("not assessed yet");
+    expect(decodedPdfBytes).not.toContain("1/9 learning areas");
+    expect(decodedPdfBytes.toLowerCase()).not.toContain("deficit");
+    expect(decodedPdfBytes.toLowerCase()).not.toContain("whole-curriculum");
   });
 
   it("creates concise useful PDFs for zero and one learning record", async () => {
