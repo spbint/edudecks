@@ -114,6 +114,7 @@ const WORKSHEET_PROGRESS_OPTIONS = [
   { value: "Needs support", status: "Still developing" },
   { value: "Working towards", status: "Developing" },
   { value: "Consolidating", status: "Developing" },
+  { value: "Secure", status: "Secure" },
   { value: "Goal achieved", status: "Secure" },
   { value: "Goal achieved + extension", status: "Strong" },
 ] as const;
@@ -121,6 +122,18 @@ const WORKSHEET_PROGRESS_OPTIONS = [
 type WorksheetProgressLevel = (typeof WORKSHEET_PROGRESS_OPTIONS)[number]["value"];
 
 type CapturePath = "standard" | "life";
+
+const CANONICAL_LEARNING_AREAS = [
+  "English",
+  "Mathematics",
+  "Science",
+  "Humanities and Social Sciences",
+  "Arts",
+  "Technologies",
+  "Health and Physical Education",
+  "Languages",
+  "Life skills",
+] as const;
 
 type LearningFromLifeSuggestion = {
   title: string;
@@ -571,6 +584,7 @@ function CleanCaptureWorkspaceBody() {
   const [title, setTitle] = useState("");
   const [whatHappened, setWhatHappened] = useState("");
   const [reflection, setReflection] = useState("");
+  const [learnerReflection, setLearnerReflection] = useState("");
   const [learningArea, setLearningArea] = useState("");
   const [programId, setProgramId] = useState("");
   const [calendarItemId, setCalendarItemId] = useState("");
@@ -603,6 +617,11 @@ function CleanCaptureWorkspaceBody() {
     useState<CleanPathwayCaptureContext | null>(null);
   const [lastSavedReturnPath, setLastSavedReturnPath] = useState("");
   const [lastSavedEvidenceId, setLastSavedEvidenceId] = useState("");
+  const [lastSavedTitle, setLastSavedTitle] = useState("");
+  const [lastSavedDate, setLastSavedDate] = useState("");
+  const [lastSavedLearningArea, setLastSavedLearningArea] = useState("");
+  const [lastSavedPortfolioIncluded, setLastSavedPortfolioIncluded] = useState(true);
+  const [lastSavedReportIncluded, setLastSavedReportIncluded] = useState(true);
   const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
   const [lastSavedPhotoAttached, setLastSavedPhotoAttached] = useState(false);
   const [lastSavedPhotoPreviewUrl, setLastSavedPhotoPreviewUrl] = useState("");
@@ -867,6 +886,7 @@ function CleanCaptureWorkspaceBody() {
     setTitle("");
     setWhatHappened("");
     setReflection("");
+    setLearnerReflection("");
     setLearningArea("");
     setLifeEvidenceType("Real-world learning");
     setLifeTags("");
@@ -1328,6 +1348,7 @@ function CleanCaptureWorkspaceBody() {
       setTitle(existingEntry.title || "");
       setWhatHappened(existingEntry.whatHappened);
       setReflection(existingEntry.reflection || "");
+      setLearnerReflection("");
       setLearningArea(existingEntry.learningArea || "");
       setProgramId(existingEntry.programId || "");
       setCalendarItemId(existingEntry.calendarItemId || calendarItemIdFromQuery || "");
@@ -1446,6 +1467,11 @@ function CleanCaptureWorkspaceBody() {
     setLastSavedCurriculumContext(null);
     setLastSavedPathwayContext(null);
     setLastSavedReturnPath("");
+    setLastSavedTitle("");
+    setLastSavedDate("");
+    setLastSavedLearningArea("");
+    setLastSavedPortfolioIncluded(true);
+    setLastSavedReportIncluded(true);
     setLastSavedWorksheetProgress("");
     setLastSavedPhotoAttached(false);
     setPendingAttachmentEvidenceId("");
@@ -1550,8 +1576,8 @@ function CleanCaptureWorkspaceBody() {
           stepKey: nextPathwayContext?.stepKey ?? null,
           stepTitle: nextPathwayContext?.stepTitle ?? null,
           progressJudgement: pathwayObservedSkillStatus || worksheetProgressLevel || null,
-          parentNote: learningFromLifeActive ? learningFromLifeReflection : null,
-          learnerReflection: learningFromLifeActive ? null : reflection || null,
+          parentNote: learningFromLifeActive ? learningFromLifeReflection : reflection || null,
+          learnerReflection: learningFromLifeActive ? null : learnerReflection || null,
           sourceType: learningFromLifeActive
             ? "manual"
             : worksheetEvidenceMode
@@ -1575,8 +1601,8 @@ function CleanCaptureWorkspaceBody() {
           programId: programId || null,
           calendarItemId: calendarItemId || null,
           curriculumNodeIds: evidenceNodeIds,
-          includeInPortfolio: learningFromLifeActive ? lifeAddToPortfolio : true,
-          includeInReport: learningFromLifeActive ? lifeIncludeInReport : true,
+          includeInPortfolio: lifeAddToPortfolio,
+          includeInReport: lifeIncludeInReport,
         },
         { entryId: editingEntryId || null },
       );
@@ -1658,33 +1684,18 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedPathwayContext(nextPathwayContext);
       setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
       setLastSavedEvidenceId(savedEntry.id);
+      setLastSavedTitle(savedEntry.title || "Learning record");
+      setLastSavedDate(savedEntry.observedOn);
+      setLastSavedLearningArea(savedEntry.learningArea || "");
+      setLastSavedPortfolioIncluded(savedEntry.includeInPortfolio);
+      setLastSavedReportIncluded(savedEntry.includeInReport);
       setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
       setLastSavedPhotoPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
       });
-      setMessage(
-        worksheetEvidenceMode
-          ? "Evidence saved for this worksheet step."
-          : editingEntryId
-            ? nextPathwayContext
-              ? "Evidence saved for this pathway step."
-              : nextCurriculumContext
-                ? "Evidence saved to My Data."
-                : learningFromLifeActive
-                  ? "Learning from life evidence saved."
-                : "Capture note updated."
-            : !entries.length
-              ? "First evidence captured. Your learning record is starting to build."
-              : nextPathwayContext
-                ? "Evidence saved for this pathway step."
-                : nextCurriculumContext
-                  ? "Evidence saved to My Data."
-                  : learningFromLifeActive
-                    ? "Learning from life evidence saved."
-                  : "Capture note saved.",
-      );
+      setMessage("Learning recorded.");
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
       setSavedAttachments(uploadedAttachments);
@@ -1726,7 +1737,7 @@ function CleanCaptureWorkspaceBody() {
       setPendingAttachmentError("");
       setPendingAttachmentFileName("");
       setPendingUploadedAttachments([]);
-      setMessage("Evidence saved for this worksheet step.");
+      setMessage("Learning recorded.");
       setPhotoFile(null);
       setPhotoName("");
       setPhotoPreviewUrl((current) => {
@@ -1768,7 +1779,7 @@ function CleanCaptureWorkspaceBody() {
       setPendingAttachmentError("");
       setPendingAttachmentFileName("");
       setPendingUploadedAttachments([]);
-      setMessage("Evidence saved for this worksheet step.");
+      setMessage("Learning recorded.");
       setPhotoFile(null);
       setPhotoName("");
       setPhotoPreviewUrl((current) => {
@@ -1825,6 +1836,7 @@ function CleanCaptureWorkspaceBody() {
     setTitle(entry.title || "");
     setWhatHappened(entry.whatHappened);
     setReflection(entry.reflection || "");
+    setLearnerReflection("");
     setLearningArea(entry.learningArea || "");
     setProgramId(entry.programId || "");
     setCalendarItemId(entry.calendarItemId || "");
@@ -1868,7 +1880,7 @@ function CleanCaptureWorkspaceBody() {
     ? "What did you notice? How independently did the learner complete the task? What might come next?"
     : curriculumCaptureActive
     ? "What stood out, what support helped, or what could come next? (optional)"
-    : "Reflection, next step, or what stood out (optional)";
+    : "Parent note (optional)";
   const recentNotesPanelId = "clean-capture-recent-notes";
   const selectedLearnerLabel =
     learnerOptions.find((option) => option.value === learnerId)?.label || "";
@@ -2097,16 +2109,10 @@ function CleanCaptureWorkspaceBody() {
               >
                 <div>
                   <h2 data-guidance-id="capture-evidence-type" style={{ margin: 0, color: "#0f172a", fontSize: 20, fontWeight: 650 }}>
-                    {worksheetEvidenceMode
-                      ? "Add completed work"
-                      : learningFromLifeActive
-                        ? "Add learning from life"
-                        : "Add evidence"}
+                    {worksheetEvidenceMode ? "Record completed work" : "Record learning"}
                   </h2>
                   <p className="mylearna-capture-form-intro" style={{ margin: "8px 0 0", color: "#475569" }}>
-                    {learningFromLifeActive
-                      ? "MyLearna can suggest details for your review. You stay in control."
-                      : "Write what happened and keep the useful links."}
+                    Record lessons, projects, outings and everyday learning in one place.
                   </p>
                   {worksheetEvidenceMode ? (
                     <div
@@ -2142,7 +2148,7 @@ function CleanCaptureWorkspaceBody() {
                 </button>
               </div>
 
-              {!worksheetEvidenceMode ? (
+              {false && !worksheetEvidenceMode ? (
                 <div
                   style={{
                     marginTop: 16,
@@ -2168,7 +2174,7 @@ function CleanCaptureWorkspaceBody() {
                       boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
                     }}
                   >
-                    <strong style={{ fontSize: 16 }}>Add learning from life</strong>
+                    <strong style={{ fontSize: 16 }}>Guided record</strong>
                     <span style={{ color: "#5B6478", fontSize: 13 }}>
                       Real-world learning, parent reviewed.
                     </span>
@@ -2190,7 +2196,7 @@ function CleanCaptureWorkspaceBody() {
                       boxShadow: "0 6px 18px rgba(23,32,75,0.035)",
                     }}
                   >
-                    <strong style={{ fontSize: 16 }}>Quick capture</strong>
+                    <strong style={{ fontSize: 16 }}>Standard record</strong>
                     <span style={{ color: "#5B6478", fontSize: 13 }}>
                       Existing note workflow.
                     </span>
@@ -2211,9 +2217,9 @@ function CleanCaptureWorkspaceBody() {
                     gap: 8,
                   }}
                 >
-                  <strong style={{ color: "#0f172a" }}>Pathway evidence</strong>
+                  <strong style={{ color: "#0f172a" }}>Connected to</strong>
                   <div className="mylearna-capture-context-detail" style={{ color: "#475569", lineHeight: 1.6 }}>
-                    You are capturing evidence for:
+                    This learning record is linked to:
                   </div>
                   <div style={{ color: "#0f172a", lineHeight: 1.6, fontWeight: 700 }}>
                     {pathwayStepLabel}
@@ -2226,7 +2232,7 @@ function CleanCaptureWorkspaceBody() {
                     ))}
                   </div>
                   <div className="mylearna-capture-context-detail" style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    This evidence can help show progress through My Pathways and support curriculum coverage, reports, and outputs.
+                    This connection supports My Pathways, My Data, Portfolio and Reports.
                   </div>
                   {worksheetEvidenceMode ? (
                     <div className="mylearna-capture-context-detail"
@@ -2239,7 +2245,7 @@ function CleanCaptureWorkspaceBody() {
                         gap: 10,
                       }}
                     >
-                      <strong style={{ color: "#17204B" }}>Worksheet evidence</strong>
+                      <strong style={{ color: "#17204B" }}>Worksheet</strong>
                       {worksheetTitleFromQuery ? (
                         <span style={{ color: "#475569", lineHeight: 1.5 }}>
                           {worksheetTitleFromQuery}
@@ -2272,9 +2278,9 @@ function CleanCaptureWorkspaceBody() {
                     gap: 8,
                   }}
                 >
-                  <strong style={{ color: "#0f172a" }}>Curriculum evidence</strong>
+                  <strong style={{ color: "#0f172a" }}>Connected to</strong>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    You are capturing evidence for:
+                    This learning record is linked to:
                   </div>
                   <div style={{ display: "grid", gap: 4 }}>
                     {curriculumContextRows.map((row) => (
@@ -2284,7 +2290,7 @@ function CleanCaptureWorkspaceBody() {
                     ))}
                   </div>
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    This evidence will help build your My Data record and support reports later.
+                    This connection helps build My Data and Reports.
                   </div>
                 </div>
               ) : null}
@@ -2581,7 +2587,7 @@ function CleanCaptureWorkspaceBody() {
                                 checked={lifeAddToPortfolio}
                                 onChange={(event) => setLifeAddToPortfolio(event.target.checked)}
                               />
-                              Add to portfolio
+                              Add to Portfolio
                             </label>
                             <label style={{ display: "inline-flex", gap: 8, alignItems: "center", minHeight: 44 }}>
                               <input
@@ -2803,7 +2809,7 @@ function CleanCaptureWorkspaceBody() {
 
                     <div className="mylearna-capture-progress-section" style={{ display: "grid", gap: 8 }} data-capture-progress-options="active">
                       <span style={{ color: "#17204B", fontWeight: 800 }}>
-                        How did it go?
+                        Progress judgement
                       </span>
                       <div
                         className="mylearna-capture-progress-grid"
@@ -2847,7 +2853,7 @@ function CleanCaptureWorkspaceBody() {
 
                     <label className="mylearna-capture-note-section" style={{ display: "grid", gap: 6 }}>
                       <span style={{ fontWeight: 700, color: "#0f172a" }}>
-                        Optional note
+                        Parent note
                       </span>
                       <textarea
                         value={getWorksheetParentNote(reflection)}
@@ -2862,7 +2868,18 @@ function CleanCaptureWorkspaceBody() {
                             ].filter(Boolean).join("\n"),
                           );
                         }}
-                        placeholder="Optional: add a quick note."
+                        placeholder="Optional: add context, support given, or what happened next."
+                        style={textAreaStyle}
+                      />
+                    </label>
+                    <label className="mylearna-capture-note-section" style={{ display: "grid", gap: 6 }}>
+                      <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                        Learner reflection
+                      </span>
+                      <textarea
+                        value={learnerReflection}
+                        onChange={(event) => setLearnerReflection(event.target.value)}
+                        placeholder="Optional: what felt easy, challenging, or worth trying next."
                         style={textAreaStyle}
                       />
                     </label>
@@ -2899,12 +2916,32 @@ function CleanCaptureWorkspaceBody() {
                 ) : null}
 
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
-                <textarea
-                  value={reflection}
-                  onChange={(event) => setReflection(event.target.value)}
-                  placeholder={reflectionPlaceholder}
-                  style={textAreaStyle}
-                />
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ fontWeight: 700, color: "#0f172a" }}>Parent note</span>
+                      <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                        Add context, support given, or what happened next.
+                      </span>
+                      <textarea
+                        value={reflection}
+                        onChange={(event) => setReflection(event.target.value)}
+                        placeholder={reflectionPlaceholder}
+                        style={textAreaStyle}
+                      />
+                    </label>
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ fontWeight: 700, color: "#0f172a" }}>Learner reflection</span>
+                      <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                        Optional: what felt easy, challenging, or worth trying next.
+                      </span>
+                      <textarea
+                        value={learnerReflection}
+                        onChange={(event) => setLearnerReflection(event.target.value)}
+                        placeholder="Optional learner reflection."
+                        style={textAreaStyle}
+                      />
+                    </label>
+                  </div>
                 ) : null}
 
                 {pathwayObservedStatusFieldVisible ? (
@@ -2932,15 +2969,64 @@ function CleanCaptureWorkspaceBody() {
                 ) : null}
 
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
-                <div data-guidance-id="capture-learning-area">
-                  <input
-                    value={learningArea}
-                    onChange={(event) => setLearningArea(event.target.value)}
-                    placeholder="Learning area (optional)"
-                    style={inputStyle}
-                  />
-                </div>
+                  <label data-guidance-id="capture-learning-area" style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>Learning area</span>
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                      Choose a consistent learning area so records stay easy to find.
+                    </span>
+                    <select
+                      value={learningArea}
+                      onChange={(event) => setLearningArea(event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Choose learning area</option>
+                      {CANONICAL_LEARNING_AREAS.map((area) => (
+                        <option key={area} value={area}>
+                          {area}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 ) : null}
+
+                <div
+                  style={{
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 14,
+                    background: "#FFFFFF",
+                    padding: 12,
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Use this record</strong>
+                  <label style={{ display: "grid", gap: 3 }}>
+                    <span style={{ display: "inline-flex", gap: 8, alignItems: "center", fontWeight: 750, color: "#0f172a" }}>
+                      <input
+                        type="checkbox"
+                        checked={lifeAddToPortfolio}
+                        onChange={(event) => setLifeAddToPortfolio(event.target.checked)}
+                      />
+                      Add to Portfolio
+                    </span>
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                      Keep this as part of the learner&apos;s selected work.
+                    </span>
+                  </label>
+                  <label style={{ display: "grid", gap: 3 }}>
+                    <span style={{ display: "inline-flex", gap: 8, alignItems: "center", fontWeight: 750, color: "#0f172a" }}>
+                      <input
+                        type="checkbox"
+                        checked={lifeIncludeInReport}
+                        onChange={(event) => setLifeIncludeInReport(event.target.checked)}
+                      />
+                      Include in Reports
+                    </span>
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                      Make this record available when building learning reports.
+                    </span>
+                  </label>
+                </div>
 
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <div
@@ -3110,12 +3196,7 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <strong style={{ margin: 0, color: "#0f766e", fontSize: 16 }}>
-                    {lastSavedPathwayContext
-                      ? lastSavedWorksheetProgress === "Goal achieved" ||
-                        lastSavedWorksheetProgress === "Goal achieved + extension"
-                        ? "Saved — this step is now complete"
-                        : "Saved — progress recorded"
-                      : message}
+                    Learning recorded
                   </strong>
                   {lastSavedPathwayContext ? (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
@@ -3126,13 +3207,25 @@ function CleanCaptureWorkspaceBody() {
                       <span>
                         {worksheetTitleFromQuery || lastSavedPathwayContext.stepTitle || "Worksheet step"}
                       </span>
+                      <span>{lastSavedDate ? formatDateLabel(lastSavedDate) : ""}</span>
+                      {lastSavedLearningArea ? <span>{lastSavedLearningArea}</span> : null}
                       <span>
-                        {lastSavedPhotoAttached ? "Photo attached · " : ""}
-                        Portfolio · Reports
+                        {lastSavedPhotoAttached ? "Photo attached - " : ""}
+                        {lastSavedPortfolioIncluded ? "Added to Portfolio" : "Not added to Portfolio"} -{" "}
+                        {lastSavedReportIncluded ? "Included in Reports" : "Not included in Reports"}
                       </span>
                     </div>
                   ) : (
-                    <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+                    <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
+                      {selectedLearnerLabel ? <span>{selectedLearnerLabel}</span> : null}
+                      {lastSavedTitle ? <span>{lastSavedTitle}</span> : null}
+                      {lastSavedDate ? <span>{formatDateLabel(lastSavedDate)}</span> : null}
+                      {lastSavedLearningArea ? <span>{lastSavedLearningArea}</span> : null}
+                      <span>
+                        {lastSavedPortfolioIncluded ? "Added to Portfolio" : "Not added to Portfolio"} -{" "}
+                        {lastSavedReportIncluded ? "Included in Reports" : "Not included in Reports"}
+                      </span>
+                    </div>
                   )}
                   {lastSavedPhotoPreviewUrl ? (
                     <div
@@ -3176,6 +3269,11 @@ function CleanCaptureWorkspaceBody() {
                           setMessage(null);
                           setLastSavedPathwayContext(null);
                           setLastSavedEvidenceId("");
+                          setLastSavedTitle("");
+                          setLastSavedDate("");
+                          setLastSavedLearningArea("");
+                          setLastSavedPortfolioIncluded(true);
+                          setLastSavedReportIncluded(true);
                           setLastSavedWorksheetProgress("");
                           setLastSavedPhotoAttached(false);
                           setLastSavedPhotoPreviewUrl((current) => {
@@ -3260,7 +3358,7 @@ function CleanCaptureWorkspaceBody() {
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-                        Recent capture notes
+                        Recent learning
                       </h2>
                       <span
                         style={{
@@ -3279,7 +3377,7 @@ function CleanCaptureWorkspaceBody() {
                     </div>
                     {!recentNotesOpen ? (
                       <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        Review or edit recent evidence when needed.
+                        Review or edit recent learning records when needed.
                       </div>
                     ) : null}
                   </div>

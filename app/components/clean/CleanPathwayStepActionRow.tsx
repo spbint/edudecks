@@ -22,6 +22,8 @@ type CleanPathwayStepActionRowProps = {
   isExactStepContext?: boolean;
   worksheetResource?: MathWorksheetResource | null;
   latestEvidenceEntry?: CleanEvidenceEntry | null;
+  manualComplete?: boolean;
+  onManualCompletionChange?: (completed: boolean) => void;
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -78,7 +80,7 @@ function formatLatestEvidenceDate(entry: CleanEvidenceEntry | null | undefined) 
 function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefined) {
   const text = `${entry?.whatHappened || ""}\n${entry?.reflection || ""}`;
   const match = text.match(/Progress level:\s*([^\n.]+)/i);
-  return match?.[1]?.trim() || "Evidence saved";
+  return match?.[1]?.trim() || "Learning recorded";
 }
 
 export default function CleanPathwayStepActionRow({
@@ -86,6 +88,8 @@ export default function CleanPathwayStepActionRow({
   stepTitle = "",
   worksheetResource,
   latestEvidenceEntry = null,
+  manualComplete = false,
+  onManualCompletionChange,
 }: CleanPathwayStepActionRowProps) {
   const worksheetEvidenceCaptureHref =
     worksheetResource && captureHref
@@ -128,6 +132,15 @@ export default function CleanPathwayStepActionRow({
             </span>
           </div>
           <div className="mylearna-worksheet-action-buttons" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {!manualComplete && onManualCompletionChange ? (
+              <button
+                type="button"
+                onClick={() => onManualCompletionChange(true)}
+                style={buttonStyle}
+              >
+                Mark complete
+              </button>
+            ) : null}
             <a
               href={worksheetResource.href}
               target="_blank"
@@ -164,24 +177,32 @@ export default function CleanPathwayStepActionRow({
                 letterSpacing: "0.04em",
               }}
             >
-              Evidence step
+              Work on this step
             </span>
             <strong style={{ color: "#17204B", fontSize: 17, lineHeight: 1.25 }}>
-              {stepTitle || "Capture learning evidence"}
+              {stepTitle || "Record completed work"}
             </strong>
             <span style={{ color: "#5B6478", fontSize: 14, lineHeight: 1.45 }}>
               Add a quick note, photo, or work sample when this step is ready to record.
             </span>
           </div>
-          <div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {!manualComplete && onManualCompletionChange ? (
+              <button
+                type="button"
+                onClick={() => onManualCompletionChange(true)}
+                style={buttonStyle}
+              >
+                Mark complete
+              </button>
+            ) : null}
             <Link
               data-guidance-id="pathways-next-capture"
               href={captureHref}
               style={buttonStyle}
               title="Open My Capture with this pathway step already connected."
-              aria-label="Capture evidence for this pathway step"
             >
-              Capture evidence
+              Add completed work
             </Link>
           </div>
         </>
@@ -199,7 +220,7 @@ export default function CleanPathwayStepActionRow({
           }}
         >
           <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850 }}>
-            Latest evidence
+            Latest completed work
           </span>
           <strong style={{ color: "#17204B", fontSize: 14 }}>
             {latestEvidenceProgressLabel(latestEvidenceEntry)}

@@ -377,7 +377,7 @@ const worksheetEvidenceProgressMeta: Record<
     border: "#fecdd3",
     text: "#be123c",
     dot: "#fb7185",
-    helper: "Worksheet evidence saved. This step still needs support.",
+    helper: "Completed worksheet work recorded. This step still needs support.",
   },
   "working towards": {
     label: "Working towards",
@@ -385,7 +385,7 @@ const worksheetEvidenceProgressMeta: Record<
     border: "#fed7aa",
     text: "#c2410c",
     dot: "#fb923c",
-    helper: "Worksheet evidence saved. This step is developing.",
+    helper: "Completed worksheet work recorded. This step is developing.",
   },
   consolidating: {
     label: "Consolidating",
@@ -393,7 +393,15 @@ const worksheetEvidenceProgressMeta: Record<
     border: "#fde68a",
     text: "#92400e",
     dot: "#f59e0b",
-    helper: "Worksheet evidence saved. This step is close to secure.",
+    helper: "Completed worksheet work recorded. This step is close to secure.",
+  },
+  secure: {
+    label: "Secure",
+    fill: "#ecfdf5",
+    border: "#bbf7d0",
+    text: "#166534",
+    dot: "#22c55e",
+    helper: "Completed worksheet work recorded. This step is secure.",
   },
   "goal achieved": {
     label: "Goal achieved",
@@ -401,7 +409,7 @@ const worksheetEvidenceProgressMeta: Record<
     border: "#bbf7d0",
     text: "#166534",
     dot: "#22c55e",
-    helper: "Worksheet evidence saved. This step is achieved.",
+    helper: "Completed worksheet work recorded. This step is achieved.",
   },
   "goal achieved + extension": {
     label: "Goal achieved + extension",
@@ -409,7 +417,7 @@ const worksheetEvidenceProgressMeta: Record<
     border: "#c7d2fe",
     text: "#3730a3",
     dot: "#6366f1",
-    helper: "Worksheet evidence saved with extension.",
+    helper: "Completed worksheet work recorded with extension.",
   },
 };
 
@@ -1382,7 +1390,7 @@ function PathwaysWorkspaceBody() {
     "Choose a strand below";
   const currentStageEvidenceCount = selectedWorkspaceSnapshot?.evidenceLinked || 0;
   const nextActionLabel = currentStageEvidenceCount
-    ? "Add evidence"
+    ? "Add completed work"
     : "Open current step";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
     ? selectedSubjectWorkspace?.title ||
@@ -1973,7 +1981,7 @@ function PathwaysWorkspaceBody() {
                   My Pathways
                 </h1>
                 <p className="mylearna-pathways-hero-copy" style={{ margin: 0, color: "#5B6478", lineHeight: 1.5, maxWidth: 760 }}>
-                  Choose one useful step, complete the worksheet, then add evidence.
+                  Choose one useful step, complete the worksheet, then add completed work.
                 </p>
               </div>
               <div
@@ -2486,16 +2494,16 @@ function PathwaysWorkspaceBody() {
                   borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <div style={eyebrowStyle}>Latest evidence</div>
+                <div style={eyebrowStyle}>Recent learning</div>
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
                   {currentStageEvidenceCount
                     ? `${currentStageEvidenceCount} example${
                         currentStageEvidenceCount === 1 ? "" : "s"
                       } added`
-                    : "No evidence added yet"}
+                    : "No learning records yet"}
                 </strong>
                 <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
-                  Use worksheet evidence or capture when ready.
+                  Use the worksheet or My Capture when ready.
                 </div>
               </div>
 
@@ -2552,7 +2560,7 @@ function PathwaysWorkspaceBody() {
           >
             <div style={{ display: "grid", gap: 3 }}>
               <strong style={{ color: "#166534", fontSize: 15 }}>
-                Step updated from your latest evidence
+                Step updated from your latest completed work
               </strong>
               <span style={{ color: "#166534", fontSize: 13 }}>
                 The step card now uses the newest saved progress.
@@ -3323,7 +3331,7 @@ function NumberRevealStepCard({
         </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          Open the full pathway card to capture evidence for this step.
+          Open the full pathway card to add completed work for this step.
         </div>
       )}
       <style jsx global>{`
@@ -4675,6 +4683,12 @@ function DetailedMathematicsStepCard({
         isExactStepContext={exactStepContext}
         worksheetResource={worksheetResource}
         latestEvidenceEntry={stepUnifiedState?.latestEvidenceEntry ?? null}
+        manualComplete={stepComplete}
+        onManualCompletionChange={
+          canonicalPathwayStepId
+            ? (completed) => onManualCompletionChange(canonicalPathwayStepId, completed)
+            : undefined
+        }
       />
 
       <div

@@ -203,7 +203,23 @@ describe("unified capture active entry points", () => {
 
   it("uses parent-facing language and hides technical capture terminology on active controls", () => {
     expect(captureSource).toContain("Record learning");
+    expect(captureSource).toContain("Learning recorded");
+    expect(captureSource).toContain("CANONICAL_LEARNING_AREAS");
+    expect(captureSource).toContain("Secure");
+    expect(captureSource).toContain("Parent note");
+    expect(captureSource).toContain("Learner reflection");
+    expect(captureSource).toContain("Add to Portfolio");
+    expect(captureSource).toContain("Include in Reports");
+    expect(captureSource).toContain("disabled={submitting");
     expect(worksheetSource).toContain("Record completed work");
+    expect(pathwayActionSource).toContain("Mark complete");
+    expect(pathwayActionSource).toContain("Add completed work");
     expect(worksheetSource).not.toContain("Stored in Supabase Storage");
+    expect(captureSource).not.toContain(">Add evidence<");
+    expect(captureSource).not.toContain("Add learning from life");
+    expect(captureSource).not.toContain("Quick capture");
+    expect(captureSource).not.toContain("Save evidence");
+    expect(captureSource).not.toContain("Reflection, next step, or what stood out");
+    expect(captureSource).not.toContain("Recent capture notes");
   });
 });
