@@ -152,17 +152,13 @@ function formatDateRange(period: CleanReportingPeriod | null) {
   return `${formatDateLabel(period.startsOn)} to ${formatDateLabel(period.endsOn)}`;
 }
 
-function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
+function buildEvidenceRecordMetaLine(item: CleanReportPdfEvidenceItem) {
   const parts = [
-    safe(item.sourceLabel) ? `Source: ${safe(item.sourceLabel)}` : "",
-    safe(item.learningArea) ? `Subject: ${safe(item.learningArea)}` : "",
-    safe(item.strandLabel) ? `Strand: ${safe(item.strandLabel)}` : "",
-    safe(item.stepLabel) ? safe(item.stepLabel) : "",
-    safe(item.progressLevel) ? `Progress: ${safe(item.progressLevel)}` : "",
-    item.hasAttachment ? "Evidence: Photo attached" : "",
-    safe(item.programTitle) ? `Program: ${safe(item.programTitle)}` : "",
-    safe(item.segmentTitle) ? `Week / segment: ${safe(item.segmentTitle)}` : "",
-    safe(item.blockTitle) ? `Block: ${safe(item.blockTitle)}` : "",
+    item.observedOn ? `Date: ${formatDateLabel(item.observedOn)}` : "",
+    safe(item.learningArea) ? `Learning area: ${safe(item.learningArea)}` : "",
+    safe(item.stepLabel) ? `Connected pathway step: ${safe(item.stepLabel)}` : "",
+    safe(item.progressLevel) ? `Progress judgement: ${safe(item.progressLevel)}` : "",
+    item.hasAttachment ? "Work sample attached" : "",
   ].filter(Boolean);
 
   return parts.join(" | ");
@@ -357,11 +353,11 @@ function buildLearningRecordMetricTiles(
   const assessmentEvidenceCount = model.assessmentEvidenceItems?.length ?? 0;
   return [
     {
-      label: "Selected evidence",
+      label: "Learning records",
       value: String(model.evidenceItems.length),
       helper: model.evidenceItems.length
-        ? "Report-included evidence entries"
-        : "Waiting for first report evidence",
+        ? "Included in this report"
+        : "Waiting for report-ready learning",
       tone: "accent",
     },
     {
@@ -373,17 +369,17 @@ function buildLearningRecordMetricTiles(
       tone: "lavender",
     },
     {
-      label: "Pathway checks",
+      label: "Pathway progress",
       value: String(assessmentEvidenceCount),
       helper: assessmentEvidenceCount
-        ? "Report-ready assessment evidence"
+        ? "Included pathway checks"
         : "No completed checks in this record",
       tone: assessmentEvidenceCount ? "success" : "neutral",
     },
     {
-      label: "Latest evidence",
+      label: "Latest learning",
       value: getLatestRecordDateLabel(model.evidenceItems, model.assessmentEvidenceItems ?? []),
-      helper: "Most recent selected evidence or pathway check",
+      helper: "Most recent included record",
       tone:
         model.evidenceItems.length || (model.assessmentEvidenceItems?.length ?? 0)
           ? "success"
@@ -396,7 +392,7 @@ function buildEvidenceHighlightCards(items: CleanReportPdfEvidenceItem[]): Dashb
   const groups = buildEvidenceSummaryGroups(items);
   const visibleItems = groups.slice(0, 7).map((group) => {
     const latestText = group.latestDate ? `Latest: ${formatDateLabel(group.latestDate)}` : "Date not recorded";
-    const countText = `${group.count} evidence ${group.count === 1 ? "entry" : "entries"}`;
+    const countText = `${group.count} learning ${group.count === 1 ? "record" : "records"}`;
 
     return {
       eyebrow: group.area,
@@ -404,7 +400,7 @@ function buildEvidenceHighlightCards(items: CleanReportPdfEvidenceItem[]): Dashb
       description: `${countText} | ${latestText}`,
       lines: [
         group.count > 1
-          ? "Grouped summary. Full individual details are included in the evidence appendix."
+          ? "Grouped summary. Individual learning records are included later."
           : truncateAtWord(group.sampleTitle, 96),
       ],
       badge: countText,
@@ -414,11 +410,11 @@ function buildEvidenceHighlightCards(items: CleanReportPdfEvidenceItem[]): Dashb
 
   if (groups.length > 7) {
     visibleItems.push({
-      eyebrow: "More evidence",
-      title: `${groups.length - 7} more evidence ${groups.length - 7 === 1 ? "group" : "groups"}`,
-      description: "Full details are included in the evidence appendix.",
+      eyebrow: "More learning",
+      title: `${groups.length - 7} more learning ${groups.length - 7 === 1 ? "group" : "groups"}`,
+      description: "Full details are included later in the report.",
       lines: [
-        `${items.length} selected evidence ${items.length === 1 ? "entry" : "entries"} are included in total.`,
+        `${items.length} learning ${items.length === 1 ? "record" : "records"} are included in total.`,
       ],
       badge: "Details",
       tone: "neutral",
@@ -574,55 +570,6 @@ function ensureSpace(composer: PdfComposer, needed: number) {
     page,
     y: composer.height - 54,
   };
-}
-
-function startNewPage(composer: PdfComposer) {
-  const page = composer.doc.addPage([composer.width, composer.height]);
-  return {
-    ...composer,
-    page,
-    y: composer.height - 54,
-  };
-}
-
-function drawTextBlock(
-  composer: PdfComposer,
-  text: string,
-  options?: {
-    font?: PDFFont;
-    fontSize?: number;
-    lineHeight?: number;
-    color?: ReturnType<typeof rgb>;
-    spacingAfter?: number;
-  },
-) {
-  const font = options?.font || composer.regular;
-  const fontSize = options?.fontSize || 11;
-  const lineHeight = options?.lineHeight || fontSize + 4;
-  const color = options?.color || composer.theme.body;
-  const spacingAfter = options?.spacingAfter ?? 10;
-  const maxWidth = composer.width - composer.margin * 2;
-  const lines = wrapText(text, font, fontSize, maxWidth);
-  const next = ensureSpace(composer, lines.length * lineHeight + spacingAfter);
-
-  lines.forEach((line) => {
-    if (!line) {
-      next.y -= lineHeight * 0.5;
-      return;
-    }
-
-    next.page.drawText(line, {
-      x: next.margin,
-      y: next.y,
-      size: fontSize,
-      font,
-      color,
-    });
-    next.y -= lineHeight;
-  });
-
-  next.y -= spacingAfter;
-  return next;
 }
 
 function drawCenteredTextBlock(
@@ -934,12 +881,12 @@ async function drawEvidenceDetailCard(
   index: number,
 ) {
   const thumbnailImage = await loadSafeEvidenceThumbnailImage(composer.doc, item);
-  const thumbnailMaxWidth = 176;
-  const thumbnailMaxHeight = 124;
+  const thumbnailMaxWidth = 280;
+  const thumbnailMaxHeight = 190;
   const thumbnailDimensions = thumbnailImage
     ? thumbnailImage.scaleToFit(thumbnailMaxWidth, thumbnailMaxHeight)
     : null;
-  const thumbnailHeight = thumbnailDimensions ? thumbnailMaxHeight + 12 : 0;
+  const thumbnailHeight = thumbnailDimensions ? thumbnailDimensions.height + 16 : 0;
   const width = composer.width - composer.margin * 2 - 28;
   const titleLines = wrapText(
     `${index + 1}. ${item.title}`,
@@ -947,29 +894,11 @@ async function drawEvidenceDetailCard(
     13,
     width,
   );
-  const metaLine = [
-    item.observedOn ? `Observed ${formatDateLabel(item.observedOn)}` : "",
-    item.learnerLabel ? `Learner ${item.learnerLabel}` : "",
-    safe(item.learningArea) ? `Learning area ${safe(item.learningArea)}` : "",
-  ]
-    .filter(Boolean)
-    .join(" | ");
-  const contextLine = buildEvidenceContextLine(item);
+  const metaLine = buildEvidenceRecordMetaLine(item);
   const metaLines = metaLine
     ? wrapText(metaLine, composer.regular, 10, width)
     : [];
-  const contextLines = contextLine
-    ? wrapText(contextLine, composer.regular, 9.5, width)
-    : [];
   const narrativeBlocks = [
-    ...(buildEvidenceContextLine(item)
-      ? [
-          {
-            label: "Evidence context",
-            lines: wrapText(buildEvidenceContextLine(item), composer.regular, 10.75, width),
-          },
-        ]
-      : []),
     {
       label: "What happened",
       lines: wrapText(cleanParentFacingEvidenceText(item.whatHappened), composer.regular, 10.75, width),
@@ -977,7 +906,7 @@ async function drawEvidenceDetailCard(
     ...(cleanParentFacingEvidenceText(item.reflection)
       ? [
           {
-            label: "Reflection",
+            label: "Learner reflection",
             lines: wrapText(cleanParentFacingEvidenceText(item.reflection), composer.regular, 10.75, width),
           },
         ]
@@ -985,7 +914,7 @@ async function drawEvidenceDetailCard(
     ...(normalizeText(item.portfolioNote)
       ? [
           {
-            label: "Portfolio note",
+            label: "Parent note",
             lines: wrapText(normalizeText(item.portfolioNote), composer.regular, 10.75, width),
           },
         ]
@@ -1000,7 +929,6 @@ async function drawEvidenceDetailCard(
     measureWrappedLines(titleLines, 17) +
     10 +
     (metaLines.length ? measureWrappedLines(metaLines, 13) + 6 : 0) +
-    (contextLines.length ? measureWrappedLines(contextLines, 12) + 8 : 0) +
     thumbnailHeight +
     narrativeHeight +
     10;
@@ -1031,18 +959,6 @@ async function drawEvidenceDetailCard(
       color: next.theme.muted,
     });
     cursor -= 4;
-  }
-
-  if (contextLines.length) {
-    cursor = drawPreparedLines(next, contextLines, {
-      x: next.margin + 14,
-      y: cursor,
-      font: next.regular,
-      fontSize: 9.5,
-      lineHeight: 12,
-      color: next.theme.muted,
-    });
-    cursor -= 8;
   }
 
   if (thumbnailImage && thumbnailDimensions) {
@@ -1151,7 +1067,7 @@ function drawAssessmentEvidenceDetailCard(
     border: rgb(0.76, 0.9, 0.81),
   });
 
-  next.page.drawText(`Assessment evidence ${index + 1}`.toUpperCase(), {
+  next.page.drawText(`Pathway progress ${index + 1}`.toUpperCase(), {
     x: next.margin + 14,
     y: top - 18,
     size: 8.25,
@@ -1261,7 +1177,7 @@ export function buildCleanReportPdfFilename(
 ) {
   const learnerPart = sanitizeFilePart(learnerLabel || "", "Learner");
   const periodPart = sanitizeFilePart(reportingPeriodTitle || "", "Report");
-  return `MyLearna-Report-${learnerPart}-${periodPart}.pdf`;
+  return `MyLearna-Learning-Report-${learnerPart}-${periodPart}.pdf`;
 }
 
 export function buildCleanLearningRecordPdfFilename(
@@ -1290,16 +1206,16 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   };
   const dashboardPalette = buildDashboardPalette(theme);
   const displayTitle = getReportDisplayTitle(model);
-  const periodTitle = model.reportingPeriod?.title || "Current learning record";
+  const periodTitle = model.reportingPeriod?.title || "Current learning report";
   const periodDates = formatDateRange(model.reportingPeriod);
   const overviewText = model.reportingPeriod
-    ? `This learning record brings together selected portfolio evidence and pathway checks for ${model.learnerLabel} during ${model.reportingPeriod.title}.`
-    : `This learning record brings together selected portfolio evidence and pathway checks for ${model.learnerLabel}.`;
+    ? `This learning report brings together report-ready learning records and pathway progress for ${model.learnerLabel} during ${model.reportingPeriod.title}.`
+    : `This learning report brings together report-ready learning records and pathway progress for ${model.learnerLabel}.`;
 
   let composer = createComposer(doc, regular, bold, theme);
 
   composer = drawHeaderLogo(composer, logo);
-  composer = drawCenteredTextBlock(composer, "MyLearna Learning Record", {
+  composer = drawCenteredTextBlock(composer, "MyLearna Learning Report", {
     font: bold,
     fontSize: 24,
     lineHeight: 28,
@@ -1340,14 +1256,14 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   composer = drawCenteredRule(composer, 120);
   composer = drawDashboardHeroCard(composer, dashboardPalette, {
     eyebrow: "Learning snapshot",
-    title: "Here is the learning story and the evidence behind it.",
+    title: "Here is the learning story and the work behind it.",
     subtitle: overviewText,
     supportingBadges: [
       `Report period: ${periodDates}`,
       `Status: ${model.statusLabel}`,
     ],
     note:
-      "Summary first, details later. Selected evidence and pathway checks are grouped for easier review before the appendix.",
+      "Summary first, learning records next. This report only includes records selected for Reports.",
     statLines: [
       {
         label: "Reporting period",
@@ -1367,7 +1283,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
         tone: learningAreas.length ? "lavender" : "neutral",
       },
       {
-        label: "Pathway checks",
+        label: "Pathway progress",
         value: assessmentEvidenceItems.length
           ? `${assessmentEvidenceItems.length} included`
           : "None included yet",
@@ -1384,66 +1300,32 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
       spacingAfter: 10,
     },
   );
-  composer = drawSummaryCard(composer, "Included in this record", [
-    `${model.evidenceItems.length} selected evidence ${model.evidenceItems.length === 1 ? "entry" : "entries"}.`,
-    `${assessmentEvidenceItems.length} pathway ${assessmentEvidenceItems.length === 1 ? "check" : "checks"}.`,
+  composer = drawSummaryCard(composer, "Included in this report", [
+    `${model.evidenceItems.length} learning ${model.evidenceItems.length === 1 ? "record" : "records"} included in this report.`,
+    `${assessmentEvidenceItems.length} pathway progress ${assessmentEvidenceItems.length === 1 ? "check" : "checks"} included.`,
     `${learningAreas.length} learning ${learningAreas.length === 1 ? "area" : "areas"} represented${learningAreas.length ? `: ${learningAreas.join(", ")}.` : "."}`,
-    `Latest evidence: ${getLatestRecordDateLabel(model.evidenceItems, assessmentEvidenceItems)}.`,
+    `Latest learning: ${getLatestRecordDateLabel(model.evidenceItems, assessmentEvidenceItems)}.`,
   ]);
 
-  composer = startNewPage(composer);
-  composer = drawHeading(composer, "Evidence by learning area", 2, {
-    minFollowingSpace: model.evidenceItems.length ? 120 : 40,
-  });
-  composer = drawTextBlock(
-    composer,
-    "Grouped summary of report-included evidence. Full individual evidence entries are included later in the appendix.",
-    {
-      fontSize: 10.75,
-      lineHeight: 15,
-      spacingAfter: 8,
-      color: theme.muted,
-    },
-  );
   if (model.evidenceItems.length) {
+    composer = drawHeading(composer, "Learning area summaries", 2, {
+      minFollowingSpace: 120,
+    });
     composer = drawEvidenceSummaryCard(composer, model.evidenceItems, dashboardPalette);
   } else {
-    composer = drawTextBlock(
-      composer,
-      "No report-included evidence is attached to this report yet.",
-      {
-        fontSize: 10.5,
-        lineHeight: 14,
-      },
-    );
+    composer = drawSummaryCard(composer, "No report-ready learning yet", [
+      "Record learning and choose Include in Reports to begin building this learner's report.",
+      "This report is intentionally concise until learning records are selected.",
+    ]);
   }
 
-  composer = drawHeading(composer, "Pathway assessment evidence", 2, {
-    minFollowingSpace: assessmentEvidenceItems.length ? 150 : 40,
-  });
-  composer = drawTextBlock(
-    composer,
-    "Completed pathway checks are included as report-ready evidence for this learning record.",
-    {
-      fontSize: 10.75,
-      lineHeight: 15,
-      spacingAfter: 8,
-      color: theme.muted,
-    },
-  );
   if (assessmentEvidenceItems.length) {
+    composer = drawHeading(composer, "Pathway progress", 2, {
+      minFollowingSpace: 150,
+    });
     assessmentEvidenceItems.forEach((item, index) => {
       composer = drawAssessmentEvidenceDetailCard(composer, item, index);
     });
-  } else {
-    composer = drawTextBlock(
-      composer,
-      "No completed pathway checks match this report period yet.",
-      {
-        fontSize: 10.5,
-        lineHeight: 14,
-      },
-    );
   }
 
   if (model.sections.length) {
@@ -1458,20 +1340,10 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
       });
   }
 
-  composer = drawHeading(composer, "Evidence appendix", 2, {
-    minFollowingSpace: model.evidenceItems.length ? 180 : 40,
-  });
-  composer = drawTextBlock(
-    composer,
-    "These notes sit behind the written report and make it easier to trace the learning record back to the source entries, including My Pathways worksheet evidence.",
-    {
-      fontSize: 10.75,
-      lineHeight: 15,
-      spacingAfter: 8,
-      color: theme.muted,
-    },
-  );
   if (model.evidenceItems.length) {
+    composer = drawHeading(composer, "Selected learning records", 2, {
+      minFollowingSpace: 180,
+    });
     let evidenceIndex = 0;
     for (const group of groupEvidenceItemsByArea(model.evidenceItems)) {
       composer = drawHeading(composer, group.area, 3, {
@@ -1482,15 +1354,6 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
         composer = await drawEvidenceDetailCard(composer, item, evidenceIndex - 1);
       }
     }
-  } else {
-    composer = drawTextBlock(
-      composer,
-      "No report-included evidence details are available for this report yet.",
-      {
-        fontSize: 10.5,
-        lineHeight: 14,
-      },
-    );
   }
 
   addFooter(doc, regular, theme);

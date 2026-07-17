@@ -967,7 +967,7 @@ function CleanReportsWorkspaceBody() {
       setPortfolioError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load the portfolio evidence for this report.",
+          "We could not load the report-ready learning records for this report.",
         ),
       );
     } finally {
@@ -1454,7 +1454,7 @@ function CleanReportsWorkspaceBody() {
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myReports}
           promptTitle="New to My Reports?"
-          promptDescription="See how to turn selected evidence into a parent-ready report."
+          promptDescription="See how to turn report-ready learning records into a parent-ready report."
         />
 
         <section className="mylearna-reports-intro" data-guidance-id="reports-preview-output" style={cardStyle}>
@@ -1471,7 +1471,7 @@ function CleanReportsWorkspaceBody() {
               </div>
               <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Reports</h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Turn selected evidence into a clear report.
+                Turn report-ready learning records into a clear report.
               </p>
               <div>
                 <GuidancePageAction tourId="my-reports" />
@@ -1564,10 +1564,10 @@ function CleanReportsWorkspaceBody() {
                 <div className="mylearna-reports-helper-detail" style={helperCardStyle}>
                   <strong style={{ color: "#0f172a" }}>How reports are built</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Your report brings together selected portfolio evidence, written reflections, and learner context into one learning record.
+                    Your report brings together report-ready learning records, written reflections, and learner context into one learning report.
                   </p>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Not every capture needs to be in a report. Choose the strongest evidence in My Portfolio first.
+                    Not every capture needs to be in a report. Choose Include in Reports for records that belong in the formal report.
                   </p>
                 </div>
               </div>
@@ -1903,9 +1903,9 @@ function CleanReportsWorkspaceBody() {
                     }}
                   >
                     <div style={helperCardStyle}>
-                      <strong style={{ color: "#0f172a" }}>Prepared learning record preview</strong>
+                      <strong style={{ color: "#0f172a" }}>Prepared learning report preview</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        This preview shows the learner, report period, selected portfolio evidence, pathway checks, and any saved report content linked to this learning record.
+                        This preview shows the learner, report period, included learning records, pathway progress, and any saved report content linked to this learning report.
                       </p>
                     </div>
 
@@ -1950,7 +1950,7 @@ function CleanReportsWorkspaceBody() {
                                 textTransform: "uppercase",
                               }}
                             >
-                              Learning record preview
+                              Learning report preview
                             </div>
                             <h3
                               style={{
@@ -2114,7 +2114,7 @@ function CleanReportsWorkspaceBody() {
                             <div style={{ display: "grid", gap: 6 }}>
                               {selectedPathwayEvidenceSummary.repeatedSteps.map((step) => (
                                 <div key={step.label} style={{ color: "#475569", lineHeight: 1.6 }}>
-                                  {step.label} - {step.count} selected evidence {step.count === 1 ? "entry" : "entries"}
+                                  {step.label} - {step.count} selected learning {step.count === 1 ? "record" : "records"}
                                 </div>
                               ))}
                             </div>
@@ -2122,7 +2122,7 @@ function CleanReportsWorkspaceBody() {
                         ) : null}
                         {portfolioLoading ? (
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                            Loading learning evidence...
+                            Loading learning records...
                           </p>
                         ) : portfolioError ? (
                           <p style={{ margin: 0, color: "#b91c1c", lineHeight: 1.7 }}>
@@ -2170,7 +2170,7 @@ function CleanReportsWorkspaceBody() {
                                         fontWeight: 700,
                                       }}
                                     >
-                                      Source: {evidenceMeta.sourceLabel}
+                                      Learning record
                                     </span>
                                     {evidenceMeta.progressLevel ? (
                                       <span
@@ -2252,7 +2252,7 @@ function CleanReportsWorkspaceBody() {
                           </div>
                         ) : (
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                            No selected portfolio evidence was found for this report period. Try widening the date range or adding evidence from My Capture.
+                            No report-ready learning records were found for this report period. Try widening the date range or recording learning from My Capture.
                           </p>
                         )}
                         <div
@@ -2264,7 +2264,7 @@ function CleanReportsWorkspaceBody() {
                           }}
                         >
                           <strong style={{ color: "#0f172a" }}>
-                            Pathway assessment evidence
+                            Pathway progress
                           </strong>
                           {portfolioLoading ? null : assessmentEvidenceEvents.length ? (
                             <div style={{ display: "grid", gap: 10 }}>
@@ -2522,7 +2522,7 @@ function CleanReportsWorkspaceBody() {
                         ) : null}
                       </div>
                       <div>
-                        <div style={fieldLabelStyle}>Portfolio evidence</div>
+                        <div style={fieldLabelStyle}>Report-ready records</div>
                         <div style={{ color: "#0f172a", fontWeight: 700 }}>
                           {portfolioItems.length} {portfolioItems.length === 1 ? "entry" : "entries"}
                         </div>

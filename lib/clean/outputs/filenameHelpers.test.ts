@@ -8,12 +8,12 @@ import { buildCleanCoverageRecordPdfFilename } from "@/lib/clean/outputs/curricu
 import { buildCleanWeeklyPlannerPdfFilename } from "@/lib/clean/outputs/weeklyPlanner";
 
 describe("clean output PDF filenames", () => {
-  it("builds parent-facing learning record filenames without changing formal reports", () => {
+  it("builds parent-facing learning report and learning record filenames", () => {
     expect(buildCleanLearningRecordPdfFilename("Sean O'Brien", "2026-06-24")).toBe(
       "MyLearna-Learning-Record-Sean-O-Brien-2026-06-24.pdf",
     );
     expect(buildCleanReportPdfFilename("Sean O'Brien", "Term 2 / 2026")).toBe(
-      "MyLearna-Report-Sean-O-Brien-Term-2-2026.pdf",
+      "MyLearna-Learning-Report-Sean-O-Brien-Term-2-2026.pdf",
     );
   });
 

@@ -72,7 +72,7 @@ function formatEvidenceEventDateLabel(value: string | null) {
 }
 
 function getEvidenceGroupTitle(item: CleanReportPdfEvidenceItem) {
-  const title = item.title.trim() || "Learning evidence";
+  const title = item.title.trim() || "Learning record";
   const stepMatch = title.match(/Step\s+(\d+)\s*[-:]\s*(.+)$/i);
   if (stepMatch) {
     return `Step ${stepMatch[1]} - ${stepMatch[2].trim()}`;
@@ -93,7 +93,7 @@ function buildEvidenceSummaryGroups(items: CleanReportPdfEvidenceItem[]) {
   >();
 
   items.forEach((item) => {
-    const area = item.learningArea?.trim() || "Learning evidence";
+    const area = item.learningArea?.trim() || "Learning";
     const title = getEvidenceGroupTitle(item);
     const key = `${area.toLowerCase()}::${title.toLowerCase()}`;
     const current = groups.get(key);
@@ -204,7 +204,7 @@ export default function CleanReportPreview({
             color: "#0f172a",
           }}
         >
-          MyLearna Learning Record
+          MyLearna Learning Report
         </div>
         <div
           style={{
@@ -213,7 +213,7 @@ export default function CleanReportPreview({
             maxWidth: 760,
           }}
         >
-          Prepared as a family learning record to support home education reporting.
+          Prepared as a family learning report using records selected for Reports.
         </div>
         <h2 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{report.title}</h2>
         <div style={{ display: "grid", gap: 4, color: "#475569" }}>
@@ -231,10 +231,10 @@ export default function CleanReportPreview({
             </div>
           ) : null}
           <div>
-            <strong>Portfolio evidence:</strong> {evidenceItems.length}
+            <strong>Included learning records:</strong> {evidenceItems.length}
           </div>
           <div>
-            <strong>Pathway checks:</strong> {assessmentEvidenceItems.length}
+            <strong>Pathway progress:</strong> {assessmentEvidenceItems.length}
           </div>
           <div>
             <strong>Section count:</strong> {sections.length}
@@ -244,7 +244,7 @@ export default function CleanReportPreview({
 
       <div style={previewBodyStyle}>
         <section style={sectionStyle}>
-          <div style={{ color: "#64748b", fontSize: 12 }}>Evidence summary</div>
+          <div style={{ color: "#64748b", fontSize: 12 }}>Learning area summaries</div>
           {evidenceItems.length ? (
             <div style={{ display: "grid", gap: 10 }}>
               {evidenceSummaryGroups.map((item) => (
@@ -253,20 +253,20 @@ export default function CleanReportPreview({
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     {item.area}
                     {item.latestDate ? ` - Latest: ${formatDateLabel(item.latestDate)}` : ""}
-                    {` - ${item.count} evidence ${item.count === 1 ? "entry" : "entries"}`}
+                    {` - ${item.count} learning ${item.count === 1 ? "record" : "records"}`}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              No selected portfolio evidence matches this report period yet. Try widening the date range or adding evidence from My Capture.
+              No report-ready learning matches this report period yet. Record learning and choose Include in Reports to begin.
             </p>
           )}
         </section>
 
         <section style={sectionStyle}>
-          <div style={{ color: "#64748b", fontSize: 12 }}>Pathway assessment evidence</div>
+          <div style={{ color: "#64748b", fontSize: 12 }}>Pathway progress</div>
           {assessmentEvidenceItems.length ? (
             <div style={{ display: "grid", gap: 12 }}>
               {assessmentEvidenceItems.map((item) => (
@@ -283,7 +283,7 @@ export default function CleanReportPreview({
                     {item.parentJudgement ? ` | Parent judgement: ${item.parentJudgement}` : ""}
                   </div>
                   <p style={{ margin: 0, color: "#334155", lineHeight: 1.7 }}>
-                    Included as report-ready pathway evidence.
+                    Included as pathway progress for this report.
                   </p>
                 </div>
               ))}
@@ -319,7 +319,7 @@ export default function CleanReportPreview({
         ) : null}
 
         <section style={sectionStyle}>
-          <div style={{ color: "#64748b", fontSize: 12 }}>Selected evidence details</div>
+          <div style={{ color: "#64748b", fontSize: 12 }}>Selected learning records</div>
           {evidenceItems.length ? (
             <div style={{ display: "grid", gap: 14 }}>
               {evidenceItems.map((item) => (
@@ -336,25 +336,8 @@ export default function CleanReportPreview({
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     {formatDateLabel(item.observedOn || "")}
                     {item.learningArea ? ` - ${item.learningArea}` : ""}
-                    {item.programTitle ? ` - Program: ${item.programTitle}` : ""}
-                    {item.segmentTitle ? ` - Week / segment: ${item.segmentTitle}` : ""}
-                    {item.blockTitle ? ` - Block: ${item.blockTitle}` : ""}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {item.sourceLabel ? (
-                      <span
-                        style={{
-                          borderRadius: 999,
-                          padding: "4px 10px",
-                          background: "#eff6ff",
-                          color: "#1d4ed8",
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Source: {item.sourceLabel}
-                      </span>
-                    ) : null}
                     {item.stepLabel ? (
                       <span
                         style={{
@@ -366,7 +349,7 @@ export default function CleanReportPreview({
                           fontWeight: 700,
                         }}
                       >
-                        {item.stepLabel}
+                        Connected pathway step: {item.stepLabel}
                       </span>
                     ) : null}
                     {item.progressLevel ? (
@@ -394,7 +377,7 @@ export default function CleanReportPreview({
                           fontWeight: 700,
                         }}
                       >
-                        Photo/evidence attached
+                        Work sample attached
                       </span>
                     ) : null}
                   </div>
@@ -428,7 +411,7 @@ export default function CleanReportPreview({
                         whiteSpace: "pre-wrap",
                       }}
                     >
-                      <strong>Reflection / next step:</strong> {item.reflection}
+                      <strong>Learner reflection:</strong> {item.reflection}
                     </p>
                   ) : null}
                   {item.portfolioNote ? (
@@ -440,7 +423,7 @@ export default function CleanReportPreview({
                         whiteSpace: "pre-wrap",
                       }}
                     >
-                      <strong>Portfolio note:</strong> {item.portfolioNote}
+                      <strong>Parent note:</strong> {item.portfolioNote}
                     </p>
                   ) : null}
                 </div>
@@ -448,7 +431,7 @@ export default function CleanReportPreview({
             </div>
           ) : (
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Selected evidence details will appear here once portfolio notes are linked to the report period.
+              Selected learning records will appear here once records are included in Reports for this period.
             </p>
           )}
         </section>
