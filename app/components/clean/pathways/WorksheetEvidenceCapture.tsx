@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ChangeEvent } from "react";
 import { encodePathwayContextNodeIds } from "@/lib/clean/evidence/curriculumContext";
-import { createCleanEvidenceEntry } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import {
   updateFamilyEvidenceEntryAttachments,
   uploadFamilyEvidenceFiles,
@@ -273,41 +273,50 @@ export default function WorksheetEvidenceCapture({
         throw new Error("Please choose an image smaller than 10 MB.");
       }
 
-      const entry = await createCleanEvidenceEntry(familyId, {
+      const curriculumNodeIds = encodePathwayContextNodeIds(
+        [subjectKey, strandKey, stageKey, stepKey, pathwayStepId, worksheetResource.pathwayStepId],
+        {
+          source: "my-pathways",
+          subjectKey,
+          subjectLabel: subjectTitle,
+          pathwayKey: strandKey,
+          pathwayLabel: strandTitle,
+          stageKey,
+          stageLabel: stageTitle,
+          pathwayStepId: pathwayStepId || worksheetResource.pathwayStepId,
+          stepKey,
+          stepTitle,
+          observedSkillStatus: getObservedSkillStatusForProgress(progressLevel),
+        },
+      );
+      const { entry } = await saveUnifiedLearningCapture({
+        familyId,
         learnerId,
-        observedOn: todayIsoDate(),
+        activityDate: todayIsoDate(),
         title: `Worksheet evidence: ${stepTitle}`,
         whatHappened: [
           `Completed worksheet: ${worksheetResource.title}`,
-          `Progress level: ${selectedProgress.label}`,
-          `Mapped status: ${selectedProgress.status}`,
           `Pathway step: ${stepTitle}`,
-          `Stage: ${stageTitle || stageKey}`,
         ].join("\n"),
-        reflection: [
-          note ? `Parent note: ${note}` : "",
-          photoName ? `Photo: attached (${photoName}).` : "No photo file selected.",
-          progressLevel === "goal_achieved_extension" ? "Extension: true" : "",
-        ]
-          .filter(Boolean)
-          .join("\n"),
+        parentNote: note || null,
+        learnerReflection: photoName ? `Completed work attached: ${photoName}.` : null,
+        progressJudgement: selectedProgress.label,
         learningArea: `${subjectTitle} / ${strandTitle}`,
-        curriculumNodeIds: encodePathwayContextNodeIds(
-          [subjectKey, strandKey, stageKey, stepKey, pathwayStepId, worksheetResource.pathwayStepId],
-          {
-            source: "my-pathways",
-            subjectKey,
-            subjectLabel: subjectTitle,
-            pathwayKey: strandKey,
-            pathwayLabel: strandTitle,
-            stageKey,
-            stageLabel: stageTitle,
-            pathwayStepId: pathwayStepId || worksheetResource.pathwayStepId,
-            stepKey,
-            stepTitle,
-            observedSkillStatus: getObservedSkillStatusForProgress(progressLevel),
-          },
-        ),
+        subjectKey,
+        strandKey,
+        stageKey,
+        pathwayStepId: pathwayStepId || worksheetResource.pathwayStepId,
+        stepKey,
+        stepTitle,
+        sourceType: "worksheet",
+        sourceId: worksheetResource.pathwayStepId || pathwayStepId,
+        clientSubmissionId: [
+          "worksheet",
+          learnerId,
+          worksheetResource.pathwayStepId || pathwayStepId,
+          todayIsoDate(),
+        ].join("::"),
+        curriculumNodeIds,
         includeInPortfolio: true,
         includeInReport: true,
       });
@@ -560,7 +569,11 @@ export default function WorksheetEvidenceCapture({
               style={saveButtonStyle}
               data-worksheet-evidence-save="active"
             >
-              {saving ? "Saving..." : photoFile ? "Save evidence" : "Save without photo"}
+              {saving
+                ? "Recording..."
+                : photoFile
+                  ? "Record completed work"
+                  : "Record completed work without photo"}
             </button>
             <button
               type="button"
@@ -592,7 +605,7 @@ export default function WorksheetEvidenceCapture({
             }}
           />
           <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>
-            Stored in Supabase Storage: {savedAttachment.label}
+            Attached file: {savedAttachment.label}
           </span>
         </div>
       ) : null}

@@ -39,7 +39,7 @@ import {
   type CurriculumFrameworkLearningArea,
   type ResolvedCurriculumFrameworkMap,
 } from "@/lib/clean/curriculum/frameworkMaps";
-import { createCleanEvidenceEntry, listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCurriculumCaptureContext,
   buildPathwayCaptureContext,
@@ -47,6 +47,7 @@ import {
   encodePathwayContextNodeIds,
 } from "@/lib/clean/evidence/curriculumContext";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
   DETAILED_SUBJECT_CONFIGS,
@@ -1634,17 +1635,32 @@ function AssessmentsWorkspaceBody() {
         evidenceLink,
       );
 
-      const createdEvidence = await createCleanEvidenceEntry(selectedFamilyId, {
+      const { entry: createdEvidence } = await saveUnifiedLearningCapture({
+        familyId: selectedFamilyId,
         learnerId: selectedLearner.id,
-        observedOn: getAssessmentEvidenceObservedOn(selectedTileStatusRecord),
+        activityDate: getAssessmentEvidenceObservedOn(selectedTileStatusRecord),
         title: `Assessment evidence - ${selectedTileDetail.registryItem.stepTitle}`,
         whatHappened: `${selectedLearnerLabel} ${getAssessmentStatusNarrative(
           selectedTileStatusRecord.status,
         )} in ${selectedTileDetail.registryItem.stepTitle} within ${
           selectedTileDetail.strandTitle
         } at ${selectedTileDetail.stageTitle} in ${selectedTileDetail.subjectTitle}.`,
-        reflection: selectedTileStatusRecord.note || null,
+        parentNote: selectedTileStatusRecord.note || null,
+        progressJudgement: selectedTileStatusRecord.status,
         learningArea: learningArea?.label || selectedTileDetail.subjectTitle,
+        subjectKey: selectedTileDetail.registryItem.subjectKey,
+        strandKey: selectedTileDetail.registryItem.strandKey,
+        stageKey: selectedTileDetail.registryItem.stageKey,
+        pathwayStepId: selectedTileDetail.registryItem.id,
+        stepKey: selectedTileDetail.registryItem.stepKey,
+        stepTitle: selectedTileDetail.registryItem.stepTitle,
+        sourceType: "my-assessments",
+        sourceId: selectedTileStatusRecord.id,
+        clientSubmissionId: [
+          "assessment-evidence",
+          selectedLearner.id,
+          selectedTileStatusRecord.id,
+        ].join("::"),
         curriculumNodeIds,
         includeInPortfolio: true,
         includeInReport: true,

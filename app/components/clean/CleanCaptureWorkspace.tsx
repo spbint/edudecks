@@ -21,10 +21,9 @@ import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
   deleteCleanEvidenceEntry,
   listCleanEvidenceEntries,
-  createCleanEvidenceEntry,
-  updateCleanEvidenceEntry,
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
   buildCurriculumCaptureContext,
@@ -103,10 +102,12 @@ const buttonStyle: React.CSSProperties = {
 };
 
 const PATHWAY_OBSERVED_SKILL_STATUS_OPTIONS = [
-  "Still developing",
-  "Developing",
+  "Needs support",
+  "Working towards",
+  "Consolidating",
   "Secure",
-  "Strong",
+  "Goal achieved",
+  "Goal achieved + extension",
 ] as const;
 
 const WORKSHEET_PROGRESS_OPTIONS = [
@@ -1534,25 +1535,54 @@ function CleanCaptureWorkspaceBody() {
             draftReportSentence: lifeDraftReportSentence,
           })
         : "";
-      const payload = {
-        learnerId,
-        observedOn,
-        title: title || (learningFromLifeActive ? "Learning from life" : null),
-        whatHappened,
-        reflection: learningFromLifeActive
-          ? learningFromLifeReflection || null
-          : reflection || null,
-        learningArea: learningArea || nextCurriculumContext?.learningAreaLabel || null,
-        programId: programId || null,
-        calendarItemId: calendarItemId || null,
-        curriculumNodeIds: evidenceNodeIds,
-        includeInPortfolio: learningFromLifeActive ? lifeAddToPortfolio : true,
-        includeInReport: learningFromLifeActive ? lifeIncludeInReport : true,
-      };
-      let savedEntry: CleanEvidenceEntry;
+      const captureResult = await saveUnifiedLearningCapture(
+        {
+          familyId: workspace.profile.id,
+          learnerId,
+          activityDate: observedOn,
+          title: title || (learningFromLifeActive ? "Learning from life" : null),
+          whatHappened,
+          learningArea: learningArea || nextCurriculumContext?.learningAreaLabel || null,
+          subjectKey: nextPathwayContext?.subjectKey ?? nextCurriculumContext?.learningAreaKey ?? null,
+          strandKey: nextPathwayContext?.pathwayKey ?? null,
+          stageKey: nextPathwayContext?.stageKey ?? null,
+          pathwayStepId: nextPathwayContext?.pathwayStepId ?? null,
+          stepKey: nextPathwayContext?.stepKey ?? null,
+          stepTitle: nextPathwayContext?.stepTitle ?? null,
+          progressJudgement: pathwayObservedSkillStatus || worksheetProgressLevel || null,
+          parentNote: learningFromLifeActive ? learningFromLifeReflection : null,
+          learnerReflection: learningFromLifeActive ? null : reflection || null,
+          sourceType: learningFromLifeActive
+            ? "manual"
+            : worksheetEvidenceMode
+              ? "worksheet"
+              : nextPathwayContext
+                ? "my-pathways"
+                : calendarItemId
+                  ? "calendar"
+                  : "my-capture",
+          sourceId: worksheetEvidenceMode
+            ? worksheetTitleFromQuery || nextPathwayContext?.pathwayStepId || null
+            : calendarItemId || nextPathwayContext?.pathwayStepId || null,
+          clientSubmissionId: [
+            editingEntryId || "new",
+            learnerId,
+            observedOn,
+            worksheetEvidenceMode ? worksheetTitleFromQuery : "",
+            calendarItemId,
+            nextPathwayContext?.pathwayStepId,
+          ].filter(Boolean).join("::"),
+          programId: programId || null,
+          calendarItemId: calendarItemId || null,
+          curriculumNodeIds: evidenceNodeIds,
+          includeInPortfolio: learningFromLifeActive ? lifeAddToPortfolio : true,
+          includeInReport: learningFromLifeActive ? lifeIncludeInReport : true,
+        },
+        { entryId: editingEntryId || null },
+      );
+      const savedEntry: CleanEvidenceEntry = captureResult.entry;
 
       if (editingEntryId) {
-        savedEntry = await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
         trackProductEvent(
           "evidence_updated",
           {
@@ -1573,7 +1603,6 @@ function CleanCaptureWorkspaceBody() {
           user?.id,
         );
       } else {
-        savedEntry = await createCleanEvidenceEntry(workspace.profile.id, payload);
         trackProductEvent(
           "evidence_created",
           {
@@ -2966,13 +2995,13 @@ function CleanCaptureWorkspaceBody() {
                   >
                     {submitting
                       ? worksheetEvidenceMode
-                        ? savePhase || "Saving evidence..."
+                        ? savePhase || "Recording completed work..."
                         : "Saving..."
                       : worksheetEvidenceMode
                         ? photoFile
-                          ? "Save evidence"
-                          : "Save progress without photo"
-                        : "Save evidence"}
+                          ? "Record completed work"
+                          : "Record completed work without photo"
+                        : "Record learning"}
                   </button>
                   {editingEntryId ? (
                     <button
@@ -3047,7 +3076,7 @@ function CleanCaptureWorkspaceBody() {
                         setPendingUploadedAttachments([]);
                         setLastSavedPhotoAttached(false);
                         setSavedAttachments([]);
-                        setMessage("Evidence saved for this worksheet step.");
+                        setMessage("Learning recorded.");
                       }}
                       disabled={submitting}
                       style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
