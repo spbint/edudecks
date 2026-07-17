@@ -21,7 +21,10 @@ import {
   buildCurriculumCaptureSearchParams,
   type CleanCurriculumCaptureContext,
 } from "@/lib/clean/evidence/curriculumContext";
-import { buildRecognizedProgressJudgementObservations } from "@/lib/clean/pathways/pathwayStepState";
+import {
+  buildRecognizedProgressJudgementObservations,
+  type RecognizedProgressJudgementObservation,
+} from "@/lib/clean/pathways/pathwayStepState";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -184,6 +187,97 @@ function getConsumerCoverageStatus(summary: CurriculumCoverageAreaSummary) {
   }
 
   return "Not currently active";
+}
+
+export function CleanProgressObservationsPanel({
+  entriesLoading,
+  observations,
+}: {
+  entriesLoading: boolean;
+  observations: RecognizedProgressJudgementObservation[];
+}) {
+  if (entriesLoading) {
+    return <p style={{ margin: 0, color: "#475569" }}>Loading progress records...</p>;
+  }
+
+  if (!observations.length) {
+    return (
+      <div style={helperCardStyle}>
+        <strong style={{ color: "#0f172a" }}>
+          No progress judgement has been saved yet.
+        </strong>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+          Saved progress judgements will appear here when they are available.
+        </p>
+      </div>
+    );
+  }
+
+  const latestObservation = observations[0];
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 12,
+        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+      }}
+    >
+      <div style={{ gridColumn: "1 / -1", color: "#475569", fontSize: 14 }}>
+        <strong style={{ color: "#0f172a" }}>
+          {observations.length} progress{" "}
+          {observations.length === 1 ? "judgement" : "judgements"} saved
+        </strong>
+        {latestObservation ? (
+          <span>
+            {" "}
+            | Latest: {latestObservation.judgement}
+            {latestObservation.dateValue
+              ? ` - ${formatEvidenceEventDateLabel(latestObservation.dateValue)}`
+              : ""}
+          </span>
+        ) : null}
+      </div>
+      {observations.slice(0, 6).map((observation) => (
+        <article key={observation.id} style={compactCardStyle}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <strong style={{ color: "#0f172a" }}>{observation.judgement}</strong>
+            <span
+              style={{
+                border: "1px solid #bbf7d0",
+                borderRadius: 999,
+                padding: "4px 9px",
+                background: "#f0fdf4",
+                color: "#166534",
+                fontSize: 12,
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Progress judgement
+            </span>
+          </div>
+          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+            {formatEvidenceEventDateLabel(observation.dateValue)}
+            {observation.subjectTitle ? ` - ${observation.subjectTitle}` : ""}
+            {observation.strandTitle ? ` - ${observation.strandTitle}` : ""}
+          </div>
+          <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+            {observation.stepTitle
+              ? `Saved for ${observation.stepTitle}.`
+              : "Saved progress judgement for this learner."}
+          </p>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 function getAreaSortRank(summary: CurriculumCoverageAreaSummary) {
@@ -851,71 +945,10 @@ function CurriculumWorkspaceBody() {
                     support reporting.
                   </p>
                 </div>
-                {entriesLoading ? (
-                  <p style={{ margin: 0, color: "#475569" }}>Loading progress records...</p>
-                ) : progressJudgementObservations.length ? (
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                    }}
-                  >
-                    <div style={{ gridColumn: "1 / -1", color: "#475569", fontSize: 14 }}>
-                      <strong style={{ color: "#0f172a" }}>
-                        {progressJudgementObservations.length} progress{" "}
-                        {progressJudgementObservations.length === 1 ? "judgement" : "judgements"} saved
-                      </strong>
-                      {progressJudgementObservations[0] ? (
-                        <span>
-                          {" "}
-                          | Latest: {progressJudgementObservations[0].judgement}
-                          {progressJudgementObservations[0].dateValue
-                            ? ` - ${formatEvidenceEventDateLabel(progressJudgementObservations[0].dateValue)}`
-                            : ""}
-                        </span>
-                      ) : null}
-                    </div>
-                    {progressJudgementObservations.slice(0, 6).map((observation) => (
-                      <article key={observation.id} style={compactCardStyle}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                          <strong style={{ color: "#0f172a" }}>{observation.judgement}</strong>
-                          <span
-                            style={{
-                              border: "1px solid #bbf7d0",
-                              borderRadius: 999,
-                              padding: "4px 9px",
-                              background: "#f0fdf4",
-                              color: "#166534",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            Progress judgement
-                          </span>
-                        </div>
-                        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                          {formatEvidenceEventDateLabel(observation.dateValue)}
-                          {observation.subjectTitle ? ` - ${observation.subjectTitle}` : ""}
-                          {observation.strandTitle ? ` - ${observation.strandTitle}` : ""}
-                        </div>
-                        <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                          {observation.stepTitle
-                            ? `Saved for ${observation.stepTitle}.`
-                            : "Saved progress judgement for this learner."}
-                        </p>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>No progress judgement has been saved yet.</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Saved progress judgements will appear here when they are available.
-                    </p>
-                  </div>
-                )}
+                <CleanProgressObservationsPanel
+                  entriesLoading={entriesLoading}
+                  observations={progressJudgementObservations}
+                />
               </div>
             </section>
 
