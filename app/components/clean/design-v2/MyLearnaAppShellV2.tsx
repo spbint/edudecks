@@ -27,18 +27,68 @@ export const v2Tokens = {
   shadow: "0 6px 18px rgba(23, 32, 75, 0.05)",
 };
 
-const navItems = [
-  { href: "/my-day", label: "My Day", shortLabel: "Day", icon: "sun", matches: ["/my-day", "/home", "/dashboard"] },
-  { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
-  { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways"] },
-  { href: "/my-capture", label: "My Capture", shortLabel: "Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
-  { href: "/my-portfolio", label: "My Portfolio", shortLabel: "Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
-  { href: "/my-data", label: "My Data", shortLabel: "Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum", "/my-learna"] },
-  { href: "/my-reports", label: "My Reports", shortLabel: "Reports", icon: "file", matches: ["/my-reports", "/reports"] },
-  { href: "/my-settings", label: "My Settings", shortLabel: "Settings", icon: "gear", matches: ["/my-settings", "/settings"] },
-] as const;
+type ProductNavIconName = "sun" | "calendar" | "route" | "camera" | "folder" | "chart" | "file" | "gear";
 
-type ShellIconName = (typeof navItems)[number]["icon"] | "learner" | "review" | "help";
+type ProductNavItem = {
+  href: string;
+  label: string;
+  shortLabel: string;
+  icon: ProductNavIconName;
+  matches: readonly string[];
+};
+
+type ProductNavSection = {
+  label: "PLAN" | "CAPTURE" | "GROW";
+  items: readonly ProductNavItem[];
+};
+
+const dayNavItem = {
+  href: "/my-day",
+  label: "My Day",
+  shortLabel: "Day",
+  icon: "sun",
+  matches: ["/my-day", "/home", "/dashboard"],
+} as const satisfies ProductNavItem;
+
+const settingsNavItem = {
+  href: "/my-settings",
+  label: "My Settings",
+  shortLabel: "Settings",
+  icon: "gear",
+  matches: ["/my-settings", "/settings"],
+} as const satisfies ProductNavItem;
+
+export const finalProductNavSections = [
+  {
+    label: "PLAN",
+    items: [
+      { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
+      { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways"] },
+    ],
+  },
+  {
+    label: "CAPTURE",
+    items: [
+      { href: "/my-capture", label: "My Capture", shortLabel: "Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
+      { href: "/my-portfolio", label: "My Portfolio", shortLabel: "Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
+    ],
+  },
+  {
+    label: "GROW",
+    items: [
+      { href: "/my-data", label: "My Data", shortLabel: "Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum", "/my-learna"] },
+      { href: "/my-reports", label: "My Reports", shortLabel: "Reports", icon: "file", matches: ["/my-reports", "/reports"] },
+    ],
+  },
+] as const satisfies readonly ProductNavSection[];
+
+const groupedNavItems: readonly ProductNavItem[] = finalProductNavSections.flatMap(
+  (section): readonly ProductNavItem[] => section.items,
+);
+
+const navItems: readonly ProductNavItem[] = [dayNavItem, ...groupedNavItems, settingsNavItem];
+
+type ShellIconName = ProductNavIconName | "learner" | "review" | "help";
 
 function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) {
   const common = {
@@ -187,21 +237,21 @@ type BreadcrumbItem = {
 
 function routeCrumbs(pathname: string): BreadcrumbItem[] {
   if (pathname.startsWith("/my-profile") || pathname.startsWith("/clean-my-profile")) {
-    return [{ label: "MyLearna" }, { label: "My Profile" }];
+    return [{ label: "My Day", href: "/my-day" }, { label: "My Profile" }];
   }
   if (pathname.startsWith("/my-settings") || pathname.startsWith("/clean-my-settings")) {
-    return [{ label: "MyLearna" }, { label: "My Settings", href: "/my-settings" }];
+    return [{ label: "My Day", href: "/my-day" }, { label: "My Settings", href: "/my-settings" }];
   }
-  if (pathname.startsWith("/my-community")) return [{ label: "MyLearna" }, { label: "My Community" }];
+  if (pathname.startsWith("/my-community")) return [{ label: "My Day", href: "/my-day" }, { label: "My Community" }];
   if (pathname.startsWith("/my-pathways/activity-player-v4-preview")) {
     return [
-      { label: "MyLearna" },
+      { label: "My Day", href: "/my-day" },
       { label: "My Pathways", href: "/my-pathways" },
       { label: "Activity Player V4 Preview" },
     ];
   }
   if (pathname.startsWith("/my-pathways/placement") || pathname.startsWith("/clean-my-pathways/placement")) {
-    return [{ label: "MyLearna" }, { label: "My Pathways", href: "/my-pathways" }, { label: "Placement" }];
+    return [{ label: "My Day", href: "/my-day" }, { label: "My Pathways", href: "/my-pathways" }, { label: "Placement" }];
   }
   if (pathname.startsWith("/practice/number-targeted")) {
     return [{ label: "My Pathways", href: "/my-pathways" }, { label: "Practise" }];
@@ -215,7 +265,7 @@ function routeCrumbs(pathname: string): BreadcrumbItem[] {
   const navItem = navItems.find((candidate) =>
     candidate.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`)),
   );
-  return [{ label: "MyLearna" }, { label: routeTitle(pathname), href: navItem?.href }];
+  return [{ label: "My Day", href: "/my-day" }, { label: routeTitle(pathname), href: navItem?.href }];
 }
 
 function getActivityMode(pathname: string): "practice" | "assess" | null {
@@ -241,6 +291,55 @@ function formatActivityContext(value: string | null) {
 
 function isActive(pathname: string, matches: readonly string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
+}
+
+function NavLink({
+  item,
+  pathname,
+}: {
+  item: (typeof navItems)[number];
+  pathname: string;
+}) {
+  const active = isActive(pathname, item.matches);
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      style={{
+        minHeight: 44,
+        display: "grid",
+        gridTemplateColumns: "28px minmax(0, 1fr)",
+        alignItems: "center",
+        gap: 10,
+        borderRadius: 14,
+        padding: "9px 11px",
+        textDecoration: "none",
+        background: active ? v2Tokens.lavender : "transparent",
+        color: active ? v2Tokens.purple : v2Tokens.navy,
+        fontSize: 14,
+        fontWeight: 650,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 26,
+          height: 26,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: active ? v2Tokens.purple : v2Tokens.slate,
+        }}
+      >
+        <ShellIcon name={item.icon} />
+      </span>
+      <span className="mylearna-v2-nav-label-full">{item.label}</span>
+      <span className="mylearna-v2-nav-label-short" style={{ display: "none" }}>
+        {item.shortLabel}
+      </span>
+    </Link>
+  );
 }
 
 export function V2Card({
@@ -538,49 +637,28 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             aria-label="MyLearna sections"
             style={{ display: "grid", gap: 6, alignContent: "start" }}
           >
-            {navItems.map((item) => {
-              const active = isActive(pathname, item.matches);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
+            <NavLink item={dayNavItem} pathname={pathname} />
+            {finalProductNavSections.map((section) => (
+              <div key={section.label} style={{ display: "grid", gap: 5 }}>
+                <div
+                  className="mylearna-v2-nav-section-label"
+                  aria-hidden="true"
                   style={{
-                    minHeight: 44,
-                    display: "grid",
-                    gridTemplateColumns: "28px minmax(0, 1fr)",
-                    alignItems: "center",
-                    gap: 10,
-                    borderRadius: 14,
-                    padding: "9px 11px",
-                    textDecoration: "none",
-                    background: active ? v2Tokens.lavender : "transparent",
-                    color: active ? v2Tokens.purple : v2Tokens.navy,
-                    fontSize: 14,
-                    fontWeight: 650,
+                    padding: "12px 11px 2px",
+                    color: v2Tokens.slate,
+                    fontSize: 10,
+                    fontWeight: 850,
+                    letterSpacing: "0.12em",
                   }}
                 >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 26,
-                      height: 26,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: active ? v2Tokens.purple : v2Tokens.slate,
-                    }}
-                  >
-                    <ShellIcon name={item.icon} />
-                  </span>
-                  <span className="mylearna-v2-nav-label-full">{item.label}</span>
-                  <span className="mylearna-v2-nav-label-short" style={{ display: "none" }}>
-                    {item.shortLabel}
-                  </span>
-                </Link>
-              );
-            })}
+                  {section.label}
+                </div>
+                {section.items.map((item) => (
+                  <NavLink key={item.href} item={item} pathname={pathname} />
+                ))}
+              </div>
+            ))}
+            <NavLink item={settingsNavItem} pathname={pathname} />
           </nav>
 
           <div
