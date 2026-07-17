@@ -17,14 +17,11 @@ import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
-  listAssessmentLearningEvidenceEventsForLearner,
-  type LearningEvidenceEvent,
-} from "@/lib/clean/evidence/learningEvidenceEvents";
-import {
   buildCurriculumCaptureContext,
   buildCurriculumCaptureSearchParams,
   type CleanCurriculumCaptureContext,
 } from "@/lib/clean/evidence/curriculumContext";
+import { buildRecognizedProgressJudgementObservations } from "@/lib/clean/pathways/pathwayStepState";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -374,14 +371,9 @@ function CurriculumWorkspaceBody() {
   const pathname = usePathname();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
-  const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
-    LearningEvidenceEvent[]
-  >([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
-  const [assessmentEvidenceLoading, setAssessmentEvidenceLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
-  const [assessmentEvidenceError, setAssessmentEvidenceError] = useState<string | null>(null);
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [selectedAreaWasChosen, setSelectedAreaWasChosen] = useState(false);
@@ -473,63 +465,6 @@ function CurriculumWorkspaceBody() {
   useEffect(() => {
     let isCurrent = true;
 
-    async function loadAssessmentEvidence() {
-      if (!workspace.profile || !selectedLearnerId) {
-        if (!isCurrent) return;
-        setAssessmentEvidenceEvents([]);
-        setAssessmentEvidenceError(null);
-        return;
-      }
-
-      setAssessmentEvidenceLoading(true);
-      setAssessmentEvidenceError(null);
-      try {
-        const nextEvents = await listAssessmentLearningEvidenceEventsForLearner(
-          workspace.profile.id,
-          selectedLearnerId,
-          { limit: 100 },
-        );
-
-        if (!isCurrent) return;
-        setAssessmentEvidenceEvents(nextEvents);
-      } catch (error) {
-        if (!isCurrent) return;
-        setAssessmentEvidenceEvents([]);
-        setAssessmentEvidenceError(
-          normalizeCleanErrorMessage(
-            error,
-            "We could not load pathway check evidence just now.",
-          ),
-        );
-      } finally {
-        if (isCurrent) {
-          setAssessmentEvidenceLoading(false);
-        }
-      }
-    }
-
-    if (workspace.schemaMissing || workspace.requiresFamilyCreation) {
-      setAssessmentEvidenceEvents([]);
-      setAssessmentEvidenceError(null);
-      setAssessmentEvidenceLoading(false);
-      return undefined;
-    }
-
-    void loadAssessmentEvidence();
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [
-    selectedLearnerId,
-    workspace.profile,
-    workspace.requiresFamilyCreation,
-    workspace.schemaMissing,
-  ]);
-
-  useEffect(() => {
-    let isCurrent = true;
-
     async function loadAssessmentStatuses() {
       if (!workspace.profile || !selectedLearnerId) {
         if (!isCurrent) return;
@@ -599,6 +534,15 @@ function CurriculumWorkspaceBody() {
   );
   const areaSummaries = coverageSummary.areaSummaries;
   const sortedAreaSummaries = useMemo(() => sortCoverageAreas(areaSummaries), [areaSummaries]);
+  const progressJudgementObservations = useMemo(
+    () =>
+      buildRecognizedProgressJudgementObservations({
+        assessmentStatuses,
+        evidenceEntries: entries,
+        learnerId: selectedLearnerId,
+      }),
+    [assessmentStatuses, entries, selectedLearnerId],
+  );
 
   useEffect(() => {
     setSelectedAreaId("");
@@ -907,11 +851,9 @@ function CurriculumWorkspaceBody() {
                     support reporting.
                   </p>
                 </div>
-                {assessmentEvidenceLoading ? (
-                  <p style={{ margin: 0, color: "#475569" }}>Loading pathway progress records...</p>
-                ) : assessmentEvidenceError ? (
-                  <p style={{ margin: 0, color: "#b91c1c" }}>{assessmentEvidenceError}</p>
-                ) : assessmentEvidenceEvents.length ? (
+                {entriesLoading ? (
+                  <p style={{ margin: 0, color: "#475569" }}>Loading progress records...</p>
+                ) : progressJudgementObservations.length ? (
                   <div
                     style={{
                       display: "grid",
@@ -919,10 +861,25 @@ function CurriculumWorkspaceBody() {
                       gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                     }}
                   >
-                    {assessmentEvidenceEvents.slice(0, 6).map((event) => (
-                      <article key={event.id} style={compactCardStyle}>
+                    <div style={{ gridColumn: "1 / -1", color: "#475569", fontSize: 14 }}>
+                      <strong style={{ color: "#0f172a" }}>
+                        {progressJudgementObservations.length} progress{" "}
+                        {progressJudgementObservations.length === 1 ? "judgement" : "judgements"} saved
+                      </strong>
+                      {progressJudgementObservations[0] ? (
+                        <span>
+                          {" "}
+                          | Latest: {progressJudgementObservations[0].judgement}
+                          {progressJudgementObservations[0].dateValue
+                            ? ` - ${formatEvidenceEventDateLabel(progressJudgementObservations[0].dateValue)}`
+                            : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                    {progressJudgementObservations.slice(0, 6).map((observation) => (
+                      <article key={observation.id} style={compactCardStyle}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                          <strong style={{ color: "#0f172a" }}>{event.title}</strong>
+                          <strong style={{ color: "#0f172a" }}>{observation.judgement}</strong>
                           <span
                             style={{
                               border: "1px solid #bbf7d0",
@@ -935,31 +892,25 @@ function CurriculumWorkspaceBody() {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            Reporting support
+                            Progress judgement
                           </span>
                         </div>
                         <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                          {formatEvidenceEventDateLabel(event.evidenceDate)}
-                          {event.strand ? ` - ${event.strand}` : ""}
+                          {formatEvidenceEventDateLabel(observation.dateValue)}
+                          {observation.subjectTitle ? ` - ${observation.subjectTitle}` : ""}
+                          {observation.strandTitle ? ` - ${observation.strandTitle}` : ""}
                         </div>
                         <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                          {event.summary}
+                          {observation.stepTitle
+                            ? `Saved for ${observation.stepTitle}.`
+                            : "Saved progress judgement for this learner."}
                         </p>
-                        <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
-                          Questions: {event.questionCount} | Correct: {event.correctCount} | More support: {event.supportRecommendedCount}
-                          {event.notSureCount ? ` | Not sure: ${event.notSureCount}` : ""}
-                        </div>
-                        {event.parentJudgement ? (
-                          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
-                            Parent judgement: {event.parentJudgement}
-                          </div>
-                        ) : null}
                       </article>
                     ))}
                   </div>
                 ) : (
                   <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>No progress judgement saved yet</strong>
+                    <strong style={{ color: "#0f172a" }}>No progress judgement has been saved yet.</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                       Saved progress judgements will appear here when they are available.
                     </p>
@@ -1002,22 +953,53 @@ function CurriculumWorkspaceBody() {
                     >
                       {areaSummaries.length} learning areas
                     </span>
-                    {supplementaryEvidenceAreas.length ? (
-                      <span
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          background: "#ffffff",
-                          color: "#475569",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {authorityAreasWithEvidenceCount} support areas with evidence
-                      </span>
-                    ) : null}
+                    <span
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        background: "#ffffff",
+                        color: "#475569",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {coverageSummary.learningAreasWithEvidenceCount}{" "}
+                      {coverageSummary.learningAreasWithEvidenceCount === 1
+                        ? "learning area"
+                        : "learning areas"}{" "}
+                      with evidence
+                    </span>
+                    <span
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        background: "#ffffff",
+                        color: "#475569",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {entries.length} {entries.length === 1 ? "learning record" : "learning records"}
+                    </span>
+                    <span
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        background: "#ffffff",
+                        color: "#475569",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {progressJudgementObservations.length} progress{" "}
+                      {progressJudgementObservations.length === 1 ? "judgement" : "judgements"}
+                    </span>
                     {selectedLearner ? (
                       <span
                         style={{

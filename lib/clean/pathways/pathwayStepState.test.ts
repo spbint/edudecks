@@ -20,8 +20,10 @@ import {
   buildPathwayStepId,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
+  buildRecognizedProgressJudgementObservations,
   buildSubjectCurriculumDashboardSummaries,
   buildUnifiedPathwayStepStateIndex,
+  countRecognizedProgressJudgements,
   getUnifiedPathwayStepEvidenceCount,
   getUnifiedPathwayStepState,
   isUnifiedPathwayStepComplete,
@@ -627,5 +629,209 @@ describe("pathway step state", () => {
     expect(coverageSummary.linkedEvidenceEntries[0]?.entry.id).toBe("evidence-2");
     expect(pdfArtsArea?.count).toBe(1);
     expect(pdfModel.coverageSummary.linkedEvidenceEntries[0]?.entry.id).toBe("evidence-2");
+  });
+});
+
+describe("recognized progress judgement observations", () => {
+  it("keeps reporting checklist counts and progress observations on the same source", () => {
+    const evidenceEntries = [
+      buildOperationsStep2Evidence("Consolidating", {
+        id: "evidence-consolidating",
+        observedOn: "2026-07-15",
+      }),
+      buildOperationsStep2Evidence("Secure", {
+        id: "evidence-secure",
+        observedOn: "2026-07-14",
+      }),
+    ];
+    const assessmentStatuses = [
+      buildOperationsStep2Status("Strong", {
+        id: "status-strong",
+        updatedAt: "2026-07-13T09:00:00.000Z",
+      }),
+    ];
+
+    const observations = buildRecognizedProgressJudgementObservations({
+      assessmentStatuses,
+      evidenceEntries,
+      learnerId: "learner-1",
+    });
+
+    expect(observations).toHaveLength(3);
+    expect(countRecognizedProgressJudgements({
+      assessmentStatuses,
+      evidenceEntries,
+      learnerId: "learner-1",
+    })).toBe(observations.length);
+  });
+
+  it.each([
+    "Consolidating",
+    "Secure",
+    "Goal achieved",
+    "Goal achieved + extension",
+  ])("includes %s in progress observations", (progressLevel) => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      evidenceEntries: [
+        buildOperationsStep2Evidence(progressLevel, {
+          id: `evidence-${progressLevel}`,
+          observedOn: "2026-07-15",
+        }),
+      ],
+      assessmentStatuses: [],
+      learnerId: "learner-1",
+    });
+
+    expect(observations.map((observation) => observation.judgement)).toContain(progressLevel);
+  });
+
+  it.each([
+    ["Still developing", "Needs support"],
+    ["Developing", "Working towards"],
+    ["Strong", "Goal achieved + extension"],
+  ] as const)("maps historic %s observations to %s", (status, expectedJudgement) => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      assessmentStatuses: [buildOperationsStep2Status(status)],
+      evidenceEntries: [],
+      learnerId: "learner-1",
+    });
+
+    expect(observations).toHaveLength(1);
+    expect(observations[0]?.judgement).toBe(expectedJudgement);
+  });
+
+  it("returns no observations for empty or missing judgements", () => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      assessmentStatuses: [],
+      evidenceEntries: [
+        buildOperationsStep2Evidence("", {
+          id: "evidence-empty-progress",
+          reflection: "No judgement saved.",
+        }),
+      ],
+      learnerId: "learner-1",
+    });
+
+    expect(observations).toHaveLength(0);
+    expect(countRecognizedProgressJudgements({
+      evidenceEntries: [
+        buildOperationsStep2Evidence("", {
+          id: "evidence-empty-progress",
+          reflection: "No judgement saved.",
+        }),
+      ],
+      assessmentStatuses: [],
+      learnerId: "learner-1",
+    })).toBe(0);
+  });
+
+  it("removes the empty-state condition when recognised judgements exist", () => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      evidenceEntries: [buildOperationsStep2Evidence("Goal achieved")],
+      assessmentStatuses: [],
+      learnerId: "learner-1",
+    });
+
+    expect(observations.length > 0).toBe(true);
+  });
+
+  it("orders progress observations newest first", () => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      evidenceEntries: [
+        buildOperationsStep2Evidence("Goal achieved", {
+          id: "evidence-old",
+          observedOn: "2026-07-13",
+        }),
+        buildOperationsStep2Evidence("Consolidating", {
+          id: "evidence-new",
+          observedOn: "2026-07-15",
+        }),
+      ],
+      assessmentStatuses: [
+        buildOperationsStep2Status("Secure", {
+          id: "status-middle",
+          updatedAt: "2026-07-14T09:00:00.000Z",
+        }),
+      ],
+      learnerId: "learner-1",
+    });
+
+    expect(observations.map((observation) => observation.judgement)).toEqual([
+      "Consolidating",
+      "Secure",
+      "Goal achieved",
+    ]);
+  });
+
+  it("deduplicates one underlying judgement represented as evidence and status", () => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      evidenceEntries: [
+        buildOperationsStep2Evidence("Goal achieved + extension", {
+          id: "evidence-extension",
+          observedOn: "2026-07-15",
+        }),
+      ],
+      assessmentStatuses: [
+        buildOperationsStep2Status("Strong", {
+          id: "status-extension",
+          updatedAt: "2026-07-15T10:00:00.000Z",
+        }),
+      ],
+      learnerId: "learner-1",
+    });
+
+    expect(observations).toHaveLength(1);
+    expect(observations[0]?.judgement).toBe("Goal achieved + extension");
+  });
+
+  it("scopes progress observations to the selected learner", () => {
+    const learnerTwoEvidence = buildOperationsStep2Evidence("Secure", {
+      id: "evidence-learner-2",
+      learnerId: "learner-2",
+      observedOn: "2026-07-16",
+    });
+    const observations = buildRecognizedProgressJudgementObservations({
+      evidenceEntries: [
+        buildOperationsStep2Evidence("Consolidating", {
+          id: "evidence-learner-1",
+          learnerId: "learner-1",
+          observedOn: "2026-07-15",
+        }),
+        learnerTwoEvidence,
+      ],
+      assessmentStatuses: [
+        buildOperationsStep2Status("Strong", {
+          id: "status-learner-2",
+          learnerId: "learner-2",
+        }),
+      ],
+      learnerId: "learner-2",
+    });
+
+    expect(observations.every((observation) => observation.learnerId === "learner-2")).toBe(true);
+    expect(observations.map((observation) => observation.sourceId)).toContain("evidence-learner-2");
+    expect(observations.map((observation) => observation.sourceId)).not.toContain("evidence-learner-1");
+  });
+
+  it("does not expose internal status keys or raw ids in observation display fields", () => {
+    const observations = buildRecognizedProgressJudgementObservations({
+      evidenceEntries: [buildOperationsStep2Evidence("Goal achieved + extension")],
+      assessmentStatuses: [],
+      learnerId: "learner-1",
+    });
+    const displayText = observations
+      .map((observation) =>
+        [
+          observation.judgement,
+          observation.subjectTitle,
+          observation.strandTitle,
+          observation.stepTitle,
+        ].join(" "),
+      )
+      .join(" ");
+
+    expect(displayText).not.toContain("goal_achieved_extension");
+    expect(displayText).not.toContain("evidence-Goal achieved + extension");
+    expect(displayText).not.toContain(OPERATIONS_STEP_2_ID);
   });
 });

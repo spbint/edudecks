@@ -10,9 +10,11 @@ import {
   type PathwayStageKey,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
+  buildRecognizedProgressJudgementObservations,
   buildUnifiedPathwayStepStateIndex,
   countRecognizedProgressJudgements,
   resolveEffectiveAssessmentConfidence,
+  type RecognizedProgressJudgementObservation,
   resolvePathwayStepIdFromContext,
   type UnifiedPathwayStepState,
   type UnifiedPathwayStepStateIndex,
@@ -150,6 +152,7 @@ export type LearningIntelligenceSummary = {
   strengths: LearningIntelligenceInsightItem[];
   focusAreas: LearningIntelligenceInsightItem[];
   reportingReadiness: LearningIntelligenceReportingReadiness;
+  progressJudgementObservations: RecognizedProgressJudgementObservation[];
   nextLearningSteps: LearningIntelligenceNextStep[];
   activeLearningAreaRows: LearningIntelligenceRow[];
   inactiveLearningAreaRows: LearningIntelligenceRow[];
@@ -1036,6 +1039,10 @@ export function buildLearningIntelligenceSummary(
   const strengths = buildStrengths(scopeRows);
   const focusAreas = buildFocusAreas(scopeRows);
   const reportingReadiness = buildReportingReadiness(scopeRows, evidenceEntries, assessmentStatuses);
+  const progressJudgementObservations = buildRecognizedProgressJudgementObservations({
+    assessmentStatuses,
+    evidenceEntries,
+  });
   const nextLearningSteps = buildNextLearningSteps(scopeRows, learnerStageKey, unifiedIndex);
   const activeLearningAreaRows = scopeRows.filter((row) => row.isActiveLearningArea);
   const inactiveLearningAreaRows = scopeRows.filter((row) => !row.isActiveLearningArea);
@@ -1076,6 +1083,7 @@ export function buildLearningIntelligenceSummary(
     strengths,
     focusAreas,
     reportingReadiness,
+    progressJudgementObservations,
     nextLearningSteps,
     activeLearningAreaRows,
     inactiveLearningAreaRows,

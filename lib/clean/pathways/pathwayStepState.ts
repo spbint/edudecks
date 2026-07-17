@@ -46,6 +46,20 @@ export type RecognizedProgressJudgement =
   | "Goal achieved"
   | "Goal achieved + extension";
 
+export type RecognizedProgressJudgementObservation = {
+  id: string;
+  learnerId: string;
+  sourceType: "assessment-status" | "evidence";
+  sourceId: string;
+  pathwayStepId: string | null;
+  subjectTitle: string | null;
+  strandTitle: string | null;
+  stepTitle: string | null;
+  judgement: RecognizedProgressJudgement;
+  dateValue: string | null;
+  sortValue: number;
+};
+
 export type PathwayStrandAssessmentSummary = {
   subjectKey: PathwaySubjectKey;
   subjectTitle: string;
@@ -209,15 +223,9 @@ export function evidenceHasRecognizedProgressJudgement(
 export function countRecognizedProgressJudgements(input: {
   assessmentStatuses?: CleanAssessmentSkillStatus[];
   evidenceEntries?: CleanEvidenceEntry[];
+  learnerId?: string | null;
 }) {
-  const assessmentCount = (input.assessmentStatuses || []).filter((status) =>
-    isRecognizedProgressJudgement(status.status),
-  ).length;
-  const evidenceCount = (input.evidenceEntries || []).filter((entry) =>
-    evidenceHasRecognizedProgressJudgement(entry),
-  ).length;
-
-  return assessmentCount + evidenceCount;
+  return buildRecognizedProgressJudgementObservations(input).length;
 }
 
 export function resolveEffectiveAssessmentConfidence(
@@ -337,6 +345,125 @@ const REGISTRY_BY_LEGACY_NUMBER_ANY_SUBJECT = new Map(
 const KNOWN_SUBJECT_KEYS = new Set<PathwaySubjectKey>(
   PATHWAY_SUBJECTS.map((subject) => subject.key),
 );
+
+function progressJudgementSortValue(value: string | null | undefined) {
+  return Date.parse(safe(value)) || Date.parse(`${safe(value)}T00:00:00`) || 0;
+}
+
+function progressJudgementDateValue(
+  primary: string | null | undefined,
+  fallback: string | null | undefined,
+) {
+  return safe(primary) || safe(fallback) || null;
+}
+
+function getObservationRegistryItem(pathwayStepId: string | null | undefined) {
+  return REGISTRY_BY_ID.get(safe(pathwayStepId)) ?? null;
+}
+
+function dedupeObservationKey(observation: RecognizedProgressJudgementObservation) {
+  const dateOnly = safe(observation.dateValue).slice(0, 10);
+  const stepKey = safe(observation.pathwayStepId) || safe(observation.stepTitle);
+  return [
+    observation.learnerId,
+    stepKey,
+    observation.judgement,
+    dateOnly,
+  ].join("::");
+}
+
+function compareProgressJudgementObservations(
+  left: RecognizedProgressJudgementObservation,
+  right: RecognizedProgressJudgementObservation,
+) {
+  if (right.sortValue !== left.sortValue) {
+    return right.sortValue - left.sortValue;
+  }
+
+  return left.id.localeCompare(right.id);
+}
+
+export function buildRecognizedProgressJudgementObservations(input: {
+  assessmentStatuses?: CleanAssessmentSkillStatus[];
+  evidenceEntries?: CleanEvidenceEntry[];
+  learnerId?: string | null;
+}) {
+  const observations: RecognizedProgressJudgementObservation[] = [];
+  const learnerScope = safe(input.learnerId);
+
+  (input.assessmentStatuses || []).forEach((status) => {
+    if (learnerScope && safe(status.learnerId) !== learnerScope) return;
+    const judgement = normalizeProgressJudgementValue(status.status);
+    if (!judgement) return;
+
+    const pathwayStepId = safe(status.pathwayStepId) || safe(status.skillKey) || null;
+    const registryItem = getObservationRegistryItem(pathwayStepId);
+    const dateValue = progressJudgementDateValue(status.updatedAt, status.createdAt);
+
+    observations.push({
+      id: `assessment-status:${status.id}`,
+      learnerId: safe(status.learnerId),
+      sourceType: "assessment-status",
+      sourceId: status.id,
+      pathwayStepId,
+      subjectTitle: registryItem?.subjectTitle || null,
+      strandTitle: registryItem?.strandTitle || null,
+      stepTitle: registryItem?.stepTitle || null,
+      judgement,
+      dateValue,
+      sortValue: progressJudgementSortValue(dateValue),
+    });
+  });
+
+  (input.evidenceEntries || []).forEach((entry) => {
+    if (learnerScope && safe(entry.learnerId) !== learnerScope) return;
+    const judgement = getEvidenceProgressJudgement(entry);
+    if (!judgement) return;
+
+    const pathwayContext = parsePathwayContextFromNodeIds(entry.curriculumNodeIds);
+    const pathwayStepId = resolvePathwayStepIdFromContext(pathwayContext);
+    const registryItem = getObservationRegistryItem(pathwayStepId);
+    const dateValue = progressJudgementDateValue(
+      entry.observedOn,
+      entry.updatedAt || entry.createdAt,
+    );
+
+    observations.push({
+      id: `evidence:${entry.id}`,
+      learnerId: safe(entry.learnerId),
+      sourceType: "evidence",
+      sourceId: entry.id,
+      pathwayStepId,
+      subjectTitle:
+        registryItem?.subjectTitle ||
+        safe(pathwayContext?.subjectLabel) ||
+        safe(entry.learningArea) ||
+        null,
+      strandTitle: registryItem?.strandTitle || safe(pathwayContext?.pathwayLabel) || null,
+      stepTitle: registryItem?.stepTitle || safe(pathwayContext?.stepTitle) || null,
+      judgement,
+      dateValue,
+      sortValue: progressJudgementSortValue(dateValue),
+    });
+  });
+
+  const deduped = new Map<string, RecognizedProgressJudgementObservation>();
+  observations
+    .sort((left, right) => {
+      if (left.sourceType !== right.sourceType) {
+        return left.sourceType === "assessment-status" ? -1 : 1;
+      }
+      return compareProgressJudgementObservations(left, right);
+    })
+    .forEach((observation) => {
+      const key = dedupeObservationKey(observation);
+      if (!deduped.has(key)) {
+        deduped.set(key, observation);
+      }
+    });
+
+  return [...deduped.values()].sort(compareProgressJudgementObservations);
+}
 
 function isKnownSubjectKey(value: string): value is PathwaySubjectKey {
   return KNOWN_SUBJECT_KEYS.has(value as PathwaySubjectKey);
