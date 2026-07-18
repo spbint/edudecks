@@ -103,20 +103,63 @@ export default function CleanAccountMenu({
   return (
     <div
       ref={wrapRef}
+      className="mylearna-account-menu"
       style={{
         position: "relative",
         justifySelf: "end",
       }}
     >
+      <style jsx global>{`
+        @media (max-width: 900px) {
+          .mylearna-account-menu-label {
+            display: none !important;
+          }
+
+          .mylearna-account-menu-button {
+            width: 38px !important;
+            height: 38px !important;
+            padding: 2px !important;
+            justify-content: center !important;
+          }
+
+          .mylearna-account-menu-button-avatar {
+            width: 32px !important;
+            height: 32px !important;
+          }
+
+          .mylearna-account-menu-panel {
+            position: fixed !important;
+            left: 10px !important;
+            right: 10px !important;
+            top: auto !important;
+            bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+            width: auto !important;
+            max-height: min(420px, calc(100dvh - 132px)) !important;
+            overflow-y: auto !important;
+            padding: 12px !important;
+            border-radius: 20px !important;
+            box-shadow: 0 22px 54px rgba(15, 23, 42, 0.18) !important;
+            z-index: 70 !important;
+          }
+
+          .mylearna-account-menu-item {
+            min-height: 46px !important;
+            font-size: 16px !important;
+          }
+        }
+      `}</style>
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Open account menu"
+        className="mylearna-account-menu-button"
         style={menuButtonStyle}
       >
         <span
           aria-hidden="true"
+          className="mylearna-account-menu-button-avatar"
           style={{
             width: 34,
             height: 34,
@@ -134,7 +177,7 @@ export default function CleanAccountMenu({
         >
           {initials}
         </span>
-        <span style={{ display: "grid", gap: 1, textAlign: "left", maxWidth: 142 }}>
+        <span className="mylearna-account-menu-label" style={{ display: "grid", gap: 1, textAlign: "left", maxWidth: 142 }}>
           <span style={{ color: "#17204B", fontSize: 13, fontWeight: 650 }}>Account</span>
           <span
             style={{
@@ -154,6 +197,7 @@ export default function CleanAccountMenu({
         <div
           role="menu"
           aria-label="My Account menu"
+          className="mylearna-account-menu-panel"
           style={{
             position: "absolute",
             right: 0,
@@ -184,10 +228,10 @@ export default function CleanAccountMenu({
             </div>
           ) : null}
 
-          <Link href="/my-profile" style={menuItemStyle} onClick={() => setOpen(false)}>
+          <Link href="/my-profile" className="mylearna-account-menu-item" style={menuItemStyle} onClick={() => setOpen(false)}>
             My Profile
           </Link>
-          <Link href="/my-settings" style={menuItemStyle} onClick={() => setOpen(false)}>
+          <Link href="/my-settings" className="mylearna-account-menu-item" style={menuItemStyle} onClick={() => setOpen(false)}>
             My Settings
           </Link>
           <button
@@ -195,6 +239,7 @@ export default function CleanAccountMenu({
             role="menuitem"
             onClick={() => void handleSignOut()}
             disabled={busy}
+            className="mylearna-account-menu-item"
             style={{
               ...menuItemStyle,
               color: "#b91c1c",

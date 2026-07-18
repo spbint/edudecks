@@ -42,6 +42,8 @@ type ProductNavSection = {
   items: readonly ProductNavItem[];
 };
 
+type MobileNavKey = "day" | "PLAN" | "CAPTURE" | "GROW" | "more";
+
 const dayNavItem = {
   href: "/my-day",
   label: "My Day",
@@ -342,6 +344,61 @@ function NavLink({
   );
 }
 
+function getActiveMobileSection(pathname: string): MobileNavKey {
+  if (isActive(pathname, dayNavItem.matches)) return "day";
+  if (isActive(pathname, settingsNavItem.matches) || pathname.startsWith("/my-profile") || pathname.startsWith("/my-community")) {
+    return "more";
+  }
+
+  const section = finalProductNavSections.find((candidate) =>
+    candidate.items.some((item) => isActive(pathname, item.matches)),
+  );
+
+  return section?.label ?? "day";
+}
+
+function MobileBottomNavButton({
+  active,
+  children,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  icon: ShellIconName;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      onClick={onClick}
+      className="mylearna-v2-mobile-nav-button"
+      style={{
+        minHeight: 48,
+        minWidth: 54,
+        border: "none",
+        borderRadius: 14,
+        background: active ? v2Tokens.lavender : "transparent",
+        color: active ? v2Tokens.purple : v2Tokens.slate,
+        display: "grid",
+        justifyItems: "center",
+        alignContent: "center",
+        gap: 2,
+        fontSize: 11,
+        fontWeight: 750,
+        cursor: "pointer",
+      }}
+    >
+      <ShellIcon name={icon} size={19} />
+      <span>{children}</span>
+    </button>
+  );
+}
+
 export function V2Card({
   children,
   style,
@@ -412,9 +469,20 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuthUser();
+  const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
   const title = routeTitle(pathname);
   const breadcrumbs = routeCrumbs(pathname);
   const activityMode = getActivityMode(pathname);
+  const activeMobileSection = getActiveMobileSection(pathname);
+  const openSection =
+    openMobileNav === "PLAN" || openMobileNav === "CAPTURE" || openMobileNav === "GROW"
+      ? finalProductNavSections.find((section) => section.label === openMobileNav)
+      : null;
+
+  React.useEffect(() => {
+    setOpenMobileNav(null);
+  }, [pathname]);
+
   const activityContext =
     pathname.startsWith("/my-pathways/activity-player-v4-preview")
       ? "Activity Player V4 preview"
@@ -563,38 +631,132 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: v2Tokens.page, color: v2Tokens.navy }}>
+    <div className="mylearna-v2-shell" style={{ minHeight: "100vh", background: v2Tokens.page, color: v2Tokens.navy }}>
       <ProductAnalyticsProvider />
       <style jsx global>{`
+        .mylearna-v2-mobile-bottom-nav,
+        .mylearna-v2-mobile-nav-sheet {
+          display: none;
+        }
+
         @media (max-width: 900px) {
+          html {
+            scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+          }
+
           .mylearna-v2-grid {
             grid-template-columns: 1fr !important;
+            min-height: 100dvh !important;
           }
 
           .mylearna-v2-sidebar {
-            position: relative !important;
-            height: auto !important;
-            border-right: 0 !important;
-            border-bottom: 1px solid ${v2Tokens.border} !important;
-          }
-
-          .mylearna-v2-nav {
-            grid-auto-flow: column !important;
-            grid-auto-columns: max-content !important;
-            overflow-x: auto !important;
-            padding-bottom: 4px !important;
-          }
-
-          .mylearna-v2-nav-label-full {
             display: none !important;
           }
 
-          .mylearna-v2-nav-label-short {
-            display: inline !important;
+          .mylearna-v2-mobile-header {
+            min-height: 52px !important;
+            padding: calc(env(safe-area-inset-top, 0px) + 7px) 12px 7px !important;
+            gap: 10px !important;
+          }
+
+          .mylearna-v2-breadcrumb {
+            display: none !important;
+          }
+
+          .mylearna-v2-mobile-title {
+            font-size: 16px !important;
+            line-height: 1.25 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+          }
+
+          .mylearna-v2-header-actions {
+            gap: 6px !important;
+          }
+
+          .mylearna-v2-header-actions > a {
+            width: 38px !important;
+            height: 38px !important;
+          }
+
+          .mylearna-v2-content-main {
+            padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+
+          .mylearna-v2-content-inner {
+            gap: 12px !important;
           }
 
           .mylearna-v2-encouragement {
             display: none !important;
+          }
+
+          .mylearna-v2-mobile-bottom-nav {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            z-index: 60 !important;
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            gap: 4px !important;
+            padding: 7px max(8px, env(safe-area-inset-left, 0px)) calc(7px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-right, 0px)) !important;
+            border-top: 1px solid ${v2Tokens.border} !important;
+            background: rgba(255, 255, 255, 0.96) !important;
+            box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.11) !important;
+            backdrop-filter: blur(16px) !important;
+          }
+
+          .mylearna-v2-mobile-nav-sheet {
+            position: fixed !important;
+            left: 10px !important;
+            right: 10px !important;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+            z-index: 59 !important;
+            display: grid !important;
+            gap: 8px !important;
+            border: 1px solid ${v2Tokens.border} !important;
+            border-radius: 18px !important;
+            background: #ffffff !important;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+            padding: 12px !important;
+            max-height: min(360px, calc(100dvh - 140px)) !important;
+            overflow-y: auto !important;
+          }
+
+          .mylearna-v2-mobile-sheet-title {
+            margin: 0 !important;
+            color: ${v2Tokens.navy} !important;
+            font-size: 13px !important;
+            font-weight: 850 !important;
+            letter-spacing: 0.08em !important;
+          }
+
+          .mylearna-v2-mobile-sheet-grid {
+            display: grid !important;
+            gap: 8px !important;
+          }
+
+          .mylearna-v2-mobile-sheet-link {
+            min-height: 46px !important;
+            border-radius: 14px !important;
+            padding: 10px 12px !important;
+            display: grid !important;
+            grid-template-columns: 28px minmax(0, 1fr) !important;
+            align-items: center !important;
+            gap: 10px !important;
+            border: 1px solid ${v2Tokens.border} !important;
+            text-decoration: none !important;
+            font-size: 14px !important;
+            font-weight: 750 !important;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .mylearna-v2-mobile-nav-button {
+            min-width: 0 !important;
+            font-size: 10px !important;
           }
         }
       `}</style>
@@ -683,6 +845,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
         <div style={{ minWidth: 0 }}>
           <header
+            className="mylearna-v2-mobile-header"
             style={{
               minHeight: 58,
               position: "sticky",
@@ -700,6 +863,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           >
             <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
               <nav
+                className="mylearna-v2-breadcrumb"
                 aria-label="Breadcrumb"
                 style={{
                   display: "flex",
@@ -746,11 +910,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                   );
                 })}
               </nav>
-              <div style={{ color: v2Tokens.navy, fontSize: 17, fontWeight: 650 }}>
+              <div className="mylearna-v2-mobile-title" style={{ color: v2Tokens.navy, fontSize: 17, fontWeight: 650 }}>
                 {title}
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="mylearna-v2-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Link
                 href="/my-community"
                 aria-label="Open help and community"
@@ -774,8 +938,8 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </div>
           </header>
 
-          <main style={{ padding: "clamp(16px, 3vw, 28px)" }}>
-            <div style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
+          <main className="mylearna-v2-content-main" style={{ padding: "clamp(16px, 3vw, 28px)" }}>
+            <div className="mylearna-v2-content-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
               {children}
               <div
                 style={{
@@ -790,6 +954,142 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </main>
         </div>
       </div>
+
+      {openSection ? (
+        <div
+          className="mylearna-v2-mobile-nav-sheet"
+          role="dialog"
+          aria-modal="false"
+          aria-label={`${openSection.label.toLowerCase()} navigation`}
+        >
+          <p className="mylearna-v2-mobile-sheet-title">{openSection.label}</p>
+          <div className="mylearna-v2-mobile-sheet-grid">
+            {openSection.items.map((item) => {
+              const active = isActive(pathname, item.matches);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className="mylearna-v2-mobile-sheet-link"
+                  style={{
+                    background: active ? v2Tokens.lavender : "#ffffff",
+                    color: active ? v2Tokens.purple : v2Tokens.navy,
+                  }}
+                >
+                  <ShellIcon name={item.icon} size={19} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {openMobileNav === "more" ? (
+        <div
+          className="mylearna-v2-mobile-nav-sheet"
+          role="dialog"
+          aria-modal="false"
+          aria-label="More navigation"
+        >
+          <p className="mylearna-v2-mobile-sheet-title">MORE</p>
+          <div className="mylearna-v2-mobile-sheet-grid">
+            {[settingsNavItem].map((item) => {
+              const active = isActive(pathname, item.matches);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className="mylearna-v2-mobile-sheet-link"
+                  style={{
+                    background: active ? v2Tokens.lavender : "#ffffff",
+                    color: active ? v2Tokens.purple : v2Tokens.navy,
+                  }}
+                >
+                  <ShellIcon name={item.icon} size={19} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+            <Link
+              href="/my-profile"
+              className="mylearna-v2-mobile-sheet-link"
+              style={{ background: "#ffffff", color: v2Tokens.navy }}
+            >
+              <ShellIcon name="learner" size={19} />
+              <span>Account</span>
+            </Link>
+            <Link
+              href="/my-community"
+              className="mylearna-v2-mobile-sheet-link"
+              style={{ background: "#ffffff", color: v2Tokens.navy }}
+            >
+              <ShellIcon name="help" size={19} />
+              <span>Help and feedback</span>
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <nav className="mylearna-v2-mobile-bottom-nav" aria-label="Mobile primary navigation">
+        <Link
+          href={dayNavItem.href}
+          aria-label="Day"
+          aria-current={activeMobileSection === "day" ? "page" : undefined}
+          className="mylearna-v2-mobile-nav-button"
+          style={{
+            minHeight: 48,
+            minWidth: 54,
+            borderRadius: 14,
+            background: activeMobileSection === "day" ? v2Tokens.lavender : "transparent",
+            color: activeMobileSection === "day" ? v2Tokens.purple : v2Tokens.slate,
+            display: "grid",
+            justifyItems: "center",
+            alignContent: "center",
+            gap: 2,
+            fontSize: 11,
+            fontWeight: 750,
+            textDecoration: "none",
+          }}
+        >
+          <ShellIcon name="sun" size={19} />
+          <span>Day</span>
+        </Link>
+        <MobileBottomNavButton
+          label="Open Plan navigation"
+          icon="calendar"
+          active={activeMobileSection === "PLAN" || openMobileNav === "PLAN"}
+          onClick={() => setOpenMobileNav((current) => (current === "PLAN" ? null : "PLAN"))}
+        >
+          Plan
+        </MobileBottomNavButton>
+        <MobileBottomNavButton
+          label="Open Capture navigation"
+          icon="camera"
+          active={activeMobileSection === "CAPTURE" || openMobileNav === "CAPTURE"}
+          onClick={() => setOpenMobileNav((current) => (current === "CAPTURE" ? null : "CAPTURE"))}
+        >
+          Capture
+        </MobileBottomNavButton>
+        <MobileBottomNavButton
+          label="Open Grow navigation"
+          icon="chart"
+          active={activeMobileSection === "GROW" || openMobileNav === "GROW"}
+          onClick={() => setOpenMobileNav((current) => (current === "GROW" ? null : "GROW"))}
+        >
+          Grow
+        </MobileBottomNavButton>
+        <MobileBottomNavButton
+          label="Open More navigation"
+          icon="gear"
+          active={activeMobileSection === "more" || openMobileNav === "more"}
+          onClick={() => setOpenMobileNav((current) => (current === "more" ? null : "more"))}
+        >
+          More
+        </MobileBottomNavButton>
+      </nav>
     </div>
   );
 }
