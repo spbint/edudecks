@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { loadCleanWorkspace } from "@/lib/clean/workspace/client";
@@ -54,9 +55,10 @@ export default function CleanFamilyWorkspaceProvider({
   const [setupStatus, setSetupStatus] =
     useState<CleanSetupStatus>(INITIAL_SETUP_STATUS);
   const [setupLoading, setSetupLoading] = useState(true);
+  const hasLoadedWorkspaceRef = useRef(false);
 
   const reload = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedWorkspaceRef.current) setLoading(true);
     setSetupLoading(true);
     try {
       const nextWorkspace = await loadCleanWorkspace();
@@ -77,6 +79,7 @@ export default function CleanFamilyWorkspaceProvider({
         setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
       }
     } finally {
+      hasLoadedWorkspaceRef.current = true;
       setSetupLoading(false);
       setLoading(false);
     }

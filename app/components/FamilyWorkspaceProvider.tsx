@@ -24,6 +24,8 @@ import {
   type FamilyWorkspaceState,
 } from "@/lib/familyWorkspace";
 import {
+  DEFAULT_FAMILY_PROFILE,
+  DEFAULT_FAMILY_SETTINGS,
   persistSettingsToLocalStorage,
   type FamilyProfileRow,
   type FamilySettings,
@@ -75,6 +77,21 @@ function applyActiveLearner(
   return nextId;
 }
 
+function emptyWorkspace(userId: string | null): FamilyWorkspaceState {
+  return {
+    profile: {
+      ...DEFAULT_FAMILY_SETTINGS,
+      ...DEFAULT_FAMILY_PROFILE,
+      id: "local",
+      user_id: userId,
+      owner_user_id: userId,
+    },
+    learners: [],
+    userId,
+    storageMode: "local",
+  };
+}
+
 export function FamilyWorkspaceProvider({
   children,
 }: {
@@ -93,22 +110,29 @@ export function FamilyWorkspaceProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const reloadInFlightRef = useRef<Promise<void> | null>(null);
+  const hasLoadedWorkspaceRef = useRef(false);
+  const requestGenerationRef = useRef(0);
+  const userIdRef = useRef<string | null>(user?.id ?? null);
 
   const reloadWorkspace = useCallback(async () => {
     if (reloadInFlightRef.current) {
       return reloadInFlightRef.current;
     }
 
+    const generation = requestGenerationRef.current;
     const run = (async () => {
-      setLoading(true);
+      // Keep the last valid workspace mounted during refreshes after bootstrap.
+      if (!hasLoadedWorkspaceRef.current) setLoading(true);
       setError("");
 
       try {
         const nextWorkspace = await loadFamilyWorkspace();
+        if (generation !== requestGenerationRef.current) return;
         setWorkspace(nextWorkspace);
         setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
         setError(nextWorkspace.syncIssue ?? "");
       } catch {
+        if (generation !== requestGenerationRef.current) return;
         const fallback = buildLocalFamilyWorkspaceSnapshot();
         setWorkspace((prev) => ({
           ...fallback,
@@ -118,8 +142,11 @@ export function FamilyWorkspaceProvider({
         setActiveLearnerIdState(applyActiveLearner(fallback));
         setError("Family workspace is using the last local snapshot.");
       } finally {
-        setLoading(false);
-        reloadInFlightRef.current = null;
+        if (generation === requestGenerationRef.current) {
+          hasLoadedWorkspaceRef.current = true;
+          setLoading(false);
+          reloadInFlightRef.current = null;
+        }
       }
     })();
 
@@ -167,6 +194,17 @@ export function FamilyWorkspaceProvider({
   }, [workspace.learners, workspace.profile]);
 
   useEffect(() => {
+    const nextUserId = user?.id ?? null;
+    if (userIdRef.current !== nextUserId) {
+      requestGenerationRef.current += 1;
+      reloadInFlightRef.current = null;
+      hasLoadedWorkspaceRef.current = false;
+      setWorkspace(emptyWorkspace(nextUserId));
+      setActiveLearnerIdState("");
+      setLoading(true);
+      setError("");
+      userIdRef.current = nextUserId;
+    }
     void reloadWorkspace();
   }, [reloadWorkspace, user?.id]);
 
@@ -268,13 +306,16 @@ export function FamilyWorkspaceProvider({
 
   const activeLearner =
     workspace.learners.find((learner) => learner.id === activeLearnerId) ?? null;
+  const accountTransition =
+    (user?.id ?? null) !== workspace.userId && Boolean(user?.id || workspace.userId);
+  const effectiveLoading = loading || accountTransition;
 
   const value = useMemo(
     () => ({
       workspace,
       activeLearnerId,
       activeLearner,
-      loading,
+      loading: effectiveLoading,
       error,
       reloadWorkspace,
       setWorkspacePatch,
@@ -285,7 +326,7 @@ export function FamilyWorkspaceProvider({
       workspace,
       activeLearnerId,
       activeLearner,
-      loading,
+      effectiveLoading,
       error,
       reloadWorkspace,
       setWorkspacePatch,

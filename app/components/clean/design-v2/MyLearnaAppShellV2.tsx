@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import ProductAnalyticsProvider from "@/app/components/clean/analytics/ProductAnalyticsProvider";
@@ -358,6 +358,25 @@ function getActiveMobileSection(pathname: string): MobileNavKey {
   return section?.label ?? "day";
 }
 
+export function getMobilePrefetchDestinations(activeSection: MobileNavKey): string[] {
+  const destinations = new Set(["/my-day", "/my-settings"]);
+  if (activeSection === "PLAN") {
+    destinations.add("/my-calendar");
+    destinations.add("/my-pathways");
+  } else if (activeSection === "CAPTURE") {
+    destinations.add("/my-capture");
+    destinations.add("/my-portfolio");
+  } else if (activeSection === "GROW") {
+    destinations.add("/my-data");
+    destinations.add("/my-reports");
+  } else {
+    destinations.add("/my-calendar");
+    destinations.add("/my-capture");
+    destinations.add("/my-data");
+  }
+  return [...destinations];
+}
+
 function MobilePillarSwitcher({ pathname }: { pathname: string }) {
   const section = finalProductNavSections.find((candidate) =>
     candidate.items.some((item) => isActive(pathname, item.matches)),
@@ -493,6 +512,7 @@ export function V2PageHeader({
 
 export default function MyLearnaAppShellV2({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthUser();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
@@ -504,6 +524,40 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   React.useEffect(() => {
     setOpenMobileNav(null);
   }, [pathname]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
+    ).connection;
+    if (connection?.saveData || connection?.effectiveType === "slow-2g") return;
+
+    const destinations = getMobilePrefetchDestinations(activeMobileSection);
+
+    const prefetch = () => {
+      destinations.forEach((destination) => {
+        try {
+          router.prefetch(destination);
+        } catch {
+          // Prefetch is advisory and must never block navigation.
+        }
+      });
+    };
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const idleId = idleWindow.requestIdleCallback
+      ? idleWindow.requestIdleCallback(prefetch, { timeout: 900 })
+      : undefined;
+    const timeoutId = idleId === undefined ? window.setTimeout(prefetch, 180) : undefined;
+
+    return () => {
+      if (idleId !== undefined) idleWindow.cancelIdleCallback?.(idleId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [activeMobileSection, router]);
 
   const activityContext =
     pathname.startsWith("/my-pathways/activity-player-v4-preview")
