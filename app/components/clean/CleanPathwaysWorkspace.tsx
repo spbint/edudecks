@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
@@ -4837,9 +4835,5 @@ function PathwayStepGuidanceListSection({
 }
 
 export default function CleanPathwaysWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <PathwaysWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <PathwaysWorkspaceBody />;
 }

@@ -131,6 +131,51 @@ describe("unified learning capture", () => {
     );
   });
 
+  it("rejects a contextual save when the selected learner changes", () => {
+    const scopedLearners = [
+      {
+        id: "learner-1",
+        familyId: "family-1",
+        firstName: "Asha",
+        preferredName: null,
+        surname: null,
+        yearLevel: null,
+        notes: null,
+        createdByUserId: "user-1",
+        createdAt: null,
+        updatedAt: null,
+      },
+      {
+        id: "learner-2",
+        familyId: "family-1",
+        firstName: "Beau",
+        preferredName: null,
+        surname: null,
+        yearLevel: null,
+        notes: null,
+        createdByUserId: "user-1",
+        createdAt: null,
+        updatedAt: null,
+      },
+    ];
+
+    expect(() =>
+      buildUnifiedCaptureEvidenceInput(
+        draft({
+          learnerId: "learner-2",
+          learnerContext: {
+            familyId: "family-1",
+            selectedLearnerId: "learner-2",
+            sourceLearnerId: "learner-1",
+            sourceFamilyId: "family-1",
+            sourceType: "my-pathways",
+          },
+          availableLearners: scopedLearners,
+        }),
+      ),
+    ).toThrow("connected to Asha's pathway");
+  });
+
   it("uses one authoritative save operation and prevents double submission", async () => {
     let resolveCreate: ((value: CleanEvidenceEntry) => void) | null = null;
     const createEntry = vi.fn(async (_familyId: string, input) => {

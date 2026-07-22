@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanLearningIntelligenceDashboard from "@/app/components/clean/CleanLearningIntelligenceDashboard";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
@@ -1434,9 +1432,5 @@ function CurriculumWorkspaceBody() {
 }
 
 export default function CleanCurriculumWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CurriculumWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CurriculumWorkspaceBody />;
 }

@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPathwayPracticePlayer from "@/app/components/clean/CleanPathwayPracticePlayer";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
@@ -1007,9 +1005,5 @@ export default function CleanPathwayPracticeWorkspace({
 }: {
   activity: PathwayPracticeActivity;
 }) {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <PracticeWorkspaceBody activity={activity} />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <PracticeWorkspaceBody activity={activity} />;
 }

@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import { DETAILED_SUBJECT_CONFIGS } from "@/lib/clean/pathways/detailedSubjectConfigs";
 import type { Learner } from "@/lib/clean/learners/types";
@@ -678,9 +676,5 @@ function CleanPathwayPlacementWorkspaceBody() {
 }
 
 export default function CleanPathwayPlacementWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanPathwayPlacementWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanPathwayPlacementWorkspaceBody />;
 }

@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { loadCleanWorkspace } from "@/lib/clean/workspace/client";
 import type { CleanWorkspaceState } from "@/lib/clean/workspace/types";
 import {
@@ -50,44 +51,71 @@ export default function CleanFamilyWorkspaceProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { user } = useAuthUser();
   const [workspace, setWorkspace] = useState<CleanWorkspaceState>(INITIAL_STATE);
   const [loading, setLoading] = useState(true);
   const [setupStatus, setSetupStatus] =
     useState<CleanSetupStatus>(INITIAL_SETUP_STATUS);
   const [setupLoading, setSetupLoading] = useState(true);
   const hasLoadedWorkspaceRef = useRef(false);
+  const requestGenerationRef = useRef(0);
+  const reloadInFlightRef = useRef<Promise<void> | null>(null);
+  const userIdRef = useRef<string | null>(user?.id ?? null);
 
   const reload = useCallback(async () => {
-    if (!hasLoadedWorkspaceRef.current) setLoading(true);
-    setSetupLoading(true);
-    try {
-      const nextWorkspace = await loadCleanWorkspace();
-      setWorkspace(nextWorkspace);
-      if (
-        nextWorkspace.schemaMissing ||
-        nextWorkspace.error ||
-        nextWorkspace.requiresFamilyCreation ||
-        !nextWorkspace.profile
-      ) {
-        setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
-        return;
-      }
+    if (reloadInFlightRef.current) return reloadInFlightRef.current;
+
+    const generation = requestGenerationRef.current;
+    const run = (async () => {
+      if (!hasLoadedWorkspaceRef.current) setLoading(true);
+      setSetupLoading(true);
       try {
-        setSetupStatus(await loadCleanSetupStatus(nextWorkspace));
-      } catch (error) {
-        console.error("Clean setup status hydrate failed", error);
-        setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
+        const nextWorkspace = await loadCleanWorkspace();
+        if (generation !== requestGenerationRef.current) return;
+        setWorkspace(nextWorkspace);
+        if (
+          nextWorkspace.schemaMissing ||
+          nextWorkspace.error ||
+          nextWorkspace.requiresFamilyCreation ||
+          !nextWorkspace.profile
+        ) {
+          setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
+          return;
+        }
+        try {
+          setSetupStatus(await loadCleanSetupStatus(nextWorkspace));
+        } catch (error) {
+          console.error("Clean setup status hydrate failed", error);
+          setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
+        }
+      } finally {
+        if (generation === requestGenerationRef.current) {
+          hasLoadedWorkspaceRef.current = true;
+          setSetupLoading(false);
+          setLoading(false);
+          reloadInFlightRef.current = null;
+        }
       }
-    } finally {
-      hasLoadedWorkspaceRef.current = true;
-      setSetupLoading(false);
-      setLoading(false);
-    }
+    })();
+
+    reloadInFlightRef.current = run;
+    return run;
   }, []);
 
   useEffect(() => {
+    const nextUserId = user?.id ?? null;
+    if (userIdRef.current !== nextUserId) {
+      requestGenerationRef.current += 1;
+      reloadInFlightRef.current = null;
+      hasLoadedWorkspaceRef.current = false;
+      setWorkspace(INITIAL_STATE);
+      setSetupStatus(INITIAL_SETUP_STATUS);
+      setLoading(true);
+      setSetupLoading(true);
+      userIdRef.current = nextUserId;
+    }
     void reload();
-  }, [reload]);
+  }, [reload, user?.id]);
 
   const value = useMemo(
     () => ({

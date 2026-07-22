@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
@@ -1387,9 +1385,5 @@ function CleanSettingsWorkspaceBody() {
 }
 
 export default function CleanSettingsWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanSettingsWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanSettingsWorkspaceBody />;
 }

@@ -10,9 +10,7 @@ import {
   CleanFeedbackPrompt,
   CleanContinueWhereYouLeftOffCard,
 } from "@/app/components/clean/CleanPersonalisationCards";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
@@ -1809,9 +1807,5 @@ function CleanDayWorkspaceBody() {
 }
 
 export default function CleanDayWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanDayWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanDayWorkspaceBody />;
 }

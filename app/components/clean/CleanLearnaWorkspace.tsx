@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
@@ -1489,9 +1487,5 @@ function CleanLearnaWorkspaceBody() {
 }
 
 export default function CleanLearnaWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanLearnaWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanLearnaWorkspaceBody />;
 }

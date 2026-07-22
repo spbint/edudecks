@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
@@ -926,9 +924,5 @@ function CleanProgramsWorkspaceBody() {
 }
 
 export default function CleanProgramsWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanProgramsWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanProgramsWorkspaceBody />;
 }

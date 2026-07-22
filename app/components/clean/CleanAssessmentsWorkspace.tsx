@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   buildAssessmentEvidenceLinkKey,
@@ -3109,9 +3107,5 @@ function AssessmentsWorkspaceBody() {
 }
 
 export default function CleanAssessmentsWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <AssessmentsWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <AssessmentsWorkspaceBody />;
 }

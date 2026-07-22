@@ -3,9 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanBrentEvidencePackPreview from "@/app/components/clean/CleanBrentEvidencePackPreview";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
@@ -1864,9 +1862,5 @@ function CleanOutputsWorkspaceBody() {
 }
 
 export default function CleanOutputsWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanOutputsWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanOutputsWorkspaceBody />;
 }

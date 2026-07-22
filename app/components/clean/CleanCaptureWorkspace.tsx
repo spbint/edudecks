@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
@@ -24,6 +22,7 @@ import {
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
+import { resolveLearnerContext } from "@/lib/clean/learnerContext";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
   buildCurriculumCaptureContext,
@@ -580,6 +579,7 @@ function CleanCaptureWorkspaceBody() {
   const [capturePath, setCapturePath] = useState<CapturePath>("standard");
 
   const [learnerId, setLearnerId] = useState("");
+  const [learnerChangePendingId, setLearnerChangePendingId] = useState("");
   const [observedOn, setObservedOn] = useState(getTodayDate);
   const [title, setTitle] = useState("");
   const [whatHappened, setWhatHappened] = useState("");
@@ -617,6 +617,7 @@ function CleanCaptureWorkspaceBody() {
     useState<CleanPathwayCaptureContext | null>(null);
   const [lastSavedReturnPath, setLastSavedReturnPath] = useState("");
   const [lastSavedEvidenceId, setLastSavedEvidenceId] = useState("");
+  const [lastSavedLearnerLabel, setLastSavedLearnerLabel] = useState("");
   const [lastSavedTitle, setLastSavedTitle] = useState("");
   const [lastSavedDate, setLastSavedDate] = useState("");
   const [lastSavedLearningArea, setLastSavedLearningArea] = useState("");
@@ -851,13 +852,38 @@ function CleanCaptureWorkspaceBody() {
     const currentIsValid = workspace.learners.some((learner) => learner.id === learnerId);
     if (currentIsValid) return;
 
-    const defaultLearnerId = workspace.profile?.defaultLearnerId;
-    const defaultIsValid = defaultLearnerId
-      ? workspace.learners.some((learner) => learner.id === defaultLearnerId)
-      : false;
+    const hasAuthoritativeContext = Boolean(
+      pathwayContextFromQuery ||
+        worksheetEvidenceMode ||
+        calendarItemIdFromQuery ||
+        programSegmentIdFromQuery ||
+        programIdFromQuery,
+    );
+    const hasInvalidExplicitLearner = Boolean(
+      learnerIdFromQuery &&
+        !workspace.learners.some((learner) => learner.id === learnerIdFromQuery),
+    );
+    if (hasAuthoritativeContext || hasInvalidExplicitLearner) {
+      return;
+    }
 
-    setLearnerId(defaultIsValid ? defaultLearnerId || "" : workspace.learners[0]?.id || "");
-  }, [learnerId, workspace.learners, workspace.profile?.defaultLearnerId]);
+    const resolution = resolveLearnerContext({
+      learners: workspace.learners,
+      activeLearnerId: workspace.setupStatus.activeLearnerId,
+      rememberedLearnerId: workspace.setupStatus.activeLearnerId,
+    });
+    setLearnerId(resolution.learner?.id || "");
+  }, [
+    calendarItemIdFromQuery,
+    learnerId,
+    learnerIdFromQuery,
+    pathwayContextFromQuery,
+    programIdFromQuery,
+    programSegmentIdFromQuery,
+    workspace.learners,
+    workspace.setupStatus.activeLearnerId,
+    worksheetEvidenceMode,
+  ]);
 
   useEffect(() => {
     if (programId && !filteredPrograms.some((program) => program.id === programId)) {
@@ -1385,15 +1411,18 @@ function CleanCaptureWorkspaceBody() {
     const curriculumTitleSuggestion = buildCurriculumTitleSuggestion(nextCurriculumContext);
     const pathwayTitleSuggestion = buildPathwayTitleSuggestion(nextPathwayContext);
 
-    const nextLearnerId =
-      learnerIdFromQuery ||
-      linkedCalendarItem?.learnerId ||
-      linkedSegment?.learnerId ||
-      linkedProgram?.learnerId ||
-      workspace.profile.defaultLearnerId ||
-      workspace.learners[0]?.id ||
-      "";
-    const nextLearner = workspace.learners.find((learner) => learner.id === nextLearnerId) ?? null;
+    const contextualLearnerId = nextPathwayContext
+      ? learnerIdFromQuery || "missing-contextual-learner"
+      : linkedCalendarItem?.learnerId || linkedSegment?.learnerId || linkedProgram?.learnerId || null;
+    const learnerResolution = resolveLearnerContext({
+      learners: workspace.learners,
+      contextualLearnerId,
+      explicitLearnerId: nextPathwayContext ? null : learnerIdFromQuery,
+      activeLearnerId: workspace.setupStatus.activeLearnerId,
+      rememberedLearnerId: workspace.setupStatus.activeLearnerId,
+    });
+    const nextLearnerId = learnerResolution.learner?.id || "";
+    const nextLearner = learnerResolution.learner;
     const nextLearnerLabel = nextLearner
       ? getLearnerLabel(nextLearner.firstName, nextLearner.preferredName)
       : "The learner";
@@ -1466,6 +1495,7 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
     setLastSavedCurriculumContext(null);
     setLastSavedPathwayContext(null);
+    setLastSavedLearnerLabel("");
     setLastSavedReturnPath("");
     setLastSavedTitle("");
     setLastSavedDate("");
@@ -1503,6 +1533,7 @@ function CleanCaptureWorkspaceBody() {
     programs,
     workspace.learners,
     workspace.profile,
+    workspace.setupStatus.activeLearnerId,
     worksheetEvidenceMode,
     worksheetHrefFromQuery,
     worksheetProgressFromQuery,
@@ -1553,6 +1584,21 @@ function CleanCaptureWorkspaceBody() {
         curriculumNodeIds,
         nextPathwayContext,
       );
+      const sourceLearnerId = nextPathwayContext
+        ? learnerIdFromQuery || null
+        : selectedCalendarItem?.learnerId ||
+          selectedProgramSegment?.learnerId ||
+          selectedProgram?.learnerId ||
+          null;
+      const sourceType = sourceLearnerId
+        ? worksheetEvidenceMode
+          ? "worksheet"
+          : nextPathwayContext
+            ? "my-pathways"
+            : calendarItemId
+              ? "calendar"
+              : "my-capture"
+        : null;
       const learningFromLifeReflection = learningFromLifeActive
         ? buildLearningFromLifeReflection({
             evidenceType: lifeEvidenceType,
@@ -1565,6 +1611,15 @@ function CleanCaptureWorkspaceBody() {
         {
           familyId: workspace.profile.id,
           learnerId,
+          learnerContext: {
+            familyId: workspace.profile.id,
+            selectedLearnerId: learnerId,
+            sourceLearnerId,
+            sourceFamilyId: sourceLearnerId ? workspace.profile.id : null,
+            sourceType,
+            sourceId: calendarItemId || nextPathwayContext?.pathwayStepId || null,
+          },
+          availableLearners: workspace.learners,
           activityDate: observedOn,
           title: title || (learningFromLifeActive ? "Learning from life" : null),
           whatHappened,
@@ -1684,6 +1739,9 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedPathwayContext(nextPathwayContext);
       setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
       setLastSavedEvidenceId(savedEntry.id);
+      setLastSavedLearnerLabel(
+        learnerOptions.find((option) => option.value === savedEntry.learnerId)?.label || "",
+      );
       setLastSavedTitle(savedEntry.title || "Learning record");
       setLastSavedDate(savedEntry.observedOn);
       setLastSavedLearningArea(savedEntry.learningArea || "");
@@ -1884,6 +1942,32 @@ function CleanCaptureWorkspaceBody() {
   const recentNotesPanelId = "clean-capture-recent-notes";
   const selectedLearnerLabel =
     learnerOptions.find((option) => option.value === learnerId)?.label || "";
+  const sourceLearnerId = formPathwayContext
+    ? learnerIdFromQuery || null
+    : selectedCalendarItem?.learnerId ||
+      selectedProgramSegment?.learnerId ||
+      selectedProgram?.learnerId ||
+      null;
+  const learnerContextMismatch = Boolean(
+    sourceLearnerId && learnerId && sourceLearnerId !== learnerId,
+  );
+
+  function handleLearnerChange(nextLearnerId: string) {
+    if (sourceLearnerId && nextLearnerId !== sourceLearnerId) {
+      setLearnerChangePendingId(nextLearnerId);
+      return;
+    }
+    setLearnerId(nextLearnerId);
+  }
+
+  function removeLearnerContextForChange() {
+    setFormPathwayContext(null);
+    setFormCurriculumContext(null);
+    setPathwayObservedSkillStatus("");
+    setWorksheetProgressLevel("");
+    setLearnerId(learnerChangePendingId);
+    setLearnerChangePendingId("");
+  }
   const worksheetCaptureStepTitle =
     safeQueryValue(formPathwayContext?.stepTitle) ||
     worksheetTitleFromQuery ||
@@ -2085,6 +2169,46 @@ function CleanCaptureWorkspaceBody() {
 
         {readyForCapture && workspace.profile && workspace.learners.length ? (
           <>
+            {learnerChangePendingId ? (
+              <section
+                role="alertdialog"
+                aria-labelledby="capture-learner-change-title"
+                style={{ ...cardStyle, borderColor: "#f59e0b", background: "#fffbeb" }}
+              >
+                <strong id="capture-learner-change-title" style={{ color: "#92400e" }}>
+                  This completed work is connected to {selectedLearnerLabel || "the selected learner"}&apos;s pathway.
+                </strong>
+                <p style={{ margin: 0, color: "#78350f", lineHeight: 1.5 }}>
+                  To record it for another learner, remove the pathway connection first.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLearnerId(sourceLearnerId || learnerId);
+                      setLearnerChangePendingId("");
+                    }}
+                    style={buttonStyle}
+                  >
+                    Keep {selectedLearnerLabel || "this learner"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={removeLearnerContextForChange}
+                    style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                  >
+                    Remove pathway connection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLearnerChangePendingId("")}
+                    style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            ) : null}
             <section
               className={worksheetEvidenceMode ? "mylearna-capture-card" : undefined}
               data-guidance-id="capture-add-evidence"
@@ -2333,10 +2457,13 @@ function CleanCaptureWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   }}
                 >
-                  <div data-guidance-id="capture-learner-select">
+                  <label data-guidance-id="capture-learner-select" style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>Learner</span>
                     <select
                       value={learnerId}
-                      onChange={(event) => setLearnerId(event.target.value)}
+                      onChange={(event) => handleLearnerChange(event.target.value)}
+                      aria-label="Learner"
+                      aria-invalid={learnerContextMismatch || !learnerId ? true : undefined}
                       style={inputStyle}
                     >
                       <option value="">Select learner</option>
@@ -2346,7 +2473,7 @@ function CleanCaptureWorkspaceBody() {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </label>
                   <label style={{ display: "grid", gap: 6 }}>
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>Date of learning</span>
                     <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
@@ -3200,7 +3327,7 @@ function CleanCaptureWorkspaceBody() {
                   </strong>
                   {lastSavedPathwayContext ? (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
-                      {selectedLearnerLabel ? <span>{selectedLearnerLabel}</span> : null}
+                      {lastSavedLearnerLabel ? <span>{lastSavedLearnerLabel}</span> : null}
                       {lastSavedWorksheetProgress ? (
                         <span>{lastSavedWorksheetProgress}</span>
                       ) : null}
@@ -3217,7 +3344,7 @@ function CleanCaptureWorkspaceBody() {
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
-                      {selectedLearnerLabel ? <span>{selectedLearnerLabel}</span> : null}
+                      {lastSavedLearnerLabel ? <span>{lastSavedLearnerLabel}</span> : null}
                       {lastSavedTitle ? <span>{lastSavedTitle}</span> : null}
                       {lastSavedDate ? <span>{formatDateLabel(lastSavedDate)}</span> : null}
                       {lastSavedLearningArea ? <span>{lastSavedLearningArea}</span> : null}
@@ -3554,9 +3681,5 @@ function CleanCaptureWorkspaceBody() {
 }
 
 export default function CleanCaptureWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanCaptureWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanCaptureWorkspaceBody />;
 }

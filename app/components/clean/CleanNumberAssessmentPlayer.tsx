@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
@@ -8742,9 +8740,5 @@ function CleanNumberAssessmentPlayerBody() {
 }
 
 export default function CleanNumberAssessmentPlayer() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanNumberAssessmentPlayerBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanNumberAssessmentPlayerBody />;
 }

@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
@@ -1618,9 +1616,5 @@ function CleanPortfolioWorkspaceBody() {
 }
 
 export default function CleanPortfolioWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanPortfolioWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanPortfolioWorkspaceBody />;
 }

@@ -6,9 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
-import CleanFamilyWorkspaceProvider, {
-  useCleanFamilyWorkspace,
-} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
@@ -6224,10 +6222,6 @@ function CleanCalendarWorkspaceBody() {
 }
 
 export default function CleanCalendarWorkspace() {
-  return (
-    <CleanFamilyWorkspaceProvider>
-      <CleanCalendarWorkspaceBody />
-    </CleanFamilyWorkspaceProvider>
-  );
+  return <CleanCalendarWorkspaceBody />;
 }
 

@@ -11,6 +11,11 @@ import {
   normalizeProgressJudgementValue,
   type RecognizedProgressJudgement,
 } from "@/lib/clean/pathways/pathwayStepState";
+import {
+  validateLearnerContext,
+  type LearnerContextSnapshot,
+} from "@/lib/clean/learnerContext";
+import type { Learner } from "@/lib/clean/learners/types";
 
 export type UnifiedCaptureSourceType =
   | "my-capture"
@@ -25,6 +30,9 @@ export type UnifiedCaptureSourceType =
 export type UnifiedCaptureDraft = {
   familyId: string;
   learnerId: string;
+  learnerContext?: LearnerContextSnapshot;
+  /** Runtime-only family scope used by the authoritative guard. */
+  availableLearners?: Learner[];
   activityDate: string;
   title?: string | null;
   whatHappened: string;
@@ -110,6 +118,28 @@ export function buildUnifiedCaptureEvidenceInput(
 
   if (!learnerId) {
     throw new Error("Choose the learner who completed the learning.");
+  }
+
+  if (draft.learnerContext) {
+    if (safe(draft.learnerContext.selectedLearnerId) !== learnerId) {
+      throw new Error("Choose the learner who completed the learning.");
+    }
+
+    validateLearnerContext(
+      draft.availableLearners ?? [{
+        id: learnerId,
+        familyId,
+        firstName: "",
+        preferredName: null,
+        surname: null,
+        yearLevel: null,
+        notes: null,
+        createdByUserId: "",
+        createdAt: null,
+        updatedAt: null,
+      }],
+      draft.learnerContext,
+    );
   }
 
   if (!whatHappened) {
