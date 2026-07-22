@@ -142,6 +142,14 @@ export default function CleanAccountMenu({
             z-index: 70 !important;
           }
 
+          .mylearna-account-menu-backdrop {
+            display: block !important;
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(15, 23, 42, 0.24) !important;
+            z-index: 69 !important;
+          }
+
           .mylearna-account-menu-item {
             min-height: 46px !important;
             font-size: 16px !important;
@@ -195,7 +203,17 @@ export default function CleanAccountMenu({
 
       {open ? (
         <div
-          role="menu"
+          className="mylearna-account-menu-backdrop"
+          aria-hidden="true"
+          onClick={() => setOpen(false)}
+          style={{ display: "none" }}
+        />
+      ) : null}
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-modal="true"
           aria-label="My Account menu"
           className="mylearna-account-menu-panel"
           style={{
@@ -212,7 +230,18 @@ export default function CleanAccountMenu({
             gap: 6,
             zIndex: 50,
           }}
-        >
+          >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "2px 4px 8px" }}>
+            <strong style={{ color: "#17204B", fontSize: 16 }}>Account</strong>
+            <button
+              type="button"
+              aria-label="Close account menu"
+              onClick={() => setOpen(false)}
+              style={{ border: "none", background: "transparent", color: "#5B6478", minWidth: 44, minHeight: 44, fontSize: 20, cursor: "pointer" }}
+            >
+              &times;
+            </button>
+          </div>
           {email ? (
             <div
               style={{

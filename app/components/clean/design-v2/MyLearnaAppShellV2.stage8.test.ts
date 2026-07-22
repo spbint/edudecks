@@ -35,15 +35,17 @@ describe("Stage 8 mobile web shell", () => {
     ]);
   });
 
-  it("exposes grouped destinations from mobile sheets", () => {
+  it("exposes contextual pillar destinations without a second route grid", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
       ["My Calendar", "My Pathways"],
       ["My Capture", "My Portfolio"],
       ["My Data", "My Reports"],
     ]);
-    expect(shellSource).toContain("Open Plan navigation");
-    expect(shellSource).toContain("Open Capture navigation");
-    expect(shellSource).toContain("Open Grow navigation");
+    expect(shellSource).toContain("mylearna-mobile-pillar-switcher");
+    expect(shellSource).toContain("role=\"tablist\"");
+    expect(shellSource).toContain("href: \"/my-calendar\"");
+    expect(shellSource).toContain("href: \"/my-capture\"");
+    expect(shellSource).toContain("href: \"/my-data\"");
     expect(shellSource).toContain("Open More navigation");
   });
 
