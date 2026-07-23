@@ -19,6 +19,7 @@ import type {
   SourceExtractionStatus,
   SourcePreviewMetadata,
 } from "@/lib/intelligence/sources/types";
+import type { LearningPlanDraft, LearningPlanType, GeneratedPlanContent } from "@/lib/intelligence/plans/types";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -81,6 +82,65 @@ function previewStatusLabel(status: SourceExtractionStatus | "pending") {
   }
 }
 
+function planContent(plan: LearningPlanDraft) {
+  return plan.content as unknown as GeneratedPlanContent;
+}
+
+function ReadOnlyPlanPreview({ plan }: { plan: LearningPlanDraft }) {
+  const content = planContent(plan);
+  const sections: Array<[string, string[]]> = [
+    ["Learning intentions", content.learningIntentions],
+    ["Success criteria", content.successCriteria],
+    ["Preparation", content.preparation],
+    ["Discussion questions", content.discussionQuestions],
+    ["Differentiation", content.differentiation],
+    ["Evidence prompts", content.evidencePrompts],
+    ["Portfolio prompts", content.portfolioPrompts],
+    ["Safety and supervision", content.safetySupervisionNotes],
+    ["Limitations and assumptions", content.limitationsAssumptions],
+  ];
+  return (
+    <div
+      aria-label="Generated plan draft preview"
+      style={{ display: "grid", gap: 12, marginTop: 12, borderTop: `1px solid ${v2Tokens.border}`, paddingTop: 12 }}
+    >
+      <div>
+        <strong style={{ color: v2Tokens.navy }}>{content.title}</strong>
+        <p style={{ margin: "5px 0 0", color: v2Tokens.slate, lineHeight: 1.5 }}>{content.overview}</p>
+      </div>
+      <span style={{ color: v2Tokens.slate, fontSize: 13 }}>
+        {content.planType === "lesson" ? "Lesson" : "Unit"} · {content.subjects.join(", ")} · {content.ageStage}
+      </span>
+      <div style={{ display: "grid", gap: 8 }}>
+        <strong style={{ color: v2Tokens.navy }}>Sequence</strong>
+        {content.sequence.map((item, index) => (
+          <div key={`${item.title}-${index}`} style={{ borderLeft: `3px solid ${v2Tokens.purple}`, paddingLeft: 10 }}>
+            <strong style={{ color: v2Tokens.navy }}>{index + 1}. {item.title}</strong>
+            <div style={{ color: v2Tokens.slate, fontSize: 13 }}>{item.objective} {item.activity}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gap: 5 }}>
+        <strong style={{ color: v2Tokens.navy }}>Resource requirements</strong>
+        {content.resourceRequirements.length ? content.resourceRequirements.map((resource, index) => (
+          <span key={`${resource.name}-${index}`} style={{ color: v2Tokens.slate, fontSize: 13 }}>
+            {resource.required ? "Required" : "Optional"}: {resource.name}
+          </span>
+        )) : <span style={{ color: v2Tokens.slate, fontSize: 13 }}>No additional resources listed.</span>}
+      </div>
+      {sections.map(([label, values]) => values.length ? (
+        <div key={label} style={{ display: "grid", gap: 4 }}>
+          <strong style={{ color: v2Tokens.navy }}>{label}</strong>
+          {values.map((value, index) => <span key={`${label}-${index}`} style={{ color: v2Tokens.slate, fontSize: 13 }}>• {value}</span>)}
+        </div>
+      ) : null)}
+      <div style={{ color: v2Tokens.slate, fontSize: 12, overflowWrap: "anywhere" }}>
+        Source: {content.sourceAttribution.title || content.sourceAttribution.provider || content.sourceAttribution.originalUrl} · {content.sourceAttribution.originalUrl}
+      </div>
+    </div>
+  );
+}
+
 function errorMessage(error: unknown, fallback: string) {
   if (error instanceof IdeasRepositoryError) return error.message;
   if (error instanceof Error && error.message) return error.message;
@@ -103,6 +163,16 @@ export default function MyIdeasWorkspace({
   const [persistenceError, setPersistenceError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [extractingSourceId, setExtractingSourceId] = useState<string | null>(null);
+  const [planType, setPlanType] = useState<LearningPlanType>("lesson");
+  const [learnerAgeOrStage, setLearnerAgeOrStage] = useState("");
+  const [subjects, setSubjects] = useState("");
+  const [duration, setDuration] = useState("");
+  const [durationUnit, setDurationUnit] = useState<"minutes" | "lessons" | "weeks" | "sessions">("minutes");
+  const [parentInstructions, setParentInstructions] = useState("");
+  const [generatingSourceId, setGeneratingSourceId] = useState<string | null>(null);
+  const [generationState, setGenerationState] = useState("");
+  const [generationError, setGenerationError] = useState("");
+  const [generatedPlan, setGeneratedPlan] = useState<LearningPlanDraft | null>(null);
 
   const userId = user?.id ?? "";
   const formId = useMemo(() => "my-ideas-add-form", []);
@@ -164,6 +234,46 @@ export default function MyIdeasWorkspace({
       setExtractingSourceId(null);
     }
   }, [userId]);
+
+  const generatePlan = useCallback(async (idea: Idea) => {
+    const source = idea.sources[0];
+    if (!source || !userId) return;
+    setGeneratingSourceId(source.id);
+    setGenerationState("generating");
+    setGenerationError("");
+    try {
+      const response = await fetch(
+        `/api/intelligence/ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${planType}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            learnerAgeOrStage,
+            subjects: subjects.split(",").map((value) => value.trim()).filter(Boolean),
+            duration: duration || null,
+            durationUnit: duration || null ? durationUnit : null,
+            parentInstructions: parentInstructions.trim() || null,
+          }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        state?: string;
+        plan?: LearningPlanDraft;
+        error?: string;
+      };
+      if (!response.ok || !payload.plan) {
+        setGenerationState(payload.state || "failed");
+        throw new Error(payload.error || "We could not generate a plan draft.");
+      }
+      setGeneratedPlan(payload.plan);
+      setGenerationState("ready");
+    } catch (error) {
+      setGenerationError(errorMessage(error, "We could not generate a plan draft."));
+      setGenerationState((current) => current === "generating" ? "failed" : current);
+    } finally {
+      setGeneratingSourceId(null);
+    }
+  }, [duration, durationUnit, learnerAgeOrStage, parentInstructions, planType, subjects, userId]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -400,6 +510,57 @@ export default function MyIdeasWorkspace({
                             Canonical URL: {metadata.canonicalUrl}
                           </span>
                         ) : null}
+                        {status === "ready" ? (
+                          <div style={{ display: "grid", gap: 8, marginTop: 5 }}>
+                            <strong style={{ color: v2Tokens.navy, fontSize: 14 }}>Generate a draft</strong>
+                            <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                              Plan type
+                              <select value={planType} onChange={(event) => setPlanType(event.target.value as LearningPlanType)} style={inputStyle}>
+                                <option value="lesson">Lesson plan</option>
+                                <option value="unit">Unit plan</option>
+                              </select>
+                            </label>
+                            <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                              Learner age or stage
+                              <input aria-label="Learner age or stage" value={learnerAgeOrStage} onChange={(event) => setLearnerAgeOrStage(event.target.value)} placeholder="e.g. Ages 8–10" style={inputStyle} />
+                            </label>
+                            <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                              Subjects <span style={{ color: v2Tokens.slate, fontWeight: 500 }}>(optional, comma-separated)</span>
+                              <input aria-label="Optional subjects" value={subjects} onChange={(event) => setSubjects(event.target.value)} placeholder="e.g. Science, writing" style={inputStyle} />
+                            </label>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                              <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                                Duration <span style={{ color: v2Tokens.slate, fontWeight: 500 }}>(optional)</span>
+                                <input aria-label="Optional duration" inputMode="numeric" value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="e.g. 45" style={inputStyle} />
+                              </label>
+                              <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                                Duration unit
+                                <select aria-label="Duration unit" value={durationUnit} onChange={(event) => setDurationUnit(event.target.value as typeof durationUnit)} style={inputStyle}>
+                                  <option value="minutes">Minutes</option>
+                                  <option value="lessons">Lessons</option>
+                                  <option value="weeks">Weeks</option>
+                                  <option value="sessions">Sessions</option>
+                                </select>
+                              </label>
+                            </div>
+                            <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                              Parent instructions <span style={{ color: v2Tokens.slate, fontWeight: 500 }}>(optional)</span>
+                              <textarea aria-label="Optional parent instructions" value={parentInstructions} onChange={(event) => setParentInstructions(event.target.value)} rows={3} placeholder="What should this draft emphasise?" style={{ ...inputStyle, resize: "vertical" }} />
+                            </label>
+                            <span role="status" style={{ color: v2Tokens.slate, fontSize: 13 }}>
+                              Generation status: {generationState || "awaiting_input"}
+                            </span>
+                            {generationError ? <span role="alert" style={{ color: "#9f1239", fontSize: 13 }}>{generationError}</span> : null}
+                            <button
+                              type="button"
+                              disabled={generatingSourceId === source.id}
+                              onClick={() => void generatePlan(idea)}
+                              style={{ ...primaryButtonStyle, justifySelf: "start", opacity: generatingSourceId === source.id ? 0.65 : 1 }}
+                            >
+                              {generatingSourceId === source.id ? "Generating..." : "Generate draft"}
+                            </button>
+                          </div>
+                        ) : null}
                         {status !== "fetching" && status !== "ready" ? (
                           <button
                             type="button"
@@ -408,6 +569,9 @@ export default function MyIdeasWorkspace({
                           >
                             {status === "pending" ? "Fetch preview" : "Try again"}
                           </button>
+                        ) : null}
+                        {generatedPlan && generatedPlan.ideaId === idea.id && generatedPlan.sourceIds.includes(source.id) ? (
+                          <ReadOnlyPlanPreview plan={generatedPlan} />
                         ) : null}
                       </div>
                     );
