@@ -40,7 +40,7 @@ const previewRoutes = [
   { href: "/my-assessments", label: "My Assessments" },
   { href: "/my-capture", label: "My Capture" },
   { href: "/my-portfolio", label: "My Portfolio" },
-  { href: "/my-data", label: "My Data" },
+  { href: "/my-learna", label: "My Learna" },
   { href: "/my-reports", label: "My Reports" },
   { href: "/my-settings", label: "My Settings" },
 ];

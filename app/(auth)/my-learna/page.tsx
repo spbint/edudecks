@@ -1,29 +1,11 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import CleanLearnaWorkspace from "@/app/components/clean/CleanLearnaWorkspace";
 
-type RedirectSearchParams = Record<string, string | string[] | undefined>;
+export const metadata: Metadata = {
+  title: "My Learna | MyLearna",
+  description: "A calm parent-facing view of saved learning, current focus and helpful next steps.",
+};
 
-export function buildMyLearnaRedirectPath(searchParams: RedirectSearchParams = {}) {
-  const params = new URLSearchParams();
-
-  Object.entries(searchParams).forEach(([key, value]) => {
-    if (Array.isArray(value)) {
-      value.forEach((item) => {
-        if (item) params.append(key, item);
-      });
-      return;
-    }
-
-    if (value) params.set(key, value);
-  });
-
-  const query = params.toString();
-  return query ? `/my-data?${query}` : "/my-data";
-}
-
-export default async function MyLearnaPage({
-  searchParams,
-}: {
-  searchParams?: Promise<RedirectSearchParams>;
-}) {
-  redirect(buildMyLearnaRedirectPath((await searchParams) ?? {}));
+export default function MyLearnaPage() {
+  return <CleanLearnaWorkspace />;
 }

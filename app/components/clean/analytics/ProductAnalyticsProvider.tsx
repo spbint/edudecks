@@ -17,7 +17,7 @@ function getAreaFromRoute(pathname: string) {
   if (pathname.startsWith("/assessments/number")) return "my_pathways";
   if (pathname.startsWith("/my-capture")) return "my_capture";
   if (pathname.startsWith("/my-portfolio")) return "my_portfolio";
-  if (pathname.startsWith("/my-data")) return "my_data";
+  if (pathname.startsWith("/my-learna") || pathname.startsWith("/my-data")) return "my_learna";
   if (pathname.startsWith("/my-reports")) return "my_reports";
   if (pathname.startsWith("/my-outputs")) return "my_outputs";
   if (pathname.startsWith("/my-settings")) return "my_settings";

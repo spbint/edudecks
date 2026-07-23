@@ -17,7 +17,7 @@ const canonicalRoutes = [
   ["my-capture", "CleanCaptureWorkspace"],
   ["my-pathways", "CleanPathwaysWorkspace"],
   ["my-portfolio", "CleanPortfolioWorkspace"],
-  ["my-data", "CleanCurriculumWorkspace"],
+  ["my-learna", "CleanLearnaWorkspace"],
   ["my-reports", "CleanReportsWorkspace"],
 ] as const;
 
@@ -45,6 +45,12 @@ describe("canonical authenticated clean workspace bootstrap", () => {
       expect(source).not.toContain("CleanFamilyWorkspaceProvider");
     },
   );
+
+  it("keeps legacy My Data as a redirect to the canonical route", () => {
+    const source = readFileSync(join(process.cwd(), "app/(auth)/my-data/page.tsx"), "utf8");
+    expect(source).toContain("redirect(buildMyDataRedirectPath");
+    expect(source).toContain("/my-learna");
+  });
 
   it("does not use the clean provider's silent loading default", () => {
     const providerSource = readFileSync(

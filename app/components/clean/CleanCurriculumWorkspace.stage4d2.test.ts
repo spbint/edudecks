@@ -40,9 +40,9 @@ function observation(
 }
 
 describe("CleanCurriculumWorkspace Stage 4D.2 active progress observations", () => {
-  it("keeps the active My Data route wired to the updated workspace component", () => {
-    expect(myDataRouteSource).toContain("CleanCurriculumWorkspace");
-    expect(myDataRouteSource).toContain("return <CleanCurriculumWorkspace />");
+  it("keeps My Data as a legacy redirect while My Learna owns the parent workspace", () => {
+    expect(myDataRouteSource).toContain("redirect(buildMyDataRedirectPath");
+    expect(myDataRouteSource).toContain("/my-learna");
   });
 
   it("renders saved progress judgements from the shared observation model", () => {

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { finalProductNavSections } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
-import { buildMyLearnaRedirectPath } from "@/app/(auth)/my-learna/page";
+import { buildMyDataRedirectPath } from "@/app/(auth)/my-data/page";
 
 const shellSource = readFileSync(
   join(process.cwd(), "app/components/clean/design-v2/MyLearnaAppShellV2.tsx"),
@@ -35,7 +35,7 @@ describe("Stage 7 final web integration", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
       ["My Calendar", "My Pathways"],
       ["My Capture", "My Portfolio"],
-      ["My Data", "My Reports"],
+      ["My Learna", "My Reports"],
     ]);
     expect(shellSource).toContain("dayNavItem");
     expect(shellSource).toContain("settingsNavItem");
@@ -53,22 +53,22 @@ describe("Stage 7 final web integration", () => {
       "My Pathways",
       "My Capture",
       "My Portfolio",
-      "My Data",
+      "My Learna",
       "My Reports",
       "My Settings",
     ]);
     expect(primaryLabels).not.toContain("My Review");
-    expect(primaryLabels).not.toContain("My Learna");
+    expect(primaryLabels).not.toContain("My Data");
     expect(primaryLabels).not.toContain("Output History");
   });
 
-  it("redirects legacy My Learna links to My Data while preserving query context", () => {
+  it("redirects legacy My Data links to My Learna while preserving query context", () => {
     expect(
-      buildMyLearnaRedirectPath({
-        learner: "learner-1",
-        view: "progress",
+      buildMyDataRedirectPath({
+        learnerId: "learner-1",
+        subject: "progress",
       }),
-    ).toBe("/my-data?learner=learner-1&view=progress");
+    ).toBe("/my-learna?learnerId=learner-1&subject=progress");
   });
 
   it("keeps Output History inside My Reports rather than top-level navigation", () => {

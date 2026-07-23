@@ -1242,7 +1242,7 @@ function CleanOutputsWorkspaceBody() {
                   Export a curriculum coverage record showing learning areas, evidence links, and areas to revisit.
                 </p>
                 <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                  This uses evidence links from My Data and your selected framework from My Settings.
+                  This uses evidence links from My Learna and your selected framework from My Settings.
                 </p>
               </div>
 

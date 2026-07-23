@@ -39,13 +39,13 @@ describe("Stage 8 mobile web shell", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
       ["My Calendar", "My Pathways"],
       ["My Capture", "My Portfolio"],
-      ["My Data", "My Reports"],
+      ["My Learna", "My Reports"],
     ]);
     expect(shellSource).toContain("mylearna-mobile-pillar-switcher");
     expect(shellSource).toContain("role=\"tablist\"");
     expect(shellSource).toContain("href: \"/my-calendar\"");
     expect(shellSource).toContain("href: \"/my-capture\"");
-    expect(shellSource).toContain("href: \"/my-data\"");
+    expect(shellSource).toContain("href: \"/my-learna\"");
     expect(shellSource).toContain("Open More navigation");
   });
 
@@ -53,6 +53,7 @@ describe("Stage 8 mobile web shell", () => {
     const mobileButtonLabels = ["Day", "Plan", "Capture", "Grow", "More"];
     expect(mobileButtonLabels).not.toContain("My Review");
     expect(mobileButtonLabels).not.toContain("My Learna");
+    expect(shellSource).toContain("shortLabel: \"Learna\"");
     expect(mobileButtonLabels).not.toContain("Output History");
     expect(shellSource).not.toContain("label: \"Output History\"");
   });

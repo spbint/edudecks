@@ -61,7 +61,7 @@ const SECONDARY_NAV = [
   { href: "/my-outputs", label: "My Outputs" },
 ] as const;
 
-const DATA_NAV = { href: "/my-data", label: "My Data" } as const;
+const DATA_NAV = { href: "/my-learna", label: "My Learna" } as const;
 
 function normalizeOutputRoute(pathname: string) {
   if (pathname === "/capture" || pathname === "/my-capture") return "/my-capture";
@@ -87,7 +87,7 @@ function normalizeRoute(pathname: string) {
     pathname === "/my-curriculum" ||
     pathname === "/my-data"
   ) {
-    return "/my-data";
+    return "/my-learna";
   }
   if (pathname === "/my-assessments") return "/my-assessments";
   return "";
@@ -108,7 +108,7 @@ function routeSubtitle(pathname: string) {
     pathname === "/my-curriculum" ||
     pathname === "/my-data"
   ) {
-    return "My Data";
+    return "My Learna";
   }
   if (pathname === "/my-assessments") return "My Assessments";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
