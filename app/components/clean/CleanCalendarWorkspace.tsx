@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
@@ -43,6 +43,11 @@ import type {
 } from "@/lib/clean/generation/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
+import {
+  buildCleanPlanningCacheKey,
+  readCleanPlanningCalendarItems,
+  writeCleanPlanningCalendarItems,
+} from "@/lib/clean/planning/cache";
 import {
   listCleanProgramSegments,
   listCleanPrograms,
@@ -910,6 +915,8 @@ function CleanCalendarWorkspaceBody() {
   const [itemsLoading, setItemsLoading] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [itemsError, setItemsError] = useState<string | null>(null);
+  const calendarItemsRequestGenerationRef = useRef(0);
+  const setupRequestGenerationRef = useRef(0);
 
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState("");
   const [selectedLearningPeriodId, setSelectedLearningPeriodId] = useState("");
@@ -1453,6 +1460,7 @@ function CleanCalendarWorkspaceBody() {
   const reloadSetupData = useCallback(async () => {
     if (!workspace.profile) return;
 
+    const requestGeneration = ++setupRequestGenerationRef.current;
     setSetupLoading(true);
     setSetupError(null);
 
@@ -1479,6 +1487,8 @@ function CleanCalendarWorkspaceBody() {
         ),
       );
 
+      if (requestGeneration !== setupRequestGenerationRef.current) return;
+
       setAcademicYears(nextAcademicYears);
       setLearningPeriods(nextLearningPeriods);
       setBlackoutDays(nextBlackoutDays);
@@ -1499,14 +1509,18 @@ function CleanCalendarWorkspaceBody() {
           : nextMasterTemplates[0]?.id ?? "",
       );
     } catch (error) {
-      setSetupError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not load your planning setup just now.",
-        ),
-      );
+      if (requestGeneration === setupRequestGenerationRef.current) {
+        setSetupError(
+          normalizeCleanErrorMessage(
+            error,
+            "We could not load your planning setup just now.",
+          ),
+        );
+      }
     } finally {
-      setSetupLoading(false);
+      if (requestGeneration === setupRequestGenerationRef.current) {
+        setSetupLoading(false);
+      }
     }
   }, [workspace.profile]);
 
@@ -1540,7 +1554,18 @@ function CleanCalendarWorkspaceBody() {
   const reloadCalendarItems = useCallback(async () => {
     if (!workspace.profile) return;
 
-    setItemsLoading(true);
+    const requestGeneration = ++calendarItemsRequestGenerationRef.current;
+    const cacheKey = buildCleanPlanningCacheKey({
+      userId: workspace.currentUserId,
+      familyId: workspace.profile.id,
+      route: "calendar",
+      fromDate: selectedCalendarStart,
+      toDate: selectedCalendarEnd,
+      view: calendarBoardView,
+    });
+    const cachedItems = readCleanPlanningCalendarItems(cacheKey);
+    setItems(cachedItems ?? []);
+    setItemsLoading(!cachedItems);
     setItemsError(null);
 
     try {
@@ -1549,19 +1574,26 @@ function CleanCalendarWorkspaceBody() {
         toDate: selectedCalendarEnd,
         limit: calendarBoardView === "month" ? 240 : 100,
       });
+      if (requestGeneration !== calendarItemsRequestGenerationRef.current) return;
+      writeCleanPlanningCalendarItems(cacheKey, nextItems);
       setItems(nextItems);
     } catch (error) {
-      setItemsError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not load these calendar blocks just now.",
-        ),
-      );
+      if (requestGeneration === calendarItemsRequestGenerationRef.current) {
+        setItemsError(
+          normalizeCleanErrorMessage(
+            error,
+            "We could not load these calendar blocks just now.",
+          ),
+        );
+      }
     } finally {
-      setItemsLoading(false);
+      if (requestGeneration === calendarItemsRequestGenerationRef.current) {
+        setItemsLoading(false);
+      }
     }
   }, [
     calendarBoardView,
+    workspace.currentUserId,
     selectedCalendarEnd,
     selectedCalendarStart,
     workspace.profile,
@@ -1569,6 +1601,8 @@ function CleanCalendarWorkspaceBody() {
 
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      calendarItemsRequestGenerationRef.current += 1;
+      setupRequestGenerationRef.current += 1;
       setAcademicYears([]);
       setLearningPeriods([]);
       setBlackoutDays([]);
@@ -1578,6 +1612,8 @@ function CleanCalendarWorkspaceBody() {
       setProgramSegments([]);
       setGenerationRuns([]);
       setItems([]);
+      setItemsLoading(false);
+      setItemsError(null);
       setLearningPeriodsOpen(false);
       return;
     }
@@ -3037,7 +3073,7 @@ function CleanCalendarWorkspaceBody() {
           </div>
         </section>
 
-        {workspace.loading ? (
+        {workspace.loading && !workspace.profile ? (
           <section style={cardStyle}>Loading your planning space...</section>
         ) : null}
 
@@ -3067,7 +3103,7 @@ function CleanCalendarWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForCalendar && !workspace.setupLoading && !workspace.learners.length ? (
+        {readyForCalendar && !workspace.learners.length ? (
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={secondaryTextStyle}>
@@ -3077,8 +3113,100 @@ function CleanCalendarWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForCalendar && !workspace.setupLoading && workspace.profile && workspace.learners.length ? (
+        {readyForCalendar && workspace.profile && workspace.learners.length ? (
           <>
+            {setupLoading && !hasExistingPlanningSetup ? (
+              <section
+                style={cardStyle}
+                role="region"
+                aria-label="Calendar controls"
+                data-testid="calendar-primary-loading-shell"
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 14,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Calendar
+                    </span>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>
+                      Your planning view is ready
+                    </h2>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      Planning details are still refreshing. You can choose a date or add a
+                      block without waiting for the rest of the setup.
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() => setSelectedWeekStart(getWeekStart())}
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, -7))}
+                      aria-label="Previous week"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, 7))}
+                      aria-label="Next week"
+                    >
+                      Next
+                    </button>
+                    <button
+                      type="button"
+                      style={{ ...buttonStyle, background: "#0f172a", color: "#ffffff" }}
+                      onClick={() => openCreatePopover(getTodayDate())}
+                    >
+                      Add block
+                    </button>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    marginTop: 16,
+                    minHeight: 96,
+                    border: "1px solid #dbeafe",
+                    borderRadius: 14,
+                    background: "#f8fbff",
+                    padding: 14,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                  aria-live="polite"
+                >
+                  <strong style={{ color: "#0f172a" }}>
+                    Week of {formatLongDateLabel(selectedWeekStart)}
+                  </strong>
+                  <span style={{ color: "#64748b" }}>
+                    {itemsLoading ? "Loading planned blocks for this view..." : "No blocks loaded for this view yet."}
+                  </span>
+                </div>
+              </section>
+            ) : null}
+
             {hasExistingPlanningSetup ? (
             <section
               className="mylearna-calendar-board mylearna-calendar-planner-shell"
@@ -3304,7 +3432,18 @@ function CleanCalendarWorkspaceBody() {
                 {itemsLoading ? (
                   <p style={secondaryTextStyle}>Loading planned blocks...</p>
                 ) : null}
-                {itemsError ? <p style={{ margin: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
+                {itemsError ? (
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <p style={{ margin: 0, color: "#b91c1c" }}>{itemsError}</p>
+                    <button
+                      type="button"
+                      style={mutedButtonStyle}
+                      onClick={() => void reloadCalendarItems()}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
 
                 {hasHiddenWeekendWeekContent && calendarBoardView === "week" ? (
                   <div
@@ -5757,7 +5896,16 @@ function CleanCalendarWorkspaceBody() {
                         <p style={secondaryTextStyle}>Loading this week&apos;s blocks...</p>
                       ) : null}
                       {itemsError ? (
-                        <p style={{ margin: 0, color: "#b91c1c" }}>{itemsError}</p>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                          <p style={{ margin: 0, color: "#b91c1c" }}>{itemsError}</p>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={() => void reloadCalendarItems()}
+                          >
+                            Try again
+                          </button>
+                        </div>
                       ) : null}
                       {setupError ? (
                         <p style={{ margin: 0, color: "#b91c1c" }}>{setupError}</p>

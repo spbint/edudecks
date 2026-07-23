@@ -12,6 +12,7 @@ import React, {
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { loadCleanWorkspace } from "@/lib/clean/workspace/client";
 import type { CleanWorkspaceState } from "@/lib/clean/workspace/types";
+import { clearCleanPlanningCache } from "@/lib/clean/planning/cache";
 import {
   buildEmptyCleanSetupStatus,
   loadCleanSetupStatus,
@@ -73,6 +74,8 @@ export default function CleanFamilyWorkspaceProvider({
         const nextWorkspace = await loadCleanWorkspace();
         if (generation !== requestGenerationRef.current) return;
         setWorkspace(nextWorkspace);
+        hasLoadedWorkspaceRef.current = true;
+        setLoading(false);
         if (
           nextWorkspace.schemaMissing ||
           nextWorkspace.error ||
@@ -83,16 +86,19 @@ export default function CleanFamilyWorkspaceProvider({
           return;
         }
         try {
-          setSetupStatus(await loadCleanSetupStatus(nextWorkspace));
+          const nextSetupStatus = await loadCleanSetupStatus(nextWorkspace);
+          if (generation === requestGenerationRef.current) {
+            setSetupStatus(nextSetupStatus);
+          }
         } catch (error) {
-          console.error("Clean setup status hydrate failed", error);
-          setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
+          if (generation === requestGenerationRef.current) {
+            console.error("Clean setup status hydrate failed", error);
+            setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
+          }
         }
       } finally {
         if (generation === requestGenerationRef.current) {
-          hasLoadedWorkspaceRef.current = true;
           setSetupLoading(false);
-          setLoading(false);
           reloadInFlightRef.current = null;
         }
       }
@@ -107,6 +113,7 @@ export default function CleanFamilyWorkspaceProvider({
     if (userIdRef.current !== nextUserId) {
       requestGenerationRef.current += 1;
       reloadInFlightRef.current = null;
+      clearCleanPlanningCache();
       hasLoadedWorkspaceRef.current = false;
       setWorkspace(INITIAL_STATE);
       setSetupStatus(INITIAL_SETUP_STATUS);

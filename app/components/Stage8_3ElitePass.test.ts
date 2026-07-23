@@ -10,6 +10,18 @@ const providerSource = readFileSync(
   join(process.cwd(), "app/components/clean/CleanFamilyWorkspaceProvider.tsx"),
   "utf8",
 );
+const daySource = readFileSync(
+  join(process.cwd(), "app/components/clean/CleanDayWorkspace.tsx"),
+  "utf8",
+);
+const calendarSource = readFileSync(
+  join(process.cwd(), "app/components/clean/CleanCalendarWorkspace.tsx"),
+  "utf8",
+);
+const planningCacheSource = readFileSync(
+  join(process.cwd(), "lib/clean/planning/cache.ts"),
+  "utf8",
+);
 const layoutSource = readFileSync(
   join(process.cwd(), "app/(clean)/layout.tsx"),
   "utf8",
@@ -41,6 +53,23 @@ describe("Stage 8.3 systemic mobile remediation", () => {
     expect(providerSource).toContain("reloadInFlightRef");
     expect(providerSource).toContain("userIdRef");
     expect(providerSource).toContain("setWorkspace(INITIAL_STATE)");
+  });
+
+  it("releases Day and Calendar primary content before secondary setup hydration", () => {
+    expect(providerSource).toContain("setLoading(false);");
+    expect(providerSource).toContain("const nextSetupStatus = await loadCleanSetupStatus(nextWorkspace);");
+    expect(daySource).toContain("const nextItems = await itemsPromise;");
+    expect(daySource).toContain("void (async () => {");
+    expect(calendarSource).toContain("calendarItemsRequestGenerationRef");
+    expect(calendarSource).toContain("workspace.loading && !workspace.profile");
+    expect(calendarSource).toContain("void reloadCalendarItems()");
+    expect(daySource).toContain("setDayReloadNonce");
+    expect(planningCacheSource).toContain("clearCleanPlanningCache");
+    expect(planningCacheSource).toContain("userId");
+    expect(planningCacheSource).toContain("familyId");
+    expect(calendarSource).not.toContain(
+      "readyForCalendar && !workspace.setupLoading && workspace.profile && workspace.learners.length",
+    );
   });
 
   it("guards contextual Capture at both selection and save boundaries", () => {
