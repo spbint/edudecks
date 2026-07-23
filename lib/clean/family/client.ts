@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { beginCleanPlanningTiming } from "@/lib/clean/performance/planningTiming";
 import {
   encodeAuthorityReportingModeForSave,
   getCanonicalAuthorityReportingMode,
@@ -186,12 +187,29 @@ function sanitizeFamilyProfileInput(
 }
 
 export async function getCurrentCleanUserId() {
-  const sessionResp = await supabase.auth.getSession();
-  const sessionUserId = safe(sessionResp.data.session?.user?.id);
-  if (sessionUserId) return sessionUserId;
+  const timing = beginCleanPlanningTiming({
+    operation: "authenticated-session-restore",
+    criticality: "bootstrap-critical",
+    gatesPage: true,
+    requestKey: "authenticated-session-restore",
+  });
 
-  const userResp = await supabase.auth.getUser();
-  return safe(userResp.data.user?.id) || null;
+  try {
+    const sessionResp = await supabase.auth.getSession();
+    const sessionUserId = safe(sessionResp.data.session?.user?.id);
+    if (sessionUserId) {
+      timing("success");
+      return sessionUserId;
+    }
+
+    const userResp = await supabase.auth.getUser();
+    const userId = safe(userResp.data.user?.id) || null;
+    timing(userId ? "success" : "error");
+    return userId;
+  } catch (error) {
+    timing("error");
+    throw error;
+  }
 }
 
 export async function loadCleanFamilyProfile(): Promise<LoadCleanFamilyProfileResult> {

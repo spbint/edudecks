@@ -22,6 +22,10 @@ const planningCacheSource = readFileSync(
   join(process.cwd(), "lib/clean/planning/cache.ts"),
   "utf8",
 );
+const planningTimingSource = readFileSync(
+  join(process.cwd(), "lib/clean/performance/planningTiming.ts"),
+  "utf8",
+);
 const layoutSource = readFileSync(
   join(process.cwd(), "app/(clean)/layout.tsx"),
   "utf8",
@@ -67,6 +71,10 @@ describe("Stage 8.3 systemic mobile remediation", () => {
     expect(planningCacheSource).toContain("clearCleanPlanningCache");
     expect(planningCacheSource).toContain("userId");
     expect(planningCacheSource).toContain("familyId");
+    expect(daySource).toContain("my-day-primary-loading-shell");
+    expect(calendarSource).toContain("calendar-primary-loading-shell");
+    expect(planningTimingSource).toContain("performanceApi.mark");
+    expect(planningTimingSource).toContain("gatesPage");
     expect(calendarSource).not.toContain(
       "readyForCalendar && !workspace.setupLoading && workspace.profile && workspace.learners.length",
     );

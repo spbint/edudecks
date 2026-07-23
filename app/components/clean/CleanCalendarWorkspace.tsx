@@ -45,6 +45,7 @@ import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import {
   buildCleanPlanningCacheKey,
+  getOrCreateCleanPlanningCalendarItemsRequest,
   readCleanPlanningCalendarItems,
   writeCleanPlanningCalendarItems,
 } from "@/lib/clean/planning/cache";
@@ -104,6 +105,10 @@ import {
   getSignupJurisdictionLabel,
 } from "@/lib/signupPrefill";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  beginCleanPlanningTiming,
+  recordCleanPlanningMilestone,
+} from "@/lib/clean/performance/planningTiming";
 
 type PendingCalendarDelete =
   | { type: "calendar-item"; item: CleanCalendarItem }
@@ -910,13 +915,15 @@ function CleanCalendarWorkspaceBody() {
   const [generationRuns, setGenerationRuns] = useState<CleanGenerationRun[]>([]);
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
 
-  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupLoading, setSetupLoading] = useState(true);
   const [templateBlocksLoading, setTemplateBlocksLoading] = useState(false);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const calendarItemsRequestGenerationRef = useRef(0);
   const setupRequestGenerationRef = useRef(0);
+  const calendarPrimaryMilestoneRef = useRef<string | null>(null);
+  const calendarSettledMilestoneRef = useRef<string | null>(null);
 
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState("");
   const [selectedLearningPeriodId, setSelectedLearningPeriodId] = useState("");
@@ -1456,11 +1463,53 @@ function CleanCalendarWorkspaceBody() {
 
   const readyForCalendar =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const calendarPrimaryKey = workspace.profile
+    ? `${workspace.currentUserId}:${workspace.profile.id}:${selectedWeekStart}:${calendarBoardView}`
+    : null;
+
+  useEffect(() => {
+    if (!readyForCalendar || !workspace.profile || !calendarPrimaryKey) return;
+    if (calendarPrimaryMilestoneRef.current === calendarPrimaryKey) return;
+    calendarPrimaryMilestoneRef.current = calendarPrimaryKey;
+    recordCleanPlanningMilestone({
+      operation: "calendar-primary-content",
+      criticality: "page-primary",
+      gatesPage: false,
+    });
+  }, [calendarPrimaryKey, readyForCalendar, workspace.profile]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    recordCleanPlanningMilestone({
+      operation: "calendar-route-mounted",
+      criticality: "page-primary",
+      gatesPage: false,
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !calendarPrimaryKey || setupLoading || itemsLoading || templateBlocksLoading) {
+      return;
+    }
+    if (calendarSettledMilestoneRef.current === calendarPrimaryKey) return;
+    calendarSettledMilestoneRef.current = calendarPrimaryKey;
+    recordCleanPlanningMilestone({
+      operation: "calendar-fully-settled",
+      criticality: "page-primary",
+      gatesPage: false,
+    });
+  }, [calendarPrimaryKey, itemsLoading, setupLoading, templateBlocksLoading, user?.id]);
 
   const reloadSetupData = useCallback(async () => {
     if (!workspace.profile) return;
 
     const requestGeneration = ++setupRequestGenerationRef.current;
+    const setupTiming = beginCleanPlanningTiming({
+      operation: "calendar-planning-setup",
+      criticality: "section-secondary",
+      gatesPage: false,
+      requestKey: `calendar-planning-setup:${workspace.currentUserId}:${workspace.profile.id}`,
+    });
     setSetupLoading(true);
     setSetupError(null);
 
@@ -1487,7 +1536,10 @@ function CleanCalendarWorkspaceBody() {
         ),
       );
 
-      if (requestGeneration !== setupRequestGenerationRef.current) return;
+      if (requestGeneration !== setupRequestGenerationRef.current) {
+        setupTiming("cancelled");
+        return;
+      }
 
       setAcademicYears(nextAcademicYears);
       setLearningPeriods(nextLearningPeriods);
@@ -1508,7 +1560,9 @@ function CleanCalendarWorkspaceBody() {
           ? current
           : nextMasterTemplates[0]?.id ?? "",
       );
+      setupTiming("success");
     } catch (error) {
+      setupTiming("error");
       if (requestGeneration === setupRequestGenerationRef.current) {
         setSetupError(
           normalizeCleanErrorMessage(
@@ -1522,7 +1576,7 @@ function CleanCalendarWorkspaceBody() {
         setSetupLoading(false);
       }
     }
-  }, [workspace.profile]);
+  }, [workspace.currentUserId, workspace.profile]);
 
   const reloadTemplateBlocks = useCallback(async () => {
     if (!workspace.profile || !selectedTemplateId) {
@@ -1564,20 +1618,35 @@ function CleanCalendarWorkspaceBody() {
       view: calendarBoardView,
     });
     const cachedItems = readCleanPlanningCalendarItems(cacheKey);
+    const itemsTiming = beginCleanPlanningTiming({
+      operation: "calendar-visible-activities",
+      criticality: "page-primary",
+      gatesPage: false,
+      requestKey: `calendar-visible-activities:${workspace.currentUserId}:${workspace.profile.id}:${selectedCalendarStart}:${selectedCalendarEnd}`,
+    });
     setItems(cachedItems ?? []);
     setItemsLoading(!cachedItems);
     setItemsError(null);
 
     try {
-      const nextItems = await listCleanCalendarItems(workspace.profile.id, {
-        fromDate: selectedCalendarStart,
-        toDate: selectedCalendarEnd,
-        limit: calendarBoardView === "month" ? 240 : 100,
-      });
-      if (requestGeneration !== calendarItemsRequestGenerationRef.current) return;
+      const nextItems = await getOrCreateCleanPlanningCalendarItemsRequest(
+        cacheKey,
+        () =>
+          listCleanCalendarItems(workspace.profile!.id, {
+            fromDate: selectedCalendarStart,
+            toDate: selectedCalendarEnd,
+            limit: calendarBoardView === "month" ? 240 : 100,
+          }),
+      );
+      if (requestGeneration !== calendarItemsRequestGenerationRef.current) {
+        itemsTiming("cancelled");
+        return;
+      }
+      itemsTiming("success");
       writeCleanPlanningCalendarItems(cacheKey, nextItems);
       setItems(nextItems);
     } catch (error) {
+      itemsTiming("error");
       if (requestGeneration === calendarItemsRequestGenerationRef.current) {
         setItemsError(
           normalizeCleanErrorMessage(
@@ -3073,8 +3142,79 @@ function CleanCalendarWorkspaceBody() {
           </div>
         </section>
 
-        {workspace.loading && !workspace.profile ? (
-          <section style={cardStyle}>Loading your planning space...</section>
+        {workspace.loading && !workspace.profile && user?.id ? (
+          <section
+            style={cardStyle}
+            role="region"
+            aria-label="Calendar primary content"
+            data-testid="calendar-primary-loading-shell"
+          >
+            <div style={{ display: "grid", gap: 12 }}>
+              <span
+                style={{
+                  color: "#64748b",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Calendar
+              </span>
+              <h2 style={{ margin: 0, color: "#0f172a" }}>Choose a planning view</h2>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  style={mutedButtonStyle}
+                  onClick={() => setSelectedWeekStart(getWeekStart())}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  style={mutedButtonStyle}
+                  onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, -7))}
+                  aria-label="Previous week"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  style={mutedButtonStyle}
+                  onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, 7))}
+                  aria-label="Next week"
+                >
+                  Next
+                </button>
+                <button type="button" style={mutedButtonStyle} disabled>
+                  Add block
+                </button>
+              </div>
+              <div
+                style={{
+                  minHeight: 84,
+                  border: "1px solid #dbeafe",
+                  borderRadius: 14,
+                  background: "#f8fbff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 6,
+                }}
+                aria-live="polite"
+              >
+                <strong style={{ color: "#0f172a" }}>
+                  Week of {formatLongDateLabel(selectedWeekStart)}
+                </strong>
+                <span style={{ color: "#64748b" }}>
+                  Your family planning data will appear here as soon as it is available.
+                </span>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {workspace.loading && !workspace.profile && !user?.id ? (
+          <section style={cardStyle} role="status">Restoring your session...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (

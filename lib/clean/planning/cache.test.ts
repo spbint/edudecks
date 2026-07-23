@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCleanPlanningCacheKey,
   clearCleanPlanningCache,
+  getOrCreateCleanPlanningCalendarItemsRequest,
   getCleanPlanningCacheAge,
   readCleanPlanningCalendarItems,
   writeCleanPlanningCalendarItems,
@@ -84,5 +85,27 @@ describe("clean planning cache scope", () => {
 
     clearCleanPlanningCache();
     expect(readCleanPlanningCalendarItems(key)).toBeNull();
+  });
+
+  it("deduplicates the same in-flight visible-range request", async () => {
+    clearCleanPlanningCache();
+    let resolveRequest!: (value: []) => void;
+    const request = new Promise<[]>(resolve => {
+      resolveRequest = resolve;
+    });
+    let factoryCalls = 0;
+    const first = getOrCreateCleanPlanningCalendarItemsRequest("same-range", () => {
+      factoryCalls += 1;
+      return request;
+    });
+    const second = getOrCreateCleanPlanningCalendarItemsRequest("same-range", () => {
+      factoryCalls += 1;
+      return request;
+    });
+
+    expect(first).toBe(second);
+    expect(factoryCalls).toBe(1);
+    resolveRequest([]);
+    await expect(first).resolves.toEqual([]);
   });
 });

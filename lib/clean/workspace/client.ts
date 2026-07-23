@@ -7,10 +7,18 @@ import {
 } from "@/lib/clean/family/client";
 import { listCleanLearners } from "@/lib/clean/learners/client";
 import type { CleanWorkspaceState } from "@/lib/clean/workspace/types";
+import { beginCleanPlanningTiming } from "@/lib/clean/performance/planningTiming";
 
 export async function loadCleanWorkspace(): Promise<CleanWorkspaceState> {
+  const familyTiming = beginCleanPlanningTiming({
+    operation: "workspace-family-context",
+    criticality: "bootstrap-critical",
+    gatesPage: true,
+    requestKey: "workspace-family-context",
+  });
   try {
     const familyState = await loadCleanFamilyProfile();
+    familyTiming("success");
 
     if (!familyState.currentUserId) {
       return {
@@ -38,7 +46,20 @@ export async function loadCleanWorkspace(): Promise<CleanWorkspaceState> {
       };
     }
 
-    const learners = await listCleanLearners(familyState.profile.id);
+    const learnerTiming = beginCleanPlanningTiming({
+      operation: "workspace-learners",
+      criticality: "bootstrap-critical",
+      gatesPage: true,
+      requestKey: `workspace-learners:${familyState.profile.id}`,
+    });
+    let learners: Awaited<ReturnType<typeof listCleanLearners>>;
+    try {
+      learners = await listCleanLearners(familyState.profile.id);
+      learnerTiming("success");
+    } catch (error) {
+      learnerTiming("error");
+      throw error;
+    }
 
     return {
       currentUserId: familyState.currentUserId,
@@ -51,6 +72,7 @@ export async function loadCleanWorkspace(): Promise<CleanWorkspaceState> {
       error: null,
     };
   } catch (error) {
+    familyTiming("error");
     const currentUserId = await getCurrentCleanUserId().catch(() => null);
 
     return {

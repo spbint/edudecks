@@ -6,6 +6,7 @@ type CacheEntry<T> = {
 };
 
 const calendarItemsCache = new Map<string, CacheEntry<CleanCalendarItem[]>>();
+const calendarItemsInFlight = new Map<string, Promise<CleanCalendarItem[]>>();
 
 export function buildCleanPlanningCacheKey(input: {
   userId: string | null | undefined;
@@ -40,6 +41,24 @@ export function writeCleanPlanningCalendarItems(key: string, items: CleanCalenda
 
 export function clearCleanPlanningCache() {
   calendarItemsCache.clear();
+  calendarItemsInFlight.clear();
+}
+
+export function getOrCreateCleanPlanningCalendarItemsRequest(
+  key: string,
+  request: () => Promise<CleanCalendarItem[]>,
+) {
+  const existing = calendarItemsInFlight.get(key);
+  if (existing) return existing;
+
+  const requestPromise = request();
+  const nextRequest = requestPromise.finally(() => {
+    if (calendarItemsInFlight.get(key) === nextRequest) {
+      calendarItemsInFlight.delete(key);
+    }
+  });
+  calendarItemsInFlight.set(key, nextRequest);
+  return nextRequest;
 }
 
 export function getCleanPlanningCacheAge(key: string) {

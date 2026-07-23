@@ -13,6 +13,7 @@ import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { loadCleanWorkspace } from "@/lib/clean/workspace/client";
 import type { CleanWorkspaceState } from "@/lib/clean/workspace/types";
 import { clearCleanPlanningCache } from "@/lib/clean/planning/cache";
+import { beginCleanPlanningTiming } from "@/lib/clean/performance/planningTiming";
 import {
   buildEmptyCleanSetupStatus,
   loadCleanSetupStatus,
@@ -71,7 +72,14 @@ export default function CleanFamilyWorkspaceProvider({
       if (!hasLoadedWorkspaceRef.current) setLoading(true);
       setSetupLoading(true);
       try {
+        const workspaceTiming = beginCleanPlanningTiming({
+          operation: "authenticated-family-workspace",
+          criticality: "bootstrap-critical",
+          gatesPage: true,
+          requestKey: "family-workspace",
+        });
         const nextWorkspace = await loadCleanWorkspace();
+        workspaceTiming(nextWorkspace.error ? "error" : "success");
         if (generation !== requestGenerationRef.current) return;
         setWorkspace(nextWorkspace);
         hasLoadedWorkspaceRef.current = true;
@@ -85,12 +93,20 @@ export default function CleanFamilyWorkspaceProvider({
           setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));
           return;
         }
+        const setupTiming = beginCleanPlanningTiming({
+          operation: "setup-status-enrichment",
+          criticality: "section-secondary",
+          gatesPage: false,
+          requestKey: "setup-status",
+        });
         try {
           const nextSetupStatus = await loadCleanSetupStatus(nextWorkspace);
+          setupTiming("success");
           if (generation === requestGenerationRef.current) {
             setSetupStatus(nextSetupStatus);
           }
         } catch (error) {
+          setupTiming("error");
           if (generation === requestGenerationRef.current) {
             console.error("Clean setup status hydrate failed", error);
             setSetupStatus(buildEmptyCleanSetupStatus(nextWorkspace));

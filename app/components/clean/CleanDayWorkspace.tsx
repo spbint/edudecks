@@ -12,7 +12,6 @@ import {
 } from "@/app/components/clean/CleanPersonalisationCards";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
-import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
@@ -44,6 +43,7 @@ import { listCleanReports } from "@/lib/clean/reports/client";
 import { listCleanMasterTemplates } from "@/lib/clean/templates/client";
 import {
   buildCleanPlanningCacheKey,
+  getOrCreateCleanPlanningCalendarItemsRequest,
   readCleanPlanningCalendarItems,
   writeCleanPlanningCalendarItems,
 } from "@/lib/clean/planning/cache";
@@ -58,6 +58,10 @@ import {
   generateCleanDailyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  beginCleanPlanningTiming,
+  recordCleanPlanningMilestone,
+} from "@/lib/clean/performance/planningTiming";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -290,7 +294,7 @@ function CleanDayWorkspaceBody() {
   const [evidenceEntries, setEvidenceEntries] = useState<CleanEvidenceEntry[]>([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
-  const [itemsLoading, setItemsLoading] = useState(false);
+  const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [guidanceCards, setGuidanceCards] = useState<CleanGuidanceCard[]>([]);
   const [guidanceLoading, setGuidanceLoading] = useState(false);
@@ -308,6 +312,8 @@ function CleanDayWorkspaceBody() {
   const [hasPlacementForPromptLearner, setHasPlacementForPromptLearner] = useState(false);
   const [dayReloadNonce, setDayReloadNonce] = useState(0);
   const dayRequestGenerationRef = useRef(0);
+  const dayPrimaryMilestoneRef = useRef<string | null>(null);
+  const daySettledMilestoneRef = useRef<string | null>(null);
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
@@ -698,25 +704,51 @@ function CleanDayWorkspaceBody() {
       setItemsLoading(!cachedItems);
       setItemsError(null);
 
-      const itemsPromise = listCleanCalendarItems(workspace.profile.id, {
-        fromDate: selectedDate,
-        toDate: selectedDate,
-        limit: 40,
+      const itemsPromise = getOrCreateCleanPlanningCalendarItemsRequest(
+        cacheKey,
+        () =>
+          listCleanCalendarItems(workspace.profile!.id, {
+            fromDate: selectedDate,
+            toDate: selectedDate,
+            limit: 40,
+          }),
+      );
+      const itemsTiming = beginCleanPlanningTiming({
+        operation: "my-day-visible-activities",
+        criticality: "page-primary",
+        gatesPage: false,
+        requestKey: `my-day-visible-activities:${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`,
       });
       const evidencePromise = listCleanEvidenceEntries(workspace.profile.id, {
         fromDate: selectedDate,
         toDate: selectedDate,
         limit: 60,
       });
+      const evidenceTiming = beginCleanPlanningTiming({
+        operation: "my-day-recent-learning",
+        criticality: "section-secondary",
+        gatesPage: false,
+        requestKey: `my-day-recent-learning:${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`,
+      });
       const programsPromise = listCleanPrograms(workspace.profile.id, { limit: 50 });
+      const programsTiming = beginCleanPlanningTiming({
+        operation: "my-day-pathway-enrichment",
+        criticality: "section-secondary",
+        gatesPage: false,
+        requestKey: `my-day-pathway-enrichment:${workspace.currentUserId}:${workspace.profile.id}`,
+      });
 
       try {
         const nextItems = await itemsPromise;
+        itemsTiming(
+          requestGeneration === dayRequestGenerationRef.current ? "success" : "cancelled",
+        );
         if (requestGeneration !== dayRequestGenerationRef.current) return;
         writeCleanPlanningCalendarItems(cacheKey, nextItems);
         setItems(nextItems);
         setItemsLoading(false);
       } catch (error) {
+        itemsTiming("error");
         if (requestGeneration === dayRequestGenerationRef.current) {
           setItemsError(
             normalizeCleanErrorMessage(
@@ -735,13 +767,22 @@ function CleanDayWorkspaceBody() {
             programsPromise,
           ]);
 
-          if (requestGeneration !== dayRequestGenerationRef.current) return;
-
-          if (evidenceResult.status === "fulfilled") {
-            setEvidenceEntries(evidenceResult.value);
+          if (requestGeneration !== dayRequestGenerationRef.current) {
+            evidenceTiming("cancelled");
+            programsTiming("cancelled");
+            return;
           }
 
-          if (programsResult.status !== "fulfilled") return;
+          if (evidenceResult.status === "fulfilled") {
+            evidenceTiming("success");
+            setEvidenceEntries(evidenceResult.value);
+          } else evidenceTiming("error");
+
+          if (programsResult.status !== "fulfilled") {
+            programsTiming("error");
+            return;
+          }
+          programsTiming("success");
           const nextPrograms = programsResult.value;
           setPrograms(nextPrograms);
 
@@ -751,7 +792,10 @@ function CleanDayWorkspaceBody() {
             ),
           );
 
-          if (requestGeneration !== dayRequestGenerationRef.current) return;
+          if (requestGeneration !== dayRequestGenerationRef.current) {
+            programsTiming("cancelled");
+            return;
+          }
 
           setProgramSegments(
             segmentResults
@@ -762,6 +806,8 @@ function CleanDayWorkspaceBody() {
               .flatMap((result) => result.value),
           );
         } catch {
+          evidenceTiming("error");
+          programsTiming("error");
           if (requestGeneration === dayRequestGenerationRef.current) {
             setPrograms([]);
             setProgramSegments([]);
@@ -995,6 +1041,40 @@ function CleanDayWorkspaceBody() {
 
   const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const hasPlannedItemsForSelectedDate = items.length > 0;
+  const dayPrimaryKey = workspace.profile
+    ? `${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`
+    : null;
+
+  useEffect(() => {
+    if (!readyForDay || !workspace.profile || !dayPrimaryKey) return;
+    if (dayPrimaryMilestoneRef.current === dayPrimaryKey) return;
+    dayPrimaryMilestoneRef.current = dayPrimaryKey;
+    recordCleanPlanningMilestone({
+      operation: "my-day-primary-content",
+      criticality: "page-primary",
+      gatesPage: false,
+    });
+  }, [dayPrimaryKey, readyForDay, workspace.profile]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    recordCleanPlanningMilestone({
+      operation: "my-day-route-mounted",
+      criticality: "page-primary",
+      gatesPage: false,
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !dayPrimaryKey || itemsLoading || guidanceLoading) return;
+    if (daySettledMilestoneRef.current === dayPrimaryKey) return;
+    daySettledMilestoneRef.current = dayPrimaryKey;
+    recordCleanPlanningMilestone({
+      operation: "my-day-fully-settled",
+      criticality: "page-primary",
+      gatesPage: false,
+    });
+  }, [dayPrimaryKey, guidanceLoading, itemsLoading, user?.id]);
 
   return (
     <div style={shellStyle}>
@@ -1150,11 +1230,50 @@ function CleanDayWorkspaceBody() {
           <CleanContinueWhereYouLeftOffCard actions={continueActions} />
         </div>
 
-        {workspace.loading && !workspace.profile ? (
-          <V2LoadingState
-            title="Preparing My Day"
-            body="We are loading today&apos;s rhythm, learner details, and saved blocks."
-          />
+        {workspace.loading && !workspace.profile && user?.id ? (
+          <section
+            style={cardStyle}
+            role="region"
+            aria-label="My Day primary content"
+            data-testid="my-day-primary-loading-shell"
+          >
+            <div style={{ display: "grid", gap: 10 }}>
+              <span
+                style={{
+                  color: "#64748b",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Today
+              </span>
+              <h2 style={{ margin: 0, color: "#0f172a" }}>Today&apos;s plan</h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Your family workspace is connecting. This page is ready for today&apos;s plan
+                and will fill in the learner details as they arrive.
+              </p>
+              <div
+                style={{
+                  minHeight: 84,
+                  border: "1px solid #dbeafe",
+                  borderRadius: 14,
+                  background: "#f8fbff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 6,
+                }}
+                aria-live="polite"
+              >
+                <strong style={{ color: "#0f172a" }}>{formatTodayHeading(selectedDate)}</strong>
+                <span style={{ color: "#64748b" }}>Today&apos;s learning blocks will appear here.</span>
+              </div>
+              <button type="button" style={primaryButtonStyle} disabled>
+                Add learning
+              </button>
+            </div>
+          </section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
