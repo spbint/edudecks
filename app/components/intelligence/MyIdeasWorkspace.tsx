@@ -571,7 +571,15 @@ export default function MyIdeasWorkspace({
                           </button>
                         ) : null}
                         {generatedPlan && generatedPlan.ideaId === idea.id && generatedPlan.sourceIds.includes(source.id) ? (
-                          <ReadOnlyPlanPreview plan={generatedPlan} />
+                          <>
+                            <ReadOnlyPlanPreview plan={generatedPlan} />
+                            <a
+                              href={`/my-ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${encodeURIComponent((generatedPlan.content as unknown as GeneratedPlanContent).planType)}/review`}
+                              style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}
+                            >
+                              Review and edit this draft
+                            </a>
+                          </>
                         ) : null}
                       </div>
                     );

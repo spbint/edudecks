@@ -4,6 +4,7 @@ import type {
   GeneratedSequenceItem,
   LearningPlanGenerationInput,
   PlanGenerationMetadata,
+  PlanReviewMetadata,
   SourceAttribution,
 } from "@/lib/intelligence/plans/types";
 
@@ -205,6 +206,18 @@ export function validateAndRepairGeneratedPlan(
       validatedAt: now().toISOString(),
     },
   };
+
+  const review: PlanReviewMetadata = {
+    workflowStatus: "generated_draft",
+    originalGeneratedRevision: generation.revision,
+    revisionKind: "generated",
+    changedFields: [],
+    lastEditedAt: null,
+    lastEditedByUserId: null,
+    safetyAcknowledged: false,
+    validation: content.validation,
+  };
+  content.review = review;
 
   if (issues.length) throw new PlanSchemaValidationError(issues);
   return content;

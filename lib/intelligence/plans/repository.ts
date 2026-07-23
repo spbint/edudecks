@@ -16,7 +16,7 @@ export class LearningPlanRepositoryError extends Error {
   }
 }
 
-type PlanRow = {
+export type PlanRow = {
   id?: unknown;
   user_id?: unknown;
   idea_id?: unknown;
@@ -37,7 +37,7 @@ type PlanRow = {
   updated_at?: unknown;
 };
 
-const planSelect = "id,user_id,idea_id,title,summary,learning_area,year_level,objectives,duration_minutes,duration_count,duration_unit,source_ids,status,current_version,provenance,content,created_at,updated_at";
+export const planSelect = "id,user_id,idea_id,title,summary,learning_area,year_level,objectives,duration_minutes,duration_count,duration_unit,source_ids,status,current_version,provenance,content,created_at,updated_at";
 
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : String(value ?? "");
@@ -58,7 +58,7 @@ function stringList(value: unknown) {
   return Array.isArray(value) ? value.map(stringValue).filter(Boolean) : [];
 }
 
-function contentOf(row: PlanRow) {
+export function contentOf(row: PlanRow) {
   return objectValue(row.content) as unknown as GeneratedPlanContent;
 }
 
@@ -100,7 +100,7 @@ function sourceIds(row: PlanRow) {
   return stringList(row.source_ids);
 }
 
-function toDraft(row: PlanRow, planType: LearningPlanType): LearningPlanDraft {
+export function toDraft(row: PlanRow, planType: LearningPlanType): LearningPlanDraft {
   const id = stringValue(row.id);
   const content = contentOf(row);
   const common = {
@@ -143,11 +143,11 @@ function assertUser(userId: string) {
   if (!userId.trim()) throw new LearningPlanRepositoryError("A signed-in user is required.");
 }
 
-function tableFor(planType: LearningPlanType) {
+export function tableFor(planType: LearningPlanType) {
   return planType === "lesson" ? "intelligence_lesson_plans" : "intelligence_unit_plans";
 }
 
-function basePlanValues(userId: string, input: PersistedPlanInput) {
+export function basePlanValues(userId: string, input: PersistedPlanInput) {
   const content = input.content;
   return {
     user_id: userId,
@@ -168,7 +168,7 @@ function basePlanValues(userId: string, input: PersistedPlanInput) {
   };
 }
 
-function versionValues(userId: string, planId: string, input: PersistedPlanInput) {
+export function versionValues(userId: string, planId: string, input: PersistedPlanInput) {
   const generation = input.content.generation;
   return {
     user_id: userId,
@@ -181,7 +181,7 @@ function versionValues(userId: string, planId: string, input: PersistedPlanInput
     generation_model_version: generation.modelVersion,
     prompt_version: generation.promptVersion,
     schema_version: generation.schemaVersion,
-    parent_edits: [],
+    parent_edits: input.provenance.parentEdits,
     is_final_approved: false,
   };
 }

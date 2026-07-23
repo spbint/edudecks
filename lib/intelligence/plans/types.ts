@@ -82,6 +82,29 @@ export interface PlanValidationResult {
   validatedAt: string;
 }
 
+export type PlanWorkflowStatus =
+  | "generated_draft"
+  | "editing"
+  | "ready_for_approval"
+  | "approved"
+  | "returned_to_draft"
+  | "archived";
+
+export type PlanRevisionKind = "generated" | "parent_edit";
+
+export interface PlanReviewMetadata {
+  workflowStatus: PlanWorkflowStatus;
+  originalGeneratedRevision: number;
+  revisionKind: PlanRevisionKind;
+  changedFields: string[];
+  lastEditedAt: string | null;
+  lastEditedByUserId: string | null;
+  safetyAcknowledged: boolean;
+  validation: PlanValidationResult & {
+    safetyAcknowledgementRequired?: boolean;
+  };
+}
+
 export interface GeneratedPlanContent {
   planType: LearningPlanType;
   title: string;
@@ -106,6 +129,7 @@ export interface GeneratedPlanContent {
   parentInstructions: string | null;
   generation: PlanGenerationMetadata;
   validation: PlanValidationResult;
+  review?: PlanReviewMetadata;
 }
 
 export interface PlanGenerationMetadata {
