@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import type { Idea, IdeaSource, IdeaSourceMetadataStatus, IdeaStatus } from "@/lib/intelligence/types";
+import type { SourcePreviewMetadata } from "@/lib/intelligence/sources/types";
 
 export type CreateIdeaRepositoryInput = {
   url: string;
@@ -10,6 +11,16 @@ export type CreateIdeaRepositoryInput = {
 export interface IdeasRepository {
   listByUser(userId: string): Promise<Idea[]>;
   createForUser(userId: string, input: CreateIdeaRepositoryInput): Promise<Idea>;
+}
+
+export interface IdeaSourceMetadataRepository {
+  getSourceForUser(userId: string, ideaId: string, sourceId: string): Promise<IdeaSource | null>;
+  updateSourceMetadataForUser(
+    userId: string,
+    ideaId: string,
+    sourceId: string,
+    metadata: SourcePreviewMetadata,
+  ): Promise<IdeaSource>;
 }
 
 export type IdeasRepositoryErrorKind = "schema" | "persistence";
@@ -154,9 +165,12 @@ function assertUserId(userId: string) {
   }
 }
 
+const sourceSelect =
+  "id,idea_id,user_id,source_type,url,canonical_url,provider,title,description,site_name,image_url,author,published_at,metadata_status,metadata,extracted_at,created_at,updated_at";
+
 export function createSupabaseIdeasRepository(
   client: Pick<SupabaseClient, "from"> = supabase,
-): IdeasRepository {
+): IdeasRepository & IdeaSourceMetadataRepository {
   return {
     async listByUser(userId) {
       assertUserId(userId);
@@ -178,7 +192,7 @@ export function createSupabaseIdeasRepository(
       const sourcesResponse = await client
         .from("intelligence_idea_sources")
         .select(
-          "id,idea_id,user_id,source_type,url,canonical_url,provider,title,description,site_name,image_url,author,published_at,metadata_status,metadata,extracted_at,created_at,updated_at",
+          sourceSelect,
         )
         .eq("user_id", userId)
         .in("idea_id", ideaIds);
@@ -221,7 +235,7 @@ export function createSupabaseIdeasRepository(
           canonical_url: input.url,
         })
         .select(
-          "id,idea_id,user_id,source_type,url,canonical_url,provider,title,description,site_name,image_url,author,published_at,metadata_status,metadata,extracted_at,created_at,updated_at",
+          sourceSelect,
         )
         .single();
 
@@ -235,6 +249,56 @@ export function createSupabaseIdeasRepository(
       }
 
       return toIdea(idea, [toIdeaSource(sourceResponse.data as SourceRow)]);
+    },
+
+    async getSourceForUser(userId, ideaId, sourceId) {
+      assertUserId(userId);
+
+      const response = await client
+        .from("intelligence_idea_sources")
+        .select(sourceSelect)
+        .eq("id", sourceId)
+        .eq("idea_id", ideaId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (response.error) {
+        throw repositoryError(response.error, "load");
+      }
+      return response.data ? toIdeaSource(response.data as SourceRow) : null;
+    },
+
+    async updateSourceMetadataForUser(userId, ideaId, sourceId, metadata) {
+      assertUserId(userId);
+
+      const response = await client
+        .from("intelligence_idea_sources")
+        .update({
+          canonical_url: metadata.canonicalUrl ?? metadata.finalUrl ?? metadata.originalUrl,
+          provider: metadata.provider,
+          title: metadata.title,
+          description: metadata.description,
+          site_name: metadata.provider,
+          image_url: metadata.previewImageUrl,
+          metadata_status:
+            metadata.extractionStatus === "ready"
+              ? "ready"
+              : metadata.extractionStatus === "fetching"
+                ? "pending"
+                : "failed",
+          metadata,
+          extracted_at: metadata.extractionAttemptedAt,
+        })
+        .eq("id", sourceId)
+        .eq("idea_id", ideaId)
+        .eq("user_id", userId)
+        .select(sourceSelect)
+        .single();
+
+      if (response.error || !response.data) {
+        throw repositoryError(response.error, "save");
+      }
+      return toIdeaSource(response.data as SourceRow);
     },
   };
 }

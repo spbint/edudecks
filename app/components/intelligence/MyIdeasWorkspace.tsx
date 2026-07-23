@@ -14,7 +14,11 @@ import {
   type IdeasService,
 } from "@/lib/intelligence/ideas/service";
 import { IdeasRepositoryError } from "@/lib/intelligence/ideas/repository";
-import type { Idea } from "@/lib/intelligence/types";
+import type { Idea, IdeaSource } from "@/lib/intelligence/types";
+import type {
+  SourceExtractionStatus,
+  SourcePreviewMetadata,
+} from "@/lib/intelligence/sources/types";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -53,6 +57,30 @@ function ideaUrl(idea: Idea) {
   return idea.sources[0]?.url || "";
 }
 
+function sourceMetadata(source: IdeaSource): SourcePreviewMetadata | null {
+  const metadata = source.metadata as Partial<SourcePreviewMetadata>;
+  if (typeof metadata.extractionStatus !== "string") return null;
+  return metadata as SourcePreviewMetadata;
+}
+
+function previewStatus(source: IdeaSource, extracting: boolean): SourceExtractionStatus | "pending" {
+  if (extracting) return "fetching";
+  return sourceMetadata(source)?.extractionStatus ?? "pending";
+}
+
+function previewStatusLabel(status: SourceExtractionStatus | "pending") {
+  switch (status) {
+    case "fetching": return "Fetching preview...";
+    case "ready": return "Preview ready";
+    case "unsupported": return "Unsupported source";
+    case "blocked": return "Blocked by source policy";
+    case "timed_out": return "Source timed out";
+    case "too_large": return "Source is too large";
+    case "failed": return "Preview failed";
+    default: return "Preview not fetched";
+  }
+}
+
 function errorMessage(error: unknown, fallback: string) {
   if (error instanceof IdeasRepositoryError) return error.message;
   if (error instanceof Error && error.message) return error.message;
@@ -74,6 +102,7 @@ export default function MyIdeasWorkspace({
   const [validationError, setValidationError] = useState("");
   const [persistenceError, setPersistenceError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [extractingSourceId, setExtractingSourceId] = useState<string | null>(null);
 
   const userId = user?.id ?? "";
   const formId = useMemo(() => "my-ideas-add-form", []);
@@ -100,6 +129,41 @@ export default function MyIdeasWorkspace({
   useEffect(() => {
     void loadIdeas();
   }, [loadIdeas]);
+
+  const fetchPreview = useCallback(async (idea: Idea) => {
+    const source = idea.sources[0];
+    if (!source || !userId) return;
+
+    setExtractingSourceId(source.id);
+    setPersistenceError("");
+    try {
+      const response = await fetch(
+        `/api/intelligence/ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/metadata`,
+        { method: "POST" },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        source?: IdeaSource;
+        error?: string;
+      };
+      if (!response.ok || !payload.source) {
+        throw new Error(payload.error || "We could not fetch a preview for this source.");
+      }
+      setIdeas((current) => current.map((entry) =>
+        entry.id === idea.id
+          ? {
+              ...entry,
+              sources: entry.sources.map((entrySource) =>
+                entrySource.id === source.id ? payload.source! : entrySource,
+              ),
+            }
+          : entry,
+      ));
+    } catch (error) {
+      setPersistenceError(errorMessage(error, "We could not fetch a preview for this source."));
+    } finally {
+      setExtractingSourceId(null);
+    }
+  }, [userId]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,6 +194,7 @@ export default function MyIdeasWorkspace({
       setUrl("");
       setTitle("");
       setSuccessMessage("Your idea was saved.");
+      void fetchPreview(created);
     } catch (error) {
       setPersistenceError(errorMessage(error, "We could not save your idea."));
     } finally {
@@ -300,6 +365,53 @@ export default function MyIdeasWorkspace({
                     </a>
                   ) : null}
                   <span style={{ color: v2Tokens.slate, fontSize: 13 }}>Active</span>
+                  {idea.sources[0] ? (() => {
+                    const source = idea.sources[0];
+                    const metadata = sourceMetadata(source);
+                    const status = previewStatus(source, extractingSourceId === source.id);
+                    return (
+                      <div
+                        aria-label="Source preview"
+                        style={{
+                          marginTop: 5,
+                          borderTop: `1px solid ${v2Tokens.border}`,
+                          paddingTop: 10,
+                          display: "grid",
+                          gap: 5,
+                        }}
+                      >
+                        <strong style={{ color: v2Tokens.navy, fontSize: 14 }}>
+                          {previewStatusLabel(status)}
+                        </strong>
+                        {metadata?.title || metadata?.description || metadata?.provider ? (
+                          <div style={{ display: "grid", gap: 3 }}>
+                            {metadata.title ? <span style={{ color: v2Tokens.navy }}>{metadata.title}</span> : null}
+                            {metadata.description ? <span style={{ color: v2Tokens.slate, fontSize: 13 }}>{metadata.description}</span> : null}
+                            {metadata.provider ? <span style={{ color: v2Tokens.slate, fontSize: 13 }}>{metadata.provider}</span> : null}
+                          </div>
+                        ) : null}
+                        {metadata?.finalUrl && metadata.finalUrl !== source.url ? (
+                          <span style={{ color: v2Tokens.slate, fontSize: 12, overflowWrap: "anywhere" }}>
+                            Final URL: {metadata.finalUrl}
+                          </span>
+                        ) : null}
+                        {metadata?.canonicalUrl ? (
+                          <span style={{ color: v2Tokens.slate, fontSize: 12, overflowWrap: "anywhere" }}>
+                            Canonical URL: {metadata.canonicalUrl}
+                          </span>
+                        ) : null}
+                        {status !== "fetching" && status !== "ready" ? (
+                          <button
+                            type="button"
+                            onClick={() => void fetchPreview(idea)}
+                            style={{ ...primaryButtonStyle, minHeight: 36, justifySelf: "start", padding: "7px 12px", fontSize: 13 }}
+                          >
+                            {status === "pending" ? "Fetch preview" : "Try again"}
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })() : null}
                 </article>
               );
             })}
