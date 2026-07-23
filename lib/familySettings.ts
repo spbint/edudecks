@@ -596,8 +596,13 @@ export function persistActiveStudentId(studentId: string | null | undefined) {
   }
 }
 
-export async function getCurrentUserId(): Promise<string | null> {
+export async function getCurrentUserId(
+  authenticatedUserId?: string | null,
+): Promise<string | null> {
   if (!hasSupabaseEnv) return null;
+
+  const suppliedUserId = safeString(authenticatedUserId);
+  if (suppliedUserId) return suppliedUserId;
 
   const sessionResp = await supabase.auth.getSession();
   if (sessionResp.data.session?.user?.id) return sessionResp.data.session.user.id;
@@ -644,10 +649,12 @@ export function persistChildrenToLocalStorage(children: ChildOption[]) {
   writeJson(STORAGE_KEYS.CHILDREN, normalized);
 }
 
-export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
+export async function loadFamilyProfile(
+  authenticatedUserId?: string | null,
+): Promise<FamilyProfileRow> {
   if (!hasSupabaseEnv) return { ...DEFAULT_FAMILY_PROFILE };
 
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentUserId(authenticatedUserId);
   if (!userId) return { ...DEFAULT_FAMILY_PROFILE };
   const storedSnapshot = loadStoredFamilySettingsSnapshot();
   const storedProfileId = safeString(storedSnapshot?.id);

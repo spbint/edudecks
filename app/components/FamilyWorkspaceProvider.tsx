@@ -126,7 +126,7 @@ export function FamilyWorkspaceProvider({
       setError("");
 
       try {
-        const nextWorkspace = await loadFamilyWorkspace();
+        const nextWorkspace = await loadFamilyWorkspace(user?.id ?? null);
         if (generation !== requestGenerationRef.current) return;
         setWorkspace(nextWorkspace);
         setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
@@ -152,7 +152,7 @@ export function FamilyWorkspaceProvider({
 
     reloadInFlightRef.current = run;
     return run;
-  }, []);
+  }, [user?.id]);
 
   const setWorkspacePatch = useCallback((patch: {
     profile?: FamilyProfileRow | FamilySettings;

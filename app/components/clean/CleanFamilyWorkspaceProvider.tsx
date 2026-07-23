@@ -9,8 +9,12 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
-import { loadCleanWorkspace } from "@/lib/clean/workspace/client";
+import {
+  hydrateCleanWorkspaceFromFamilySnapshot,
+  loadCleanWorkspace,
+} from "@/lib/clean/workspace/client";
 import type { CleanWorkspaceState } from "@/lib/clean/workspace/types";
 import { clearCleanPlanningCache } from "@/lib/clean/planning/cache";
 import { beginCleanPlanningTiming } from "@/lib/clean/performance/planningTiming";
@@ -40,21 +44,25 @@ const INITIAL_STATE: CleanWorkspaceState = {
 
 const INITIAL_SETUP_STATUS = buildEmptyCleanSetupStatus(INITIAL_STATE);
 
-const CleanFamilyWorkspaceContext = createContext<CleanFamilyWorkspaceContextValue>({
-  ...INITIAL_STATE,
-  loading: true,
-  setupLoading: true,
-  setupStatus: INITIAL_SETUP_STATUS,
-  reload: async () => undefined,
-});
+const CleanFamilyWorkspaceContext = createContext<
+  CleanFamilyWorkspaceContextValue | undefined
+>(undefined);
 
 export default function CleanFamilyWorkspaceProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuthUser();
-  const [workspace, setWorkspace] = useState<CleanWorkspaceState>(INITIAL_STATE);
+  const { user, loading: authLoading } = useAuthUser();
+  const { workspace: familyWorkspace } = useFamilyWorkspace();
+  const authenticatedUserId = user?.id ?? familyWorkspace.userId;
+  const warmFamilySnapshot = hydrateCleanWorkspaceFromFamilySnapshot(
+    familyWorkspace,
+    authenticatedUserId,
+  );
+  const [workspace, setWorkspace] = useState<CleanWorkspaceState>(
+    () => warmFamilySnapshot ?? INITIAL_STATE,
+  );
   const [loading, setLoading] = useState(true);
   const [setupStatus, setSetupStatus] =
     useState<CleanSetupStatus>(INITIAL_SETUP_STATUS);
@@ -78,7 +86,7 @@ export default function CleanFamilyWorkspaceProvider({
           gatesPage: true,
           requestKey: "family-workspace",
         });
-        const nextWorkspace = await loadCleanWorkspace();
+        const nextWorkspace = await loadCleanWorkspace(authenticatedUserId);
         workspaceTiming(nextWorkspace.error ? "error" : "success");
         if (generation !== requestGenerationRef.current) return;
         setWorkspace(nextWorkspace);
@@ -122,9 +130,25 @@ export default function CleanFamilyWorkspaceProvider({
 
     reloadInFlightRef.current = run;
     return run;
-  }, []);
+  }, [authenticatedUserId]);
 
   useEffect(() => {
+    if (
+      authLoading ||
+      hasLoadedWorkspaceRef.current ||
+      !warmFamilySnapshot ||
+      warmFamilySnapshot.currentUserId !== authenticatedUserId
+    ) {
+      return;
+    }
+
+    setWorkspace(warmFamilySnapshot);
+    hasLoadedWorkspaceRef.current = true;
+    setLoading(false);
+  }, [authLoading, authenticatedUserId, warmFamilySnapshot]);
+
+  useEffect(() => {
+    if (authLoading) return;
     const nextUserId = user?.id ?? null;
     if (userIdRef.current !== nextUserId) {
       requestGenerationRef.current += 1;
@@ -138,7 +162,7 @@ export default function CleanFamilyWorkspaceProvider({
       userIdRef.current = nextUserId;
     }
     void reload();
-  }, [reload, user?.id]);
+  }, [authLoading, reload, user?.id]);
 
   const value = useMemo(
     () => ({
@@ -159,5 +183,11 @@ export default function CleanFamilyWorkspaceProvider({
 }
 
 export function useCleanFamilyWorkspace() {
-  return useContext(CleanFamilyWorkspaceContext);
+  const context = useContext(CleanFamilyWorkspaceContext);
+  if (!context) {
+    throw new Error(
+      "useCleanFamilyWorkspace must be used within CleanFamilyWorkspaceProvider.",
+    );
+  }
+  return context;
 }

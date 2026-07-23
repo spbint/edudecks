@@ -16,6 +16,7 @@ vi.mock("@/app/components/AuthUserProvider", () => ({
   useAuthUser: mocks.useAuthUser,
 }));
 vi.mock("@/lib/clean/workspace/client", () => ({
+  hydrateCleanWorkspaceFromFamilySnapshot: vi.fn(() => null),
   loadCleanWorkspace: mocks.loadCleanWorkspace,
 }));
 vi.mock("@/lib/clean/setup/setupStateClient", () => ({
@@ -100,6 +101,12 @@ describe("CleanFamilyWorkspaceProvider progressive loading", () => {
     cleanup();
     mocks.loadCleanWorkspace.mockReset();
     mocks.loadCleanSetupStatus.mockReset();
+  });
+
+  it("fails fast when a clean workspace consumer is outside the provider", () => {
+    expect(() => render(React.createElement(Probe))).toThrowError(
+      "useCleanFamilyWorkspace must be used within CleanFamilyWorkspaceProvider.",
+    );
   });
 
   it("publishes the workspace before slow setup enrichment settles", async () => {

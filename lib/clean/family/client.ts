@@ -186,7 +186,12 @@ function sanitizeFamilyProfileInput(
   };
 }
 
-export async function getCurrentCleanUserId() {
+export async function getCurrentCleanUserId(
+  authenticatedUserId?: string | null,
+) {
+  const suppliedUserId = safe(authenticatedUserId);
+  if (suppliedUserId) return suppliedUserId;
+
   const timing = beginCleanPlanningTiming({
     operation: "authenticated-session-restore",
     criticality: "bootstrap-critical",
@@ -212,8 +217,10 @@ export async function getCurrentCleanUserId() {
   }
 }
 
-export async function loadCleanFamilyProfile(): Promise<LoadCleanFamilyProfileResult> {
-  const currentUserId = await getCurrentCleanUserId();
+export async function loadCleanFamilyProfile(
+  authenticatedUserId?: string | null,
+): Promise<LoadCleanFamilyProfileResult> {
+  const currentUserId = await getCurrentCleanUserId(authenticatedUserId);
   if (!currentUserId) {
     return {
       currentUserId: null,

@@ -568,8 +568,10 @@ async function resolveFamilyProfileChildLinkId(
   return safe(response.data?.id) || null;
 }
 
-export async function getCurrentFamilyUserId(): Promise<string | null> {
-  return getCurrentUserId();
+export async function getCurrentFamilyUserId(
+  authenticatedUserId?: string | null,
+): Promise<string | null> {
+  return getCurrentUserId(authenticatedUserId);
 }
 
 export async function loadLinkedLearners(
@@ -619,10 +621,12 @@ export async function loadLinkedLearners(
   );
 }
 
-export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
+export async function loadFamilyWorkspace(
+  authenticatedUserId?: string | null,
+): Promise<FamilyWorkspaceState> {
   const localSnapshot = buildLocalFamilyWorkspaceSnapshot();
 
-  const userId = await getCurrentFamilyUserId();
+  const userId = await getCurrentFamilyUserId(authenticatedUserId);
 
   if (!userId || !hasSupabaseEnv) {
     return localSnapshot;
@@ -642,7 +646,10 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   let learnerLoadFailed = false;
 
   try {
-    profile = await withTimeout(loadFamilyProfile(), "load family profile");
+    profile = await withTimeout(
+      loadFamilyProfile(userId),
+      "load family profile",
+    );
   } catch (error) {
     console.error("loadFamilyProfile fallback", error);
     syncIssue = "Family profile could not be loaded from the synced workspace.";

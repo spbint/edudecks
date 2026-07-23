@@ -24,7 +24,11 @@ vi.mock("@/lib/clean/learners/client", () => ({
   listCleanLearners: mocks.listCleanLearners,
 }));
 
-import { loadCleanWorkspace } from "@/lib/clean/workspace/client";
+import {
+  hydrateCleanWorkspaceFromFamilySnapshot,
+  loadCleanWorkspace,
+} from "@/lib/clean/workspace/client";
+import type { FamilyWorkspaceState } from "@/lib/familyWorkspace";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -69,8 +73,10 @@ describe("clean workspace bootstrap timing", () => {
     mocks.loadCleanFamilyProfile.mockReturnValue(family.promise);
     mocks.listCleanLearners.mockReturnValue(learners.promise);
 
-    const workspacePromise = loadCleanWorkspace();
+    const workspacePromise = loadCleanWorkspace("user-1");
     await Promise.resolve();
+    expect(mocks.loadCleanFamilyProfile).toHaveBeenCalledWith("user-1");
+    expect(mocks.getCurrentCleanUserId).not.toHaveBeenCalled();
     expect(mocks.listCleanLearners).not.toHaveBeenCalled();
 
     family.resolve({
@@ -92,5 +98,32 @@ describe("clean workspace bootstrap timing", () => {
     const operations = getCleanPlanningTimingEvents().map(event => event.operation);
     expect(operations).toContain("workspace-family-context");
     expect(operations).toContain("workspace-learners");
+  });
+
+  it("only hydrates a warm snapshot for the authenticated account", () => {
+    const snapshot = {
+      storageMode: "database",
+      userId: "user-1",
+      profile: {
+        id: "family-1",
+        family_display_name: "Fixture family",
+        owner_user_id: "user-1",
+        reporting_mode: "family-summary",
+        week_start: "monday",
+        evidence_privacy_default: "family",
+        portfolio_print_style: "calm",
+        default_child_id: "learner-1",
+      },
+      learners: [{ id: "learner-1", label: "Fixture learner" }],
+    } as unknown as FamilyWorkspaceState;
+
+    expect(hydrateCleanWorkspaceFromFamilySnapshot(snapshot, "other-user")).toBeNull();
+    expect(
+      hydrateCleanWorkspaceFromFamilySnapshot(snapshot, "user-1"),
+    ).toMatchObject({
+      currentUserId: "user-1",
+      profile: { id: "family-1" },
+      learners: [{ id: "learner-1", familyId: "family-1" }],
+    });
   });
 });
