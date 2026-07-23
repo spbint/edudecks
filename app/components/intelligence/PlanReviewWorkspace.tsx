@@ -173,6 +173,13 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
         />
         <div aria-label="Plan state" style={{ marginTop: 12, color: v2Tokens.slate, fontSize: 13 }}>Editor state: {state}</div>
       </V2Card>
+      {envelope.workflowStatus === "approved" ? (
+        <V2Card>
+          <a href={`/my-ideas/${encodeURIComponent(ideaId)}/sources/${encodeURIComponent(sourceId)}/plans/${planType}/preparation?planId=${encodeURIComponent(envelope.plan.id)}&revision=${envelope.currentRevision}`} style={{ color: v2Tokens.purple, fontWeight: 700 }}>
+            Open learning preparation list
+          </a>
+        </V2Card>
+      ) : null}
       <V2Card>
         <section aria-labelledby="provenance-heading" style={{ display: "grid", gap: 8 }}>
           <h2 id="provenance-heading" style={{ margin: 0 }}>Protected provenance</h2>
