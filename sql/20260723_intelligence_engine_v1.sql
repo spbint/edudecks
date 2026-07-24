@@ -68,6 +68,8 @@ create table if not exists public.intelligence_lesson_plans (
   updated_at timestamptz not null default now(),
   constraint intelligence_lesson_status_check
     check (status in ('draft', 'saved', 'archived')),
+  constraint intelligence_lesson_plans_id_user_unique
+    unique (id, user_id),
   foreign key (idea_id, user_id)
     references public.intelligence_ideas(id, user_id)
     on delete set null
@@ -94,6 +96,8 @@ create table if not exists public.intelligence_unit_plans (
   updated_at timestamptz not null default now(),
   constraint intelligence_unit_status_check
     check (status in ('draft', 'saved', 'archived')),
+  constraint intelligence_unit_plans_id_user_unique
+    unique (id, user_id),
   foreign key (idea_id, user_id)
     references public.intelligence_ideas(id, user_id)
     on delete set null
@@ -118,6 +122,8 @@ create table if not exists public.intelligence_lesson_sequences (
       (lesson_plan_id is not null)::integer +
       (unit_plan_id is not null)::integer = 1
     ),
+  constraint intelligence_lesson_sequences_id_user_unique
+    unique (id, user_id),
   foreign key (lesson_plan_id, user_id)
     references public.intelligence_lesson_plans(id, user_id)
     on delete cascade,
