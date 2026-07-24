@@ -37,6 +37,51 @@ const CLEAN_EVIDENCE_ENTRY_BASE_SELECT =
 const CLEAN_EVIDENCE_ENTRY_ATTACHMENT_SELECT =
   "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
 
+export const CLEAN_EVIDENCE_CHANGED_EVENT = "edudecks:clean-evidence-changed";
+
+export type CleanEvidenceChangedDetail = {
+  familyId: string;
+  learnerId?: string | null;
+};
+
+export function shouldRefreshCleanEvidenceForLearner(
+  detail: CleanEvidenceChangedDetail,
+  familyId: string,
+  learnerId: string,
+) {
+  return detail.familyId === familyId && (!detail.learnerId || detail.learnerId === learnerId);
+}
+
+export function notifyCleanEvidenceChanged(
+  detail: CleanEvidenceChangedDetail,
+) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(
+    new CustomEvent<CleanEvidenceChangedDetail>(CLEAN_EVIDENCE_CHANGED_EVENT, {
+      detail: {
+        familyId: safe(detail.familyId),
+        learnerId: safe(detail.learnerId) || null,
+      },
+    }),
+  );
+}
+
+export function subscribeToCleanEvidenceChanges(
+  listener: (detail: CleanEvidenceChangedDetail) => void,
+) {
+  if (typeof window === "undefined") return () => undefined;
+
+  const handleChange = (event: Event) => {
+    const detail = (event as CustomEvent<CleanEvidenceChangedDetail>).detail;
+    if (!detail || typeof detail !== "object") return;
+    listener(detail);
+  };
+
+  window.addEventListener(CLEAN_EVIDENCE_CHANGED_EVENT, handleChange);
+  return () => window.removeEventListener(CLEAN_EVIDENCE_CHANGED_EVENT, handleChange);
+}
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -102,13 +147,19 @@ function toCleanEvidenceEntry(row: EvidenceEntryRow): CleanEvidenceEntry {
   };
 }
 
-function sortEvidenceEntries(items: CleanEvidenceEntry[]) {
+export function sortEvidenceEntries(items: CleanEvidenceEntry[]) {
   return [...items].sort((left, right) => {
     const observedCompare = right.observedOn.localeCompare(left.observedOn);
     if (observedCompare !== 0) return observedCompare;
 
-    const leftCreated = Date.parse(left.createdAt || left.updatedAt || "");
-    const rightCreated = Date.parse(right.createdAt || right.updatedAt || "");
+    const leftTimestamps = [left.createdAt, left.updatedAt]
+      .map((value) => Date.parse(value || ""))
+      .filter((value) => !Number.isNaN(value));
+    const rightTimestamps = [right.createdAt, right.updatedAt]
+      .map((value) => Date.parse(value || ""))
+      .filter((value) => !Number.isNaN(value));
+    const leftCreated = leftTimestamps.length ? Math.max(...leftTimestamps) : Number.NaN;
+    const rightCreated = rightTimestamps.length ? Math.max(...rightTimestamps) : Number.NaN;
 
     if (!Number.isNaN(leftCreated) || !Number.isNaN(rightCreated)) {
       if (Number.isNaN(leftCreated)) return 1;
@@ -287,7 +338,9 @@ export async function createCleanEvidenceEntry(
     );
   }
 
-  return toCleanEvidenceEntry(response.data as EvidenceEntryRow);
+  const entry = toCleanEvidenceEntry(response.data as EvidenceEntryRow);
+  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId });
+  return entry;
 }
 
 export async function updateCleanEvidenceEntry(
@@ -329,12 +382,15 @@ export async function updateCleanEvidenceEntry(
     );
   }
 
-  return toCleanEvidenceEntry(response.data as EvidenceEntryRow);
+  const entry = toCleanEvidenceEntry(response.data as EvidenceEntryRow);
+  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId });
+  return entry;
 }
 
 export async function deleteCleanEvidenceEntry(
   familyId: string,
   entryId: string,
+  learnerId?: string,
 ) {
   const response = await supabase
     .from("evidence_entries")
@@ -351,4 +407,6 @@ export async function deleteCleanEvidenceEntry(
       ),
     );
   }
+
+  notifyCleanEvidenceChanged({ familyId, learnerId });
 }

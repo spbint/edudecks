@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
@@ -12,7 +12,11 @@ import {
   buildPathwayCaptureSearchParams,
   parsePathwayContextFromNodeIds,
 } from "@/lib/clean/evidence/curriculumContext";
-import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import {
+  listCleanEvidenceEntries,
+  subscribeToCleanEvidenceChanges,
+  shouldRefreshCleanEvidenceForLearner,
+} from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
@@ -210,16 +214,26 @@ export default function CleanMyLearnaWorkspace() {
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
+  const [entriesRefreshing, setEntriesRefreshing] = useState(false);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
+  const [assessmentRefreshing, setAssessmentRefreshing] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [coverageSubmitting, setCoverageSubmitting] = useState(false);
   const [coverageMessage, setCoverageMessage] = useState<string | null>(null);
   const [coverageError, setCoverageError] = useState<string | null>(null);
-  const [reloadNonce, setReloadNonce] = useState(0);
   const requestGenerationRef = useRef(0);
+  const inFlightRefreshRef = useRef<{
+    key: string;
+    promise: Promise<void>;
+  } | null>(null);
+  const lastRefreshStartedAtRef = useRef(0);
+  const loadedEvidenceKeyRef = useRef("");
+  const loadedAssessmentKeyRef = useRef("");
 
   const queryLearnerId = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
+  const pathname = usePathname();
+  const profileId = workspace.profile?.id ?? "";
   const selectedLearner = workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null;
   const selectedLearnerName = learnerDisplayName(selectedLearner);
 
@@ -234,75 +248,150 @@ export default function CleanMyLearnaWorkspace() {
     setSelectedLearnerId(queryLearner?.id || defaultLearner?.id || workspace.learners[0]?.id || "");
   }, [queryLearnerId, selectedLearnerId, workspace.learners, workspace.profile?.defaultLearnerId]);
 
+  const evidenceKey = profileId && selectedLearnerId
+    ? `${profileId}:${selectedLearnerId}`
+    : "";
+  const visibleEntries = useMemo(
+    () => (loadedEvidenceKeyRef.current === evidenceKey ? entries : []),
+    [entries, evidenceKey],
+  );
+  const visibleAssessmentStatuses = useMemo(
+    () => (loadedAssessmentKeyRef.current === evidenceKey ? assessmentStatuses : []),
+    [assessmentStatuses, evidenceKey],
+  );
+
+  const reloadLearnerData = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+    if (!evidenceKey || !profileId || workspace.schemaMissing || workspace.requiresFamilyCreation) return;
+
+    const existingRefresh = inFlightRefreshRef.current;
+    if (existingRefresh?.key === evidenceKey) return existingRefresh.promise;
+
+    const now = Date.now();
+    if (!force && now - lastRefreshStartedAtRef.current < 1200) return;
+    lastRefreshStartedAtRef.current = now;
+
+    const generation = ++requestGenerationRef.current;
+    const hasLoadedEvidence = loadedEvidenceKeyRef.current === evidenceKey;
+    const hasLoadedAssessment = loadedAssessmentKeyRef.current === evidenceKey;
+
+    setEntriesError(null);
+    setAssessmentError(null);
+    setEntriesLoading(!hasLoadedEvidence);
+    setEntriesRefreshing(hasLoadedEvidence);
+    setAssessmentLoading(!hasLoadedAssessment);
+    setAssessmentRefreshing(hasLoadedAssessment);
+    if (!hasLoadedEvidence) setEntries([]);
+    if (!hasLoadedAssessment) setAssessmentStatuses([]);
+
+    const refreshPromise = Promise.all([
+      listCleanEvidenceEntries(profileId, { learnerId: selectedLearnerId, limit: 250 })
+        .then((nextEntries) => {
+          if (generation !== requestGenerationRef.current) return;
+          loadedEvidenceKeyRef.current = evidenceKey;
+          setEntries(nextEntries);
+        })
+        .catch((error) => {
+          if (generation !== requestGenerationRef.current) return;
+          setEntriesError(normalizeCleanErrorMessage(error, "We could not load recent learning right now."));
+        })
+        .finally(() => {
+          if (generation !== requestGenerationRef.current) return;
+          setEntriesLoading(false);
+          setEntriesRefreshing(false);
+        }),
+      listCleanAssessmentSkillStatuses(profileId, selectedLearnerId)
+        .then((nextStatuses) => {
+          if (generation !== requestGenerationRef.current) return;
+          loadedAssessmentKeyRef.current = evidenceKey;
+          setAssessmentStatuses(nextStatuses);
+        })
+        .catch((error) => {
+          if (generation !== requestGenerationRef.current) return;
+          setAssessmentError(normalizeCleanErrorMessage(error, "We could not load progress judgements right now."));
+        })
+        .finally(() => {
+          if (generation !== requestGenerationRef.current) return;
+          setAssessmentLoading(false);
+          setAssessmentRefreshing(false);
+        }),
+    ]).then(() => undefined).finally(() => {
+      if (inFlightRefreshRef.current?.key === evidenceKey) {
+        inFlightRefreshRef.current = null;
+      }
+    });
+
+    inFlightRefreshRef.current = { key: evidenceKey, promise: refreshPromise };
+    return refreshPromise;
+  }, [evidenceKey, profileId, selectedLearnerId, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+
   useEffect(() => {
-    if (!selectedLearnerId || !workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+    if (!evidenceKey) {
+      ++requestGenerationRef.current;
+      inFlightRefreshRef.current = null;
+      loadedEvidenceKeyRef.current = "";
+      loadedAssessmentKeyRef.current = "";
       setEntries([]);
       setAssessmentStatuses([]);
       setEntriesLoading(false);
+      setEntriesRefreshing(false);
       setAssessmentLoading(false);
+      setAssessmentRefreshing(false);
       return;
     }
 
-    const generation = ++requestGenerationRef.current;
-    setEntriesLoading(true);
-    setAssessmentLoading(true);
-    setEntriesError(null);
-    setAssessmentError(null);
+    const refreshIfVisible = (force = false) => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      void reloadLearnerData({ force });
+    };
+    const handleEvidenceChanged = (detail: { familyId: string; learnerId?: string | null }) => {
+      if (!shouldRefreshCleanEvidenceForLearner(detail, profileId, selectedLearnerId)) return;
+      refreshIfVisible(true);
+    };
+    const handlePageShow = () => refreshIfVisible(true);
+    const handleVisibilityChange = () => refreshIfVisible(false);
+    const handleFocus = () => refreshIfVisible(false);
+    const unsubscribe = subscribeToCleanEvidenceChanges(handleEvidenceChanged);
 
-    void listCleanEvidenceEntries(workspace.profile.id, { learnerId: selectedLearnerId, limit: 250 })
-      .then((nextEntries) => {
-        if (generation === requestGenerationRef.current) setEntries(nextEntries);
-      })
-      .catch((error) => {
-        if (generation !== requestGenerationRef.current) return;
-        setEntries([]);
-        setEntriesError(normalizeCleanErrorMessage(error, "We could not load recent learning right now."));
-      })
-      .finally(() => {
-        if (generation === requestGenerationRef.current) setEntriesLoading(false);
-      });
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    void reloadLearnerData({ force: true });
 
-    void listCleanAssessmentSkillStatuses(workspace.profile.id, selectedLearnerId)
-      .then((nextStatuses) => {
-        if (generation === requestGenerationRef.current) setAssessmentStatuses(nextStatuses);
-      })
-      .catch((error) => {
-        if (generation !== requestGenerationRef.current) return;
-        setAssessmentStatuses([]);
-        setAssessmentError(normalizeCleanErrorMessage(error, "We could not load progress judgements right now."));
-      })
-      .finally(() => {
-        if (generation === requestGenerationRef.current) setAssessmentLoading(false);
-      });
-  }, [reloadNonce, selectedLearnerId, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [evidenceKey, pathname, profileId, reloadLearnerData, selectedLearnerId]);
 
   const summary = useMemo(
     () => buildLearningIntelligenceSummary({
-      evidenceEntries: entries,
-      assessmentStatuses,
+      evidenceEntries: visibleEntries,
+      assessmentStatuses: visibleAssessmentStatuses,
       learnerYearLevel: selectedLearner?.yearLevel ?? null,
     }),
-    [assessmentStatuses, entries, selectedLearner?.yearLevel],
+    [selectedLearner?.yearLevel, visibleAssessmentStatuses, visibleEntries],
   );
-  const latestEntry = entries[0] ?? null;
+  const latestEntry = visibleEntries[0] ?? null;
   const latestPathwayContext = latestEntry ? parsePathwayContextFromNodeIds(latestEntry.curriculumNodeIds) : null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
   const hasPathwaySignal = Boolean(
     summary.nextLearningSteps[0] &&
-      (summary.activeLearningAreaRows.length > 0 || assessmentStatuses.some((status) => Boolean(status.pathwayStepId))),
+      (summary.activeLearningAreaRows.length > 0 || visibleAssessmentStatuses.some((status) => Boolean(status.pathwayStepId))),
   );
   const nextStep = hasPathwaySignal ? summary.nextLearningSteps[0] ?? null : null;
   const primaryAction = nextStep
     ? { label: "Continue learning", href: pathwayPath(selectedLearnerId, nextStep) }
-    : entries.length
+      : visibleEntries.length
       ? { label: "Add evidence", href: capturePath(selectedLearnerId, latestEntry) }
       : { label: "Choose a learning pathway", href: pathwayPath(selectedLearnerId, null) };
   const quickCaptureHref = capturePath(selectedLearnerId, latestEntry);
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
   const quietAreas = summary.allSubjectRows.filter((row) => !row.isActiveLearningArea);
-  const reportReadyCount = entries.filter((entry) => entry.includeInReport).length;
+  const reportReadyCount = visibleEntries.filter((entry) => entry.includeInReport).length;
   const hasRecentLearning = isRecent(latestEntry?.observedOn || latestEntry?.createdAt);
-  const recordHealth = entries.length === 0
+  const recordHealth = visibleEntries.length === 0
     ? { label: "Empty", copy: "Add a first observation, work sample or photo to begin the learning story." }
     : hasRecentLearning && reportReadyCount > 0
       ? { label: "Healthy", copy: "You have recent learning records and report-ready evidence." }
@@ -327,8 +416,8 @@ export default function CleanMyLearnaWorkspace() {
       const model = buildCurriculumCoveragePdfModel({
         profile: workspace.profile,
         learner: selectedLearner,
-        entries,
-        assessmentStatuses,
+        entries: visibleEntries,
+        assessmentStatuses: visibleAssessmentStatuses,
         generatedOn: new Date().toISOString().slice(0, 10),
       });
       downloadPdf(
@@ -341,7 +430,7 @@ export default function CleanMyLearnaWorkspace() {
     } finally {
       setCoverageSubmitting(false);
     }
-  }, [assessmentStatuses, entries, selectedLearner, workspace.profile]);
+  }, [selectedLearner, visibleAssessmentStatuses, visibleEntries, workspace.profile]);
 
   if (workspace.loading) return <V2LoadingState title="Preparing My Learna" body="Your learner guidance is loading." />;
   if (workspace.schemaMissing) return <EmptyWorkspace title="My Learna needs a little setup" body={CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE} />;
@@ -386,7 +475,7 @@ export default function CleanMyLearnaWorkspace() {
         <div style={{ display: "grid", gap: 8 }}>
           <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Current focus</p>
           <h2 style={{ margin: 0, color: "#17204b", fontSize: 22 }}>{nextStep ? `${nextStep.subjectTitle} · ${nextStep.strandTitle}` : summary.activeLearningAreaRows[0]?.title || "A new learning story"}</h2>
-          <p style={{ ...quietTextStyle, margin: 0 }}>{nextStep?.stepTitle || latestPathwayContext?.stepTitle || (entries.length ? "Recent learning is ready to review." : "Choose a pathway to discover a current focus.")}</p>
+          <p style={{ ...quietTextStyle, margin: 0 }}>{nextStep?.stepTitle || latestPathwayContext?.stepTitle || (visibleEntries.length ? "Recent learning is ready to review." : "Choose a pathway to discover a current focus.")}</p>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link href={primaryAction.href} style={primaryActionStyle}>{primaryAction.label}</Link>
@@ -398,7 +487,7 @@ export default function CleanMyLearnaWorkspace() {
         <p style={{ ...quietTextStyle, margin: 0 }}>{recordHealth.copy}</p>
         {entriesError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{entriesError}</div> : null}
         {assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
-        {entriesError || assessmentError ? <button type="button" onClick={() => setReloadNonce((value) => value + 1)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
+        {entriesError || assessmentError ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
       </section>
       <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
         <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>What the evidence suggests</h2>
@@ -406,12 +495,14 @@ export default function CleanMyLearnaWorkspace() {
       </section>
       <Disclosure id="progress-and-judgements" title="Progress and judgements" description="Saved judgements and pathway state, not activity volume.">
         {assessmentLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading saved judgements...</p> : null}
+        {assessmentRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing saved judgements...</p> : null}
         {summary.progressJudgementObservations.length ? summary.progressJudgementObservations.slice(0, 6).map((observation) => <article key={observation.id} style={{ borderTop: "1px solid #e7eaf2", paddingTop: 12, display: "grid", gap: 5 }}><strong style={{ color: "#17204b" }}>{observation.judgement}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(observation.dateValue)}{observation.subjectTitle ? ` · ${observation.subjectTitle}` : ""}{observation.stepTitle ? ` · ${observation.stepTitle}` : ""}</span></article>) : <p style={{ ...quietTextStyle, margin: 0 }}>No recognised progress judgement has been saved yet.</p>}
         {nextStep ? <Link href={pathwayPath(selectedLearnerId, nextStep)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Open pathway</Link> : null}
       </Disclosure>
       <Disclosure id="recent-records" title="Recent records" description="Saved observations and work samples, with Portfolio as the full record.">
         {entriesLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading recent records...</p> : null}
-        {entries.length ? entries.slice(0, 4).map((entry) => <Link key={entry.id} href={`${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(entry.id)}`} style={{ display: "grid", gap: 4, padding: "12px 0", borderTop: "1px solid #e7eaf2", color: "#17204b", textDecoration: "none" }}><strong>{evidenceTitle(entry)}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(entry.observedOn)}{entry.learningArea ? ` · ${entry.learningArea}` : ""}</span></Link>) : <p style={{ ...quietTextStyle, margin: 0 }}>No saved learning records yet.</p>}
+        {entriesRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing recent records...</p> : null}
+        {visibleEntries.length ? visibleEntries.slice(0, 4).map((entry) => <Link key={entry.id} href={`${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(entry.id)}`} style={{ display: "grid", gap: 4, padding: "12px 0", borderTop: "1px solid #e7eaf2", color: "#17204b", textDecoration: "none" }}><strong>{evidenceTitle(entry)}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(entry.observedOn)}{entry.learningArea ? ` · ${entry.learningArea}` : ""}</span></Link>) : <p style={{ ...quietTextStyle, margin: 0 }}>No saved learning records yet.</p>}
         <Link href={learnerPath("/my-portfolio", selectedLearnerId)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View Portfolio</Link>
       </Disclosure>
       <Disclosure id="learning-areas" title="Learning areas" description="What has recently been active, without treating quiet areas as failure.">

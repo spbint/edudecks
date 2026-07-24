@@ -530,6 +530,7 @@ function CleanPortfolioWorkspaceBody() {
       await deleteCleanEvidenceEntry(
         workspace.profile.id,
         pendingDeleteItem.evidence.id,
+        pendingDeleteItem.evidence.learnerId,
       );
 
       setPendingDeleteItem(null);

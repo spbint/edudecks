@@ -36,4 +36,15 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).toContain("/my-reports");
     expect(source).toContain("generateCurriculumCoveragePdfBytes");
   });
+
+  it("keeps recent evidence fresh when the route or evidence changes", () => {
+    expect(source).toContain("reloadLearnerData");
+    expect(source).toContain("subscribeToCleanEvidenceChanges");
+    expect(source).toContain('window.addEventListener("pageshow"');
+    expect(source).toContain('document.addEventListener("visibilitychange"');
+    expect(source).toContain('window.addEventListener("focus"');
+    expect(source).toContain("Refreshing recent records");
+    expect(source).toContain("setEntriesError(normalizeCleanErrorMessage");
+    expect(source).not.toContain("setEntries([]);\n        setEntriesError");
+  });
 });
