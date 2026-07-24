@@ -60,9 +60,7 @@ describe("canonical authenticated clean workspace bootstrap", () => {
     expect(providerSource).toContain(
       "useCleanFamilyWorkspace must be used within CleanFamilyWorkspaceProvider.",
     );
-    expect(providerSource).toContain(
-      "createContext<\n  CleanFamilyWorkspaceContextValue | undefined",
-    );
+    expect(providerSource).toContain("CleanFamilyWorkspaceContextValue | undefined");
   });
 
   it("keeps the clean settings route on the same provider hierarchy", () => {

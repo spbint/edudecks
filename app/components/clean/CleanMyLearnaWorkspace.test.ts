@@ -2,14 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync(
-  join(process.cwd(), "app/components/clean/CleanMyLearnaWorkspace.tsx"),
-  "utf8",
-);
+const source = readFileSync(join(process.cwd(), "app/components/clean/CleanMyLearnaWorkspace.tsx"), "utf8");
 
 describe("My Learna parent guidance workspace", () => {
   it("uses a learner-specific, parent-facing first viewport", () => {
-    expect(source).toContain("selectedLearnerName}’s Learning");
+    expect(source).toContain("selectedLearnerName}&apos;s Learning");
     expect(source).toContain("A calm learning picture");
     expect(source).toContain("Current focus");
     expect(source).toContain("Continue learning");

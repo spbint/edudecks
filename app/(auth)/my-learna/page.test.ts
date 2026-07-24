@@ -8,14 +8,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildMyDataRedirectPath } from "@/app/(auth)/my-data/page";
 
-const myLearnaRouteSource = readFileSync(
-  join(process.cwd(), "app/(auth)/my-learna/page.tsx"),
-  "utf8",
-);
-const myDataRouteSource = readFileSync(
-  join(process.cwd(), "app/(auth)/my-data/page.tsx"),
-  "utf8",
-);
+const myLearnaRouteSource = readFileSync(join(process.cwd(), "app/(auth)/my-learna/page.tsx"), "utf8");
+const myDataRouteSource = readFileSync(join(process.cwd(), "app/(auth)/my-data/page.tsx"), "utf8");
 
 describe("My Learna canonical route", () => {
   it("renders the authenticated My Learna workspace", () => {
