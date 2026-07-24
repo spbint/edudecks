@@ -4,20 +4,31 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-import { buildMyLearnaRedirectPath } from "@/app/(auth)/my-learna/page";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { buildMyDataRedirectPath } from "@/app/(auth)/my-data/page";
 
-describe("my-learna redirect", () => {
-  it("redirects old My Learna bookmarks to My Data", () => {
-    expect(buildMyLearnaRedirectPath()).toBe("/my-data");
+const myLearnaRouteSource = readFileSync(join(process.cwd(), "app/(auth)/my-learna/page.tsx"), "utf8");
+const myDataRouteSource = readFileSync(join(process.cwd(), "app/(auth)/my-data/page.tsx"), "utf8");
+
+describe("My Learna canonical route", () => {
+  it("renders the authenticated My Learna workspace", () => {
+    expect(myLearnaRouteSource).toContain("CleanLearnaWorkspace");
+    expect(myLearnaRouteSource).not.toContain("redirect(");
   });
 
-  it("preserves learner context and other query parameters", () => {
+  it("redirects legacy My Data bookmarks to My Learna", () => {
+    expect(myDataRouteSource).toContain("redirect(buildMyDataRedirectPath");
+    expect(buildMyDataRedirectPath()).toBe("/my-learna");
+  });
+
+  it("preserves multiple and repeated query parameters", () => {
     expect(
-      buildMyLearnaRedirectPath({
-        learner: "learner-123",
-        view: "progress",
+      buildMyDataRedirectPath({
+        learnerId: "learner-123",
+        subject: "mathematics",
         tag: ["a", "b"],
       }),
-    ).toBe("/my-data?learner=learner-123&view=progress&tag=a&tag=b");
+    ).toBe("/my-learna?learnerId=learner-123&subject=mathematics&tag=a&tag=b");
   });
 });

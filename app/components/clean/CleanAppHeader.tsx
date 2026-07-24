@@ -68,9 +68,9 @@ const communityNavItem: HeaderNavItem = {
 };
 
 const dataNavItem: HeaderNavItem = {
-  label: "My Data",
-  href: "/my-data",
-  matches: ["/my-data", "/my-curriculum", "/clean-my-curriculum"],
+  label: "My Learna",
+  href: "/my-learna",
+  matches: ["/my-learna", "/my-data", "/my-curriculum", "/clean-my-curriculum"],
 };
 
 function matchesPath(pathname: string, candidate: string) {

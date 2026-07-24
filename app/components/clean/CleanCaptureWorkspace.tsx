@@ -686,7 +686,7 @@ function CleanCaptureWorkspaceBody() {
   );
   const curriculumReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-curriculum"
-    : "/my-data";
+    : "/my-learna";
   const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-pathways"
     : "/my-pathways";
@@ -2356,7 +2356,7 @@ function CleanCaptureWorkspaceBody() {
                     ))}
                   </div>
                   <div className="mylearna-capture-context-detail" style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    This connection supports My Pathways, My Data, Portfolio and Reports.
+                    This connection supports My Pathways, My Learna, Portfolio and Reports.
                   </div>
                   {worksheetEvidenceMode ? (
                     <div className="mylearna-capture-context-detail"
@@ -2414,7 +2414,7 @@ function CleanCaptureWorkspaceBody() {
                     ))}
                   </div>
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    This connection helps build My Data and Reports.
+                    This connection helps build My Learna and Reports.
                   </div>
                 </div>
               ) : null}
@@ -3420,7 +3420,7 @@ function CleanCaptureWorkspaceBody() {
                         style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
                         onClick={() => router.push(curriculumReturnPath)}
                       >
-                        Back to My Data
+                        Back to My Learna
                       </button>
                     </div>
                   ) : null}

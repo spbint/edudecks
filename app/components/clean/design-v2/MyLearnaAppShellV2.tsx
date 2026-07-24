@@ -28,7 +28,7 @@ export const v2Tokens = {
   shadow: "0 6px 18px rgba(23, 32, 75, 0.05)",
 };
 
-type ProductNavIconName = "sun" | "calendar" | "route" | "camera" | "folder" | "chart" | "file" | "gear";
+type ProductNavIconName = "sun" | "calendar" | "route" | "camera" | "folder" | "chart" | "file" | "gear" | "learner";
 
 type ProductNavItem = {
   href: string;
@@ -79,7 +79,7 @@ export const finalProductNavSections = [
   {
     label: "GROW",
     items: [
-      { href: "/my-data", label: "My Data", shortLabel: "Data", icon: "chart", matches: ["/my-data", "/my-curriculum", "/curriculum", "/my-learna"] },
+      { href: "/my-learna", label: "My Learna", shortLabel: "Learna", icon: "learner", matches: ["/my-learna", "/my-data", "/my-curriculum", "/curriculum"] },
       { href: "/my-reports", label: "My Reports", shortLabel: "Reports", icon: "file", matches: ["/my-reports", "/reports"] },
     ],
   },
@@ -367,12 +367,12 @@ export function getMobilePrefetchDestinations(activeSection: MobileNavKey): stri
     destinations.add("/my-capture");
     destinations.add("/my-portfolio");
   } else if (activeSection === "GROW") {
-    destinations.add("/my-data");
+    destinations.add("/my-learna");
     destinations.add("/my-reports");
   } else {
     destinations.add("/my-calendar");
     destinations.add("/my-capture");
-    destinations.add("/my-data");
+    destinations.add("/my-learna");
   }
   return [...destinations];
 }
@@ -1216,7 +1216,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         {[
           { href: "/my-calendar", icon: "calendar" as const, label: "Plan", section: "PLAN" as const },
           { href: "/my-capture", icon: "camera" as const, label: "Capture", section: "CAPTURE" as const },
-          { href: "/my-data", icon: "chart" as const, label: "Grow", section: "GROW" as const },
+          { href: "/my-learna", icon: "learner" as const, label: "Grow", section: "GROW" as const },
         ].map((item) => (
           <Link
             key={item.label}

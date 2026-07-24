@@ -26,7 +26,7 @@ const feedbackPages: FeedbackPage[] = [
   { key: "my-pathways", title: "My Pathways", matches: ["/my-pathways", "/clean-my-pathways"] },
   { key: "my-capture", title: "My Capture", matches: ["/my-capture", "/clean-my-capture"] },
   { key: "my-portfolio", title: "My Portfolio", matches: ["/my-portfolio", "/clean-my-portfolio"] },
-  { key: "my-curriculum", title: "My Data", matches: ["/my-data", "/my-curriculum", "/clean-my-curriculum"] },
+  { key: "my-learna", title: "My Learna", matches: ["/my-learna", "/my-data", "/my-curriculum", "/clean-my-curriculum"] },
   { key: "my-reports", title: "My Reports", matches: ["/my-reports", "/clean-my-reports"] },
   { key: "my-community", title: "My Community", matches: ["/my-community"] },
   { key: "my-profile", title: "My Profile", matches: ["/my-profile"] },
