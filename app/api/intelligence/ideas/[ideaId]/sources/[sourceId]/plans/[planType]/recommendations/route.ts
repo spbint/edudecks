@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getIntelligenceServerContext } from "@/lib/intelligence/serverAuth";
 import { isLearningPlanType } from "@/lib/intelligence/plans/generator";
-import { isRecommendationDebugEnabled, isRecommendationEngineEnabled } from "@/lib/intelligence/featureFlags";
+import { isRecommendationDebugEnabled, isRecommendationEngineEnabled, isShopifyCommerceEnabled } from "@/lib/intelligence/featureFlags";
 import {
   createSupabaseApprovedPlanRevisionRepository,
   createSupabaseFamilyOwnedResourceRepository,
@@ -10,6 +10,9 @@ import {
 import { createRecommendationService, RecommendationServiceError } from "@/lib/intelligence/recommendations/service";
 import type { LearningPlanType } from "@/lib/intelligence/plans/types";
 import type { RecommendationInteractionEventType } from "@/lib/intelligence/recommendations/types";
+import { createShopifyStorefrontProvider } from "@/lib/intelligence/commerce/shopify";
+import { createCommerceRecommendationService } from "@/lib/intelligence/commerce/service";
+import { createSupabaseCommerceEventRepository, createSupabaseCommerceMappingRepository } from "@/lib/intelligence/commerce/repository";
 
 export const runtime = "nodejs";
 
@@ -52,6 +55,20 @@ function createService(client: Parameters<typeof createSupabaseApprovedPlanRevis
   });
 }
 
+async function commerceFor(result: Awaited<ReturnType<ReturnType<typeof createService>["getForUser"]>>, client: Parameters<typeof createSupabaseApprovedPlanRevisionRepository>[0]) {
+  if (!isShopifyCommerceEnabled()) return { provider: "shopify" as const, status: "disabled" as const, products: [], exclusions: [], unmatchedResourceKeys: [], generatedAt: new Date().toISOString() };
+  return createCommerceRecommendationService({ provider: createShopifyStorefrontProvider(), mappings: createSupabaseCommerceMappingRepository(client) }).getForRecommendationResult(result, String(process.env.SHOPIFY_REGION || "AU"));
+}
+
+async function recordDemandEvents(userId: string, snapshot: Awaited<ReturnType<ReturnType<typeof createSupabaseApprovedPlanRevisionRepository>["getApprovedRevisionForUser"]>>, result: Awaited<ReturnType<ReturnType<typeof createService>["getForUser"]>>, commerce: Awaited<ReturnType<typeof commerceFor>>, client: Parameters<typeof createSupabaseApprovedPlanRevisionRepository>[0]) {
+  if (!snapshot || !isShopifyCommerceEnabled()) return;
+  const events = createSupabaseCommerceEventRepository(client);
+  const demand = result.recommendations.filter((item) => item.resourceClassification === "missing_essential" || item.resourceClassification === "optional_extension").slice(0, 25).map((item) => events.recordForUser(userId, { planId: snapshot.planId, revisionId: snapshot.revisionId, revisionNumber: snapshot.revisionNumber, eventType: "resource_requested", provider: "shopify", productId: null, resourceKey: item.resourceKey, metadata: { source: "approved_learning_plan" } }));
+  const products = commerce.products.slice(0, 25).map((item) => events.recordForUser(userId, { planId: snapshot.planId, revisionId: snapshot.revisionId, revisionNumber: snapshot.revisionNumber, eventType: "product_recommended", provider: "shopify", productId: item.product.providerProductId, resourceKey: item.resourceKey, metadata: { required: item.required } }));
+  const unmatched = commerce.unmatchedResourceKeys.slice(0, 25).map((resourceKey) => events.recordForUser(userId, { planId: snapshot.planId, revisionId: snapshot.revisionId, revisionNumber: snapshot.revisionNumber, eventType: "no_suitable_product_found", provider: "shopify", productId: null, resourceKey, metadata: {} }));
+  await Promise.all([...demand, ...products, ...unmatched].map((event) => event.catch(() => undefined)));
+}
+
 export async function GET(request: Request, context: RouteContext) {
   const { ideaId, sourceId, planType: planTypeValue } = await context.params;
   const scoped = await contextFor(planTypeValue);
@@ -65,7 +82,9 @@ export async function GET(request: Request, context: RouteContext) {
     const service = createService(scoped.auth.client);
     const result = await service.getForUser(scoped.auth.user.id, snapshot, new URL(request.url).searchParams.get("includeDismissed") === "1");
     const includeDebug = new URL(request.url).searchParams.get("debug") === "1" && debugAllowed(scoped.auth.user);
-    return NextResponse.json({ ...result, debug: includeDebug ? result.debug : undefined, ownedRevision: { planId: snapshot.planId, revisionId: snapshot.revisionId, revisionNumber: snapshot.revisionNumber } });
+    const commerce = await commerceFor(result, scoped.auth.client);
+    await recordDemandEvents(scoped.auth.user.id, snapshot, result, commerce, scoped.auth.client);
+    return NextResponse.json({ ...result, commerce, debug: includeDebug ? result.debug : undefined, ownedRevision: { planId: snapshot.planId, revisionId: snapshot.revisionId, revisionNumber: snapshot.revisionNumber } });
   } catch (error) {
     return responseForError(error);
   }

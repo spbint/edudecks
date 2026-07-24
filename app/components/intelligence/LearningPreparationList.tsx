@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { V2Card, V2PageHeader, v2Tokens } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
 import type { FamilyOwnedResource, LearningRecommendation, RecommendationDebugInfo, RecommendationInteractionEventType } from "@/lib/intelligence/recommendations/types";
+import type { CommerceEventType, CommerceProductCandidate, CommerceResult, LearningBasket } from "@/lib/intelligence/commerce/types";
 import type { LearningPlanType } from "@/lib/intelligence/plans/types";
 import RecommendationDebugView from "./RecommendationDebugView";
 
@@ -11,12 +12,19 @@ type RecommendationPayload = {
   dismissedRecommendations?: LearningRecommendation[];
   ownedRevision?: { planId: string; revisionId: string; revisionNumber: number };
   debug?: RecommendationDebugInfo;
+  commerce?: CommerceResult;
   error?: string;
 };
 
 function endpoint(ideaId: string, sourceId: string, planType: LearningPlanType, planId: string, revision: number, includeDismissed = false) {
   return `/api/intelligence/ideas/${encodeURIComponent(ideaId)}/sources/${encodeURIComponent(sourceId)}/plans/${planType}/recommendations?planId=${encodeURIComponent(planId)}&revision=${revision}&includeDismissed=${includeDismissed ? "1" : "0"}&debug=1`;
 }
+
+function basketEndpoint(ideaId: string, sourceId: string, planType: LearningPlanType, planId: string, revision: number) {
+  return `/api/intelligence/basket?ideaId=${encodeURIComponent(ideaId)}&sourceId=${encodeURIComponent(sourceId)}&planType=${planType}&planId=${encodeURIComponent(planId)}&revision=${revision}`;
+}
+
+function commerceEventEndpoint() { return "/api/intelligence/commerce/events"; }
 
 function groupFor(item: LearningRecommendation) {
   if (item.objectType === "learning_activity") return "Ready to use";
@@ -53,9 +61,30 @@ function RecommendationCard({ item, onAction }: { item: LearningRecommendation; 
   );
 }
 
+function CommerceProductCard({ item, onEvent, onAdd }: { item: CommerceProductCandidate; onEvent: (eventType: CommerceEventType, item: CommerceProductCandidate) => void; onAdd: (item: CommerceProductCandidate) => void }) {
+  return (
+    <article style={{ border: `1px solid ${v2Tokens.border}`, borderRadius: 12, padding: 12, display: "grid", gap: 7, background: "#fff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+        <strong style={{ color: v2Tokens.navy }}>{item.product.title}</strong>
+        <span style={{ color: v2Tokens.slate, fontSize: 12 }}>{item.required ? "Essential resource" : "Optional extension"}</span>
+      </div>
+      {item.product.imageUrl ? <div role="img" aria-label={`${item.product.title} preview`} style={{ width: 96, height: 72, borderRadius: 8, backgroundImage: `url(${JSON.stringify(item.product.imageUrl)})`, backgroundSize: "cover", backgroundPosition: "center" }} /> : null}
+      <span style={{ color: v2Tokens.slate, fontSize: 14 }}>{item.product.summary || item.parentReadableReason}</span>
+      <span style={{ color: v2Tokens.slate, fontSize: 13 }}>{item.parentReadableReason}</span>
+      <span style={{ color: v2Tokens.navy, fontWeight: 600 }}>{item.product.price.currency} {item.product.price.amount.toFixed(2)} · {item.product.fulfilmentType.replaceAll("_", " ")}</span>
+      <span style={{ color: v2Tokens.slate, fontSize: 12 }}>{item.product.availability === "available" ? "Available in your region" : "Unavailable"}. {item.product.disclosure}</span>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <a href={item.product.productUrl} target="_blank" rel="noreferrer" onClick={() => { onEvent("product_opened", item); onEvent("product_clicked", item); onEvent("outbound_shopify_click", item); }}>View product</a>
+        <button type="button" onClick={() => onAdd(item)}>Add to learning basket</button>
+      </div>
+    </article>
+  );
+}
+
 export default function LearningPreparationList({ ideaId, sourceId, planType, planId, revision }: { ideaId: string; sourceId: string; planType: LearningPlanType; planId: string; revision: number }) {
   const [payload, setPayload] = useState<RecommendationPayload | null>(null);
   const [ownedResources, setOwnedResources] = useState<FamilyOwnedResource[]>([]);
+  const [basket, setBasket] = useState<LearningBasket | null>(null);
   const [showDismissed, setShowDismissed] = useState(false);
   const [resourceName, setResourceName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,12 +105,45 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
       if (!recommendationsResponse.ok) throw new Error(recommendations.error || "We could not load this preparation list.");
       setPayload(recommendations);
       setOwnedResources(resources.resources ?? []);
+      if (recommendations.commerce?.status === "ready") {
+        const basketResponse = await fetch(basketEndpoint(ideaId, sourceId, planType, planId, revision), { cache: "no-store" });
+        if (basketResponse.ok) setBasket((await basketResponse.json() as { basket?: LearningBasket }).basket ?? null);
+      } else setBasket(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "We could not load this preparation list.");
     } finally {
       setLoading(false);
     }
   }, [ideaId, planId, planType, revision, showDismissed, sourceId]);
+
+  const commerceEvent = useCallback(async (eventType: CommerceEventType, item: CommerceProductCandidate) => {
+    await fetch(commerceEventEndpoint(), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ideaId, sourceId, planType, planId, revision, eventType, productId: item.product.providerProductId, resourceKey: item.resourceKey }) }).catch(() => undefined);
+  }, [ideaId, planId, planType, revision, sourceId]);
+
+  async function addToBasket(item: CommerceProductCandidate) {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(basketEndpoint(ideaId, sourceId, planType, planId, revision), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ideaId, sourceId, planType, planId, revision, commerceRecommendationId: item.commerceRecommendationId, quantity: 1 }) });
+      const result = await response.json() as { basket?: LearningBasket; error?: string };
+      if (!response.ok || !result.basket) throw new Error(result.error || "We could not add that product to your learning basket.");
+      setBasket(result.basket);
+      await commerceEvent("product_added", item);
+    } catch (addError) { setError(addError instanceof Error ? addError.message : "We could not add that product to your learning basket."); }
+    finally { setBusy(false); }
+  }
+
+  async function removeFromBasket(item: LearningBasket["items"][number]) {
+    if (!basket) return;
+    setBusy(true);
+    try {
+      const response = await fetch(basketEndpoint(ideaId, sourceId, planType, planId, revision), { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ ideaId, sourceId, planType, planId, revision, basketId: basket.id, itemId: item.id }) });
+      const result = await response.json() as { basket?: LearningBasket; error?: string };
+      if (!response.ok || !result.basket) throw new Error(result.error || "We could not remove that basket item.");
+      setBasket(result.basket);
+    } catch (removeError) { setError(removeError instanceof Error ? removeError.message : "We could not remove that basket item."); }
+    finally { setBusy(false); }
+  }
 
   useEffect(() => { void load(); }, [load]);
 
@@ -94,7 +156,8 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ recommendationId: item.recommendationId, eventType: "impression", resourceKey: item.resourceKey }),
     }))).catch(() => undefined);
-  }, [ideaId, payload, planId, planType, revision, sourceId]);
+    void Promise.all((payload.commerce?.products ?? []).slice(0, 20).map((item) => commerceEvent("product_impression", item))).catch(() => undefined);
+  }, [commerceEvent, ideaId, payload, planId, planType, revision, sourceId]);
 
   async function action(eventType: RecommendationInteractionEventType, item: LearningRecommendation) {
     setBusy(true);
@@ -162,6 +225,17 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
           <div style={{ display: "grid", gap: 10 }}>{items.map((item) => <RecommendationCard key={item.recommendationId} item={item} onAction={action} />)}</div>
         </V2Card>
       ))}
+      {payload.commerce?.status === "unavailable" ? <V2Card><p role="status" style={{ margin: 0, color: v2Tokens.slate }}>Shopping options are temporarily unavailable. Your learning and free alternatives are still ready.</p></V2Card> : null}
+      {payload.commerce?.products.length ? <V2Card>
+        <h2 style={{ marginTop: 0 }}>Learning resources from Shopify</h2>
+        <p style={{ color: v2Tokens.slate }}>Shopping is optional and appears only after learning, preparation, owned resources, and free alternatives.</p>
+        <div style={{ display: "grid", gap: 10 }}>{payload.commerce.products.map((item) => <CommerceProductCard key={item.commerceRecommendationId} item={item} onEvent={commerceEvent} onAdd={addToBasket} />)}</div>
+      </V2Card> : null}
+      {basket?.items.length ? <V2Card>
+        <h2 style={{ marginTop: 0 }}>Learning basket</h2>
+        <p style={{ color: v2Tokens.slate }}>This is a preparation basket only. Checkout is not available yet.</p>
+        <div style={{ display: "grid", gap: 8 }}>{basket.items.map((item) => <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}><span>{item.title} × {item.quantity} · {item.priceSnapshot.currency} {item.priceSnapshot.amount.toFixed(2)}</span><button type="button" disabled={busy} onClick={() => void removeFromBasket(item)}>Remove</button></div>)}</div>
+      </V2Card> : null}
       {!payload.recommendations.length ? <V2Card><p style={{ margin: 0, color: v2Tokens.slate }}>Nothing else needs preparation right now.</p></V2Card> : null}
       <V2Card>
         <button type="button" onClick={() => setShowDismissed((current) => !current)}>{showDismissed ? "Hide dismissed items" : "Show dismissed items"}</button>
