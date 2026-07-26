@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
-import { contentOf, planSelect, tableFor, toDraft, type PlanRow } from "@/lib/intelligence/plans/repository";
+import { contentOf, planSelect, sourceIdsContainsValue, tableFor, toDraft, type PlanRow } from "@/lib/intelligence/plans/repository";
 import type {
   ApprovedPlanRevisionRepository,
   FamilyOwnedResource,
@@ -52,7 +52,7 @@ export function createSupabaseApprovedPlanRevisionRepository(client: QueryClient
         .eq("id", planId)
         .eq("idea_id", ideaId)
         .eq("status", "saved")
-        .contains("source_ids", [sourceId])
+        .contains("source_ids", sourceIdsContainsValue(sourceId))
         .limit(20);
       if (planResponse.error) throw errorMessage(planResponse.error, "We could not load the approved plan.");
       const rows = (planResponse.data ?? []) as PlanRow[];

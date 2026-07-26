@@ -173,6 +173,10 @@ export function planSelect(planType: LearningPlanType) {
   return `${planSelectCommon},${planType === "lesson" ? "duration_minutes" : "duration_count,duration_unit"},${planSelectTail}`;
 }
 
+export function sourceIdsContainsValue(sourceId: string) {
+  return JSON.stringify([sourceId]);
+}
+
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : String(value ?? "");
 }
@@ -349,7 +353,7 @@ export function createSupabaseLearningPlanRepository(
         .eq("user_id", userId)
         .eq("idea_id", ideaId)
         .eq("status", "draft")
-        .contains("source_ids", [sourceId])
+        .contains("source_ids", sourceIdsContainsValue(sourceId))
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();

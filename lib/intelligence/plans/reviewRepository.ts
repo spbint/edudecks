@@ -5,6 +5,7 @@ import {
   basePlanValues,
   contentOf,
   planSelect,
+  sourceIdsContainsValue,
   tableFor,
   toDraft,
   versionValues,
@@ -104,7 +105,7 @@ export function createSupabaseLearningPlanReviewRepository(
         .select(planSelect(planType))
         .eq("user_id", userId)
         .eq("idea_id", ideaId)
-        .contains("source_ids", [sourceId])
+        .contains("source_ids", sourceIdsContainsValue(sourceId))
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();

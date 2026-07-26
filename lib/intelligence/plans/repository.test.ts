@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createSupabaseLearningPlanRepository,
   planSelect,
+  sourceIdsContainsValue,
   toDraft,
   type PlanRow,
 } from "@/lib/intelligence/plans/repository";
@@ -61,16 +62,32 @@ describe("learning plan repository schema contracts", () => {
     expect(query.select).not.toHaveBeenCalledWith(expect.stringContaining("duration_minutes"));
   });
 
+  it("uses a JSON array for lesson and unit source_ids containment", async () => {
+    const lessonQuery = queryMock();
+    const lessonRepository = createSupabaseLearningPlanRepository(clientFor(lessonQuery));
+    await lessonRepository.getDraftForUser("user-1", "idea-1", "source-1", "lesson");
+    expect(lessonQuery.contains).toHaveBeenCalledWith("source_ids", sourceIdsContainsValue("source-1"));
+    expect(lessonQuery.contains).not.toHaveBeenCalledWith("source_ids", "source-1");
+
+    const unitQuery = queryMock();
+    const unitRepository = createSupabaseLearningPlanRepository(clientFor(unitQuery));
+    await unitRepository.getDraftForUser("user-1", "idea-1", "source-1", "unit");
+    expect(unitQuery.contains).toHaveBeenCalledWith("source_ids", sourceIdsContainsValue("source-1"));
+    expect(unitQuery.contains).not.toHaveBeenCalledWith("source_ids", "source-1");
+  });
+
   it("uses plan-specific fields for review lookups", async () => {
     const lessonQuery = queryMock();
     const lessonReview = createSupabaseLearningPlanReviewRepository(clientFor(lessonQuery));
     await lessonReview.getReviewPlanForUser("user-1", "idea-1", "source-1", "lesson");
     expect(lessonQuery.select).toHaveBeenCalledWith(planSelect("lesson"));
+    expect(lessonQuery.contains).toHaveBeenCalledWith("source_ids", sourceIdsContainsValue("source-1"));
 
     const unitQuery = queryMock();
     const unitReview = createSupabaseLearningPlanReviewRepository(clientFor(unitQuery));
     await unitReview.getReviewPlanForUser("user-1", "idea-1", "source-1", "unit");
     expect(unitQuery.select).toHaveBeenCalledWith(planSelect("unit"));
+    expect(unitQuery.contains).toHaveBeenCalledWith("source_ids", sourceIdsContainsValue("source-1"));
   });
 
   it("does not insert when the draft lookup fails", async () => {

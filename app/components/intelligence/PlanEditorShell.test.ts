@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PlanEditorShell from "@/app/components/intelligence/PlanEditorShell";
 import type { GeneratedPlanContent } from "@/lib/intelligence/plans/types";
@@ -22,5 +22,37 @@ describe("PlanEditorShell", () => {
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("makes saving, saved, approval, and secondary actions explicit", () => {
+    const content = makeContent();
+    const onSave = vi.fn();
+    const onApprove = vi.fn();
+    const { rerender } = render(React.createElement(PlanEditorShell, { content, status: "editing", dirty: true, saving: false, validation: null, safetyAcknowledged: false, onSafetyAcknowledgedChange: vi.fn(), onChange: vi.fn(), onSave, onValidate: vi.fn(), onApprove, onReturnToDraft: vi.fn(), onArchive: vi.fn(), onRegenerate: vi.fn(), sequenceEditor: React.createElement("div"), resourceEditor: React.createElement("div") }));
+
+    const save = screen.getByRole("button", { name: "Save draft" });
+    expect(save.tagName).toBe("BUTTON");
+    expect(save.className).toContain("plan-review-action-save");
+    expect(save.getAttribute("data-dirty")).toBe("true");
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByRole("button", { name: "Approve plan" }).className).toContain("plan-review-action-approve");
+    expect(screen.getByRole("button", { name: "Archive" }).className).toContain("plan-review-action-destructive");
+    const actionBar = screen.getByRole("region", { name: "Plan review actions" });
+    expect(actionBar).toBeTruthy();
+    expect(actionBar.querySelector(".plan-review-actions")).toBeTruthy();
+    expect(actionBar.querySelectorAll("button").length).toBe(6);
+
+    fireEvent.click(save);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    save.focus();
+    expect(document.activeElement).toBe(save);
+
+    rerender(React.createElement(PlanEditorShell, { content, status: "editing", dirty: true, saving: true, validation: null, safetyAcknowledged: false, onSafetyAcknowledgedChange: vi.fn(), onChange: vi.fn(), onSave, onValidate: vi.fn(), onApprove, onReturnToDraft: vi.fn(), onArchive: vi.fn(), onRegenerate: vi.fn(), sequenceEditor: React.createElement("div"), resourceEditor: React.createElement("div") }));
+    expect((screen.getByRole("button", { name: "Saving..." }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("status", { name: "Plan review status: Saving..." })).toBeTruthy();
+
+    rerender(React.createElement(PlanEditorShell, { content, status: "saved", dirty: false, saving: false, validation: null, safetyAcknowledged: false, onSafetyAcknowledgedChange: vi.fn(), onChange: vi.fn(), onSave, onValidate: vi.fn(), onApprove, onReturnToDraft: vi.fn(), onArchive: vi.fn(), onRegenerate: vi.fn(), sequenceEditor: React.createElement("div"), resourceEditor: React.createElement("div") }));
+    expect(screen.getByRole("button", { name: "Save draft" }).getAttribute("data-dirty")).toBe("false");
+    expect(screen.getByRole("status", { name: "Plan review status: All changes saved" })).toBeTruthy();
   });
 });
