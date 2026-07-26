@@ -20,6 +20,7 @@ vi.mock("@/lib/supabaseClient", () => ({
 import {
   DEFAULT_FAMILY_SETTINGS,
   describeSupabaseError,
+  isFamilyProfileSchemaContractError,
   loadFamilyProfile,
   upsertFamilyProfile,
 } from "@/lib/familySettings";
@@ -150,6 +151,15 @@ describe("family profile schema compatibility", () => {
       reporting_mode: "authority-ready",
     });
     expect(membershipQuery.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(cleanQuery.in).toHaveBeenCalledWith("id", ["family-clean"]);
+  });
+
+  it.each([
+    [{ code: "42703", status: 401, message: "column family_profiles.user_id does not exist" }],
+    [{ code: "PGRST204", status: 403, message: "Could not find the 'user_id' column of 'family_profiles' in the schema cache" }],
+    [{ code: "42703", message: 'relation "family_profiles" does not exist' }],
+  ])("does not classify auth or missing-table failures as schema contract errors", (error) => {
+    expect(isFamilyProfileSchemaContractError(error)).toBe(false);
   });
 
   it.each([
@@ -171,6 +181,20 @@ describe("family profile schema compatibility", () => {
     expect(mocks.from).toHaveBeenCalledTimes(1);
     expect(describeSupabaseError(error)).not.toBe("{}");
     expect(consoleError).toHaveBeenCalled();
+  });
+
+  it("retains Supabase code, status, details, and message in diagnostics", () => {
+    const description = describeSupabaseError({
+      code: "42501",
+      status: 403,
+      message: "permission denied",
+      details: "family policy rejected the request",
+    });
+
+    expect(description).toContain("42501");
+    expect(description).toContain("status 403");
+    expect(description).toContain("permission denied");
+    expect(description).toContain("family policy rejected the request");
   });
 
   it("preserves a successful legacy write without touching clean tables", async () => {
@@ -253,5 +277,21 @@ describe("family profile schema compatibility", () => {
     );
     expect(queries[4].chain.update.mock.calls[0][0]).not.toHaveProperty("user_id");
     expect(queries[4].chain.update.mock.calls[0][0]).not.toHaveProperty("owner_user_id");
+  });
+
+  it.each([
+    [{ status: 401, code: "42703", message: "Invalid JWT" }],
+    [{ status: 403, code: "PGRST204", message: "Forbidden" }],
+    [{ code: "42501", message: "permission denied for table family_profiles" }],
+  ])("preserves non-schema write failures without clean fallback", async (error) => {
+    mocks.getSession.mockResolvedValue({ data: { session: { user: { id: "user-1" } } } });
+    const queries = queueQueries([
+      { table: "family_profiles", chain: makeQuery({ data: [legacyProfile], error: null }, "direct-or") },
+      { table: "family_profiles", chain: makeQuery({ data: null, error }, "write") },
+    ]);
+
+    await expect(upsertFamilyProfile(settings)).rejects.toBe(error);
+    expect(mocks.from).toHaveBeenCalledTimes(2);
+    expect(queries[1].chain.update).toHaveBeenCalled();
   });
 });

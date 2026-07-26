@@ -74,5 +74,6 @@ describe("FamilyWorkspaceProvider compatibility failure handling", () => {
 
     await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
     expect(screen.getByTestId("error").textContent).toContain("last local snapshot");
+    expect(screen.getByTestId("error").textContent).toContain("bootstrap failed");
   });
 });

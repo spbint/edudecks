@@ -267,13 +267,21 @@ export function describeSupabaseError(error: unknown) {
   if (typeof error === "string") return error;
   if (typeof error === "object") {
     const row = error as Record<string, unknown>;
-    const message =
-      safeString(row.message) ||
-      safeString(row.details) ||
-      safeString(row.hint) ||
-      JSON.stringify(error);
+    const message = safeString(row.message);
     const code = safeString(row.code);
-    return code && !message.includes(code) ? `${code}: ${message}` : message;
+    const rawStatus = row.status ?? row.statusCode;
+    const status = rawStatus === undefined || rawStatus === null ? "" : String(rawStatus).trim();
+    const details = safeString(row.details);
+    const hint = safeString(row.hint);
+    const primary = message || details || hint || JSON.stringify(error);
+    const prefix = code && !primary.includes(code) ? `${code}: ${primary}` : primary;
+    const metadata = [
+      status ? `status ${status}` : "",
+      details && details !== primary ? `details: ${details}` : "",
+      hint && hint !== primary ? `hint: ${hint}` : "",
+    ].filter(Boolean);
+
+    return metadata.length ? `${prefix} (${metadata.join("; ")})` : prefix;
   }
   return String(error);
 }
@@ -295,13 +303,34 @@ export function summarizeSupabaseError(error: unknown) {
 
 export function isFamilyProfileSchemaContractError(error: unknown) {
   const summary = summarizeSupabaseError(error);
+  const status = Number(summary.status);
   const code = safeString(summary.code).toUpperCase();
-  if (code === "42703" || code === "PGRST204") return true;
 
   const message = [summary.message, summary.details, summary.hint]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+
+  if ([401, 403].includes(status) || ["42501", "42P01", "PGRST205"].includes(code)) {
+    return false;
+  }
+
+  if (
+    /\b(?:network|fetch failed|failed to fetch|timed? out|timeout|aborted?|connection reset|connection refused|econn|dns)\b/.test(
+      message,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    /\b(?:relation|table|view)\b.*\bdoes not exist\b/.test(message) ||
+    /\bcould not find .*\b(?:table|relation|view)\b.*\bschema cache\b/.test(message)
+  ) {
+    return false;
+  }
+
+  if (code === "42703" || code === "PGRST204") return true;
 
   return (
     /column\b.*\bdoes not exist/.test(message) ||
@@ -1089,7 +1118,7 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
     );
   } catch (error) {
     if (!isFamilyProfileSchemaContractError(error)) {
-      throw new Error(describeSupabaseError(error));
+      throw error;
     }
 
     profileSchema = "clean";
@@ -1200,7 +1229,7 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
     }
   }
 
-  throw new Error(describeSupabaseError(lastError));
+  throw lastError;
 }
 
 export async function saveFamilyProfile(settings: FamilySettings): Promise<void> {

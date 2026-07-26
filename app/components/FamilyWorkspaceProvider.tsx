@@ -26,6 +26,7 @@ import {
 import {
   DEFAULT_FAMILY_PROFILE,
   DEFAULT_FAMILY_SETTINGS,
+  describeSupabaseError,
   persistSettingsToLocalStorage,
   type FamilyProfileRow,
   type FamilySettings,
@@ -131,19 +132,24 @@ export function FamilyWorkspaceProvider({
         setWorkspace(nextWorkspace);
         setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
         setError(nextWorkspace.syncIssue ?? "");
-      } catch {
+      } catch (error) {
         if (generation !== requestGenerationRef.current) return;
         const fallback = buildLocalFamilyWorkspaceSnapshot();
+        const detail = describeSupabaseError(error);
+        const message =
+          detail && detail !== "Unknown Supabase error."
+            ? `Family workspace is using the last local snapshot. ${detail}`
+            : "Family workspace is using the last local snapshot.";
         setWorkspace((prev) => ({
           ...fallback,
           // Mark the attempted account as resolved even when bootstrap falls
           // back locally; otherwise accountTransition keeps loading true
           // forever for a first-load failure.
           userId: user?.id ?? prev.userId,
-          syncIssue: "Family workspace is using the last local snapshot.",
+          syncIssue: message,
         }));
         setActiveLearnerIdState(applyActiveLearner(fallback));
-        setError("Family workspace is using the last local snapshot.");
+        setError(message);
       } finally {
         if (generation === requestGenerationRef.current) {
           hasLoadedWorkspaceRef.current = true;

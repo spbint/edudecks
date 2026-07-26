@@ -138,6 +138,49 @@ describe("family workspace learner schema compatibility", () => {
     });
   });
 
+  it("does not merge a user-scoped student link from another family", async () => {
+    const familyLinks = makeQuery({
+      data: [{
+        id: "family-child-1",
+        family_profile_id: "family-clean",
+        child_id: "student-1",
+        created_at: "2026-07-25T00:00:00.000Z",
+      }],
+      error: null,
+    }, "order");
+    const parentLinks = makeQuery({
+      data: [{
+        id: "parent-link-1",
+        parent_user_id: "user-1",
+        student_id: "student-other-family",
+      }],
+      error: null,
+    }, "order");
+    const legacyLearners = makeQuery({ data: [], error: null }, "order");
+    const students = makeQuery({
+      data: [{
+        id: "student-1",
+        first_name: "In",
+        surname: "Family",
+        year_level: 2,
+      }],
+      error: null,
+    }, "in");
+
+    queueQueries([
+      { table: "family_profile_children", chain: familyLinks },
+      { table: "parent_student_links", chain: parentLinks },
+      { table: "learners", chain: legacyLearners },
+      { table: "students", chain: students },
+    ]);
+
+    const learners = await loadLinkedLearners("user-1", "family-clean");
+
+    expect(learners).toHaveLength(1);
+    expect(learners[0].id).toBe("student-1");
+    expect(students.in).toHaveBeenCalledWith("id", ["student-1"]);
+  });
+
   it("does not swallow learner RLS failures as a schema compatibility case", async () => {
     queueQueries([
       {

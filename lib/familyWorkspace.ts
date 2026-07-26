@@ -319,7 +319,7 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
 }
 
 async function ensureDatabaseFamilyProfile(userId: string) {
-  let profile = await withTimeout(loadFamilyProfile(), "load family profile");
+  let profile = await withTimeout(loadFamilyProfile(userId), "load family profile");
 
   if (!isDatabaseFamilyProfileId(profile.id)) {
     profile = await withTimeout(
@@ -590,9 +590,11 @@ export async function loadLinkedLearners(
 ): Promise<FamilyLearner[]> {
   const cleanFamilyProfileId = safe(familyProfileId);
   let links: FamilyProfileChildLinkRow[] = [];
+  let familyProfileChildScopeAvailable = false;
   if (cleanFamilyProfileId) {
     try {
       links = await loadFamilyProfileChildLinks(cleanFamilyProfileId);
+      familyProfileChildScopeAvailable = true;
     } catch (error) {
       // The clean schema resolves learners through learners.family_id. The
       // older bridge table is optional compatibility data in that mode.
@@ -608,10 +610,16 @@ export async function loadLinkedLearners(
       ? loadOptionalLegacyLearnerRows(cleanFamilyProfileId)
       : Promise.resolve([]),
   ]);
+  const familyChildIds = new Set(
+    links.map((link) => safe(link.child_id)).filter(Boolean),
+  );
+  const familyScopedParentLinks = familyProfileChildScopeAvailable
+    ? parentLinks.filter((link) => familyChildIds.has(safe(link.student_id)))
+    : [];
   const childIds = Array.from(
     new Set([
       ...links.map((link) => safe(link.child_id)).filter(Boolean),
-      ...parentLinks.map((link) => safe(link.student_id)).filter(Boolean),
+      ...familyScopedParentLinks.map((link) => safe(link.student_id)).filter(Boolean),
     ]),
   );
   const students = childIds.length ? await loadStudentRowsByIds(childIds) : [];
