@@ -6,11 +6,15 @@ const mocks = vi.hoisted(() => ({
   createPlanRepository: vi.fn(),
   createGenerator: vi.fn(),
   createService: vi.fn(),
+  getPlanRepositoryDiagnostic: vi.fn(),
 }));
 
 vi.mock("@/lib/intelligence/serverAuth", () => ({ getIntelligenceServerContext: mocks.getContext }));
 vi.mock("@/lib/intelligence/ideas/repository", () => ({ createSupabaseIdeasRepository: mocks.createIdeasRepository }));
-vi.mock("@/lib/intelligence/plans/repository", () => ({ createSupabaseLearningPlanRepository: mocks.createPlanRepository }));
+vi.mock("@/lib/intelligence/plans/repository", () => ({
+  createSupabaseLearningPlanRepository: mocks.createPlanRepository,
+  getPlanRepositoryDiagnostic: mocks.getPlanRepositoryDiagnostic,
+}));
 vi.mock("@/lib/intelligence/plans/generator", () => ({
   createDefaultLearningPlanGenerator: mocks.createGenerator,
   isLearningPlanType: (value: unknown) => value === "lesson" || value === "unit",
@@ -38,7 +42,55 @@ function request(body: unknown = { learnerAgeOrStage: "Ages 8-10" }) {
 describe("learning plan generation route", () => {
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_ENABLE_INTELLIGENCE_ENGINE;
+    vi.restoreAllMocks();
     vi.clearAllMocks();
+  });
+
+  it("logs sanitized repository diagnostics while keeping the API error generic", async () => {
+    process.env.NEXT_PUBLIC_ENABLE_INTELLIGENCE_ENGINE = "true";
+    const source = { id: "source-1", ideaId: "idea-1", userId: "user-1", url: "https://example.com" };
+    const sourceRepository = { getSourceForUser: vi.fn(async () => source) };
+    const repositoryError = Object.assign(new Error("column intelligence_lesson_plans.duration_minutes does not exist"), {
+      name: "LearningPlanRepositoryError",
+      operation: "lesson_insert",
+      planType: "lesson",
+      code: "42703",
+      details: "column lookup failed",
+      hint: "Check the lesson schema",
+      status: 400,
+    });
+    const service = { generateForUser: vi.fn(async () => { throw repositoryError; }) };
+    const diagnostic = {
+      operation: "lesson_insert",
+      planType: "lesson",
+      errorClass: "LearningPlanRepositoryError",
+      code: "42703",
+      message: "column intelligence_lesson_plans.duration_minutes does not exist",
+      details: "column lookup failed",
+      hint: "Check the lesson schema",
+      status: 400,
+    };
+    mocks.getPlanRepositoryDiagnostic.mockReturnValue(diagnostic);
+    mocks.getContext.mockResolvedValue({ user: { id: "user-1" }, client: {} });
+    mocks.createIdeasRepository.mockReturnValue(sourceRepository);
+    mocks.createPlanRepository.mockReturnValue({});
+    mocks.createGenerator.mockReturnValue({});
+    mocks.createService.mockReturnValue(service);
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await POST(request(), context("lesson"));
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      state: "failed",
+      error: "Plan generation failed.",
+      code: "failed",
+    });
+    expect(mocks.getPlanRepositoryDiagnostic).toHaveBeenCalledWith(repositoryError, {
+      operation: "generation",
+      planType: "lesson",
+    });
+    expect(log).toHaveBeenCalledWith("intelligence_plan_generation_failed", diagnostic);
   });
 
   it("hides the route when the feature is disabled", async () => {

@@ -9,10 +9,128 @@ import type {
   PersistedPlanInput,
 } from "@/lib/intelligence/plans/types";
 
+export type PlanRepositoryOperation =
+  | "draft_lookup"
+  | "lesson_insert"
+  | "unit_insert"
+  | "lesson_update"
+  | "unit_update"
+  | "version_insert"
+  | "compensating_delete"
+  | "review_lookup"
+  | "review_update"
+  | "approved_plan_lookup"
+  | "approved_version_lookup"
+  | "generation";
+
+export type PlanRepositoryDiagnostic = {
+  operation: PlanRepositoryOperation;
+  planType: LearningPlanType | null;
+  errorClass: string;
+  code: string | null;
+  message: string;
+  details: string | null;
+  hint: string | null;
+  status: number | null;
+};
+
+function diagnosticText(value: unknown, maxLength = 1_000) {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\b(?:authorization|bearer)\s*[:=]?\s*(?:bearer\s+)?[^\s,;]+/gi, "[REDACTED]")
+    .replace(/\b(?:access[_-]?token|api[_-]?key|password|secret|credential)\s*[:=]\s*[^\s,;]+/gi, "[REDACTED]")
+    .replace(/\b(?:https?|postgres(?:ql)?):\/\/[^\s]+/gi, "[REDACTED_URL]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED_EMAIL]")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, "[REDACTED_ID]")
+    .slice(0, maxLength);
+}
+
+function errorRecord(error: unknown): Record<string, unknown> {
+  return error && typeof error === "object" ? error as Record<string, unknown> : {};
+}
+
+function diagnosticStatus(error: Record<string, unknown>) {
+  const value = error.status ?? error.statusCode;
+  const status = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : NaN;
+  return Number.isFinite(status) ? status : null;
+}
+
+function diagnosticErrorClass(error: unknown) {
+  const name = errorRecord(error).name;
+  return diagnosticText(typeof name === "string" && name ? name : error instanceof Error ? error.name : "UnknownError", 120) || "UnknownError";
+}
+
+function isPlanRepositoryOperation(value: unknown): value is PlanRepositoryOperation {
+  return typeof value === "string" && [
+    "draft_lookup",
+    "lesson_insert",
+    "unit_insert",
+    "lesson_update",
+    "unit_update",
+    "version_insert",
+    "compensating_delete",
+    "review_lookup",
+    "review_update",
+    "approved_plan_lookup",
+    "approved_version_lookup",
+    "generation",
+  ].includes(value);
+}
+
+function isPlanType(value: unknown): value is LearningPlanType {
+  return value === "lesson" || value === "unit";
+}
+
+export function getPlanRepositoryDiagnostic(
+  error: unknown,
+  defaults: { operation?: PlanRepositoryOperation; planType?: LearningPlanType | null } = {},
+): PlanRepositoryDiagnostic {
+  const record = errorRecord(error);
+  const operation = isPlanRepositoryOperation(record.operation)
+    ? record.operation
+    : defaults.operation ?? "generation";
+  const planType = isPlanType(record.planType)
+    ? record.planType
+    : defaults.planType ?? null;
+  return {
+    operation,
+    planType,
+    errorClass: diagnosticErrorClass(error),
+    code: diagnosticText(record.code, 120) || null,
+    message: diagnosticText(record.message) || "Unexpected plan repository failure.",
+    details: diagnosticText(record.details) || null,
+    hint: diagnosticText(record.hint) || null,
+    status: diagnosticStatus(record),
+  };
+}
+
 export class LearningPlanRepositoryError extends Error {
-  constructor(message: string) {
-    super(message);
+  readonly operation: PlanRepositoryOperation;
+  readonly planType: LearningPlanType;
+  readonly code: string | null;
+  readonly details: string | null;
+  readonly hint: string | null;
+  readonly status: number | null;
+
+  constructor(
+    operation: PlanRepositoryOperation,
+    planType: LearningPlanType,
+    error: unknown,
+    fallbackMessage: string,
+  ) {
+    const diagnostic = getPlanRepositoryDiagnostic(error, { operation, planType });
+    super(diagnostic.message === "Unexpected plan repository failure."
+      ? diagnosticText(fallbackMessage) || diagnostic.message
+      : diagnostic.message);
     this.name = "LearningPlanRepositoryError";
+    this.operation = operation;
+    this.planType = planType;
+    this.code = diagnostic.code;
+    this.details = diagnostic.details;
+    this.hint = diagnostic.hint;
+    this.status = diagnostic.status;
+    Object.defineProperty(this, "cause", { value: error, enumerable: false, configurable: true });
   }
 }
 
@@ -155,8 +273,8 @@ export function toDraft(row: PlanRow, planType: LearningPlanType): LearningPlanD
   } as UnitPlan;
 }
 
-function assertUser(userId: string) {
-  if (!userId.trim()) throw new LearningPlanRepositoryError("A signed-in user is required.");
+function assertUser(userId: string, planType: LearningPlanType) {
+  if (!userId.trim()) throw new LearningPlanRepositoryError("draft_lookup", planType, null, "A signed-in user is required.");
 }
 
 export function tableFor(planType: LearningPlanType) {
@@ -202,11 +320,21 @@ export function versionValues(userId: string, planId: string, input: PersistedPl
   };
 }
 
-function repositoryError(error: unknown, fallback: string) {
-  const message = error && typeof error === "object" && "message" in error
-    ? stringValue((error as { message?: unknown }).message)
-    : "";
-  return new LearningPlanRepositoryError(message || fallback);
+function operationForInsert(planType: LearningPlanType): PlanRepositoryOperation {
+  return planType === "lesson" ? "lesson_insert" : "unit_insert";
+}
+
+function operationForUpdate(planType: LearningPlanType): PlanRepositoryOperation {
+  return planType === "lesson" ? "lesson_update" : "unit_update";
+}
+
+function repositoryError(
+  operation: PlanRepositoryOperation,
+  planType: LearningPlanType,
+  error: unknown,
+  fallback: string,
+) {
+  return new LearningPlanRepositoryError(operation, planType, error, fallback);
 }
 
 export function createSupabaseLearningPlanRepository(
@@ -214,7 +342,7 @@ export function createSupabaseLearningPlanRepository(
 ): LearningPlanRepository {
   return {
     async getDraftForUser(userId, ideaId, sourceId, planType) {
-      assertUser(userId);
+      assertUser(userId, planType);
       const response = await client
         .from(tableFor(planType))
         .select(planSelect(planType))
@@ -225,32 +353,38 @@ export function createSupabaseLearningPlanRepository(
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (response.error) throw repositoryError(response.error, "We could not load the current plan draft.");
+      if (response.error) throw repositoryError("draft_lookup", planType, response.error, "We could not load the current plan draft.");
       return response.data ? toDraft(response.data as PlanRow, planType) : null;
     },
 
     async createDraftForUser(userId, input) {
-      assertUser(userId);
+      assertUser(userId, input.planType);
       const table = tableFor(input.planType);
       const inserted = await client
         .from(table)
         .insert(basePlanValues(userId, input))
         .select(planSelect(input.planType))
         .single();
-      if (inserted.error || !inserted.data) throw repositoryError(inserted.error, "We could not save the generated plan draft.");
+      if (inserted.error || !inserted.data) {
+        throw repositoryError(operationForInsert(input.planType), input.planType, inserted.error, "We could not save the generated plan draft.");
+      }
 
       const row = inserted.data as PlanRow;
       const planId = stringValue(row.id);
       const version = await client.from("intelligence_plan_versions").insert(versionValues(userId, planId, input));
       if (version.error) {
-        await client.from(table).delete().eq("id", planId).eq("user_id", userId);
-        throw repositoryError(version.error, "We could not save the generated plan revision.");
+        const deleted = await client.from(table).delete().eq("id", planId).eq("user_id", userId);
+        if (deleted.error) {
+          const cleanupError = repositoryError("compensating_delete", input.planType, deleted.error, "The generated plan cleanup failed.");
+          console.error("intelligence_plan_repository_cleanup_failed", getPlanRepositoryDiagnostic(cleanupError));
+        }
+        throw repositoryError("version_insert", input.planType, version.error, "We could not save the generated plan revision.");
       }
       return toDraft(row, input.planType);
     },
 
     async createRevisionForUser(userId, currentDraft, input) {
-      assertUser(userId);
+      assertUser(userId, input.planType);
       const table = tableFor(input.planType);
       const planId = currentDraft.id;
       const updated = await client
@@ -262,10 +396,10 @@ export function createSupabaseLearningPlanRepository(
         .select(planSelect(input.planType))
         .single();
       if (updated.error || !updated.data) {
-        throw new LearningPlanRepositoryError("The current draft changed before regeneration completed. Please try again.");
+        throw repositoryError(operationForUpdate(input.planType), input.planType, updated.error, "The current draft changed before regeneration completed. Please try again.");
       }
       const version = await client.from("intelligence_plan_versions").insert(versionValues(userId, planId, input));
-      if (version.error) throw repositoryError(version.error, "We could not save the generated plan revision.");
+      if (version.error) throw repositoryError("version_insert", input.planType, version.error, "We could not save the generated plan revision.");
       return toDraft(updated.data as PlanRow, input.planType);
     },
   };

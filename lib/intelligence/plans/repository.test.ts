@@ -82,6 +82,34 @@ describe("learning plan repository schema contracts", () => {
     expect(query.insert).not.toHaveBeenCalled();
   });
 
+  it("preserves sanitized operation and Supabase metadata on repository errors", async () => {
+    const supabaseError = {
+      code: "42703",
+      message: "column intelligence_lesson_plans.duration_count does not exist for https://internal.example.test",
+      details: "schema cache detail for 123e4567-e89b-12d3-a456-426614174000",
+      hint: "password=do-not-log",
+      status: 400,
+    };
+    const query = queryMock({ data: null, error: supabaseError });
+    const repository = createSupabaseLearningPlanRepository(clientFor(query));
+
+    const caught = await repository
+      .getDraftForUser("user-1", "idea-1", "source-1", "lesson")
+      .catch((error: unknown) => error);
+
+    expect(caught).toMatchObject({
+      name: "LearningPlanRepositoryError",
+      operation: "draft_lookup",
+      planType: "lesson",
+      code: "42703",
+      message: "column intelligence_lesson_plans.duration_count does not exist for [REDACTED_URL]",
+      details: "schema cache detail for [REDACTED_ID]",
+      hint: "[REDACTED]",
+      status: 400,
+    });
+    expect((caught as Error & { cause?: unknown }).cause).toBe(supabaseError);
+  });
+
   it("maps lesson and unit duration columns without cross-reading fields", () => {
     const lesson = toDraft({
       id: "lesson-1",

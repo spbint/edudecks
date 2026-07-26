@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isIntelligenceEngineEnabled } from "@/lib/intelligence/featureFlags";
 import { getIntelligenceServerContext } from "@/lib/intelligence/serverAuth";
 import { createSupabaseIdeasRepository } from "@/lib/intelligence/ideas/repository";
-import { createSupabaseLearningPlanRepository } from "@/lib/intelligence/plans/repository";
+import { createSupabaseLearningPlanRepository, getPlanRepositoryDiagnostic } from "@/lib/intelligence/plans/repository";
 import { createDefaultLearningPlanGenerator, isLearningPlanType } from "@/lib/intelligence/plans/generator";
 import { createLearningPlanGenerationService, defaultGenerationCoordinator, PlanGenerationError } from "@/lib/intelligence/plans/service";
 import type { LearningPlanGenerationInput, LearningPlanType } from "@/lib/intelligence/plans/types";
@@ -34,6 +34,13 @@ function responseForError(error: unknown) {
     code: error.code,
     issues: error.issues,
   }, { status });
+}
+
+function logUnexpectedGenerationFailure(error: unknown, planType: LearningPlanType) {
+  console.error("intelligence_plan_generation_failed", getPlanRepositoryDiagnostic(error, {
+    operation: "generation",
+    planType,
+  }));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -118,6 +125,9 @@ export async function POST(request: Request, context: RouteContext) {
     });
     return NextResponse.json(result);
   } catch (error) {
+    if (!(error instanceof PlanGenerationError)) {
+      logUnexpectedGenerationFailure(error, scoped.planType);
+    }
     return responseForError(error);
   }
 }
