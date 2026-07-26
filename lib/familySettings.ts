@@ -138,6 +138,58 @@ const FAMILY_PROFILE_SELECT_COLUMNS = [
   "updated_at",
 ].join(",");
 
+type CleanFamilyProfileRow = {
+  id: string;
+  created_by_user_id: string;
+  display_name: string;
+  country_code?: string | null;
+  jurisdiction_code?: string | null;
+  curriculum_framework_id?: string | null;
+  reporting_mode?: string | null;
+  week_start?: string | null;
+  privacy_default?: string | null;
+  export_style?: string | null;
+  default_learner_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type CleanFamilyMemberRow = {
+  id: string;
+  family_id: string;
+  user_id: string;
+  role?: string | null;
+  created_by_user_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+const CLEAN_FAMILY_PROFILE_SELECT_COLUMNS = [
+  "id",
+  "created_by_user_id",
+  "display_name",
+  "country_code",
+  "jurisdiction_code",
+  "curriculum_framework_id",
+  "reporting_mode",
+  "week_start",
+  "privacy_default",
+  "export_style",
+  "default_learner_id",
+  "created_at",
+  "updated_at",
+].join(",");
+
+const CLEAN_FAMILY_MEMBER_SELECT_COLUMNS = [
+  "id",
+  "family_id",
+  "user_id",
+  "role",
+  "created_by_user_id",
+  "created_at",
+  "updated_at",
+].join(",");
+
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   family_display_name: "My family",
   preferred_market: "au",
@@ -210,14 +262,70 @@ async function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, label: strin
   }
 }
 
-function describeSupabaseError(error: unknown) {
+export function describeSupabaseError(error: unknown) {
   if (!error) return "Unknown Supabase error.";
   if (typeof error === "string") return error;
   if (typeof error === "object") {
     const row = error as Record<string, unknown>;
-    return safeString(row.message) || safeString(row.details) || safeString(row.hint) || JSON.stringify(error);
+    const message =
+      safeString(row.message) ||
+      safeString(row.details) ||
+      safeString(row.hint) ||
+      JSON.stringify(error);
+    const code = safeString(row.code);
+    return code && !message.includes(code) ? `${code}: ${message}` : message;
   }
   return String(error);
+}
+
+export function summarizeSupabaseError(error: unknown) {
+  const row = error && typeof error === "object"
+    ? (error as Record<string, unknown>)
+    : {};
+  const message = safeString(row.message) || safeString(row.error_description);
+
+  return {
+    code: safeString(row.code) || undefined,
+    status: row.status ?? row.statusCode ?? undefined,
+    message: message || describeSupabaseError(error),
+    details: safeString(row.details) || undefined,
+    hint: safeString(row.hint) || undefined,
+  };
+}
+
+export function isFamilyProfileSchemaContractError(error: unknown) {
+  const summary = summarizeSupabaseError(error);
+  const code = safeString(summary.code).toUpperCase();
+  if (code === "42703" || code === "PGRST204") return true;
+
+  const message = [summary.message, summary.details, summary.hint]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    /column\b.*\bdoes not exist/.test(message) ||
+    /could not find .*\bcolumn\b.*\bschema cache\b/.test(message) ||
+    /\bschema cache\b.*\bcolumn\b/.test(message)
+  );
+}
+
+export function isMissingRelationOrColumnError(error: unknown) {
+  const summary = summarizeSupabaseError(error);
+  const code = safeString(summary.code).toUpperCase();
+  if (code === "42P01" || code === "42703" || code === "PGRST204") return true;
+
+  const message = [summary.message, summary.details, summary.hint]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    /\brelation\b.*\bdoes not exist/.test(message) ||
+    /\btable\b.*\bdoes not exist/.test(message) ||
+    /column\b.*\bdoes not exist/.test(message) ||
+    /could not find .*\btable\b.*\bschema cache\b/.test(message)
+  );
 }
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
@@ -248,7 +356,7 @@ function defaultFrameworkIdForCountry(country: FamilyCountry | "") {
 
 function normalizeCountryCode(value: unknown) {
   const upper = safeString(value).toUpperCase();
-  if (upper === "US" || upper === "AU") return upper;
+  if (upper === "US" || upper === "AU" || upper === "GB") return upper;
   return "";
 }
 
@@ -268,12 +376,14 @@ function stateCodeToJurisdictionId(countryCode: string, stateCode: string) {
 function countryCodeToCountry(countryCode: string): FamilyCountry | "" {
   if (countryCode === "US") return "us";
   if (countryCode === "AU") return "au";
+  if (countryCode === "GB") return "uk";
   return "";
 }
 
 function countryCodeToMarket(countryCode: string, fallback: MarketKey): MarketKey {
   if (countryCode === "US") return "us";
   if (countryCode === "AU") return "au";
+  if (countryCode === "GB") return "uk";
   return fallback;
 }
 
@@ -680,7 +790,20 @@ export async function loadFamilyProfile(
       };
     }
   } catch (error) {
-    console.error("loadFamilyProfile failed", { userId, error });
+    if (isFamilyProfileSchemaContractError(error)) {
+      try {
+        const cleanProfile = await selectCleanFamilyProfileRow(userId, storedProfileId);
+        if (cleanProfile) return cleanProfile;
+      } catch (cleanError) {
+        console.error("loadFamilyProfile clean fallback failed", {
+          error: summarizeSupabaseError(cleanError),
+        });
+      }
+    } else {
+      console.error("loadFamilyProfile failed", {
+        error: summarizeSupabaseError(error),
+      });
+    }
   }
 
   return {
@@ -782,6 +905,172 @@ async function selectFamilyProfileRow(
   return profiles[0] ?? null;
 }
 
+function cleanReportingModeToLegacy(value: unknown): ReportingMode {
+  if (value === "compliance-support") return "authority-ready";
+  return asReportingMode(value);
+}
+
+function cleanFamilyProfileToLegacy(
+  row: CleanFamilyProfileRow,
+  fallbackUserId: string,
+): FamilyProfileRow {
+  const createdByUserId = safeString(row.created_by_user_id) || fallbackUserId;
+  const countryCode = normalizeCountryCode(row.country_code);
+  const mappedSettings = rowToSettings(
+    {
+      family_display_name: safeString(row.display_name),
+      preferred_market: countryCodeToMarket(countryCode, "au"),
+      country: countryCodeToCountry(countryCode),
+      curriculum_framework_id: safeString(row.curriculum_framework_id),
+      curriculum_jurisdiction_id: safeString(row.jurisdiction_code),
+      reporting_mode: cleanReportingModeToLegacy(row.reporting_mode),
+      week_start: asWeekStart(row.week_start),
+      evidence_privacy_default: asEvidencePrivacy(row.privacy_default),
+      portfolio_print_style: asPortfolioPrintStyle(row.export_style),
+      default_child_id: row.default_learner_id,
+    },
+    { defaultJurisdiction: false },
+  );
+
+  return {
+    ...DEFAULT_FAMILY_PROFILE,
+    ...mappedSettings,
+    id: safeString(row.id) || DEFAULT_FAMILY_PROFILE.id,
+    user_id: createdByUserId,
+    owner_user_id: createdByUserId,
+    created_at: safeString(row.created_at) || undefined,
+    updated_at: safeString(row.updated_at) || undefined,
+  };
+}
+
+function legacyCountryToCleanCode(value: FamilyCountry | "") {
+  if (value === "us") return "US";
+  if (value === "au") return "AU";
+  if (value === "uk") return "GB";
+  return null;
+}
+
+function legacyReportingModeToClean(value: ReportingMode) {
+  if (value === "progress-review") return "progress-review";
+  if (value === "authority-ready") return "compliance-support";
+  return "family-summary";
+}
+
+function toCleanFamilyProfilePayload(settings: FamilySettings, userId: string, existingId?: string | null) {
+  const country = asFamilyCountry(settings.country);
+  const payload = {
+    display_name:
+      safeString(settings.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
+    country_code: legacyCountryToCleanCode(country),
+    jurisdiction_code: safeString(settings.curriculum_jurisdiction_id) || null,
+    curriculum_framework_id:
+      safeString(settings.curriculum_framework_id) ||
+      defaultFrameworkIdForCountry(settings.country) ||
+      null,
+    reporting_mode: legacyReportingModeToClean(asReportingMode(settings.reporting_mode)),
+    week_start: asWeekStart(settings.week_start),
+    privacy_default: asEvidencePrivacy(settings.evidence_privacy_default),
+    export_style: asPortfolioPrintStyle(settings.portfolio_print_style),
+    default_learner_id: safeString(settings.default_child_id) || null,
+  };
+
+  return safeString(existingId)
+    ? payload
+    : { created_by_user_id: userId, ...payload };
+}
+
+async function selectCleanFamilyProfileRow(
+  userId: string,
+  preferredProfileId?: string | null,
+): Promise<FamilyProfileRow | null> {
+  const membershipResponse = await withTimeout(
+    supabase
+      .from("family_members")
+      .select(CLEAN_FAMILY_MEMBER_SELECT_COLUMNS)
+      .eq("user_id", userId),
+    "clean family_members select by user",
+    12000,
+  );
+
+  if (membershipResponse.error) throw membershipResponse.error;
+
+  const familyIds = Array.from(
+    new Set(
+    ((membershipResponse.data ?? []) as unknown as CleanFamilyMemberRow[])
+        .map((member) => safeString(member.family_id))
+        .filter(Boolean),
+    ),
+  );
+
+  if (!familyIds.length) return null;
+
+  const profileResponse = await withTimeout(
+    supabase
+      .from("family_profiles")
+      .select(CLEAN_FAMILY_PROFILE_SELECT_COLUMNS)
+      .in("id", familyIds),
+    "clean family_profiles select by membership",
+    12000,
+  );
+
+  if (profileResponse.error) throw profileResponse.error;
+
+  const profiles = ((profileResponse.data ?? []) as unknown as CleanFamilyProfileRow[])
+    .map((row) => cleanFamilyProfileToLegacy(row, userId));
+  if (!profiles.length) return null;
+
+  const preferredId = safeString(preferredProfileId);
+  return (
+    profiles.find((profile) => profile.id === preferredId) ??
+    (sortFamilyProfilesByRecency(profiles)[0] as FamilyProfileRow | undefined) ??
+    null
+  );
+}
+
+async function upsertCleanFamilyProfile(
+  settings: FamilySettings,
+  userId: string,
+  existingProfile?: FamilyProfileRow | null,
+): Promise<FamilyProfileRow> {
+  const cleanExisting = existingProfile === undefined
+    ? await selectCleanFamilyProfileRow(
+        userId,
+        safeString(loadStoredFamilySettingsSnapshot()?.id),
+      )
+    : existingProfile;
+  const payload = toCleanFamilyProfilePayload(
+    settings,
+    userId,
+    cleanExisting?.id,
+  );
+
+  const response = await withTimeout(
+    cleanExisting
+      ? supabase
+          .from("family_profiles")
+          .update(payload)
+          .eq("id", cleanExisting.id)
+          .select(CLEAN_FAMILY_PROFILE_SELECT_COLUMNS)
+          .maybeSingle()
+      : supabase
+          .from("family_profiles")
+          .insert(payload)
+          .select(CLEAN_FAMILY_PROFILE_SELECT_COLUMNS)
+          .single(),
+    "clean family_profiles write",
+  );
+
+  if (response.error) throw response.error;
+  if (!response.data) {
+    throw new Error("The clean family profile write returned no profile.");
+  }
+
+  return cleanFamilyProfileToLegacy(
+    response.data as unknown as CleanFamilyProfileRow,
+    userId,
+  );
+}
+
 export async function upsertFamilyProfile(settings: FamilySettings): Promise<FamilyProfileRow> {
   if (!hasSupabaseEnv) return { ...DEFAULT_FAMILY_PROFILE, ...settings };
 
@@ -790,10 +1079,34 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
   const authenticatedUserId = userId;
 
   const storedProfileId = safeString(loadStoredFamilySettingsSnapshot()?.id);
-  const existingProfile = await selectFamilyProfileRow(
-    authenticatedUserId,
-    storedProfileId,
-  ).catch(() => null);
+  let existingProfile: FamilyProfileRow | Partial<FamilyProfileRow> | null = null;
+  let profileSchema: "legacy" | "clean" = "legacy";
+
+  try {
+    existingProfile = await selectFamilyProfileRow(
+      authenticatedUserId,
+      storedProfileId,
+    );
+  } catch (error) {
+    if (!isFamilyProfileSchemaContractError(error)) {
+      throw new Error(describeSupabaseError(error));
+    }
+
+    profileSchema = "clean";
+    existingProfile = await selectCleanFamilyProfileRow(
+      authenticatedUserId,
+      storedProfileId,
+    );
+  }
+
+  if (profileSchema === "clean") {
+    return upsertCleanFamilyProfile(
+      settings,
+      authenticatedUserId,
+      existingProfile as FamilyProfileRow | null,
+    );
+  }
+
   const payload = toFamilyProfilePayload(settings, authenticatedUserId, existingProfile?.id);
 
   async function buildSavedProfile(row: unknown): Promise<FamilyProfileRow> {
@@ -852,6 +1165,10 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
   }
 
   lastError = writeResponse.error;
+  if (isFamilyProfileSchemaContractError(writeResponse.error)) {
+    return upsertCleanFamilyProfile(settings, authenticatedUserId);
+  }
+
   const message = describeSupabaseError(writeResponse.error).toLowerCase();
   if (!existingProfile && message.includes("duplicate")) {
     const duplicateProfile = await selectFamilyProfileRow(

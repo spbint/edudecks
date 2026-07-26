@@ -6,6 +6,8 @@ import {
   loadFamilyProfile,
   loadSettingsFromLocalStorage,
   persistSettingsToLocalStorage,
+  describeSupabaseError,
+  isMissingRelationOrColumnError,
   upsertFamilyProfile,
   type FamilyProfileRow,
   type FamilySettings,
@@ -80,6 +82,7 @@ type LegacyLearnerRow = {
   family_id?: string | null;
   first_name?: string | null;
   preferred_name?: string | null;
+  surname?: string | null;
   last_name?: string | null;
   year_level?: number | string | null;
   created_at?: string | null;
@@ -210,7 +213,7 @@ function normalizeStudentLabel(student: StudentRow) {
 function normalizeLegacyLearnerLabel(learner: LegacyLearnerRow) {
   const preferred = safe(learner.preferred_name);
   const firstName = safe(learner.first_name);
-  const lastName = safe(learner.last_name);
+  const lastName = safe(learner.surname || learner.last_name);
   const name = [preferred || firstName, lastName].filter(Boolean).join(" ").trim();
   return name || preferred || firstName || "Learner";
 }
@@ -364,7 +367,10 @@ async function loadOptionalParentStudentLinks(userId: string) {
   try {
     return await loadParentStudentLinks(userId);
   } catch (error) {
-    console.warn("loadParentStudentLinks skipped", error);
+    if (!isMissingRelationOrColumnError(error)) throw error;
+    console.warn("loadParentStudentLinks skipped", {
+      error: describeSupabaseError(error),
+    });
     return [] as ParentStudentLinkRow[];
   }
 }
@@ -401,6 +407,7 @@ async function loadLegacyLearnerRows(familyProfileId: string) {
   if (!familyProfileId) return [];
 
   const selectVariants = [
+    "id,family_id,first_name,preferred_name,surname,year_level,created_at,updated_at",
     "id,family_id,first_name,preferred_name,last_name,year_level,created_at,updated_at",
     "id,family_id,first_name,preferred_name,year_level,created_at,updated_at",
   ];
@@ -432,7 +439,10 @@ async function loadOptionalLegacyLearnerRows(familyProfileId: string) {
   try {
     return await loadLegacyLearnerRows(familyProfileId);
   } catch (error) {
-    console.warn("loadLegacyLearnerRows skipped", error);
+    if (!isMissingRelationOrColumnError(error)) throw error;
+    console.warn("loadLegacyLearnerRows skipped", {
+      error: describeSupabaseError(error),
+    });
     return [] as LegacyLearnerRow[];
   }
 }
@@ -579,9 +589,19 @@ export async function loadLinkedLearners(
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
   const cleanFamilyProfileId = safe(familyProfileId);
-  const links = cleanFamilyProfileId
-    ? await loadFamilyProfileChildLinks(cleanFamilyProfileId)
-    : [];
+  let links: FamilyProfileChildLinkRow[] = [];
+  if (cleanFamilyProfileId) {
+    try {
+      links = await loadFamilyProfileChildLinks(cleanFamilyProfileId);
+    } catch (error) {
+      // The clean schema resolves learners through learners.family_id. The
+      // older bridge table is optional compatibility data in that mode.
+      if (!isMissingRelationOrColumnError(error)) throw error;
+      console.warn("loadFamilyProfileChildLinks skipped", {
+        error: describeSupabaseError(error),
+      });
+    }
+  }
   const [parentLinks, legacyRows] = await Promise.all([
     loadOptionalParentStudentLinks(safe(userId)),
     cleanFamilyProfileId
@@ -651,7 +671,9 @@ export async function loadFamilyWorkspace(
       "load family profile",
     );
   } catch (error) {
-    console.error("loadFamilyProfile fallback", error);
+    console.error("loadFamilyProfile fallback", {
+      error: describeSupabaseError(error),
+    });
     syncIssue = "Family profile could not be loaded from the synced workspace.";
   }
 
@@ -664,7 +686,9 @@ export async function loadFamilyWorkspace(
         "load family learners",
       );
     } catch (error) {
-      console.error("loadLinkedLearners fallback", error);
+      console.error("loadLinkedLearners fallback", {
+        error: describeSupabaseError(error),
+      });
       learnerLoadFailed = true;
       syncIssue = "Learners could not be loaded from the synced family profile.";
     }

@@ -136,7 +136,10 @@ export function FamilyWorkspaceProvider({
         const fallback = buildLocalFamilyWorkspaceSnapshot();
         setWorkspace((prev) => ({
           ...fallback,
-          userId: prev.userId,
+          // Mark the attempted account as resolved even when bootstrap falls
+          // back locally; otherwise accountTransition keeps loading true
+          // forever for a first-load failure.
+          userId: user?.id ?? prev.userId,
           syncIssue: "Family workspace is using the last local snapshot.",
         }));
         setActiveLearnerIdState(applyActiveLearner(fallback));
