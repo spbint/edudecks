@@ -125,11 +125,34 @@ const input = {
 
 describe("Learning Plan generation service", () => {
   it("generates and persists a lesson draft", async () => {
+    const generator = makeGenerator();
     const repository = makeRepository();
-    const result = await createService(makeGenerator(), repository).generateForUser("user-1", "idea-1", makeSource(), input);
+    const result = await createService(generator, repository).generateForUser("user-1", "idea-1", makeSource(), input);
     expect(result.state).toBe("ready");
     expect(result.revision).toBe(1);
+    expect(generator.generateLessonPlan).toHaveBeenCalledOnce();
     expect(repository.createDraftForUser).toHaveBeenCalledOnce();
+  });
+
+  it("does not insert after a failed lookup and does not duplicate a later retry", async () => {
+    const repository: LearningPlanRepository = {
+      getDraftForUser: vi.fn()
+        .mockRejectedValueOnce(new Error("lesson lookup failed"))
+        .mockResolvedValue(null),
+      createDraftForUser: vi.fn(async () => makePlan()),
+      createRevisionForUser: vi.fn(async (_userId, _current, revisionInput) => makePlan(revisionInput.revision)),
+    };
+    const generator = makeGenerator();
+    const service = createService(generator, repository);
+
+    await expect(service.generateForUser("user-1", "idea-1", makeSource(), input))
+      .rejects.toThrow("lesson lookup failed");
+    expect(repository.createDraftForUser).not.toHaveBeenCalled();
+
+    const retry = await service.generateForUser("user-1", "idea-1", makeSource(), input);
+    expect(retry.state).toBe("ready");
+    expect(repository.createDraftForUser).toHaveBeenCalledOnce();
+    expect(generator.generateLessonPlan).toHaveBeenCalledOnce();
   });
 
   it("generates a unit draft through the unit adapter", async () => {

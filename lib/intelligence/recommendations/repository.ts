@@ -47,7 +47,7 @@ export function createSupabaseApprovedPlanRevisionRepository(client: QueryClient
       if (!Number.isInteger(revisionNumber) || revisionNumber < 1) throw new RecommendationRepositoryError("not_found", "An exact approved revision is required.");
       const planResponse = await client
         .from(tableFor(planType))
-        .select(planSelect)
+        .select(planSelect(planType))
         .eq("user_id", userId)
         .eq("id", planId)
         .eq("idea_id", ideaId)

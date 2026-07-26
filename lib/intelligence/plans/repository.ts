@@ -16,7 +16,7 @@ export class LearningPlanRepositoryError extends Error {
   }
 }
 
-export type PlanRow = {
+type PlanRowBase = {
   id?: unknown;
   user_id?: unknown;
   idea_id?: unknown;
@@ -25,9 +25,6 @@ export type PlanRow = {
   learning_area?: unknown;
   year_level?: unknown;
   objectives?: unknown;
-  duration_minutes?: unknown;
-  duration_count?: unknown;
-  duration_unit?: unknown;
   source_ids?: unknown;
   status?: unknown;
   current_version?: unknown;
@@ -37,7 +34,26 @@ export type PlanRow = {
   updated_at?: unknown;
 };
 
-export const planSelect = "id,user_id,idea_id,title,summary,learning_area,year_level,objectives,duration_minutes,duration_count,duration_unit,source_ids,status,current_version,provenance,content,created_at,updated_at";
+export type LessonPlanRow = PlanRowBase & {
+  duration_minutes?: unknown;
+  duration_count?: never;
+  duration_unit?: never;
+};
+
+export type UnitPlanRow = PlanRowBase & {
+  duration_minutes?: never;
+  duration_count?: unknown;
+  duration_unit?: unknown;
+};
+
+export type PlanRow = LessonPlanRow | UnitPlanRow;
+
+const planSelectCommon = "id,user_id,idea_id,title,summary,learning_area,year_level,objectives";
+const planSelectTail = "source_ids,status,current_version,provenance,content,created_at,updated_at";
+
+export function planSelect(planType: LearningPlanType) {
+  return `${planSelectCommon},${planType === "lesson" ? "duration_minutes" : "duration_count,duration_unit"},${planSelectTail}`;
+}
 
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : String(value ?? "");
@@ -201,7 +217,7 @@ export function createSupabaseLearningPlanRepository(
       assertUser(userId);
       const response = await client
         .from(tableFor(planType))
-        .select(planSelect)
+        .select(planSelect(planType))
         .eq("user_id", userId)
         .eq("idea_id", ideaId)
         .eq("status", "draft")
@@ -219,7 +235,7 @@ export function createSupabaseLearningPlanRepository(
       const inserted = await client
         .from(table)
         .insert(basePlanValues(userId, input))
-        .select(planSelect)
+        .select(planSelect(input.planType))
         .single();
       if (inserted.error || !inserted.data) throw repositoryError(inserted.error, "We could not save the generated plan draft.");
 
@@ -243,7 +259,7 @@ export function createSupabaseLearningPlanRepository(
         .eq("id", planId)
         .eq("user_id", userId)
         .eq("current_version", input.revision - 1)
-        .select(planSelect)
+        .select(planSelect(input.planType))
         .single();
       if (updated.error || !updated.data) {
         throw new LearningPlanRepositoryError("The current draft changed before regeneration completed. Please try again.");

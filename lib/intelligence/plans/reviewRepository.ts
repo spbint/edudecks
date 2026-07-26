@@ -101,7 +101,7 @@ export function createSupabaseLearningPlanReviewRepository(
       assertUser(userId);
       const response = await client
         .from(tableFor(planType))
-        .select(planSelect)
+        .select(planSelect(planType))
         .eq("user_id", userId)
         .eq("idea_id", ideaId)
         .contains("source_ids", [sourceId])
@@ -125,7 +125,7 @@ export function createSupabaseLearningPlanReviewRepository(
         .eq("id", current.plan.id)
         .eq("user_id", userId)
         .eq("current_version", expectedRevision)
-        .select(planSelect)
+        .select(planSelect(content.planType))
         .single();
       if (updated.error || !updated.data) {
         throw new PlanReviewRepositoryError("stale_revision", "This plan changed elsewhere. Reload before saving your edits.");
@@ -150,7 +150,7 @@ export function createSupabaseLearningPlanReviewRepository(
         .eq("id", current.plan.id)
         .eq("user_id", userId)
         .eq("current_version", expectedRevision)
-        .select(planSelect)
+        .select(planSelect(content.planType))
         .single();
       if (updated.error || !updated.data) {
         throw new PlanReviewRepositoryError("stale_revision", "This plan changed elsewhere. Reload before updating its status.");
