@@ -49,6 +49,7 @@ describe("PlanEditorShell", () => {
 
     rerender(React.createElement(PlanEditorShell, { content, status: "editing", dirty: true, saving: true, validation: null, safetyAcknowledged: false, onSafetyAcknowledgedChange: vi.fn(), onChange: vi.fn(), onSave, onValidate: vi.fn(), onApprove, onReturnToDraft: vi.fn(), onArchive: vi.fn(), onRegenerate: vi.fn(), sequenceEditor: React.createElement("div"), resourceEditor: React.createElement("div") }));
     expect((screen.getByRole("button", { name: "Saving..." }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Approve plan" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole("status", { name: "Plan review status: Saving..." })).toBeTruthy();
 
     rerender(React.createElement(PlanEditorShell, { content, status: "saved", dirty: false, saving: false, validation: null, safetyAcknowledged: false, onSafetyAcknowledgedChange: vi.fn(), onChange: vi.fn(), onSave, onValidate: vi.fn(), onApprove, onReturnToDraft: vi.fn(), onArchive: vi.fn(), onRegenerate: vi.fn(), sequenceEditor: React.createElement("div"), resourceEditor: React.createElement("div") }));

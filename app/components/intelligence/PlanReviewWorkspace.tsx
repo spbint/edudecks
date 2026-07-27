@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { V2Card, V2PageHeader, v2Tokens } from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
 import type { PlanProvenance } from "@/lib/intelligence/types";
 import type { GeneratedPlanContent, LearningPlanType, PlanWorkflowStatus } from "@/lib/intelligence/plans/types";
@@ -40,29 +40,56 @@ function provenanceRows(provenance: PlanProvenance, content: GeneratedPlanConten
   ];
 }
 
+function reviewSnapshot(content: GeneratedPlanContent, safetyAcknowledged: boolean) {
+  return JSON.stringify({ content, safetyAcknowledged });
+}
+
 export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { ideaId: string; sourceId: string; planType: LearningPlanType }) {
   const [envelope, setEnvelope] = useState<PlanReviewEnvelope | null>(null);
   const [content, setContent] = useState<GeneratedPlanContent | null>(null);
-  const [savedSnapshot, setSavedSnapshot] = useState("");
+  const [dirty, setDirty] = useState(false);
   const [safetyAcknowledged, setSafetyAcknowledged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
   const [validation, setValidation] = useState<ReviewValidationResult | null>(null);
+  const envelopeRef = useRef<PlanReviewEnvelope | null>(null);
+  const contentRef = useRef<GeneratedPlanContent | null>(null);
+  const safetyAcknowledgedRef = useRef(false);
+  const savedSnapshotRef = useRef("");
+  const dirtyRef = useRef(false);
+  const savingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   const endpoint = useMemo(() => urlFor(ideaId, sourceId, planType), [ideaId, sourceId, planType]);
-  const dirty = Boolean(content && savedSnapshot !== JSON.stringify({ content, safetyAcknowledged }));
 
   const applyEnvelope = useCallback((next: PlanReviewEnvelope) => {
     const nextContent = next.plan.content as unknown as GeneratedPlanContent;
     const nextSafety = next.review.safetyAcknowledged;
+    const nextSnapshot = reviewSnapshot(nextContent, nextSafety);
+    envelopeRef.current = next;
+    contentRef.current = nextContent;
+    safetyAcknowledgedRef.current = nextSafety;
+    savedSnapshotRef.current = nextSnapshot;
+    dirtyRef.current = false;
     setEnvelope(next);
     setContent(nextContent);
     setSafetyAcknowledged(nextSafety);
-    setSavedSnapshot(JSON.stringify({ content: nextContent, safetyAcknowledged: nextSafety }));
+    setDirty(false);
     setValidation(reviewValidation(next));
     setState(next.workflowStatus === "approved" ? "approved" : "saved");
+  }, []);
+
+  const updateContent = useCallback((update: (current: GeneratedPlanContent) => GeneratedPlanContent) => {
+    const current = contentRef.current;
+    if (!current) return;
+    const next = update(current);
+    contentRef.current = next;
+    dirtyRef.current = reviewSnapshot(next, safetyAcknowledgedRef.current) !== savedSnapshotRef.current;
+    setContent(next);
+    setDirty(dirtyRef.current);
+    setState("editing");
   }, []);
 
   const load = useCallback(async () => {
@@ -84,7 +111,13 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
   useEffect(() => { void load(); }, [load]);
 
   async function request(action: ReviewAction, options: { content?: GeneratedPlanContent; expectedRevision?: number; safety?: boolean } = {}) {
-    if (!envelope || !content) return null;
+    const currentEnvelope = envelopeRef.current;
+    const currentContent = contentRef.current;
+    if (!currentEnvelope || !currentContent) return null;
+    if (savingRef.current) return null;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    savingRef.current = true;
     setSaving(true);
     setError("");
     try {
@@ -93,12 +126,13 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           action,
-          expectedRevision: options.expectedRevision ?? envelope.currentRevision,
-          content: options.content,
-          safetyAcknowledged: options.safety ?? safetyAcknowledged,
+          expectedRevision: options.expectedRevision ?? currentEnvelope.currentRevision,
+          content: action === "save" ? options.content ?? currentContent : options.content,
+          safetyAcknowledged: options.safety ?? safetyAcknowledgedRef.current,
         }),
       });
       const payload = await response.json().catch(() => ({})) as PlanReviewEnvelope & { error?: string; code?: string; issues?: string[]; plan?: unknown; state?: string };
+      if (requestId !== requestIdRef.current) return null;
       if (!response.ok) {
         if (payload.code === "stale_revision") setState("stale_revision");
         else if (payload.code === "approval_blocked" || payload.code === "validation_failed") setState(payload.code);
@@ -113,29 +147,42 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
       }
       return payload;
     } catch (requestError) {
+      if (requestId !== requestIdRef.current) return null;
       setError(requestError instanceof Error ? requestError.message : "We could not update this plan.");
       return null;
     } finally {
-      setSaving(false);
+      if (requestId === requestIdRef.current) {
+        savingRef.current = false;
+        setSaving(false);
+      }
     }
   }
 
   async function saveIfDirty(): Promise<PlanReviewEnvelope | true | false> {
-    if (!dirty) return true;
-    const saved = await request("save", { content: content ?? undefined });
+    if (!dirtyRef.current) return true;
+    const saved = await request("save", { content: contentRef.current ?? undefined });
     return saved && "currentRevision" in saved ? saved as PlanReviewEnvelope : false;
   }
 
   async function validate() {
     const saved = await saveIfDirty();
     if (!saved) return;
-    await request("validate", { expectedRevision: saved === true ? envelope?.currentRevision : saved.currentRevision });
+    const currentEnvelope = envelopeRef.current;
+    await request("validate", { expectedRevision: saved === true ? currentEnvelope?.currentRevision : saved.currentRevision });
   }
 
   async function approve() {
     const saved = await saveIfDirty();
     if (!saved) return;
-    await request("approve", { expectedRevision: saved === true ? envelope?.currentRevision : saved.currentRevision, safety: safetyAcknowledged });
+    const currentEnvelope = envelopeRef.current;
+    await request("approve", { expectedRevision: saved === true ? currentEnvelope?.currentRevision : saved.currentRevision, safety: safetyAcknowledgedRef.current });
+  }
+
+  async function changeStatus(action: "return_to_draft" | "archive") {
+    const saved = await saveIfDirty();
+    if (!saved) return;
+    const currentEnvelope = envelopeRef.current;
+    await request(action, { expectedRevision: saved === true ? currentEnvelope?.currentRevision : saved.currentRevision });
   }
 
   if (loading) {
@@ -158,18 +205,26 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
           saving={saving}
           validation={validation}
           safetyAcknowledged={safetyAcknowledged}
-          onSafetyAcknowledgedChange={(value) => { setSafetyAcknowledged(value); setState("editing"); }}
-          onChange={(field, value) => { setContent((current) => current ? { ...current, [field]: value } : current); setState("editing"); }}
-          onSave={() => { void request("save", { content }); }}
+          onSafetyAcknowledgedChange={(value) => {
+            safetyAcknowledgedRef.current = value;
+            setSafetyAcknowledged(value);
+            if (contentRef.current) {
+              dirtyRef.current = reviewSnapshot(contentRef.current, value) !== savedSnapshotRef.current;
+              setDirty(dirtyRef.current);
+            }
+            setState("editing");
+          }}
+          onChange={(field, value) => { updateContent((current) => ({ ...current, [field]: value } as GeneratedPlanContent)); }}
+          onSave={() => { void request("save"); }}
           onValidate={() => { void validate(); }}
           onApprove={() => { void approve(); }}
-          onReturnToDraft={() => { void request("return_to_draft"); }}
-          onArchive={() => { void request("archive"); }}
+          onReturnToDraft={() => { void changeStatus("return_to_draft"); }}
+          onArchive={() => { void changeStatus("archive"); }}
           onRegenerate={() => { void request("regenerate"); }}
           sequenceEditor={planType === "lesson"
-            ? <LessonSequenceEditor values={content.sequence} onChange={(value) => setContent((current) => current ? { ...current, sequence: value } : current)} />
-            : <UnitSequenceEditor values={content.sequence} onChange={(value) => setContent((current) => current ? { ...current, sequence: value } : current)} />}
-          resourceEditor={<ResourceRequirementEditor values={content.resourceRequirements} onChange={(value) => setContent((current) => current ? { ...current, resourceRequirements: value } : current)} />}
+            ? <LessonSequenceEditor values={content.sequence} onChange={(value) => { updateContent((current) => ({ ...current, sequence: value })); }} />
+            : <UnitSequenceEditor values={content.sequence} onChange={(value) => { updateContent((current) => ({ ...current, sequence: value })); }} />}
+          resourceEditor={<ResourceRequirementEditor values={content.resourceRequirements} onChange={(value) => { updateContent((current) => ({ ...current, resourceRequirements: value })); }} />}
         />
         <div aria-label="Plan state" style={{ marginTop: 12, color: v2Tokens.slate, fontSize: 13 }}>Editor state: {state}</div>
       </V2Card>
