@@ -20,6 +20,8 @@ import type {
   SourcePreviewMetadata,
 } from "@/lib/intelligence/sources/types";
 import type { LearningPlanDraft, LearningPlanType, GeneratedPlanContent } from "@/lib/intelligence/plans/types";
+import type { PlanReviewEnvelope } from "@/lib/intelligence/plans/reviewTypes";
+import { isRecommendationEngineEnabled } from "@/lib/intelligence/featureFlags";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -84,6 +86,52 @@ function previewStatusLabel(status: SourceExtractionStatus | "pending") {
 
 function planContent(plan: LearningPlanDraft) {
   return plan.content as unknown as GeneratedPlanContent;
+}
+
+type PlanSummaryState = Partial<Record<LearningPlanType, PlanReviewEnvelope | null>>;
+
+function reviewUrl(ideaId: string, sourceId: string, planType: LearningPlanType) {
+  return `/api/intelligence/ideas/${encodeURIComponent(ideaId)}/sources/${encodeURIComponent(sourceId)}/plans/${planType}/review`;
+}
+
+function planStatusLabel(review: PlanReviewEnvelope) {
+  switch (review.workflowStatus) {
+    case "generated_draft": return "Draft generated";
+    case "editing": return "Editing";
+    case "ready_for_approval": return "Ready for approval";
+    case "approved": return "Approved";
+    case "returned_to_draft": return "Returned to draft";
+    case "archived": return "Archived";
+  }
+}
+
+function approvedRevision(review: PlanReviewEnvelope) {
+  const revision = review.provenance.finalApprovedVersion;
+  return review.workflowStatus === "approved" && typeof revision === "number" && Number.isInteger(revision) && revision > 0
+    ? revision
+    : review.currentRevision;
+}
+
+function reviewEnvelopeFromPlan(plan: LearningPlanDraft): PlanReviewEnvelope {
+  const content = planContent(plan);
+  const review = content.review ?? {
+    workflowStatus: "generated_draft" as const,
+    originalGeneratedRevision: content.generation.revision,
+    revisionKind: "generated" as const,
+    changedFields: [],
+    lastEditedAt: null,
+    lastEditedByUserId: null,
+    safetyAcknowledged: false,
+    validation: content.validation,
+  };
+  return {
+    plan,
+    workflowStatus: review.workflowStatus,
+    currentRevision: plan.version,
+    originalGeneratedRevision: review.originalGeneratedRevision,
+    review,
+    provenance: plan.provenance,
+  };
 }
 
 function ReadOnlyPlanPreview({ plan }: { plan: LearningPlanDraft }) {
@@ -172,10 +220,41 @@ export default function MyIdeasWorkspace({
   const [generatingSourceId, setGeneratingSourceId] = useState<string | null>(null);
   const [generationState, setGenerationState] = useState("");
   const [generationError, setGenerationError] = useState("");
-  const [generatedPlan, setGeneratedPlan] = useState<LearningPlanDraft | null>(null);
+  const [planSummaries, setPlanSummaries] = useState<Record<string, PlanSummaryState>>({});
+  const [planSummaryError, setPlanSummaryError] = useState("");
 
   const userId = user?.id ?? "";
   const formId = useMemo(() => "my-ideas-add-form", []);
+
+  const hydratePlanSummaries = useCallback(async (nextIdeas: Idea[]) => {
+    if (!userId) return;
+    const requests = nextIdeas.flatMap((idea) => {
+      const source = idea.sources[0];
+      if (!source) return [];
+      return (["lesson", "unit"] as const).map(async (type) => {
+        try {
+          const response = await fetch(reviewUrl(idea.id, source.id, type), { cache: "no-store" });
+          if (response.status === 404) return { ideaId: idea.id, type, value: null as PlanReviewEnvelope | null, failed: false };
+          if (!response.ok) return { ideaId: idea.id, type, value: undefined, failed: true };
+          const payload = await response.json().catch(() => ({})) as Partial<PlanReviewEnvelope>;
+          if (!payload.plan || !payload.review || !payload.provenance) return { ideaId: idea.id, type, value: undefined, failed: true };
+          return { ideaId: idea.id, type, value: payload as PlanReviewEnvelope, failed: false };
+        } catch {
+          return { ideaId: idea.id, type, value: undefined, failed: true };
+        }
+      });
+    });
+    const results = await Promise.all(requests);
+    const failed = results.some((result) => result.failed);
+    setPlanSummaries((current) => {
+      const next = { ...current };
+      for (const result of results) {
+        if (!result.failed) next[result.ideaId] = { ...(next[result.ideaId] ?? {}), [result.type]: result.value };
+      }
+      return next;
+    });
+    setPlanSummaryError(failed ? "Some saved plan details are temporarily unavailable. Try again to refresh." : "");
+  }, [userId]);
 
   const loadIdeas = useCallback(async () => {
     if (!userId) {
@@ -189,16 +268,25 @@ export default function MyIdeasWorkspace({
     try {
       const nextIdeas = await service.listForUser(userId);
       setIdeas(nextIdeas);
+      await hydratePlanSummaries(nextIdeas);
     } catch (error) {
       setLoadError(errorMessage(error, "We could not load your ideas."));
     } finally {
       setLoading(false);
     }
-  }, [service, userId]);
+  }, [hydratePlanSummaries, service, userId]);
 
   useEffect(() => {
     void loadIdeas();
   }, [loadIdeas]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (userId && ideas.length) void hydratePlanSummaries(ideas);
+    };
+    window.addEventListener("pageshow", refresh);
+    return () => window.removeEventListener("pageshow", refresh);
+  }, [hydratePlanSummaries, ideas, userId]);
 
   const fetchPreview = useCallback(async (idea: Idea) => {
     const source = idea.sources[0];
@@ -265,15 +353,19 @@ export default function MyIdeasWorkspace({
         setGenerationState(payload.state || "failed");
         throw new Error(payload.error || "We could not generate a plan draft.");
       }
-      setGeneratedPlan(payload.plan);
+      setPlanSummaries((current) => ({
+        ...current,
+        [idea.id]: { ...(current[idea.id] ?? {}), [planType]: reviewEnvelopeFromPlan(payload.plan!) },
+      }));
       setGenerationState("ready");
+      await hydratePlanSummaries([idea]);
     } catch (error) {
       setGenerationError(errorMessage(error, "We could not generate a plan draft."));
       setGenerationState((current) => current === "generating" ? "failed" : current);
     } finally {
       setGeneratingSourceId(null);
     }
-  }, [duration, durationUnit, learnerAgeOrStage, parentInstructions, planType, subjects, userId]);
+  }, [duration, durationUnit, hydratePlanSummaries, learnerAgeOrStage, parentInstructions, planType, subjects, userId]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -301,6 +393,7 @@ export default function MyIdeasWorkspace({
     try {
       const created = await service.createForUser(userId, input);
       setIdeas((current) => [created, ...current]);
+      setPlanSummaries((current) => ({ ...current, [created.id]: { lesson: null, unit: null } }));
       setUrl("");
       setTitle("");
       setSuccessMessage("Your idea was saved.");
@@ -363,6 +456,12 @@ export default function MyIdeasWorkspace({
           }}
         >
           {loadError}
+        </div>
+      ) : null}
+
+      {planSummaryError ? (
+        <div role="alert" style={{ border: "1px solid #fed7aa", borderRadius: 14, background: "#fff7ed", color: "#9a3412", padding: 14 }}>
+          {planSummaryError} <button type="button" onClick={() => void hydratePlanSummaries(ideas)} style={{ marginLeft: 8 }}>Refresh plan status</button>
         </div>
       ) : null}
 
@@ -479,6 +578,13 @@ export default function MyIdeasWorkspace({
                     const source = idea.sources[0];
                     const metadata = sourceMetadata(source);
                     const status = previewStatus(source, extractingSourceId === source.id);
+                    const persistedPlan = planSummaries[idea.id]?.[planType];
+                    const existingPlan = persistedPlan?.plan;
+                    const approved = Boolean(persistedPlan && persistedPlan.workflowStatus === "approved");
+                    const reviewHref = `/my-ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${planType}/review`;
+                    const preparationHref = persistedPlan && approved
+                      ? `/my-ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${planType}/preparation?planId=${encodeURIComponent(persistedPlan.plan.id)}&revision=${approvedRevision(persistedPlan)}`
+                      : "";
                     return (
                       <div
                         aria-label="Source preview"
@@ -511,15 +617,17 @@ export default function MyIdeasWorkspace({
                           </span>
                         ) : null}
                         {status === "ready" ? (
+                          <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
+                            Plan type
+                            <select aria-label="Plan type" value={planType} onChange={(event) => setPlanType(event.target.value as LearningPlanType)} style={inputStyle}>
+                              <option value="lesson">Lesson plan</option>
+                              <option value="unit">Unit plan</option>
+                            </select>
+                          </label>
+                        ) : null}
+                        {status === "ready" && persistedPlan === null ? (
                           <div style={{ display: "grid", gap: 8, marginTop: 5 }}>
                             <strong style={{ color: v2Tokens.navy, fontSize: 14 }}>Generate a draft</strong>
-                            <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
-                              Plan type
-                              <select value={planType} onChange={(event) => setPlanType(event.target.value as LearningPlanType)} style={inputStyle}>
-                                <option value="lesson">Lesson plan</option>
-                                <option value="unit">Unit plan</option>
-                              </select>
-                            </label>
                             <label style={{ display: "grid", gap: 4, color: v2Tokens.navy, fontSize: 13, fontWeight: 650 }}>
                               Learner age or stage
                               <input aria-label="Learner age or stage" value={learnerAgeOrStage} onChange={(event) => setLearnerAgeOrStage(event.target.value)} placeholder="e.g. Ages 8–10" style={inputStyle} />
@@ -561,6 +669,25 @@ export default function MyIdeasWorkspace({
                             </button>
                           </div>
                         ) : null}
+                        {status === "ready" && persistedPlan === undefined ? (
+                          <span role="status" style={{ color: v2Tokens.slate, fontSize: 13 }}>
+                            Saved plan status is temporarily unavailable. Refresh to try again.
+                          </span>
+                        ) : null}
+                        {status === "ready" && persistedPlan ? (
+                          <div style={{ display: "grid", gap: 8, marginTop: 5 }}>
+                            <strong style={{ color: v2Tokens.navy, fontSize: 14 }}>Plan status: {planStatusLabel(persistedPlan)}</strong>
+                            {existingPlan ? <ReadOnlyPlanPreview plan={existingPlan} /> : null}
+                            <a href={reviewHref} style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}>
+                              {approved ? "Open approved plan" : "Review and edit plan"}
+                            </a>
+                            {approved && isRecommendationEngineEnabled() ? (
+                              <a href={preparationHref} style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}>
+                                View preparation list
+                              </a>
+                            ) : null}
+                          </div>
+                        ) : null}
                         {status !== "fetching" && status !== "ready" ? (
                           <button
                             type="button"
@@ -569,17 +696,6 @@ export default function MyIdeasWorkspace({
                           >
                             {status === "pending" ? "Fetch preview" : "Try again"}
                           </button>
-                        ) : null}
-                        {generatedPlan && generatedPlan.ideaId === idea.id && generatedPlan.sourceIds.includes(source.id) ? (
-                          <>
-                            <ReadOnlyPlanPreview plan={generatedPlan} />
-                            <a
-                              href={`/my-ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${encodeURIComponent((generatedPlan.content as unknown as GeneratedPlanContent).planType)}/review`}
-                              style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}
-                            >
-                              Review and edit this draft
-                            </a>
-                          </>
                         ) : null}
                       </div>
                     );
