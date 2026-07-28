@@ -155,6 +155,7 @@ export function createPlanReviewService(options: {
       }
 
       const currentContent = contentOf(current);
+      const contentProvided = input.contentProvided ?? input.content !== undefined;
       const candidate = input.content ?? currentContent;
       const timestamp = now().toISOString();
       const safetyAcknowledged = input.safetyAcknowledged === true;
@@ -179,7 +180,7 @@ export function createPlanReviewService(options: {
         now,
         input.action === "approve",
       );
-      const changedFields = changedPlanFields(currentContent, checked.content);
+      const changedFields = contentProvided ? changedPlanFields(currentContent, checked.content) : [];
       if (changedFields.length) {
         throw new PlanReviewError("invalid_input", "Save your edits before validating or changing the plan status.");
       }

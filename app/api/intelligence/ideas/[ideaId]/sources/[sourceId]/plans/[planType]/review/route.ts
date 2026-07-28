@@ -75,10 +75,12 @@ export async function POST(request: Request, context: RouteContext) {
 
   const action = body.action as ReviewAction;
   const expectedRevision = Number(body.expectedRevision);
+  const contentProvided = Object.prototype.hasOwnProperty.call(body, "content");
   const input: ReviewActionInput = {
     action,
     expectedRevision,
-    content: body.content as GeneratedPlanContent | undefined,
+    content: contentProvided ? body.content as GeneratedPlanContent : undefined,
+    contentProvided,
     safetyAcknowledged: body.safetyAcknowledged === true,
   };
 

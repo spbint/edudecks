@@ -32,9 +32,11 @@ function envelope(planType: "lesson" | "unit" = "lesson", version = 1): PlanRevi
 function repository(initial = envelope()) {
   let current = initial;
   const snapshots: GeneratedPlanContent[] = [];
+  let versionWrites = 0;
   const repository: LearningPlanReviewRepository = {
     getReviewPlanForUser: vi.fn(async (userId) => userId === "user-1" ? current : null),
     saveParentEditForUser: vi.fn(async (_userId, previous, nextContent, nextProvenance, expectedRevision) => {
+      versionWrites += 1;
       snapshots.push(previous.plan.content as unknown as GeneratedPlanContent);
       const next = { ...current, plan: { ...current.plan, version: expectedRevision + 1, content: nextContent as unknown as Record<string, unknown>, provenance: nextProvenance }, currentRevision: expectedRevision + 1, workflowStatus: nextContent.review!.workflowStatus, review: nextContent.review!, provenance: nextProvenance };
       current = next;
@@ -45,7 +47,7 @@ function repository(initial = envelope()) {
       return current;
     }),
   };
-  return { repository, snapshots, get current() { return current; } };
+  return { repository, snapshots, get current() { return current; }, get versionWrites() { return versionWrites; } };
 }
 
 const now = () => new Date("2026-07-23T01:00:00.000Z");
@@ -79,6 +81,118 @@ describe("plan review service", () => {
     const approved = await service.performAction("user-1", "idea-1", "source-1", "lesson", { action: "approve", expectedRevision: 1, safetyAcknowledged: true });
     expect(approved.state).toBe("approved");
     expect(approved.provenance.finalApprovedVersion).toBe(1);
+  });
+
+  it("saves at revision N then approves a status-only request at revision N+1", async () => {
+    const state = repository();
+    const service = createPlanReviewService({ repository: state.repository, now });
+    const saved = await service.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "save",
+      expectedRevision: 1,
+      content: { ...content(), title: "Updated weather lab" },
+      safetyAcknowledged: true,
+    });
+
+    const approved = await service.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "approve",
+      expectedRevision: saved.currentRevision,
+      safetyAcknowledged: true,
+      contentProvided: false,
+    });
+
+    expect(saved.currentRevision).toBe(2);
+    expect(approved.state).toBe("approved");
+    expect(state.repository.saveParentEditForUser).toHaveBeenCalledTimes(1);
+    expect(state.repository.updateReviewStateForUser).toHaveBeenCalledWith(
+      "user-1",
+      expect.anything(),
+      "approved",
+      expect.anything(),
+      expect.anything(),
+      2,
+    );
+    expect(state.versionWrites).toBe(1);
+  });
+
+  it("allows status-only transitions to normalize persisted content without reporting unsaved edits", async () => {
+    for (const action of ["validate", "archive", "return_to_draft"] as const) {
+      const persisted = { ...content(), title: "  Weather lab  " };
+      const state = repository(envelope("lesson", 2));
+      state.current.plan.content = persisted as unknown as Record<string, unknown>;
+      const service = createPlanReviewService({ repository: state.repository, now });
+
+      const result = await service.performAction("user-1", "idea-1", "source-1", "lesson", {
+        action,
+        expectedRevision: 2,
+        safetyAcknowledged: action === "validate" ? false : false,
+        contentProvided: false,
+      });
+
+      expect(result.state).toBe(action === "validate" ? "validated" : action === "archive" ? "archived" : "returned_to_draft");
+    }
+  });
+
+  it("still blocks an explicit changed content candidate", async () => {
+    const state = repository();
+    const service = createPlanReviewService({ repository: state.repository, now });
+
+    await expect(service.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "approve",
+      expectedRevision: 1,
+      content: { ...content(), title: "Changed after load" },
+      contentProvided: true,
+      safetyAcknowledged: true,
+    })).rejects.toMatchObject({ code: "invalid_input", message: "Save your edits before validating or changing the plan status." });
+    expect(state.repository.updateReviewStateForUser).not.toHaveBeenCalled();
+  });
+
+  it("still blocks invalid persisted content, stale revisions, and missing safety acknowledgement", async () => {
+    const invalidState = repository();
+    invalidState.current.plan.content = { ...content(), title: "" } as unknown as Record<string, unknown>;
+    const invalidService = createPlanReviewService({ repository: invalidState.repository, now });
+    await expect(invalidService.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "validate",
+      expectedRevision: 1,
+      contentProvided: false,
+    })).rejects.toMatchObject({ code: "validation_failed" });
+
+    const staleState = repository();
+    const staleService = createPlanReviewService({ repository: staleState.repository, now });
+    await expect(staleService.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "approve",
+      expectedRevision: 9,
+      contentProvided: false,
+      safetyAcknowledged: true,
+    })).rejects.toMatchObject({ code: "stale_revision" });
+
+    const safetyState = repository();
+    const safetyService = createPlanReviewService({ repository: safetyState.repository, now });
+    await expect(safetyService.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "approve",
+      expectedRevision: 1,
+      contentProvided: false,
+      safetyAcknowledged: false,
+    })).rejects.toMatchObject({ code: "approval_blocked" });
+  });
+
+  it("does not create duplicate plan versions when approval is retried", async () => {
+    const state = repository();
+    const service = createPlanReviewService({ repository: state.repository, now });
+    const approved = await service.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "approve",
+      expectedRevision: 1,
+      contentProvided: false,
+      safetyAcknowledged: true,
+    });
+    await service.performAction("user-1", "idea-1", "source-1", "lesson", {
+      action: "approve",
+      expectedRevision: approved.currentRevision,
+      contentProvided: false,
+      safetyAcknowledged: true,
+    });
+
+    expect(state.versionWrites).toBe(0);
+    expect(state.repository.updateReviewStateForUser).toHaveBeenCalledTimes(2);
   });
 
   it("rejects stale updates and preserves provenance from client edits", async () => {

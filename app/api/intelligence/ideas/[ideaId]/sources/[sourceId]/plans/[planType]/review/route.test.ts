@@ -69,6 +69,35 @@ describe("plan review route", () => {
     mocks.createReviewService.mockReturnValue(reviewService);
     const response = await POST(request({ action: "save", expectedRevision: 1, content: { title: "Updated" }, safetyAcknowledged: true }), context());
     expect(response.status).toBe(200);
-    expect(reviewService.performAction).toHaveBeenCalledWith("user-1", "idea-1", "source-1", "lesson", expect.objectContaining({ action: "save", expectedRevision: 1, safetyAcknowledged: true }));
+    expect(reviewService.performAction).toHaveBeenCalledWith("user-1", "idea-1", "source-1", "lesson", expect.objectContaining({ action: "save", expectedRevision: 1, contentProvided: true, safetyAcknowledged: true }));
+  });
+
+  it("marks omitted content as status-only while preserving explicit content presence", async () => {
+    process.env.NEXT_PUBLIC_ENABLE_INTELLIGENCE_ENGINE = "true";
+    const source = { id: "source-1", ideaId: "idea-1", userId: "user-1" };
+    const sourceRepository = { getSourceForUser: vi.fn(async () => source) };
+    const reviewService = { performAction: vi.fn(async () => ({ state: "validated", currentRevision: 1 })) };
+    mocks.getContext.mockResolvedValue({ user: { id: "user-1" }, client: {} });
+    mocks.createIdeasRepository.mockReturnValue(sourceRepository);
+    mocks.createReviewRepository.mockReturnValue({});
+    mocks.createReviewService.mockReturnValue(reviewService);
+
+    await POST(request({ action: "validate", expectedRevision: 1 }), context());
+    expect(reviewService.performAction).toHaveBeenLastCalledWith(
+      "user-1",
+      "idea-1",
+      "source-1",
+      "lesson",
+      expect.objectContaining({ action: "validate", content: undefined, contentProvided: false }),
+    );
+
+    await POST(request({ action: "validate", expectedRevision: 1, content: { title: "Explicit" } }), context());
+    expect(reviewService.performAction).toHaveBeenLastCalledWith(
+      "user-1",
+      "idea-1",
+      "source-1",
+      "lesson",
+      expect.objectContaining({ action: "validate", content: { title: "Explicit" }, contentProvided: true }),
+    );
   });
 });

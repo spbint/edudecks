@@ -31,6 +31,8 @@ export interface ReviewActionInput {
   action: ReviewAction;
   expectedRevision: number;
   content?: GeneratedPlanContent;
+  /** Whether the request JSON explicitly supplied a content property. */
+  contentProvided?: boolean;
   safetyAcknowledged?: boolean;
 }
 
