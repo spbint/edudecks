@@ -40,4 +40,18 @@ describe("Recommendation service", () => {
     expect(state.interactionRepository.recordForUser).toHaveBeenCalledOnce();
     await expect(state.recommendationService.recordEventForUser("user-1", snapshot(), { recommendationId: "other-plan:item", eventType: "dismiss" })).rejects.toMatchObject({ code: "invalid_input" });
   });
+
+  it("records the deterministic recommendation build stage", async () => {
+    const diagnostics = { stageStart: vi.fn(), stageSuccess: vi.fn(), stageFailure: vi.fn(), responseReady: vi.fn() };
+    const recommendationService = createRecommendationService({
+      approvedPlanRepository: { getApprovedRevisionForUser: vi.fn() },
+      ownedResourceRepository: { listForUser: vi.fn(async () => []), createForUser: vi.fn() } as FamilyOwnedResourceRepository,
+      interactionRepository: { listForRevision: vi.fn(async () => []), recordForUser: vi.fn() } as RecommendationInteractionRepository,
+      diagnostics,
+    });
+    await recommendationService.getForUser("user-1", snapshot());
+    expect(diagnostics.stageStart).toHaveBeenCalledWith("recommendation_build");
+    expect(diagnostics.stageSuccess).toHaveBeenCalledWith("recommendation_build");
+    expect(diagnostics.stageFailure).not.toHaveBeenCalled();
+  });
 });

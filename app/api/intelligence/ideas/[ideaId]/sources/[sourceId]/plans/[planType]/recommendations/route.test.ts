@@ -64,4 +64,19 @@ describe("Recommendation route", () => {
     expect(response.status).toBe(200);
     expect(service.recordEventForUser).toHaveBeenCalledWith("user-1", snapshot, { recommendationId: "plan-1:4:safety:0:supervise", eventType: "completed", metadata: { resourceKey: null } });
   });
+
+  it("keeps unexpected failures sanitised and passes route diagnostics to repositories", async () => {
+    process.env.NEXT_PUBLIC_ENABLE_INTELLIGENCE_RECOMMENDATIONS = "true";
+    mocks.getContext.mockResolvedValue({ user: { id: "user-1" }, client: {} });
+    const snapshot = { userId: "user-1", planId: "plan-1", revisionId: "version-row-4", revisionNumber: 4 };
+    const repository = { getApprovedRevisionForUser: vi.fn(async () => snapshot) };
+    const service = { getForUser: vi.fn(async () => { throw new Error("raw database connection details"); }) };
+    mocks.createApproved.mockReturnValue(repository);
+    mocks.createService.mockReturnValue(service);
+    const response = await GET(request("http://localhost/api?planId=plan-1&revision=4"), context());
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ code: "persistence", error: "Recommendations are temporarily unavailable." });
+    expect(mocks.createApproved).toHaveBeenCalledWith({}, expect.anything());
+    expect(mocks.createService).toHaveBeenCalledWith(expect.objectContaining({ approvedPlanRepository: repository, diagnostics: expect.anything() }));
+  });
 });

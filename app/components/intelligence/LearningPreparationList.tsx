@@ -16,6 +16,36 @@ type RecommendationPayload = {
   error?: string;
 };
 
+export const PREPARATION_LOAD_TIMEOUT_MS = 20_000;
+const PREPARATION_TIMEOUT_MESSAGE = "The preparation list is taking too long to load. Please try again.";
+const PREPARATION_LOAD_ERROR_MESSAGE = "We could not load the preparation list. Please try again.";
+
+class PreparationLoadTimeoutError extends Error {
+  constructor() {
+    super(PREPARATION_TIMEOUT_MESSAGE);
+    this.name = "PreparationLoadTimeoutError";
+  }
+}
+
+async function requestPreparationData(controller: AbortController, ideaId: string, sourceId: string, planType: LearningPlanType, planId: string, revision: number, includeDismissed: boolean) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const requests = Promise.all([
+    fetch(endpoint(ideaId, sourceId, planType, planId, revision, includeDismissed), { cache: "no-store", signal: controller.signal }).then(async (response) => ({ response, payload: await response.json().catch(() => ({})) as RecommendationPayload })),
+    fetch("/api/intelligence/resources", { cache: "no-store", signal: controller.signal }).then(async (response) => ({ response, payload: await response.json().catch(() => ({})) as { resources?: FamilyOwnedResource[] } })),
+  ]);
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new PreparationLoadTimeoutError());
+    }, PREPARATION_LOAD_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([requests, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function endpoint(ideaId: string, sourceId: string, planType: LearningPlanType, planId: string, revision: number, includeDismissed = false) {
   return `/api/intelligence/ideas/${encodeURIComponent(ideaId)}/sources/${encodeURIComponent(sourceId)}/plans/${planType}/recommendations?planId=${encodeURIComponent(planId)}&revision=${revision}&includeDismissed=${includeDismissed ? "1" : "0"}&debug=1`;
 }
@@ -91,18 +121,24 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const impressionKey = useRef("");
+  const loadAbortRef = useRef<AbortController | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const loadingRef = useRef(false);
 
   const load = useCallback(async () => {
+    if (loadingRef.current) return;
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    loadingRef.current = true;
     setLoading(true);
     setError("");
     try {
-      const [recommendationsResponse, resourcesResponse] = await Promise.all([
-        fetch(endpoint(ideaId, sourceId, planType, planId, revision, showDismissed), { cache: "no-store" }),
-        fetch("/api/intelligence/resources", { cache: "no-store" }),
-      ]);
-      const recommendations = await recommendationsResponse.json() as RecommendationPayload;
-      const resources = await resourcesResponse.json() as { resources?: FamilyOwnedResource[] };
-      if (!recommendationsResponse.ok) throw new Error(recommendations.error || "We could not load this preparation list.");
+      const [{ response: recommendationsResponse, payload: recommendations }, { response: resourcesResponse, payload: resources }] = await requestPreparationData(controller, ideaId, sourceId, planType, planId, revision, showDismissed);
+      if (requestId !== loadRequestIdRef.current) return;
+      if (!recommendationsResponse.ok || !resourcesResponse.ok) throw new Error(PREPARATION_LOAD_ERROR_MESSAGE);
       setPayload(recommendations);
       setOwnedResources(resources.resources ?? []);
       if (recommendations.commerce?.status === "ready") {
@@ -110,9 +146,15 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
         if (basketResponse.ok) setBasket((await basketResponse.json() as { basket?: LearningBasket }).basket ?? null);
       } else setBasket(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "We could not load this preparation list.");
+      if (requestId !== loadRequestIdRef.current) return;
+      setPayload(null);
+      setError(loadError instanceof PreparationLoadTimeoutError ? PREPARATION_TIMEOUT_MESSAGE : PREPARATION_LOAD_ERROR_MESSAGE);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) {
+        loadingRef.current = false;
+        loadAbortRef.current = null;
+        setLoading(false);
+      }
     }
   }, [ideaId, planId, planType, revision, showDismissed, sourceId]);
 
@@ -146,6 +188,13 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
   }
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => () => {
+    loadRequestIdRef.current += 1;
+    loadAbortRef.current?.abort();
+    loadAbortRef.current = null;
+    loadingRef.current = false;
+  }, []);
 
   useEffect(() => {
     const revisionKey = payload?.ownedRevision ? `${payload.ownedRevision.planId}:${payload.ownedRevision.revisionId}` : "";
@@ -205,7 +254,7 @@ export default function LearningPreparationList({ ideaId, sourceId, planType, pl
   }, [payload]);
 
   if (loading) return <V2Card><p role="status" style={{ margin: 0, color: v2Tokens.slate }}>Preparing your learning list...</p></V2Card>;
-  if (!payload) return <V2Card><div role="alert" style={{ color: "#9f1239" }}>{error || "Preparation list unavailable."}</div></V2Card>;
+  if (!payload) return <V2Card><div role="alert" style={{ color: "#9f1239" }}>{error || "Preparation list unavailable."}</div><button type="button" onClick={() => void load()} style={{ marginTop: 12 }}>Retry</button></V2Card>;
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <V2PageHeader eyebrow="My Ideas" title="Learning preparation list" subtitle="Learning comes first. Start with what is required, safe, and already available." />

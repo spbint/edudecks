@@ -13,6 +13,7 @@ import type {
   RecommendationInteractionState,
   RecommendationResult,
 } from "@/lib/intelligence/recommendations/types";
+import type { IntelligenceRouteDiagnostics } from "@/lib/intelligence/serverDiagnostics";
 
 export class RecommendationServiceError extends Error {
   readonly code: "not_approved" | "malformed_plan" | "invalid_input" | "not_found" | "persistence";
@@ -60,6 +61,7 @@ export function createRecommendationService(options: {
   interactionRepository: RecommendationInteractionRepository;
   engine?: RecommendationEngine;
   now?: () => Date;
+  diagnostics?: IntelligenceRouteDiagnostics;
 }): RecommendationService {
   const engine = options.engine ?? createDeterministicRecommendationEngine();
   const now = options.now ?? (() => new Date());
@@ -78,10 +80,18 @@ export function createRecommendationService(options: {
           options.ownedResourceRepository.listForUser(userId),
           options.interactionRepository.listForRevision(userId, snapshot.planId, snapshot.revisionId),
         ]);
-        return engine.generateRecommendations(input, { ownedResources, interactionStates: states(events), includeDismissed, now });
+        options.diagnostics?.stageStart("recommendation_build");
+        try {
+          const result = engine.generateRecommendations(input, { ownedResources, interactionStates: states(events), includeDismissed, now });
+          options.diagnostics?.stageSuccess("recommendation_build");
+          return result;
+        } catch (error) {
+          options.diagnostics?.stageFailure("recommendation_build", error);
+          throw error;
+        }
       } catch (error) {
         if (error instanceof RecommendationServiceError) throw error;
-        throw new RecommendationServiceError("persistence", error instanceof Error ? error.message : "Recommendations are temporarily unavailable.");
+        throw new RecommendationServiceError("persistence", "Recommendations are temporarily unavailable.");
       }
     },
 
@@ -101,8 +111,8 @@ export function createRecommendationService(options: {
           engineVersion: RECOMMENDATION_ENGINE_VERSION,
           rulesVersion: RECOMMENDATION_RULES_VERSION,
         });
-      } catch (error) {
-        throw new RecommendationServiceError("persistence", error instanceof Error ? error.message : "We could not save that recommendation action.");
+      } catch {
+        throw new RecommendationServiceError("persistence", "We could not save that recommendation action.");
       }
     },
   };

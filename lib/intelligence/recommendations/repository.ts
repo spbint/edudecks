@@ -10,6 +10,7 @@ import type {
   RecommendationInteractionEventType,
 } from "@/lib/intelligence/recommendations/types";
 import { normaliseResourceKey } from "@/lib/intelligence/recommendations/normalization";
+import type { IntelligenceRouteDiagnostics } from "@/lib/intelligence/serverDiagnostics";
 
 export class RecommendationRepositoryError extends Error {
   readonly code: "persistence" | "not_found" | "stale";
@@ -22,6 +23,18 @@ export class RecommendationRepositoryError extends Error {
 }
 
 type QueryClient = Pick<SupabaseClient, "from">;
+
+async function traced<T>(diagnostics: IntelligenceRouteDiagnostics | undefined, stage: string, operation: () => Promise<T>) {
+  diagnostics?.stageStart(stage);
+  try {
+    const result = await operation();
+    diagnostics?.stageSuccess(stage);
+    return result;
+  } catch (error) {
+    diagnostics?.stageFailure(stage, error);
+    throw error;
+  }
+}
 
 function text(value: unknown) {
   return typeof value === "string" ? value : String(value ?? "");
@@ -40,34 +53,40 @@ function assertUser(userId: string) {
   if (!userId.trim()) throw new RecommendationRepositoryError("persistence", "A signed-in user is required.");
 }
 
-export function createSupabaseApprovedPlanRevisionRepository(client: QueryClient = supabase): ApprovedPlanRevisionRepository {
+export function createSupabaseApprovedPlanRevisionRepository(client: QueryClient = supabase, diagnostics?: IntelligenceRouteDiagnostics): ApprovedPlanRevisionRepository {
   return {
     async getApprovedRevisionForUser(userId, ideaId, sourceId, planType, planId, revisionNumber) {
       assertUser(userId);
       if (!Number.isInteger(revisionNumber) || revisionNumber < 1) throw new RecommendationRepositoryError("not_found", "An exact approved revision is required.");
-      const planResponse = await client
-        .from(tableFor(planType))
-        .select(planSelect(planType))
-        .eq("user_id", userId)
-        .eq("id", planId)
-        .eq("idea_id", ideaId)
-        .eq("status", "saved")
-        .contains("source_ids", sourceIdsContainsValue(sourceId))
-        .limit(20);
-      if (planResponse.error) throw errorMessage(planResponse.error, "We could not load the approved plan.");
+      const planResponse = await traced(diagnostics, "approved_plan_lookup", async () => {
+        const response = await client
+          .from(tableFor(planType))
+          .select(planSelect(planType))
+          .eq("user_id", userId)
+          .eq("id", planId)
+          .eq("idea_id", ideaId)
+          .eq("status", "saved")
+          .contains("source_ids", sourceIdsContainsValue(sourceId))
+          .limit(20);
+        if (response.error) throw errorMessage(response.error, "We could not load the approved plan.");
+        return response;
+      });
       const rows = (planResponse.data ?? []) as PlanRow[];
       const row = rows.find((candidate) => text(candidate.status) === "saved") ?? null;
       if (!row || !row.id) return null;
       const foundPlanId = text(row.id);
-      const versionResponse = await client
-        .from("intelligence_plan_versions")
-        .select("id,version,snapshot,approved_at,approved_by_user_id,is_final_approved")
-        .eq("user_id", userId)
-        .eq(planType === "lesson" ? "lesson_plan_id" : "unit_plan_id", foundPlanId)
-        .eq("version", revisionNumber)
-        .eq("is_final_approved", true)
-        .maybeSingle();
-      if (versionResponse.error) throw errorMessage(versionResponse.error, "We could not load the approved plan revision.");
+      const versionResponse = await traced(diagnostics, "version_lookup", async () => {
+        const response = await client
+          .from("intelligence_plan_versions")
+          .select("id,version,snapshot,approved_at,approved_by_user_id,is_final_approved")
+          .eq("user_id", userId)
+          .eq(planType === "lesson" ? "lesson_plan_id" : "unit_plan_id", foundPlanId)
+          .eq("version", revisionNumber)
+          .eq("is_final_approved", true)
+          .maybeSingle();
+        if (response.error) throw errorMessage(response.error, "We could not load the approved plan revision.");
+        return response;
+      });
       if (!versionResponse.data || !versionResponse.data.approved_at) return null;
       const snapshot = record(versionResponse.data.snapshot);
       const content = contentOf({ content: snapshot } as PlanRow);
@@ -107,12 +126,15 @@ function toOwned(row: Record<string, unknown>): FamilyOwnedResource {
   };
 }
 
-export function createSupabaseFamilyOwnedResourceRepository(client: QueryClient = supabase): FamilyOwnedResourceRepository {
+export function createSupabaseFamilyOwnedResourceRepository(client: QueryClient = supabase, diagnostics?: IntelligenceRouteDiagnostics): FamilyOwnedResourceRepository {
   return {
     async listForUser(userId) {
       assertUser(userId);
-      const response = await client.from("intelligence_family_owned_resources").select("id,user_id,name,normalized_resource_key,category,quantity,condition,active,source,provenance,created_at,updated_at").eq("user_id", userId).order("updated_at", { ascending: false });
-      if (response.error) throw errorMessage(response.error, "We could not load your owned resources.");
+      const response = await traced(diagnostics, "owned_resources_lookup", async () => {
+        const result = await client.from("intelligence_family_owned_resources").select("id,user_id,name,normalized_resource_key,category,quantity,condition,active,source,provenance,created_at,updated_at").eq("user_id", userId).order("updated_at", { ascending: false });
+        if (result.error) throw errorMessage(result.error, "We could not load your owned resources.");
+        return result;
+      });
       return ((response.data ?? []) as Record<string, unknown>[]).map(toOwned);
     },
     async createForUser(userId, input) {
@@ -150,12 +172,15 @@ function toEvent(row: Record<string, unknown>): RecommendationInteractionEvent {
   };
 }
 
-export function createSupabaseRecommendationInteractionRepository(client: QueryClient = supabase): RecommendationInteractionRepository {
+export function createSupabaseRecommendationInteractionRepository(client: QueryClient = supabase, diagnostics?: IntelligenceRouteDiagnostics): RecommendationInteractionRepository {
   return {
     async listForRevision(userId, planId, revisionId) {
       assertUser(userId);
-      const response = await client.from("intelligence_recommendation_interaction_events").select("id,user_id,plan_id,revision_id,revision_number,recommendation_id,event_type,metadata,engine_version,rules_version,created_at").eq("user_id", userId).eq("plan_id", planId).eq("revision_id", revisionId).order("created_at", { ascending: true });
-      if (response.error) throw errorMessage(response.error, "We could not load recommendation activity.");
+      const response = await traced(diagnostics, "interaction_lookup", async () => {
+        const result = await client.from("intelligence_recommendation_interaction_events").select("id,user_id,plan_id,revision_id,revision_number,recommendation_id,event_type,metadata,engine_version,rules_version,created_at").eq("user_id", userId).eq("plan_id", planId).eq("revision_id", revisionId).order("created_at", { ascending: true });
+        if (result.error) throw errorMessage(result.error, "We could not load recommendation activity.");
+        return result;
+      });
       return ((response.data ?? []) as Record<string, unknown>[]).map(toEvent);
     },
     async recordForUser(userId, event) {
