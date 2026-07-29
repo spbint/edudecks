@@ -75,6 +75,12 @@ function errorMessage(error: unknown, fallback: string) {
   return new PlanReviewRepositoryError("persistence", message || fallback);
 }
 
+function compensationDiagnostic(error: unknown) {
+  const value = error && typeof error === "object" ? error as Record<string, unknown> : {};
+  const message = typeof value.message === "string" ? value.message.replace(/[\r\n\t]+/g, " ").replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, "[REDACTED_ID]").slice(0, 500) : "Compensation failed.";
+  return { errorClass: typeof value.name === "string" ? value.name : "DatabaseError", code: typeof value.code === "string" ? value.code : null, message };
+}
+
 function reviewInput(
   userId: string,
   current: PlanReviewEnvelope,
@@ -91,6 +97,18 @@ function reviewInput(
     content,
     provenance,
     userId,
+  };
+}
+
+function versionOwnerColumn(planType: LearningPlanType) {
+  return planType === "lesson" ? "lesson_plan_id" : "unit_plan_id";
+}
+
+function approvalValues(approved: boolean, userId: string) {
+  return {
+    is_final_approved: approved,
+    approved_at: approved ? new Date().toISOString() : null,
+    approved_by_user_id: approved ? userId : null,
   };
 }
 
@@ -143,8 +161,90 @@ export function createSupabaseLearningPlanReviewRepository(
       }
       const input = reviewInput(userId, current, current.plan.sourceIds[0] ?? "", content, provenance, expectedRevision);
       const table = tableFor(content.planType);
-      const values = basePlanValues(userId, input);
-      values.status = workflowStatus === "approved" ? "saved" : workflowStatus === "archived" ? "archived" : "draft";
+      const values = {
+        ...basePlanValues(userId, input),
+        status: workflowStatus === "approved" ? "saved" : workflowStatus === "archived" ? "archived" : "draft",
+        final_approved_version: workflowStatus === "approved" ? expectedRevision : null,
+      };
+
+      const ownerColumn = versionOwnerColumn(content.planType);
+      const previousPlan = await client
+        .from(table)
+        .select("final_approved_version")
+        .eq("id", current.plan.id)
+        .eq("user_id", userId)
+        .eq("current_version", expectedRevision)
+        .maybeSingle();
+      if (previousPlan.error) throw errorMessage(previousPlan.error, "We could not read the current plan approval state.");
+      if (!previousPlan.data) throw new PlanReviewRepositoryError("stale_revision", "This plan changed elsewhere. Reload before updating its status.");
+
+      const previousApprovals = await client
+        .from("intelligence_plan_versions")
+        .select("version,approved_at,approved_by_user_id")
+        .eq("user_id", userId)
+        .eq(ownerColumn, current.plan.id)
+        .eq("is_final_approved", true);
+      if (previousApprovals.error) throw errorMessage(previousApprovals.error, "We could not read the current plan approval state.");
+
+      const previousApprovedVersions = (previousApprovals.data ?? []) as Array<Record<string, unknown>>;
+      const restoreApprovalState = async () => {
+        const clearCurrent = await client
+          .from("intelligence_plan_versions")
+          .update(approvalValues(false, userId))
+          .eq("user_id", userId)
+          .eq(ownerColumn, current.plan.id)
+          .eq("version", expectedRevision);
+        if (clearCurrent.error) return clearCurrent.error;
+        for (const previous of previousApprovedVersions) {
+          const restored = await client
+            .from("intelligence_plan_versions")
+            .update({
+              is_final_approved: true,
+              approved_at: previous.approved_at ?? null,
+              approved_by_user_id: previous.approved_by_user_id ?? null,
+            })
+            .eq("user_id", userId)
+            .eq(ownerColumn, current.plan.id)
+            .eq("version", previous.version);
+          if (restored.error) return restored.error;
+        }
+        return null;
+      };
+
+      const restoreParentApprovalPointer = async () => {
+        const restored = await client
+          .from(table)
+          .update({ final_approved_version: previousPlan.data?.final_approved_version ?? null })
+          .eq("id", current.plan.id)
+          .eq("user_id", userId)
+          .eq("current_version", expectedRevision);
+        return restored.error ?? null;
+      };
+
+      const cleared = await client
+        .from("intelligence_plan_versions")
+        .update(approvalValues(false, userId))
+        .eq("user_id", userId)
+        .eq(ownerColumn, current.plan.id)
+        .eq("is_final_approved", true);
+      if (cleared.error) throw errorMessage(cleared.error, "We could not update the plan approval state.");
+
+      if (workflowStatus === "approved") {
+        const activated = await client
+          .from("intelligence_plan_versions")
+          .update(approvalValues(true, userId))
+          .eq("user_id", userId)
+          .eq(ownerColumn, current.plan.id)
+          .eq("version", expectedRevision)
+          .select("version")
+          .single();
+        if (activated.error || !activated.data) {
+          const restored = await restoreApprovalState();
+          if (restored) console.error("intelligence_plan_review_compensation_failed", { operation: "compensating_update", planType: content.planType, ...compensationDiagnostic(restored) });
+          throw errorMessage(activated.error, "We could not update the plan approval state.");
+        }
+      }
+
       const updated = await client
         .from(table)
         .update(values)
@@ -154,22 +254,13 @@ export function createSupabaseLearningPlanReviewRepository(
         .select(planSelect(content.planType))
         .single();
       if (updated.error || !updated.data) {
+        const restored = await restoreApprovalState();
+        if (restored) console.error("intelligence_plan_review_compensation_failed", { operation: "compensating_update", planType: content.planType, ...compensationDiagnostic(restored) });
+        const parentRestored = await restoreParentApprovalPointer();
+        if (parentRestored) console.error("intelligence_plan_review_compensation_failed", { operation: "compensating_update", planType: content.planType, ...compensationDiagnostic(parentRestored) });
+        if (updated.error) throw errorMessage(updated.error, "This plan changed elsewhere. Reload before updating its status.");
         throw new PlanReviewRepositoryError("stale_revision", "This plan changed elsewhere. Reload before updating its status.");
       }
-
-      const versionQuery = client
-        .from("intelligence_plan_versions")
-        .update({
-          is_final_approved: workflowStatus === "approved",
-          approved_at: workflowStatus === "approved" ? new Date().toISOString() : null,
-          approved_by_user_id: workflowStatus === "approved" ? userId : null,
-        })
-        .eq("user_id", userId)
-        .eq("version", expectedRevision);
-      const versionResponse = content.planType === "lesson"
-        ? await versionQuery.eq("lesson_plan_id", current.plan.id)
-        : await versionQuery.eq("unit_plan_id", current.plan.id);
-      if (versionResponse.error) throw errorMessage(versionResponse.error, "We could not update the plan approval state.");
       return envelope(updated.data as PlanRow, content.planType);
     },
   };

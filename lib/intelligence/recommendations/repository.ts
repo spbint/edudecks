@@ -66,6 +66,7 @@ export function createSupabaseApprovedPlanRevisionRepository(client: QueryClient
           .eq("id", planId)
           .eq("idea_id", ideaId)
           .eq("status", "saved")
+          .eq("final_approved_version", revisionNumber)
           .contains("source_ids", sourceIdsContainsValue(sourceId))
           .limit(20);
         if (response.error) throw errorMessage(response.error, "We could not load the approved plan.");
@@ -73,7 +74,7 @@ export function createSupabaseApprovedPlanRevisionRepository(client: QueryClient
       });
       const rows = (planResponse.data ?? []) as PlanRow[];
       const row = rows.find((candidate) => text(candidate.status) === "saved") ?? null;
-      if (!row || !row.id) return null;
+      if (!row || !row.id || Number(row.final_approved_version) !== revisionNumber) return null;
       const foundPlanId = text(row.id);
       const versionResponse = await traced(diagnostics, "version_lookup", async () => {
         const response = await client

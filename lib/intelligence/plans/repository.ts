@@ -146,6 +146,7 @@ type PlanRowBase = {
   source_ids?: unknown;
   status?: unknown;
   current_version?: unknown;
+  final_approved_version?: unknown;
   provenance?: unknown;
   content?: unknown;
   created_at?: unknown;
@@ -167,7 +168,7 @@ export type UnitPlanRow = PlanRowBase & {
 export type PlanRow = LessonPlanRow | UnitPlanRow;
 
 const planSelectCommon = "id,user_id,idea_id,title,summary,learning_area,year_level,objectives";
-const planSelectTail = "source_ids,status,current_version,provenance,content,created_at,updated_at";
+const planSelectTail = "source_ids,status,current_version,final_approved_version,provenance,content,created_at,updated_at";
 
 export function planSelect(planType: LearningPlanType) {
   return `${planSelectCommon},${planType === "lesson" ? "duration_minutes" : "duration_count,duration_unit"},${planSelectTail}`;
