@@ -69,6 +69,18 @@ function subscribeToLocalStorage(callback: () => void) {
   };
 }
 
+function subscribeToHydration() {
+  return () => {};
+}
+
+function getHydrationSnapshot() {
+  return true;
+}
+
+function getServerHydrationSnapshot() {
+  return false;
+}
+
 function getLocalStorageSnapshot() {
   if (typeof window === "undefined") return "0";
   try {
@@ -102,14 +114,18 @@ export default function CleanPageIntroVideo({
     () => "0",
   );
   const [openConfig, setOpenConfig] = useState<PageIntroVideoConfig | null>(null);
+  const hasMounted = useSyncExternalStore(
+    subscribeToHydration,
+    getHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
 
   const resolvedPromptKey = promptKey || availableConfigs[0]?.pageKey || "";
-  const promptDismissed = Boolean(resolvedPromptKey) && safeLocalStorageGet(dismissedKey(resolvedPromptKey));
-  const anyWatched = availableConfigs.some((item) => safeLocalStorageGet(watchedKey(item.pageKey)));
+  const storageState = hasMounted ? storageVersion : "server";
+  const promptDismissed = storageState !== "server" && Boolean(resolvedPromptKey) && safeLocalStorageGet(dismissedKey(resolvedPromptKey));
+  const anyWatched = storageState !== "server" && availableConfigs.some((item) => safeLocalStorageGet(watchedKey(item.pageKey)));
   const showPrompt =
     availableConfigs.length > 0 && Boolean(resolvedPromptKey) && !promptDismissed && !anyWatched;
-
-  void storageVersion;
 
   useEffect(() => {
     if (!openConfig) return;
