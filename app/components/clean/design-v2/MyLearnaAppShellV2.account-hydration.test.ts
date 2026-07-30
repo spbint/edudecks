@@ -69,6 +69,9 @@ describe("authenticated shell account hydration", () => {
     mocks.authState = { user: null, loading: true };
     const serverMarkup = renderToString(shell(signedInUser.email));
 
+    expect(serverMarkup).toContain(">SE<");
+    expect(serverMarkup).toContain("sean@mylearna.com");
+
     const container = document.createElement("div");
     container.innerHTML = serverMarkup;
     document.body.appendChild(container);

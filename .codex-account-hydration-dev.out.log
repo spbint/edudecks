@@ -1,0 +1,42 @@
+
+> edu-dashboard@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.1.1 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.13:3000
+- Environments: .env.local
+- Experiments (use with caution):
+  · clientTraceMetadata
+
+✓ Starting...
+○ Compiling /instrumentation ...
+✓ Ready in 9.3s
+○ Compiling /my-calendar ...
+ GET /login?next=%2Fmy-day 200 in 18.4s (compile: 17.1s, render: 1264ms)
+ GET /login?next=%2Fmy-day 200 in 18.4s (compile: 17.2s, render: 1266ms)
+ GET /login?next=%2Fmy-day 200 in 443ms (compile: 84ms, render: 359ms)
+ GET /my-calendar 200 in 18.9s (compile: 17.1s, render: 1783ms)
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 5.6s (compile: 5.5s, render: 50ms)
+ GET /manifest.webmanifest 200 in 676ms (compile: 626ms, render: 50ms)
+ GET /manifest.webmanifest 200 in 5.6s (compile: 5.5s, render: 50ms)
+ GET /manifest.webmanifest 200 in 20ms (compile: 12ms, render: 8ms)
+ POST /api/internal/new-user-notification 500 in 2.4s (compile: 1816ms, render: 611ms)
+ GET /login?next=%2Fmy-day 200 in 320ms (compile: 51ms, render: 269ms)
+ GET /login?next=%2Fmy-day 200 in 324ms (compile: 50ms, render: 273ms)
+ GET /login?next=%2Fmy-day 200 in 184ms (compile: 98ms, render: 86ms)
+ GET /manifest.webmanifest 200 in 21ms (compile: 6ms, render: 15ms)
+ GET /manifest.webmanifest 200 in 11ms (compile: 5ms, render: 6ms)
+ GET /manifest.webmanifest 200 in 8ms (compile: 3ms, render: 5ms)
+ GET /my-calendar 200 in 1455ms (compile: 174ms, render: 1280ms)
+ GET /manifest.webmanifest 200 in 10ms (compile: 4ms, render: 6ms)
+ GET /login?next=%2Fmy-day 200 in 715ms (compile: 101ms, render: 614ms)
+ GET /login?next=%2Fmy-day 200 in 787ms (compile: 171ms, render: 616ms)
+ GET /manifest.webmanifest 200 in 73ms (compile: 63ms, render: 9ms)
+ GET /manifest.webmanifest 200 in 19ms (compile: 10ms, render: 9ms)
+ GET /login?next=%2Fmy-day 200 in 184ms (compile: 16ms, render: 169ms)
+ GET /my-calendar 200 in 1948ms (compile: 104ms, render: 1843ms)
+ GET /manifest.webmanifest 200 in 12ms (compile: 5ms, render: 7ms)
+ GET /manifest.webmanifest 200 in 12ms (compile: 4ms, render: 8ms)
+ POST /api/internal/new-user-notification 500 in 256ms (compile: 8ms, render: 248ms)
