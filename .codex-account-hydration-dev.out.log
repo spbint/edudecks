@@ -40,3 +40,4 @@
  GET /manifest.webmanifest 200 in 12ms (compile: 5ms, render: 7ms)
  GET /manifest.webmanifest 200 in 12ms (compile: 4ms, render: 8ms)
  POST /api/internal/new-user-notification 500 in 256ms (compile: 8ms, render: 248ms)
+[?25h
