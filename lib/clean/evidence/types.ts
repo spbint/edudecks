@@ -17,6 +17,12 @@ export type CleanEvidenceEntry = {
   createdByUserId: string;
   createdAt: string | null;
   updatedAt: string | null;
+  sourcePlanType?: "lesson" | "unit" | null;
+  sourcePlanId?: string | null;
+  sourcePlanVersion?: number | null;
+  sourcePlanSequenceIndex?: number | null;
+  sourceIdeaId?: string | null;
+  sourceUrl?: string | null;
 };
 
 export type CleanEvidenceEntryInput = {
@@ -31,6 +37,12 @@ export type CleanEvidenceEntryInput = {
   curriculumNodeIds?: string[];
   includeInPortfolio?: boolean;
   includeInReport?: boolean;
+  sourcePlanType?: "lesson" | "unit" | null;
+  sourcePlanId?: string | null;
+  sourcePlanVersion?: number | null;
+  sourcePlanSequenceIndex?: number | null;
+  sourceIdeaId?: string | null;
+  sourceUrl?: string | null;
 };
 
 export type CleanEvidenceEntryUpdate = Partial<CleanEvidenceEntryInput>;

@@ -195,7 +195,6 @@ describe("MyIdeasWorkspace", () => {
   it("restores an approved lesson plan after reload and exposes its persisted handoffs", async () => {
     setupAuth();
     vi.stubEnv("NEXT_PUBLIC_ENABLE_INTELLIGENCE_ENGINE", "true");
-    vi.stubEnv("NEXT_PUBLIC_ENABLE_INTELLIGENCE_RECOMMENDATIONS", "true");
     const service: IdeasService = { listForUser: vi.fn(async () => [readyIdea()]), createForUser: vi.fn() };
     const fetchMock = mockPlanReads({ lesson: makeReview("lesson"), unit: null });
 
@@ -203,7 +202,7 @@ describe("MyIdeasWorkspace", () => {
 
     expect(await screen.findByText("Plan status: Approved")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open approved plan" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View preparation list" }).getAttribute("href")).toBe("/my-ideas/idea-1/sources/source-1/plans/lesson/preparation?planId=lesson-plan-1&revision=4");
+    expect(screen.getByRole("link", { name: "Open in My Plans" }).getAttribute("href")).toBe("/my-plans");
     expect(screen.queryByRole("button", { name: "Generate draft" })).toBeNull();
     expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === "GET")).toBe(true);
   });

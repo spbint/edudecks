@@ -24,6 +24,11 @@ export type PlanLibraryEntry = {
   sourceTitle: string | null;
   sourceProvider: string | null;
   reviewHref: string | null;
+  detailHref: string;
+  sourceIdeaId: string | null;
+  sourceId: string | null;
+  duration: number | null;
+  durationUnit: string | null;
 };
 
 function safe(value: unknown) {
@@ -50,6 +55,7 @@ function toLibraryEntry(plan: LearningPlanDraft, planType: LearningPlanType): Pl
   const archived = plan.status === "archived" || workflowStatus === "archived";
   const readyToUse = !archived && (
     plan.status === "saved" ||
+    workflowStatus === "ready_to_use" ||
     workflowStatus === "ready_for_approval" ||
     workflowStatus === "approved"
   );
@@ -69,7 +75,18 @@ function toLibraryEntry(plan: LearningPlanDraft, planType: LearningPlanType): Pl
     sourceTitle: safe(content.sourceAttribution.title) || null,
     sourceProvider: safe(content.sourceAttribution.provider) || null,
     reviewHref: planReviewHref(plan, planType),
+    detailHref: `/my-plans/${planType}/${encodeURIComponent(plan.id)}`,
+    sourceIdeaId: safe(plan.ideaId) || null,
+    sourceId: safe(plan.sourceIds[0]) || null,
+    duration: planType === "lesson"
+      ? (typeof (plan as { durationMinutes?: unknown }).durationMinutes === "number" ? (plan as { durationMinutes: number }).durationMinutes : content.duration)
+      : (typeof (plan as { durationCount?: unknown }).durationCount === "number" ? (plan as { durationCount: number }).durationCount : content.duration),
+    durationUnit: planType === "lesson" ? "minutes" : content.durationUnit,
   };
+}
+
+export function toPlanLibraryEntry(plan: LearningPlanDraft, planType: LearningPlanType) {
+  return toLibraryEntry(plan, planType);
 }
 
 async function listTypeForUser(
@@ -84,12 +101,32 @@ async function listTypeForUser(
     .order("updated_at", { ascending: false });
 
   if (response.error) {
-    throw new Error(`We could not load your ${planType} plans just now.`);
+    const error = response.error as { message?: string } | null;
+    throw new Error(error?.message || `We could not load your ${planType} plans just now.`);
   }
 
   return (response.data ?? []).map((row) =>
     toLibraryEntry(toDraft(row as PlanRow, planType), planType),
   );
+}
+
+export async function getLearningPlanForUser(
+  userId: string,
+  planType: LearningPlanType,
+  planId: string,
+  client: Pick<SupabaseClient, "from"> = supabase,
+) {
+  const cleanUserId = safe(userId);
+  const cleanPlanId = safe(planId);
+  if (!cleanUserId || !cleanPlanId) return null;
+  const response = await client
+    .from(tableFor(planType))
+    .select(planSelect(planType))
+    .eq("user_id", cleanUserId)
+    .eq("id", cleanPlanId)
+    .maybeSingle();
+  if (response.error) throw new Error(response.error.message || "We could not load this plan.");
+  return response.data ? toLibraryEntry(toDraft(response.data as PlanRow, planType), planType) : null;
 }
 
 export async function listLearningPlansForUser(

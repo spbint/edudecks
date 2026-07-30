@@ -21,6 +21,15 @@ export type CleanCalendarItem = {
   createdByUserId: string;
   createdAt: string | null;
   updatedAt: string | null;
+  sourcePlanType?: "lesson" | "unit" | null;
+  sourcePlanId?: string | null;
+  sourcePlanVersion?: number | null;
+  sourcePlanSequenceIndex?: number | null;
+  sourcePlanSnapshot?: Record<string, unknown> | null;
+  sourceIdeaId?: string | null;
+  sourceUrl?: string | null;
+  sourcePlanScheduleKey?: string | null;
+  deliveryStatus?: "planned" | "skipped";
 };
 
 export type CleanCalendarItemInput = {
@@ -39,6 +48,15 @@ export type CleanCalendarItemInput = {
   sourceProgramSegmentId?: string | null;
   generationRunId?: string | null;
   isHighlighted?: boolean;
+  sourcePlanType?: "lesson" | "unit" | null;
+  sourcePlanId?: string | null;
+  sourcePlanVersion?: number | null;
+  sourcePlanSequenceIndex?: number | null;
+  sourcePlanSnapshot?: Record<string, unknown> | null;
+  sourceIdeaId?: string | null;
+  sourceUrl?: string | null;
+  sourcePlanScheduleKey?: string | null;
+  deliveryStatus?: "planned" | "skipped";
 };
 
 export type CleanCalendarItemUpdate = Partial<CleanCalendarItemInput>;

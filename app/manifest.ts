@@ -10,6 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
+    share_target: {
+      action: "/share",
+      method: "GET",
+      enctype: "application/x-www-form-urlencoded",
+      params: { title: "title", text: "text", url: "url" },
+    },
     background_color: "#f8fafc",
     theme_color: "#1d4ed8",
     icons: [

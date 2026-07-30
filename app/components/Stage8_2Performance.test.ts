@@ -23,6 +23,7 @@ describe("Stage 8.2 loading and navigation fluidity", () => {
       "/my-day",
       "/my-settings",
       "/my-calendar",
+      "/my-plans",
       "/my-pathways",
     ]);
     expect(getMobilePrefetchDestinations("CAPTURE")).toContain("/my-portfolio");

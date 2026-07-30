@@ -52,6 +52,12 @@ export type UnifiedCaptureDraft = {
   clientSubmissionId?: string | null;
   programId?: string | null;
   calendarItemId?: string | null;
+  sourcePlanType?: "lesson" | "unit" | null;
+  sourcePlanId?: string | null;
+  sourcePlanVersion?: number | null;
+  sourcePlanSequenceIndex?: number | null;
+  sourceIdeaId?: string | null;
+  sourceUrl?: string | null;
   curriculumNodeIds?: string[];
   includeInPortfolio: boolean;
   includeInReport: boolean;
@@ -155,6 +161,12 @@ export function buildUnifiedCaptureEvidenceInput(
     learningArea: safe(draft.learningArea) || null,
     programId: safe(draft.programId) || null,
     calendarItemId: safe(draft.calendarItemId) || null,
+    sourcePlanType: draft.sourcePlanType ?? null,
+    sourcePlanId: safe(draft.sourcePlanId) || null,
+    sourcePlanVersion: draft.sourcePlanVersion ?? null,
+    sourcePlanSequenceIndex: draft.sourcePlanSequenceIndex ?? null,
+    sourceIdeaId: safe(draft.sourceIdeaId) || null,
+    sourceUrl: safe(draft.sourceUrl) || null,
     curriculumNodeIds: draft.curriculumNodeIds ?? [],
     includeInPortfolio: draft.includeInPortfolio === true,
     includeInReport: draft.includeInReport === true,

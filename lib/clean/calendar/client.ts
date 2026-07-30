@@ -32,6 +32,15 @@ type CalendarItemRow = {
   created_by_user_id: string;
   created_at?: string | null;
   updated_at?: string | null;
+  source_plan_type?: string | null;
+  source_plan_id?: string | null;
+  source_plan_version?: number | null;
+  source_plan_sequence_index?: number | null;
+  source_plan_snapshot?: Record<string, unknown> | null;
+  source_idea_id?: string | null;
+  source_url?: string | null;
+  source_plan_schedule_key?: string | null;
+  delivery_status?: string | null;
 };
 
 function safe(value: unknown) {
@@ -45,6 +54,16 @@ function normalizeNullString(value: unknown) {
 
 function normalizeBoolean(value: unknown) {
   return value === true;
+}
+
+function normalizePlanType(value: unknown): "lesson" | "unit" | null {
+  const type = safe(value);
+  return type === "lesson" || type === "unit" ? type : null;
+}
+
+function normalizeNonNegativeInteger(value: unknown) {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : null;
 }
 
 function normalizeSourceType(value: unknown): CleanCalendarItemSourceType {
@@ -79,6 +98,17 @@ function toCleanCalendarItem(row: CalendarItemRow): CleanCalendarItem {
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
+    sourcePlanType: normalizePlanType(row.source_plan_type),
+    sourcePlanId: normalizeNullString(row.source_plan_id),
+    sourcePlanVersion: normalizeNonNegativeInteger(row.source_plan_version),
+    sourcePlanSequenceIndex: normalizeNonNegativeInteger(row.source_plan_sequence_index),
+    sourcePlanSnapshot: row.source_plan_snapshot && typeof row.source_plan_snapshot === "object" && !Array.isArray(row.source_plan_snapshot)
+      ? row.source_plan_snapshot
+      : null,
+    sourceIdeaId: normalizeNullString(row.source_idea_id),
+    sourceUrl: normalizeNullString(row.source_url),
+    sourcePlanScheduleKey: normalizeNullString(row.source_plan_schedule_key),
+    deliveryStatus: safe(row.delivery_status) === "skipped" ? "skipped" : "planned",
   };
 }
 
@@ -148,8 +178,19 @@ function sanitizeCalendarItemInput(
       "isHighlighted" in input && input.isHighlighted !== undefined
         ? input.isHighlighted === true
         : undefined,
+    source_plan_type: "sourcePlanType" in input ? normalizePlanType(input.sourcePlanType) : undefined,
+    source_plan_id: "sourcePlanId" in input ? normalizeNullString(input.sourcePlanId) : undefined,
+    source_plan_version: "sourcePlanVersion" in input ? normalizeNonNegativeInteger(input.sourcePlanVersion) : undefined,
+    source_plan_sequence_index: "sourcePlanSequenceIndex" in input ? normalizeNonNegativeInteger(input.sourcePlanSequenceIndex) : undefined,
+    source_plan_snapshot: "sourcePlanSnapshot" in input ? input.sourcePlanSnapshot ?? null : undefined,
+    source_idea_id: "sourceIdeaId" in input ? normalizeNullString(input.sourceIdeaId) : undefined,
+    source_url: "sourceUrl" in input ? normalizeNullString(input.sourceUrl) : undefined,
+    source_plan_schedule_key: "sourcePlanScheduleKey" in input ? normalizeNullString(input.sourcePlanScheduleKey) : undefined,
+    delivery_status: "deliveryStatus" in input ? (input.deliveryStatus === "skipped" ? "skipped" : "planned") : undefined,
   };
 }
+
+export const CLEAN_CALENDAR_SELECT = "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at,source_plan_type,source_plan_id,source_plan_version,source_plan_sequence_index,source_plan_snapshot,source_idea_id,source_url,source_plan_schedule_key,delivery_status";
 
 export async function listCleanCalendarItems(
   familyId: string,
@@ -158,7 +199,7 @@ export async function listCleanCalendarItems(
   let query = supabase
     .from("calendar_items")
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      CLEAN_CALENDAR_SELECT,
     )
     .eq("family_id", familyId)
     .order("planned_date", { ascending: true })
@@ -238,9 +279,18 @@ export async function createCleanCalendarItem(
       generation_run_id: payload.generation_run_id ?? null,
       is_highlighted: payload.is_highlighted ?? false,
       created_by_user_id: currentUserId,
+      source_plan_type: payload.source_plan_type ?? null,
+      source_plan_id: payload.source_plan_id ?? null,
+      source_plan_version: payload.source_plan_version ?? null,
+      source_plan_sequence_index: payload.source_plan_sequence_index ?? null,
+      source_plan_snapshot: payload.source_plan_snapshot ?? null,
+      source_idea_id: payload.source_idea_id ?? null,
+      source_url: payload.source_url ?? null,
+      source_plan_schedule_key: payload.source_plan_schedule_key ?? null,
+      delivery_status: payload.delivery_status ?? "planned",
     })
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      CLEAN_CALENDAR_SELECT,
     )
     .maybeSingle();
 
@@ -300,10 +350,19 @@ export async function createCleanCalendarItems(
         generation_run_id: payload.generation_run_id ?? null,
         is_highlighted: payload.is_highlighted ?? false,
         created_by_user_id: currentUserId,
+        source_plan_type: payload.source_plan_type ?? null,
+        source_plan_id: payload.source_plan_id ?? null,
+        source_plan_version: payload.source_plan_version ?? null,
+        source_plan_sequence_index: payload.source_plan_sequence_index ?? null,
+        source_plan_snapshot: payload.source_plan_snapshot ?? null,
+        source_idea_id: payload.source_idea_id ?? null,
+        source_url: payload.source_url ?? null,
+        source_plan_schedule_key: payload.source_plan_schedule_key ?? null,
+        delivery_status: payload.delivery_status ?? "planned",
       })),
     )
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      CLEAN_CALENDAR_SELECT,
     );
 
   if (response.error) {
@@ -343,7 +402,7 @@ export async function updateCleanCalendarItem(
     .eq("family_id", familyId)
     .eq("id", calendarItemId)
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      CLEAN_CALENDAR_SELECT,
     )
     .maybeSingle();
 

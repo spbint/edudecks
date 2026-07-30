@@ -37,7 +37,7 @@ describe("Stage 8 mobile web shell", () => {
 
   it("exposes contextual pillar destinations without a second route grid", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
-      ["My Calendar", "My Pathways"],
+      ["My Calendar", "My Plans", "My Pathways"],
       ["My Capture", "My Portfolio"],
       ["My Learna", "My Reports"],
     ]);

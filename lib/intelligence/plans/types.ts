@@ -85,6 +85,8 @@ export interface PlanValidationResult {
 export type PlanWorkflowStatus =
   | "generated_draft"
   | "editing"
+  | "saved"
+  | "ready_to_use"
   | "ready_for_approval"
   | "approved"
   | "returned_to_draft"
@@ -103,6 +105,7 @@ export interface PlanReviewMetadata {
   validation: PlanValidationResult & {
     safetyAcknowledgementRequired?: boolean;
   };
+  readyToUsePreviousStatus?: "draft" | "saved";
 }
 
 export interface GeneratedPlanContent {

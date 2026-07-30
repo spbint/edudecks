@@ -9,6 +9,7 @@ import ProductAnalyticsProvider from "@/app/components/clean/analytics/ProductAn
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
+import { isIntelligenceEngineEnabled } from "@/lib/intelligence/featureFlags";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
@@ -66,6 +67,7 @@ export const finalProductNavSections = [
     label: "PLAN",
     items: [
       { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
+      { href: "/my-plans", label: "My Plans", shortLabel: "Plans", icon: "file", matches: ["/my-plans"] },
       { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways"] },
     ],
   },
@@ -84,6 +86,10 @@ export const finalProductNavSections = [
     ],
   },
 ] as const satisfies readonly ProductNavSection[];
+
+function enabledNavItems(section: ProductNavSection) {
+  return section.items.filter((item) => item.href !== "/my-plans" || isIntelligenceEngineEnabled());
+}
 
 const groupedNavItems: readonly ProductNavItem[] = finalProductNavSections.flatMap(
   (section): readonly ProductNavItem[] => section.items,
@@ -352,7 +358,7 @@ function getActiveMobileSection(pathname: string): MobileNavKey {
   }
 
   const section = finalProductNavSections.find((candidate) =>
-    candidate.items.some((item) => isActive(pathname, item.matches)),
+    enabledNavItems(candidate).some((item) => isActive(pathname, item.matches)),
   );
 
   return section?.label ?? "day";
@@ -362,6 +368,7 @@ export function getMobilePrefetchDestinations(activeSection: MobileNavKey): stri
   const destinations = new Set(["/my-day", "/my-settings"]);
   if (activeSection === "PLAN") {
     destinations.add("/my-calendar");
+    destinations.add("/my-plans");
     destinations.add("/my-pathways");
   } else if (activeSection === "CAPTURE") {
     destinations.add("/my-capture");
@@ -379,7 +386,7 @@ export function getMobilePrefetchDestinations(activeSection: MobileNavKey): stri
 
 function MobilePillarSwitcher({ pathname }: { pathname: string }) {
   const section = finalProductNavSections.find((candidate) =>
-    candidate.items.some((item) => isActive(pathname, item.matches)),
+    enabledNavItems(candidate).some((item) => isActive(pathname, item.matches)),
   );
 
   if (!section) return null;
@@ -390,7 +397,7 @@ function MobilePillarSwitcher({ pathname }: { pathname: string }) {
       aria-label={`${section.label.toLowerCase()} destinations`}
       role="tablist"
     >
-      {section.items.map((item) => (
+      {enabledNavItems(section).map((item) => (
         <MobileSelectionLink
           key={item.href}
           href={item.href}
@@ -1001,7 +1008,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                 >
                   {section.label}
                 </div>
-                {section.items.map((item) => (
+                {enabledNavItems(section).map((item) => (
                   <NavLink key={item.href} item={item} pathname={pathname} />
                 ))}
               </div>

@@ -29,6 +29,12 @@ type EvidenceEntryRow = {
   created_by_user_id: string;
   created_at?: string | null;
   updated_at?: string | null;
+  source_plan_type?: string | null;
+  source_plan_id?: string | null;
+  source_plan_version?: number | null;
+  source_plan_sequence_index?: number | null;
+  source_idea_id?: string | null;
+  source_url?: string | null;
 };
 
 const CLEAN_EVIDENCE_ENTRY_BASE_SELECT =
@@ -144,6 +150,12 @@ function toCleanEvidenceEntry(row: EvidenceEntryRow): CleanEvidenceEntry {
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
+    sourcePlanType: row.source_plan_type === "lesson" || row.source_plan_type === "unit" ? row.source_plan_type : null,
+    sourcePlanId: normalizeNullString(row.source_plan_id),
+    sourcePlanVersion: Number.isInteger(Number(row.source_plan_version)) && Number(row.source_plan_version) > 0 ? Number(row.source_plan_version) : null,
+    sourcePlanSequenceIndex: Number.isInteger(Number(row.source_plan_sequence_index)) && Number(row.source_plan_sequence_index) >= 0 ? Number(row.source_plan_sequence_index) : null,
+    sourceIdeaId: normalizeNullString(row.source_idea_id),
+    sourceUrl: normalizeNullString(row.source_url),
   };
 }
 
@@ -214,8 +226,16 @@ function sanitizeEvidenceEntryInput(
       "includeInReport" in input && input.includeInReport !== undefined
         ? input.includeInReport === true
         : undefined,
+    source_plan_type: "sourcePlanType" in input ? input.sourcePlanType ?? null : undefined,
+    source_plan_id: "sourcePlanId" in input ? normalizeNullString(input.sourcePlanId) : undefined,
+    source_plan_version: "sourcePlanVersion" in input ? input.sourcePlanVersion ?? null : undefined,
+    source_plan_sequence_index: "sourcePlanSequenceIndex" in input ? input.sourcePlanSequenceIndex ?? null : undefined,
+    source_idea_id: "sourceIdeaId" in input ? normalizeNullString(input.sourceIdeaId) : undefined,
+    source_url: "sourceUrl" in input ? normalizeNullString(input.sourceUrl) : undefined,
   };
 }
+
+export const CLEAN_EVIDENCE_ENTRY_PLAN_SELECT = `${CLEAN_EVIDENCE_ENTRY_BASE_SELECT},source_plan_type,source_plan_id,source_plan_version,source_plan_sequence_index,source_idea_id,source_url`;
 
 export async function listCleanEvidenceEntries(
   familyId: string,
@@ -262,10 +282,10 @@ export async function listCleanEvidenceEntries(
     return query;
   }
 
-  let response = await runQuery(CLEAN_EVIDENCE_ENTRY_ATTACHMENT_SELECT);
+  let response = await runQuery(`${CLEAN_EVIDENCE_ENTRY_ATTACHMENT_SELECT},source_plan_type,source_plan_id,source_plan_version,source_plan_sequence_index,source_idea_id,source_url`);
 
   if (response.error) {
-    response = await runQuery(CLEAN_EVIDENCE_ENTRY_BASE_SELECT);
+    response = await runQuery(CLEAN_EVIDENCE_ENTRY_PLAN_SELECT);
   }
 
   if (response.error) {
@@ -324,8 +344,14 @@ export async function createCleanEvidenceEntry(
       include_in_portfolio: payload.include_in_portfolio ?? true,
       include_in_report: payload.include_in_report ?? true,
       created_by_user_id: currentUserId,
+      source_plan_type: payload.source_plan_type ?? null,
+      source_plan_id: payload.source_plan_id ?? null,
+      source_plan_version: payload.source_plan_version ?? null,
+      source_plan_sequence_index: payload.source_plan_sequence_index ?? null,
+      source_idea_id: payload.source_idea_id ?? null,
+      source_url: payload.source_url ?? null,
     })
-    .select(CLEAN_EVIDENCE_ENTRY_BASE_SELECT)
+    .select(CLEAN_EVIDENCE_ENTRY_PLAN_SELECT)
     .maybeSingle();
 
   if (response.error || !response.data) {
@@ -369,7 +395,7 @@ export async function updateCleanEvidenceEntry(
     .update(payload)
     .eq("family_id", familyId)
     .eq("id", entryId)
-    .select(CLEAN_EVIDENCE_ENTRY_BASE_SELECT)
+    .select(CLEAN_EVIDENCE_ENTRY_PLAN_SELECT)
     .maybeSingle();
 
   if (response.error || !response.data) {

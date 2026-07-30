@@ -1867,6 +1867,12 @@ function CleanDayWorkspaceBody() {
                               {capturedEvidence ? (
                                 <span style={blockMetaPillStyle}>Evidence captured</span>
                               ) : null}
+                              {item.sourcePlanId ? (
+                                <span style={blockMetaPillStyle}>From My Plans</span>
+                              ) : null}
+                              {item.deliveryStatus === "skipped" ? (
+                                <span style={blockMetaPillStyle}>Skipped</span>
+                              ) : null}
                             </div>
                             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                               {notesPreview ?? "Open for notes and capture."}
@@ -1912,6 +1918,11 @@ function CleanDayWorkspaceBody() {
                               data-guidance-id="my-day-capture-evidence"
                               style={{ display: "flex", gap: 14, flexWrap: "wrap" }}
                             >
+                              {item.sourcePlanId && item.sourcePlanType ? (
+                                <Link href={`/my-plans/${item.sourcePlanType}/${encodeURIComponent(item.sourcePlanId)}`} style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                                  Open plan
+                                </Link>
+                              ) : null}
                               {capturedEvidence ? (
                                 <Link
                                   href={buildCaptureHref(item, capturedEvidence.id)}

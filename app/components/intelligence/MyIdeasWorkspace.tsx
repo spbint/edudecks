@@ -21,7 +21,6 @@ import type {
 } from "@/lib/intelligence/sources/types";
 import type { LearningPlanDraft, LearningPlanType, GeneratedPlanContent } from "@/lib/intelligence/plans/types";
 import type { PlanReviewEnvelope } from "@/lib/intelligence/plans/reviewTypes";
-import { isRecommendationEngineEnabled } from "@/lib/intelligence/featureFlags";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -98,18 +97,13 @@ function planStatusLabel(review: PlanReviewEnvelope) {
   switch (review.workflowStatus) {
     case "generated_draft": return "Draft generated";
     case "editing": return "Editing";
+    case "saved": return "Ready to use";
+    case "ready_to_use": return "Ready to use";
     case "ready_for_approval": return "Ready for approval";
     case "approved": return "Approved";
     case "returned_to_draft": return "Returned to draft";
     case "archived": return "Archived";
   }
-}
-
-function approvedRevision(review: PlanReviewEnvelope) {
-  const revision = review.provenance.finalApprovedVersion;
-  return review.workflowStatus === "approved" && typeof revision === "number" && Number.isInteger(revision) && revision > 0
-    ? revision
-    : review.currentRevision;
 }
 
 function reviewEnvelopeFromPlan(plan: LearningPlanDraft): PlanReviewEnvelope {
@@ -225,6 +219,27 @@ export default function MyIdeasWorkspace({
 
   const userId = user?.id ?? "";
   const formId = useMemo(() => "my-ideas-add-form", []);
+  const sharedParams = useMemo(() => typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search), []);
+
+  useEffect(() => {
+    const sharedUrl = sharedParams.get("sharedUrl") || "";
+    const sharedTitle = sharedParams.get("sharedTitle") || "";
+    if (sharedParams.get("source") !== "share" || !sharedUrl) return;
+    setUrl(sharedUrl);
+    if (sharedTitle) setTitle(sharedTitle);
+    setSuccessMessage("Shared link ready to save.");
+    window.requestAnimationFrame(() => document.getElementById(formId)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [formId, sharedParams]);
+
+  async function pasteLink() {
+    try {
+      const value = await navigator.clipboard.readText();
+      if (value) setUrl(value.trim());
+      else setPersistenceError("No link was found in the clipboard. Paste it into the URL field instead.");
+    } catch {
+      setPersistenceError("Clipboard access was not available. Paste the link into the URL field instead.");
+    }
+  }
 
   const hydratePlanSummaries = useCallback(async (nextIdeas: Idea[]) => {
     if (!userId) return;
@@ -397,6 +412,7 @@ export default function MyIdeasWorkspace({
       setUrl("");
       setTitle("");
       setSuccessMessage("Your idea was saved.");
+      if (sharedParams.get("source") === "share") window.history.replaceState({}, "", "/my-ideas");
       void fetchPreview(created);
     } catch (error) {
       setPersistenceError(errorMessage(error, "We could not save your idea."));
@@ -411,7 +427,7 @@ export default function MyIdeasWorkspace({
         <V2PageHeader
           eyebrow="My Ideas"
           title="Save ideas for later"
-          subtitle="Keep useful links in one calm place. URL analysis and plan generation will arrive in later milestones."
+          subtitle="Save a useful link, fetch a safe preview, and turn it into an editable lesson or unit plan."
         />
         <V2Card>
           <p style={{ margin: 0, color: v2Tokens.slate }}>Loading your saved ideas...</p>
@@ -425,7 +441,7 @@ export default function MyIdeasWorkspace({
       <V2PageHeader
         eyebrow="My Ideas"
         title="Save ideas for later"
-        subtitle="Keep useful links in one calm place. We will add URL preview and plan generation in later milestones."
+        subtitle="Save a useful link, fetch a safe preview, and turn it into an editable lesson or unit plan."
       />
 
       {successMessage ? (
@@ -469,7 +485,7 @@ export default function MyIdeasWorkspace({
         <div style={{ display: "grid", gap: 6, marginBottom: 16 }}>
           <h2 style={{ margin: 0, color: v2Tokens.navy, fontSize: 20 }}>Add an idea</h2>
           <p style={{ margin: 0, color: v2Tokens.slate, lineHeight: 1.55 }}>
-            Save the link now. Nothing will be fetched or analysed yet.
+            Keep the link in your saved-link inbox, then fetch a safe preview before creating an editable plan.
           </p>
         </div>
 
@@ -490,6 +506,9 @@ export default function MyIdeasWorkspace({
           <span id="my-ideas-url-help" style={{ marginTop: -7, color: v2Tokens.slate, fontSize: 13 }}>
             Use an HTTP or HTTPS link.
           </span>
+          <button type="button" onClick={() => void pasteLink()} style={{ ...primaryButtonStyle, justifySelf: "start", background: "#fff", color: v2Tokens.purple }}>
+            Paste link
+          </button>
 
           <label style={{ display: "grid", gap: 7, color: v2Tokens.navy, fontWeight: 700 }}>
             Your title <span style={{ color: v2Tokens.slate, fontWeight: 500 }}>(optional)</span>
@@ -582,9 +601,6 @@ export default function MyIdeasWorkspace({
                     const existingPlan = persistedPlan?.plan;
                     const approved = Boolean(persistedPlan && persistedPlan.workflowStatus === "approved");
                     const reviewHref = `/my-ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${planType}/review`;
-                    const preparationHref = persistedPlan && approved
-                      ? `/my-ideas/${encodeURIComponent(idea.id)}/sources/${encodeURIComponent(source.id)}/plans/${planType}/preparation?planId=${encodeURIComponent(persistedPlan.plan.id)}&revision=${approvedRevision(persistedPlan)}`
-                      : "";
                     return (
                       <div
                         aria-label="Source preview"
@@ -681,11 +697,7 @@ export default function MyIdeasWorkspace({
                             <a href={reviewHref} style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}>
                               {approved ? "Open approved plan" : "Review and edit plan"}
                             </a>
-                            {approved && isRecommendationEngineEnabled() ? (
-                              <a href={preparationHref} style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}>
-                                View preparation list
-                              </a>
-                            ) : null}
+                            {approved ? <a href="/my-plans" style={{ color: v2Tokens.purple, fontWeight: 700, justifySelf: "start" }}>Open in My Plans</a> : null}
                           </div>
                         ) : null}
                         {status !== "fetching" && status !== "ready" ? (

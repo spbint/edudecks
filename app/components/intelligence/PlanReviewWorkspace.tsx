@@ -230,8 +230,8 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
       </V2Card>
       {envelope.workflowStatus === "approved" ? (
         <V2Card>
-          <a href={`/my-ideas/${encodeURIComponent(ideaId)}/sources/${encodeURIComponent(sourceId)}/plans/${planType}/preparation?planId=${encodeURIComponent(envelope.plan.id)}&revision=${envelope.currentRevision}`} style={{ color: v2Tokens.purple, fontWeight: 700 }}>
-            Open learning preparation list
+          <a href="/my-plans" style={{ color: v2Tokens.purple, fontWeight: 700 }}>
+            Open My Plans
           </a>
         </V2Card>
       ) : null}
