@@ -169,6 +169,22 @@ const textAreaStyle: React.CSSProperties = {
   resize: "vertical",
 };
 
+export function CleanCalendarIntroVideo() {
+  return (
+    <CleanPageIntroVideo
+      className="mylearna-calendar-intro-video"
+      variant="compact"
+      configs={[
+        PAGE_INTRO_VIDEOS.myCalendarWeeklyPlanner,
+        PAGE_INTRO_VIDEOS.myCalendarTermTimes,
+      ]}
+      promptKey="my-calendar"
+      promptTitle="New to My Calendar?"
+      promptDescription="Watch a quick guide to plan your week or set term times."
+    />
+  );
+}
+
 const buttonStyle: React.CSSProperties = {
   border: "1px solid #0f172a",
   background: "#0f172a",
@@ -3107,15 +3123,7 @@ function CleanCalendarWorkspaceBody() {
         />
 
         {!firstSetupMode ? (
-        <CleanPageIntroVideo
-          configs={[
-            PAGE_INTRO_VIDEOS.myCalendarWeeklyPlanner,
-            PAGE_INTRO_VIDEOS.myCalendarTermTimes,
-          ]}
-          promptKey="my-calendar"
-          promptTitle="New to My Calendar?"
-          promptDescription="Watch a quick guide to plan your week or set term times."
-        />
+        <CleanCalendarIntroVideo />
         ) : null}
 
         <section className="mylearna-calendar-intro" data-guidance-id="calendar-week-view" style={cardStyle}>
