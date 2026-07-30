@@ -7,4 +7,3 @@ export default async function UnitPlanDetailPage({ params }: { params: Promise<{
   const { planId } = await params;
   return <PlanDetailWorkspace planType="unit" planId={planId} />;
 }
-

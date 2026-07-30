@@ -14,7 +14,6 @@ function responseFor(error: unknown) {
   }
   return NextResponse.json({ code: "persistence_failure", error: "We could not update this plan." }, { status: 500 });
 }
-
 async function scoped(type: string) {
   if (!isIntelligenceEngineEnabled()) return { response: NextResponse.json({ error: "Not found." }, { status: 404 }) };
   if (!isLearningPlanType(type)) return { response: NextResponse.json({ code: "invalid_input", error: "Choose a lesson or unit plan." }, { status: 400 }) };
@@ -34,7 +33,6 @@ export async function GET(_request: Request, context: Context) {
     return responseFor(error);
   }
 }
-
 export async function POST(request: Request, context: Context) {
   const { planType, planId } = await context.params;
   const selected = await scoped(planType);
@@ -57,4 +55,3 @@ export async function POST(request: Request, context: Context) {
     return responseFor(error);
   }
 }
-

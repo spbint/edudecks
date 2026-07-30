@@ -3,7 +3,6 @@ const MAX_TEXT = 2000;
 function clean(value: string | null, max: number) {
   return (value ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
 }
-
 export function extractSharedHttpUrl(...values: Array<string | null | undefined>) {
   for (const value of values) {
     const text = clean(value ?? null, MAX_TEXT);
@@ -20,4 +19,3 @@ export function extractSharedHttpUrl(...values: Array<string | null | undefined>
   }
   return null;
 }
-

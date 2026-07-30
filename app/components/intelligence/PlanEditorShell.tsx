@@ -50,6 +50,7 @@ export default function PlanEditorShell({
   onChange,
   onSave,
   onValidate,
+  onReadyToUse,
   onApprove,
   onReturnToDraft,
   onArchive,
@@ -67,6 +68,7 @@ export default function PlanEditorShell({
   onChange: <K extends keyof GeneratedPlanContent>(field: K, value: GeneratedPlanContent[K]) => void;
   onSave: () => void;
   onValidate: () => void;
+  onReadyToUse?: () => void;
   onApprove: () => void;
   onReturnToDraft: () => void;
   onArchive: () => void;
@@ -186,6 +188,15 @@ export default function PlanEditorShell({
           color: #ffffff;
         }
 
+        .plan-review-action-ready {
+          border-color: #6c4df6;
+          color: #5338d4;
+        }
+
+        .plan-review-action-ready:hover:not(:disabled) {
+          background: #f2edff;
+        }
+
         .plan-review-action-approve:hover:not(:disabled) {
           border-color: #237a50;
           background: #237a50;
@@ -254,6 +265,7 @@ export default function PlanEditorShell({
             <div className="plan-review-actions">
               <button className="plan-review-action plan-review-action-save" data-dirty={dirty} type="button" onClick={onSave} disabled={saving}>{saving ? "Saving..." : "Save draft"}</button>
               <button className="plan-review-action" type="button" onClick={onValidate} disabled={saving}>Validate</button>
+              <button className="plan-review-action plan-review-action-ready" type="button" onClick={onReadyToUse} disabled={saving}>Mark Ready to use</button>
               <button className="plan-review-action plan-review-action-approve" type="button" onClick={onApprove} disabled={saving}>Approve plan</button>
               <button className="plan-review-action" type="button" onClick={onReturnToDraft} disabled={saving}>Return to draft</button>
               <button className="plan-review-action plan-review-action-destructive" type="button" onClick={onArchive} disabled={saving}>Archive</button>

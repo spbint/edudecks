@@ -13,4 +13,3 @@ export async function GET() {
     return NextResponse.json({ code: "load_failed", error: "We could not load your plans just now." }, { status: 500 });
   }
 }
-

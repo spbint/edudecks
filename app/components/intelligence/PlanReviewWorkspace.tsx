@@ -51,6 +51,7 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
   const [safetyAcknowledged, setSafetyAcknowledged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [readyBusy, setReadyBusy] = useState(false);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
   const [validation, setValidation] = useState<ReviewValidationResult | null>(null);
@@ -185,6 +186,32 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
     await request(action, { expectedRevision: saved === true ? currentEnvelope?.currentRevision : saved.currentRevision });
   }
 
+  async function markReadyToUse() {
+    if (savingRef.current || readyBusy) return;
+    const saved = await saveIfDirty();
+    if (!saved) return;
+    const currentEnvelope = envelopeRef.current;
+    if (!currentEnvelope?.plan.id) return;
+    setReadyBusy(true);
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/intelligence/plans/${planType}/${encodeURIComponent(currentEnvelope.plan.id)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "ready" }),
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "We could not mark this plan ready to use.");
+      await load();
+    } catch (readyError) {
+      setError(readyError instanceof Error ? readyError.message : "We could not mark this plan ready to use.");
+    } finally {
+      setReadyBusy(false);
+      setSaving(false);
+    }
+  }
+
   if (loading) {
     return <V2Card><p role="status" style={{ margin: 0, color: v2Tokens.slate }}>Loading plan review...</p></V2Card>;
   }
@@ -217,6 +244,7 @@ export default function PlanReviewWorkspace({ ideaId, sourceId, planType }: { id
           onChange={(field, value) => { updateContent((current) => ({ ...current, [field]: value } as GeneratedPlanContent)); }}
           onSave={() => { void request("save"); }}
           onValidate={() => { void validate(); }}
+          onReadyToUse={() => { void markReadyToUse(); }}
           onApprove={() => { void approve(); }}
           onReturnToDraft={() => { void changeStatus("return_to_draft"); }}
           onArchive={() => { void changeStatus("archive"); }}

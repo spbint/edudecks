@@ -6,4 +6,3 @@ export default function MyPlansPage() {
   if (!isIntelligenceEngineEnabled()) notFound();
   return <MyPlansWorkspace />;
 }
-

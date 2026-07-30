@@ -63,4 +63,3 @@ create index if not exists calendar_items_source_plan_id_idx
 create index if not exists evidence_entries_source_plan_lookup_idx
   on public.evidence_entries (family_id, learner_id, source_plan_id, observed_on desc)
   where source_plan_id is not null;
-

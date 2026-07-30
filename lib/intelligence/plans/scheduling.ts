@@ -64,6 +64,10 @@ function sourceUrl(content: Record<string, unknown>) {
   return /^https?:\/\//i.test(text) ? text.slice(0, 2000) : null;
 }
 
+function isScheduleKeyConflict(error: unknown) {
+  return Boolean(error && typeof error === "object" && (error as { code?: unknown }).code === "23505");
+}
+
 export async function schedulePlanForUser(
   client: Pick<SupabaseClient, "from">,
   userId: string,
@@ -126,10 +130,30 @@ export async function schedulePlanForUser(
     };
   }));
 
-  const response = await client.from("calendar_items").upsert(rows, { onConflict: "source_plan_schedule_key", ignoreDuplicates: true }).select("id");
-  if (response.error) throw new PlanSchedulingError("persistence_failure", "We could not schedule this plan.", { cause: response.error });
-  const existing = await client.from("calendar_items").select("id").eq("family_id", familyId).in("source_plan_schedule_key", rows.map((row) => row.source_plan_schedule_key));
-  if (existing.error) throw new PlanSchedulingError("persistence_failure", "We could not confirm the scheduled plan.", { cause: existing.error });
-  const ids = (existing.data ?? []).map((row) => safe(row.id));
-  return { created: response.data?.length ?? 0, alreadyExisting: Math.max(0, ids.length - (response.data?.length ?? 0)), calendarItemIds: ids, familyId };
+  const calendarItemIds: string[] = [];
+  let created = 0;
+  let alreadyExisting = 0;
+  for (const row of rows) {
+    const inserted = await client.from("calendar_items").insert(row).select("id").maybeSingle();
+    if (!inserted.error && inserted.data) {
+      created += 1;
+      calendarItemIds.push(safe(inserted.data.id));
+      continue;
+    }
+    if (!isScheduleKeyConflict(inserted.error)) {
+      throw new PlanSchedulingError("persistence_failure", "We could not schedule this plan.", { cause: inserted.error });
+    }
+    const existing = await client
+      .from("calendar_items")
+      .select("id")
+      .eq("family_id", familyId)
+      .eq("source_plan_schedule_key", row.source_plan_schedule_key)
+      .maybeSingle();
+    if (existing.error || !existing.data) {
+      throw new PlanSchedulingError("persistence_failure", "We could not confirm the scheduled plan.", { cause: existing.error ?? inserted.error });
+    }
+    alreadyExisting += 1;
+    calendarItemIds.push(safe(existing.data.id));
+  }
+  return { created, alreadyExisting, calendarItemIds, familyId };
 }

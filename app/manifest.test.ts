@@ -7,4 +7,3 @@ describe("PWA share target", () => {
     expect(value.share_target).toEqual({ action: "/share", method: "GET", enctype: "application/x-www-form-urlencoded", params: { title: "title", text: "text", url: "url" } });
   });
 });
-

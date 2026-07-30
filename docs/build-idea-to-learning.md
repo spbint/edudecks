@@ -26,4 +26,3 @@ The migration must be applied through the approved database process before plan-
 ## Known limitations
 
 The local schedule surface currently hands the parent to the canonical Calendar workspace for date/learner selection; the server still fetches and snapshots the plan. Existing Calendar, My Day and Capture screens remain the source of truth for those areas and require their current staging data/configuration for a complete browser smoke path.
-

@@ -28,4 +28,3 @@ export async function POST(request: Request, context: Context) {
     return NextResponse.json({ code: "persistence_failure", error: "We could not schedule this plan." }, { status: 500 });
   }
 }
-

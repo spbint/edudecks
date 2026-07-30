@@ -40,7 +40,7 @@ describe("PlanEditorShell", () => {
     const actionBar = screen.getByRole("region", { name: "Plan review actions" });
     expect(actionBar).toBeTruthy();
     expect(actionBar.querySelector(".plan-review-actions")).toBeTruthy();
-    expect(actionBar.querySelectorAll("button").length).toBe(6);
+    expect(actionBar.querySelectorAll("button").length).toBe(7);
 
     fireEvent.click(save);
     expect(onSave).toHaveBeenCalledTimes(1);

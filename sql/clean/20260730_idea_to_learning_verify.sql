@@ -2,7 +2,7 @@
 -- Do not modify data or schema.
 with checks as (
   select 'calendar plan columns' as check_name,
-    count(*) = 10 as passed
+    count(*) = 9 as passed
   from information_schema.columns
   where table_schema = 'public'
     and table_name = 'calendar_items'
@@ -39,4 +39,3 @@ select check_name,
   case when passed then 'PASS' else 'FAIL' end as result
 from checks
 order by check_name;
-

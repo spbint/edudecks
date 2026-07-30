@@ -50,4 +50,3 @@ describe("plan status mutations", () => {
     expect(restored.content.review?.workflowStatus).toBe("ready_to_use");
   });
 });
-

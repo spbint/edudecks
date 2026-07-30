@@ -29,4 +29,3 @@ describe("Idea-to-Learning plan library", () => {
     expect(toPlanLibraryEntry(plan("unit", "archived", "archived"), "unit").displayStatus).toBe("Archived");
   });
 });
-
