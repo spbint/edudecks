@@ -9,12 +9,14 @@ export default async function CleanRouteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuthenticatedRoute("/clean-my-day");
+  const authenticatedUser = await requireAuthenticatedRoute("/clean-my-day");
 
   return (
     <FamilyWorkspaceProvider>
       <CleanFamilyWorkspaceProvider>
-        <MyLearnaAppShellV2>{children}</MyLearnaAppShellV2>
+        <MyLearnaAppShellV2 initialUserEmail={authenticatedUser.email ?? null}>
+          {children}
+        </MyLearnaAppShellV2>
       </CleanFamilyWorkspaceProvider>
     </FamilyWorkspaceProvider>
   );

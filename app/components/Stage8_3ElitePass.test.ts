@@ -47,7 +47,9 @@ const primarySources = [
 describe("Stage 8.3 systemic mobile remediation", () => {
   it("keeps one clean workspace provider mounted across primary route changes", () => {
     expect(layoutSource).toContain("CleanFamilyWorkspaceProvider");
-    expect(layoutSource).toContain("<MyLearnaAppShellV2>{children}</MyLearnaAppShellV2>");
+    expect(layoutSource).toContain(
+      "<MyLearnaAppShellV2 initialUserEmail={authenticatedUser.email ?? null}>",
+    );
     expect(primarySources.every((source) => !source.includes("<CleanFamilyWorkspaceProvider>"))).toBe(true);
   });
 

@@ -517,11 +517,18 @@ export function V2PageHeader({
   );
 }
 
-export default function MyLearnaAppShellV2({ children }: { children: React.ReactNode }) {
+export default function MyLearnaAppShellV2({
+  children,
+  initialUserEmail = null,
+}: {
+  children: React.ReactNode;
+  initialUserEmail?: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuthUser();
+  const { user, loading: authLoading } = useAuthUser();
+  const accountEmail = user?.email ?? (authLoading ? initialUserEmail : null);
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
   const title = routeTitle(pathname);
   const breadcrumbs = routeCrumbs(pathname);
@@ -1127,7 +1134,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                 <ShellIcon name="help" size={18} />
               </Link>
               <CleanCommunityNotificationsMenu />
-              <CleanAccountMenu email={user?.email ?? null} redirectTo="/start-free" />
+              <CleanAccountMenu email={accountEmail} redirectTo="/start-free" />
             </div>
           </header>
 

@@ -27,7 +27,7 @@ describe("canonical authenticated clean workspace bootstrap", () => {
       'import CleanFamilyWorkspaceProvider from "@/app/components/clean/CleanFamilyWorkspaceProvider";',
     );
     expect(authLayoutSource).toMatch(
-      /<FamilyWorkspaceProvider>[\s\S]*<CleanFamilyWorkspaceProvider>[\s\S]*<MyLearnaAppShellV2>/,
+      /<FamilyWorkspaceProvider>[\s\S]*<CleanFamilyWorkspaceProvider>[\s\S]*<MyLearnaAppShellV2(?:\s[^>]*)?>/,
     );
     expect(authLayoutSource).toContain(
       "</CleanFamilyWorkspaceProvider>",
@@ -70,7 +70,7 @@ describe("canonical authenticated clean workspace bootstrap", () => {
     );
     expect(settingsSource).toContain("CleanSettingsWorkspace");
     expect(cleanLayoutSource).toMatch(
-      /<FamilyWorkspaceProvider>[\s\S]*<CleanFamilyWorkspaceProvider>[\s\S]*<MyLearnaAppShellV2>/,
+      /<FamilyWorkspaceProvider>[\s\S]*<CleanFamilyWorkspaceProvider>[\s\S]*<MyLearnaAppShellV2(?:\s[^>]*)?>/,
     );
   });
 });

@@ -6,12 +6,14 @@ import MyLearnaAppShellV2 from "@/app/components/clean/design-v2/MyLearnaAppShel
 import { requireAuthenticatedRoute } from "@/lib/auth/serverRouteAuth";
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
-  await requireAuthenticatedRoute("/my-day");
+  const authenticatedUser = await requireAuthenticatedRoute("/my-day");
 
   return (
     <FamilyWorkspaceProvider>
       <CleanFamilyWorkspaceProvider>
-        <MyLearnaAppShellV2>{children}</MyLearnaAppShellV2>
+        <MyLearnaAppShellV2 initialUserEmail={authenticatedUser.email ?? null}>
+          {children}
+        </MyLearnaAppShellV2>
       </CleanFamilyWorkspaceProvider>
     </FamilyWorkspaceProvider>
   );
