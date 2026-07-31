@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { getHome } from "@/lib/shopify/client";
+import { ShopifyError } from "@/lib/shopify/errors";
+import MarketplaceProductCard from "./MarketplaceProductCard";
+
+export const metadata: Metadata = { title: "Affordable resources for meaningful learning", description: "Educational supplies, practical learning kits and structured programs for families and educators." };
+export const revalidate = 300;
+
+export default async function MarketplaceHomePage() {
+  let home: Awaited<ReturnType<typeof getHome>> | null = null;
+  let unavailable = false;
+  try { home = await getHome(); } catch (error) { unavailable = error instanceof ShopifyError; }
+  const faithCollection = home?.collections.find((collection) => /faith/i.test(`${collection.title} ${collection.handle}`));
+  return <main className="marketplace-main">
+    <section className="marketplace-hero" aria-labelledby="marketplace-heading">
+      <div className="marketplace-hero-copy"><div className="marketplace-eyebrow">MyLearna Marketplace</div><h1 id="marketplace-heading">Affordable resources. Meaningful learning.</h1><p>Educational supplies, practical learning kits and structured programs for families and educators.</p><div style={{ marginTop: 28 }}><Link className="marketplace-button" href="/marketplace/collections">Explore the collection</Link></div></div>
+      <div className="marketplace-hero-art" aria-hidden="true"><div className="marketplace-hero-art-card"><strong>Made for curious families.</strong><span>Resources that help learning happen in everyday life.</span></div></div>
+    </section>
+    {unavailable ? <section className="marketplace-state" role="alert"><strong>The Marketplace is temporarily unavailable.</strong><p>Please try again shortly.</p></section> : null}
+    <section className="marketplace-section" aria-labelledby="collections-heading"><div className="marketplace-section-heading"><div><h2 id="collections-heading">Shop by collection</h2><p>Choose a starting point for your next learning moment.</p></div><Link className="marketplace-link" href="/marketplace/collections">View all</Link></div>
+      {home?.collections.length ? <div className="marketplace-collection-grid">{home.collections.slice(0, 8).map((collection) => <Link className="marketplace-collection-card" key={collection.id} href={`/marketplace/collections/${encodeURIComponent(collection.handle)}`}>{collection.image ? <img src={collection.image.url} alt="" /> : null}<span>{collection.title}</span></Link>)}</div> : <div className="marketplace-state">Collections will appear here as they become available.</div>}
+    </section>
+    <section className="marketplace-section" aria-labelledby="products-heading"><div className="marketplace-section-heading"><div><h2 id="products-heading">Featured learning resources</h2><p>Real products from the MyLearna Shopify catalogue.</p></div></div>
+      {home?.products.length ? <div className="marketplace-product-grid">{home.products.map((product) => <MarketplaceProductCard key={product.id} product={product} />)}</div> : <div className="marketplace-state">Featured products will appear here as the catalogue grows.</div>}
+    </section>
+    <section className="marketplace-section" aria-labelledby="faith-heading"><div className="marketplace-section-heading"><div><h2 id="faith-heading">Faith-Based Resources</h2><p>Christian curriculum, family learning and homeschool resources.</p></div><Link className="marketplace-link" href={`/marketplace/collections/${encodeURIComponent(faithCollection?.handle || "faith-based-resources")}`}>Explore resources</Link></div><div className="marketplace-state">Faith-Based Resources are available as a distinct category when the corresponding Shopify collection is published.</div></section>
+  </main>;
+}
