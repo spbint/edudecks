@@ -13,7 +13,7 @@ export default function MarketplaceProductCard({ product }: { product: ShopifyPr
     <div className="marketplace-product-card-body">
       <div className="marketplace-product-meta">{category}</div>
       <h3><Link href={`/marketplace/products/${encodeURIComponent(product.handle)}`}>{product.title}</Link></h3>
-      <div><span className="marketplace-price">{Number(price.amount) === 0 ? "Free" : `${formatShopifyMoney(price)}${hasRange ? " and up" : ""}`}</span></div>
+      <div className="marketplace-product-price"><span className="marketplace-price">{Number(price.amount) === 0 ? "Free" : `${formatShopifyMoney(price)}${hasRange ? " and up" : ""}`}</span></div>
       {!product.availableForSale ? <div className="marketplace-product-meta" role="status">Currently unavailable</div> : null}
     </div>
   </article>;
