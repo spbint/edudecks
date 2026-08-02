@@ -13,7 +13,7 @@ export default function MarketplaceHeader() {
       <Link className="marketplace-brand" href="/marketplace" aria-label="MyLearna Marketplace home"><strong>MyLearna</strong><span>Marketplace</span></Link>
       <nav className="marketplace-nav" aria-label="Marketplace categories">
         <Link href="/marketplace/collections">Shop all</Link>
-        {MARKETPLACE_CATEGORIES.map((category) => <Link key={category.handle} href={`/marketplace/collections/${category.handle}`}>{category.title}</Link>)}
+        <details className="marketplace-category-menu"><summary>Browse categories</summary><div className="marketplace-category-menu-panel">{MARKETPLACE_CATEGORIES.map((category) => <Link key={category.handle} href={`/marketplace/collections/${category.handle}`}>{category.title}</Link>)}</div></details>
       </nav>
       <div className="marketplace-header-actions">
         <Link className="marketplace-header-link" href="/">Open MyLearna</Link>
@@ -23,6 +23,7 @@ export default function MarketplaceHeader() {
     </div>
     {menuOpen ? <nav id="marketplace-mobile-nav" className="marketplace-mobile-nav" aria-label="Mobile Marketplace navigation">
       <Link href="/marketplace/collections" onClick={() => setMenuOpen(false)}>Shop all</Link>
+      <span className="marketplace-mobile-nav-heading">Browse categories</span>
       {MARKETPLACE_CATEGORIES.map((category) => <Link key={category.handle} href={`/marketplace/collections/${category.handle}`} onClick={() => setMenuOpen(false)}>{category.title}</Link>)}
       <Link href="/" onClick={() => setMenuOpen(false)}>Open MyLearna</Link>
     </nav> : null}

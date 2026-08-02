@@ -45,6 +45,7 @@ export type ShopifyProduct = {
 export type ShopifyProductSummary = Pick<ShopifyProduct, "id" | "handle" | "title" | "featuredImage" | "vendor" | "productType" | "tags"> & {
   priceRange: { minVariantPrice: ShopifyMoney; maxVariantPrice: ShopifyMoney };
   availableForSale: boolean;
+  collections: ShopifyCollectionSummary[];
 };
 
 export type ShopifyCollectionSummary = {
@@ -67,7 +68,7 @@ export type ShopifyCartLine = {
   merchandise: {
     id: string;
     title: string;
-    product: { handle: string; title: string; featuredImage: ShopifyImage | null };
+    product: { handle: string; title: string; featuredImage: ShopifyImage | null; collections: ShopifyCollectionSummary[] };
     price: ShopifyMoney;
   };
 };

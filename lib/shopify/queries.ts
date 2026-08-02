@@ -41,6 +41,20 @@ export const PRODUCT_QUERY = `#graphql
   ${PRODUCT_FRAGMENT}
 `;
 
+export const VARIANT_QUERY = `#graphql
+  query MarketplaceVariant($id: ID!) {
+    node(id: $id) {
+      ... on ProductVariant {
+        id
+        product {
+          collections(first: 12) { nodes { id handle title image { ...MarketplaceImage } } }
+        }
+      }
+    }
+  }
+  ${IMAGE_FRAGMENT}
+`;
+
 export const CART_QUERY = `#graphql
   query MarketplaceCart($id: ID!) { cart(id: $id) { ...MarketplaceCart } }
   ${IMAGE_FRAGMENT}

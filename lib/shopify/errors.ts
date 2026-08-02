@@ -4,7 +4,8 @@ export type ShopifyErrorCode =
   | "graphql"
   | "invalid_response"
   | "user_error"
-  | "not_found";
+  | "not_found"
+  | "ineligible";
 
 export class ShopifyError extends Error {
   readonly code: ShopifyErrorCode;

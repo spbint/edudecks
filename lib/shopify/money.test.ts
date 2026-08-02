@@ -7,6 +7,10 @@ describe("Shopify money formatting", () => {
     expect(formatShopifyMoney({ amount: "12.50", currencyCode: "USD" })).toContain("12.50");
   });
 
+  it("shows zero-priced products as Free", () => {
+    expect(formatShopifyMoney({ amount: "0", currencyCode: "AUD" })).toBe("Free");
+  });
+
   it("handles missing or malformed prices safely", () => {
     expect(formatShopifyMoney(null)).toBe("Price unavailable");
     expect(formatShopifyMoney({ amount: "not-a-number", currencyCode: "AUD" })).toBe("Price unavailable");
