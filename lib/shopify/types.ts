@@ -76,6 +76,9 @@ export type ShopifyCartLine = {
 export type ShopifyCart = {
   id: string;
   checkoutUrl: string | null;
+  buyerIdentity: {
+    countryCode: string | null;
+  } | null;
   totalQuantity: number;
   cost: { subtotalAmount: ShopifyMoney; totalAmount: ShopifyMoney };
   lines: ShopifyCartLine[];

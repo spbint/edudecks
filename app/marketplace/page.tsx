@@ -22,7 +22,7 @@ export default async function MarketplaceHomePage() {
     <section className="marketplace-section" aria-labelledby="collections-heading"><div className="marketplace-section-heading"><div><h2 id="collections-heading">Shop by collection</h2><p>Choose a starting point for your next learning moment.</p></div><Link className="marketplace-link" href="/marketplace/collections">View all</Link></div>
       <div className="marketplace-collection-grid">{MARKETPLACE_CATEGORIES.map((category) => { const collection = liveCollections.get(category.handle); return <Link className="marketplace-collection-card" key={category.handle} href={`/marketplace/collections/${category.handle}`}>{collection?.image ? <img src={collection.image.url} alt="" /> : null}<span>{category.title}</span></Link>; })}</div>
     </section>
-    <section className="marketplace-section" aria-labelledby="products-heading"><div className="marketplace-section-heading"><div><h2 id="products-heading">Featured learning resources</h2><p>Real products from the MyLearna Shopify catalogue.</p></div></div>
+    <section className="marketplace-section" aria-labelledby="products-heading"><div className="marketplace-section-heading"><div><h2 id="products-heading">New learning resources</h2><p>Real products from the MyLearna Shopify catalogue.</p></div></div>
       {home?.products.length ? <div className="marketplace-product-grid">{home.products.map((product) => <MarketplaceProductCard key={product.id} product={product} />)}</div> : home ? <div className="marketplace-state">Physical learning resources are being added to the Marketplace.</div> : null}
     </section>
   </main>;

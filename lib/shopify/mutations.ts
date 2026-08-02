@@ -12,6 +12,18 @@ export const CREATE_CART_MUTATION = `#graphql
   ${CART_FRAGMENT}
 `;
 
+export const UPDATE_CART_BUYER_IDENTITY_MUTATION = `#graphql
+  mutation MarketplaceCartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart { ...MarketplaceCart }
+      userErrors { field message code }
+    }
+  }
+  ${IMAGE_FRAGMENT}
+  ${MONEY_FRAGMENT}
+  ${CART_FRAGMENT}
+`;
+
 export const ADD_CART_LINES_MUTATION = `#graphql
   mutation MarketplaceAddCartLines($cartId: ID!, $lines: [CartLineInput!]!) {
     cartLinesAdd(cartId: $cartId, lines: $lines) {

@@ -1,11 +1,11 @@
 import { CART_FRAGMENT, IMAGE_FRAGMENT, MONEY_FRAGMENT, PRODUCT_FRAGMENT, PRODUCT_SUMMARY_FRAGMENT } from "./fragments";
 
 export const HOME_QUERY = `#graphql
-  query MarketplaceHome($collectionFirst: Int!, $productFirst: Int!, $country: CountryCode) @inContext(country: $country) {
+  query MarketplaceHome($collectionFirst: Int!, $productFirst: Int!) {
     collections(first: $collectionFirst) {
       nodes { id handle title description image { ...MarketplaceImage } }
     }
-    products(first: $productFirst, sortKey: BEST_SELLING) { nodes { ...MarketplaceProductSummary } }
+    products(first: $productFirst, sortKey: CREATED_AT, reverse: true) { nodes { ...MarketplaceProductSummary } }
   }
   ${IMAGE_FRAGMENT}
   ${MONEY_FRAGMENT}

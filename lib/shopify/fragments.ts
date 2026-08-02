@@ -67,6 +67,9 @@ export const CART_FRAGMENT = `
   fragment MarketplaceCart on Cart {
     id
     checkoutUrl
+    buyerIdentity {
+      countryCode
+    }
     totalQuantity
     cost {
       subtotalAmount { ...MarketplaceMoney }

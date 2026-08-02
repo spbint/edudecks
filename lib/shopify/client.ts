@@ -2,7 +2,7 @@ import { ShopifyError } from "./errors";
 import type { ShopifyCart, ShopifyCartLine, ShopifyCollection, ShopifyCollectionSummary, ShopifyImage, ShopifyProduct, ShopifyProductSummary, ShopifyProductVariant, ShopifyUserError } from "./types";
 import { isApprovedMarketplaceCollectionHandle, isMarketplaceProductEligible } from "./categories";
 import { CART_QUERY, COLLECTIONS_QUERY, COLLECTION_QUERY, HOME_QUERY, PRODUCT_QUERY, VARIANT_QUERY } from "./queries";
-import { ADD_CART_LINES_MUTATION, CREATE_CART_MUTATION, REMOVE_CART_LINES_MUTATION, UPDATE_CART_LINES_MUTATION } from "./mutations";
+import { ADD_CART_LINES_MUTATION, CREATE_CART_MUTATION, REMOVE_CART_LINES_MUTATION, UPDATE_CART_BUYER_IDENTITY_MUTATION, UPDATE_CART_LINES_MUTATION } from "./mutations";
 
 type GraphqlResponse<T> = { data?: T; errors?: Array<{ message?: unknown }> };
 type RequestOptions = { cache?: "no-store" | "force-cache"; revalidate?: number };
@@ -30,6 +30,11 @@ type RawShopifyCart = Omit<ShopifyCart, "lines"> & {
 };
 
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+
+function marketplaceCountry() {
+  const country = text(process.env.SHOPIFY_COUNTRY).toUpperCase();
+  return country || undefined;
+}
 
 function connectionNodes<T>(connection: ShopifyConnection<T> | unknown): T[] {
   const nodes = connection && typeof connection === "object" && "nodes" in connection
@@ -61,6 +66,9 @@ function normalizeCart(cart: RawShopifyCart | null | undefined): ShopifyCart | n
   if (!cart) return null;
   return {
     ...cart,
+    buyerIdentity: cart.buyerIdentity
+      ? { countryCode: text(cart.buyerIdentity.countryCode).toUpperCase() || null }
+      : null,
     lines: connectionNodes<RawShopifyCartLine>(cart.lines).map((line) => ({
       ...line,
       merchandise: {
@@ -123,7 +131,7 @@ function userErrors(errors: ShopifyUserError[] | undefined) {
 }
 
 export async function getHome() {
-  const data = await request<{ collections: ShopifyConnection<ShopifyCollectionSummary>; products: ShopifyConnection<RawShopifyProductSummary> }>(HOME_QUERY, { collectionFirst: 8, productFirst: 12, country: text(process.env.SHOPIFY_COUNTRY) || undefined }, { revalidate: 300 });
+  const data = await request<{ collections: ShopifyConnection<ShopifyCollectionSummary>; products: ShopifyConnection<RawShopifyProductSummary> }>(HOME_QUERY, { collectionFirst: 8, productFirst: 8 }, { revalidate: 300 });
   return {
     collections: connectionNodes<ShopifyCollectionSummary>(data.collections).filter((collection) => isApprovedMarketplaceCollectionHandle(collection.handle)),
     products: connectionNodes<RawShopifyProductSummary>(data.products).map(normalizeProductSummary).filter(isMarketplaceProductEligible),
@@ -155,11 +163,14 @@ export async function isMarketplaceVariantEligible(variantId: string) {
 
 export async function getCart(id: string, options: RequestOptions = { cache: "no-store" }) {
   const data = await request<{ cart: RawShopifyCart | null }>(CART_QUERY, { id }, options);
-  return normalizeCart(data.cart);
+  return ensureCartCountry(normalizeCart(data.cart));
 }
 
 export async function createCart(variantId?: string, quantity = 1) {
-  const data = await request<{ cartCreate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(CREATE_CART_MUTATION, { input: variantId ? { lines: [{ merchandiseId: variantId, quantity }] } : {} }, { cache: "no-store" });
+  const input: Record<string, unknown> = variantId ? { lines: [{ merchandiseId: variantId, quantity }] } : {};
+  const country = marketplaceCountry();
+  if (country) input.buyerIdentity = { countryCode: country };
+  const data = await request<{ cartCreate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(CREATE_CART_MUTATION, { input }, { cache: "no-store" });
   userErrors(data.cartCreate.userErrors);
   const cart = normalizeCart(data.cartCreate.cart);
   if (!cart) throw new ShopifyError("invalid_response", "Shopify did not return a cart.");
@@ -167,6 +178,7 @@ export async function createCart(variantId?: string, quantity = 1) {
 }
 
 export async function addCartLine(cartId: string, variantId: string, quantity: number) {
+  await ensureCartCountryById(cartId);
   const data = await request<{ cartLinesAdd: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(ADD_CART_LINES_MUTATION, { cartId, lines: [{ merchandiseId: variantId, quantity }] }, { cache: "no-store" });
   userErrors(data.cartLinesAdd.userErrors);
   const cart = normalizeCart(data.cartLinesAdd.cart);
@@ -175,6 +187,7 @@ export async function addCartLine(cartId: string, variantId: string, quantity: n
 }
 
 export async function updateCartLine(cartId: string, lineId: string, quantity: number) {
+  await ensureCartCountryById(cartId);
   const data = await request<{ cartLinesUpdate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(UPDATE_CART_LINES_MUTATION, { cartId, lines: [{ id: lineId, quantity }] }, { cache: "no-store" });
   userErrors(data.cartLinesUpdate.userErrors);
   const cart = normalizeCart(data.cartLinesUpdate.cart);
@@ -183,9 +196,31 @@ export async function updateCartLine(cartId: string, lineId: string, quantity: n
 }
 
 export async function removeCartLine(cartId: string, lineId: string) {
+  await ensureCartCountryById(cartId);
   const data = await request<{ cartLinesRemove: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(REMOVE_CART_LINES_MUTATION, { cartId, lineIds: [lineId] }, { cache: "no-store" });
   userErrors(data.cartLinesRemove.userErrors);
   const cart = normalizeCart(data.cartLinesRemove.cart);
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  return cart;
+}
+
+async function ensureCartCountry(cart: ShopifyCart | null) {
+  const country = marketplaceCountry();
+  if (!cart || !country || cart.buyerIdentity?.countryCode?.toUpperCase() === country) return cart;
+  return updateCartBuyerIdentity(cart.id, country);
+}
+
+async function ensureCartCountryById(cartId: string) {
+  const data = await request<{ cart: RawShopifyCart | null }>(CART_QUERY, { id: cartId }, { cache: "no-store" });
+  const cart = await ensureCartCountry(normalizeCart(data.cart));
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  return cart;
+}
+
+async function updateCartBuyerIdentity(cartId: string, countryCode: string) {
+  const data = await request<{ cartBuyerIdentityUpdate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(UPDATE_CART_BUYER_IDENTITY_MUTATION, { cartId, buyerIdentity: { countryCode } }, { cache: "no-store" });
+  userErrors(data.cartBuyerIdentityUpdate.userErrors);
+  const cart = normalizeCart(data.cartBuyerIdentityUpdate.cart);
   if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
   return cart;
 }
