@@ -5,6 +5,7 @@ export const CREATE_CART_MUTATION = `#graphql
     cartCreate(input: $input) {
       cart { ...MarketplaceCart }
       userErrors { field message code }
+      warnings { code message }
     }
   }
   ${IMAGE_FRAGMENT}
@@ -17,6 +18,7 @@ export const UPDATE_CART_BUYER_IDENTITY_MUTATION = `#graphql
     cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
       cart { ...MarketplaceCart }
       userErrors { field message code }
+      warnings { code message }
     }
   }
   ${IMAGE_FRAGMENT}
@@ -29,6 +31,7 @@ export const ADD_CART_LINES_MUTATION = `#graphql
     cartLinesAdd(cartId: $cartId, lines: $lines) {
       cart { ...MarketplaceCart }
       userErrors { field message code }
+      warnings { code message }
     }
   }
   ${IMAGE_FRAGMENT}
@@ -41,6 +44,7 @@ export const UPDATE_CART_LINES_MUTATION = `#graphql
     cartLinesUpdate(cartId: $cartId, lines: $lines) {
       cart { ...MarketplaceCart }
       userErrors { field message code }
+      warnings { code message }
     }
   }
   ${IMAGE_FRAGMENT}
@@ -53,6 +57,7 @@ export const REMOVE_CART_LINES_MUTATION = `#graphql
     cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
       cart { ...MarketplaceCart }
       userErrors { field message code }
+      warnings { code message }
     }
   }
   ${IMAGE_FRAGMENT}

@@ -1,5 +1,5 @@
 import { ShopifyError } from "./errors";
-import type { ShopifyCart, ShopifyCartLine, ShopifyCollection, ShopifyCollectionSummary, ShopifyImage, ShopifyProduct, ShopifyProductSummary, ShopifyProductVariant, ShopifyUserError } from "./types";
+import type { ShopifyCart, ShopifyCartLine, ShopifyCartWarning, ShopifyCollection, ShopifyCollectionSummary, ShopifyImage, ShopifyProduct, ShopifyProductSummary, ShopifyProductVariant, ShopifyUserError } from "./types";
 import { isApprovedMarketplaceCollectionHandle, isMarketplaceProductEligible } from "./categories";
 import { CART_QUERY, COLLECTIONS_QUERY, COLLECTION_QUERY, HOME_QUERY, PRODUCT_QUERY, VARIANT_QUERY } from "./queries";
 import { ADD_CART_LINES_MUTATION, CREATE_CART_MUTATION, REMOVE_CART_LINES_MUTATION, UPDATE_CART_BUYER_IDENTITY_MUTATION, UPDATE_CART_LINES_MUTATION } from "./mutations";
@@ -86,6 +86,16 @@ export function isMarketplaceCartValid(cart: ShopifyCart) {
   return cart.lines.every((line) => isMarketplaceProductEligible({ collections: line.merchandise.product.collections }));
 }
 
+function assertCartLineQuantity(cart: ShopifyCart, lineId: string | null, variantId: string | null, expectedQuantity: number) {
+  const line = cart.lines.find((item) => (lineId ? item.id === lineId : item.merchandise.id === variantId));
+  if (line?.quantity === expectedQuantity) return;
+  const available = line?.merchandise.quantityAvailable;
+  const message = typeof available === "number"
+    ? `Only ${available} are currently available.`
+    : "Shopify could not set that cart quantity.";
+  throw new ShopifyError("quantity_unavailable", message);
+}
+
 function config() {
   const domain = text(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN).replace(/^https?:\/\//i, "").replace(/\/$/, "");
   const apiVersion = text(process.env.SHOPIFY_STOREFRONT_API_VERSION) || "2026-04";
@@ -130,6 +140,13 @@ function userErrors(errors: ShopifyUserError[] | undefined) {
   if (errors?.length) throw new ShopifyError("user_error", "Shopify could not complete that cart request.");
 }
 
+function warnings(warningsList: ShopifyCartWarning[] | undefined) {
+  if (!warningsList?.length) return;
+  const stockWarning = warningsList.some((warning) => /stock|quantity|available/i.test(`${warning.code ?? ""} ${warning.message}`));
+  if (stockWarning) throw new ShopifyError("quantity_unavailable", "Shopify could not add the requested quantity because availability changed.");
+  throw new ShopifyError("user_error", "Shopify could not complete that cart request.");
+}
+
 export async function getHome() {
   const data = await request<{ collections: ShopifyConnection<ShopifyCollectionSummary>; products: ShopifyConnection<RawShopifyProductSummary> }>(HOME_QUERY, { collectionFirst: 8, productFirst: 8 }, { revalidate: 300 });
   return {
@@ -155,10 +172,18 @@ export async function getProduct(handle: string) {
   return product && isMarketplaceProductEligible(product) ? product : null;
 }
 
-export async function isMarketplaceVariantEligible(variantId: string) {
-  const data = await request<{ node: { id: string; product: { collections?: ShopifyConnection<ShopifyCollectionSummary> } | null } | null }>(VARIANT_QUERY, { id: variantId }, { cache: "no-store" });
+export async function getMarketplaceVariantAvailability(variantId: string) {
+  const data = await request<{ node: { id: string; availableForSale: boolean; quantityAvailable: number | null; product: { collections?: ShopifyConnection<ShopifyCollectionSummary> } | null } | null }>(VARIANT_QUERY, { id: variantId }, { cache: "no-store" });
   const product = data.node?.product;
-  return Boolean(product && isMarketplaceProductEligible({ collections: connectionNodes<ShopifyCollectionSummary>(product.collections) }));
+  return {
+    eligible: Boolean(product && isMarketplaceProductEligible({ collections: connectionNodes<ShopifyCollectionSummary>(product.collections) })),
+    availableForSale: data.node?.availableForSale ?? false,
+    quantityAvailable: typeof data.node?.quantityAvailable === "number" ? data.node.quantityAvailable : null,
+  };
+}
+
+export async function isMarketplaceVariantEligible(variantId: string) {
+  return (await getMarketplaceVariantAvailability(variantId)).eligible;
 }
 
 export async function getCart(id: string, options: RequestOptions = { cache: "no-store" }) {
@@ -166,39 +191,46 @@ export async function getCart(id: string, options: RequestOptions = { cache: "no
   return ensureCartCountry(normalizeCart(data.cart));
 }
 
-export async function createCart(variantId?: string, quantity = 1) {
+export async function createCart(variantId?: string, quantity = 1, expectedQuantity = variantId ? quantity : undefined) {
   const input: Record<string, unknown> = variantId ? { lines: [{ merchandiseId: variantId, quantity }] } : {};
   const country = marketplaceCountry();
   if (country) input.buyerIdentity = { countryCode: country };
-  const data = await request<{ cartCreate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(CREATE_CART_MUTATION, { input }, { cache: "no-store" });
+  const data = await request<{ cartCreate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[]; warnings?: ShopifyCartWarning[] } }>(CREATE_CART_MUTATION, { input }, { cache: "no-store" });
   userErrors(data.cartCreate.userErrors);
+  warnings(data.cartCreate.warnings);
   const cart = normalizeCart(data.cartCreate.cart);
   if (!cart) throw new ShopifyError("invalid_response", "Shopify did not return a cart.");
+  if (variantId && expectedQuantity !== undefined) assertCartLineQuantity(cart, null, variantId, expectedQuantity);
   return cart;
 }
 
-export async function addCartLine(cartId: string, variantId: string, quantity: number) {
+export async function addCartLine(cartId: string, variantId: string, quantity: number, expectedQuantity?: number) {
   await ensureCartCountryById(cartId);
-  const data = await request<{ cartLinesAdd: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(ADD_CART_LINES_MUTATION, { cartId, lines: [{ merchandiseId: variantId, quantity }] }, { cache: "no-store" });
+  const data = await request<{ cartLinesAdd: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[]; warnings?: ShopifyCartWarning[] } }>(ADD_CART_LINES_MUTATION, { cartId, lines: [{ merchandiseId: variantId, quantity }] }, { cache: "no-store" });
   userErrors(data.cartLinesAdd.userErrors);
+  warnings(data.cartLinesAdd.warnings);
   const cart = normalizeCart(data.cartLinesAdd.cart);
   if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  if (expectedQuantity !== undefined) assertCartLineQuantity(cart, null, variantId, expectedQuantity);
   return cart;
 }
 
-export async function updateCartLine(cartId: string, lineId: string, quantity: number) {
+export async function updateCartLine(cartId: string, lineId: string, quantity: number, expectedQuantity?: number) {
   await ensureCartCountryById(cartId);
-  const data = await request<{ cartLinesUpdate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(UPDATE_CART_LINES_MUTATION, { cartId, lines: [{ id: lineId, quantity }] }, { cache: "no-store" });
+  const data = await request<{ cartLinesUpdate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[]; warnings?: ShopifyCartWarning[] } }>(UPDATE_CART_LINES_MUTATION, { cartId, lines: [{ id: lineId, quantity }] }, { cache: "no-store" });
   userErrors(data.cartLinesUpdate.userErrors);
+  warnings(data.cartLinesUpdate.warnings);
   const cart = normalizeCart(data.cartLinesUpdate.cart);
   if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  if (expectedQuantity !== undefined) assertCartLineQuantity(cart, lineId, null, expectedQuantity);
   return cart;
 }
 
 export async function removeCartLine(cartId: string, lineId: string) {
   await ensureCartCountryById(cartId);
-  const data = await request<{ cartLinesRemove: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(REMOVE_CART_LINES_MUTATION, { cartId, lineIds: [lineId] }, { cache: "no-store" });
+  const data = await request<{ cartLinesRemove: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[]; warnings?: ShopifyCartWarning[] } }>(REMOVE_CART_LINES_MUTATION, { cartId, lineIds: [lineId] }, { cache: "no-store" });
   userErrors(data.cartLinesRemove.userErrors);
+  warnings(data.cartLinesRemove.warnings);
   const cart = normalizeCart(data.cartLinesRemove.cart);
   if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
   return cart;
@@ -218,8 +250,9 @@ async function ensureCartCountryById(cartId: string) {
 }
 
 async function updateCartBuyerIdentity(cartId: string, countryCode: string) {
-  const data = await request<{ cartBuyerIdentityUpdate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[] } }>(UPDATE_CART_BUYER_IDENTITY_MUTATION, { cartId, buyerIdentity: { countryCode } }, { cache: "no-store" });
+  const data = await request<{ cartBuyerIdentityUpdate: { cart: RawShopifyCart | null; userErrors: ShopifyUserError[]; warnings?: ShopifyCartWarning[] } }>(UPDATE_CART_BUYER_IDENTITY_MUTATION, { cartId, buyerIdentity: { countryCode } }, { cache: "no-store" });
   userErrors(data.cartBuyerIdentityUpdate.userErrors);
+  warnings(data.cartBuyerIdentityUpdate.warnings);
   const cart = normalizeCart(data.cartBuyerIdentityUpdate.cart);
   if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
   return cart;

@@ -8,7 +8,7 @@ type CartContextValue = {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  addLine: (variantId: string, quantity: number) => Promise<boolean>;
+  addLine: (variantId: string, quantity: number) => Promise<{ ok: boolean; error?: string }>;
   updateLine: (lineId: string, quantity: number) => Promise<void>;
   removeLine: (lineId: string) => Promise<void>;
 };
@@ -41,10 +41,11 @@ export function MarketplaceCartProvider({ children }: { children: React.ReactNod
     try {
       const next = await readResponse(await fetch("/api/marketplace/cart", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }));
       setCart(next);
-      return true;
+      return { ok: true };
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The Marketplace cart is temporarily unavailable.");
-      return false;
+      const error = reason instanceof Error ? reason.message : "The Marketplace cart is temporarily unavailable.";
+      setError(error);
+      return { ok: false, error };
     }
   }, []);
 

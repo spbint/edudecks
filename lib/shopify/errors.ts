@@ -5,7 +5,8 @@ export type ShopifyErrorCode =
   | "invalid_response"
   | "user_error"
   | "not_found"
-  | "ineligible";
+  | "ineligible"
+  | "quantity_unavailable";
 
 export class ShopifyError extends Error {
   readonly code: ShopifyErrorCode;

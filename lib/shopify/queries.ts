@@ -46,6 +46,8 @@ export const VARIANT_QUERY = `#graphql
     node(id: $id) {
       ... on ProductVariant {
         id
+        availableForSale
+        quantityAvailable
         product {
           collections(first: 12) { nodes { id handle title image { ...MarketplaceImage } } }
         }

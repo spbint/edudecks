@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { cookieValues, getCartMock, createCartMock, addCartLineMock, updateCartLineMock, removeCartLineMock, isCartValidMock, isVariantEligibleMock } = vi.hoisted(() => ({
+const { cookieValues, getCartMock, createCartMock, addCartLineMock, updateCartLineMock, removeCartLineMock, isCartValidMock, getVariantAvailabilityMock } = vi.hoisted(() => ({
   cookieValues: new Map<string, string>(),
   getCartMock: vi.fn(),
   createCartMock: vi.fn(),
@@ -8,7 +8,7 @@ const { cookieValues, getCartMock, createCartMock, addCartLineMock, updateCartLi
   updateCartLineMock: vi.fn(),
   removeCartLineMock: vi.fn(),
   isCartValidMock: vi.fn(),
-  isVariantEligibleMock: vi.fn(),
+  getVariantAvailabilityMock: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: (name: string) => cookieValues.has(name) ? { value: cookieValues.get(name) } : undefined })) }));
@@ -19,12 +19,13 @@ vi.mock("@/lib/shopify/client", () => ({
   updateCartLine: updateCartLineMock,
   removeCartLine: removeCartLineMock,
   isMarketplaceCartValid: isCartValidMock,
-  isMarketplaceVariantEligible: isVariantEligibleMock,
+  getMarketplaceVariantAvailability: getVariantAvailabilityMock,
 }));
 
 import { GET, POST } from "./route";
 
 const validCart = { id: "cart-v2", checkoutUrl: "https://checkout.shopify.com/cart-v2", totalQuantity: 1, cost: { subtotalAmount: { amount: "12", currencyCode: "AUD" }, totalAmount: { amount: "12", currencyCode: "AUD" } }, lines: [] };
+const cartWithLine = { ...validCart, lines: [{ id: "line-1", quantity: 1, merchandise: { id: "approved-variant", quantityAvailable: 10, product: { collections: [] } } }] };
 
 function request(body: Record<string, unknown>) {
   return new Request("http://localhost/api/marketplace/cart", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } });
@@ -39,7 +40,7 @@ describe("Marketplace cart isolation", () => {
     cookieValues.clear();
     vi.clearAllMocks();
     isCartValidMock.mockReturnValue(true);
-    isVariantEligibleMock.mockResolvedValue(true);
+    getVariantAvailabilityMock.mockResolvedValue({ eligible: true, availableForSale: true, quantityAvailable: null });
     getCartMock.mockResolvedValue(validCart);
     createCartMock.mockResolvedValue(validCart);
     addCartLineMock.mockResolvedValue(validCart);
@@ -67,7 +68,7 @@ describe("Marketplace cart isolation", () => {
 
   it("adds an approved physical variant and sets the v2 cookie", async () => {
     const response = await POST(request({ action: "add", variantId: "approved-variant", quantity: 1 }));
-    expect(isVariantEligibleMock).toHaveBeenCalledWith("approved-variant");
+    expect(getVariantAvailabilityMock).toHaveBeenCalledWith("approved-variant");
     expect(createCartMock).toHaveBeenCalledWith("approved-variant", 1);
     expect(response.status).toBe(200);
     expect(deletedCookieNames(response)).toContain("mylearna_marketplace_cart_id");
@@ -75,13 +76,43 @@ describe("Marketplace cart isolation", () => {
   });
 
   it("rejects an unapproved variant before creating or modifying a cart", async () => {
-    isVariantEligibleMock.mockResolvedValue(false);
+    getVariantAvailabilityMock.mockResolvedValue({ eligible: false, availableForSale: false, quantityAvailable: null });
     const response = await POST(request({ action: "add", variantId: "excluded-variant", quantity: 1 }));
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ code: "marketplace_item_unavailable", error: "This item is not available in MyLearna Marketplace." });
     expect(createCartMock).not.toHaveBeenCalled();
     expect(addCartLineMock).not.toHaveBeenCalled();
     expect(getCartMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a quantity above finite stock without mutating the cart", async () => {
+    getVariantAvailabilityMock.mockResolvedValue({ eligible: true, availableForSale: true, quantityAvailable: 10 });
+    const response = await POST(request({ action: "add", variantId: "approved-variant", quantity: 11 }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ code: "cart_quantity_unavailable", error: "Only 10 are currently available." });
+    expect(createCartMock).not.toHaveBeenCalled();
+    expect(addCartLineMock).not.toHaveBeenCalled();
+  });
+
+  it("accounts for the existing quantity when adding more stock", async () => {
+    cookieValues.set("mylearna_marketplace_cart_v2_id", "v2-cart");
+    getVariantAvailabilityMock.mockResolvedValue({ eligible: true, availableForSale: true, quantityAvailable: 10 });
+    getCartMock.mockResolvedValue(cartWithLine);
+    const response = await POST(request({ action: "add", variantId: "approved-variant", quantity: 10 }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ code: "cart_quantity_unavailable", error: "Only 10 are currently available." });
+    expect(addCartLineMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects cart updates above current stock and allows decrements", async () => {
+    cookieValues.set("mylearna_marketplace_cart_v2_id", "v2-cart");
+    getCartMock.mockResolvedValue(cartWithLine);
+    const rejected = await POST(request({ action: "update", lineId: "line-1", quantity: 11 }));
+    expect(rejected.status).toBe(409);
+    expect(updateCartLineMock).not.toHaveBeenCalled();
+    const accepted = await POST(request({ action: "update", lineId: "line-1", quantity: 1 }));
+    expect(accepted.status).toBe(200);
+    expect(updateCartLineMock).toHaveBeenCalledWith("v2-cart", "line-1", 1, 1);
   });
 
   it("clears an invalid v2 cart and returns no checkout cart", async () => {

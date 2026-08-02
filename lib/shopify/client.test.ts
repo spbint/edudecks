@@ -17,7 +17,7 @@ const productCollection = { id: "gid://shopify/Collection/1", handle: "learning-
 const productSummary = { id: "gid://shopify/Product/1", handle: "learning-resource", title: "Learning resource", vendor: "MyLearna", productType: "Education", tags: ["science"], availableForSale: true, featuredImage: image, priceRange: { minVariantPrice: variant.price, maxVariantPrice: variant.price }, collections: [productCollection] };
 const rawProductSummary = { ...productSummary, collections: { nodes: [productCollection] } };
 const rawProduct = { ...productSummary, description: "A useful resource.", descriptionHtml: "<p>A useful resource.</p>", images: { nodes: [image] }, variants: { nodes: [variant] }, collections: { nodes: [productCollection] }, seo: { title: "Learning resource", description: "A useful resource." } };
-const cartLine = { id: "gid://shopify/CartLine/1", quantity: 1, cost: { totalAmount: variant.price, amountPerQuantity: variant.price }, merchandise: { id: variant.id, title: variant.title, product: { handle: productSummary.handle, title: productSummary.title, featuredImage: image, collections: { nodes: [productCollection] } }, price: variant.price } };
+const cartLine = { id: "gid://shopify/CartLine/1", quantity: 1, cost: { totalAmount: variant.price, amountPerQuantity: variant.price }, merchandise: { id: variant.id, title: variant.title, availableForSale: true, quantityAvailable: variant.quantityAvailable, product: { handle: productSummary.handle, title: productSummary.title, featuredImage: image, collections: { nodes: [productCollection] } }, price: variant.price } };
 const rawCart = { id: "gid://shopify/Cart/1", checkoutUrl: "https://checkout.shopify.com/cart/1", buyerIdentity: { countryCode: "AU" }, totalQuantity: 1, cost: { subtotalAmount: variant.price, totalAmount: variant.price }, lines: { nodes: [cartLine] } };
 
 function jsonResponse(data: unknown) {
@@ -27,10 +27,10 @@ function jsonResponse(data: unknown) {
 function stubConnectionResponses() {
   vi.stubGlobal("fetch", vi.fn(async (_input: unknown, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body)) as { query: string };
-    if (body.query.includes("mutation MarketplaceCreateCart")) return jsonResponse({ cartCreate: { cart: rawCart, userErrors: [] } });
-    if (body.query.includes("mutation MarketplaceAddCartLines")) return jsonResponse({ cartLinesAdd: { cart: rawCart, userErrors: [] } });
-    if (body.query.includes("mutation MarketplaceUpdateCartLines")) return jsonResponse({ cartLinesUpdate: { cart: rawCart, userErrors: [] } });
-    if (body.query.includes("mutation MarketplaceRemoveCartLines")) return jsonResponse({ cartLinesRemove: { cart: rawCart, userErrors: [] } });
+    if (body.query.includes("mutation MarketplaceCreateCart")) return jsonResponse({ cartCreate: { cart: rawCart, userErrors: [], warnings: [] } });
+    if (body.query.includes("mutation MarketplaceAddCartLines")) return jsonResponse({ cartLinesAdd: { cart: rawCart, userErrors: [], warnings: [] } });
+    if (body.query.includes("mutation MarketplaceUpdateCartLines")) return jsonResponse({ cartLinesUpdate: { cart: rawCart, userErrors: [], warnings: [] } });
+    if (body.query.includes("mutation MarketplaceRemoveCartLines")) return jsonResponse({ cartLinesRemove: { cart: rawCart, userErrors: [], warnings: [] } });
     if (body.query.includes("query MarketplaceCart")) return jsonResponse({ cart: rawCart });
     if (body.query.includes("query MarketplaceProduct")) return jsonResponse({ product: rawProduct });
     if (body.query.includes("query MarketplaceCollection")) return jsonResponse({ collectionByHandle: { id: "gid://shopify/Collection/1", handle: "learning-kits", title: "Learning Kits", description: "Practical learning kits.", image, seo: { title: "Learning Kits", description: "Practical learning kits." }, products: { nodes: [rawProductSummary] } } });
@@ -77,6 +77,11 @@ describe("Shopify client safety", () => {
   it("maps Shopify cart userErrors to a safe error", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { cartCreate: { cart: null, userErrors: [{ field: ["lines"], message: "invalid", code: "INVALID" }] } } }), { status: 200 })));
     await expect(createCart("gid://shopify/ProductVariant/1", 1)).rejects.toMatchObject({ code: "user_error" });
+  });
+
+  it("maps Shopify cart warnings to safe errors", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { cartCreate: { cart: rawCart, userErrors: [], warnings: [{ code: "MERCHANDISE_NOT_ENOUGH_STOCK", message: "private stock detail" }] } } }), { status: 200 })));
+    await expect(createCart("gid://shopify/ProductVariant/1", 1)).rejects.toMatchObject({ code: "quantity_unavailable", message: "Shopify could not add the requested quantity because availability changed." });
   });
 
   it("does not reveal network or malformed-response details", async () => {
@@ -205,7 +210,7 @@ describe("Shopify connection normalization", () => {
         const body = JSON.parse(String(init?.body)) as { query: string };
         requests.push(body.query);
         if (body.query.includes("query MarketplaceCart")) return jsonResponse({ cart: { ...rawCart, buyerIdentity: { countryCode: existingCountry } } });
-        if (body.query.includes("mutation MarketplaceCartBuyerIdentityUpdate")) return jsonResponse({ cartBuyerIdentityUpdate: { cart: rawCart, userErrors: [] } });
+        if (body.query.includes("mutation MarketplaceCartBuyerIdentityUpdate")) return jsonResponse({ cartBuyerIdentityUpdate: { cart: rawCart, userErrors: [], warnings: [] } });
         throw new Error("Unexpected Shopify test query");
       }));
       const cart = await getCart("cart-id");
@@ -224,9 +229,9 @@ describe("Shopify connection normalization", () => {
   });
 
   it("resolves variant eligibility from the variant product collections", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ node: { id: variant.id, product: { collections: { nodes: [productCollection] } } } })));
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ node: { id: variant.id, availableForSale: true, quantityAvailable: variant.quantityAvailable, product: { collections: { nodes: [productCollection] } } } })));
     await expect(isMarketplaceVariantEligible(variant.id)).resolves.toBe(true);
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ node: { id: "excluded-variant", product: { collections: { nodes: [{ ...productCollection, handle: "frontpage" }] } } } })));
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ node: { id: "excluded-variant", availableForSale: false, quantityAvailable: null, product: { collections: { nodes: [{ ...productCollection, handle: "frontpage" }] } } } })));
     await expect(isMarketplaceVariantEligible("excluded-variant")).resolves.toBe(false);
   });
 });

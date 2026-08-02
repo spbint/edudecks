@@ -68,6 +68,8 @@ export type ShopifyCartLine = {
   merchandise: {
     id: string;
     title: string;
+    availableForSale: boolean;
+    quantityAvailable: number | null;
     product: { handle: string; title: string; featuredImage: ShopifyImage | null; collections: ShopifyCollectionSummary[] };
     price: ShopifyMoney;
   };
@@ -85,3 +87,4 @@ export type ShopifyCart = {
 };
 
 export type ShopifyUserError = { field: string[] | null; message: string; code: string | null };
+export type ShopifyCartWarning = { message: string; code: string | null };

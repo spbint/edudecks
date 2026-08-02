@@ -66,7 +66,11 @@
 .marketplace-detail-panel { padding: 10px 0; }
 .marketplace-detail-panel h1 { margin: 8px 0 14px; font-size: clamp(2rem, 4vw, 3.6rem); line-height: 1; letter-spacing: -.055em; }
 .marketplace-detail-description { color: #4f5a77; line-height: 1.7; }
-.marketplace-detail-description p:first-child { margin-top: 0; }
+.marketplace-detail-description p { margin: 0 0 14px; }
+.marketplace-detail-description p:last-child { margin-bottom: 0; }
+.marketplace-detail-description ul { margin: 0 0 16px; padding-left: 22px; }
+.marketplace-detail-description li + li { margin-top: 6px; }
+.marketplace-stock { margin: 0; color: #66708c; font-size: 13px; font-weight: 700; }
 .marketplace-detail-form { display: grid; gap: 15px; margin-top: 26px; padding-top: 22px; border-top: 1px solid #eadfce; }
 .marketplace-label { display: grid; gap: 7px; color: #34405f; font-size: 13px; font-weight: 800; }
 .marketplace-input { width: 100%; min-height: 46px; border: 1px solid #d9c8b5; border-radius: 10px; background: #fff; padding: 0 12px; color: #17204b; }
