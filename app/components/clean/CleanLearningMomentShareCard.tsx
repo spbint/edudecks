@@ -14,6 +14,8 @@ import {
   LEARNING_MOMENT_INVITATION_URL,
   renderLearningMomentShareCard,
   sanitizePublicCaption,
+  type LearningMomentImageTreatment,
+  type LearningMomentLearnerNameChoice,
   type LearningMomentShareFormat,
 } from "@/lib/clean/evidence/learningMomentShareCard";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
@@ -85,10 +87,12 @@ export default function CleanLearningMomentShareCard({
 }: CleanLearningMomentShareCardProps) {
   const { user } = useAuthUser();
   const [format, setFormat] = useState<LearningMomentShareFormat>("story");
+  const [imageTreatment, setImageTreatment] = useState<LearningMomentImageTreatment>("fit");
   const [publicCaption, setPublicCaption] = useState(() => sanitizePublicCaption(entry.whatHappened));
-  const [includeLearnerName, setIncludeLearnerName] = useState(false);
+  const [learnerNameChoice, setLearnerNameChoice] = useState<LearningMomentLearnerNameChoice>("hidden");
   const [includeLearningArea, setIncludeLearningArea] = useState(false);
   const [includeHashtag, setIncludeHashtag] = useState(true);
+  const [includeTagline, setIncludeTagline] = useState(true);
   const [confirmed, setConfirmed] = useState<boolean[]>(() => checklist.map(() => false));
   const [resolvedImageSource, setResolvedImageSource] = useState(imageUrl || null);
   const [cardUrl, setCardUrl] = useState("");
@@ -98,6 +102,7 @@ export default function CleanLearningMomentShareCard({
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [open, setOpen] = useState(!showTrigger);
+  const sharePanelRef = React.useRef<HTMLElement | null>(null);
 
   const allConfirmed = confirmed.every(Boolean);
   const shareText = useMemo(
@@ -123,6 +128,15 @@ export default function CleanLearningMomentShareCard({
       cancelled = true;
     };
   }, [imageStoragePath, imageUrl]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      sharePanelRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+      sharePanelRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -164,9 +178,11 @@ export default function CleanLearningMomentShareCard({
         publicCaption,
         learnerLabel,
         learningArea: entry.learningArea,
-        includeLearnerName,
+        learnerNameChoice,
         includeLearningArea,
         includeHashtag,
+        includeTagline,
+        imageTreatment,
       });
       const nextFile = new File([blob], buildLearningMomentShareFilename(format), { type: "image/png" });
       const nextUrl = URL.createObjectURL(nextFile);
@@ -184,7 +200,7 @@ export default function CleanLearningMomentShareCard({
           format,
           hasImage: Boolean(resolvedImageSource),
           hasCaption: Boolean(publicCaption.trim()),
-          includeLearnerName,
+          includeLearnerName: learnerNameChoice !== "hidden",
           includeLearningArea,
           includeHashtag,
         },
@@ -248,15 +264,17 @@ export default function CleanLearningMomentShareCard({
     <section
       role="dialog"
       aria-labelledby="learning-moment-share-title"
-      style={{ border: "1px solid #ddd6fe", borderRadius: 18, background: "#faf9ff", padding: 18, display: "grid", gap: 16 }}
+      ref={sharePanelRef}
+      tabIndex={-1}
+      style={{ border: "1px solid #ddd6fe", borderRadius: 18, background: "#faf9ff", padding: "clamp(16px, 4vw, 24px)", display: "grid", gap: 18, outline: "none" }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: 5 }}>
           <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>MyLearna Moment</p>
-          <h2 id="learning-moment-share-title" style={{ margin: 0, color: "#17204b", fontSize: 22 }}>Create a share card</h2>
+          <h2 id="learning-moment-share-title" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>Create your share card</h2>
           <p style={{ margin: 0, color: "#5b6478", lineHeight: 1.5 }}>Preview exactly what will leave MyLearna. Sharing externally is always your choice.</p>
         </div>
-        {onClose || showTrigger ? <button type="button" onClick={() => { setOpen(false); onClose?.(); }} style={secondaryButtonStyle}>Close</button> : null}
+        {onClose || showTrigger ? <button type="button" onClick={() => { setOpen(false); onClose?.(); }} style={secondaryButtonStyle}>Back to saved moment</button> : null}
       </div>
 
       <div style={{ display: "grid", gap: 10 }}>
@@ -270,6 +288,18 @@ export default function CleanLearningMomentShareCard({
         </div>
       </div>
 
+      <div style={{ display: "grid", gap: 10 }}>
+        <strong style={{ color: "#17204b" }}>Photo treatment</strong>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {(["fit", "fill"] as const).map((option) => (
+            <button key={option} type="button" onClick={() => setImageTreatment(option)} aria-pressed={imageTreatment === option} style={{ ...secondaryButtonStyle, borderColor: imageTreatment === option ? "#6c4df6" : "#cbd5e1", background: imageTreatment === option ? "#f2edff" : "#ffffff" }}>
+              {option === "fit" ? "Fit" : "Fill"}
+            </button>
+          ))}
+        </div>
+        <span style={{ color: "#64748b", fontSize: 13 }}>Fit keeps the whole image visible with a soft image-derived background.</span>
+      </div>
+
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "#17204b", fontWeight: 800 }}>Public caption (optional)</span>
         <textarea value={publicCaption} maxLength={180} onChange={(event) => setPublicCaption(event.target.value)} rows={3} style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 12px", font: "inherit", resize: "vertical" }} />
@@ -277,9 +307,10 @@ export default function CleanLearningMomentShareCard({
 
       <div style={{ display: "grid", gap: 8 }}>
         <strong style={{ color: "#17204b" }}>Optional fields</strong>
-        <label><input type="checkbox" checked={includeLearnerName} onChange={(event) => setIncludeLearnerName(event.target.checked)} /> Include learner first name or initial</label>
+        <fieldset style={{ display: "grid", gap: 6, border: 0, padding: 0, margin: 0 }}><legend style={{ color: "#334155", fontWeight: 750 }}>Learner name</legend>{(["hidden", "initial", "first-name"] as const).map((option) => <label key={option} style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="radio" name="learner-name-choice" value={option} checked={learnerNameChoice === option} onChange={() => setLearnerNameChoice(option)} />{option === "hidden" ? "Hidden" : option === "initial" ? "First initial" : "First name"}</label>)}</fieldset>
         <label><input type="checkbox" checked={includeLearningArea} onChange={(event) => setIncludeLearningArea(event.target.checked)} /> Include general learning area</label>
         <label><input type="checkbox" checked={includeHashtag} onChange={(event) => setIncludeHashtag(event.target.checked)} /> Include #MyLearnaMoment</label>
+        <label><input type="checkbox" checked={includeTagline} onChange={(event) => setIncludeTagline(event.target.checked)} /> Include “Learning happens everywhere.”</label>
       </div>
 
       <div style={{ display: "grid", gap: 8, borderTop: "1px solid #e7eaf2", paddingTop: 14 }}>
@@ -293,8 +324,8 @@ export default function CleanLearningMomentShareCard({
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" style={buttonStyle} onClick={() => void createCard()} disabled={!allConfirmed || working}>{working ? "Creating..." : "Create share card"}</button>
-        {cardFile && nativeShareSupported ? <button type="button" style={secondaryButtonStyle} onClick={() => void handleNativeShare()}>Share from device</button> : null}
+        <button type="button" style={buttonStyle} onClick={() => void createCard()} disabled={!allConfirmed || working}>{working ? "Creating..." : cardFile ? "Update preview" : "Create share card"}</button>
+        {cardFile && nativeShareSupported ? <button type="button" style={secondaryButtonStyle} onClick={() => void handleNativeShare()}>Share</button> : null}
         {cardFile ? <button type="button" style={secondaryButtonStyle} onClick={handleDownload}>Download share card</button> : null}
         {cardFile ? <button type="button" style={secondaryButtonStyle} onClick={() => void handleCopy()}>Copy caption and link</button> : null}
       </div>
