@@ -80,13 +80,14 @@ export function getEvidenceProgressLevel(reflection: string | null | undefined) 
 
 export function getEvidencePresentationMeta(item: CleanPortfolioItem): EvidencePresentationMeta {
   const pathwayContext = parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds);
+  const learningMoment = /(?:^|\n)source\s*:\s*learning moment/i.test(item.evidence.reflection || "");
   const stepLabel =
     pathwayContext?.stepNumber && pathwayContext.stepTitle
       ? `Step ${pathwayContext.stepNumber} - ${pathwayContext.stepTitle}`
       : pathwayContext?.stepTitle || null;
 
   return {
-    sourceLabel: pathwayContext ? "My Pathways" : "My Capture",
+    sourceLabel: pathwayContext ? "My Pathways" : learningMoment ? "Learning Moment" : "My Capture",
     pathwayLabel: pathwayContext?.pathwayLabel || pathwayContext?.pathwayKey || null,
     strandLabel: pathwayContext?.pathwayLabel || pathwayContext?.pathwayKey || null,
     stageLabel: pathwayContext?.stageLabel || pathwayContext?.stageKey || null,
@@ -104,7 +105,7 @@ function cleanParentFacingEvidenceText(value: string | null | undefined) {
     .filter((line) => {
       if (!line) return false;
       if (/^worksheet\s*(href|url|link|id|resource)/i.test(line)) return false;
-      if (/^source\s*:\s*(worksheet_evidence|my_pathways|my-capture|my_capture)/i.test(line)) {
+      if (/^source\s*:\s*(worksheet_evidence|my_pathways|my-capture|my_capture|learning moment)/i.test(line)) {
         return false;
       }
       if (/^photo\s*:\s*(attached|evidence\/|worksheet-evidence\/)/i.test(line)) return false;

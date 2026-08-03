@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
+import CleanQuickCaptureWorkspace from "@/app/components/clean/CleanQuickCaptureWorkspace";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
@@ -22,6 +23,8 @@ import {
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
+import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparation";
+import { consumeQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import { resolveLearnerContext } from "@/lib/clean/learnerContext";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
@@ -393,49 +396,6 @@ type WorksheetAttachmentUpdateError = Error & {
   uploadedAttachments?: UploadedFamilyEvidenceFile[];
 };
 
-async function compressWorksheetEvidenceImage(file: File) {
-  if (!file.type.startsWith("image/")) return file;
-  if (typeof document === "undefined" || typeof Image === "undefined") return file;
-
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const nextImage = new Image();
-      nextImage.onload = () => resolve(nextImage);
-      nextImage.onerror = () => reject(new Error("The selected image could not be prepared for upload."));
-      nextImage.src = objectUrl;
-    });
-
-    const maxDimension = 1600;
-    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-    if (scale >= 1 && file.size <= 2.5 * 1024 * 1024) {
-      return file;
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.width * scale));
-    canvas.height = Math.max(1, Math.round(image.height * scale));
-    const context = canvas.getContext("2d");
-    if (!context) return file;
-
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.82);
-    });
-    if (!blob || blob.size >= file.size) return file;
-
-    const baseName = file.name.replace(/\.[^.]+$/, "") || "worksheet-evidence";
-    return new File([blob], `${baseName}-compressed.jpg`, {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    });
-  } catch {
-    return file;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -641,6 +601,7 @@ function CleanCaptureWorkspaceBody() {
   const speechSessionHadTextRef = useRef(false);
   const speechSessionStoppedManuallyRef = useRef(false);
   const speechStartInProgressRef = useRef(false);
+  const quickDraftAppliedRef = useRef(false);
 
   const learnerOptions = useMemo(
     () =>
@@ -676,6 +637,27 @@ function CleanCaptureWorkspaceBody() {
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
     safeQueryValue(searchParams.get("planned_date"));
+
+  useEffect(() => {
+    if (searchParams.get("quickDraft") !== "1" || quickDraftAppliedRef.current) return;
+    const draft = consumeQuickCaptureDraft();
+    if (!draft) return;
+
+    quickDraftAppliedRef.current = true;
+    setLearnerId(draft.learnerId);
+    setObservedOn(draft.observedOn);
+    setWhatHappened(draft.caption);
+    setLearningArea(draft.learningArea);
+    setLifeAddToPortfolio(true);
+    setLifeIncludeInReport(false);
+    setPhotoFile(draft.photoFile);
+    setPhotoName(draft.photoFile?.name ?? "");
+    setPhotoSelectionMessage(draft.photoFile ? "Photo attached." : "No photo attached yet.");
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return draft.photoFile ? URL.createObjectURL(draft.photoFile) : "";
+    });
+  }, [searchParams]);
   const curriculumContextFromQuery = useMemo(
     () => parseCurriculumCaptureContextFromSearchParams(searchParams),
     [searchParams],
@@ -1243,7 +1225,7 @@ function CleanCaptureWorkspaceBody() {
       userIdPresent: Boolean(user?.id),
     });
 
-    const preparedFile = await compressWorksheetEvidenceImage(file);
+    const preparedFile = await compressCleanEvidenceImage(file);
     logWorksheetUploadDiagnostic("compression-complete", {
       evidenceEntryId: evidenceId,
       fileName: preparedFile.name,
@@ -2121,6 +2103,24 @@ function CleanCaptureWorkspaceBody() {
             <div>
               <GuidancePageAction tourId="my-capture" />
             </div>
+            <Link
+              href={`/my-capture?mode=quick&returnTo=${encodeURIComponent(pathname)}`}
+              style={{
+                width: "fit-content",
+                minHeight: 46,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 12,
+                padding: "10px 15px",
+                background: "#6c4df6",
+                color: "#ffffff",
+                textDecoration: "none",
+                fontWeight: 850,
+              }}
+            >
+              Quick Capture
+            </Link>
           </div>
         </section>
 
@@ -3681,5 +3681,9 @@ function CleanCaptureWorkspaceBody() {
 }
 
 export default function CleanCaptureWorkspace() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("mode") === "quick") {
+    return <CleanQuickCaptureWorkspace />;
+  }
   return <CleanCaptureWorkspaceBody />;
 }

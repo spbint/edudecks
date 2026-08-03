@@ -29,6 +29,12 @@ const SAFE_PROPERTY_KEYS = new Set([
   "source",
   "entryType",
   "dateRangeDays",
+  "format",
+  "hasImage",
+  "hasCaption",
+  "includeLearnerName",
+  "includeLearningArea",
+  "includeHashtag",
   "timestamp",
 ]);
 
