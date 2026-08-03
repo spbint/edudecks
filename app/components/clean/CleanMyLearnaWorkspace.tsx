@@ -386,7 +386,7 @@ export default function CleanMyLearnaWorkspace() {
       : visibleEntries.length
       ? { label: "Add evidence", href: capturePath(selectedLearnerId, latestEntry) }
       : { label: "Choose a learning pathway", href: pathwayPath(selectedLearnerId, null) };
-  const quickCaptureHref = capturePath(selectedLearnerId, latestEntry);
+  const quickCaptureHref = `/my-capture?mode=quick&learner_id=${encodeURIComponent(selectedLearnerId)}&returnTo=${encodeURIComponent("/my-learna")}`;
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
   const quietAreas = summary.allSubjectRows.filter((row) => !row.isActiveLearningArea);
   const reportReadyCount = visibleEntries.filter((entry) => entry.includeInReport).length;

@@ -8,6 +8,7 @@ import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSe
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
+import CleanLearningMomentShareCard from "@/app/components/clean/CleanLearningMomentShareCard";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
@@ -747,6 +748,12 @@ function CleanPortfolioWorkspaceBody() {
             <div>
               <GuidancePageAction tourId="my-portfolio" />
             </div>
+            <Link
+              href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(pathname)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
+              style={{ ...buttonStyle, width: "fit-content", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+            >
+              Add a learning moment
+            </Link>
             {selectedLearnerLabel ? (
               <div
                 style={{
@@ -1037,6 +1044,15 @@ function CleanPortfolioWorkspaceBody() {
                     />
                   ) : null}
                 </div>
+                {justCapturedImage ? (
+                  <CleanLearningMomentShareCard
+                    entry={justCapturedItem.evidence}
+                    learnerLabel={selectedLearnerLabel}
+                    imageUrl={justCapturedImage.url}
+                    imageStoragePath={justCapturedImage.storagePath}
+                    showTrigger
+                  />
+                ) : null}
               </section>
             ) : null}
 
@@ -1485,6 +1501,15 @@ function CleanPortfolioWorkspaceBody() {
                           >
                             Open capture
                           </Link>
+                          {previewImage ? (
+                            <CleanLearningMomentShareCard
+                              entry={item.evidence}
+                              learnerLabel={learnerLabel}
+                              imageUrl={previewImage.url}
+                              imageStoragePath={previewImage.storagePath}
+                              showTrigger
+                            />
+                          ) : null}
                           {item.evidence.includeInReport ? (
                             <Link
                               href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`}

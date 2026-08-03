@@ -1219,6 +1219,23 @@ function CleanDayWorkspaceBody() {
             <div>
               <GuidancePageAction tourId="my-day" />
             </div>
+            <Link
+              href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(dayPathBase)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
+              style={{
+                width: "fit-content",
+                minHeight: 46,
+                display: "inline-flex",
+                alignItems: "center",
+                borderRadius: 12,
+                padding: "10px 15px",
+                background: "#6c4df6",
+                color: "#ffffff",
+                textDecoration: "none",
+                fontWeight: 850,
+              }}
+            >
+              Quick Capture
+            </Link>
           </div>
         </section>
 

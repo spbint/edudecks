@@ -8,7 +8,8 @@ export type LearnerContextSource =
   | "portfolio"
   | "reports"
   | "my-data"
-  | "manual";
+  | "manual"
+  | "quick-capture";
 
 export type LearnerContextSnapshot = {
   familyId: string;

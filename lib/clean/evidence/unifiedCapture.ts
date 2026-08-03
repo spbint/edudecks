@@ -25,7 +25,8 @@ export type UnifiedCaptureSourceType =
   | "calendar"
   | "portfolio"
   | "reports"
-  | "manual";
+  | "manual"
+  | "quick-capture";
 
 export type UnifiedCaptureDraft = {
   familyId: string;
@@ -98,7 +99,9 @@ function buildUnifiedCaptureReflection(draft: UnifiedCaptureDraft) {
     progressJudgement ? `Progress level: ${progressJudgement}` : "",
     safe(draft.parentNote) ? `Parent note: ${safe(draft.parentNote)}` : "",
     existingReflection ? `Learner reflection: ${existingReflection}` : "",
-    safe(draft.sourceType) ? `Source: ${safe(draft.sourceType)}` : "",
+    safe(draft.sourceType)
+      ? `Source: ${draft.sourceType === "quick-capture" ? "Learning Moment" : safe(draft.sourceType)}`
+      : "",
   ];
 
   return lines.filter(Boolean).join("\n") || null;
