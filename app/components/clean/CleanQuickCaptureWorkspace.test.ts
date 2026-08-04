@@ -5,6 +5,7 @@ import {
   buildLearningMomentShareFilename,
   buildLearningMomentShareText,
   canUseNativeLearningMomentShare,
+  formatPublicLearnerName,
   LEARNING_MOMENT_INVITATION_URL,
   sanitizePublicCaption,
 } from "@/lib/clean/evidence/learningMomentShareCard";
@@ -45,6 +46,31 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("Try photo again");
     expect(source).toContain("Add a photo or a short caption");
   });
+
+  it("keeps quick capture visually anchored and camera-first", () => {
+    expect(source).toContain("window.scrollTo({ top: 0");
+    expect(source).toContain(">Quick Capture</h1>");
+    expect(source).toContain("Capture a learning moment now. Add more detail later.");
+    expect(source).not.toContain("Add it to the portfolio later.");
+    expect(source).toContain('aria-label="Take a photo"');
+    expect(source).toContain('aria-label="Choose a photo from your library"');
+    expect(source).toContain("visuallyHiddenInputStyle");
+    expect(source).toContain("Take a photo");
+    expect(source).toContain("Choose from library");
+    expect(source).toContain("Replace photo");
+    expect(source).toContain("Remove photo");
+    expect(source).toContain("Add learning area");
+  });
+
+  it("keeps the saved receipt calm and makes sharing a focused second step", () => {
+    expect(source).toContain("Step 1");
+    expect(source).toContain("Step 2 — Create your share card");
+    expect(shareSource).toContain("Back to saved moment");
+    expect(source).toContain("onClick={() => setSharingOpen(true)}");
+    expect(source).not.toContain("Close share card");
+    expect(source).not.toContain('setStatus("Learning moment saved.")');
+    expect(source).toContain("style={tertiaryButtonStyle}");
+  });
 });
 
 describe("Learning Moment sharing", () => {
@@ -69,5 +95,14 @@ describe("Learning Moment sharing", () => {
     expect(canUseNativeLearningMomentShare({} as Navigator)).toBe(false);
     expect(shareSource).toContain("native_share_opened");
     expect(shareSource).not.toContain("native_share_completed");
+  });
+
+  it("keeps learner-name choices private by default and surname-free", () => {
+    expect(formatPublicLearnerName("Ada Lovelace", "hidden")).toBe("");
+    expect(formatPublicLearnerName("Ada Lovelace", "initial")).toBe("A.");
+    expect(formatPublicLearnerName("Ada Lovelace", "first-name")).toBe("Ada");
+    expect(shareSource).toContain('["hidden", "initial", "first-name"]');
+    expect(shareSource).toContain("Update preview");
+    expect(shareSource).toContain("setImageTreatment(option)");
   });
 });

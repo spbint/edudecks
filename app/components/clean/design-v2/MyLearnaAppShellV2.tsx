@@ -516,13 +516,15 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const searchParams = useSearchParams();
   const { user } = useAuthUser();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
-  const title = routeTitle(pathname);
-  const breadcrumbs = routeCrumbs(pathname);
   const activityMode = getActivityMode(pathname);
   const activeMobileSection = getActiveMobileSection(pathname);
   const quickCaptureReturnPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
   const quickCaptureHref = `/my-capture?mode=quick&returnTo=${encodeURIComponent(quickCaptureReturnPath)}`;
   const quickCaptureRoute = pathname === "/my-capture" && searchParams.get("mode") === "quick";
+  const title = quickCaptureRoute ? "Quick Capture" : routeTitle(pathname);
+  const breadcrumbs = quickCaptureRoute
+    ? [{ label: "My Day", href: "/my-day" }, { label: "Quick Capture" }]
+    : routeCrumbs(pathname);
 
   React.useEffect(() => {
     setOpenMobileNav(null);

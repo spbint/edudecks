@@ -2098,7 +2098,7 @@ function CleanCaptureWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Capture</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Save a quick learning moment. Add it to the portfolio later.
+              Save a learning moment privately. It starts in your Portfolio, and you can add more detail later.
             </p>
             <div>
               <GuidancePageAction tourId="my-capture" />
