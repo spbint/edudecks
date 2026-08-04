@@ -359,7 +359,7 @@ function getActiveMobileSection(pathname: string): MobileNavKey {
 }
 
 export function getMobilePrefetchDestinations(activeSection: MobileNavKey): string[] {
-  const destinations = new Set(["/my-day", "/my-settings"]);
+  const destinations = new Set(["/my-day", "/my-settings", "/my-capture?mode=quick"]);
   if (activeSection === "PLAN") {
     destinations.add("/my-calendar");
     destinations.add("/my-pathways");
@@ -728,13 +728,38 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           display: none;
         }
 
-          .mylearna-mobile-action-bar {
+        .mylearna-mobile-action-bar {
             display: none;
           }
 
-          .mylearna-mobile-quick-capture {
-            display: none;
-          }
+        .mylearna-v2-quick-capture-link {
+          min-height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          border: 1px solid ${v2Tokens.purple};
+          border-radius: 999px;
+          background: ${v2Tokens.lavender};
+          color: ${v2Tokens.purple};
+          padding: 0 13px;
+          box-shadow: 0 8px 20px rgba(108, 77, 246, 0.12);
+          font-size: 13px;
+          font-weight: 800;
+          text-decoration: none;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        .mylearna-v2-quick-capture-link:hover {
+          background: ${v2Tokens.purple};
+          color: #ffffff;
+        }
+
+        .mylearna-v2-quick-capture-link:focus-visible {
+          outline: 3px solid ${v2Tokens.purple};
+          outline-offset: 3px;
+        }
 
         @media (max-width: 900px) {
           html {
@@ -781,6 +806,19 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             height: 38px !important;
           }
 
+          .mylearna-v2-quick-capture-link {
+            width: 44px !important;
+            min-width: 44px !important;
+            height: 44px !important;
+            min-height: 44px !important;
+            padding: 0 !important;
+            border-radius: 12px !important;
+          }
+
+          .mylearna-v2-quick-capture-label {
+            display: none !important;
+          }
+
           .mylearna-v2-content-main {
             padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
           }
@@ -822,26 +860,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             border-top: 1px solid ${v2Tokens.border};
             background: rgba(255,255,255,0.96);
             backdrop-filter: blur(16px);
-          }
-
-          .mylearna-mobile-quick-capture {
-            position: fixed;
-            right: max(16px, env(safe-area-inset-right, 0px));
-            bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-            z-index: 56;
-            min-height: 48px;
-            display: inline-flex !important;
-            align-items: center;
-            gap: 7px;
-            border: 1px solid ${v2Tokens.purple};
-            border-radius: 999px;
-            background: ${v2Tokens.purple};
-            color: #ffffff;
-            padding: 11px 15px;
-            box-shadow: 0 12px 28px rgba(108, 77, 246, 0.28);
-            font-size: 13px;
-            font-weight: 850;
-            text-decoration: none;
           }
 
           .mylearna-mobile-action-bar-inner {
@@ -1149,6 +1167,12 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                 <ShellIcon name="help" size={18} />
               </Link>
               <CleanCommunityNotificationsMenu />
+              {!quickCaptureRoute ? (
+                <Link className="mylearna-v2-quick-capture-link" href={quickCaptureHref} aria-label="Quick Capture">
+                  <ShellIcon name="camera" size={18} />
+                  <span className="mylearna-v2-quick-capture-label">Quick Capture</span>
+                </Link>
+              ) : null}
               <CleanAccountMenu email={user?.email ?? null} redirectTo="/start-free" />
             </div>
           </header>
@@ -1170,13 +1194,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </main>
         </div>
       </div>
-
-      {!quickCaptureRoute ? (
-        <Link className="mylearna-mobile-quick-capture" href={quickCaptureHref} aria-label="Quick Capture">
-          <ShellIcon name="camera" size={19} />
-          <span>Quick Capture</span>
-        </Link>
-      ) : null}
 
       {openMobileNav === "more" ? (
         <div
