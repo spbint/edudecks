@@ -19,6 +19,40 @@ const shellSource = readFileSync(join(process.cwd(), "app/components/clean/desig
 const shareSource = readFileSync(join(process.cwd(), "app/components/clean/CleanLearningMomentShareCard.tsx"), "utf8");
 
 describe("Quick Capture doorway", () => {
+  it("keeps one responsive global header action with a safe local return path", () => {
+    const header = shellSource.indexOf('<div className="mylearna-v2-header-actions"');
+    const help = shellSource.indexOf('aria-label="Open help and community"', header);
+    const notifications = shellSource.indexOf("<CleanCommunityNotificationsMenu />", header);
+    const quickCapture = shellSource.indexOf("mylearna-v2-quick-capture-link", header);
+    const account = shellSource.indexOf("<CleanAccountMenu", header);
+    expect(header).toBeGreaterThan(-1);
+    expect(help).toBeLessThan(notifications);
+    expect(notifications).toBeLessThan(quickCapture);
+    expect(quickCapture).toBeLessThan(account);
+    expect(shellSource).toContain('href={quickCaptureHref}');
+    expect(shellSource).toContain('aria-label="Quick Capture"');
+    expect(shellSource).toContain("const quickCaptureReturnPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : \"\"}`;");
+    expect(shellSource).toContain("encodeURIComponent(quickCaptureReturnPath)");
+    expect(shellSource).toContain("mylearna-v2-quick-capture-label");
+    expect(shellSource).toContain("width: 44px !important");
+    expect(shellSource).toContain("height: 44px !important");
+    const floatingClassName = ["mylearna", "mobile", "quick", "capture"].join("-");
+    expect(shellSource).not.toContain(floatingClassName);
+    expect(shellSource).not.toMatch(/href=\{`https?:/);
+    expect(shellSource.match(/className="mylearna-v2-quick-capture-link"/g)?.length).toBe(1);
+    expect(shellSource).toContain('href: "/my-calendar"');
+    expect(shellSource).toContain('href: "/my-capture"');
+    expect(shellSource).toContain('href: "/my-learna"');
+    expect(shellSource).toContain('aria-label="Mobile primary navigation"');
+  });
+
+  it("hides the global action on Quick Capture and focused activity shells", () => {
+    expect(shellSource).toContain("const quickCaptureRoute = pathname === \"/my-capture\" && searchParams.get(\"mode\") === \"quick\";");
+    expect(shellSource).toContain("if (activityMode)");
+    expect(shellSource.indexOf("if (activityMode)")).toBeLessThan(shellSource.indexOf("mylearna-v2-quick-capture-link"));
+    expect(shellSource).toContain("!quickCaptureRoute");
+  });
+
   it("uses one mode route from every approved entry point", () => {
     expect(captureSource).toContain("mode=quick");
     expect(daySource).toContain("mode=quick");

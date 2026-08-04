@@ -22,6 +22,7 @@ describe("Stage 8.2 loading and navigation fluidity", () => {
     expect(getMobilePrefetchDestinations("PLAN")).toEqual([
       "/my-day",
       "/my-settings",
+      "/my-capture?mode=quick",
       "/my-calendar",
       "/my-pathways",
     ]);
