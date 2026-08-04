@@ -4,6 +4,9 @@ const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() ?? "";
 const POSTHOG_HOST = (process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() ?? "").replace(/\/+$/, "");
 
 const SAFE_PROPERTY_KEYS = new Set([
+  "mission",
+  "step",
+  "presentation",
   "area",
   "route",
   "featureArea",

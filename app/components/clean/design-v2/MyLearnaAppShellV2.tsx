@@ -9,6 +9,7 @@ import ProductAnalyticsProvider from "@/app/components/clean/analytics/ProductAn
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
+import GuidedStartFamilySetup from "@/app/components/clean/guidance/GuidedStartFamilySetup";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
@@ -1199,6 +1200,8 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </main>
         </div>
       </div>
+
+      <GuidedStartFamilySetup />
 
       {openMobileNav === "more" ? (
         <div

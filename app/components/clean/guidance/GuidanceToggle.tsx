@@ -72,19 +72,18 @@ export function GuidanceWelcomePrompt() {
           Guidance
         </div>
         <h2 id="guidance-welcome-heading" style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-          Let&apos;s get MyLearna ready for your family.
+          Let&apos;s set up MyLearna together
         </h2>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-          Start with your family profile, then move through settings, planning,
-          pathways, capture, portfolios, reports and outputs.
+          I&apos;ll guide you one step at a time. You can pause whenever you need.
         </p>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={startWelcomeGuidance} style={primaryButtonStyle}>
-          Start setup
+          Start guided setup
         </button>
         <button type="button" onClick={skipWelcomeGuidance} style={secondaryButtonStyle}>
-          Skip for now
+          Not now
         </button>
       </div>
     </div>
@@ -95,7 +94,6 @@ export function GuidanceSettingsCard() {
   const {
     enabled,
     resetDismissedTips,
-    resetSetupChecklist,
     restartGuidance,
     setGuidanceEnabled,
   } = useGuidance();
@@ -114,11 +112,6 @@ export function GuidanceSettingsCard() {
   function turnGuidanceOff() {
     setConfirmDisable(false);
     setGuidanceEnabled(false);
-  }
-
-  function restartSetupJourney() {
-    resetSetupChecklist();
-    restartGuidance();
   }
 
   return (
@@ -188,10 +181,7 @@ export function GuidanceSettingsCard() {
       ) : null}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" onClick={restartGuidance} style={secondaryButtonStyle}>
-          Restart welcome guidance
-        </button>
-        <button type="button" onClick={restartSetupJourney} style={secondaryButtonStyle}>
-          Restart setup checklist
+          Restart family setup guide
         </button>
         <button type="button" onClick={resetDismissedTips} style={secondaryButtonStyle}>
           Reset completed guidance

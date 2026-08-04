@@ -15,7 +15,6 @@ const LEGACY_WELCOME_COMPLETED_KEY = "mylearna.guidance.welcomeTourCompleted";
 const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
 const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
-const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 const SETUP_ACTIVE_KEY = "mylearna.guidance.setupActive";
 
 type SetupStatus = "not_started" | "active" | "skipped" | "completed";
@@ -133,11 +132,6 @@ function matchesGuidanceRoute(pathname: string) {
 
 function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
-}
-
-function writePendingTour(tourId: GuidanceTourId) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
 }
 
 export function GuidanceProvider({ children }: { children: React.ReactNode }) {
@@ -312,7 +306,6 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeBooleanStorage(WELCOME_SEEN_KEY, true);
     setSetupStatus("active");
     setCurrentSetupStep("profile");
-    writePendingTour("my-profile");
     router.push(getCleanMyProfilePath(pathname));
   }, [pathname, router, setCurrentSetupStep, setSetupStatus]);
 
@@ -327,8 +320,10 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
     setSetupStatus("active");
     setCurrentSetupStep("profile");
-    writePendingTour("my-profile");
     setShowWelcomePrompt(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("mylearna:guided-start-restart"));
+    }
     router.push(getCleanMyProfilePath(pathname));
   }, [pathname, router, setCurrentSetupStep, setSetupStatus]);
 
