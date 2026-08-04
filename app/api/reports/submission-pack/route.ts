@@ -5,7 +5,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return NextResponse.json(
-    { error: "Curriculum setup is temporarily unavailable during rebuild." },
-    { status: 503 },
+    {
+      error: "Submission pack export is no longer available. Use the validated report export instead.",
+      code: "submission_pack_unavailable",
+    },
+    { status: 410 },
   );
 }

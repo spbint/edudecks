@@ -176,9 +176,9 @@ export default function StartFreePage() {
   return (
     <PublicSiteShell
       eyebrow="Start free"
-      heroTitle="Start free during beta"
+      heroTitle="Start free"
       heroText="Create your account, then start planning, capturing evidence and preparing report-ready records."
-      heroBadges={["Free beta", "Email sign-in", "Family setup", "Report-ready records"]}
+      heroBadges={["Start free", "Email sign-in", "Family setup", "Report-ready records"]}
       primaryCta={null}
       secondaryCta={{ label: "Already have an account?", href: "/login" }}
       asideTitle="What happens next"

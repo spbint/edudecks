@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import PreviewBadge from "@/app/components/PreviewBadge";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import useIsMobile from "@/app/components/useIsMobile";
 
@@ -228,7 +227,7 @@ export default function PublicSiteShell({
   heroBadges = [],
   asideItems = [],
   navItems,
-  primaryCta = { label: "Start free during beta", href: "/start-free" },
+  primaryCta = { label: "Start free", href: "/start-free" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
   headerPrimaryAction = null,
@@ -317,11 +316,6 @@ export default function PublicSiteShell({
                   flexShrink: 0,
                   paddingRight: isMobile ? 0 : 6,
                 }}
-              />
-              <PreviewBadge
-                compact={isMobile}
-                label="Beta V1"
-                title="MyLearna Free Beta V1 is evolving with family feedback."
               />
             </div>
 

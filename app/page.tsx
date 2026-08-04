@@ -10,7 +10,7 @@ import PublicSiteShell, {
 import useIsMobile from "@/app/components/useIsMobile";
 
 const PRIMARY_CTA = {
-  label: "Start free during beta",
+  label: "Start free",
   href: "/start-free?source=home-primary",
 } as const;
 
@@ -119,7 +119,7 @@ export default function HomePage() {
           background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
         }}
       >
-        <div style={publicPill("#eff6ff", "#1d4ed8")}>Free Beta V1</div>
+        <div style={publicPill("#eff6ff", "#1d4ed8")}>Start free</div>
         <p
           style={{
             margin: 0,
@@ -130,8 +130,8 @@ export default function HomePage() {
             fontWeight: 500,
           }}
         >
-          MyLearna is live in beta for families who want calmer planning,
-          evidence, portfolios and records.
+          MyLearna is live for families who want calmer planning, evidence,
+          portfolios and records.
         </p>
       </section>
 
@@ -215,7 +215,7 @@ export default function HomePage() {
         >
           {sectionHeader(
             "What MyLearna helps with now",
-            "Free Beta V1 focuses on planning, daily learning, evidence, portfolios and reports.",
+            "MyLearna currently focuses on planning, daily learning, evidence, portfolios and reports.",
           )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -256,7 +256,7 @@ export default function HomePage() {
           </h2>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#334155" }}>
             Free gives families planning, text evidence, portfolio highlights and
-            basic report-ready outputs during beta.
+            basic report-ready outputs as your learning record grows.
           </p>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#334155" }}>
             Family features will unlock deeper curriculum pathways, worksheets,
@@ -322,7 +322,7 @@ export default function HomePage() {
         }}
       >
         <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.15, fontWeight: 800 }}>
-          Start with the free beta.
+          Start free and build your learning record.
         </h2>
         <p style={{ margin: 0, color: "#334155", lineHeight: 1.55, maxWidth: 760 }}>
           Create an account, set up your family, and begin. Always check local

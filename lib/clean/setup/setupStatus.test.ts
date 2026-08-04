@@ -168,6 +168,54 @@ describe("resolveCleanActiveLearner", () => {
 });
 
 describe("deriveCleanSetupStatus", () => {
+  it("advances a new family through the real setup sequence", () => {
+    const profileWithoutSettings = { ...profile, countryCode: "", jurisdictionCode: "" };
+    const first = deriveCleanSetupStatus({
+      profile: null,
+      learners: [],
+      activeLearner: null,
+      counts: emptyCounts,
+    });
+    expect(first.nextAction).toMatchObject({
+      type: "create-family-profile",
+      href: "/my-profile",
+    });
+
+    const afterProfile = deriveCleanSetupStatus({
+      profile: profileWithoutSettings,
+      learners: [],
+      activeLearner: null,
+      counts: emptyCounts,
+    });
+    expect(afterProfile.nextAction).toMatchObject({
+      type: "add-learner",
+      href: "/my-profile",
+    });
+
+    const activeLearner = learner("learner-1", "Ari");
+    const afterLearner = deriveCleanSetupStatus({
+      profile: profileWithoutSettings,
+      learners: [activeLearner],
+      activeLearner,
+      counts: emptyCounts,
+    });
+    expect(afterLearner.nextAction).toMatchObject({
+      type: "save-learning-settings",
+      href: "/my-settings",
+    });
+
+    const afterSettings = deriveCleanSetupStatus({
+      profile,
+      learners: [activeLearner],
+      activeLearner,
+      counts: { ...emptyCounts, learningYears: 1 },
+    });
+    expect(afterSettings.nextAction).toMatchObject({
+      type: "add-teaching-period",
+      href: "/my-calendar",
+    });
+  });
+
   it("backfills setup completion from real records", () => {
     const status = deriveCleanSetupStatus({
       profile,
