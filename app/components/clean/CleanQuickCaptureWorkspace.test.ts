@@ -96,6 +96,20 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("Add learning area");
   });
 
+  it("keeps the mobile save action above the unchanged bottom navigation", () => {
+    expect(source).toContain('className="mylearna-quick-capture-main"');
+    expect(source).toContain("bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px)");
+    expect(source).toContain("padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px))");
+    expect(source).toContain(".mylearna-quick-capture-save-bar > button { width: 100%; }");
+    expect(source).not.toContain("bottom: 0; z-index: 52");
+    expect(source).toContain('style={{ position: "sticky", bottom: 8');
+    expect(source).toContain("minHeight: 48");
+    expect(shellSource).toContain("--mylearna-mobile-bottom-nav-height: 62px");
+    expect(shellSource).toContain("mylearna-v2-quick-capture-content");
+    expect(shellSource).toContain("z-index: 60 !important");
+    expect(shellSource).toContain("grid-template-columns: repeat(5, minmax(0, 1fr)) !important");
+  });
+
   it("keeps the saved receipt calm and makes sharing a focused second step", () => {
     expect(source).toContain("Step 1");
     expect(source).toContain("Step 2 — Create your share card");

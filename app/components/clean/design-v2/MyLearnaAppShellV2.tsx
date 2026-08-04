@@ -717,6 +717,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       <style jsx global>{`
         .mylearna-v2-shell {
           min-height: 100svh;
+          --mylearna-mobile-bottom-nav-height: 62px;
         }
 
         .mylearna-v2-mobile-bottom-nav,
@@ -821,6 +822,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
           .mylearna-v2-content-main {
             padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+
+          .mylearna-v2-quick-capture-content {
+            padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height) + 112px + env(safe-area-inset-bottom, 0px)) !important;
           }
 
           .mylearna-v2-content-inner {
@@ -1177,7 +1182,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </div>
           </header>
 
-          <main className="mylearna-v2-content-main" style={{ padding: "clamp(16px, 3vw, 28px)" }}>
+          <main className={`mylearna-v2-content-main${quickCaptureRoute ? " mylearna-v2-quick-capture-content" : ""}`} style={{ padding: "clamp(16px, 3vw, 28px)" }}>
             <MobilePillarSwitcher pathname={pathname} />
             <div className="mylearna-v2-content-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
               {children}
