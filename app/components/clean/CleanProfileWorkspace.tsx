@@ -962,7 +962,7 @@ function CleanProfileWorkspaceBody() {
                 <GuidanceSetupNextAction
                   stepId="profile"
                   nextHref="/my-settings"
-                  label="Save profile and continue to Settings"
+                  label="Continue to My Settings"
                   helperText="Family profile is started. Continue when you are ready to choose your learning settings."
                 />
               ) : (
