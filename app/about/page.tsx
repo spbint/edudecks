@@ -15,7 +15,7 @@ export default function AboutPage() {
       heroTitle="About MyLearna"
       heroText="MyLearna gives families one connected place to plan learning, follow the day, capture evidence, build portfolios and prepare homeschool reports."
       heroBadges={["Calm", "Evidence-led", "Family-first", "Built to grow"]}
-      primaryCta={{ label: "Start free during beta", href: "/start-free?source=about-primary" }}
+      primaryCta={{ label: "Start free", href: "/start-free?source=about-primary" }}
       secondaryCta={{ label: "See how it works", href: "/get-started" }}
       asideTitle="What this is"
       asideText="MyLearna is not just a planner, a portfolio, or a report builder on its own. It is a connected family learning workflow designed to reduce overwhelm and build confidence over time."
@@ -312,7 +312,7 @@ export default function AboutPage() {
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Link href="/start-free?source=about-midpage" style={publicButtonStyle(true)}>
-                Start free during beta
+                Start free
               </Link>
               <Link href="/get-started" style={publicButtonStyle(false)}>
                 See the Recommended Path
@@ -401,14 +401,14 @@ export default function AboutPage() {
                 maxWidth: 760,
               }}
             >
-              Use MyLearna now during beta, share feedback, and help shape the
+              Use MyLearna now, share feedback, and help shape the
               workflow around what real families need most.
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Link href="/start-free?source=about-footer" style={publicButtonStyle(true)}>
-              Start free during beta
+              Start free
             </Link>
             <Link href="/contact" style={publicButtonStyle(false)}>
               Contact

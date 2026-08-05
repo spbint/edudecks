@@ -9,6 +9,14 @@ import ProductAnalyticsProvider from "@/app/components/clean/analytics/ProductAn
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
+import GuidedStartFamilySetup from "@/app/components/clean/guidance/GuidedStartFamilySetup";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import {
+  getFamilySetupRedirectPath,
+  isFamilyProfileRoute,
+  shouldHoldForFamilySetup,
+} from "@/lib/clean/setup/familySetupRouteGuard";
+import { isMandatoryCleanSetupComplete } from "@/lib/clean/setup/setupStatus";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
@@ -515,6 +523,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthUser();
+  const workspace = useCleanFamilyWorkspace();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
   const activityMode = getActivityMode(pathname);
   const activeMobileSection = getActiveMobileSection(pathname);
@@ -525,6 +534,29 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const breadcrumbs = quickCaptureRoute
     ? [{ label: "My Day", href: "/my-day" }, { label: "Quick Capture" }]
     : routeCrumbs(pathname);
+  const familySetupState = {
+    authenticated: Boolean(user),
+    pathname,
+    loading: workspace.loading,
+    setupLoading: workspace.setupLoading,
+    error: workspace.error,
+    schemaMissing: workspace.schemaMissing,
+    hasProfile: Boolean(workspace.profile),
+    learnerCount: workspace.learners.length,
+  };
+  const familySetupRedirect = getFamilySetupRedirectPath(familySetupState);
+  const familySetupPending = shouldHoldForFamilySetup(familySetupState) || Boolean(familySetupRedirect);
+  const showReadyForToday =
+    !workspace.loading &&
+    !workspace.setupLoading &&
+    !workspace.schemaMissing &&
+    !workspace.error &&
+    isMandatoryCleanSetupComplete(workspace.setupStatus);
+
+  React.useEffect(() => {
+    if (!familySetupRedirect) return;
+    router.replace(familySetupRedirect);
+  }, [familySetupRedirect, router]);
 
   React.useEffect(() => {
     setOpenMobileNav(null);
@@ -563,6 +595,25 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
   }, [activeMobileSection, router]);
+
+  if (familySetupPending && !isFamilyProfileRoute(pathname)) {
+    return (
+      <div
+        style={{
+          minHeight: "100svh",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+          background: v2Tokens.page,
+          color: v2Tokens.navy,
+        }}
+      >
+        <p role="status" style={{ margin: 0, color: v2Tokens.slate, fontWeight: 700 }}>
+          Checking your family setup…
+        </p>
+      </div>
+    );
+  }
 
   const activityContext =
     pathname.startsWith("/my-pathways/activity-player-v4-preview")
@@ -717,6 +768,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       <style jsx global>{`
         .mylearna-v2-shell {
           min-height: 100svh;
+          --mylearna-mobile-bottom-nav-height: 62px;
         }
 
         .mylearna-v2-mobile-bottom-nav,
@@ -821,6 +873,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
           .mylearna-v2-content-main {
             padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+
+          .mylearna-v2-quick-capture-content {
+            padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height) + 112px + env(safe-area-inset-bottom, 0px)) !important;
           }
 
           .mylearna-v2-content-inner {
@@ -1056,7 +1112,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             <NavLink item={settingsNavItem} pathname={pathname} />
           </nav>
 
-          <div
+          {showReadyForToday ? <div
             className="mylearna-v2-encouragement"
             style={{
               border: `1px solid ${v2Tokens.border}`,
@@ -1073,7 +1129,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             <span style={{ color: v2Tokens.slate, fontSize: 13, lineHeight: 1.5 }}>
               Choose one useful step, then let the pathway guide what comes next.
             </span>
-          </div>
+          </div> : null}
         </aside>
 
         <div style={{ minWidth: 0 }}>
@@ -1177,7 +1233,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </div>
           </header>
 
-          <main className="mylearna-v2-content-main" style={{ padding: "clamp(16px, 3vw, 28px)" }}>
+          <main className={`mylearna-v2-content-main${quickCaptureRoute ? " mylearna-v2-quick-capture-content" : ""}`} style={{ padding: "clamp(16px, 3vw, 28px)" }}>
             <MobilePillarSwitcher pathname={pathname} />
             <div className="mylearna-v2-content-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
               {children}
@@ -1194,6 +1250,8 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </main>
         </div>
       </div>
+
+      <GuidedStartFamilySetup />
 
       {openMobileNav === "more" ? (
         <div

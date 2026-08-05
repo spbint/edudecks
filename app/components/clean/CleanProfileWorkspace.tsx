@@ -280,6 +280,8 @@ function CleanProfileWorkspaceBody() {
   const profileHeading = familyDisplayName ? `${familyDisplayName} profile` : "My Profile";
   const firstSetupMode =
     guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
+  const canContinueToSettings =
+    Boolean(workspace.profile) && workspace.learners.length > 0 && !submitting && !error;
 
   async function handleCreateFamilyProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -508,12 +510,14 @@ function CleanProfileWorkspaceBody() {
           </div>
         </section>
 
-        <GuidanceSetupProgress
-          stepId="profile"
-          title="Let's get MyLearna ready for your family."
-          body="Add your family and learner details once."
-          task={profileSetupTask}
-        />
+        {setupStatus !== "active" ? (
+          <GuidanceSetupProgress
+            stepId="profile"
+            title="Let's get MyLearna ready for your family."
+            body="Add your family and learner details once."
+            task={profileSetupTask}
+          />
+        ) : null}
 
         {!firstSetupMode ? (
           <div className="mylearna-profile-guidance">
@@ -952,7 +956,7 @@ function CleanProfileWorkspaceBody() {
               </section>
             )}
 
-            <section data-guidance-id="profile-next-settings" style={cardStyle}>
+            {canContinueToSettings ? <section data-guidance-id="profile-next-settings" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Settings</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                 After your profile is ready, choose your country, curriculum and reporting
@@ -962,7 +966,7 @@ function CleanProfileWorkspaceBody() {
                 <GuidanceSetupNextAction
                   stepId="profile"
                   nextHref="/my-settings"
-                  label="Save profile and continue to Settings"
+                  label="Continue to My Settings"
                   helperText="Family profile is started. Continue when you are ready to choose your learning settings."
                 />
               ) : (
@@ -970,7 +974,7 @@ function CleanProfileWorkspaceBody() {
                   Open My Settings
                 </Link>
               )}
-            </section>
+            </section> : null}
           </>
         ) : null}
 

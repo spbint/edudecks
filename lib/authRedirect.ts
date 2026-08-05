@@ -21,6 +21,10 @@ export function normalizeAuthNextPath(
   fallback = "/my-day",
 ) {
   const normalizedFallback = normalizeNextPath(fallback) || "/my-day";
+  const rawCandidate = safe(nextPath);
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(rawCandidate)) {
+    return normalizedFallback;
+  }
   const normalized = normalizeNextPath(nextPath) || normalizedFallback;
 
   if (

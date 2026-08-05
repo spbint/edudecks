@@ -15,7 +15,6 @@ const LEGACY_WELCOME_COMPLETED_KEY = "mylearna.guidance.welcomeTourCompleted";
 const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
 const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
-const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 const SETUP_ACTIVE_KEY = "mylearna.guidance.setupActive";
 
 type SetupStatus = "not_started" | "active" | "skipped" | "completed";
@@ -51,6 +50,7 @@ type GuidanceContextValue = {
   setupChecklist: string[];
   setupActive: boolean;
   setupStatus: SetupStatus;
+  guidedStartActive: boolean;
   currentSetupStep: string;
   welcomeSeen: boolean;
   dismissTip: (tipId: string) => void;
@@ -63,6 +63,7 @@ type GuidanceContextValue = {
   setCurrentSetupStep: (stepId: string) => void;
   setSetupActive: (active: boolean) => void;
   setSetupStatus: (status: SetupStatus) => void;
+  setGuidedStartActive: (active: boolean) => void;
   skipWelcomeGuidance: () => void;
   skipSetupStep: (stepId: string) => void;
   startWelcomeGuidance: () => void;
@@ -135,11 +136,6 @@ function getCleanMyProfilePath(pathname: string) {
   return pathname.startsWith("/clean-my-") ? "/clean-my-profile" : "/my-profile";
 }
 
-function writePendingTour(tourId: GuidanceTourId) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PENDING_TOUR_KEY, tourId);
-}
-
 export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
   const router = useRouter();
@@ -152,6 +148,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const [setupChecklist, setSetupChecklist] = useState<string[]>([]);
   const [setupActive, setSetupActiveState] = useState(false);
   const [setupStatus, setSetupStatusState] = useState<SetupStatus>("not_started");
+  const [guidedStartActive, setGuidedStartActiveState] = useState(false);
   const [currentSetupStep, setCurrentSetupStepState] = useState("profile");
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false);
 
@@ -219,6 +216,10 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     setSetupStatusState(status);
     setSetupActiveState(status === "active");
     writeSetupStatus(status);
+  }, []);
+
+  const setGuidedStartActive = useCallback((active: boolean) => {
+    setGuidedStartActiveState(active);
   }, []);
 
   const setCurrentSetupStep = useCallback((stepId: string) => {
@@ -312,7 +313,6 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeBooleanStorage(WELCOME_SEEN_KEY, true);
     setSetupStatus("active");
     setCurrentSetupStep("profile");
-    writePendingTour("my-profile");
     router.push(getCleanMyProfilePath(pathname));
   }, [pathname, router, setCurrentSetupStep, setSetupStatus]);
 
@@ -327,8 +327,10 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     writeStringArrayStorage(SETUP_CHECKLIST_KEY, []);
     setSetupStatus("active");
     setCurrentSetupStep("profile");
-    writePendingTour("my-profile");
     setShowWelcomePrompt(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("mylearna:guided-start-restart"));
+    }
     router.push(getCleanMyProfilePath(pathname));
   }, [pathname, router, setCurrentSetupStep, setSetupStatus]);
 
@@ -354,6 +356,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setupActive,
       setupChecklist,
       setupStatus,
+      guidedStartActive,
       welcomeSeen,
       dismissTip,
       markTourCompleted,
@@ -363,6 +366,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setCurrentSetupStep,
       setSetupActive,
       setSetupStatus,
+      setGuidedStartActive,
       setGuidanceEnabled,
       skipSetupStep,
       skipWelcomeGuidance,
@@ -385,12 +389,14 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setCurrentSetupStep,
       setSetupActive,
       setSetupStatus,
+      setGuidedStartActive,
       setGuidanceEnabled,
       skipSetupStep,
       showWelcomePrompt,
       setupChecklist,
       setupActive,
       setupStatus,
+      guidedStartActive,
       skipWelcomeGuidance,
       startWelcomeGuidance,
       toggleSetupStepComplete,

@@ -33,6 +33,12 @@ import {
   type ControlledLearningArea,
 } from "@/lib/clean/calendar/planningIntegrity";
 import {
+  canAddBreakOrHoliday,
+  validateLearningPeriodDates,
+  validateLearningYearDateChange,
+  validateLearningYearDates,
+} from "@/lib/clean/calendar/setupConstraints";
+import {
   applyCleanGeneratedWeek,
   buildCleanGeneratedWeekPreview,
   listCleanGenerationRuns,
@@ -71,15 +77,18 @@ import type {
 } from "@/lib/clean/templates/types";
 import {
   createCleanAcademicYear,
+  deleteCleanAcademicYear,
   createCleanLearningPeriod,
   deleteCleanLearningPeriod,
   listCleanAcademicYears,
   listCleanBlackoutDays,
   listCleanLearningPeriods,
+  updateCleanAcademicYear,
   updateCleanLearningPeriod,
 } from "@/lib/clean/terms/client";
 import type {
   CleanAcademicYear,
+  CleanAcademicYearUpdate,
   CleanBlackoutDay,
   CleanLearningPeriod,
   CleanLearningPeriodType,
@@ -111,6 +120,7 @@ import {
 } from "@/lib/clean/performance/planningTiming";
 
 type PendingCalendarDelete =
+  | { type: "academic-year"; year: CleanAcademicYear }
   | { type: "calendar-item"; item: CleanCalendarItem }
   | { type: "learning-period"; period: CleanLearningPeriod }
   | { type: "template-block"; block: CleanTemplateBlock };
@@ -199,12 +209,7 @@ const secondaryTextStyle: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
-const MASTER_WEEK_SKIP_KEY_PREFIX = "mylearna.calendar.masterWeekTemplateSkipped";
 const CALENDAR_VIEW_STATE_KEY_PREFIX = "mylearna.calendar.viewState";
-
-function getMasterWeekSkipKey(familyId?: string | null) {
-  return familyId ? `${MASTER_WEEK_SKIP_KEY_PREFIX}.${familyId}` : MASTER_WEEK_SKIP_KEY_PREFIX;
-}
 
 function getCalendarViewStateKey(familyId?: string | null) {
   return familyId ? `${CALENDAR_VIEW_STATE_KEY_PREFIX}.${familyId}` : CALENDAR_VIEW_STATE_KEY_PREFIX;
@@ -290,6 +295,12 @@ function addDays(dateValue: string, dayOffset: number) {
   date.setDate(date.getDate() + dayOffset);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
+}
+
+function clampDate(value: string, minimum: string, maximum: string) {
+  if (value < minimum) return minimum;
+  if (value > maximum) return maximum;
+  return value;
 }
 
 function getWeekStart(dateValue = getTodayDate()) {
@@ -935,6 +946,11 @@ function CleanCalendarWorkspaceBody() {
   const [yearEndsOn, setYearEndsOn] = useState(addDays(getWeekStart(), 83));
   const [yearCountryCode, setYearCountryCode] = useState("");
   const [yearJurisdictionCode, setYearJurisdictionCode] = useState("");
+  const [editingAcademicYearId, setEditingAcademicYearId] = useState<string | null>(null);
+  const [pendingAcademicYearUpdate, setPendingAcademicYearUpdate] = useState<{
+    id: string;
+    input: CleanAcademicYearUpdate;
+  } | null>(null);
 
   const [periodTitle, setPeriodTitle] = useState("");
   const [periodNotes, setPeriodNotes] = useState("");
@@ -995,7 +1011,6 @@ function CleanCalendarWorkspaceBody() {
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
-  const [masterWeekSkipped, setMasterWeekSkipped] = useState(false);
   const [showMasterBlockHandoff, setShowMasterBlockHandoff] = useState(false);
   const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
@@ -1061,6 +1076,17 @@ function CleanCalendarWorkspaceBody() {
     () => learningPeriods.find((period) => period.id === selectedLearningPeriodId) ?? null,
     [learningPeriods, selectedLearningPeriodId],
   );
+  const editingLearningPeriod = useMemo(
+    () => learningPeriods.find((period) => period.id === editingLearningPeriodId) ?? null,
+    [editingLearningPeriodId, learningPeriods],
+  );
+  const editingAcademicYear = useMemo(
+    () =>
+      editingLearningPeriod
+        ? academicYears.find((year) => year.id === editingLearningPeriod.academicYearId) ?? null
+        : null,
+    [academicYears, editingLearningPeriod],
+  );
   const editingTemplateBlock = useMemo(
     () => templateBlocks.find((block) => block.id === editingTemplateBlockId) ?? null,
     [editingTemplateBlockId, templateBlocks],
@@ -1123,14 +1149,14 @@ function CleanCalendarWorkspaceBody() {
   const planningSetupBreakCount = breakPeriodsForSelectedYear.length;
   const hasExistingPlanningSetup = hasLearningYear && hasRealLearningPeriod;
   const hasMasterWeekBlock = templateBlocks.length > 0;
-  const masterWeekStartedEnough = hasMasterWeekBlock || masterWeekSkipped;
+  const masterWeekStartedEnough = hasMasterWeekBlock;
   const calendarSetupReady = hasRealLearningPeriod && masterWeekStartedEnough;
   const calendarSetupTask = !hasLearningYear
     ? "Set your learning year"
     : !hasRealLearningPeriod
       ? "Add your first learning period"
       : !masterWeekStartedEnough
-        ? "Create your master week template"
+        ? "Add your first weekly learning block"
         : "Continue to My Day";
   const calendarHandoffState = !hasLearningYear
     ? "year"
@@ -1456,7 +1482,8 @@ function CleanCalendarWorkspaceBody() {
   const hasHiddenWeekendWeekContent =
     liveWeekView === "school" && (hasWeekendLiveItems || hasWeekendPreviewItems);
 
-  const shouldShowYearComposer = showYearComposer || !academicYears.length;
+  const shouldShowYearComposer =
+    showYearComposer || !academicYears.length || Boolean(editingAcademicYearId);
   const shouldShowLearningPeriodComposer =
     showLearningPeriodComposer || !learningTermsForSelectedYear.length;
   const shouldShowTemplateComposer = showTemplateComposer || !masterTemplates.length;
@@ -1714,17 +1741,6 @@ function CleanCalendarWorkspaceBody() {
 
   useEffect(() => {
     if (!workspace.profile || typeof window === "undefined") {
-      setMasterWeekSkipped(false);
-      return;
-    }
-
-    setMasterWeekSkipped(
-      window.localStorage.getItem(getMasterWeekSkipKey(workspace.profile.id)) === "true",
-    );
-  }, [workspace.profile]);
-
-  useEffect(() => {
-    if (!workspace.profile || typeof window === "undefined") {
       setCalendarViewStateHydrated(false);
       return;
     }
@@ -1955,6 +1971,31 @@ function CleanCalendarWorkspaceBody() {
     setActionError(null);
   }
 
+  function openAcademicYearEditor(year: CleanAcademicYear) {
+    setSelectedAcademicYearId(year.id);
+    setEditingAcademicYearId(year.id);
+    setYearTitle(year.title);
+    setYearStartsOn(year.startsOn);
+    setYearEndsOn(year.endsOn);
+    setYearCountryCode(year.countryCode ?? "");
+    setYearJurisdictionCode(year.jurisdictionCode ?? "");
+    setPendingAcademicYearUpdate(null);
+    setShowYearComposer(true);
+    setMessage(null);
+    setActionError(null);
+    scrollToCalendarSection("learning-year-setup");
+  }
+
+  function closeAcademicYearEditor() {
+    setEditingAcademicYearId(null);
+    setPendingAcademicYearUpdate(null);
+    setYearTitle("");
+    setYearStartsOn(getWeekStart());
+    setYearEndsOn(addDays(getWeekStart(), 83));
+    setYearCountryCode("");
+    setYearJurisdictionCode("");
+  }
+
   function closeLearningPeriodEditor() {
     resetLearningPeriodEditor();
   }
@@ -2028,27 +2069,20 @@ function CleanCalendarWorkspaceBody() {
     scrollToCalendarSection("learning-period-setup");
   }
 
+  function focusBreakSetup() {
+    if (!hasRealLearningPeriod) return;
+    setLearningPeriodsOpen(true);
+    openLearningPeriodComposer("break");
+    scrollToCalendarSection("learning-period-setup");
+  }
+
   function focusMasterWeekTemplate() {
     setPlanningView("master");
     setShowTemplateComposer(true);
-    setMasterWeekSkipped(false);
     setShowMasterBlockHandoff(false);
     setMessage(null);
     setActionError(null);
-    if (workspace.profile && typeof window !== "undefined") {
-      window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
-    }
     scrollToCalendarSection("master-week-template");
-  }
-
-  function skipMasterWeekTemplate() {
-    if (workspace.profile && typeof window !== "undefined") {
-      window.localStorage.setItem(getMasterWeekSkipKey(workspace.profile.id), "true");
-    }
-    setMasterWeekSkipped(true);
-    setShowMasterBlockHandoff(false);
-    setMessage("You can create a master week later. Continue to My Day when you are ready.");
-    setActionError(null);
   }
 
   function continueToMyDayFromCalendar() {
@@ -2069,20 +2103,84 @@ function CleanCalendarWorkspaceBody() {
   }
 
   function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
+    if (mode === "break" && !canAddBreakOrHoliday(visibleLearningPeriods)) {
+      setActionError("Add a learning period before adding a break or holiday.");
+      setMessage(null);
+      return;
+    }
     setLearningPeriodsOpen(true);
     setLearningPeriodComposerMode(mode);
     setShowLearningPeriodComposer(true);
     setPeriodIsBreak(mode === "break");
     setPeriodType(mode === "break" ? "break" : "term");
+    if (selectedAcademicYear) {
+      const yearStart = selectedAcademicYear.startsOn;
+      const yearEnd = selectedAcademicYear.endsOn;
+      const suggestedStart = clampDate(
+        mode === "break" ? getTodayDate() : periodStartsOn,
+        yearStart,
+        yearEnd,
+      );
+      const suggestedEnd = clampDate(
+        mode === "break" ? addDays(suggestedStart, 6) : periodEndsOn,
+        suggestedStart,
+        yearEnd,
+      );
+      setPeriodStartsOn(suggestedStart);
+      setPeriodEndsOn(suggestedEnd);
+    }
   }
 
   async function handleAcademicYearSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
 
-    if (yearStartsOn > yearEndsOn) {
-      setActionError("The learning year end date must be after the start date.");
+    const yearDateError = validateLearningYearDates(yearStartsOn, yearEndsOn);
+    if (yearDateError) {
+      setActionError(yearDateError);
       setMessage(null);
+      return;
+    }
+
+    const editingAcademicYear = editingAcademicYearId
+      ? academicYears.find((year) => year.id === editingAcademicYearId) ?? null
+      : null;
+
+    if (editingAcademicYear) {
+      const input: CleanAcademicYearUpdate = {
+        title: yearTitle || getLearningYearNameSuggestion(yearStartsOn, yearEndsOn),
+        startsOn: yearStartsOn,
+        endsOn: yearEndsOn,
+        countryCode: yearCountryCode || null,
+        jurisdictionCode: yearJurisdictionCode || null,
+      };
+      const dateChanged =
+        input.startsOn !== editingAcademicYear.startsOn || input.endsOn !== editingAcademicYear.endsOn;
+      const hasDependentPlanning =
+        learningPeriods.some((period) => period.academicYearId === editingAcademicYear.id) ||
+        items.length > 0;
+
+      const dependentPeriodDateError = validateLearningYearDateChange(
+        input.startsOn ?? "",
+        input.endsOn ?? "",
+        learningPeriods
+          .filter((period) => period.academicYearId === editingAcademicYear.id)
+          .map((period) => ({ startsOn: period.startsOn, endsOn: period.endsOn })),
+      );
+      if (dependentPeriodDateError) {
+        setActionError(dependentPeriodDateError);
+        setMessage(null);
+        return;
+      }
+
+      if (dateChanged && hasDependentPlanning && !pendingAcademicYearUpdate) {
+        setPendingAcademicYearUpdate({ id: editingAcademicYear.id, input });
+        setMessage(null);
+        setActionError(null);
+        return;
+      }
+
+      await persistAcademicYearUpdate(editingAcademicYear.id, input);
       return;
     }
 
@@ -2118,12 +2216,84 @@ function CleanCalendarWorkspaceBody() {
     }
   }
 
+  async function persistAcademicYearUpdate(
+    academicYearId: string,
+    input: CleanAcademicYearUpdate,
+  ) {
+    if (!workspace.profile) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      await updateCleanAcademicYear(workspace.profile.id, academicYearId, input);
+      setMessage("Learning year updated.");
+      closeAcademicYearEditor();
+      await reloadSetupData();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(error, "We could not update this learning year."),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAcademicYearDelete(year: CleanAcademicYear) {
+    if (!workspace.profile) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      await deleteCleanAcademicYear(workspace.profile.id, year.id);
+      if (selectedAcademicYearId === year.id) setSelectedAcademicYearId("");
+      if (editingAcademicYearId === year.id) closeAcademicYearEditor();
+      setMessage("Learning year removed.");
+      await reloadSetupData();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(error, "We could not delete this learning year."),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function confirmAcademicYearDateChange() {
+    if (!pendingAcademicYearUpdate) return;
+    const pending = pendingAcademicYearUpdate;
+    setPendingAcademicYearUpdate(null);
+    await persistAcademicYearUpdate(pending.id, pending.input);
+  }
+
   async function handleLearningPeriodSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
 
     if (!selectedAcademicYear) {
       setActionError("Choose a learning year before adding a learning period.");
+      setMessage(null);
+      return;
+    }
+
+    if (periodIsBreak && !canAddBreakOrHoliday(visibleLearningPeriods)) {
+      setActionError("Add a learning period before adding a break or holiday.");
+      setMessage(null);
+      return;
+    }
+
+    const periodDateError = validateLearningPeriodDates({
+      academicYear: selectedAcademicYear,
+      startsOn: periodStartsOn,
+      endsOn: periodEndsOn,
+      isBreak: periodIsBreak,
+      existingPeriods: visibleLearningPeriods,
+    });
+    if (periodDateError) {
+      setActionError(periodDateError);
       setMessage(null);
       return;
     }
@@ -2227,6 +2397,20 @@ function CleanCalendarWorkspaceBody() {
 
     if (!editingAcademicYear) {
       setActionError("Choose a learning year before updating this learning period.");
+      setMessage(null);
+      return;
+    }
+
+    const periodDateError = validateLearningPeriodDates({
+      academicYear: editingAcademicYear,
+      startsOn: editingLearningPeriodStartsOn,
+      endsOn: editingLearningPeriodEndsOn,
+      isBreak: editingLearningPeriodIsBreak,
+      existingPeriods: visibleLearningPeriods,
+      excludeId: editingLearningPeriodId,
+    });
+    if (periodDateError) {
+      setActionError(periodDateError);
       setMessage(null);
       return;
     }
@@ -2375,10 +2559,6 @@ function CleanCalendarWorkspaceBody() {
 
       setSelectedTemplateId(created.id);
       setShowTemplateComposer(false);
-      setMasterWeekSkipped(false);
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
-      }
       setMessage("Master week saved.");
       setTemplateTitle("");
       setTemplateDescription("");
@@ -2447,14 +2627,10 @@ function CleanCalendarWorkspaceBody() {
       }
 
       closeRhythmPopover();
-      setMasterWeekSkipped(false);
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
-      }
-      if (firstSetupMode) {
+      if (firstSetupMode && !hasMasterWeekBlock) {
         setShowMasterBlockHandoff(true);
       }
-      setMessage("Master block saved.");
+      setMessage(hasMasterWeekBlock ? "Master block updated." : "Learning plan started.");
       await reloadTemplateBlocks();
     } catch (error) {
       setActionError(
@@ -2763,7 +2939,9 @@ function CleanCalendarWorkspaceBody() {
     if (!pendingDelete) return;
     const deleteRequest = pendingDelete;
 
-    if (deleteRequest.type === "calendar-item") {
+    if (deleteRequest.type === "academic-year") {
+      await handleAcademicYearDelete(deleteRequest.year);
+    } else if (deleteRequest.type === "calendar-item") {
       await handleDeleteItem(deleteRequest.item);
     } else if (deleteRequest.type === "learning-period") {
       await handleLearningPeriodDelete(deleteRequest.period);
@@ -3098,13 +3276,15 @@ function CleanCalendarWorkspaceBody() {
           }
         `}</style>
         {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
-        <CleanFirstRunSetupGate currentStep="calendar" />
-        <GuidanceSetupProgress
-          stepId="calendar"
-          title="Set your learning year and first term."
-          body="Choose the date range MyLearna should plan inside. You can adjust this later."
-          task={calendarSetupTask}
-        />
+        {setupStatus !== "active" ? <CleanFirstRunSetupGate currentStep="calendar" /> : null}
+        {setupStatus !== "active" ? (
+          <GuidanceSetupProgress
+            stepId="calendar"
+            title="Set your learning year and first term."
+            body="Choose the date range MyLearna should plan inside. You can adjust this later."
+            task={calendarSetupTask}
+          />
+        ) : null}
 
         {!firstSetupMode ? (
         <CleanPageIntroVideo
@@ -4116,8 +4296,13 @@ function CleanCalendarWorkspaceBody() {
                           type="button"
                           style={mutedButtonStyle}
                           onClick={() => setShowYearComposer((current) => !current)}
+                          disabled={Boolean(editingAcademicYearId)}
                         >
-                          {shouldShowYearComposer ? "Hide year form" : "Add year"}
+                          {editingAcademicYearId
+                            ? "Editing year"
+                            : shouldShowYearComposer
+                              ? "Hide year form"
+                              : "Add year"}
                         </button>
                         <button
                           type="button"
@@ -4154,7 +4339,7 @@ function CleanCalendarWorkspaceBody() {
                             <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
                               Country
                             </label>
-                            {firstSetupMode ? (
+                            {firstSetupMode && !editingAcademicYearId ? (
                               <div style={subtleFieldCardStyle}>
                                 <strong style={{ color: "#0f172a" }}>
                                   {getSignupCountryLabel(yearCountryCode) || "Not set"}
@@ -4183,7 +4368,7 @@ function CleanCalendarWorkspaceBody() {
                             <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
                               State or region
                             </label>
-                            {firstSetupMode ? (
+                            {firstSetupMode && !editingAcademicYearId ? (
                               <div style={subtleFieldCardStyle}>
                                 <strong style={{ color: "#0f172a" }}>
                                   {getSignupJurisdictionLabel(
@@ -4224,7 +4409,12 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={yearStartsOn}
-                              onChange={(event) => setYearStartsOn(event.target.value)}
+                              max={yearEndsOn}
+                              onChange={(event) => {
+                                const nextStart = event.target.value;
+                                setYearStartsOn(nextStart);
+                                if (nextStart > yearEndsOn) setYearEndsOn(nextStart);
+                              }}
                               style={inputStyle}
                             />
                           </div>
@@ -4235,6 +4425,7 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={yearEndsOn}
+                              min={yearStartsOn}
                               onChange={(event) => setYearEndsOn(event.target.value)}
                               style={inputStyle}
                             />
@@ -4242,9 +4433,64 @@ function CleanCalendarWorkspaceBody() {
                         </div>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button type="submit" style={buttonStyle} disabled={submitting}>
-                            {submitting ? "Saving..." : "Save year"}
+                            {submitting
+                              ? "Saving..."
+                              : editingAcademicYearId
+                                ? "Save changes"
+                                : "Save year"}
                           </button>
+                          {editingAcademicYearId ? (
+                            <button
+                              type="button"
+                              style={mutedButtonStyle}
+                              onClick={closeAcademicYearEditor}
+                              disabled={submitting}
+                            >
+                              Cancel
+                            </button>
+                          ) : null}
                         </div>
+                        {pendingAcademicYearUpdate ? (
+                          <div
+                            role="alertdialog"
+                            aria-label="Confirm learning year date change"
+                            style={{
+                              border: "1px solid #fcd34d",
+                              borderRadius: 12,
+                              padding: 12,
+                              background: "#fffbeb",
+                              display: "grid",
+                              gap: 10,
+                            }}
+                          >
+                            <strong style={{ color: "#92400e" }}>
+                              Check the date change before saving
+                            </strong>
+                            <span style={{ color: "#78350f", lineHeight: 1.55 }}>
+                              This learning year has existing periods or calendar blocks. Changing
+                              its dates may place those records outside the year, so review them
+                              after saving.
+                            </span>
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                style={buttonStyle}
+                                onClick={() => void confirmAcademicYearDateChange()}
+                                disabled={submitting}
+                              >
+                                Save changes
+                              </button>
+                              <button
+                                type="button"
+                                style={mutedButtonStyle}
+                                onClick={() => setPendingAcademicYearUpdate(null)}
+                                disabled={submitting}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </form>
                     ) : null}
 
@@ -4263,9 +4509,8 @@ function CleanCalendarWorkspaceBody() {
                           const isSelected = selectedAcademicYearId === year.id;
 
                           return (
-                            <button
+                            <div
                               key={year.id}
-                              type="button"
                               style={{
                                 border: isSelected ? "2px solid #1d4ed8" : "1px solid #cbd5e1",
                                 borderRadius: 14,
@@ -4274,9 +4519,7 @@ function CleanCalendarWorkspaceBody() {
                                 display: "grid",
                                 gap: 6,
                                 textAlign: "left",
-                                cursor: "pointer",
                               }}
-                              onClick={() => setSelectedAcademicYearId(year.id)}
                             >
                               <div
                                 style={{
@@ -4287,19 +4530,52 @@ function CleanCalendarWorkspaceBody() {
                                   flexWrap: "wrap",
                                 }}
                               >
-                                <strong style={{ color: "#0f172a" }}>{year.title}</strong>
-                                <span
+                                <button
+                                  type="button"
                                   style={{
-                                    padding: "4px 10px",
-                                    borderRadius: 999,
-                                    background: isSelected ? "#dbeafe" : "#e2e8f0",
-                                    color: isSelected ? "#1d4ed8" : "#475569",
-                                    fontSize: 12,
-                                    fontWeight: 700,
+                                    border: 0,
+                                    padding: 0,
+                                    background: "transparent",
+                                    color: "#0f172a",
+                                    fontWeight: 800,
+                                    fontSize: 15,
+                                    textAlign: "left",
+                                    cursor: "pointer",
                                   }}
+                                  onClick={() => setSelectedAcademicYearId(year.id)}
                                 >
-                                  {isSelected ? "Selected" : "Use this year"}
-                                </span>
+                                  {year.title}
+                                </button>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  <span
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: 999,
+                                      background: isSelected ? "#dbeafe" : "#e2e8f0",
+                                      color: isSelected ? "#1d4ed8" : "#475569",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {isSelected ? "Selected" : "Use this year"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    style={mutedButtonStyle}
+                                    onClick={() => openAcademicYearEditor(year)}
+                                    disabled={submitting}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    style={dangerButtonStyle}
+                                    onClick={() => setPendingDelete({ type: "academic-year", year })}
+                                    disabled={submitting}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                               <div style={{ color: "#475569" }}>
                                 {formatWeekRangeLabel(year.startsOn, year.endsOn)}
@@ -4310,7 +4586,7 @@ function CleanCalendarWorkspaceBody() {
                                   ? ` - ${yearBreaks.length} break${yearBreaks.length === 1 ? "" : "s"}`
                                   : ""}
                               </div>
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
@@ -4386,12 +4662,14 @@ function CleanCalendarWorkspaceBody() {
                               openLearningPeriodComposer("break");
                             }
                           }}
-                          disabled={!selectedAcademicYear}
+                          disabled={!selectedAcademicYear || !hasRealLearningPeriod}
                         >
-                          {shouldShowLearningPeriodComposer &&
-                          learningPeriodComposerMode === "break"
-                            ? "Hide break form"
-                            : "Add a break / holiday"}
+                          {!hasRealLearningPeriod
+                            ? "Add a learning period first"
+                            : shouldShowLearningPeriodComposer &&
+                                learningPeriodComposerMode === "break"
+                              ? "Hide break form"
+                              : "Add a break / holiday"}
                         </button>
                       </div>
                     </div>
@@ -4529,7 +4807,13 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={periodStartsOn}
-                              onChange={(event) => setPeriodStartsOn(event.target.value)}
+                              min={selectedAcademicYear?.startsOn}
+                              max={selectedAcademicYear?.endsOn}
+                              onChange={(event) => {
+                                const nextStart = event.target.value;
+                                setPeriodStartsOn(nextStart);
+                                if (nextStart > periodEndsOn) setPeriodEndsOn(nextStart);
+                              }}
                               style={inputStyle}
                             />
                           </div>
@@ -4540,6 +4824,8 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={periodEndsOn}
+                              min={periodStartsOn}
+                              max={selectedAcademicYear?.endsOn}
                               onChange={(event) => setPeriodEndsOn(event.target.value)}
                               style={inputStyle}
                             />
@@ -4792,14 +5078,22 @@ function CleanCalendarWorkspaceBody() {
                                     <input
                                       type="date"
                                       value={editingLearningPeriodStartsOn}
-                                      onChange={(event) =>
-                                        setEditingLearningPeriodStartsOn(event.target.value)
-                                      }
+                                      min={editingAcademicYear?.startsOn}
+                                      max={editingAcademicYear?.endsOn}
+                                      onChange={(event) => {
+                                        const nextStart = event.target.value;
+                                        setEditingLearningPeriodStartsOn(nextStart);
+                                        if (nextStart > editingLearningPeriodEndsOn) {
+                                          setEditingLearningPeriodEndsOn(nextStart);
+                                        }
+                                      }}
                                       style={inputStyle}
                                     />
                                     <input
                                       type="date"
                                       value={editingLearningPeriodEndsOn}
+                                      min={editingLearningPeriodStartsOn}
+                                      max={editingAcademicYear?.endsOn}
                                       onChange={(event) =>
                                         setEditingLearningPeriodEndsOn(event.target.value)
                                       }
@@ -4910,11 +5204,11 @@ function CleanCalendarWorkspaceBody() {
                   <div style={{ display: "grid", gap: 12 }}>
                     <div>
                       <h2 style={{ margin: 0, color: "#0f172a" }}>
-                        Create your master week template
+                        Add your first weekly learning block
                       </h2>
                       <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                        Set up a simple weekly rhythm that MyLearna can use to help organise
-                        your learning days. You can adjust it later.
+                        Add one weekly block to create a simple rhythm that MyLearna can use to
+                        organise your learning days. You can adjust it later.
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -4923,14 +5217,14 @@ function CleanCalendarWorkspaceBody() {
                         style={buttonStyle}
                         onClick={focusMasterWeekTemplate}
                       >
-                        Create master week template
+                        Add weekly learning block
                       </button>
                       <button
                         type="button"
                         style={mutedButtonStyle}
-                        onClick={skipMasterWeekTemplate}
+                        onClick={focusBreakSetup}
                       >
-                        Skip for now
+                        Add a break or holiday
                       </button>
                     </div>
                   </div>
@@ -4938,11 +5232,11 @@ function CleanCalendarWorkspaceBody() {
                   <div style={{ display: "grid", gap: 12 }}>
                     <div>
                       <h2 style={{ margin: 0, color: "#0f172a" }}>
-                        Calendar setup is ready
+                        Your first learning plan is ready
                       </h2>
                       <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                        Your learning year and first learning period are in place. You can now
-                        review today&apos;s learning.
+                        Your learning year, learning period and first weekly block are ready.
+                        My Day can now show what is planned.
                       </p>
                     </div>
                     <button
@@ -5216,7 +5510,7 @@ function CleanCalendarWorkspaceBody() {
                       >
                         <div style={{ display: "grid", gap: 6 }}>
                           <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                            Master block saved
+                            Your first learning plan is ready
                           </strong>
                           <p style={secondaryTextStyle}>
                             Your reusable week has started. You can add more blocks now, or
@@ -6357,7 +6651,9 @@ function CleanCalendarWorkspaceBody() {
                 id="calendar-delete-confirmation-title"
                 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}
               >
-                {pendingDelete.type === "learning-period"
+                {pendingDelete.type === "academic-year"
+                  ? "Delete this learning year?"
+                  : pendingDelete.type === "learning-period"
                   ? pendingDelete.period.isBreak || pendingDelete.period.periodType === "break"
                     ? "Delete this break / holiday?"
                     : "Delete this learning period?"
@@ -6366,14 +6662,18 @@ function CleanCalendarWorkspaceBody() {
                     : "Delete this calendar block?"}
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                {pendingDelete.type === "learning-period"
+                {pendingDelete.type === "academic-year"
+                  ? "This removes the year and its planning container. Existing periods or blocks may prevent deletion; nothing else will be deleted automatically."
+                  : pendingDelete.type === "learning-period"
                   ? "This removes the date range from planning. Learners and programs are not deleted."
                   : pendingDelete.type === "template-block"
                     ? "This removes the block from the master week template."
                     : "This removes the block from this week."}
               </p>
               <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                {pendingDelete.type === "learning-period"
+                {pendingDelete.type === "academic-year"
+                  ? pendingDelete.year.title
+                  : pendingDelete.type === "learning-period"
                   ? pendingDelete.period.title
                   : pendingDelete.type === "template-block"
                     ? pendingDelete.block.title

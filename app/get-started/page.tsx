@@ -15,7 +15,7 @@ const STEPS = [
     text:
       "Create your account, add your learner, and choose the basic context MyLearna uses for planning and records.",
     href: "/start-free?source=get-started-step-1",
-    cta: "Start free during beta",
+    cta: "Start free",
     tone: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
   },
   {
@@ -24,7 +24,7 @@ const STEPS = [
     text:
       "Use My Calendar for the week or month, then open My Day to follow the learning blocks for today.",
     href: "/start-free?source=get-started-step-2",
-    cta: "Start free during beta",
+    cta: "Start free",
     tone: { bg: "#f5f3ff", bd: "#ddd6fe", fg: "#6d28d9" },
   },
   {
@@ -33,7 +33,7 @@ const STEPS = [
     text:
       "Add short notes and learning moments as they happen so the family record starts building naturally.",
     href: "/start-free?source=get-started-step-3",
-    cta: "Start free during beta",
+    cta: "Start free",
     tone: { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" },
   },
   {
@@ -42,7 +42,7 @@ const STEPS = [
     text:
       "Use My Pathways for practice, checks and worksheets. Completed pathway checks can become report-ready evidence.",
     href: "/start-free?source=get-started-step-4",
-    cta: "Start free during beta",
+    cta: "Start free",
     tone: { bg: "#fff7ed", bd: "#fed7aa", fg: "#9a3412" },
   },
   {
@@ -51,7 +51,7 @@ const STEPS = [
     text:
       "Choose portfolio evidence, preview report-ready records, and download printable outputs when you need them.",
     href: "/start-free?source=get-started-step-5",
-    cta: "Start free during beta",
+    cta: "Start free",
     tone: { bg: "#f8fafc", bd: "#e5e7eb", fg: "#334155" },
   },
 ];
@@ -68,7 +68,7 @@ export default function GetStartedPage() {
         "Plan intentionally",
         "Report when ready",
       ]}
-      primaryCta={{ label: "Start free during beta", href: "/start-free?source=get-started-primary" }}
+      primaryCta={{ label: "Start free", href: "/start-free?source=get-started-primary" }}
       secondaryCta={{ label: "Back home", href: "/" }}
       asideTitle="Best first move"
       asideText="Create your account with email, then begin with one useful family setup step."
@@ -411,7 +411,7 @@ export default function GetStartedPage() {
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Link href="/start-free?source=get-started-bottom" style={publicButtonStyle(true)}>
-                Start free during beta
+                Start free
               </Link>
               <Link href="/" style={publicButtonStyle(false)}>
                 Back home

@@ -830,11 +830,13 @@ function CleanSettingsWorkspaceBody() {
           </div>
         </section>
 
-        <GuidanceSetupProgress
-          stepId="settings"
-          title="Choose your learning settings."
-          body="Choose the context MyLearna should use."
-        />
+        {guidanceSetupStatus !== "active" ? (
+          <GuidanceSetupProgress
+            stepId="settings"
+            title="Choose your learning settings."
+            body="Choose the context MyLearna should use."
+          />
+        ) : null}
 
         {!firstSetupMode ? (
           <div className="mylearna-settings-guidance">
@@ -1297,7 +1299,7 @@ function CleanSettingsWorkspaceBody() {
                       {saving
                         ? "Saving..."
                         : firstSetupMode
-                          ? "Save settings and continue to Calendar"
+                          ? "Set up My Calendar"
                           : "Save settings"}
                     </button>
                     {!firstSetupMode ? (
@@ -1343,7 +1345,7 @@ function CleanSettingsWorkspaceBody() {
                 <GuidanceSetupNextAction
                   stepId="settings"
                   nextHref="/my-calendar"
-                  label="Save settings and continue to Calendar"
+                  label="Set up My Calendar"
                   helperText="Settings are ready when country, region, curriculum and reporting mode are saved."
                   disabled={!myDayContextReady}
                   disabledText="Save country, region, curriculum and reporting settings first."

@@ -8,10 +8,7 @@ import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTrac
 import GoogleAdsTag from "@/app/components/GoogleAdsTag";
 import MetaPixel from "@/app/components/MetaPixel";
 import { GuidanceProvider } from "@/app/components/clean/guidance/GuidanceProvider";
-import {
-  GuidancePendingTourLauncher,
-  GuidanceWelcomePrompt,
-} from "@/app/components/clean/guidance/GuidanceToggle";
+import { GuidancePendingTourLauncher } from "@/app/components/clean/guidance/GuidanceToggle";
 import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZENKS";
@@ -110,7 +107,6 @@ export default function RootLayout({
           <GuidanceProvider>
             <Suspense fallback={<div />}>{children}</Suspense>
             <GuidancePendingTourLauncher />
-            <GuidanceWelcomePrompt />
           </GuidanceProvider>
         </AuthUserProvider>
       </body>

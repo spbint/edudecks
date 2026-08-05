@@ -132,11 +132,11 @@ export default function PrivacyPage() {
           .
         </span>
       }
-      primaryCta={{ label: "Start free during beta", href: "/start-free?source=privacy-primary" }}
+      primaryCta={{ label: "Start free", href: "/start-free?source=privacy-primary" }}
       secondaryCta={{ label: "Contact", href: "/contact" }}
       headerAction={{ label: "Sign in", href: "/login" }}
       headerPrimaryAction={{ label: "Start free", href: "/start-free?source=privacy-header" }}
-      footerPrimaryCta={{ label: "Start free during beta", href: "/start-free?source=privacy-footer" }}
+      footerPrimaryCta={{ label: "Start free", href: "/start-free?source=privacy-footer" }}
       footerSecondaryCta={{ label: "Contact", href: "/contact" }}
       compactHero
     >
