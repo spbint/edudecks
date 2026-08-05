@@ -551,9 +551,14 @@ function CleanDayWorkspaceBody() {
     ? `Welcome back, ${familyDisplayName}.`
     : "Welcome back.";
   const accountSetup = workspace.setupStatus;
-  const firstSetupMode =
-    guidanceEnabled &&
+  const canShowMyDayGuidance =
+    !workspace.loading &&
     !workspace.setupLoading &&
+    Boolean(workspace.profile) &&
+    workspace.learners.length > 0;
+  const firstSetupMode =
+    canShowMyDayGuidance &&
+    guidanceEnabled &&
     (guidanceSetupStatus === "not_started" || guidanceSetupStatus === "active") &&
     !accountSetup.hasEvidence;
   const placementPromptLearnerId = useMemo(() => {
@@ -1134,18 +1139,22 @@ function CleanDayWorkspaceBody() {
             }
           }
         `}</style>
-        <CleanFirstRunSetupGate currentStep="day" />
-        <GuidanceSetupProgress
-          stepId="day"
-          title="Review today."
-          body="Use My Day to see what is planned now and what may need attention."
-        />
+        {canShowMyDayGuidance ? <CleanFirstRunSetupGate currentStep="day" /> : null}
+        {canShowMyDayGuidance ? (
+          <GuidanceSetupProgress
+            stepId="day"
+            title="Review today."
+            body="Use My Day to see what is planned now and what may need attention."
+          />
+        ) : null}
 
-        <CleanPageIntroVideo
-          config={PAGE_INTRO_VIDEOS.myDay}
-          promptTitle="New to My Day?"
-          promptDescription="See how to choose today's next useful step."
-        />
+        {canShowMyDayGuidance ? (
+          <CleanPageIntroVideo
+            config={PAGE_INTRO_VIDEOS.myDay}
+            promptTitle="New to My Day?"
+            promptDescription="See how to choose today's next useful step."
+          />
+        ) : null}
 
         {shouldShowPlacementPrompt ? (
           <section style={cardStyle}>
@@ -1216,9 +1225,11 @@ function CleanDayWorkspaceBody() {
             <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
               {familyGreeting} Start with one simple next step.
             </p>
-            <div>
-              <GuidancePageAction tourId="my-day" />
-            </div>
+            {canShowMyDayGuidance ? (
+              <div>
+                <GuidancePageAction tourId="my-day" />
+              </div>
+            ) : null}
             <Link
               href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(dayPathBase)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
               style={{
@@ -1239,9 +1250,11 @@ function CleanDayWorkspaceBody() {
           </div>
         </section>
 
-        <div className="mylearna-day-getting-started">
-          <GuidanceGettingStartedCard />
-        </div>
+        {canShowMyDayGuidance ? (
+          <div className="mylearna-day-getting-started">
+            <GuidanceGettingStartedCard />
+          </div>
+        ) : null}
 
         <div className="mylearna-day-continue-card" data-guidance-id="my-day-next-steps">
           <CleanContinueWhereYouLeftOffCard actions={continueActions} />

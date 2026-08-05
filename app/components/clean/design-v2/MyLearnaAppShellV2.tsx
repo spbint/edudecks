@@ -10,6 +10,12 @@ import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
 import GuidedStartFamilySetup from "@/app/components/clean/guidance/GuidedStartFamilySetup";
+import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import {
+  getFamilySetupRedirectPath,
+  isFamilyProfileRoute,
+  shouldHoldForFamilySetup,
+} from "@/lib/clean/setup/familySetupRouteGuard";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
@@ -516,6 +522,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthUser();
+  const workspace = useCleanFamilyWorkspace();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
   const activityMode = getActivityMode(pathname);
   const activeMobileSection = getActiveMobileSection(pathname);
@@ -526,6 +533,23 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const breadcrumbs = quickCaptureRoute
     ? [{ label: "My Day", href: "/my-day" }, { label: "Quick Capture" }]
     : routeCrumbs(pathname);
+  const familySetupState = {
+    authenticated: Boolean(user),
+    pathname,
+    loading: workspace.loading,
+    setupLoading: workspace.setupLoading,
+    error: workspace.error,
+    schemaMissing: workspace.schemaMissing,
+    hasProfile: Boolean(workspace.profile),
+    learnerCount: workspace.learners.length,
+  };
+  const familySetupRedirect = getFamilySetupRedirectPath(familySetupState);
+  const familySetupPending = shouldHoldForFamilySetup(familySetupState) || Boolean(familySetupRedirect);
+
+  React.useEffect(() => {
+    if (!familySetupRedirect) return;
+    router.replace(familySetupRedirect);
+  }, [familySetupRedirect, router]);
 
   React.useEffect(() => {
     setOpenMobileNav(null);
@@ -564,6 +588,25 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
   }, [activeMobileSection, router]);
+
+  if (familySetupPending && !isFamilyProfileRoute(pathname)) {
+    return (
+      <div
+        style={{
+          minHeight: "100svh",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+          background: v2Tokens.page,
+          color: v2Tokens.navy,
+        }}
+      >
+        <p role="status" style={{ margin: 0, color: v2Tokens.slate, fontWeight: 700 }}>
+          Checking your family setup…
+        </p>
+      </div>
+    );
+  }
 
   const activityContext =
     pathname.startsWith("/my-pathways/activity-player-v4-preview")
