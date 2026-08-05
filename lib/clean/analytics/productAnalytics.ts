@@ -38,6 +38,11 @@ const SAFE_PROPERTY_KEYS = new Set([
   "includeLearnerName",
   "includeLearningArea",
   "includeHashtag",
+  "recommendationId",
+  "recommendationCategory",
+  "supportMode",
+  "hasMultipleLearners",
+  "completionSource",
   "timestamp",
 ]);
 

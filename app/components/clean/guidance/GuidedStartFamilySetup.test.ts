@@ -64,6 +64,9 @@ describe("Guided Start family setup integration", () => {
     expect(analyticsSource).toContain('"presentation"');
     expect(missionHelperSource).toContain("shouldAutoOfferGuidedStart");
     expect(missionSource).toContain("autoOfferWelcome");
+    expect(missionSource).toContain("setGuidedStartActive");
+    expect(settingsSource).toContain("guidedStartActive");
+    expect(providerSource).toContain("guidedStartActive");
   });
 
   it("renders the mission only in the standard shell and preserves static tours", () => {

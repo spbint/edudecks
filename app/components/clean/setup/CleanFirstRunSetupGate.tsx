@@ -43,7 +43,7 @@ export default function CleanFirstRunSetupGate({
   currentStep: CleanSetupStepId;
 }) {
   const workspace = useCleanFamilyWorkspace();
-  const { enabled, hydrated, setupStatus, setCurrentSetupStep } = useGuidance();
+  const { enabled, guidedStartActive, hydrated, setupStatus, setCurrentSetupStep } = useGuidance();
   const setupIsRunning =
     hydrated && enabled && (setupStatus === "not_started" || setupStatus === "active");
   const profileMissing =
@@ -69,7 +69,7 @@ export default function CleanFirstRunSetupGate({
     }
   }, [profileMissing, setCurrentSetupStep, settingsMissing]);
 
-  if (!setupIsRunning || workspace.loading || workspace.schemaMissing) return null;
+  if (!setupIsRunning || guidedStartActive || workspace.loading || workspace.schemaMissing) return null;
 
   if (profileMissing) {
     return (

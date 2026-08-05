@@ -11,11 +11,9 @@ const setupClient = read("lib/clean/setup/setupStateClient.ts");
 
 describe("final Homeschool onboarding polish", () => {
   it("uses resolved real setup state to suppress premature Ready for today", () => {
-    expect(shell).toContain("isMandatoryCleanSetupComplete");
-    expect(shell).toContain("const showReadyForToday");
-    expect(shell).toContain("!workspace.setupLoading");
-    expect(shell).toContain("!workspace.error");
-    expect(shell).toContain("showReadyForToday ?");
+    expect(shell).not.toContain("Ready for today");
+    expect(shell).toContain("GuidedStartFamilySetup");
+    expect(read("app/components/clean/coach/MyLearnaCoachProvider.tsx")).toContain("getCoachRecommendation");
     expect(setupStatus).toContain("hasWeeklyBlock");
     expect(setupClient).toContain("listCleanTemplateBlocks");
   });

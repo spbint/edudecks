@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useGuidance, type GuidanceTourId } from "@/app/components/clean/guidance/GuidanceProvider";
+import { COACH_OPEN_EVENT } from "@/app/components/clean/coach/MyLearnaCoachProvider";
 import { useDriverTour } from "@/app/components/clean/guidance/useDriverTour";
 import {
   BLOCKED_SETUP_ROUTE_KEY,
@@ -180,6 +181,13 @@ export function GuidanceSettingsCard() {
         </div>
       ) : null}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(COACH_OPEN_EVENT))}
+          style={primaryButtonStyle}
+        >
+          Show me what to do next
+        </button>
         <button type="button" onClick={restartGuidance} style={secondaryButtonStyle}>
           Restart family setup guide
         </button>

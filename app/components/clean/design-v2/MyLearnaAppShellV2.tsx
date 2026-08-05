@@ -16,7 +16,6 @@ import {
   isFamilyProfileRoute,
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
-import { isMandatoryCleanSetupComplete } from "@/lib/clean/setup/setupStatus";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
@@ -546,12 +545,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   };
   const familySetupRedirect = getFamilySetupRedirectPath(familySetupState);
   const familySetupPending = shouldHoldForFamilySetup(familySetupState) || Boolean(familySetupRedirect);
-  const showReadyForToday =
-    !workspace.loading &&
-    !workspace.setupLoading &&
-    !workspace.schemaMissing &&
-    !workspace.error &&
-    isMandatoryCleanSetupComplete(workspace.setupStatus);
 
   React.useEffect(() => {
     if (!familySetupRedirect) return;
@@ -968,10 +961,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             scroll-margin-bottom: 90px;
           }
 
-          .mylearna-v2-encouragement {
-            display: none !important;
-          }
-
           .mylearna-v2-mobile-bottom-nav {
             position: fixed !important;
             left: 0 !important;
@@ -1112,24 +1101,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             <NavLink item={settingsNavItem} pathname={pathname} />
           </nav>
 
-          {showReadyForToday ? <div
-            className="mylearna-v2-encouragement"
-            style={{
-              border: `1px solid ${v2Tokens.border}`,
-              borderRadius: 18,
-              background: "linear-gradient(145deg, #FFFFFF 0%, #F7F4FF 100%)",
-              padding: 14,
-              color: v2Tokens.navy,
-              display: "grid",
-              gap: 6,
-              boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
-            }}
-          >
-            <strong style={{ fontSize: 13, fontWeight: 650 }}>Ready for today</strong>
-            <span style={{ color: v2Tokens.slate, fontSize: 13, lineHeight: 1.5 }}>
-              Choose one useful step, then let the pathway guide what comes next.
-            </span>
-          </div> : null}
         </aside>
 
         <div style={{ minWidth: 0 }}>

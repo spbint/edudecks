@@ -56,6 +56,10 @@ describe("Homeschool editability and journey handoffs", () => {
     expect(capture).toContain("View portfolio");
     expect(portfolio).toContain("Continue to My Reports");
     expect(reports).toContain("Open output history");
+    expect(profile).toContain("canContinueToSettings");
+    expect(calendar).toContain("canAddBreakOrHoliday");
+    expect(calendar).toContain("disabled={!selectedAcademicYear || !hasRealLearningPeriod}");
+    expect(calendar).not.toContain("Skip for now");
   });
 
   it("does not replace canonical or permission-controlled fields with client-only editing", () => {
