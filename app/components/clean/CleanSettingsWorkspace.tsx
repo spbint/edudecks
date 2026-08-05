@@ -830,11 +830,13 @@ function CleanSettingsWorkspaceBody() {
           </div>
         </section>
 
-        <GuidanceSetupProgress
-          stepId="settings"
-          title="Choose your learning settings."
-          body="Choose the context MyLearna should use."
-        />
+        {guidanceSetupStatus !== "active" ? (
+          <GuidanceSetupProgress
+            stepId="settings"
+            title="Choose your learning settings."
+            body="Choose the context MyLearna should use."
+          />
+        ) : null}
 
         {!firstSetupMode ? (
           <div className="mylearna-settings-guidance">

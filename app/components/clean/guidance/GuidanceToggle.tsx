@@ -34,10 +34,10 @@ const primaryButtonStyle: React.CSSProperties = {
 };
 
 export function GuidanceWelcomePrompt() {
-  const { enabled, hydrated, isGuidanceRoute, showWelcomePrompt, skipWelcomeGuidance, startWelcomeGuidance } =
+  const { enabled, guidedStartActive, hydrated, isGuidanceRoute, showWelcomePrompt, skipWelcomeGuidance, startWelcomeGuidance } =
     useGuidance();
 
-  if (!hydrated || !enabled || !isGuidanceRoute || !showWelcomePrompt) return null;
+  if (!hydrated || !enabled || guidedStartActive || !isGuidanceRoute || !showWelcomePrompt) return null;
 
   return (
     <div
@@ -192,10 +192,10 @@ export function GuidanceSettingsCard() {
 }
 
 export function GuidancePageAction({ tourId }: { tourId: GuidanceTourId }) {
-  const { enabled, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
+  const { enabled, guidedStartActive, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
   const startTour = useDriverTour();
 
-  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus === "active") return null;
+  if (!hydrated || !enabled || guidedStartActive || !isGuidanceRoute || setupStatus === "active") return null;
 
   return (
     <button
@@ -319,14 +319,14 @@ export function GuidanceSetupProgress({
   body: string;
   task?: string;
 }) {
-  const { enabled, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
+  const { enabled, guidedStartActive, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
   const pathname = usePathname();
   const blockedByPrerequisite =
     hydrated &&
     typeof window !== "undefined" &&
     window.localStorage.getItem(BLOCKED_SETUP_ROUTE_KEY) === pathname;
 
-  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus !== "active") return null;
+  if (!hydrated || !enabled || guidedStartActive || !isGuidanceRoute || setupStatus !== "active") return null;
   if (blockedByPrerequisite) return null;
 
   const step = getSetupStep(stepId);
@@ -415,6 +415,7 @@ export function GuidanceGettingStartedCard() {
   const {
     currentSetupStep,
     enabled,
+    guidedStartActive,
     hydrated,
     isGuidanceRoute,
     setCurrentSetupStep,
@@ -424,7 +425,7 @@ export function GuidanceGettingStartedCard() {
   const pathname = usePathname() || "";
   const startTour = useDriverTour();
 
-  if (!hydrated || !enabled || !isGuidanceRoute || setupStatus !== "active") return null;
+  if (!hydrated || !enabled || guidedStartActive || !isGuidanceRoute || setupStatus !== "active") return null;
 
   const completedCount = setupChecklist.length;
 
@@ -539,6 +540,7 @@ export function GuidancePendingTourLauncher() {
     completedTours,
     currentSetupStep,
     enabled,
+    guidedStartActive,
     hydrated,
     isGuidanceRoute,
     setupActive,
@@ -547,7 +549,7 @@ export function GuidancePendingTourLauncher() {
   const startTour = useDriverTour();
 
   useEffect(() => {
-    if (!hydrated || !enabled || !isGuidanceRoute || typeof window === "undefined") {
+    if (!hydrated || !enabled || guidedStartActive || !isGuidanceRoute || typeof window === "undefined") {
       return;
     }
 
@@ -580,6 +582,7 @@ export function GuidancePendingTourLauncher() {
     completedTours,
     currentSetupStep,
     enabled,
+    guidedStartActive,
     hydrated,
     isGuidanceRoute,
     pathname,

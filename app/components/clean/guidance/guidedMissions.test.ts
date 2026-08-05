@@ -5,6 +5,7 @@ import {
   getGuidedStartStorageKey,
   isGuidedStartComplete,
   readGuidedStartState,
+  shouldAutoOfferGuidedStart,
   writeGuidedStartState,
 } from "./guidedMissions";
 
@@ -44,5 +45,25 @@ describe("guided-start-family-setup mission state", () => {
     expect(readGuidedStartState(adapter, key)).toEqual(state);
     expect(getGuidedStartStepNumber("welcome")).toBe(1);
     expect(getGuidedStartStepNumber("first-learner")).toBe(3);
+  });
+
+  it("auto-offers only after real workspace resolution for an incomplete account", () => {
+    const base = {
+      guidanceEnabled: true,
+      guidanceHydrated: true,
+      workspaceLoading: false,
+      setupLoading: false,
+      schemaMissing: false,
+      error: null,
+      hasProfile: false,
+      learnerCount: 0,
+    };
+
+    expect(shouldAutoOfferGuidedStart({ ...base, persistedState: null })).toBe(true);
+    expect(
+      shouldAutoOfferGuidedStart({ ...base, persistedState: { status: "paused", step: "family-details", welcomeDismissed: true } }),
+    ).toBe(false);
+    expect(shouldAutoOfferGuidedStart({ ...base, workspaceLoading: true, persistedState: null })).toBe(false);
+    expect(shouldAutoOfferGuidedStart({ ...base, hasProfile: true, learnerCount: 1, persistedState: null })).toBe(false);
   });
 });

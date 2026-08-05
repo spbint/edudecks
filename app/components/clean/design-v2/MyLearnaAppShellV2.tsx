@@ -16,6 +16,7 @@ import {
   isFamilyProfileRoute,
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
+import { isMandatoryCleanSetupComplete } from "@/lib/clean/setup/setupStatus";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
@@ -545,6 +546,12 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   };
   const familySetupRedirect = getFamilySetupRedirectPath(familySetupState);
   const familySetupPending = shouldHoldForFamilySetup(familySetupState) || Boolean(familySetupRedirect);
+  const showReadyForToday =
+    !workspace.loading &&
+    !workspace.setupLoading &&
+    !workspace.schemaMissing &&
+    !workspace.error &&
+    isMandatoryCleanSetupComplete(workspace.setupStatus);
 
   React.useEffect(() => {
     if (!familySetupRedirect) return;
@@ -1105,7 +1112,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             <NavLink item={settingsNavItem} pathname={pathname} />
           </nav>
 
-          <div
+          {showReadyForToday ? <div
             className="mylearna-v2-encouragement"
             style={{
               border: `1px solid ${v2Tokens.border}`,
@@ -1122,7 +1129,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             <span style={{ color: v2Tokens.slate, fontSize: 13, lineHeight: 1.5 }}>
               Choose one useful step, then let the pathway guide what comes next.
             </span>
-          </div>
+          </div> : null}
         </aside>
 
         <div style={{ minWidth: 0 }}>

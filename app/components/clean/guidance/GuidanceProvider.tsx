@@ -50,6 +50,7 @@ type GuidanceContextValue = {
   setupChecklist: string[];
   setupActive: boolean;
   setupStatus: SetupStatus;
+  guidedStartActive: boolean;
   currentSetupStep: string;
   welcomeSeen: boolean;
   dismissTip: (tipId: string) => void;
@@ -62,6 +63,7 @@ type GuidanceContextValue = {
   setCurrentSetupStep: (stepId: string) => void;
   setSetupActive: (active: boolean) => void;
   setSetupStatus: (status: SetupStatus) => void;
+  setGuidedStartActive: (active: boolean) => void;
   skipWelcomeGuidance: () => void;
   skipSetupStep: (stepId: string) => void;
   startWelcomeGuidance: () => void;
@@ -146,6 +148,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
   const [setupChecklist, setSetupChecklist] = useState<string[]>([]);
   const [setupActive, setSetupActiveState] = useState(false);
   const [setupStatus, setSetupStatusState] = useState<SetupStatus>("not_started");
+  const [guidedStartActive, setGuidedStartActiveState] = useState(false);
   const [currentSetupStep, setCurrentSetupStepState] = useState("profile");
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false);
 
@@ -213,6 +216,10 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     setSetupStatusState(status);
     setSetupActiveState(status === "active");
     writeSetupStatus(status);
+  }, []);
+
+  const setGuidedStartActive = useCallback((active: boolean) => {
+    setGuidedStartActiveState(active);
   }, []);
 
   const setCurrentSetupStep = useCallback((stepId: string) => {
@@ -349,6 +356,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setupActive,
       setupChecklist,
       setupStatus,
+      guidedStartActive,
       welcomeSeen,
       dismissTip,
       markTourCompleted,
@@ -358,6 +366,7 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setCurrentSetupStep,
       setSetupActive,
       setSetupStatus,
+      setGuidedStartActive,
       setGuidanceEnabled,
       skipSetupStep,
       skipWelcomeGuidance,
@@ -380,12 +389,14 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
       setCurrentSetupStep,
       setSetupActive,
       setSetupStatus,
+      setGuidedStartActive,
       setGuidanceEnabled,
       skipSetupStep,
       showWelcomePrompt,
       setupChecklist,
       setupActive,
       setupStatus,
+      guidedStartActive,
       skipWelcomeGuidance,
       startWelcomeGuidance,
       toggleSetupStepComplete,

@@ -10,6 +10,7 @@ const shellSource = readFileSync(join(process.cwd(), "app/components/clean/desig
 const profileSource = readFileSync(join(process.cwd(), "app/components/clean/CleanProfileWorkspace.tsx"), "utf8");
 const layoutSource = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
 const analyticsSource = readFileSync(join(process.cwd(), "lib/clean/analytics/productAnalytics.ts"), "utf8");
+const missionHelperSource = readFileSync(join(process.cwd(), "app/components/clean/guidance/guidedMissions.ts"), "utf8");
 
 describe("Guided Start family setup integration", () => {
   it("uses one mission with real-state steps and no Driver.js destruction completion", () => {
@@ -61,6 +62,8 @@ describe("Guided Start family setup integration", () => {
     expect(analyticsSource).toContain('"mission"');
     expect(analyticsSource).toContain('"step"');
     expect(analyticsSource).toContain('"presentation"');
+    expect(missionHelperSource).toContain("shouldAutoOfferGuidedStart");
+    expect(missionSource).toContain("autoOfferWelcome");
   });
 
   it("renders the mission only in the standard shell and preserves static tours", () => {

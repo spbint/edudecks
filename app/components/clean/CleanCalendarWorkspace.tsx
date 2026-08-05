@@ -33,6 +33,12 @@ import {
   type ControlledLearningArea,
 } from "@/lib/clean/calendar/planningIntegrity";
 import {
+  canAddBreakOrHoliday,
+  validateLearningPeriodDates,
+  validateLearningYearDateChange,
+  validateLearningYearDates,
+} from "@/lib/clean/calendar/setupConstraints";
+import {
   applyCleanGeneratedWeek,
   buildCleanGeneratedWeekPreview,
   listCleanGenerationRuns,
@@ -203,12 +209,7 @@ const secondaryTextStyle: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
-const MASTER_WEEK_SKIP_KEY_PREFIX = "mylearna.calendar.masterWeekTemplateSkipped";
 const CALENDAR_VIEW_STATE_KEY_PREFIX = "mylearna.calendar.viewState";
-
-function getMasterWeekSkipKey(familyId?: string | null) {
-  return familyId ? `${MASTER_WEEK_SKIP_KEY_PREFIX}.${familyId}` : MASTER_WEEK_SKIP_KEY_PREFIX;
-}
 
 function getCalendarViewStateKey(familyId?: string | null) {
   return familyId ? `${CALENDAR_VIEW_STATE_KEY_PREFIX}.${familyId}` : CALENDAR_VIEW_STATE_KEY_PREFIX;
@@ -294,6 +295,12 @@ function addDays(dateValue: string, dayOffset: number) {
   date.setDate(date.getDate() + dayOffset);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
+}
+
+function clampDate(value: string, minimum: string, maximum: string) {
+  if (value < minimum) return minimum;
+  if (value > maximum) return maximum;
+  return value;
 }
 
 function getWeekStart(dateValue = getTodayDate()) {
@@ -1004,7 +1011,6 @@ function CleanCalendarWorkspaceBody() {
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
-  const [masterWeekSkipped, setMasterWeekSkipped] = useState(false);
   const [showMasterBlockHandoff, setShowMasterBlockHandoff] = useState(false);
   const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
@@ -1070,6 +1076,17 @@ function CleanCalendarWorkspaceBody() {
     () => learningPeriods.find((period) => period.id === selectedLearningPeriodId) ?? null,
     [learningPeriods, selectedLearningPeriodId],
   );
+  const editingLearningPeriod = useMemo(
+    () => learningPeriods.find((period) => period.id === editingLearningPeriodId) ?? null,
+    [editingLearningPeriodId, learningPeriods],
+  );
+  const editingAcademicYear = useMemo(
+    () =>
+      editingLearningPeriod
+        ? academicYears.find((year) => year.id === editingLearningPeriod.academicYearId) ?? null
+        : null,
+    [academicYears, editingLearningPeriod],
+  );
   const editingTemplateBlock = useMemo(
     () => templateBlocks.find((block) => block.id === editingTemplateBlockId) ?? null,
     [editingTemplateBlockId, templateBlocks],
@@ -1132,14 +1149,14 @@ function CleanCalendarWorkspaceBody() {
   const planningSetupBreakCount = breakPeriodsForSelectedYear.length;
   const hasExistingPlanningSetup = hasLearningYear && hasRealLearningPeriod;
   const hasMasterWeekBlock = templateBlocks.length > 0;
-  const masterWeekStartedEnough = hasMasterWeekBlock || masterWeekSkipped;
+  const masterWeekStartedEnough = hasMasterWeekBlock;
   const calendarSetupReady = hasRealLearningPeriod && masterWeekStartedEnough;
   const calendarSetupTask = !hasLearningYear
     ? "Set your learning year"
     : !hasRealLearningPeriod
       ? "Add your first learning period"
       : !masterWeekStartedEnough
-        ? "Create your master week template"
+        ? "Add your first weekly learning block"
         : "Continue to My Day";
   const calendarHandoffState = !hasLearningYear
     ? "year"
@@ -1724,17 +1741,6 @@ function CleanCalendarWorkspaceBody() {
 
   useEffect(() => {
     if (!workspace.profile || typeof window === "undefined") {
-      setMasterWeekSkipped(false);
-      return;
-    }
-
-    setMasterWeekSkipped(
-      window.localStorage.getItem(getMasterWeekSkipKey(workspace.profile.id)) === "true",
-    );
-  }, [workspace.profile]);
-
-  useEffect(() => {
-    if (!workspace.profile || typeof window === "undefined") {
       setCalendarViewStateHydrated(false);
       return;
     }
@@ -2063,27 +2069,20 @@ function CleanCalendarWorkspaceBody() {
     scrollToCalendarSection("learning-period-setup");
   }
 
+  function focusBreakSetup() {
+    if (!hasRealLearningPeriod) return;
+    setLearningPeriodsOpen(true);
+    openLearningPeriodComposer("break");
+    scrollToCalendarSection("learning-period-setup");
+  }
+
   function focusMasterWeekTemplate() {
     setPlanningView("master");
     setShowTemplateComposer(true);
-    setMasterWeekSkipped(false);
     setShowMasterBlockHandoff(false);
     setMessage(null);
     setActionError(null);
-    if (workspace.profile && typeof window !== "undefined") {
-      window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
-    }
     scrollToCalendarSection("master-week-template");
-  }
-
-  function skipMasterWeekTemplate() {
-    if (workspace.profile && typeof window !== "undefined") {
-      window.localStorage.setItem(getMasterWeekSkipKey(workspace.profile.id), "true");
-    }
-    setMasterWeekSkipped(true);
-    setShowMasterBlockHandoff(false);
-    setMessage("You can create a master week later. Continue to My Day when you are ready.");
-    setActionError(null);
   }
 
   function continueToMyDayFromCalendar() {
@@ -2104,19 +2103,41 @@ function CleanCalendarWorkspaceBody() {
   }
 
   function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
+    if (mode === "break" && !canAddBreakOrHoliday(visibleLearningPeriods)) {
+      setActionError("Add a learning period before adding a break or holiday.");
+      setMessage(null);
+      return;
+    }
     setLearningPeriodsOpen(true);
     setLearningPeriodComposerMode(mode);
     setShowLearningPeriodComposer(true);
     setPeriodIsBreak(mode === "break");
     setPeriodType(mode === "break" ? "break" : "term");
+    if (selectedAcademicYear) {
+      const yearStart = selectedAcademicYear.startsOn;
+      const yearEnd = selectedAcademicYear.endsOn;
+      const suggestedStart = clampDate(
+        mode === "break" ? getTodayDate() : periodStartsOn,
+        yearStart,
+        yearEnd,
+      );
+      const suggestedEnd = clampDate(
+        mode === "break" ? addDays(suggestedStart, 6) : periodEndsOn,
+        suggestedStart,
+        yearEnd,
+      );
+      setPeriodStartsOn(suggestedStart);
+      setPeriodEndsOn(suggestedEnd);
+    }
   }
 
   async function handleAcademicYearSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
 
-    if (yearStartsOn > yearEndsOn) {
-      setActionError("The learning year end date must be after the start date.");
+    const yearDateError = validateLearningYearDates(yearStartsOn, yearEndsOn);
+    if (yearDateError) {
+      setActionError(yearDateError);
       setMessage(null);
       return;
     }
@@ -2138,6 +2159,19 @@ function CleanCalendarWorkspaceBody() {
       const hasDependentPlanning =
         learningPeriods.some((period) => period.academicYearId === editingAcademicYear.id) ||
         items.length > 0;
+
+      const dependentPeriodDateError = validateLearningYearDateChange(
+        input.startsOn ?? "",
+        input.endsOn ?? "",
+        learningPeriods
+          .filter((period) => period.academicYearId === editingAcademicYear.id)
+          .map((period) => ({ startsOn: period.startsOn, endsOn: period.endsOn })),
+      );
+      if (dependentPeriodDateError) {
+        setActionError(dependentPeriodDateError);
+        setMessage(null);
+        return;
+      }
 
       if (dateChanged && hasDependentPlanning && !pendingAcademicYearUpdate) {
         setPendingAcademicYearUpdate({ id: editingAcademicYear.id, input });
@@ -2245,6 +2279,25 @@ function CleanCalendarWorkspaceBody() {
       return;
     }
 
+    if (periodIsBreak && !canAddBreakOrHoliday(visibleLearningPeriods)) {
+      setActionError("Add a learning period before adding a break or holiday.");
+      setMessage(null);
+      return;
+    }
+
+    const periodDateError = validateLearningPeriodDates({
+      academicYear: selectedAcademicYear,
+      startsOn: periodStartsOn,
+      endsOn: periodEndsOn,
+      isBreak: periodIsBreak,
+      existingPeriods: visibleLearningPeriods,
+    });
+    if (periodDateError) {
+      setActionError(periodDateError);
+      setMessage(null);
+      return;
+    }
+
     if (periodStartsOn > periodEndsOn) {
       setActionError(
         periodIsBreak
@@ -2344,6 +2397,20 @@ function CleanCalendarWorkspaceBody() {
 
     if (!editingAcademicYear) {
       setActionError("Choose a learning year before updating this learning period.");
+      setMessage(null);
+      return;
+    }
+
+    const periodDateError = validateLearningPeriodDates({
+      academicYear: editingAcademicYear,
+      startsOn: editingLearningPeriodStartsOn,
+      endsOn: editingLearningPeriodEndsOn,
+      isBreak: editingLearningPeriodIsBreak,
+      existingPeriods: visibleLearningPeriods,
+      excludeId: editingLearningPeriodId,
+    });
+    if (periodDateError) {
+      setActionError(periodDateError);
       setMessage(null);
       return;
     }
@@ -2492,10 +2559,6 @@ function CleanCalendarWorkspaceBody() {
 
       setSelectedTemplateId(created.id);
       setShowTemplateComposer(false);
-      setMasterWeekSkipped(false);
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
-      }
       setMessage("Master week saved.");
       setTemplateTitle("");
       setTemplateDescription("");
@@ -2564,10 +2627,6 @@ function CleanCalendarWorkspaceBody() {
       }
 
       closeRhythmPopover();
-      setMasterWeekSkipped(false);
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(getMasterWeekSkipKey(workspace.profile.id));
-      }
       if (firstSetupMode && !hasMasterWeekBlock) {
         setShowMasterBlockHandoff(true);
       }
@@ -3217,13 +3276,15 @@ function CleanCalendarWorkspaceBody() {
           }
         `}</style>
         {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
-        <CleanFirstRunSetupGate currentStep="calendar" />
-        <GuidanceSetupProgress
-          stepId="calendar"
-          title="Set your learning year and first term."
-          body="Choose the date range MyLearna should plan inside. You can adjust this later."
-          task={calendarSetupTask}
-        />
+        {setupStatus !== "active" ? <CleanFirstRunSetupGate currentStep="calendar" /> : null}
+        {setupStatus !== "active" ? (
+          <GuidanceSetupProgress
+            stepId="calendar"
+            title="Set your learning year and first term."
+            body="Choose the date range MyLearna should plan inside. You can adjust this later."
+            task={calendarSetupTask}
+          />
+        ) : null}
 
         {!firstSetupMode ? (
         <CleanPageIntroVideo
@@ -4348,7 +4409,12 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={yearStartsOn}
-                              onChange={(event) => setYearStartsOn(event.target.value)}
+                              max={yearEndsOn}
+                              onChange={(event) => {
+                                const nextStart = event.target.value;
+                                setYearStartsOn(nextStart);
+                                if (nextStart > yearEndsOn) setYearEndsOn(nextStart);
+                              }}
                               style={inputStyle}
                             />
                           </div>
@@ -4359,6 +4425,7 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={yearEndsOn}
+                              min={yearStartsOn}
                               onChange={(event) => setYearEndsOn(event.target.value)}
                               style={inputStyle}
                             />
@@ -4595,12 +4662,14 @@ function CleanCalendarWorkspaceBody() {
                               openLearningPeriodComposer("break");
                             }
                           }}
-                          disabled={!selectedAcademicYear}
+                          disabled={!selectedAcademicYear || !hasRealLearningPeriod}
                         >
-                          {shouldShowLearningPeriodComposer &&
-                          learningPeriodComposerMode === "break"
-                            ? "Hide break form"
-                            : "Add a break / holiday"}
+                          {!hasRealLearningPeriod
+                            ? "Add a learning period first"
+                            : shouldShowLearningPeriodComposer &&
+                                learningPeriodComposerMode === "break"
+                              ? "Hide break form"
+                              : "Add a break / holiday"}
                         </button>
                       </div>
                     </div>
@@ -4738,7 +4807,13 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={periodStartsOn}
-                              onChange={(event) => setPeriodStartsOn(event.target.value)}
+                              min={selectedAcademicYear?.startsOn}
+                              max={selectedAcademicYear?.endsOn}
+                              onChange={(event) => {
+                                const nextStart = event.target.value;
+                                setPeriodStartsOn(nextStart);
+                                if (nextStart > periodEndsOn) setPeriodEndsOn(nextStart);
+                              }}
                               style={inputStyle}
                             />
                           </div>
@@ -4749,6 +4824,8 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               type="date"
                               value={periodEndsOn}
+                              min={periodStartsOn}
+                              max={selectedAcademicYear?.endsOn}
                               onChange={(event) => setPeriodEndsOn(event.target.value)}
                               style={inputStyle}
                             />
@@ -5001,14 +5078,22 @@ function CleanCalendarWorkspaceBody() {
                                     <input
                                       type="date"
                                       value={editingLearningPeriodStartsOn}
-                                      onChange={(event) =>
-                                        setEditingLearningPeriodStartsOn(event.target.value)
-                                      }
+                                      min={editingAcademicYear?.startsOn}
+                                      max={editingAcademicYear?.endsOn}
+                                      onChange={(event) => {
+                                        const nextStart = event.target.value;
+                                        setEditingLearningPeriodStartsOn(nextStart);
+                                        if (nextStart > editingLearningPeriodEndsOn) {
+                                          setEditingLearningPeriodEndsOn(nextStart);
+                                        }
+                                      }}
                                       style={inputStyle}
                                     />
                                     <input
                                       type="date"
                                       value={editingLearningPeriodEndsOn}
+                                      min={editingLearningPeriodStartsOn}
+                                      max={editingAcademicYear?.endsOn}
                                       onChange={(event) =>
                                         setEditingLearningPeriodEndsOn(event.target.value)
                                       }
@@ -5137,9 +5222,9 @@ function CleanCalendarWorkspaceBody() {
                       <button
                         type="button"
                         style={mutedButtonStyle}
-                        onClick={skipMasterWeekTemplate}
+                        onClick={focusBreakSetup}
                       >
-                        Skip for now
+                        Add a break or holiday
                       </button>
                     </div>
                   </div>
@@ -5147,11 +5232,11 @@ function CleanCalendarWorkspaceBody() {
                   <div style={{ display: "grid", gap: 12 }}>
                     <div>
                       <h2 style={{ margin: 0, color: "#0f172a" }}>
-                        Calendar setup is ready
+                        Your first learning plan is ready
                       </h2>
                       <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                        Your learning year and first learning period are in place. You can now
-                        review today&apos;s learning.
+                        Your learning year, learning period and first weekly block are ready.
+                        My Day can now show what is planned.
                       </p>
                     </div>
                     <button

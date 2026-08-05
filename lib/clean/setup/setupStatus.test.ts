@@ -253,6 +253,7 @@ describe("deriveCleanSetupStatus", () => {
         ...emptyCounts,
         learningYears: 1,
         teachingPeriods: 1,
+        weeklyBlocks: 1,
         pathways: 1,
       },
     });
@@ -277,6 +278,40 @@ describe("deriveCleanSetupStatus", () => {
     expect(status.hasLearningYear).toBe(true);
     expect(status.hasTeachingPeriod).toBe(false);
     expect(status.nextAction.type).toBe("add-teaching-period");
+  });
+
+  it("keeps weekly planning as a real mandatory setup stage", () => {
+    const activeLearner = learner("learner-1", "Ari");
+    const status = deriveCleanSetupStatus({
+      profile,
+      learners: [activeLearner],
+      activeLearner,
+      counts: {
+        ...emptyCounts,
+        learningYears: 1,
+        teachingPeriods: 1,
+      },
+    });
+
+    expect(status.hasWeeklyBlock).toBe(false);
+    expect(status.nextAction).toMatchObject({
+      type: "add-weekly-block",
+      label: "Add your first weekly learning block",
+    });
+
+    const complete = deriveCleanSetupStatus({
+      profile,
+      learners: [activeLearner],
+      activeLearner,
+      counts: {
+        ...emptyCounts,
+        learningYears: 1,
+        teachingPeriods: 1,
+        weeklyBlocks: 1,
+      },
+    });
+
+    expect(complete.hasWeeklyBlock).toBe(true);
   });
 
   it("uses a neutral family display fallback", () => {

@@ -16,6 +16,7 @@ import {
   isGuidedStartProfileRoute,
   isGuidedStartSettingsRoute,
   readGuidedStartState,
+  shouldAutoOfferGuidedStart,
   type GuidedStartPersistedState,
   type GuidedStartStep,
   writeGuidedStartState,
@@ -84,6 +85,24 @@ function GuidedStartFamilySetup() {
     !workspace.setupLoading &&
     !workspace.schemaMissing &&
     !workspace.error;
+
+  const autoOfferWelcome = shouldAutoOfferGuidedStart({
+    guidanceEnabled: guidance.enabled,
+    guidanceHydrated: guidance.hydrated,
+    workspaceLoading: workspace.loading,
+    setupLoading: workspace.setupLoading,
+    schemaMissing: workspace.schemaMissing,
+    error: workspace.error,
+    hasProfile: Boolean(workspace.profile),
+    learnerCount: workspace.learners.length,
+    persistedState: state,
+  });
+
+  useEffect(() => {
+    guidance.setGuidedStartActive(
+      Boolean(canConsiderMission && state?.status === "active"),
+    );
+  }, [canConsiderMission, guidance, state?.status]);
 
   const saveState = useCallback(
     (nextState: GuidedStartPersistedState) => {
@@ -258,7 +277,11 @@ function GuidedStartFamilySetup() {
     emit("guided_start_resumed", nextStep);
   }, [emit, guidance, pathname, saveState, workspace.learners.length, workspace.profile]);
 
-  const welcomeVisible = canConsiderMission && state?.status === "not_started" && isGuidedStartProfileRoute(pathname);
+  const welcomeVisible =
+    canConsiderMission &&
+    autoOfferWelcome &&
+    state?.status === "not_started" &&
+    isGuidedStartProfileRoute(pathname);
   const activeVisible =
     canConsiderMission &&
     state?.status === "active" &&

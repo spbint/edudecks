@@ -17,6 +17,42 @@ export type GuidedStartPersistedState = {
   welcomeDismissed: boolean;
 };
 
+export function shouldAutoOfferGuidedStart({
+  guidanceEnabled,
+  guidanceHydrated,
+  workspaceLoading,
+  setupLoading,
+  schemaMissing,
+  error,
+  hasProfile,
+  learnerCount,
+  persistedState,
+}: {
+  guidanceEnabled: boolean;
+  guidanceHydrated: boolean;
+  workspaceLoading: boolean;
+  setupLoading: boolean;
+  schemaMissing: boolean;
+  error: string | null;
+  hasProfile: boolean;
+  learnerCount: number;
+  persistedState: GuidedStartPersistedState | null;
+}) {
+  if (
+    !guidanceEnabled ||
+    !guidanceHydrated ||
+    workspaceLoading ||
+    setupLoading ||
+    schemaMissing ||
+    error
+  ) {
+    return false;
+  }
+
+  if (hasProfile && learnerCount > 0) return false;
+  return persistedState === null || persistedState.status === "not_started";
+}
+
 export const GUIDED_START_STEP_COUNT = 4;
 
 export const GUIDED_START_TARGETS: Record<Exclude<GuidedStartStep, "welcome" | "complete">, string> = {

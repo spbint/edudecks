@@ -59,6 +59,7 @@ export type CleanSetupNextActionType =
   | "save-learning-settings"
   | "create-learning-year"
   | "add-teaching-period"
+  | "add-weekly-block"
   | "choose-pathway"
   | "continue-pathway"
   | "capture-evidence"
@@ -80,6 +81,7 @@ export type CleanSetupRecordCounts = {
   evidence: number;
   portfolioItems: number;
   reports: number;
+  weeklyBlocks?: number;
 };
 
 export type CleanSetupStatus = {
@@ -88,6 +90,7 @@ export type CleanSetupStatus = {
   hasLearningSettings: boolean;
   hasLearningYear: boolean;
   hasTeachingPeriod: boolean;
+  hasWeeklyBlock: boolean;
   hasPathway: boolean;
   hasEvidence: boolean;
   hasPortfolioItem: boolean;
@@ -110,6 +113,20 @@ export function getCleanFamilyDisplayName(profile: FamilyProfile | null) {
 
 export function getCleanLearnerLabel(learner: Learner | null | undefined) {
   return safe(learner?.preferredName) || safe(learner?.firstName) || "Learner";
+}
+
+export function isMandatoryCleanSetupComplete(status: Pick<
+  CleanSetupStatus,
+  "hasFamilyProfile" | "hasLearner" | "hasLearningSettings" | "hasLearningYear" | "hasTeachingPeriod" | "hasWeeklyBlock"
+>) {
+  return Boolean(
+    status.hasFamilyProfile &&
+      status.hasLearner &&
+      status.hasLearningSettings &&
+      status.hasLearningYear &&
+      status.hasTeachingPeriod &&
+      status.hasWeeklyBlock,
+  );
 }
 
 export function hasCleanLearningSettings(profile: FamilyProfile | null) {
@@ -168,6 +185,7 @@ export function deriveCleanSetupStatus({
   const hasLearningSettings = hasCleanLearningSettings(profile);
   const hasLearningYear = counts.learningYears > 0;
   const hasTeachingPeriod = counts.teachingPeriods > 0;
+  const hasWeeklyBlock = (counts.weeklyBlocks ?? 0) > 0;
   const hasPathway = counts.pathways > 0;
   const hasEvidence = counts.evidence > 0;
   const hasPortfolioItem = counts.portfolioItems > 0;
@@ -207,6 +225,13 @@ export function deriveCleanSetupStatus({
     nextAction = {
       type: "add-teaching-period",
       label: "Add your first learning period",
+      href: "/my-calendar",
+      category: "setup",
+    };
+  } else if (!hasWeeklyBlock) {
+    nextAction = {
+      type: "add-weekly-block",
+      label: "Add your first weekly learning block",
       href: "/my-calendar",
       category: "setup",
     };
@@ -253,6 +278,7 @@ export function deriveCleanSetupStatus({
     hasLearningSettings,
     hasLearningYear,
     hasTeachingPeriod,
+    hasWeeklyBlock,
     hasPathway,
     hasEvidence,
     hasPortfolioItem,

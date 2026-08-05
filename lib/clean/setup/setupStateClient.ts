@@ -10,6 +10,10 @@ import {
   listCleanLearningPeriods,
 } from "@/lib/clean/terms/client";
 import {
+  listCleanMasterTemplates,
+  listCleanTemplateBlocks,
+} from "@/lib/clean/templates/client";
+import {
   deriveCleanSetupStatus,
   getTeachingPeriods,
   resolveCleanActiveLearner,
@@ -80,6 +84,7 @@ export function buildEmptyCleanSetupStatus(
       evidence: 0,
       portfolioItems: 0,
       reports: 0,
+      weeklyBlocks: 0,
     },
   });
 }
@@ -102,7 +107,7 @@ export async function loadCleanSetupStatus(
     return buildEmptyCleanSetupStatus(workspace);
   }
 
-  const [academicYears, learningPeriods, evidenceEntries, portfolioHighlights, reports] =
+  const [academicYears, learningPeriods, evidenceEntries, portfolioHighlights, reports, masterTemplates] =
     await Promise.all([
       listCleanAcademicYears(profile.id, { limit: 20 }),
       listCleanLearningPeriods(profile.id, { limit: 100 }),
@@ -118,7 +123,16 @@ export async function loadCleanSetupStatus(
         learnerId: activeLearner?.id ?? null,
         limit: 1,
       }),
+      listCleanMasterTemplates(profile.id, { isActive: true, limit: 20 }),
     ]);
+
+  const templateBlocks = (
+    await Promise.all(
+      masterTemplates.map((template) =>
+        listCleanTemplateBlocks(profile.id, template.id),
+      ),
+    )
+  ).flat();
 
   const hasPathway = activeLearner
     ? hasAnyPathwayPlacementForLearner(activeLearner.id)
@@ -132,6 +146,7 @@ export async function loadCleanSetupStatus(
     evidence: evidenceEntries.length,
     portfolioItems: portfolioHighlights.length,
     reports: reports.length,
+    weeklyBlocks: templateBlocks.length,
   };
 
   if (activeLearner) {
