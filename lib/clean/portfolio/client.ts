@@ -3,6 +3,7 @@ import {
   getCurrentCleanUserId,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type {
   CleanPortfolioHighlight,
@@ -221,7 +222,9 @@ export async function createCleanPortfolioHighlight(
     );
   }
 
-  return toCleanPortfolioHighlight(response.data as PortfolioHighlightRow);
+  const highlight = toCleanPortfolioHighlight(response.data as PortfolioHighlightRow);
+  requestCoachStateRefresh("portfolio-updated");
+  return highlight;
 }
 
 export async function updateCleanPortfolioHighlight(
@@ -258,7 +261,9 @@ export async function updateCleanPortfolioHighlight(
     );
   }
 
-  return toCleanPortfolioHighlight(response.data as PortfolioHighlightRow);
+  const highlight = toCleanPortfolioHighlight(response.data as PortfolioHighlightRow);
+  requestCoachStateRefresh("portfolio-updated");
+  return highlight;
 }
 
 export async function deleteCleanPortfolioHighlight(
@@ -279,4 +284,5 @@ export async function deleteCleanPortfolioHighlight(
       ),
     );
   }
+  requestCoachStateRefresh("portfolio-updated");
 }

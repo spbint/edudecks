@@ -16,6 +16,7 @@ import {
   isGuidedStartProfileRoute,
   isGuidedStartSettingsRoute,
   readGuidedStartState,
+  reconcileGuidedStartState,
   shouldAutoOfferGuidedStart,
   type GuidedStartPersistedState,
   type GuidedStartStep,
@@ -39,12 +40,6 @@ const stepCopy: Record<Exclude<GuidedStartStep, "welcome" | "complete">, { title
     body: "Next, choose the learning and reporting settings that suit your family.",
   },
 };
-
-const initialState = (step: GuidedStartStep = "welcome"): GuidedStartPersistedState => ({
-  status: "not_started",
-  step,
-  welcomeDismissed: false,
-});
 
 function presentationForViewport(width: number): "mobile" | "desktop" {
   return width <= 720 ? "mobile" : "desktop";
@@ -130,16 +125,29 @@ function GuidedStartFamilySetup() {
     if (!guidance.hydrated || !storageKey || typeof window === "undefined" || workspace.loading || workspace.setupLoading) return;
 
     const stored = readGuidedStartState(window.localStorage, storageKey);
-    const nextState = stored
-      ? stored
-      : !workspace.profile || workspace.learners.length === 0
-        ? initialState()
-        : null;
+    const nextState = reconcileGuidedStartState({
+      persistedState: stored,
+      hasProfile: Boolean(workspace.profile),
+      learnerCount: workspace.learners.length,
+      pathname,
+    });
     queueMicrotask(() => {
       setState(nextState);
       setHydratedStorageKey(storageKey);
+      if (JSON.stringify(stored) !== JSON.stringify(nextState)) {
+        writeGuidedStartState(window.localStorage, storageKey, nextState);
+      }
     });
-  }, [guidance.hydrated, realStep, storageKey, workspace.learners.length, workspace.loading, workspace.profile, workspace.setupLoading]);
+  }, [guidance.hydrated, pathname, realStep, storageKey, workspace.learners.length, workspace.loading, workspace.profile, workspace.setupLoading]);
+
+  useEffect(() => {
+    if (!guidance.enabled && state?.status === "active") {
+      queueMicrotask(() => {
+        saveState({ ...state, status: "paused", welcomeDismissed: true });
+        guidance.setSetupStatus("skipped");
+      });
+    }
+  }, [guidance.enabled, guidance, saveState, state]);
 
   useEffect(() => {
     if (!storageKey) return;
@@ -175,17 +183,6 @@ function GuidedStartFamilySetup() {
       emit("guided_start_step_viewed", nextStep);
     }
   }, [canConsiderMission, emit, guidance, pathname, realStep, saveState, state, workspace.learners.length, workspace.profile]);
-
-  useEffect(() => {
-    if (!state || state.status !== "paused" || guidance.setupStatus !== "active") return;
-    const nextStep = deriveGuidedStartStep({
-      hasProfile: Boolean(workspace.profile),
-      learnerCount: workspace.learners.length,
-      pathname,
-    });
-    saveState({ status: "active", step: nextStep, welcomeDismissed: true });
-    emit("guided_start_resumed", nextStep);
-  }, [emit, guidance.setupStatus, pathname, saveState, state, workspace.learners.length, workspace.profile]);
 
   useEffect(() => {
     const handleResize = () => setPresentation(presentationForViewport(window.innerWidth));

@@ -1,4 +1,5 @@
 import type { PathwaySubjectKey } from "@/lib/clean/pathways/pathwaySubjects";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 
 export type PathwayPlacementMethod =
   | "suggested"
@@ -135,6 +136,7 @@ export function savePathwayPlacement(input: SavePathwayPlacementInput) {
     PATHWAY_PLACEMENT_STORAGE_KEY,
     JSON.stringify(nextPlacements),
   );
+  requestCoachStateRefresh("pathway-updated");
 
   return nextPlacement;
 }

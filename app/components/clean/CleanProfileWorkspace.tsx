@@ -32,6 +32,7 @@ import {
 } from "@/lib/clean/learners/client";
 import type { Learner } from "@/lib/clean/learners/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -296,6 +297,7 @@ function CleanProfileWorkspaceBody() {
       setFamilyName("");
       setMessage("Family profile created.");
       await workspace.reload();
+      requestCoachStateRefresh("profile-saved", { refreshAlreadyApplied: true });
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(
@@ -336,6 +338,7 @@ function CleanProfileWorkspaceBody() {
           : "Learner added and set as the default learner.",
       );
       await workspace.reload();
+      requestCoachStateRefresh("learner-created", { refreshAlreadyApplied: true });
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(
@@ -360,6 +363,7 @@ function CleanProfileWorkspaceBody() {
       await setDefaultCleanLearner(workspace.profile.id, learnerId);
       setMessage("Default learner updated.");
       await workspace.reload();
+      requestCoachStateRefresh("learner-updated", { refreshAlreadyApplied: true });
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(
@@ -405,6 +409,7 @@ function CleanProfileWorkspaceBody() {
       setEditingLearnerDraft(null);
       setMessage("Learner updated.");
       await workspace.reload();
+      requestCoachStateRefresh("learner-updated", { refreshAlreadyApplied: true });
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(
@@ -440,6 +445,7 @@ function CleanProfileWorkspaceBody() {
       }
       setMessage("Learner deleted.");
       await workspace.reload();
+      requestCoachStateRefresh("learner-deleted", { refreshAlreadyApplied: true });
     } catch (nextError) {
       setError(
         normalizeCleanErrorMessage(

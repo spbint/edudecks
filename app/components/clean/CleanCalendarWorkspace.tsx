@@ -114,6 +114,7 @@ import {
   getSignupJurisdictionLabel,
 } from "@/lib/signupPrefill";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 import {
   beginCleanPlanningTiming,
   recordCleanPlanningMilestone,
@@ -2204,6 +2205,7 @@ function CleanCalendarWorkspaceBody() {
       setMessage("Learning year saved.");
       setYearTitle("");
       await reloadSetupData();
+      requestCoachStateRefresh("learning-year-created");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2231,6 +2233,7 @@ function CleanCalendarWorkspaceBody() {
       setMessage("Learning year updated.");
       closeAcademicYearEditor();
       await reloadSetupData();
+      requestCoachStateRefresh("learning-year-updated");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(error, "We could not update this learning year."),
@@ -2253,6 +2256,7 @@ function CleanCalendarWorkspaceBody() {
       if (editingAcademicYearId === year.id) closeAcademicYearEditor();
       setMessage("Learning year removed.");
       await reloadSetupData();
+      requestCoachStateRefresh("learning-year-deleted");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(error, "We could not delete this learning year."),
@@ -2372,6 +2376,7 @@ function CleanCalendarWorkspaceBody() {
       setPeriodIsBreak(false);
       setLearningPeriodComposerMode("term");
       await reloadSetupData();
+      requestCoachStateRefresh("learning-period-created");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2492,6 +2497,7 @@ function CleanCalendarWorkspaceBody() {
       );
       closeLearningPeriodEditor();
       await reloadSetupData();
+      requestCoachStateRefresh("learning-period-updated");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2528,6 +2534,7 @@ function CleanCalendarWorkspaceBody() {
           : "Learning period removed.",
       );
       await reloadSetupData();
+      requestCoachStateRefresh("learning-period-deleted");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2632,6 +2639,7 @@ function CleanCalendarWorkspaceBody() {
       }
       setMessage(hasMasterWeekBlock ? "Master block updated." : "Learning plan started.");
       await reloadTemplateBlocks();
+      requestCoachStateRefresh(editingTemplateBlockId ? "weekly-block-updated" : "weekly-block-created");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -2656,6 +2664,7 @@ function CleanCalendarWorkspaceBody() {
       closeRhythmPopover();
       setMessage("Block deleted.");
       await reloadTemplateBlocks();
+      requestCoachStateRefresh("weekly-block-deleted");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(

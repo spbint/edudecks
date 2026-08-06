@@ -28,6 +28,7 @@ import {
 } from "@/lib/signupPrefill";
 import type { FamilyProfile } from "@/lib/clean/family/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 import {
   BRENT_COUNTRY_CODE,
   BRENT_REPORTING_HELPER_COPY,
@@ -757,6 +758,7 @@ function CleanSettingsWorkspaceBody() {
           : "Family settings updated.",
       );
       await workspace.reload();
+      requestCoachStateRefresh("settings-saved", { refreshAlreadyApplied: true });
       clearSignupPrefill();
       if (guidanceSetupStatus === "active") {
         completeSetupStep("settings");

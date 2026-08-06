@@ -97,6 +97,54 @@ export function deriveGuidedStartStep({
   return "continue-settings";
 }
 
+export function reconcileGuidedStartState({
+  persistedState,
+  hasProfile,
+  learnerCount,
+  pathname,
+}: {
+  persistedState: GuidedStartPersistedState | null;
+  hasProfile: boolean;
+  learnerCount: number;
+  pathname: string;
+}): GuidedStartPersistedState {
+  const realStep = deriveGuidedStartStep({ hasProfile, learnerCount, pathname });
+  const realSetupComplete = isGuidedStartComplete({ hasProfile, learnerCount, pathname });
+
+  if (realSetupComplete) {
+    return {
+      status: "completed",
+      step: "complete",
+      welcomeDismissed: true,
+    };
+  }
+
+  if (!persistedState) {
+    return {
+      status: "not_started",
+      step: realStep,
+      welcomeDismissed: false,
+    };
+  }
+
+  if (persistedState.status === "paused") {
+    return { ...persistedState, step: realStep };
+  }
+
+  if (persistedState.status === "completed") {
+    return {
+      status: "not_started",
+      step: realStep,
+      welcomeDismissed: false,
+    };
+  }
+
+  return {
+    ...persistedState,
+    step: realStep,
+  };
+}
+
 export function getGuidedStartStepNumber(step: GuidedStartStep) {
   if (step === "welcome") return 1;
   if (step === "family-details") return 2;

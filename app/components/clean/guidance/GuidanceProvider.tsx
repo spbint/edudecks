@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { GuidanceTourId } from "@/app/components/clean/guidance/guidanceTours";
+import { closeActiveDriverTour } from "@/app/components/clean/guidance/guidanceRuntime";
 import {
   CURRENT_SETUP_STEP_KEY,
   SETUP_STATUS_KEY,
@@ -16,6 +17,7 @@ const COMPLETED_TOURS_KEY = "mylearna.guidance.completedTours";
 const DISMISSED_TIPS_KEY = "mylearna.guidance.dismissedTips";
 const SETUP_CHECKLIST_KEY = "mylearna.guidance.setupChecklist";
 const SETUP_ACTIVE_KEY = "mylearna.guidance.setupActive";
+export const GUIDANCE_DISABLED_EVENT = "mylearna:guidance-disabled";
 
 type SetupStatus = "not_started" | "active" | "skipped" | "completed";
 
@@ -338,6 +340,12 @@ export function GuidanceProvider({ children }: { children: React.ReactNode }) {
     (nextEnabled: boolean) => {
       setEnabled(nextEnabled);
       writeBooleanStorage(GUIDANCE_ENABLED_KEY, nextEnabled);
+      if (!nextEnabled) {
+        closeActiveDriverTour();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event(GUIDANCE_DISABLED_EVENT));
+        }
+      }
       setShowWelcomePrompt(nextEnabled && isGuidanceRoute && !welcomeSeen);
     },
     [isGuidanceRoute, welcomeSeen],

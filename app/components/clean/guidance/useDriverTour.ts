@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { driver, type DriveStep } from "driver.js";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import { GUIDANCE_TOURS, type GuidanceTourId } from "@/app/components/clean/guidance/guidanceTours";
+import { setActiveDriver } from "@/app/components/clean/guidance/guidanceRuntime";
 
 function getGuidanceSelector(guidanceId: string) {
   return `[data-guidance-id="${guidanceId}"]`;
@@ -62,9 +63,13 @@ export function useDriverTour() {
         stagePadding: 8,
         stageRadius: 16,
         steps,
-        onDestroyed: () => markTourCompleted(tourId),
+        onDestroyed: () => {
+          setActiveDriver(null);
+          markTourCompleted(tourId);
+        },
       });
 
+      setActiveDriver(driverInstance);
       driverInstance.drive();
     },
     [enabled, isGuidanceRoute, markTourCompleted],

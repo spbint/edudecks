@@ -9,6 +9,7 @@ import type {
   CleanEvidenceEntryInput,
   CleanEvidenceEntryUpdate,
 } from "@/lib/clean/evidence/types";
+import { requestCoachStateRefresh, type CoachRefreshSource } from "@/lib/clean/coach/coachRefresh";
 
 type EvidenceEntryRow = {
   id: string;
@@ -42,6 +43,7 @@ export const CLEAN_EVIDENCE_CHANGED_EVENT = "edudecks:clean-evidence-changed";
 export type CleanEvidenceChangedDetail = {
   familyId: string;
   learnerId?: string | null;
+  source?: Extract<CoachRefreshSource, "evidence-created" | "evidence-updated" | "evidence-deleted">;
 };
 
 export function shouldRefreshCleanEvidenceForLearner(
@@ -62,9 +64,11 @@ export function notifyCleanEvidenceChanged(
       detail: {
         familyId: safe(detail.familyId),
         learnerId: safe(detail.learnerId) || null,
+        source: detail.source,
       },
     }),
   );
+  requestCoachStateRefresh(detail.source ?? "evidence-updated");
 }
 
 export function subscribeToCleanEvidenceChanges(
@@ -339,7 +343,7 @@ export async function createCleanEvidenceEntry(
   }
 
   const entry = toCleanEvidenceEntry(response.data as EvidenceEntryRow);
-  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId });
+  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId, source: "evidence-created" });
   return entry;
 }
 
@@ -383,7 +387,7 @@ export async function updateCleanEvidenceEntry(
   }
 
   const entry = toCleanEvidenceEntry(response.data as EvidenceEntryRow);
-  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId });
+  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId, source: "evidence-updated" });
   return entry;
 }
 
@@ -408,5 +412,5 @@ export async function deleteCleanEvidenceEntry(
     );
   }
 
-  notifyCleanEvidenceChanged({ familyId, learnerId });
+  notifyCleanEvidenceChanged({ familyId, learnerId, source: "evidence-deleted" });
 }

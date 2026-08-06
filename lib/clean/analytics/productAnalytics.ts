@@ -43,6 +43,7 @@ const SAFE_PROPERTY_KEYS = new Set([
   "supportMode",
   "hasMultipleLearners",
   "completionSource",
+  "stateChanged",
   "timestamp",
 ]);
 

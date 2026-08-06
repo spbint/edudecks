@@ -4,9 +4,18 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
-import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
+import { GUIDANCE_DISABLED_EVENT, useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
+import { GUIDANCE_SURFACE_EVENT } from "@/app/components/clean/guidance/guidanceRuntime";
 import { trackCoachEvent } from "@/lib/clean/coach/coachAnalytics";
 import { getCoachRecommendation } from "@/lib/clean/coach/coachEngine";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  COACH_REFRESH_EVENT as COACH_STATE_REFRESH_EVENT,
+  requestCoachStateRefresh,
+  subscribeToCoachStateRefresh,
+  type CoachRefreshDetail,
+} from "@/lib/clean/coach/coachRefresh";
+import { shouldShowAutomaticCoachCard } from "@/lib/clean/coach/coachVisibility";
 import {
   getCoachStorageKey,
   isCoachRecommendationSnoozed,
@@ -19,7 +28,7 @@ import MyLearnaCoachCard from "./MyLearnaCoachCard";
 import MyLearnaCoachPanel from "./MyLearnaCoachPanel";
 
 export const COACH_OPEN_EVENT = "mylearna:coach-open";
-export const COACH_REFRESH_EVENT = "mylearna:coach-refresh";
+export const COACH_REFRESH_EVENT = COACH_STATE_REFRESH_EVENT;
 
 type CoachContextValue = {
   state: CoachState;
@@ -76,12 +85,18 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
   const workspace = useCleanFamilyWorkspace();
+  const reloadWorkspace = workspace.reload;
   const guidance = useGuidance();
   const storageKey = getCoachStorageKey(user?.id);
   const [persistence, setPersistence] = useState<CoachPersistenceState>({});
   const [persistenceKey, setPersistenceKey] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panelSupportMode, setPanelSupportMode] = useState<"automatic" | "help">("help");
+  const [staticTourActive, setStaticTourActive] = useState(false);
   const previousRecommendationRef = useRef<string | null>(null);
+  const previousMajorRouteRef = useRef<string | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
   const state = useMemo(
     () => buildCoachState(pathname, Boolean(user) && !authLoading, workspace),
@@ -93,10 +108,17 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     : null;
   const focusedRoute = /\/my-pathways\/activity-player|\/practice\/|\/assessments\//.test(pathname);
   const automaticCardVisible = Boolean(
-    visibleRecommendation &&
-      !visibleRecommendation.mandatorySetup &&
-      !guidance.guidedStartActive &&
-      !focusedRoute &&
+      visibleRecommendation &&
+      !panelOpen &&
+      !staticTourActive &&
+      shouldShowAutomaticCoachCard({
+        recommendation: visibleRecommendation,
+        guidanceEnabled: guidance.enabled,
+        guidedStartVisible: guidance.guidedStartActive,
+        guidanceSetupStatus: guidance.setupStatus,
+        route: pathname,
+        focusedRoute,
+      }) &&
       pathname !== "/my-capture",
   );
 
@@ -110,10 +132,47 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     });
   }, [persistenceKey, storageKey]);
 
+  const scheduleRefresh = useCallback((detail: CoachRefreshDetail) => {
+    if (detail.refreshAlreadyApplied) {
+      if (refreshTimerRef.current !== null && typeof window !== "undefined") {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+      lastRefreshAtRef.current = Date.now();
+      trackProductEvent("coach_state_refresh_completed", {
+        source: detail.source,
+        route: pathname,
+        stateChanged: true,
+      });
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+    if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = window.setTimeout(() => {
+      refreshTimerRef.current = null;
+      trackProductEvent("coach_state_refresh_requested", { source: detail.source, route: pathname });
+      void reloadWorkspace()
+        .then(() => {
+          lastRefreshAtRef.current = Date.now();
+          trackProductEvent("coach_state_refresh_completed", {
+            source: detail.source,
+            route: pathname,
+            stateChanged: true,
+          });
+        })
+        .catch(() => {
+          trackProductEvent("coach_state_refresh_failed", { source: detail.source, route: pathname });
+        });
+    }, 50);
+  }, [pathname, reloadWorkspace]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const open = () => {
+      if (guidance.guidedStartActive) return;
       setPanelOpen(true);
+      setPanelSupportMode("help");
       trackCoachEvent("coach_opened", {
         recommendationId: recommendation?.id,
         recommendationCategory: recommendation?.category,
@@ -122,18 +181,49 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
         hasMultipleLearners: state.hasMultipleLearners,
       });
     };
-    const refresh = () => {
-      void workspace.reload();
-    };
     window.addEventListener(COACH_OPEN_EVENT, open);
-    window.addEventListener(COACH_REFRESH_EVENT, refresh);
-    window.addEventListener("edudecks:clean-evidence-changed", refresh);
+    const unsubscribe = subscribeToCoachStateRefresh(scheduleRefresh);
     return () => {
       window.removeEventListener(COACH_OPEN_EVENT, open);
-      window.removeEventListener(COACH_REFRESH_EVENT, refresh);
-      window.removeEventListener("edudecks:clean-evidence-changed", refresh);
+      unsubscribe();
+      if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
     };
-  }, [pathname, recommendation, state.hasMultipleLearners, workspace]);
+  }, [guidance.guidedStartActive, pathname, recommendation, scheduleRefresh, state.hasMultipleLearners]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleGuidanceSurface = (event: Event) => {
+      const active = Boolean((event as CustomEvent<{ active?: boolean }>).detail?.active);
+      setStaticTourActive(active);
+      if (active) {
+        setPanelOpen(false);
+        setPanelSupportMode("help");
+      }
+    };
+    window.addEventListener(GUIDANCE_SURFACE_EVENT, handleGuidanceSurface);
+    return () => window.removeEventListener(GUIDANCE_SURFACE_EVENT, handleGuidanceSurface);
+  }, []);
+
+  useEffect(() => {
+    const majorRoute = /^\/(my-profile|my-settings|my-calendar|my-day|my-pathways|my-capture|my-portfolio|my-reports)(?:\/|$)/.exec(pathname)?.[1] ?? null;
+    if (previousMajorRouteRef.current === majorRoute) return;
+    const previousRoute = previousMajorRouteRef.current;
+    previousMajorRouteRef.current = majorRoute;
+    if (!majorRoute || (!previousRoute && workspace.loading)) return;
+    if (Date.now() - lastRefreshAtRef.current < 250) return;
+    requestCoachStateRefresh("route-revalidation");
+  }, [pathname, workspace.loading]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleGuidanceDisabled = () => {
+      if (panelSupportMode !== "automatic") return;
+      setPanelOpen(false);
+      trackProductEvent("coach_guidance_disabled", { route: pathname, source: "guidance-toggle" });
+    };
+    window.addEventListener(GUIDANCE_DISABLED_EVENT, handleGuidanceDisabled);
+    return () => window.removeEventListener(GUIDANCE_DISABLED_EVENT, handleGuidanceDisabled);
+  }, [panelSupportMode, pathname]);
 
   useEffect(() => {
     if (!recommendation) {
@@ -169,6 +259,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
 
   const openCoach = useCallback((supportMode: "automatic" | "help" = "automatic") => {
     setPanelOpen(true);
+    setPanelSupportMode(supportMode);
     if (persistence.snoozedRecommendationId === recommendation?.id) {
       trackCoachEvent("coach_resumed", {
         recommendationId: recommendation?.id,
@@ -187,7 +278,10 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     });
   }, [pathname, persistence.snoozedRecommendationId, recommendation, state.hasMultipleLearners]);
 
-  const closeCoach = useCallback(() => setPanelOpen(false), []);
+  const closeCoach = useCallback(() => {
+    setPanelOpen(false);
+    setPanelSupportMode("help");
+  }, []);
 
   const snoozeRecommendation = useCallback(() => {
     if (!recommendation) return;
@@ -198,6 +292,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     };
     updatePersistence(next);
     setPanelOpen(false);
+    setPanelSupportMode("help");
     trackCoachEvent("coach_snoozed", {
       recommendationId: recommendation.id,
       recommendationCategory: recommendation.category,
@@ -215,6 +310,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
       hasMultipleLearners: state.hasMultipleLearners,
     });
     setPanelOpen(false);
+    setPanelSupportMode("help");
     router.push(recommendation.primaryRoute);
   }, [pathname, recommendation, router, state.hasMultipleLearners]);
 

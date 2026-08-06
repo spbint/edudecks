@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 import {
   getCurrentCleanUserId,
   normalizeCleanErrorMessage,
@@ -449,7 +450,9 @@ export async function createCleanReport(
     );
   }
 
-  return toCleanReport(response.data as ReportRow);
+  const report = toCleanReport(response.data as ReportRow);
+  requestCoachStateRefresh("report-created");
+  return report;
 }
 
 export async function updateCleanReport(

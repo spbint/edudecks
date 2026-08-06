@@ -18,6 +18,7 @@ import {
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 
 const MAX_CAPTION_LENGTH = 280;
 
@@ -290,6 +291,7 @@ export default function CleanQuickCaptureWorkspace() {
       setSavePhase("");
       setStatus("");
       await workspace.reload();
+      requestCoachStateRefresh("evidence-created", { refreshAlreadyApplied: true });
     } catch (saveError) {
       setError(normalizeCleanErrorMessage(saveError, "We could not save this learning moment. Try again."));
       trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId), hasImage: Boolean(photoFile), hasCaption: Boolean(nextCaption) }, user?.id);
