@@ -14,6 +14,7 @@ const profile = readFileSync(join(root, "app/components/clean/CleanProfileWorksp
 const calendar = readFileSync(join(root, "app/components/clean/CleanCalendarWorkspace.tsx"), "utf8");
 const settings = readFileSync(join(root, "app/components/clean/CleanSettingsWorkspace.tsx"), "utf8");
 const evidence = readFileSync(join(root, "lib/clean/evidence/client.ts"), "utf8");
+const reports = readFileSync(join(root, "lib/clean/reports/client.ts"), "utf8");
 
 describe("MyLearna Coach integration", () => {
   it("wraps both authenticated shells and replaces Ready for today", () => {
@@ -46,6 +47,9 @@ describe("MyLearna Coach integration", () => {
     expect(calendar).toContain('requestCoachStateRefresh("learning-year-created"');
     expect(calendar).toContain('"weekly-block-created"');
     expect(evidence).toContain('requestCoachStateRefresh(detail.source ?? "evidence-updated")');
+    expect(reports).toContain('requestCoachStateRefresh("report-created")');
+    expect(reports).toContain('requestCoachStateRefresh("report-updated")');
+    expect(reports).toContain('requestCoachStateRefresh("report-deleted")');
   });
 
   it("closes automatic guidance without disabling manual Coach help", () => {

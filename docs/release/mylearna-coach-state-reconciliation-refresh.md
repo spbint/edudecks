@@ -22,7 +22,15 @@ This repair is limited to MyLearna Homeschool Coach v1 state reconciliation, mut
 
 `lib/clean/coach/coachRefresh.ts` provides one typed event contract with safe source labels. Successful mutations request a refresh only after completion. The Coach provider coalesces bursts, uses the existing family-workspace reload path, and records a short last-refresh window to avoid duplicate route revalidation. No polling or render-triggered reload is used.
 
-Connected success paths include profile and learner changes, Settings, learning years, learning periods, weekly/master blocks, pathway placement, evidence, Portfolio highlights, reports, and Quick Capture's already-applied workspace reload. Major Coach routes revalidate once when entered.
+Connected success paths include profile and learner changes, Settings, learning years, learning periods, weekly/master blocks, pathway placement, evidence, Portfolio highlights, report create/update/delete, and Quick Capture's already-applied workspace reload. Major Coach routes revalidate once when entered.
+
+### DEFERRED — Governed Report recommendation
+
+- Report update and delete mutations refresh Coach state.
+- Coach does not recommend Reports solely because Portfolio evidence exists.
+- A Report recommendation remains gated by a reliable governed report-readiness signal.
+- `MyLearnaCoachProvider` does not currently populate that signal.
+- Unconditional Report recommendations are intentionally deferred to prevent false or unjustified guidance.
 
 ## Guidance-off behaviour
 
@@ -32,4 +40,4 @@ The shared guidance provider closes the active Driver.js tour and announces the 
 
 Automated unit and source-contract tests cover stale completion, missing learners, pauses, malformed storage, account scoping, refresh subscription, source wiring, route revalidation, coalescing, guidance-off behaviour, and automatic-card visibility. Build, focused tests, changed-file lint, and full-suite results are recorded in the handoff report.
 
-Manual browser checks remain required for the stale-browser-state, setup mutation, Calendar-to-My Day, guidance-off, snooze, real-state transition, and two-learner flows. No screenshots or recordings were produced in this worktree.
+Manual browser checks remain required for the stale-browser-state, setup mutation, Calendar-to-My Day, guidance-off, snooze, real-state transition, and two-learner flows. They were not executable in this session because the in-app browser surface was unavailable. No screenshots or recordings were produced in this worktree.

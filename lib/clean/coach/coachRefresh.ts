@@ -21,6 +21,8 @@ export type CoachRefreshSource =
   | "evidence-deleted"
   | "portfolio-updated"
   | "report-created"
+  | "report-updated"
+  | "report-deleted"
   | "route-revalidation";
 
 export type CoachRefreshDetail = {

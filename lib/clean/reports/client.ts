@@ -497,7 +497,9 @@ export async function updateCleanReport(
     );
   }
 
-  return toCleanReport(response.data as ReportRow);
+  const report = toCleanReport(response.data as ReportRow);
+  requestCoachStateRefresh("report-updated");
+  return report;
 }
 
 export async function deleteCleanReport(
@@ -518,6 +520,8 @@ export async function deleteCleanReport(
       ),
     );
   }
+
+  requestCoachStateRefresh("report-deleted");
 }
 
 export async function listCleanReportSections(
