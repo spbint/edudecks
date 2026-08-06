@@ -48,10 +48,31 @@ describe("MyLearna Coach recommendation engine", () => {
   });
 
   it("moves through the first activation journey from real signals", () => {
-    expect(getCoachRecommendation(state({ route: "/my-calendar" }))).toMatchObject({ id: "activation-review-my-day" });
-    expect(getCoachRecommendation(state({ route: "/my-day", hasPathway: false }))).toMatchObject({ id: "activation-choose-pathway" });
+    for (const route of ["/my-day", "/my-calendar", "/my-pathways", "/my-portfolio", "/my-settings"]) {
+      expect(getCoachRecommendation(state({ route, hasPathway: false }))).toMatchObject({ id: "activation-choose-pathway" });
+    }
     expect(getCoachRecommendation(state({ route: "/my-day", hasEvidence: false }))).toMatchObject({ id: "activation-capture-learning" });
     expect(getCoachRecommendation(state({ route: "/my-day", hasPortfolioItem: false }))).toMatchObject({ id: "activation-review-portfolio" });
+  });
+
+  it("does not use an absent or false today-plan signal to mask stronger actions", () => {
+    for (const todayHasPlannedLearning of [undefined, false]) {
+      expect(getCoachRecommendation(state({ route: "/my-day", todayHasPlannedLearning, hasPathway: false }))).toMatchObject({
+        id: "activation-choose-pathway",
+      });
+      expect(getCoachRecommendation(state({ route: "/my-day", todayHasPlannedLearning, hasEvidence: false }))).toMatchObject({
+        id: "activation-capture-learning",
+      });
+      expect(getCoachRecommendation(state({ route: "/my-day", todayHasPlannedLearning, hasPortfolioItem: false }))).toMatchObject({
+        id: "activation-review-portfolio",
+      });
+    }
+  });
+
+  it("keeps report preview behind governed readiness", () => {
+    expect(getCoachRecommendation(state({ reportReadiness: "unknown", hasReport: false }))).not.toMatchObject({ id: "returning-preview-report" });
+    expect(getCoachRecommendation(state({ reportReadiness: "blocked", hasReport: false }))).not.toMatchObject({ id: "returning-preview-report" });
+    expect(getCoachRecommendation(state({ reportReadiness: "ready", hasReport: false }))).toMatchObject({ id: "returning-preview-report" });
   });
 
   it("uses the active learner and safe query handoffs", () => {

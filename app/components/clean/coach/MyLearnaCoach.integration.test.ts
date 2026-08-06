@@ -18,6 +18,7 @@ const reports = readFileSync(join(root, "lib/clean/reports/client.ts"), "utf8");
 const setupStateClient = readFileSync(join(root, "lib/clean/setup/setupStateClient.ts"), "utf8");
 const calendarClient = readFileSync(join(root, "lib/clean/calendar/client.ts"), "utf8");
 const weeklyPlanner = readFileSync(join(root, "lib/clean/outputs/weeklyPlanner.ts"), "utf8");
+const engine = readFileSync(join(root, "lib/clean/coach/coachEngine.ts"), "utf8");
 
 describe("MyLearna Coach integration", () => {
   it("wraps both authenticated shells and replaces Ready for today", () => {
@@ -45,6 +46,15 @@ describe("MyLearna Coach integration", () => {
     expect(calendarClient).toContain('requestCoachStateRefresh("weekly-block-deleted")');
     expect(weeklyPlanner).toContain("CleanCalendarItem");
     expect(weeklyPlanner).not.toContain("MyLearnaCoach");
+  });
+
+  it("keeps post-setup sequencing state-driven and route-independent", () => {
+    expect(engine).not.toContain('id: "activation-review-my-day"');
+    expect(engine).toContain('id: "activation-choose-pathway"');
+    expect(engine).toContain('id: "activation-capture-learning"');
+    expect(engine).toContain('id: "activation-review-portfolio"');
+    expect(engine).toContain('state.reportReadiness === "ready"');
+    expect(provider).not.toContain("todayHasPlannedLearning");
   });
 
   it("keeps dismissal separate from snooze and manual help", () => {

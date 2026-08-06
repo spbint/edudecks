@@ -147,24 +147,6 @@ export function getCoachRecommendation(state: CoachState): CoachEngineResult {
     });
   }
 
-  if (state.route !== "/my-day" && !state.todayHasPlannedLearning) {
-    return recommendation(state, {
-      id: "activation-review-my-day",
-      category: "activation",
-      priority: 7,
-      audience: "configured-family",
-      title: "Review today’s learning",
-      body: "Your first learning plan is ready to review in My Day.",
-      reason: "Calendar setup is complete and My Day is the next useful handoff.",
-      primaryActionLabel: "Open My Day",
-      primaryRoute: "/my-day",
-      secondaryAction: { label: "Not now", kind: "snooze" },
-      canSpotlight: true,
-      mandatorySetup: false,
-      canSnooze: true,
-    });
-  }
-
   if (!state.hasPathway) {
     return recommendation(state, {
       id: "activation-choose-pathway",
