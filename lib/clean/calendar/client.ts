@@ -10,6 +10,7 @@ import type {
   CleanCalendarItemsOptions,
   CleanCalendarItemUpdate,
 } from "@/lib/clean/calendar/types";
+import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 
 type CalendarItemRow = {
   id: string;
@@ -253,7 +254,9 @@ export async function createCleanCalendarItem(
     );
   }
 
-  return toCleanCalendarItem(response.data as CalendarItemRow);
+  const item = toCleanCalendarItem(response.data as CalendarItemRow);
+  requestCoachStateRefresh("weekly-block-created");
+  return item;
 }
 
 export async function createCleanCalendarItems(
@@ -315,9 +318,11 @@ export async function createCleanCalendarItems(
     );
   }
 
-  return sortCalendarItems(
+  const items = sortCalendarItems(
     (response.data ?? []).map((row) => toCleanCalendarItem(row as CalendarItemRow)),
   );
+  if (items.length) requestCoachStateRefresh("weekly-block-created");
+  return items;
 }
 
 export async function updateCleanCalendarItem(
@@ -356,7 +361,9 @@ export async function updateCleanCalendarItem(
     );
   }
 
-  return toCleanCalendarItem(response.data as CalendarItemRow);
+  const item = toCleanCalendarItem(response.data as CalendarItemRow);
+  requestCoachStateRefresh("weekly-block-updated");
+  return item;
 }
 
 export async function deleteCleanCalendarItem(
@@ -377,4 +384,6 @@ export async function deleteCleanCalendarItem(
       ),
     );
   }
+
+  requestCoachStateRefresh("weekly-block-deleted");
 }

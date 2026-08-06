@@ -6,6 +6,7 @@ export function trackCoachEvent(
     | "coach_opened"
     | "coach_primary_action_selected"
     | "coach_snoozed"
+    | "coach_dismissed"
     | "coach_resumed"
     | "coach_recommendation_completed"
     | "coach_no_recommendation",

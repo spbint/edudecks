@@ -29,4 +29,16 @@ describe("automatic Coach visibility", () => {
     expect(shouldShowAutomaticCoachCard({ recommendation, guidanceEnabled: false, guidedStartVisible: false, guidanceSetupStatus: "skipped", route: "/my-calendar", focusedRoute: false })).toBe(false);
     expect(shouldShowAutomaticCoachCard({ recommendation, guidanceEnabled: true, guidedStartVisible: false, guidanceSetupStatus: "skipped", route: "/my-calendar", focusedRoute: true })).toBe(false);
   });
+
+  it("suppresses stale recommendations while authoritative state refreshes", () => {
+    expect(shouldShowAutomaticCoachCard({
+      recommendation,
+      guidanceEnabled: true,
+      guidedStartVisible: false,
+      guidanceSetupStatus: "skipped",
+      route: "/my-calendar",
+      focusedRoute: false,
+      stateRefreshing: true,
+    })).toBe(false);
+  });
 });

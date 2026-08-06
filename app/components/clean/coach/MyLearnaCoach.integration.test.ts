@@ -15,6 +15,9 @@ const calendar = readFileSync(join(root, "app/components/clean/CleanCalendarWork
 const settings = readFileSync(join(root, "app/components/clean/CleanSettingsWorkspace.tsx"), "utf8");
 const evidence = readFileSync(join(root, "lib/clean/evidence/client.ts"), "utf8");
 const reports = readFileSync(join(root, "lib/clean/reports/client.ts"), "utf8");
+const setupStateClient = readFileSync(join(root, "lib/clean/setup/setupStateClient.ts"), "utf8");
+const calendarClient = readFileSync(join(root, "lib/clean/calendar/client.ts"), "utf8");
+const weeklyPlanner = readFileSync(join(root, "lib/clean/outputs/weeklyPlanner.ts"), "utf8");
 
 describe("MyLearna Coach integration", () => {
   it("wraps both authenticated shells and replaces Ready for today", () => {
@@ -29,6 +32,28 @@ describe("MyLearna Coach integration", () => {
     expect(card).toContain("Why this?");
     expect(provider).toContain("COACH_OPEN_EVENT");
     expect(provider).toContain("guidedStartActive");
+    expect(card).toContain('aria-label="Dismiss MyLearna Coach"');
+    expect(card).toContain("min-width: 44px");
+    expect(provider).toContain("dismissedRecommendationId");
+  });
+
+  it("recognises canonical live-week records without changing PDF output", () => {
+    expect(setupStateClient).toContain("listCleanCalendarItems(profile.id");
+    expect(setupStateClient).toContain("countValidCleanWeeklyBlocks");
+    expect(calendarClient).toContain('requestCoachStateRefresh("weekly-block-created")');
+    expect(calendarClient).toContain('requestCoachStateRefresh("weekly-block-updated")');
+    expect(calendarClient).toContain('requestCoachStateRefresh("weekly-block-deleted")');
+    expect(weeklyPlanner).toContain("CleanCalendarItem");
+    expect(weeklyPlanner).not.toContain("MyLearnaCoach");
+  });
+
+  it("keeps dismissal separate from snooze and manual help", () => {
+    expect(provider).toContain("isCoachRecommendationDismissed");
+    expect(provider).toContain("setPanelOpen(false)");
+    expect(provider).toContain('supportMode: "help"');
+    expect(provider).toContain("dismissRecommendation");
+    expect(card).toContain('aria-label="Dismiss MyLearna Coach"');
+    expect(card).toContain("Not now");
   });
 
   it("allows only safe Coach analytics properties", () => {

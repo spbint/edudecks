@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getCoachStorageKey,
+  isCoachRecommendationDismissed,
   isCoachRecommendationSnoozed,
   readCoachPersistence,
   writeCoachPersistence,
@@ -29,5 +30,31 @@ describe("Coach persistence", () => {
     const raw = storage.get(key || "") || "";
     expect(raw).not.toContain("learner");
     expect(isCoachRecommendationSnoozed(readCoachPersistence(fakeStorage, key), "activation-capture-learning")).toBe(true);
+  });
+
+  it("stores dismissal by recommendation without storing private workspace data", () => {
+    const storage = new Map<string, string>();
+    const fakeStorage = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+    } as unknown as Storage;
+    const key = getCoachStorageKey("account-a");
+    writeCoachPersistence(fakeStorage, key, {
+      dismissedRecommendationId: "setup-weekly-block",
+    });
+    const state = readCoachPersistence(fakeStorage, key);
+    expect(isCoachRecommendationDismissed(state, "setup-weekly-block")).toBe(true);
+    expect(isCoachRecommendationDismissed(state, "activation-choose-pathway")).toBe(false);
+    expect(storage.get(key || "")).not.toContain("learner");
+  });
+
+  it("fails safely for malformed persistence", () => {
+    const fakeStorage = {
+      getItem: () => "not-json",
+      setItem: () => undefined,
+    } as unknown as Storage;
+    const key = getCoachStorageKey("account-a");
+    expect(readCoachPersistence(fakeStorage, key)).toEqual({});
+    expect(isCoachRecommendationDismissed(readCoachPersistence(fakeStorage, key), "setup-weekly-block")).toBe(false);
   });
 });

@@ -7,6 +7,7 @@ export function shouldShowAutomaticCoachCard({
   guidanceSetupStatus,
   route,
   focusedRoute,
+  stateRefreshing = false,
 }: {
   recommendation: CoachRecommendation | null;
   guidanceEnabled: boolean;
@@ -14,8 +15,9 @@ export function shouldShowAutomaticCoachCard({
   guidanceSetupStatus: "not_started" | "active" | "skipped" | "completed";
   route: string;
   focusedRoute: boolean;
+  stateRefreshing?: boolean;
 }) {
-  if (!recommendation || !guidanceEnabled || focusedRoute) return false;
+  if (!recommendation || !guidanceEnabled || focusedRoute || stateRefreshing) return false;
   if (!recommendation.mandatorySetup) return true;
   if (guidedStartVisible) return false;
 

@@ -1,6 +1,8 @@
 import type { CleanAcademicYear, CleanLearningPeriod } from "@/lib/clean/terms/types";
 import type { FamilyProfile } from "@/lib/clean/family/types";
 import type { Learner } from "@/lib/clean/learners/types";
+import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
+import type { CleanTemplateBlock } from "@/lib/clean/templates/types";
 
 export function isBreakLearningPeriod(
   period: Pick<CleanLearningPeriod, "isBreak" | "periodType">,
@@ -105,6 +107,56 @@ export type CleanSetupStatus = {
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function isValidIsoDate(value: unknown) {
+  const date = safe(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const [year, month, day] = date.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day;
+}
+
+export function isValidCleanLiveWeekBlock(
+  item: Pick<CleanCalendarItem, "id" | "familyId" | "title" | "plannedDate">,
+  familyId: string,
+) {
+  return Boolean(
+    safe(item.id) &&
+      safe(item.familyId) === safe(familyId) &&
+      safe(item.title) &&
+      isValidIsoDate(item.plannedDate),
+  );
+}
+
+export function isValidCleanTemplateBlock(
+  block: Pick<CleanTemplateBlock, "id" | "familyId" | "masterTemplateId" | "weekday" | "title">,
+  familyId: string,
+) {
+  return Boolean(
+    safe(block.id) &&
+      safe(block.familyId) === safe(familyId) &&
+      safe(block.masterTemplateId) &&
+      Number.isInteger(block.weekday) &&
+      block.weekday >= 1 &&
+      block.weekday <= 7 &&
+      safe(block.title),
+  );
+}
+
+export function countValidCleanWeeklyBlocks({
+  familyId,
+  liveWeekBlocks,
+  templateBlocks,
+}: {
+  familyId: string;
+  liveWeekBlocks: Array<Pick<CleanCalendarItem, "id" | "familyId" | "title" | "plannedDate">>;
+  templateBlocks: Array<Pick<CleanTemplateBlock, "id" | "familyId" | "masterTemplateId" | "weekday" | "title">>;
+}) {
+  return liveWeekBlocks.filter((item) => isValidCleanLiveWeekBlock(item, familyId)).length +
+    templateBlocks.filter((block) => isValidCleanTemplateBlock(block, familyId)).length;
 }
 
 export function getCleanFamilyDisplayName(profile: FamilyProfile | null) {

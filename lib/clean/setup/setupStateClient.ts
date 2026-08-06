@@ -2,6 +2,7 @@ import type { CleanWorkspaceState } from "@/lib/clean/workspace/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import { listCleanPortfolioHighlights } from "@/lib/clean/portfolio/client";
 import { listCleanReports } from "@/lib/clean/reports/client";
+import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import {
   hasAnyPathwayPlacementForLearner,
 } from "@/lib/clean/pathways/pathwayPlacement";
@@ -17,6 +18,7 @@ import {
   deriveCleanSetupStatus,
   getTeachingPeriods,
   resolveCleanActiveLearner,
+  countValidCleanWeeklyBlocks,
   type CleanSetupRecordCounts,
   type CleanSetupStatus,
 } from "@/lib/clean/setup/setupStatus";
@@ -107,7 +109,7 @@ export async function loadCleanSetupStatus(
     return buildEmptyCleanSetupStatus(workspace);
   }
 
-  const [academicYears, learningPeriods, evidenceEntries, portfolioHighlights, reports, masterTemplates] =
+  const [academicYears, learningPeriods, evidenceEntries, portfolioHighlights, reports, masterTemplates, liveCalendarItems] =
     await Promise.all([
       listCleanAcademicYears(profile.id, { limit: 20 }),
       listCleanLearningPeriods(profile.id, { limit: 100 }),
@@ -124,6 +126,7 @@ export async function loadCleanSetupStatus(
         limit: 1,
       }),
       listCleanMasterTemplates(profile.id, { isActive: true, limit: 20 }),
+      listCleanCalendarItems(profile.id, { limit: 100 }),
     ]);
 
   const templateBlocks = (
@@ -146,7 +149,11 @@ export async function loadCleanSetupStatus(
     evidence: evidenceEntries.length,
     portfolioItems: portfolioHighlights.length,
     reports: reports.length,
-    weeklyBlocks: templateBlocks.length,
+    weeklyBlocks: countValidCleanWeeklyBlocks({
+      familyId: profile.id,
+      liveWeekBlocks: liveCalendarItems,
+      templateBlocks,
+    }),
   };
 
   if (activeLearner) {

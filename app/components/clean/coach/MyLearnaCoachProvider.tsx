@@ -18,6 +18,7 @@ import {
 import { shouldShowAutomaticCoachCard } from "@/lib/clean/coach/coachVisibility";
 import {
   getCoachStorageKey,
+  isCoachRecommendationDismissed,
   isCoachRecommendationSnoozed,
   readCoachPersistence,
   writeCoachPersistence,
@@ -38,6 +39,7 @@ type CoachContextValue = {
   openCoach: (supportMode?: "automatic" | "help") => void;
   closeCoach: () => void;
   snoozeRecommendation: () => void;
+  dismissRecommendation: () => void;
   selectPrimaryAction: () => void;
 };
 
@@ -93,6 +95,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelSupportMode, setPanelSupportMode] = useState<"automatic" | "help">("help");
   const [staticTourActive, setStaticTourActive] = useState(false);
+  const [stateRefreshing, setStateRefreshing] = useState(false);
   const previousRecommendationRef = useRef<string | null>(null);
   const previousMajorRouteRef = useRef<string | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
@@ -106,9 +109,15 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
   const visibleRecommendation = recommendation && !isCoachRecommendationSnoozed(persistence, recommendation.id)
     ? recommendation
     : null;
+  const automaticRecommendation = visibleRecommendation &&
+    !isCoachRecommendationDismissed(persistence, visibleRecommendation.id)
+    ? visibleRecommendation
+    : null;
+  const persistenceResolved = storageKey === null || persistenceKey === storageKey;
   const focusedRoute = /\/my-pathways\/activity-player|\/practice\/|\/assessments\//.test(pathname);
   const automaticCardVisible = Boolean(
-      visibleRecommendation &&
+      automaticRecommendation &&
+      persistenceResolved &&
       !panelOpen &&
       !staticTourActive &&
       shouldShowAutomaticCoachCard({
@@ -118,6 +127,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
         guidanceSetupStatus: guidance.setupStatus,
         route: pathname,
         focusedRoute,
+        stateRefreshing: stateRefreshing || workspace.loading || workspace.setupLoading,
       }) &&
       pathname !== "/my-capture",
   );
@@ -139,6 +149,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
         refreshTimerRef.current = null;
       }
       lastRefreshAtRef.current = Date.now();
+      setStateRefreshing(false);
       trackProductEvent("coach_state_refresh_completed", {
         source: detail.source,
         route: pathname,
@@ -148,6 +159,11 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     }
 
     if (typeof window === "undefined") return;
+    setStateRefreshing(true);
+    if (panelSupportMode === "automatic") {
+      setPanelOpen(false);
+      setPanelSupportMode("help");
+    }
     if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = window.setTimeout(() => {
       refreshTimerRef.current = null;
@@ -163,9 +179,12 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
         })
         .catch(() => {
           trackProductEvent("coach_state_refresh_failed", { source: detail.source, route: pathname });
+        })
+        .finally(() => {
+          setStateRefreshing(false);
         });
     }, 50);
-  }, [pathname, reloadWorkspace]);
+  }, [panelSupportMode, pathname, reloadWorkspace]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -301,6 +320,23 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     });
   }, [pathname, persistence, recommendation, state.hasMultipleLearners, updatePersistence]);
 
+  const dismissRecommendation = useCallback(() => {
+    if (!recommendation) return;
+    updatePersistence({
+      ...persistence,
+      dismissedRecommendationId: recommendation.id,
+    });
+    setPanelOpen(false);
+    setPanelSupportMode("help");
+    trackCoachEvent("coach_dismissed", {
+      recommendationId: recommendation.id,
+      recommendationCategory: recommendation.category,
+      route: pathname,
+      supportMode: "automatic",
+      hasMultipleLearners: state.hasMultipleLearners,
+    });
+  }, [pathname, persistence, recommendation, state.hasMultipleLearners, updatePersistence]);
+
   const selectPrimaryAction = useCallback(() => {
     if (!recommendation) return;
     trackCoachEvent("coach_primary_action_selected", {
@@ -322,8 +358,9 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
     openCoach,
     closeCoach,
     snoozeRecommendation,
+    dismissRecommendation,
     selectPrimaryAction,
-  }), [closeCoach, openCoach, panelOpen, recommendation, selectPrimaryAction, snoozeRecommendation, state, visibleRecommendation]);
+  }), [closeCoach, dismissRecommendation, openCoach, panelOpen, recommendation, selectPrimaryAction, snoozeRecommendation, state, visibleRecommendation]);
 
   return (
     <CoachContext.Provider value={contextValue}>

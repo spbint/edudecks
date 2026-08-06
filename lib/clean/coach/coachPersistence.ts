@@ -1,6 +1,7 @@
 export type CoachPersistenceState = {
   snoozedRecommendationId?: string;
   snoozedUntil?: number;
+  dismissedRecommendationId?: string;
   pausedMission?: boolean;
   panelOpen?: boolean;
 };
@@ -47,4 +48,13 @@ export function isCoachRecommendationSnoozed(
   now = Date.now(),
 ) {
   return state.snoozedRecommendationId === recommendationId && (state.snoozedUntil ?? 0) > now;
+}
+
+export function isCoachRecommendationDismissed(
+  state: CoachPersistenceState,
+  recommendationId: string,
+) {
+  return Boolean(
+    recommendationId && state.dismissedRecommendationId === recommendationId,
+  );
 }

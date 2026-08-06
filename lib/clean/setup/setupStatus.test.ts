@@ -3,6 +3,9 @@ import {
   deriveCleanSetupStatus,
   derivePlanningSetupStatus,
   getCleanFamilyDisplayName,
+  isValidCleanLiveWeekBlock,
+  isValidCleanTemplateBlock,
+  countValidCleanWeeklyBlocks,
   resolveCleanActiveLearner,
 } from "@/lib/clean/setup/setupStatus";
 import type { CleanAcademicYear, CleanLearningPeriod } from "@/lib/clean/terms/types";
@@ -319,5 +322,54 @@ describe("deriveCleanSetupStatus", () => {
     expect(getCleanFamilyDisplayName({ ...profile, displayName: "" })).toBe(
       "Your family's learning week",
     );
+  });
+});
+
+describe("weekly planning source validation", () => {
+  it("counts only valid live-week blocks for the authorised family", () => {
+    const valid = {
+      id: "live-1",
+      familyId: "family-1",
+      title: "Maths practice",
+      plannedDate: "2026-08-06",
+    };
+    expect(isValidCleanLiveWeekBlock(valid, "family-1")).toBe(true);
+    expect(isValidCleanLiveWeekBlock({ ...valid, familyId: "family-2" }, "family-1")).toBe(false);
+    expect(isValidCleanLiveWeekBlock({ ...valid, title: "" }, "family-1")).toBe(false);
+    expect(isValidCleanLiveWeekBlock({ ...valid, plannedDate: "2026-02-31" }, "family-1")).toBe(false);
+  });
+
+  it("counts only valid active-template block records", () => {
+    const valid = {
+      id: "template-block-1",
+      familyId: "family-1",
+      masterTemplateId: "template-1",
+      weekday: 1,
+      title: "Maths practice",
+    };
+    expect(isValidCleanTemplateBlock(valid, "family-1")).toBe(true);
+    expect(isValidCleanTemplateBlock({ ...valid, weekday: 8 }, "family-1")).toBe(false);
+    expect(isValidCleanTemplateBlock({ ...valid, familyId: "family-2" }, "family-1")).toBe(false);
+  });
+
+  it("treats live-week and active-template planning as one completion signal", () => {
+    const templateBlock = {
+      id: "template-block-1",
+      familyId: "family-1",
+      masterTemplateId: "template-1",
+      weekday: 1,
+      title: "Maths practice",
+    };
+    const liveBlock = {
+      id: "live-1",
+      familyId: "family-1",
+      title: "Reading",
+      plannedDate: "2026-08-06",
+    };
+    expect(countValidCleanWeeklyBlocks({ familyId: "family-1", liveWeekBlocks: [], templateBlocks: [] })).toBe(0);
+    expect(countValidCleanWeeklyBlocks({ familyId: "family-1", liveWeekBlocks: [], templateBlocks: [templateBlock] })).toBe(1);
+    expect(countValidCleanWeeklyBlocks({ familyId: "family-1", liveWeekBlocks: [liveBlock], templateBlocks: [] })).toBe(1);
+    expect(countValidCleanWeeklyBlocks({ familyId: "family-1", liveWeekBlocks: [liveBlock], templateBlocks: [templateBlock] })).toBe(2);
+    expect(countValidCleanWeeklyBlocks({ familyId: "family-1", liveWeekBlocks: [{ ...liveBlock, familyId: "family-2" }], templateBlocks: [] })).toBe(0);
   });
 });
