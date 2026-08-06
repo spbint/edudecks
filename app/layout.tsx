@@ -43,9 +43,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   ...buildPublicMetadata({
-    title: "Homeschool Record Keeping and Reporting for Families | MyLearna",
+    title: "Homeschool Planning, Portfolios and Reports | MyLearna",
     description:
-      "MyLearna helps homeschooling families plan learning, capture evidence, build portfolios, and prepare homeschool reports from connected learning records.",
+      "Homeschool learning happens everywhere. MyLearna brings planning, pathways, evidence, portfolios and reports together in one private family space.",
     path: "/",
   }),
   other: {

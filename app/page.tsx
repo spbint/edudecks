@@ -22,19 +22,19 @@ const HEADER_PRIMARY_CTA = {
 const FLOW_STEPS = [
   {
     title: "Plan",
-    text: "Use My Calendar and My Day to organise the week.",
+    text: "Organise the week and see what is happening today.",
   },
   {
     title: "Learn",
-    text: "Use My Pathways for practice, checks and worksheets.",
+    text: "Use your own resources or begin from My Pathways.",
   },
   {
     title: "Capture",
-    text: "Add notes, learning moments and evidence as they happen.",
+    text: "Save photos, notes, worksheets, projects and everyday learning.",
   },
   {
     title: "Report",
-    text: "Turn evidence and pathway checks into portfolios and report-ready outputs.",
+    text: "Build portfolios and create report PDFs without reconstructing the story later.",
   },
 ] as const;
 
@@ -88,12 +88,12 @@ export default function HomePage() {
     <PublicSiteShell
       title="MyLearna"
       eyebrow=""
-      heroTitle="A simple homeschool system for planning, evidence, portfolios and reports."
-      heroText="Plan the week, follow today's learning, capture evidence and prepare report-ready records."
-      heroBadges={["Plan", "Learn", "Capture", "Report"]}
+      heroTitle="Homeschool learning happens everywhere. MyLearna brings it all together."
+      heroText="Plan your week, capture learning as it happens, build meaningful portfolios and create reports—all in one private family space."
+      heroBadges={["Plan the week", "Capture real learning", "Build portfolios", "Create reports"]}
       heroMicrocopy={
         <span>
-          Use MyLearna now while we continue improving with family feedback.
+          Start free — no password, no credit card. One secure email link opens your private family space.
         </span>
       }
       asideTitle=""
@@ -101,7 +101,7 @@ export default function HomePage() {
       asideItems={[]}
       heroAsideVisible={false}
       primaryCta={PRIMARY_CTA}
-      secondaryCta={{ label: "See how it works", href: "#how-it-works" }}
+      secondaryCta={{ label: "See the Carter Family demo", href: "/demo" }}
       headerAction={{ label: "Sign in", href: "/login" }}
       headerPrimaryAction={HEADER_PRIMARY_CTA}
       footerPrimaryCta={PRIMARY_CTA}
@@ -119,7 +119,7 @@ export default function HomePage() {
           background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
         }}
       >
-        <div style={publicPill("#eff6ff", "#1d4ed8")}>Start free</div>
+        <div style={publicPill("#eff6ff", "#1d4ed8")}>Built around your homeschool</div>
         <p
           style={{
             margin: 0,
@@ -130,8 +130,7 @@ export default function HomePage() {
             fontWeight: 500,
           }}
         >
-          MyLearna is live for families who want calmer planning, evidence,
-          portfolios and records.
+          Keep using the books, worksheets, websites, projects, outings and everyday experiences your family already loves. MyLearna organises the learning around them.
         </p>
       </section>
 
@@ -147,8 +146,8 @@ export default function HomePage() {
         }}
       >
         {sectionHeader(
-          "Plan -> Learn -> Capture -> Report",
-          "Turn ordinary homeschool activity into a usable learning record.",
+          "One connected learning story",
+          "Plan → Learn → Capture → Report",
         )}
 
         <div
@@ -214,8 +213,8 @@ export default function HomePage() {
           }}
         >
           {sectionHeader(
-            "What MyLearna helps with now",
-            "MyLearna currently focuses on planning, daily learning, evidence, portfolios and reports.",
+            "Everything stays connected",
+            "Planning, pathways, evidence, portfolios and reports work together so the family’s learning story does not become scattered.",
           )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -275,8 +274,8 @@ export default function HomePage() {
         }}
       >
         {sectionHeader(
-          "Report-ready records without rebuilding the story later",
-          "Move checks and capture notes into portfolios, reports and printable outputs.",
+          "Everything you need to keep the story together",
+          "Calendar and My Day, Pathways and worksheets, Quick Capture, Portfolio, Reports and printable PDFs stay connected as learning unfolds.",
         )}
         <div
           style={{
@@ -286,12 +285,12 @@ export default function HomePage() {
           }}
         >
           {[
-            "Calendar and My Day planning",
-            "Pathway practice, checks and worksheets",
-            "Text evidence capture",
-            "Portfolio highlights",
-            "Report and output previews",
-            "Printable PDF learning records",
+            "Calendar and My Day",
+            "Pathways and worksheets",
+            "Quick Capture",
+            "Portfolio",
+            "Reports",
+            "Printable PDFs",
           ].map((item) => (
             <div
               key={item}
@@ -322,18 +321,23 @@ export default function HomePage() {
         }}
       >
         <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.15, fontWeight: 800 }}>
-          Start free and build your learning record.
+          Bring your homeschool together.
         </h2>
         <p style={{ margin: 0, color: "#334155", lineHeight: 1.55, maxWidth: 760 }}>
-          Create an account, set up your family, and begin. Always check local
-          home education requirements before submitting records.
+          Start with one learner and one real learning moment.
+        </p>
+        <p style={{ margin: 0, color: "#334155", lineHeight: 1.55, maxWidth: 760 }}>
+          No password. No credit card. Secure email sign-in.
+        </p>
+        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.55, maxWidth: 760, fontSize: 13 }}>
+          Always check local home education requirements before submitting records.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link href={PRIMARY_CTA.href} style={publicButtonStyle(true)}>
             {PRIMARY_CTA.label}
           </Link>
-          <Link href="/about" style={publicButtonStyle(false)}>
-            About MyLearna
+          <Link href="/demo" style={publicButtonStyle(false)}>
+            See the Carter Family demo
           </Link>
         </div>
       </section>

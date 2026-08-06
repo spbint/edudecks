@@ -176,13 +176,13 @@ export default function StartFreePage() {
   return (
     <PublicSiteShell
       eyebrow="Start free"
-      heroTitle="Start free"
-      heroText="Create your account, then start planning, capturing evidence and preparing report-ready records."
-      heroBadges={["Start free", "Email sign-in", "Family setup", "Report-ready records"]}
+      heroTitle="Create your private family space"
+      heroText="Enter a few setup details. Next, we’ll send one secure email link—no password or credit card."
+      heroBadges={["No password", "No credit card", "Private family space", "Guided setup"]}
       primaryCta={null}
       secondaryCta={{ label: "Already have an account?", href: "/login" }}
       asideTitle="What happens next"
-      asideText="After email sign-in, MyLearna takes you to My Profile first so you can review and save your family setup."
+      asideText="Next, MyLearna sends one secure email link. Open it to enter your private family space, add your learner and follow the guided setup."
       compactHero
     >
       {authLoading ? (
@@ -249,10 +249,10 @@ export default function StartFreePage() {
       >
         <div style={cardStyle()}>
           <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: 26 }}>
-            Start with email
+            Bring your homeschool together
           </h2>
           <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.55 }}>
-            Enter a few setup details. You can edit them later.
+            These details help personalise MyLearna for your family. You can edit them later.
           </p>
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16 }}>
             <div>
@@ -365,7 +365,7 @@ export default function StartFreePage() {
             </div>
 
             <button type="submit" style={buttonStyle}>
-              Continue with email
+              Continue to secure email sign-in
             </button>
           </form>
           <p style={{ margin: "14px 0 0", color: "#64748b", lineHeight: 1.6 }}>

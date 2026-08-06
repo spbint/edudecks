@@ -661,19 +661,10 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         data.session ?? (await supabase.auth.getSession()).data.session ?? null;
 
       if (!confirmedSession?.user) {
-        const identityCount = Array.isArray(data.user?.identities)
-          ? data.user.identities.length
-          : undefined;
-
-        const emailMessage =
-          identityCount === 0
-            ? "If this email is new, check your email to confirm your account. If you already have an account, sign in instead."
-            : "Check your email to confirm your account.";
-
         setStatus(
           "check-email",
-          "Check your email",
-          `${emailMessage} After confirmation, we'll take you to My Profile to add your learner, set your reporting context, plan your week, and capture your first note.`,
+          "Check your inbox",
+          "Open the MyLearna email to confirm your account and continue. It may take a moment to arrive. Check spam or promotions if you do not see it.",
           "password",
         );
         return;
@@ -784,10 +775,8 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
 
       setStatus(
         "check-email",
-        "Check your email",
-        isSignup
-          ? "Check your email for your secure sign-in link. Open it to continue into MyLearna and we'll take you to your first setup step."
-          : "Check your email for your secure sign-in link. Open it on this device if you can, and we'll bring you straight back to MyLearna.",
+        "Check your inbox",
+        "Open the secure MyLearna link to continue. It may take a moment to arrive. Check spam or promotions if you do not see it.",
         "email-link",
       );
     } catch (error) {
@@ -806,29 +795,29 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     }
   }
 
-  const formLabel = isSignup ? "Get started" : "Sign in";
-  const formTitle = isSignup ? "Get started with MyLearna" : "Sign in to MyLearna";
+  const formLabel = isSignup ? "Secure email sign-in" : "Sign in";
+  const formTitle = isSignup ? "Open your private MyLearna space" : "Sign in to MyLearna";
   const formText = isSignup
-    ? "Enter your email and we'll send you a secure sign-in link. If you're new to MyLearna, we'll help you get started after sign-in."
+    ? "Enter your email and we’ll send a secure one-time link. There is no password to create, remember or reset."
     : "Enter your email and we'll send you a secure sign-in link. No password needed.";
   const introNotice = isSignup
-    ? "No password needed. Open the secure sign-in link from your email and we'll guide you into your first setup step."
+    ? "No password. No credit card. Your family space stays private."
     : "No password needed. Open the secure sign-in link from your email and we'll bring you back into MyLearna.";
-  const heroTitle = isSignup ? "Get started with MyLearna" : "Sign in to MyLearna";
+  const heroTitle = isSignup ? "Open your private MyLearna space" : "Sign in to MyLearna";
   const heroText = isSignup
-    ? "Enter your email, open your secure sign-in link, then move into learner setup, planning, and your first learning note."
+    ? "Enter your email and we’ll send a secure one-time link. There is no password to create, remember or reset."
     : "Enter your email and we'll send you a secure sign-in link so you can get back into today, the week ahead, and your growing family record.";
   const heroMicrocopy = isSignup
-    ? "No password needed. After sign-in, we'll take you to My Profile for your first setup step."
+    ? "No password. No credit card. Your family space stays private."
     : `No password needed. After sign-in, we will take you to ${destinationLabel}.`;
   const passwordButtonLabel = isSignup ? "Create account with password" : "Continue with password";
   const passwordSavingLabel = isSignup ? "Creating your account..." : "Signing you in...";
   const passwordRedirectingLabel = isSignup
     ? "Taking you to your first setup step..."
     : "Taking you to MyLearna...";
-  const emailLinkButtonLabel = "Send sign-in link";
+  const emailLinkButtonLabel = "Send secure sign-in link";
   const emailLinkHelperText = isSignup
-    ? "We'll email you a secure sign-in link. If you're new to MyLearna, we'll help you get started after sign-in."
+    ? "We’ll send one secure email link. Open it to enter your private family space and follow the guided setup."
     : "We'll email you a secure sign-in link. Open it on this device if you can, and we'll bring you straight back into MyLearna.";
   const emailLinkSendingLabel = "Sending sign-in link...";
   const alternatePrompt = isSignup ? "Already have an account?" : "New to MyLearna?";
@@ -1084,7 +1073,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
 
       {showPasswordFallbackUi ? (
         <div style={{ display: "none" }}>
-          {/* Password sign-in retained only as hidden/internal fallback; OTP is the visible user flow. */}
+          {/* Password sign-in retained only as hidden/internal fallback; secure email link is the visible user flow. */}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -1433,10 +1422,10 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   return (
     <PublicSiteShell
       title="MyLearna"
-      eyebrow={isSignup ? "Create your account" : "Return to MyLearna"}
+      eyebrow={isSignup ? "Secure email sign-in" : "Return to MyLearna"}
       heroTitle={heroTitle}
       heroText={heroText}
-      heroBadges={isSignup ? ["Add learner", "Set context", "Plan week", "Capture note"] : ["Today", "Plan", "Capture", "Portfolio", "Reports"]}
+      heroBadges={isSignup ? ["No password", "No credit card", "Private family space", "Guided setup"] : ["Today", "Plan", "Capture", "Portfolio", "Reports"]}
       heroMicrocopy={heroMicrocopy}
       primaryCta={null}
       secondaryCta={null}
