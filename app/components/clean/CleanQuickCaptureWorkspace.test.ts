@@ -17,6 +17,10 @@ const portfolioSource = readFileSync(join(process.cwd(), "app/components/clean/C
 const myLearnaSource = readFileSync(join(process.cwd(), "app/components/clean/CleanMyLearnaWorkspace.tsx"), "utf8");
 const shellSource = readFileSync(join(process.cwd(), "app/components/clean/design-v2/MyLearnaAppShellV2.tsx"), "utf8");
 const shareSource = readFileSync(join(process.cwd(), "app/components/clean/CleanLearningMomentShareCard.tsx"), "utf8");
+const reportsSource = readFileSync(join(process.cwd(), "app/components/clean/CleanReportsWorkspace.tsx"), "utf8");
+const portfolioClientSource = readFileSync(join(process.cwd(), "lib/clean/portfolio/client.ts"), "utf8");
+const portfolioPresentationSource = readFileSync(join(process.cwd(), "lib/clean/portfolio/evidencePresentation.ts"), "utf8");
+const reportPdfSource = readFileSync(join(process.cwd(), "lib/clean/outputs/pdf.ts"), "utf8");
 
 describe("Quick Capture doorway", () => {
   it("keeps one responsive global header action with a safe local return path", () => {
@@ -62,15 +66,28 @@ describe("Quick Capture doorway", () => {
     expect(captureSource).toContain("<CleanQuickCaptureWorkspace />");
   });
 
-  it("keeps the quick record private and report-independent by default", () => {
+  it("includes new Quick Capture records in Portfolio and Reports by default", () => {
     expect(source).toContain("saveUnifiedLearningCapture");
     expect(source).toContain("includeInPortfolio: true");
-    expect(source).toContain("includeInReport: false");
+    expect(source).toContain("includeInReport: true");
     expect(source).toContain('sourceType: "quick-capture"');
+    expect(source).toContain("learnerId,");
+    expect(source).toContain("activityDate: observedOn");
+    expect(source).toContain("whatHappened: nextCaption");
+    expect(source).toContain("learningArea: learningArea.trim() || null");
     expect(source).toContain("Learning moment saved");
-    expect(source).toContain("Not included in Reports");
     expect(source).toContain("setQuickCaptureDraft");
     expect(source).toContain("if (submitting || savedEntry");
+  });
+
+  it("preserves report filtering and the existing PDF evidence builder", () => {
+    expect(reportsSource).toContain("reportIncludedOnly: true");
+    expect(portfolioClientSource).toContain("item.evidence.includeInReport");
+    expect(portfolioPresentationSource).toContain("buildReportPdfEvidenceItems");
+    expect(portfolioPresentationSource).toContain("item.evidence.id");
+    expect(reportPdfSource).toContain("model.evidenceItems");
+    expect(reportPdfSource).not.toContain("MyLearnaCoach");
+    expect(reportPdfSource).not.toContain("CleanQuickCaptureWorkspace");
   });
 
   it("supports explicit learner isolation, optional captions and local photo retry", () => {

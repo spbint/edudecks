@@ -274,7 +274,7 @@ export default function CleanQuickCaptureWorkspace() {
         sourceType: "quick-capture",
         clientSubmissionId: submissionIdRef.current,
         includeInPortfolio: true,
-        includeInReport: false,
+        includeInReport: true,
       });
 
       setSavedEntry(result.entry);
