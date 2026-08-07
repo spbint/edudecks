@@ -9,14 +9,29 @@ import PublicSiteShell, {
 } from "@/app/components/PublicSiteShell";
 import useIsMobile from "@/app/components/useIsMobile";
 
-const PRIMARY_CTA = {
+const HERO_PRIMARY_CTA = {
+  label: "Explore MyLearna",
+  href: "/demo?source=home-primary-demo",
+} as const;
+
+const HERO_SECONDARY_CTA = {
   label: "Create your family space",
-  href: "/start-free?source=home-primary",
+  href: "/start-free?source=home-secondary-family-space",
 } as const;
 
 const HEADER_PRIMARY_CTA = {
-  label: "Get started",
-  href: "/start-free?source=home-header",
+  label: "Explore MyLearna",
+  href: "/demo?source=public-header-demo",
+} as const;
+
+const FINAL_PRIMARY_CTA = {
+  label: "Explore MyLearna",
+  href: "/demo?source=home-final-demo",
+} as const;
+
+const FINAL_SECONDARY_CTA = {
+  label: "Create your family space",
+  href: "/start-free?source=home-final-family-space",
 } as const;
 
 const FLOW_STEPS = [
@@ -93,18 +108,18 @@ export default function HomePage() {
       heroBadges={["Plan the week", "Capture real learning", "Build portfolios", "Create reports"]}
       heroMicrocopy={
         <span>
-          Start free — no password, no credit card. One secure email link opens your private family space.
+          No account needed for the demo. Use a fictional family, try the workflow and see how MyLearna brings learning together.
         </span>
       }
       asideTitle=""
       asideText=""
       asideItems={[]}
       heroAsideVisible={false}
-      primaryCta={PRIMARY_CTA}
-      secondaryCta={{ label: "See the Carter Family demo", href: "/demo" }}
+      primaryCta={HERO_PRIMARY_CTA}
+      secondaryCta={HERO_SECONDARY_CTA}
       headerAction={{ label: "Sign in", href: "/login" }}
       headerPrimaryAction={HEADER_PRIMARY_CTA}
-      footerPrimaryCta={PRIMARY_CTA}
+      footerPrimaryCta={FINAL_PRIMARY_CTA}
       footerSecondaryCta={{ label: "About", href: "/about" }}
       showWorkflowStrip={false}
     >
@@ -249,17 +264,12 @@ export default function HomePage() {
             gap: 16,
           }}
         >
-          <div style={publicPill("#f5f3ff", "#6d28d9")}>Free and Family</div>
+          <div style={publicPill("#f5f3ff", "#6d28d9")}>Family tools that work together</div>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.15, fontWeight: 800 }}>
-            Start free. Upgrade when you need more.
+            Start with the tools you need today.
           </h2>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#334155" }}>
-            Free gives families planning, text evidence, portfolio highlights and
-            basic report-ready outputs as your learning record grows.
-          </p>
-          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#334155" }}>
-            Family features will unlock deeper curriculum pathways, worksheets,
-            activities and richer evidence-based reports as they come online.
+            Plan your week, capture learning, build portfolios and create reports in one private family space. Explore the tools first, then choose the next step that suits your family.
           </p>
         </div>
       </section>
@@ -327,17 +337,17 @@ export default function HomePage() {
           Start with one learner and one real learning moment.
         </p>
         <p style={{ margin: 0, color: "#334155", lineHeight: 1.55, maxWidth: 760 }}>
-          No password. No credit card. Secure email sign-in.
+          Explore the fictional Carter family first, or create your own private family space when you are ready.
         </p>
         <p style={{ margin: 0, color: "#64748b", lineHeight: 1.55, maxWidth: 760, fontSize: 13 }}>
           Always check local home education requirements before submitting records.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link href={PRIMARY_CTA.href} style={publicButtonStyle(true)}>
-            {PRIMARY_CTA.label}
+          <Link href={FINAL_PRIMARY_CTA.href} style={publicButtonStyle(true)}>
+            {FINAL_PRIMARY_CTA.label}
           </Link>
-          <Link href="/demo" style={publicButtonStyle(false)}>
-            See the Carter Family demo
+          <Link href={FINAL_SECONDARY_CTA.href} style={publicButtonStyle(false)}>
+            {FINAL_SECONDARY_CTA.label}
           </Link>
         </div>
       </section>

@@ -36,7 +36,7 @@ type PublicSiteShellProps = {
 const NAV_ITEMS = [
   { href: "/#how-it-works", label: "How it works" },
   { href: "/about", label: "About" },
-  { href: "/start-free", label: "Start free" },
+  { href: "/demo?source=public-header-demo", label: "Explore MyLearna" },
 ];
 
 const FOOTER_LINKS = [
@@ -227,7 +227,7 @@ export default function PublicSiteShell({
   heroBadges = [],
   asideItems = [],
   navItems,
-  primaryCta = { label: "Start free", href: "/start-free" },
+  primaryCta = { label: "Explore MyLearna", href: "/demo?source=public-header-demo" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
   headerPrimaryAction = null,
@@ -245,7 +245,10 @@ export default function PublicSiteShell({
   const isMobile = useIsMobile(720);
   const activeSocialLinks = SOCIAL_LINKS.filter((item) => isActiveSocialLink(item.href));
   const inactiveSocialLinks = SOCIAL_LINKS.filter((item) => !isActiveSocialLink(item.href));
-  const resolvedNavItems = navItems === undefined ? NAV_ITEMS : navItems;
+  const resolvedNavItems =
+    (navItems === undefined ? NAV_ITEMS : navItems)?.filter(
+      (item) => item.href !== headerPrimaryAction?.href,
+    ) ?? null;
 
   const workflowRibbon = showWorkflowStrip ? (
     <section style={{ marginBottom: isMobile ? 18 : 20 }}>

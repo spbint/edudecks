@@ -23,7 +23,7 @@ describe("public launch truthfulness", () => {
 
   it("keeps the public launch routes on real support and signup paths", () => {
     const shell = publicLaunchSources[0];
-    expect(shell).toContain('href: "/start-free"');
+    expect(shell).toContain('href: "/demo?source=public-header-demo"');
     expect(shell).toContain('href: "/contact"');
     expect(readFileSync(join(process.cwd(), "app/start-free/page.tsx"), "utf8")).toContain(
       'from "@/lib/signupPrefill"',
@@ -42,17 +42,31 @@ describe("public launch truthfulness", () => {
     expect(homepage).toContain("Capture real learning");
     expect(homepage).toContain("Build portfolios");
     expect(homepage).toContain("Create reports");
-    expect(homepage).toContain("Start free — no password, no credit card. One secure email link opens your private family space.");
+    expect(homepage).toContain("No account needed for the demo. Use a fictional family, try the workflow and see how MyLearna brings learning together.");
+    expect(homepage).toContain('label: "Explore MyLearna"');
+    expect(homepage).toContain('href: "/demo?source=home-primary-demo"');
     expect(homepage).toContain('label: "Create your family space"');
-    expect(homepage).toContain('label: "Get started"');
+    expect(homepage).toContain('href: "/start-free?source=home-secondary-family-space"');
+    expect(homepage).toContain('href: "/demo?source=home-final-demo"');
+    expect(homepage).toContain('href: "/start-free?source=home-final-family-space"');
     expect(homepage).not.toContain('label: "Start free"');
-    expect(homepage).toContain('href: "/demo"');
+    expect(homepage).not.toContain('href: "/demo"');
     expect(homepage).toContain("One connected learning story");
     expect(homepage).toContain("Plan → Learn → Capture → Report");
     expect(homepage).toContain("Everything stays connected");
+    expect(homepage).toContain("Start with the tools you need today.");
+    expect(homepage).toContain("Explore the fictional Carter family first, or create your own private family space when you are ready.");
     expect(homepage).not.toContain("Use MyLearna now while we continue improving with family feedback.");
+    expect(homepage).not.toContain("Start free. Upgrade when you need more.");
     expect(homepage).not.toMatch(/\bOTP\b/i);
     expect(homepage).not.toMatch(/beta|early access|provisional/i);
+  });
+
+  it("makes the demo the shared public acquisition action", () => {
+    const shell = read("app/components/PublicSiteShell.tsx");
+    expect(shell).toContain('{ href: "/demo?source=public-header-demo", label: "Explore MyLearna" }');
+    expect(shell).toContain('primaryCta = { label: "Explore MyLearna", href: "/demo?source=public-header-demo" }');
+    expect(shell).not.toContain('{ href: "/start-free", label: "Start free" }');
   });
 
   it("preserves the Start Free form contract while using secure-email presentation", () => {
