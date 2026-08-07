@@ -11,6 +11,9 @@ export type DemoEvidenceEntry = {
   observedOn: string;
   learningArea: string;
   sourceLabel: string;
+  imageKey: string;
+  imageAlt: string;
+  imagePlaceholder: string;
   temporary?: boolean;
 };
 
@@ -41,6 +44,9 @@ export type DemoReportViewModel = {
     learningArea: string;
     description: string;
     sourceLabel: string;
+    imageKey: string;
+    imageAlt: string;
+    imagePlaceholder: string;
   }>;
   portfolioSelections: Array<{
     id: string;

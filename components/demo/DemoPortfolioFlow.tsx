@@ -1,4 +1,4 @@
-import { carterFamilyDemo } from "@/lib/demo/carterFamilyDemoData";
+import { demoEvidenceDataset } from "@/lib/demo/demoEvidenceDataset";
 import type { DemoState } from "@/lib/demo/demoTypes";
 import { demoButton, demoCard, demoColors, demoSecondaryButton } from "@/components/demo/DemoShell";
 
@@ -21,11 +21,14 @@ export default function DemoPortfolioFlow({
         </p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-        {carterFamilyDemo.portfolio.filter((item) => item.learnerId === "emma").map((item) => (
+        {demoEvidenceDataset.evidence.filter((item) => item.includeInPortfolio).map((item) => (
           <article key={item.id} style={{ border: `1px solid ${demoColors.line}`, borderRadius: 16, padding: 16, background: "#ffffff" }}>
-            <span style={{ color: demoColors.purple, fontWeight: 900, fontSize: 12 }}>FICTIONAL CARTER ITEM</span>
+            <span style={{ color: demoColors.purple, fontWeight: 900, fontSize: 12 }}>{item.learnerId === "emma" ? "Emma Carter" : "Noah Carter"} · FICTIONAL DEMO ITEM</span>
             <h2 style={{ margin: "7px 0", fontSize: 19 }}>{item.title}</h2>
-            <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.55 }}>{item.reason}</p>
+            <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.55 }}>{item.shortDescription}</p>
+            <div role="img" aria-label={item.imageAlt} style={{ marginTop: 12, borderRadius: 10, border: "1px dashed #cbd5e1", padding: 10, color: demoColors.slate, background: "#f8fafc", fontSize: 12 }}>
+              {item.imagePlaceholder} · image slot: {item.imageKey}
+            </div>
           </article>
         ))}
         {state.capturedEvidence ? (
@@ -33,6 +36,9 @@ export default function DemoPortfolioFlow({
             <span style={{ color: demoColors.green, fontWeight: 900, fontSize: 12 }}>YOUR TEMPORARY DEMO ADDITION</span>
             <h2 style={{ margin: "7px 0", fontSize: 19 }}>{state.capturedEvidence.title}</h2>
             <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.55 }}>{state.capturedEvidence.note}</p>
+            <div role="img" aria-label={state.capturedEvidence.imageAlt} style={{ marginTop: 12, borderRadius: 10, border: "1px dashed #86efac", padding: 10, color: demoColors.slate, background: "#ffffff", fontSize: 12 }}>
+              {state.capturedEvidence.imagePlaceholder} · image slot: {state.capturedEvidence.imageKey}
+            </div>
             {!state.captureIncludedInPortfolio ? (
               <button type="button" onClick={onAddToPortfolio} style={{ ...demoButton, marginTop: 14 }}>Add to portfolio</button>
             ) : (

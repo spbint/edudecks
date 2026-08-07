@@ -36,6 +36,9 @@ export default function DemoReport({
               <div style={{ color: demoColors.slate, fontSize: 13, marginTop: 3 }}>{entry.learningArea} · {entry.observedOn}</div>
               <p style={{ margin: "7px 0 0", color: demoColors.slate, lineHeight: 1.5 }}>{entry.description}</p>
               <small style={{ color: demoColors.purple }}>{entry.sourceLabel}</small>
+              <div role="img" aria-label={entry.imageAlt} style={{ marginTop: 8, borderRadius: 8, border: "1px dashed #cbd5e1", padding: 8, color: demoColors.slate, background: "#f8fafc", fontSize: 12 }}>
+                {entry.imagePlaceholder} · image slot: {entry.imageKey}
+              </div>
             </div>
           ))}
         </article>

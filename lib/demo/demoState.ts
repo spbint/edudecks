@@ -1,4 +1,5 @@
 import { carterFamilyDemo } from "@/lib/demo/carterFamilyDemoData";
+import { demoEvidenceDataset } from "@/lib/demo/demoEvidenceDataset";
 import type {
   DemoAction,
   DemoReportViewModel,
@@ -44,6 +45,9 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           observedOn: "2026-03-19",
           learningArea: "Maths",
           sourceLabel: "Your temporary demo addition",
+          imageKey: "demo-capture-fractions",
+          imageAlt: "Future sample image slot for Emma explaining fractions while cooking",
+          imagePlaceholder: "Future sample image: fractions in everyday life",
           temporary: true,
         },
         captureIncludedInPortfolio: false,
@@ -68,16 +72,18 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
 export function buildDemoReportViewModel(
   state: DemoState,
 ): DemoReportViewModel {
-  const emmaEvidence = carterFamilyDemo.evidence
+  const emmaEvidence = demoEvidenceDataset.evidence
     .filter((item) => item.learnerId === "emma")
-    .slice(0, 3)
     .map((item) => ({
       id: item.id,
       title: item.title,
-      observedOn: "March 2026",
-      learningArea: "Learning record",
-      description: item.note,
-      sourceLabel: "Fictional Carter Family sample",
+      observedOn: item.date,
+      learningArea: item.learningArea,
+      description: item.shortDescription,
+      sourceLabel: item.imagePlaceholder,
+      imageKey: item.imageKey,
+      imageAlt: item.imageAlt,
+      imagePlaceholder: item.imagePlaceholder,
     }));
   const capturedEvidence = state.captureIncludedInPortfolio
     ? state.capturedEvidence
@@ -91,12 +97,19 @@ export function buildDemoReportViewModel(
       learningArea: capturedEvidence.learningArea,
       description: capturedEvidence.note,
       sourceLabel: capturedEvidence.sourceLabel,
+      imageKey: capturedEvidence.imageKey,
+      imageAlt: capturedEvidence.imageAlt,
+      imagePlaceholder: capturedEvidence.imagePlaceholder,
     });
   }
 
-  const portfolioSelections = carterFamilyDemo.portfolio
+  const portfolioSelections = demoEvidenceDataset.evidence
     .filter((item) => item.learnerId === "emma")
-    .map((item) => ({ id: item.id, title: item.title, reason: item.reason }));
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      reason: item.reflection ?? item.shortDescription,
+    }));
   if (capturedEvidence) {
     portfolioSelections.push({
       id: capturedEvidence.id,
@@ -106,9 +119,9 @@ export function buildDemoReportViewModel(
   }
 
   return {
-    familyLabel: carterFamilyDemo.family.name,
-    learnerLabel: "Emma Carter",
-    reportingPeriod: carterFamilyDemo.reports.period,
+    familyLabel: demoEvidenceDataset.family.name,
+    learnerLabel: demoEvidenceDataset.learners[0].displayName,
+    reportingPeriod: demoEvidenceDataset.family.reportingPeriod,
     summary: capturedEvidence
       ? "Emma’s fictional learning record now includes a family observation from everyday cooking, alongside her planned maths and science learning."
       : carterFamilyDemo.reports.Emma.split("\n\n")[0],
