@@ -43,7 +43,9 @@ describe("public launch truthfulness", () => {
     expect(homepage).toContain("Build portfolios");
     expect(homepage).toContain("Create reports");
     expect(homepage).toContain("Start free — no password, no credit card. One secure email link opens your private family space.");
-    expect(homepage).toContain('label: "Start free"');
+    expect(homepage).toContain('label: "Create your family space"');
+    expect(homepage).toContain('label: "Get started"');
+    expect(homepage).not.toContain('label: "Start free"');
     expect(homepage).toContain('href: "/demo"');
     expect(homepage).toContain("One connected learning story");
     expect(homepage).toContain("Plan → Learn → Capture → Report");

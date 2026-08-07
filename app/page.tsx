@@ -10,12 +10,12 @@ import PublicSiteShell, {
 import useIsMobile from "@/app/components/useIsMobile";
 
 const PRIMARY_CTA = {
-  label: "Start free",
+  label: "Create your family space",
   href: "/start-free?source=home-primary",
 } as const;
 
 const HEADER_PRIMARY_CTA = {
-  label: "Start free",
+  label: "Get started",
   href: "/start-free?source=home-header",
 } as const;
 
