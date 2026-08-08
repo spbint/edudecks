@@ -63,7 +63,7 @@ export default function DemoReport({
         <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.7 }}>{model.summary}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
           {[
-            ["Reporting period", "1 Mar - 31 Jul 2026"],
+            ["Reporting period", "1 Mar 2026 to 31 Jul 2026"],
             ["Status", "Ready"],
             ["Learning areas", "1 represented"],
             ["Learning records", String(model.evidenceEntries.length)],
@@ -80,7 +80,7 @@ export default function DemoReport({
       <section style={{ ...demoCard, boxShadow: "none", display: "grid", gap: 12 }}>
         <div style={{ color: demoColors.slate, fontSize: 12, fontWeight: 900, letterSpacing: "0.06em" }}>MATHEMATICS / PATHWAY SUMMARY</div>
         <h2 style={{ margin: 0, fontSize: 25 }}>Mathematics</h2>
-        <div style={{ color: demoColors.slate }}>8 learning records · Latest: 24 July 2026</div>
+        <div style={{ color: demoColors.slate }}>8 learning records | Latest: 24 July 2026</div>
         <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.7 }}>{model.pathwaySummary}</p>
         <div style={{ display: "grid", gap: 8 }}>
           <strong>{model.pathway}</strong>
@@ -109,7 +109,7 @@ export default function DemoReport({
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 21 }}>{entry.title}</h3>
-                <div style={{ marginTop: 5, color: demoColors.slate, fontSize: 13 }}>{formatDate(entry.observedOn)} · {entry.learningArea} · {entry.pathway}</div>
+                <div style={{ marginTop: 5, color: demoColors.slate, fontSize: 13 }}>{formatDate(entry.observedOn)} | {entry.learningArea} | {entry.pathway}</div>
               </div>
               <span style={{ borderRadius: 999, padding: "6px 10px", background: entry.progress === "Secure" ? "#dcfce7" : "#ffedd5", color: entry.progress === "Secure" ? "#166534" : "#9a3412", fontSize: 12, fontWeight: 900 }}>{entry.progress}</span>
             </div>

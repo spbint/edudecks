@@ -1,6 +1,13 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type PDFEmbeddedPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage, type PDFEmbeddedPage } from "pdf-lib";
 import { buildDemoReportViewModel, initialDemoState } from "@/lib/demo/demoState";
 import type { DemoReportViewModel, DemoState } from "@/lib/demo/demoTypes";
+import {
+  drawDashboardHeroCard,
+  drawDashboardMetricGrid,
+  type DashboardPdfComposer,
+  type DashboardPdfMetricTile,
+  type DashboardPdfPalette,
+} from "@/lib/clean/outputs/dashboardPdfPrimitives";
 
 const demoFooter =
   "Fictional demonstration learning record. No real child or family data is used. Families should check their local home education requirements before submitting records.";
@@ -8,6 +15,31 @@ const pageWidth = 595.28;
 const pageHeight = 841.89;
 const margin = 42;
 const contentWidth = pageWidth - margin * 2;
+const logoPath = "/branding/mylearna-logo.png";
+
+const demoPalette: DashboardPdfPalette = {
+  title: rgb(0.06, 0.11, 0.2),
+  heading: rgb(0.1, 0.19, 0.36),
+  body: rgb(0.2, 0.24, 0.31),
+  muted: rgb(0.39, 0.45, 0.54),
+  line: rgb(0.85, 0.89, 0.94),
+  surface: rgb(0.97, 0.985, 1),
+  accent: rgb(0.14, 0.38, 0.78),
+  accentSurface: rgb(0.95, 0.97, 1),
+  accentBorder: rgb(0.78, 0.86, 0.97),
+  success: rgb(0.08, 0.48, 0.32),
+  successSurface: rgb(0.94, 0.98, 0.96),
+  successBorder: rgb(0.74, 0.9, 0.81),
+  warning: rgb(0.72, 0.45, 0.08),
+  warningSurface: rgb(1, 0.98, 0.93),
+  warningBorder: rgb(0.96, 0.86, 0.67),
+  lavender: rgb(0.38, 0.28, 0.76),
+  lavenderSurface: rgb(0.96, 0.95, 1),
+  lavenderBorder: rgb(0.84, 0.81, 0.98),
+  neutral: rgb(0.33, 0.4, 0.49),
+  neutralSurface: rgb(0.98, 0.99, 1),
+  neutralBorder: rgb(0.86, 0.9, 0.94),
+};
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
   const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
@@ -42,13 +74,48 @@ function drawHeading(page: PDFPage, text: string, font: PDFFont, y: number, size
 
 function drawFooter(page: PDFPage, regular: PDFFont, pageNumber: number) {
   page.drawLine({ start: { x: margin, y: 38 }, end: { x: pageWidth - margin, y: 38 }, thickness: 0.7, color: rgb(203 / 255, 213 / 255, 225 / 255) });
-  drawTextBlock(page, demoFooter, regular, margin, 26, contentWidth - 48, 7.2, rgb(100 / 255, 116 / 255, 139 / 255), 9);
-  page.drawText(`Page ${pageNumber}`, { x: pageWidth - margin - 38, y: 26, size: 7.2, font: regular, color: rgb(100 / 255, 116 / 255, 139 / 255) });
+  drawTextBlock(page, demoFooter, regular, margin, 26, contentWidth - 88, 7.2, rgb(100 / 255, 116 / 255, 139 / 255), 9);
+  page.drawText(`Page ${pageNumber} of 10`, { x: pageWidth - margin - 58, y: 26, size: 7.2, font: regular, color: rgb(100 / 255, 116 / 255, 139 / 255) });
 }
 
-function drawLabelValue(page: PDFPage, label: string, value: string, regular: PDFFont, bold: PDFFont, x: number, y: number, width: number) {
-  page.drawText(label.toUpperCase(), { x, y, size: 7.5, font: bold, color: rgb(37 / 255, 99 / 255, 235 / 255) });
-  return drawTextBlock(page, value, bold, x, y - 13, width, 11, rgb(15 / 255, 23 / 255, 42 / 255), 14) - 8;
+function drawCenteredTextBlock(page: PDFPage, text: string, font: PDFFont, y: number, size: number, maxWidth: number, color: ReturnType<typeof rgb>, lineHeight: number) {
+  const lines = wrapText(text, font, size, maxWidth);
+  lines.forEach((line, index) => {
+    const width = font.widthOfTextAtSize(line, size);
+    page.drawText(line, { x: (pageWidth - width) / 2, y: y - index * lineHeight, size, font, color });
+  });
+  return y - lines.length * lineHeight;
+}
+
+function formatLongDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+async function loadDemoLogo(document: PDFDocument): Promise<PDFImage | null> {
+  try {
+    const response = await fetch(logoPath, { cache: "force-cache" });
+    if (!response.ok) return null;
+    return await document.embedPng(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+function drawDemoLogo(composer: DashboardPdfComposer, logo: PDFImage | null) {
+  if (!logo) return composer;
+  const targetWidth = 118;
+  const scale = targetWidth / logo.width;
+  const width = targetWidth;
+  const height = logo.height * scale;
+  composer.page.drawImage(logo, {
+    x: (composer.width - width) / 2,
+    y: composer.y - height,
+    width,
+    height,
+  });
+  return { ...composer, y: composer.y - height - 16 };
 }
 
 async function embedWorksheetPage(document: PDFDocument, url?: string): Promise<PDFEmbeddedPage | null> {
@@ -57,14 +124,21 @@ async function embedWorksheetPage(document: PDFDocument, url?: string): Promise<
     const response = await fetch(url);
     if (!response.ok) return null;
     const source = await PDFDocument.load(await response.arrayBuffer());
-    return await document.embedPage(source.getPage(0));
+    const page = source.getPage(0);
+    const height = page.getHeight();
+    return await document.embedPage(page, {
+      left: 0,
+      bottom: height * 0.45,
+      right: page.getWidth(),
+      top: height,
+    });
   } catch {
     return null;
   }
 }
 
 function drawWorksheetPreview(page: PDFPage, embedded: PDFEmbeddedPage | null, regular: PDFFont, y: number) {
-  const boxHeight = 288;
+  const boxHeight = 330;
   const boxY = y - boxHeight;
   page.drawRectangle({ x: margin, y: boxY, width: contentWidth, height: boxHeight, color: rgb(248 / 255, 250 / 255, 252 / 255), borderColor: rgb(203 / 255, 213 / 255, 225 / 255), borderWidth: 1 });
   if (!embedded) {
@@ -76,31 +150,61 @@ function drawWorksheetPreview(page: PDFPage, embedded: PDFEmbeddedPage | null, r
   const width = embedded.width * scale;
   const height = embedded.height * scale;
   page.drawPage(embedded, { x: margin + (contentWidth - width) / 2, y: boxY + (boxHeight - height) / 2, width, height });
-  return boxY - 18;
+  page.drawText("Learning resource used for this activity", { x: margin + 12, y: boxY - 14, size: 7.8, font: regular, color: rgb(100 / 255, 116 / 255, 139 / 255) });
+  return boxY - 28;
 }
 
-function drawSummaryPage(document: PDFDocument, model: DemoReportViewModel, regular: PDFFont, bold: PDFFont) {
+function drawSummaryPage(document: PDFDocument, model: DemoReportViewModel, logo: PDFImage | null, regular: PDFFont, bold: PDFFont) {
   const page = document.addPage([pageWidth, pageHeight]);
-  page.drawRectangle({ x: margin, y: pageHeight - 82, width: 6, height: 52, color: rgb(37 / 255, 99 / 255, 235 / 255) });
-  page.drawText("MYLEARNA LEARNING REPORT", { x: margin + 18, y: pageHeight - 48, size: 9, font: bold, color: rgb(37 / 255, 99 / 255, 235 / 255) });
-  page.drawText("Emma Carter Learning Record", { x: margin + 18, y: pageHeight - 72, size: 22, font: bold, color: rgb(15 / 255, 23 / 255, 42 / 255) });
+  let composer: DashboardPdfComposer = {
+    doc: document,
+    page,
+    width: pageWidth,
+    height: pageHeight,
+    margin,
+    footerSpace: 62,
+    y: pageHeight - 42,
+    regular,
+    bold,
+  };
+  composer = drawDemoLogo(composer, logo);
+  composer.y = drawCenteredTextBlock(page, "MyLearna Learning Report", bold, composer.y, 24, 470, demoPalette.title, 28) - 4;
+  composer.y = drawCenteredTextBlock(page, "Emma Carter Learning Record", bold, composer.y, 17, 470, demoPalette.heading, 21) - 2;
+  composer.y = drawCenteredTextBlock(page, "1 Mar 2026 to 31 Jul 2026", regular, composer.y, 10.75, 470, demoPalette.heading, 15) - 2;
+  composer.y = drawCenteredTextBlock(page, "Prepared 8 Aug 2026", regular, composer.y, 10, 470, demoPalette.muted, 13) - 16;
+  composer.y = drawDashboardHeroCard(composer, demoPalette, {
+    eyebrow: "Learning snapshot",
+    title: "Here is Emma's learning story and the work behind it.",
+    subtitle: model.summary,
+    supportingBadges: ["Report period: 1 Mar 2026 to 31 Jul 2026", "Status: Ready"],
+    statLines: [
+      { label: "Reporting period", value: "1 Mar 2026 to 31 Jul 2026", tone: "accent" },
+      { label: "Status", value: "Ready", tone: "success" },
+    ],
+    spacingAfter: 12,
+  }).y;
 
-  let y = pageHeight - 132;
-  y = drawLabelValue(page, "Reporting period", model.reportingPeriod, regular, bold, margin, y, 190);
-  y = drawLabelValue(page, "Prepared", model.preparedOnLabel, regular, bold, margin, y, 190);
-  y = drawLabelValue(page, "Learning area", "Mathematics", regular, bold, margin, y, 190);
-
-  page.drawRectangle({ x: 304, y: pageHeight - 282, width: 249, height: 152, color: rgb(248 / 255, 251 / 255, 255 / 255), borderColor: rgb(191 / 255, 219 / 255, 254 / 255), borderWidth: 1 });
-  page.drawText("LEARNING SNAPSHOT", { x: 320, y: pageHeight - 154, size: 8, font: bold, color: rgb(37 / 255, 99 / 255, 235 / 255) });
-  page.drawText("Ready", { x: 320, y: pageHeight - 184, size: 20, font: bold, color: rgb(22 / 255, 101 / 255, 52 / 255) });
-  drawTextBlock(page, "1 learning area represented", regular, 320, pageHeight - 207, 205, 9);
-  drawTextBlock(page, `${model.evidenceEntries.length} learning records`, regular, 320, pageHeight - 226, 205, 9);
-  drawTextBlock(page, "Latest learning: 24 Jul 2026", regular, 320, pageHeight - 245, 205, 9);
-
-  y = pageHeight - 330;
-  y = drawHeading(page, "Learning Snapshot", bold, y, 16);
-  y = drawTextBlock(page, "Here is Emma's learning story and the work behind it.", bold, margin, y, contentWidth, 14, rgb(15 / 255, 23 / 255, 42 / 255), 19) - 10;
-  drawTextBlock(page, model.summary, regular, margin, y, contentWidth, 10.5, undefined, 15);
+  const metricTiles: DashboardPdfMetricTile[] = [
+    { label: "Learning areas", value: "1 represented", helper: "Mathematics", tone: "lavender" },
+    { label: "Learning records", value: String(model.evidenceEntries.length), helper: "Included in this report", tone: "accent" },
+    { label: "Latest learning", value: "24 Jul 2026", helper: "Most recent included record", tone: "success" },
+    { label: "Learning area", value: "Mathematics", helper: "1 area represented", tone: "lavender" },
+    { label: "Report status", value: "Ready", helper: "Prepared family learning report", tone: "success" },
+  ];
+  composer = drawDashboardMetricGrid(composer, demoPalette, metricTiles, { columns: 3, spacingAfter: 10 });
+  const summaryLines = [
+    `${model.evidenceEntries.length} learning records included in this report.`,
+    "Mathematics is the represented learning area.",
+    "Latest learning: 24 July 2026.",
+  ];
+  const summaryHeight = 76;
+  const summaryTop = composer.y;
+  composer.page.drawRectangle({ x: margin, y: summaryTop - summaryHeight, width: contentWidth, height: summaryHeight, color: demoPalette.surface, borderColor: demoPalette.accentBorder, borderWidth: 1 });
+  composer.page.drawText("Included in this report", { x: margin + 14, y: summaryTop - 20, size: 11.5, font: bold, color: demoPalette.heading });
+  let summaryY = summaryTop - 39;
+  summaryLines.forEach((line) => {
+    summaryY = drawTextBlock(composer.page, line, regular, margin + 14, summaryY, contentWidth - 28, 9.5, demoPalette.body, 12) - 2;
+  });
   drawFooter(page, regular, 1);
 }
 
@@ -136,7 +240,7 @@ async function drawEvidencePage(document: PDFDocument, model: DemoReportViewMode
   page.drawText(`MATHEMATICS · STEP ${entry.step}`, { x: margin, y, size: 9, font: bold, color: rgb(37 / 255, 99 / 255, 235 / 255) });
   y -= 25;
   y = drawHeading(page, entry.title, bold, y, 17);
-  y = drawTextBlock(page, `${entry.observedOn} | ${entry.learningArea} | Progress: ${entry.progress}`, regular, margin, y, contentWidth, 10, undefined, 14) - 12;
+  y = drawTextBlock(page, `${formatLongDate(entry.observedOn)} | ${entry.learningArea} | Progress: ${entry.progress}`, regular, margin, y, contentWidth, 10, undefined, 14) - 12;
   y = drawTextBlock(page, `Connected pathway step: Step ${entry.step}`, bold, margin, y, contentWidth, 9.5, rgb(71 / 255, 85 / 255, 105 / 255), 13) - 10;
   y = drawWorksheetPreview(page, await embedWorksheetPage(document, entry.worksheetUrl), regular, y);
 
@@ -158,7 +262,8 @@ export async function buildCarterFamilyDemoPdfBytes(state: DemoState = initialDe
   const regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
 
-  drawSummaryPage(document, model, regular, bold);
+  const logo = await loadDemoLogo(document);
+  drawSummaryPage(document, model, logo, regular, bold);
   drawPathwayPage(document, model, regular, bold);
   for (let index = 0; index < model.evidenceEntries.length; index += 1) {
     await drawEvidencePage(document, model, index, regular, bold);
