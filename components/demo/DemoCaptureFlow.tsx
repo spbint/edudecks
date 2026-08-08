@@ -29,11 +29,11 @@ export default function DemoCaptureFlow({
         </label>
         <label style={{ display: "grid", gap: 6, fontWeight: 800 }}>
           Learning area
-          <input readOnly value="Maths" aria-label="Learning area" style={{ border: `1px solid ${demoColors.line}`, borderRadius: 10, padding: "11px 12px", font: "inherit", background: "#f8fafc" }} />
+          <input readOnly value="Mathematics" aria-label="Learning area" style={{ border: `1px solid ${demoColors.line}`, borderRadius: 10, padding: "11px 12px", font: "inherit", background: "#f8fafc" }} />
         </label>
         <label style={{ display: "grid", gap: 6, fontWeight: 800 }}>
           Title
-          <input readOnly value="Fractions in everyday life" aria-label="Title" style={{ border: `1px solid ${demoColors.line}`, borderRadius: 10, padding: "11px 12px", font: "inherit", background: "#f8fafc" }} />
+          <input readOnly value="Step 4 - Scale Simple Tasks Up and Down" aria-label="Title" style={{ border: `1px solid ${demoColors.line}`, borderRadius: 10, padding: "11px 12px", font: "inherit", background: "#f8fafc" }} />
         </label>
         <label style={{ display: "grid", gap: 6, fontWeight: 800 }}>
           What happened?

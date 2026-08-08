@@ -97,13 +97,13 @@ function block(
 
 function buildWeek(weekId: DemoWeekId, weekStart: string, weekNumber: number) {
   const emmaMath =
-    weekNumber < 3 ? "Fraction strips and equal parts" : "Equivalent fraction models";
+    weekNumber < 3 ? "Step 4 - Scale simple tasks up and down" : "Ratio tables and unit rates";
   const noahMath =
     weekNumber < 3 ? "Ratio tables and multiplicative comparison" : "Equivalent ratios in recipes";
 
   return [
     block(weekId, weekStart, "Monday", "emma", "9:00 AM", "ELA", "Reading response", "Charlotte's Web discussion and response notes."),
-    block(weekId, weekStart, "Monday", "emma", "10:15 AM", "Math", emmaMath, "Visual fraction models and number sense practice."),
+    block(weekId, weekStart, "Monday", "emma", "10:15 AM", "Mathematics", emmaMath, "Use visual relationships to compare quantities and explain what changes."),
     block(weekId, weekStart, "Monday", "emma", "1:00 PM", "Science", "Plant life cycle observation", "Bean plant sketch, height note, and vocabulary check."),
     block(weekId, weekStart, "Monday", "noah", "9:00 AM", "ELA", "Evidence-based reading notes", "Read nonfiction passage and mark supporting evidence."),
     block(weekId, weekStart, "Monday", "noah", "10:15 AM", "Math", noahMath, "Use ratio tables and real-world comparison cards."),
@@ -123,7 +123,7 @@ function buildWeek(weekId: DemoWeekId, weekStart: string, weekNumber: number) {
     block(weekId, weekStart, "Wednesday", "noah", "11:00 AM", "Project", "Garden growth data", "Record measurements and update the project table."),
     block(weekId, weekStart, "Wednesday", "noah", "2:00 PM", "Portfolio", "Evidence review", "Select a diagram or paragraph draft for the portfolio."),
 
-    block(weekId, weekStart, "Thursday", "emma", "9:00 AM", "Math", "Assessment - Equivalent fractions", "Short auto-check with visual fraction models."),
+    block(weekId, weekStart, "Thursday", "emma", "9:00 AM", "Mathematics", "Step 4 - Scale simple tasks up and down", "Use pictures and number relationships to scale quantities."),
     block(weekId, weekStart, "Thursday", "emma", "10:15 AM", "ELA", "Charlotte's Web paragraph response", "Refine details and check paragraph structure."),
     block(weekId, weekStart, "Thursday", "emma", "1:00 PM", "Capture", "Capture evidence/work sample", "Add fraction model photo or writing sample note."),
     block(weekId, weekStart, "Thursday", "noah", "9:00 AM", "Math", "Assessment - Equivalent ratios", "Short auto-check using recipe scaling."),
@@ -153,7 +153,7 @@ export const carterFamilyDemo = {
       age: 8,
       grade: "Grade 3",
       focus: {
-        Math: "Fractions and number sense",
+        Math: "Ratio and proportional reasoning",
         ELA: "Reading response and paragraph writing",
         Science: "Plant life cycles and observation",
         "Social Studies": "Local communities and early American communities",
@@ -180,7 +180,7 @@ export const carterFamilyDemo = {
   currentDay: {
     date: "Thursday, March 19, 2026",
     blocks: [
-      "Emma: Math assessment - Equivalent fractions",
+      "Emma: Mathematics - Step 4: Scale simple tasks up and down",
       "Emma: ELA - Charlotte's Web paragraph response",
       "Emma: Science - Plant growth observation",
       "Noah: Math assessment - Equivalent ratios",
@@ -192,18 +192,18 @@ export const carterFamilyDemo = {
     {
       learnerId: "emma",
       subject: "Math",
-      pathway: "Fractions and number sense",
-      currentFocus: "Equivalent fractions with visual models",
+      pathway: "Ratio and Proportional Reasoning",
+      currentFocus: "Step 4: Scale simple tasks up and down",
       status: "Developing",
-      secureHistory: ["Recognise equal parts", "Use halves, thirds, and fourths"],
-      currentStep: "Build equivalent fractions with visual models",
-      later: ["Compare simple fractions", "Use fractions on a number line"],
+      secureHistory: ["Recognise repeated multiplicative relationships", "Compare related quantities visually"],
+      currentStep: "Scale simple tasks up and down",
+      later: ["Use tables and diagrams", "Apply rates, ratios and unit comparisons"],
       assessment: {
-        question: "Which fraction is equal to 1/2?",
-        options: ["2/4", "1/3", "3/5"],
+        question: "A group of 3 is doubled. How many are in the new group?",
+        options: ["5", "6", "9"],
         signal: "Developing",
         summary:
-          "Emma selected the correct visual model with support, but needs more practice explaining equivalent fractions independently.",
+          "Emma selected the correct scaled representation and is building confidence explaining what changed.",
       },
     },
     {
@@ -248,25 +248,25 @@ export const carterFamilyDemo = {
     pathwayActivity: "2 current Math pathways in progress",
     reportingReadiness: "Strong evidence base building for March records",
     strengths: {
-      Emma: ["Visual math models", "Science observation", "Reading discussion"],
+    Emma: ["Proportional representations", "Mathematical explanation", "Practical reasoning"],
       Noah: ["Practical ratio reasoning", "Science diagrams", "Project organization"],
     },
     focusAreas: {
-      Emma: ["Equivalent fractions", "Paragraph detail", "Independent written explanation"],
+      Emma: ["Refine proportional judgement", "Compare solution methods", "Communicate mathematical reasoning"],
       Noah: ["Percentage connections", "Evidence-based writing", "Written mathematical explanations"],
     },
   },
   reports: {
     period: "March 2026",
     Emma:
-      "Emma has been developing confidence with fractions and number sense. She can recognize equal parts, use visual models to represent halves, thirds, and fourths, and is beginning to identify equivalent fractions using fraction strips and drawings. Her recent evidence shows growing independence when explaining how two fractions can represent the same amount.\n\nEmma also completed learning in reading, writing, science, and social studies. Her portfolio includes a Charlotte's Web paragraph response, a plant growth journal, and a local community mapping task.",
+      "Emma has moved from representing simple multiplicative relationships visually to applying proportional reasoning flexibly and explaining her mathematical decisions. Her learning includes scaling, tables, rates, ratio tables, unit comparisons, graphs, finance and reasonableness checks.\n\nThis fictional demo report follows Emma's Mathematics learning through the Ratio and Proportional Reasoning pathway.",
     Noah:
       "Noah has been applying ratio and proportional reasoning to practical contexts. He can use multiplication and division strategies to compare quantities and is developing confidence with equivalent ratios and percentage-based problems. His work samples show improving accuracy and clearer mathematical reasoning.\n\nNoah also completed work in expository writing, ecosystems, and U.S. geography. His portfolio includes a ratio recipe task, a food web diagram, and an explanatory writing draft.",
     nextSteps: {
       Emma: [
-        "Continue practising equivalent fractions using visual models.",
-        "Build paragraph detail in written responses.",
-        "Use science observations to support labeled explanations.",
+        "Continue checking proportional answers for reasonableness.",
+        "Compare alternative solution methods.",
+        "Explain mathematical decisions using representations and written reasoning.",
       ],
       Noah: [
         "Continue applying ratios in real-world contexts.",

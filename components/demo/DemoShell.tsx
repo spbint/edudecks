@@ -86,7 +86,7 @@ export default function DemoShell() {
             </div>
           </div>
           <div role="note" style={{ border: "1px solid #bfdbfe", borderRadius: 12, background: "#f8fbff", padding: "10px 12px", color: "#1e40af", fontSize: 13, lineHeight: 1.45 }}>
-            You’re exploring a fictional family. Changes stay in this browser and are not saved.
+            You&apos;re exploring a fictional family. Changes stay in this browser and are not saved.
           </div>
           <DemoNavigation activeView={state.activeView} onNavigate={navigate} />
         </header>

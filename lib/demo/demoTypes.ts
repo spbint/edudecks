@@ -10,10 +10,14 @@ export type DemoEvidenceEntry = {
   note: string;
   observedOn: string;
   learningArea: string;
+  pathway: string;
+  step: number;
+  progress: string;
   sourceLabel: string;
   imageKey: string;
   imageAlt: string;
   imagePlaceholder: string;
+  worksheetUrl?: string;
   temporary?: boolean;
 };
 
@@ -32,22 +36,30 @@ export type DemoAction =
   | { type: "add-capture-to-portfolio" }
   | { type: "reset" };
 
+export type DemoReportEvidenceEntry = {
+  id: string;
+  title: string;
+  observedOn: string;
+  learningArea: string;
+  pathway: string;
+  step: number;
+  progress: string;
+  whatHappened: string;
+  parentObservation: string;
+  learnerReflection: string;
+  worksheetUrl?: string;
+  imageKey: string;
+  imageAlt: string;
+  imagePlaceholder: string;
+};
+
 export type DemoReportViewModel = {
   familyLabel: string;
   learnerLabel: string;
   reportingPeriod: string;
+  preparedOnLabel: string;
   summary: string;
-  evidenceEntries: Array<{
-    id: string;
-    title: string;
-    observedOn: string;
-    learningArea: string;
-    description: string;
-    sourceLabel: string;
-    imageKey: string;
-    imageAlt: string;
-    imagePlaceholder: string;
-  }>;
+  evidenceEntries: DemoReportEvidenceEntry[];
   portfolioSelections: Array<{
     id: string;
     title: string;
@@ -56,6 +68,8 @@ export type DemoReportViewModel = {
   strengths: string[];
   focusAreas: string[];
   suggestedNextSteps: string[];
+  pathway: string;
+  pathwaySummary: string;
   generatedAt: string;
   disclaimer: string;
 };

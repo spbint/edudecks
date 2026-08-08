@@ -1,21 +1,49 @@
 import { carterFamilyDemo } from "@/lib/demo/carterFamilyDemoData";
-import { demoEvidenceDataset } from "@/lib/demo/demoEvidenceDataset";
+import { demoEvidenceDataset, type DemoEvidenceRecord } from "@/lib/demo/demoEvidenceDataset";
 import type {
   DemoAction,
+  DemoEvidenceEntry,
   DemoReportViewModel,
   DemoState,
 } from "@/lib/demo/demoTypes";
 
+const primaryEvidence = demoEvidenceDataset.evidence.find(
+  (item) => item.learnerId === "emma" && item.step === 4,
+) as DemoEvidenceRecord;
+
 export const initialDemoState: DemoState = {
   activeView: "today",
   captureText:
-    "Emma used measuring cups while cooking and explained how two quarters make one half.",
+    "Emma doubled a small recipe and explained how the quantities changed together.",
   capturedEvidence: null,
   captureIncludedInPortfolio: false,
   statusMessage: "",
 };
 
-const demoCaptureId = "demo-capture-emma-fractions";
+function toDemoEvidenceEntry(
+  item: DemoEvidenceRecord,
+  note = item.whatHappened,
+  temporary = false,
+): DemoEvidenceEntry {
+  return {
+    id: item.id,
+    learnerId: item.learnerId,
+    title: item.title,
+    type: temporary ? "Temporary demo observation" : item.evidenceType,
+    note,
+    observedOn: item.date,
+    learningArea: item.learningArea,
+    pathway: item.pathway,
+    step: item.step,
+    progress: item.progress,
+    sourceLabel: item.imagePlaceholder,
+    imageKey: item.imageKey,
+    imageAlt: item.imageAlt,
+    imagePlaceholder: item.imagePlaceholder,
+    worksheetUrl: item.worksheetUrl,
+    temporary,
+  };
+}
 
 export function demoReducer(state: DemoState, action: DemoAction): DemoState {
   switch (action.type) {
@@ -36,20 +64,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return {
         ...state,
         activeView: "portfolio",
-        capturedEvidence: {
-          id: demoCaptureId,
-          learnerId: "emma",
-          title: "Fractions in everyday life",
-          type: "Temporary demo observation",
-          note,
-          observedOn: "2026-03-19",
-          learningArea: "Maths",
-          sourceLabel: "Your temporary demo addition",
-          imageKey: "demo-capture-fractions",
-          imageAlt: "Future sample image slot for Emma explaining fractions while cooking",
-          imagePlaceholder: "Future sample image: fractions in everyday life",
-          temporary: true,
-        },
+        capturedEvidence: toDemoEvidenceEntry(primaryEvidence, note, true),
         captureIncludedInPortfolio: false,
         statusMessage: "Learning moment added to this fictional demo.",
       };
@@ -60,7 +75,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
         ...state,
         activeView: "report",
         captureIncludedInPortfolio: true,
-        statusMessage: "Learning moment added to Emma’s demo portfolio.",
+        statusMessage: "Learning moment added to Emma's demo portfolio.",
       };
     case "reset":
       return initialDemoState;
@@ -69,73 +84,57 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
   }
 }
 
-export function buildDemoReportViewModel(
+function buildReportEvidenceEntry(
+  item: DemoEvidenceRecord,
   state: DemoState,
-): DemoReportViewModel {
-  const emmaEvidence = demoEvidenceDataset.evidence
-    .filter((item) => item.learnerId === "emma")
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      observedOn: item.date,
-      learningArea: item.learningArea,
-      description: item.shortDescription,
-      sourceLabel: item.imagePlaceholder,
-      imageKey: item.imageKey,
-      imageAlt: item.imageAlt,
-      imagePlaceholder: item.imagePlaceholder,
-    }));
-  const capturedEvidence = state.captureIncludedInPortfolio
+): DemoReportViewModel["evidenceEntries"][number] {
+  const captured = state.captureIncludedInPortfolio && state.capturedEvidence?.id === item.id
     ? state.capturedEvidence
     : null;
 
-  if (capturedEvidence) {
-    emmaEvidence.push({
-      id: capturedEvidence.id,
-      title: capturedEvidence.title,
-      observedOn: "March 19, 2026",
-      learningArea: capturedEvidence.learningArea,
-      description: capturedEvidence.note,
-      sourceLabel: capturedEvidence.sourceLabel,
-      imageKey: capturedEvidence.imageKey,
-      imageAlt: capturedEvidence.imageAlt,
-      imagePlaceholder: capturedEvidence.imagePlaceholder,
-    });
-  }
+  return {
+    id: item.id,
+    title: item.title,
+    observedOn: item.date,
+    learningArea: item.learningArea,
+    pathway: item.pathway,
+    step: item.step,
+    progress: item.progress,
+    whatHappened: captured?.note ?? item.whatHappened,
+    parentObservation: item.parentObservation,
+    learnerReflection: item.learnerReflection,
+    worksheetUrl: item.worksheetUrl,
+    imageKey: item.imageKey,
+    imageAlt: item.imageAlt,
+    imagePlaceholder: item.imagePlaceholder,
+  };
+}
 
-  const portfolioSelections = demoEvidenceDataset.evidence
-    .filter((item) => item.learnerId === "emma")
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      reason: item.reflection ?? item.shortDescription,
-    }));
-  if (capturedEvidence) {
-    portfolioSelections.push({
-      id: capturedEvidence.id,
-      title: capturedEvidence.title,
-      reason: "Temporary demo portfolio selection from the capture step.",
-    });
-  }
+export function buildDemoReportViewModel(state: DemoState): DemoReportViewModel {
+  const emmaRecords = demoEvidenceDataset.evidence.filter(
+    (item) => item.learnerId === "emma" && item.includeInReport,
+  );
 
   return {
-    familyLabel: demoEvidenceDataset.family.name,
-    learnerLabel: demoEvidenceDataset.learners[0].displayName,
+    familyLabel: "Carter Family",
+    learnerLabel: "Emma Carter",
     reportingPeriod: demoEvidenceDataset.family.reportingPeriod,
-    summary: capturedEvidence
-      ? "Emma’s fictional learning record now includes a family observation from everyday cooking, alongside her planned maths and science learning."
-      : carterFamilyDemo.reports.Emma.split("\n\n")[0],
-    evidenceEntries: emmaEvidence,
-    portfolioSelections,
+    preparedOnLabel: demoEvidenceDataset.family.preparedOn,
+    summary:
+      "This learning report brings together selected learning records and pathway progress for Emma during the March-July 2026 reporting period. Across this period, Emma developed her understanding of proportional reasoning from simple scaling and related quantities through to ratio tables, unit rates, real-world comparisons, graphs, financial situations and mathematical justification.",
+    evidenceEntries: emmaRecords.map((item) => buildReportEvidenceEntry(item, state)),
+    portfolioSelections: emmaRecords.map((item) => ({
+      id: item.id,
+      title: item.title,
+      reason: item.parentObservation,
+    })),
     strengths: [...carterFamilyDemo.data.strengths.Emma],
     focusAreas: [...carterFamilyDemo.data.focusAreas.Emma],
-    suggestedNextSteps: capturedEvidence
-      ? [
-          "Keep noticing maths in ordinary family activities.",
-          "Continue explaining fraction relationships with visual models.",
-        ]
-      : [...carterFamilyDemo.reports.nextSteps.Emma],
-    generatedAt: "March 19, 2026",
+    suggestedNextSteps: [...carterFamilyDemo.reports.nextSteps.Emma],
+    pathway: "Ratio and Proportional Reasoning",
+    pathwaySummary:
+      "Emma has moved from representing simple multiplicative relationships visually to applying proportional reasoning flexibly and explaining her mathematical decisions.",
+    generatedAt: demoEvidenceDataset.family.preparedOn,
     disclaimer: "Sample report generated from fictional demo data.",
   };
 }

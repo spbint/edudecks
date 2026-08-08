@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildDemoReportViewModel, demoReducer, initialDemoState } from "@/lib/demo/demoState";
+import { demoEvidenceDataset } from "@/lib/demo/demoEvidenceDataset";
 
 const prohibitedImports = [
   "@/lib/supabaseClient",
@@ -28,11 +29,9 @@ function sourceFiles(root: string): string[] {
   });
 }
 
-describe("interactive Carter demo", () => {
+describe("Carter public demo fidelity", () => {
   it("keeps demo-owned source outside authenticated and Supabase boundaries", () => {
-    const files = ["app/demo", "components/demo", "lib/demo"].flatMap((root) =>
-      sourceFiles(join(process.cwd(), root)),
-    );
+    const files = ["app/demo", "components/demo", "lib/demo"].flatMap((root) => sourceFiles(join(process.cwd(), root)));
     const matches = files.flatMap((file) => {
       const source = readFileSync(file, "utf8");
       return prohibitedImports.filter((importPath) => source.includes(importPath)).map((importPath) => `${file}:${importPath}`);
@@ -40,44 +39,76 @@ describe("interactive Carter demo", () => {
     expect(matches).toEqual([]);
   });
 
-  it("starts on Today with a fictional banner, both Carter learners and reset", () => {
+  it("starts on Today with the fictional banner, Emma and Noah, reset and the four-step ribbon", () => {
     expect(initialDemoState.activeView).toBe("today");
     const shell = readFileSync(join(process.cwd(), "components/demo/DemoShell.tsx"), "utf8");
     const today = readFileSync(join(process.cwd(), "components/demo/DemoToday.tsx"), "utf8");
-    expect(shell).toContain("You’re exploring a fictional family. Changes stay in this browser and are not saved.");
+    const guide = readFileSync(join(process.cwd(), "components/demo/DemoGuide.tsx"), "utf8");
+    expect(shell).toContain("You&apos;re exploring a fictional family. Changes stay in this browser and are not saved.");
     expect(shell).toContain("Reset demo");
     expect(today).toContain("Emma Carter");
     expect(today).toContain("Noah Carter");
+    expect(guide).toContain("Today");
+    expect(guide).toContain("Capture");
+    expect(guide).toContain("Portfolio");
+    expect(guide).toContain("Report");
     expect(shell).not.toContain("Start free");
   });
 
-  it("updates a temporary capture, portfolio selection and report model", () => {
-    const edited = demoReducer(initialDemoState, { type: "update-capture-text", value: "Emma explained two quarters make one half while cooking." });
-    const captured = demoReducer(edited, { type: "add-learning-moment" });
-    expect(captured.activeView).toBe("portfolio");
-    expect(captured.capturedEvidence?.note).toContain("two quarters");
-    expect(captured.capturedEvidence?.temporary).toBe(true);
-
-    const included = demoReducer(captured, { type: "add-capture-to-portfolio" });
-    const report = buildDemoReportViewModel(included);
-    expect(included.activeView).toBe("report");
-    expect(included.captureIncludedInPortfolio).toBe(true);
-    expect(report.familyLabel).toBe("The Carter Family");
-    expect(report.evidenceEntries.some((entry) => entry.title === "Fractions in everyday life")).toBe(true);
+  it("keeps Emma's proportional reasoning story coherent across the primary flow", () => {
+    const report = buildDemoReportViewModel(initialDemoState);
+    expect(report.learnerLabel).toBe("Emma Carter");
+    expect(report.pathway).toBe("Ratio and Proportional Reasoning");
+    expect(report.reportingPeriod).toBe("1 March 2026 to 31 July 2026");
+    expect(report.evidenceEntries).toHaveLength(8);
+    expect(report.evidenceEntries.map((entry) => entry.step)).toEqual([4, 5, 6, 8, 9, 10, 11, 12]);
+    expect(report.evidenceEntries.every((entry) => entry.learningArea === "Mathematics")).toBe(true);
+    expect(report.evidenceEntries.every((entry) => !entry.title.includes("Noah"))).toBe(true);
     expect(report.disclaimer).toBe("Sample report generated from fictional demo data.");
   });
 
-  it("resets the fictional demo to its initial state", () => {
-    const captured = demoReducer(initialDemoState, { type: "add-learning-moment" });
-    expect(demoReducer(captured, { type: "reset" })).toEqual(initialDemoState);
+  it("uses canonical worksheet assets and removes primary placeholder imagery", () => {
+    const primary = demoEvidenceDataset.evidence.filter((item) => item.learnerId === "emma");
+    expect(primary).toHaveLength(8);
+    for (const item of primary) {
+      expect(item.worksheetUrl).toBeTruthy();
+      expect(item.imagePlaceholder).toBe("Learning resource used for this activity");
+      expect(item.imagePlaceholder).not.toContain("Future sample image");
+      expect(existsSync(join(process.cwd(), "public", item.worksheetUrl!.replace(/^\//, "")))).toBe(true);
+    }
   });
 
-  it("keeps the completion handoff inside the public demo boundary", () => {
-    const report = readFileSync(join(process.cwd(), "components/demo/DemoReport.tsx"), "utf8");
-    expect(report).toContain("You’ve taken one learning moment from today’s plan into a printable family report.");
-    expect(report).toContain("Use MyLearna with your family");
-    expect(report).toContain("/start-free?source=demo-complete");
-    expect(report).toContain("Keep exploring");
-    expect(report).not.toContain("Buy now");
+  it("flows the same Emma record from capture through portfolio into the report", () => {
+    const edited = demoReducer(initialDemoState, { type: "update-capture-text", value: "Emma doubled a recipe and explained what changed." });
+    const captured = demoReducer(edited, { type: "add-learning-moment" });
+    expect(captured.activeView).toBe("portfolio");
+    expect(captured.capturedEvidence?.id).toBe("demo-evidence-emma-step-4");
+    const included = demoReducer(captured, { type: "add-capture-to-portfolio" });
+    const report = buildDemoReportViewModel(included);
+    expect(included.captureIncludedInPortfolio).toBe(true);
+    expect(report.evidenceEntries).toHaveLength(8);
+    expect(report.evidenceEntries.find((entry) => entry.id === "demo-evidence-emma-step-4")?.whatHappened).toContain("doubled a recipe");
+  });
+
+  it("resets fictional state and keeps completion handoff public", () => {
+    const captured = demoReducer(initialDemoState, { type: "add-learning-moment" });
+    expect(demoReducer(captured, { type: "reset" })).toEqual(initialDemoState);
+    const reportSource = readFileSync(join(process.cwd(), "components/demo/DemoReport.tsx"), "utf8");
+    expect(reportSource).toContain("Preview Emma&apos;s Learning Report");
+    expect(reportSource).toContain("Download sample report");
+    expect(reportSource).toContain("You&apos;ve taken one learning moment from today&apos;s plan into a printable family report.");
+    expect(reportSource).toContain("Use MyLearna with your family");
+    expect(reportSource).toContain("/start-free?source=demo-complete");
+    expect(reportSource).toContain("Keep exploring");
+    expect(reportSource).not.toContain("Buy now");
+  });
+
+  it("keeps the sample download demo-only and free of export-history or auth clients", () => {
+    const pdfSource = readFileSync(join(process.cwd(), "lib/demo/demoPdf.ts"), "utf8");
+    expect(pdfSource).toContain("buildCarterFamilyDemoPdfBytes");
+    expect(pdfSource).toContain("mylearna-emma-learning-report-sample.pdf");
+    expect(pdfSource).not.toContain("export-history");
+    expect(pdfSource).not.toContain("supabase");
+    expect(pdfSource).not.toContain("generateCleanReportPdfBytes");
   });
 });

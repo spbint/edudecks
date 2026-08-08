@@ -25,9 +25,9 @@ export default function DemoToday({ onStartCapture }: { onStartCapture: () => vo
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
         <article style={{ border: "1px solid #bfdbfe", borderRadius: 16, padding: 16, background: "#f8fbff" }}>
           <span style={{ color: demoColors.blue, fontWeight: 900, fontSize: 12 }}>Emma Carter · Grade 3</span>
-          <h2 style={{ margin: "7px 0", fontSize: 21 }}>{emmaMath?.title ?? "Fractions in everyday contexts"}</h2>
+          <h2 style={{ margin: "7px 0", fontSize: 21 }}>{emmaMath?.title ?? "Step 4 - Scale simple tasks up and down"}</h2>
           <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.55 }}>
-            Maths pathway cue: {carterFamilyDemo.learners[0].focus.Math}.
+            Mathematics pathway cue: {carterFamilyDemo.pathways[0].pathway} - {carterFamilyDemo.pathways[0].currentStep}.
           </p>
         </article>
         <article style={{ border: `1px solid ${demoColors.line}`, borderRadius: 16, padding: 16, background: "#ffffff" }}>
