@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { trackPublicAcquisitionEvent } from "@/app/lib/publicAnalytics";
 
 declare global {
   interface Window {
@@ -16,7 +17,7 @@ function trackPageView(pathname: string) {
 
   window.gtag("event", "page_view", {
     page_path: pathname,
-    page_location: window.location.href,
+    page_location: `${window.location.origin}${pathname}`,
     page_title: document.title,
   });
 }
@@ -32,10 +33,12 @@ export default function GoogleAnalyticsPageTracker() {
 
     if (!hasTrackedInitialView.current) {
       hasTrackedInitialView.current = true;
+      trackPublicAcquisitionEvent("public_session_source", pathname);
       return;
     }
 
     trackPageView(pathname);
+    trackPublicAcquisitionEvent("public_session_source", pathname);
   }, [pathname]);
 
   return null;

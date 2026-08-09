@@ -30,7 +30,7 @@ export default function AboutPage() {
             marginBottom: 10,
           }}
         >
-          Why this product is being built
+          Why MyLearna exists
         </div>
 
         <div
@@ -168,7 +168,7 @@ export default function AboutPage() {
                 color: "#475569",
               }}
             >
-              MyLearna is being designed for real family life: mixed ages, flexible
+              MyLearna is built for real family life: mixed ages, flexible
               rhythms, different homeschool philosophies, project-based learning,
               everyday learning, and records that build gradually rather than appearing
               all at once.
@@ -390,7 +390,7 @@ export default function AboutPage() {
                 marginBottom: 8,
               }}
             >
-              Want to stay close to the product as it grows?
+              Keep your learning story together
             </div>
 
             <div
@@ -401,8 +401,8 @@ export default function AboutPage() {
                 maxWidth: 760,
               }}
             >
-              Use MyLearna now, share feedback, and help shape the
-              workflow around what real families need most.
+              Explore the workflow in the Carter demo, then create your private
+              family space when you are ready.
             </div>
           </div>
 

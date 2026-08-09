@@ -74,9 +74,9 @@ export default function ContactPage() {
 
   return (
     <PublicSiteShell
-      eyebrow="Stay close to the launch"
+      eyebrow="Questions about MyLearna"
       heroTitle="Contact MyLearna"
-      heroText="MyLearna is being built for homeschool families who want a calmer, stronger system for record keeping, portfolios, planning, and reporting."
+      heroText="MyLearna helps homeschool families bring planning, learning pathways, captured evidence, portfolios and learning reports into one calmer workflow."
       heroBadges={["Questions", "Feedback", "Homeschool support", "Product ideas"]}
       primaryCta={{ label: "Start free", href: "/start-free?source=contact-primary" }}
       secondaryCta={{ label: "View Pricing", href: "/pricing" }}
@@ -113,8 +113,8 @@ export default function ContactPage() {
               marginBottom: 18,
             }}
           >
-            Tell us who you are and what you’re hoping for. Early feedback helps
-            shape the product around real family needs.
+            Tell us who you are and what you’re hoping for. Your questions help
+            us keep the homeschool workflow useful for real family life.
           </div>
 
           <div style={{ display: "grid", gap: 14 }}>
@@ -199,7 +199,7 @@ export default function ContactPage() {
                 marginBottom: 12,
               }}
             >
-              Why join now?
+              What you can do with MyLearna
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
@@ -249,8 +249,8 @@ export default function ContactPage() {
                 color: "#475569",
               }}
             >
-              We will only contact you about MyLearna updates and launch
-              information. No spam. No third-party sharing.
+              We will only contact you about MyLearna product updates and your
+              message. No spam. No third-party sharing.
             </div>
           </section>
         </div>

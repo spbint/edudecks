@@ -123,8 +123,12 @@ describe("public launch truthfulness", () => {
     const robots = read("app/robots.ts");
     const sitemap = read("app/sitemap.ts");
     expect(robots).toContain('"/"');
+    expect(robots).toContain('userAgent: "OAI-SearchBot"');
+    expect(robots).toContain('"/demo"');
     expect(robots).toContain('"/api/"');
+    expect(robots).toContain('"/my-day"');
     expect(robots).toContain('"/my-*"');
+    expect(robots).toContain('"/reports"');
     expect(robots).toContain('"/reports/"');
     expect(sitemap).toContain('path: "/demo"');
     expect(sitemap).toContain('path: "/homeschool-learning-evidence"');
@@ -138,5 +142,13 @@ describe("public launch truthfulness", () => {
     expect(homepage).not.toMatch(/bulk upload|CSV functionality|second approver/i);
     expect(read("app/privacy/page.tsx")).toContain("Account and sign-in information");
     expect(read("app/terms/page.tsx")).toContain("Terms of Use");
+  });
+
+  it("keeps secondary public pages in present-tense product language", () => {
+    expect(read("app/about/page.tsx")).not.toMatch(/being designed|being built|stay close to the launch|help shape the workflow/i);
+    expect(read("app/contact/page.tsx")).not.toMatch(/stay close to the launch|early feedback helps shape|launch information/i);
+    const pricing = read("app/pricing/page.tsx");
+    expect(pricing).toContain('href="/demo?source=pricing-primary-demo"');
+    expect(pricing).not.toContain('href="/capture"');
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useReducer } from "react";
+import React, { useEffect, useMemo, useReducer } from "react";
 import DemoCalendar from "@/components/demo/DemoCalendar";
 import DemoData from "@/components/demo/DemoData";
 import DemoNavigation from "@/components/demo/DemoNavigation";
@@ -15,6 +15,7 @@ import DemoReport from "@/components/demo/DemoReport";
 import { carterFamilyDemo } from "@/lib/demo/carterFamilyDemoData";
 import { buildDemoReportViewModel, demoReducer, initialDemoState } from "@/lib/demo/demoState";
 import type { DemoViewId } from "@/lib/demo/demoTypes";
+import { trackPublicAcquisitionEvent } from "@/app/lib/publicAnalytics";
 
 export type DemoSectionId = DemoViewId;
 
@@ -63,6 +64,10 @@ export const demoSecondaryButton: React.CSSProperties = {
 export default function DemoShell() {
   const [state, dispatch] = useReducer(demoReducer, initialDemoState);
   const reportModel = useMemo(() => buildDemoReportViewModel(state), [state]);
+
+  useEffect(() => {
+    trackPublicAcquisitionEvent("public_demo_started", "/demo");
+  }, []);
 
   function navigate(view: DemoViewId) {
     dispatch({ type: "navigate", view });

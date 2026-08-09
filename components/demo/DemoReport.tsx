@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { demoButton, demoCard, demoColors, demoSecondaryButton } from "@/components/demo/DemoShell";
 import DemoWorksheetPreview from "@/components/demo/DemoWorksheetPreview";
 import { downloadCarterFamilyDemoPdf } from "@/lib/demo/demoPdf";
 import type { DemoReportViewModel, DemoState } from "@/lib/demo/demoTypes";
+import { trackPublicAcquisitionEvent } from "@/app/lib/publicAnalytics";
 
 function formatDate(value: string) {
   const date = new Date(`${value}T00:00:00`);
@@ -24,10 +25,15 @@ export default function DemoReport({
 }) {
   const [downloading, setDownloading] = useState(false);
 
+  useEffect(() => {
+    trackPublicAcquisitionEvent("public_report_viewed", "/demo");
+  }, []);
+
   async function download() {
     setDownloading(true);
     try {
       await downloadCarterFamilyDemoPdf("Emma's Learning Report", state);
+      trackPublicAcquisitionEvent("public_report_downloaded", "/demo");
     } finally {
       setDownloading(false);
     }

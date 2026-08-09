@@ -13,9 +13,9 @@ export default function PricingPage() {
     <PublicSiteShell
       eyebrow="Start free, grow when it matters"
       heroTitle="Start free. Build your homeschool learning record with confidence."
-      heroText="MyLearna is designed to help families begin without pressure. You can capture learning, build evidence, and explore reporting before needing anything more."
+      heroText="MyLearna helps families plan learning, capture evidence, build portfolios and prepare reports in one connected workflow."
       heroBadges={["Begin free", "No pressure", "Family-first", "Grow later"]}
-      primaryCta={{ label: "Start with one learning moment", href: "/capture" }}
+      primaryCta={{ label: "Explore MyLearna", href: "/demo?source=pricing-primary-demo" }}
       secondaryCta={{ label: "See How It Works", href: "/get-started" }}
       asideTitle="Why it's free to start"
       asideText="Families need to build confidence first. MyLearna becomes more valuable over time, not on day one."
@@ -105,8 +105,8 @@ export default function PricingPage() {
             ))}
           </div>
 
-          <Link href="/capture" style={publicButtonStyle(true)}>
-            Start with one learning moment
+          <Link href="/demo?source=pricing-primary-demo" style={publicButtonStyle(true)}>
+            Explore MyLearna
           </Link>
         </div>
       </section>
@@ -233,20 +233,24 @@ export default function PricingPage() {
             color: "#0f172a",
           }}
         >
-          As your system grows, more support will become available
+          Keep the learning story together
         </div>
 
         <div style={{ fontSize: 14, color: "#334155", marginBottom: 18 }}>
+          MyLearna brings planning, captured evidence, portfolios and learning
+          reports together so your family can build a useful record over time.
+          {/*
           Future upgrades will support deeper planning, stronger reporting, and
           advanced tools — but only when they actually help your workflow.
+          */}
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
           {[
-            "More advanced reporting tools",
-            "Planning and guidance layers",
-            "Richer evidence capture options",
-            "Premium family workflow features",
+            "Plan learning across the week",
+            "Capture learning moments as they happen",
+            "Build a portfolio from selected evidence",
+            "Create useful learning reports",
           ].map((item) => (
             <div
               key={item}
@@ -265,8 +269,8 @@ export default function PricingPage() {
         </div>
 
         <div style={{ marginTop: 18 }}>
-          <Link href="/capture" style={publicButtonStyle(true)}>
-            Start free
+          <Link href="/demo?source=pricing-bottom-demo" style={publicButtonStyle(true)}>
+            Explore MyLearna
           </Link>
         </div>
       </section>
