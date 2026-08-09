@@ -13,6 +13,30 @@ import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZENKS";
 
+const PUBLIC_STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${PUBLIC_SITE_URL}#organization`,
+      name: "MyLearna",
+      url: PUBLIC_SITE_URL,
+      logo: `${PUBLIC_SITE_URL}/branding/mylearna-logo.png`,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${PUBLIC_SITE_URL}#website`,
+      name: "MyLearna",
+      url: PUBLIC_SITE_URL,
+      description:
+        "Homeschool learning happens everywhere. MyLearna brings planning, pathways, evidence, portfolios and reports together in one private family space.",
+      publisher: {
+        "@id": `${PUBLIC_SITE_URL}#organization`,
+      },
+    },
+  ],
+} as const;
+
 export const metadata: Metadata = {
   metadataBase: new URL(PUBLIC_SITE_URL),
   applicationName: "MyLearna",
@@ -73,6 +97,10 @@ export default function RootLayout({
           fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
         }}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(PUBLIC_STRUCTURED_DATA) }}
+        />
         <script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}

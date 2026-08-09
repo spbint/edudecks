@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 
 const SITE_URL = "https://www.mylearna.com";
-const LAST_MODIFIED = new Date("2026-07-04T00:00:00.000Z");
 
 type SitemapEntryConfig = {
   path: string;
@@ -110,7 +109,6 @@ const PUBLIC_SITEMAP_PAGES: SitemapEntryConfig[] = [
 export default function sitemap(): MetadataRoute.Sitemap {
   return PUBLIC_SITEMAP_PAGES.map((page) => ({
     url: `${SITE_URL}${page.path}`,
-    lastModified: LAST_MODIFIED,
     changeFrequency: page.changeFrequency,
     priority: page.priority,
   }));

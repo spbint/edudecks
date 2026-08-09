@@ -110,6 +110,28 @@ describe("public launch truthfulness", () => {
     expect(layout).toContain("msvalidate.01");
   });
 
+  it("publishes only truthful site-level structured data", () => {
+    const layout = read("app/layout.tsx");
+    expect(layout).toContain('type="application/ld+json"');
+    expect(layout).toContain('"@type": "Organization"');
+    expect(layout).toContain('"@type": "WebSite"');
+    expect(layout).toContain('"@context": "https://schema.org"');
+    expect(layout).not.toMatch(/aggregateRating|review|award|accreditation|priceRange/i);
+  });
+
+  it("keeps crawler rules and sitemap limited to truthful public discovery", () => {
+    const robots = read("app/robots.ts");
+    const sitemap = read("app/sitemap.ts");
+    expect(robots).toContain('"/"');
+    expect(robots).toContain('"/api/"');
+    expect(robots).toContain('"/my-*"');
+    expect(robots).toContain('"/reports/"');
+    expect(sitemap).toContain('path: "/demo"');
+    expect(sitemap).toContain('path: "/homeschool-learning-evidence"');
+    expect(sitemap).not.toContain("LAST_MODIFIED");
+    expect(sitemap).not.toContain("lastModified:");
+  });
+
   it("does not expand public positioning into authenticated or unbuilt product claims", () => {
     const homepage = read("app/page.tsx");
     expect(homepage).not.toMatch(/educational intelligence|adaptive diagnostics|LMS|analytics engine/i);
