@@ -49,4 +49,18 @@ describe("public traffic source classification", () => {
     expect(JSON.stringify(params)).not.toContain("utm_");
     expect(JSON.stringify(params)).not.toMatch(/learner|family|evidence|report|child/i);
   });
+
+  it("allows only the whitelisted resource context", () => {
+    const params = buildPublicAcquisitionParams("chatgpt", "/homeschool-record-keeping", {
+      resource_id: "homeschool-record-keeping",
+      resource_asset: "starter-kit",
+    });
+    expect(params).toEqual({
+      public_source: "chatgpt",
+      page_path: "/homeschool-record-keeping",
+      resource_id: "homeschool-record-keeping",
+      resource_asset: "starter-kit",
+    });
+    expect(JSON.stringify(params)).not.toMatch(/child|learner|family|report_text|referrer|utm_/i);
+  });
 });

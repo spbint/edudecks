@@ -40,6 +40,11 @@ const PUBLIC_SITEMAP_PAGES: SitemapEntryConfig[] = [
     priority: 0.85,
   },
   {
+    path: "/homeschool-answers",
+    changeFrequency: "monthly",
+    priority: 0.85,
+  },
+  {
     path: "/homeschool-portfolio",
     changeFrequency: "weekly",
     priority: 0.85,

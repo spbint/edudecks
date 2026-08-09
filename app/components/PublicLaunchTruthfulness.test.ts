@@ -132,6 +132,8 @@ describe("public launch truthfulness", () => {
     expect(robots).toContain('"/reports/"');
     expect(sitemap).toContain('path: "/demo"');
     expect(sitemap).toContain('path: "/homeschool-learning-evidence"');
+    expect(robots).toContain('"/homeschool-answers"');
+    expect(sitemap).toContain('path: "/homeschool-answers"');
     expect(sitemap).not.toContain("LAST_MODIFIED");
     expect(sitemap).not.toContain("lastModified:");
   });

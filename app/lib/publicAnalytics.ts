@@ -13,7 +13,14 @@ export type PublicAcquisitionEvent =
   | "public_demo_started"
   | "public_report_viewed"
   | "public_report_downloaded"
-  | "public_signup_started";
+  | "public_signup_started"
+  | "public_resource_viewed"
+  | "public_resource_downloaded";
+
+export type PublicResourceContext = {
+  resource_id?: "homeschool-record-keeping";
+  resource_asset?: "starter-kit" | "full-guide";
+};
 
 export const PUBLIC_SOURCE_STORAGE_KEY = "mylearna_public_source_v1";
 
@@ -88,10 +95,13 @@ export function getOrSetPublicTrafficSource(
 export function buildPublicAcquisitionParams(
   source: PublicTrafficSource,
   pathname: string,
+  context: PublicResourceContext = {},
 ) {
   return {
     public_source: source,
     page_path: pathname,
+    ...(context.resource_id ? { resource_id: context.resource_id } : {}),
+    ...(context.resource_asset ? { resource_asset: context.resource_asset } : {}),
   };
 }
 
@@ -107,6 +117,7 @@ function isPublicRoute(pathname: string) {
     "/contact",
     "/pricing",
     "/faq",
+    "/homeschool-answers",
     "/compare",
     "/privacy",
     "/terms",
@@ -123,6 +134,7 @@ function isPublicRoute(pathname: string) {
 export function trackPublicAcquisitionEvent(
   eventName: PublicAcquisitionEvent,
   pathname: string,
+  context: PublicResourceContext = {},
 ) {
   if (typeof window === "undefined") return;
   if (!isPublicRoute(pathname)) return;
@@ -136,5 +148,9 @@ export function trackPublicAcquisitionEvent(
 
   if (typeof window.gtag !== "function") return;
 
-  window.gtag("event", eventName, buildPublicAcquisitionParams(publicSource, pathname));
+  window.gtag(
+    "event",
+    eventName,
+    buildPublicAcquisitionParams(publicSource, pathname, context),
+  );
 }

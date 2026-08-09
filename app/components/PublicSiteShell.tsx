@@ -36,6 +36,7 @@ type PublicSiteShellProps = {
 const NAV_ITEMS = [
   { href: "/#how-it-works", label: "How it works" },
   { href: "/about", label: "About" },
+  { href: "/homeschool-answers", label: "Homeschool Answers" },
   { href: "/demo?source=public-header-demo", label: "Explore MyLearna" },
 ];
 

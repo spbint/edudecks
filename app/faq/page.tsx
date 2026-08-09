@@ -12,6 +12,7 @@ type FAQCategory =
   | "Planning"
   | "Portfolios"
   | "Reporting"
+  | "Record Keeping"
   | "Worksheets"
   | "Accounts";
 
@@ -38,13 +39,31 @@ const FAQS: FAQItem[] = [
     category: "Getting Started",
     question: "Is MyLearna only for one country?",
     answer:
-      "No. MyLearna is being designed for families in different countries and regions. Homeschool requirements vary by location, so families should check their own local rules.",
+      "No. MyLearna is available to families in different countries and regions. Homeschool requirements vary by location, so families should check their own local rules.",
   },
   {
     category: "Reporting",
     question: "Does MyLearna replace homeschool requirements?",
     answer:
       "No. MyLearna helps families organise learning and records, but homeschool requirements vary by location. It is not legal advice and does not replace official requirements.",
+  },
+  {
+    category: "Record Keeping",
+    question: "Do I need to save every worksheet?",
+    answer:
+      "Usually no. Keep representative samples and anything specifically required by your state or program. Read the complete record-keeping guide for a practical system.",
+  },
+  {
+    category: "Record Keeping",
+    question: "Can photos count as homeschool records?",
+    answer:
+      "Yes. Add a date and a short explanation of what happened, what the learner demonstrated and what might come next.",
+  },
+  {
+    category: "Record Keeping",
+    question: "What should I keep if my child may return to school?",
+    answer:
+      "Keep annual summaries, resource information, representative work, assessments and older-student course or credit information.",
   },
   {
     category: "Planning",
@@ -90,6 +109,7 @@ const CATEGORY_ORDER: Array<"All" | FAQCategory> = [
   "Planning",
   "Portfolios",
   "Reporting",
+  "Record Keeping",
   "Worksheets",
   "Accounts",
 ];
@@ -165,6 +185,16 @@ export default function FAQPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section style={{ ...publicCardStyle(), marginBottom: 24, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+        <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Record keeping answers</div>
+        <div style={{ lineHeight: 1.7, color: "#334155", marginBottom: 14 }}>
+          Start with the complete practical guide to what homeschool families should keep, what they can usually skip and how records become useful evidence, portfolios and reports.
+        </div>
+        <Link href="/homeschool-record-keeping" style={publicButtonStyle(true)}>
+          Read the complete record-keeping guide
+        </Link>
       </section>
 
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
