@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
@@ -22,9 +22,13 @@ import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   createCleanCalendarItem,
   listCleanCalendarItems,
+  updateCleanCalendarItem,
 } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
-import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import {
+  listCleanEvidenceEntries,
+  subscribeToCleanEvidenceChanges,
+} from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { buildCleanGuidanceCards } from "@/lib/clean/guidance/client";
@@ -308,6 +312,11 @@ function CleanDayWorkspaceBody() {
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [quickAddError, setQuickAddError] = useState<string | null>(null);
   const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
+  const [completionUpdatingId, setCompletionUpdatingId] = useState<string | null>(null);
+  const [completionError, setCompletionError] = useState<{
+    itemId: string;
+    message: string;
+  } | null>(null);
   const [dailyPlannerDownloading, setDailyPlannerDownloading] = useState(false);
   const [hasPlacementForPromptLearner, setHasPlacementForPromptLearner] = useState(false);
   const [dayReloadNonce, setDayReloadNonce] = useState(0);
@@ -436,6 +445,23 @@ function CleanDayWorkspaceBody() {
 
     return grouped;
   }, [evidenceEntries]);
+
+  const reloadEvidence = useCallback(async () => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      return;
+    }
+
+    try {
+      const nextEvidenceEntries = await listCleanEvidenceEntries(workspace.profile.id, {
+        fromDate: selectedDate,
+        toDate: selectedDate,
+        limit: 60,
+      });
+      setEvidenceEntries(nextEvidenceEntries);
+    } catch {
+      // Evidence is secondary to the day plan; retain the current state on refresh failure.
+    }
+  }, [selectedDate, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
 
   const learnersInViewCount = useMemo(
     () => new Set(sortedVisibleItems.map((item) => item.learnerId).filter(Boolean)).size,
@@ -832,6 +858,17 @@ function CleanDayWorkspaceBody() {
   ]);
 
   useEffect(() => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      return;
+    }
+
+    return subscribeToCleanEvidenceChanges((detail) => {
+      if (detail.familyId !== workspace.profile?.id) return;
+      void reloadEvidence();
+    });
+  }, [reloadEvidence, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+
+  useEffect(() => {
     async function loadGuidance() {
       if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
         setGuidanceCards([]);
@@ -917,6 +954,46 @@ function CleanDayWorkspaceBody() {
         ? current.filter((value) => value !== itemId)
         : [...current, itemId],
     );
+  }
+
+  async function handleCompletionToggle(item: CleanCalendarItem) {
+    if (!workspace.profile || completionUpdatingId) return;
+
+    const nextCompletedAt = item.completedAt ? null : new Date().toISOString();
+    const cacheKey = buildCleanPlanningCacheKey({
+      userId: workspace.currentUserId,
+      familyId: workspace.profile.id,
+      route: "day",
+      fromDate: selectedDate,
+      toDate: selectedDate,
+    });
+
+    setCompletionUpdatingId(item.id);
+    setCompletionError(null);
+
+    try {
+      const updatedItem = await updateCleanCalendarItem(workspace.profile.id, item.id, {
+        completedAt: nextCompletedAt,
+      });
+
+      setItems((current) => {
+        const nextItems = current.map((currentItem) =>
+          currentItem.id === updatedItem.id ? updatedItem : currentItem,
+        );
+        writeCleanPlanningCalendarItems(cacheKey, nextItems);
+        return nextItems;
+      });
+    } catch (error) {
+      setCompletionError({
+        itemId: item.id,
+        message: normalizeCleanErrorMessage(
+          error,
+          "We could not update this activity's completion status.",
+        ),
+      });
+    } finally {
+      setCompletionUpdatingId(null);
+    }
   }
 
   function openQuickAdd() {
@@ -1903,6 +1980,69 @@ function CleanDayWorkspaceBody() {
                             </div>
                           </div>
                         </button>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            padding: "0 14px 12px",
+                          }}
+                        >
+                          {item.completedAt ? (
+                            <>
+                              <span
+                                role="status"
+                                style={{ color: "#166534", fontSize: 13, fontWeight: 800 }}
+                              >
+                                ✓ Completed
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => void handleCompletionToggle(item)}
+                                disabled={completionUpdatingId === item.id}
+                                aria-label={`Mark ${item.title} not complete`}
+                                style={{
+                                  ...secondaryButtonStyle,
+                                  padding: "7px 10px",
+                                  color: "#475569",
+                                  fontSize: 12,
+                                  opacity: completionUpdatingId === item.id ? 0.6 : 1,
+                                }}
+                              >
+                                {completionUpdatingId === item.id
+                                  ? "Updating..."
+                                  : "Mark not complete"}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void handleCompletionToggle(item)}
+                              disabled={completionUpdatingId === item.id}
+                              aria-label={`Mark ${item.title} complete`}
+                              style={{
+                                ...secondaryButtonStyle,
+                                padding: "7px 10px",
+                                color: "#166534",
+                                borderColor: "#bbf7d0",
+                                background: "#f0fdf4",
+                                fontSize: 12,
+                                opacity: completionUpdatingId === item.id ? 0.6 : 1,
+                              }}
+                            >
+                              {completionUpdatingId === item.id
+                                ? "Updating..."
+                                : "○ Mark complete"}
+                            </button>
+                          )}
+                          {completionError?.itemId === item.id ? (
+                            <span role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
+                              {completionError.message}
+                            </span>
+                          ) : null}
+                        </div>
 
                         {expanded ? (
                           <div

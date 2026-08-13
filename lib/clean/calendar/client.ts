@@ -30,6 +30,8 @@ type CalendarItemRow = {
   source_program_segment_id?: string | null;
   generation_run_id?: string | null;
   is_highlighted?: boolean | null;
+  marketplace_resource_id?: string | null;
+  completed_at?: string | null;
   created_by_user_id: string;
   created_at?: string | null;
   updated_at?: string | null;
@@ -77,6 +79,8 @@ function toCleanCalendarItem(row: CalendarItemRow): CleanCalendarItem {
     sourceProgramSegmentId: normalizeNullString(row.source_program_segment_id),
     generationRunId: normalizeNullString(row.generation_run_id),
     isHighlighted: normalizeBoolean(row.is_highlighted),
+    marketplaceResourceId: normalizeNullString(row.marketplace_resource_id),
+    completedAt: normalizeNullString(row.completed_at),
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
@@ -149,6 +153,8 @@ function sanitizeCalendarItemInput(
       "isHighlighted" in input && input.isHighlighted !== undefined
         ? input.isHighlighted === true
         : undefined,
+    completed_at:
+      "completedAt" in input ? normalizeNullString(input.completedAt) : undefined,
   };
 }
 
@@ -159,7 +165,7 @@ export async function listCleanCalendarItems(
   let query = supabase
     .from("calendar_items")
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     )
     .eq("family_id", familyId)
     .order("planned_date", { ascending: true })
@@ -241,7 +247,7 @@ export async function createCleanCalendarItem(
       created_by_user_id: currentUserId,
     })
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
@@ -306,7 +312,7 @@ export async function createCleanCalendarItems(
       })),
     )
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     );
 
   if (response.error) {
@@ -348,7 +354,7 @@ export async function updateCleanCalendarItem(
     .eq("family_id", familyId)
     .eq("id", calendarItemId)
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 

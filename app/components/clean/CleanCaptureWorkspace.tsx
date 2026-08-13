@@ -581,6 +581,7 @@ function CleanCaptureWorkspaceBody() {
   const [lastSavedTitle, setLastSavedTitle] = useState("");
   const [lastSavedDate, setLastSavedDate] = useState("");
   const [lastSavedLearningArea, setLastSavedLearningArea] = useState("");
+  const [lastSavedMyDayReturnPath, setLastSavedMyDayReturnPath] = useState<string | null>(null);
   const [lastSavedPortfolioIncluded, setLastSavedPortfolioIncluded] = useState(true);
   const [lastSavedReportIncluded, setLastSavedReportIncluded] = useState(true);
   const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
@@ -1727,6 +1728,11 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedTitle(savedEntry.title || "Learning record");
       setLastSavedDate(savedEntry.observedOn);
       setLastSavedLearningArea(savedEntry.learningArea || "");
+      setLastSavedMyDayReturnPath(
+        calendarItemIdFromQuery
+          ? `/my-day?date=${encodeURIComponent(savedEntry.observedOn)}`
+          : null,
+      );
       setLastSavedPortfolioIncluded(savedEntry.includeInPortfolio);
       setLastSavedReportIncluded(savedEntry.includeInReport);
       setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
@@ -3369,6 +3375,20 @@ function CleanCaptureWorkspaceBody() {
                       }}
                     />
                   ) : null}
+                  {lastSavedMyDayReturnPath ? (
+                    <Link
+                      href={lastSavedMyDayReturnPath}
+                      style={{
+                        ...buttonStyle,
+                        background: "#ffffff",
+                        color: "#0f172a",
+                        textDecoration: "none",
+                        width: "fit-content",
+                      }}
+                    >
+                      Return to My Day
+                    </Link>
+                  ) : null}
                   {savedAttachments.length ? (
                     <p style={{ margin: 0, color: "#0f766e", fontWeight: 700 }}>
                       Photo attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
@@ -3399,6 +3419,7 @@ function CleanCaptureWorkspaceBody() {
                           setLastSavedTitle("");
                           setLastSavedDate("");
                           setLastSavedLearningArea("");
+                          setLastSavedMyDayReturnPath(null);
                           setLastSavedPortfolioIncluded(true);
                           setLastSavedReportIncluded(true);
                           setLastSavedWorksheetProgress("");

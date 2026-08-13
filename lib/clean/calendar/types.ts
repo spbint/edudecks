@@ -18,6 +18,8 @@ export type CleanCalendarItem = {
   sourceProgramSegmentId: string | null;
   generationRunId: string | null;
   isHighlighted: boolean;
+  marketplaceResourceId: string | null;
+  completedAt: string | null;
   createdByUserId: string;
   createdAt: string | null;
   updatedAt: string | null;
@@ -41,7 +43,9 @@ export type CleanCalendarItemInput = {
   isHighlighted?: boolean;
 };
 
-export type CleanCalendarItemUpdate = Partial<CleanCalendarItemInput>;
+export type CleanCalendarItemUpdate = Partial<CleanCalendarItemInput> & {
+  completedAt?: string | null;
+};
 
 export type CleanCalendarItemsOptions = {
   fromDate?: string | null;
