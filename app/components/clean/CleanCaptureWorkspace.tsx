@@ -161,6 +161,30 @@ type SpeechRecognitionLike = {
   stop: () => void;
 };
 
+type CaptureContextEditedField =
+  | "learnerId"
+  | "observedOn"
+  | "title"
+  | "whatHappened"
+  | "reflection"
+  | "learnerReflection"
+  | "learningArea"
+  | "programId"
+  | "calendarItemId";
+
+type CaptureContextEditState = {
+  key: string;
+  learnerId: boolean;
+  observedOn: boolean;
+  title: boolean;
+  whatHappened: boolean;
+  reflection: boolean;
+  learnerReflection: boolean;
+  learningArea: boolean;
+  programId: boolean;
+  calendarItemId: boolean;
+};
+
 type SpeechRecognitionErrorEventLike = {
   error?: string;
 };
@@ -603,6 +627,18 @@ function CleanCaptureWorkspaceBody() {
   const speechSessionStoppedManuallyRef = useRef(false);
   const speechStartInProgressRef = useRef(false);
   const quickDraftAppliedRef = useRef(false);
+  const captureContextEditsRef = useRef<CaptureContextEditState>({
+    key: "",
+    learnerId: false,
+    observedOn: false,
+    title: false,
+    whatHappened: false,
+    reflection: false,
+    learnerReflection: false,
+    learningArea: false,
+    programId: false,
+    calendarItemId: false,
+  });
 
   const learnerOptions = useMemo(
     () =>
@@ -638,6 +674,29 @@ function CleanCaptureWorkspaceBody() {
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
     safeQueryValue(searchParams.get("planned_date"));
+
+  function getCaptureContextEditState() {
+    if (captureContextEditsRef.current.key !== captureContextKey) {
+      captureContextEditsRef.current = {
+        key: captureContextKey,
+        learnerId: false,
+        observedOn: false,
+        title: false,
+        whatHappened: false,
+        reflection: false,
+        learnerReflection: false,
+        learningArea: false,
+        programId: false,
+        calendarItemId: false,
+      };
+    }
+
+    return captureContextEditsRef.current;
+  }
+
+  function markCaptureContextEdited(field: CaptureContextEditedField) {
+    getCaptureContextEditState()[field] = true;
+  }
 
   useEffect(() => {
     if (searchParams.get("quickDraft") !== "1" || quickDraftAppliedRef.current) return;
@@ -875,11 +934,20 @@ function CleanCaptureWorkspaceBody() {
 
     if (
       calendarItemId &&
+      !calendarItemIdFromQuery &&
+      calendarItems.length > 0 &&
       !filteredCalendarItems.some((item) => item.id === calendarItemId)
     ) {
       setCalendarItemId("");
     }
-  }, [calendarItemId, filteredCalendarItems, filteredPrograms, programId]);
+  }, [
+    calendarItemId,
+    calendarItemIdFromQuery,
+    calendarItems,
+    filteredCalendarItems,
+    filteredPrograms,
+    programId,
+  ]);
 
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,
@@ -1003,6 +1071,8 @@ function CleanCaptureWorkspaceBody() {
       learnerOptions.find((option) => option.value === learnerId)?.label || "The learner";
     const suggestion = buildLearningFromLifeSuggestion(whatHappened, learnerLabel);
 
+    markCaptureContextEdited("title");
+    markCaptureContextEdited("learningArea");
     setTitle(suggestion.title);
     setLifeEvidenceType(suggestion.evidenceType);
     setLearningArea(suggestion.learningArea);
@@ -1377,6 +1447,23 @@ function CleanCaptureWorkspaceBody() {
     const linkedCalendarItem = calendarItemIdFromQuery
       ? calendarItems.find((item) => item.id === calendarItemIdFromQuery) ?? null
       : null;
+    if (calendarItemIdFromQuery && !linkedCalendarItem) return;
+
+    if (captureContextEditsRef.current.key !== captureContextKey) {
+      captureContextEditsRef.current = {
+        key: captureContextKey,
+        learnerId: false,
+        observedOn: false,
+        title: false,
+        whatHappened: false,
+        reflection: false,
+        learnerReflection: false,
+        learningArea: false,
+        programId: false,
+        calendarItemId: false,
+      };
+    }
+    const contextEdits = captureContextEditsRef.current;
     const linkedProgram = programIdFromQuery
       ? programs.find((program) => program.id === programIdFromQuery) ?? null
       : null;
@@ -1434,39 +1521,50 @@ function CleanCaptureWorkspaceBody() {
           ].filter(Boolean).join("\n")
         : "";
 
-    setEditingEntryId(null);
-    setLearnerId(nextLearnerId);
-    setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
-    setTitle(
+    const nextTitle =
       worksheetTitleSuggestion ||
       pathwayTitleSuggestion ||
       curriculumTitleSuggestion ||
-        linkedCalendarItem?.title ||
-        linkedSegment?.title ||
-        linkedProgram?.title ||
-        curriculumElementLabelFromQuery ||
-        humanizeQuerySlug(curriculumElementFromQuery) ||
-        "",
-    );
-    setWhatHappened(worksheetWhatHappenedSuggestion || pathwayWhatHappenedSuggestion || "");
-    setReflection(
-      worksheetEvidenceMode
-        ? [
-            worksheetProgress ? `Progress level: ${worksheetProgress.value}` : "",
-          ].filter(Boolean).join("\n")
-        : "",
-    );
-    setLearningArea(
+      linkedCalendarItem?.title ||
+      linkedSegment?.title ||
+      linkedProgram?.title ||
+      curriculumElementLabelFromQuery ||
+      humanizeQuerySlug(curriculumElementFromQuery) ||
+      "";
+    const nextLearningArea =
       derivedPathwayCurriculumContext?.learningAreaLabel ||
-        nextCurriculumContext?.learningAreaLabel ||
-        learningAreaLabelFromQuery ||
-        learningAreaFromQuery ||
-        linkedCalendarItem?.learningArea ||
-        linkedProgram?.learningArea ||
-        "",
-    );
-    setProgramId(programIdFromQuery || linkedCalendarItem?.programId || linkedProgram?.id || "");
-    setCalendarItemId(calendarItemIdFromQuery || "");
+      nextCurriculumContext?.learningAreaLabel ||
+      learningAreaLabelFromQuery ||
+      learningAreaFromQuery ||
+      linkedCalendarItem?.learningArea ||
+      linkedProgram?.learningArea ||
+      "";
+
+    setEditingEntryId(null);
+    if (!contextEdits.learnerId) setLearnerId(nextLearnerId);
+    if (!contextEdits.observedOn) {
+      setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
+    }
+    if (!contextEdits.title) setTitle(nextTitle);
+    if (!contextEdits.whatHappened && !whatHappened.trim()) {
+      setWhatHappened(worksheetWhatHappenedSuggestion || pathwayWhatHappenedSuggestion || "");
+    }
+    if (!contextEdits.reflection && !reflection.trim()) {
+      setReflection(
+        worksheetEvidenceMode
+          ? [
+              worksheetProgress ? `Progress level: ${worksheetProgress.value}` : "",
+            ].filter(Boolean).join("\n")
+          : "",
+      );
+    }
+    if (!contextEdits.learningArea) setLearningArea(nextLearningArea);
+    if (!contextEdits.programId) {
+      setProgramId(programIdFromQuery || linkedCalendarItem?.programId || linkedProgram?.id || "");
+    }
+    if (!contextEdits.calendarItemId) {
+      setCalendarItemId(calendarItemIdFromQuery || "");
+    }
     setFormCurriculumContext(derivedPathwayCurriculumContext || nextCurriculumContext);
     setFormPathwayContext(nextPathwayContext);
     setPathwayObservedSkillStatus(
@@ -1514,6 +1612,8 @@ function CleanCaptureWorkspaceBody() {
     programSegmentIdFromQuery,
     programSegments,
     programs,
+    reflection,
+    whatHappened,
     workspace.learners,
     workspace.profile,
     workspace.setupStatus.activeLearnerId,
@@ -1945,6 +2045,7 @@ function CleanCaptureWorkspaceBody() {
       setLearnerChangePendingId(nextLearnerId);
       return;
     }
+    markCaptureContextEdited("learnerId");
     setLearnerId(nextLearnerId);
   }
 
@@ -1953,6 +2054,7 @@ function CleanCaptureWorkspaceBody() {
     setFormCurriculumContext(null);
     setPathwayObservedSkillStatus("");
     setWorksheetProgressLevel("");
+    markCaptureContextEdited("learnerId");
     setLearnerId(learnerChangePendingId);
     setLearnerChangePendingId("");
   }
@@ -2488,7 +2590,10 @@ function CleanCaptureWorkspaceBody() {
                     <input
                       type="date"
                       value={observedOn}
-                      onChange={(event) => setObservedOn(event.target.value)}
+                      onChange={(event) => {
+                        markCaptureContextEdited("observedOn");
+                        setObservedOn(event.target.value);
+                      }}
                       style={inputStyle}
                     />
                   </label>
@@ -2512,6 +2617,7 @@ function CleanCaptureWorkspaceBody() {
                       <textarea
                         value={whatHappened}
                         onChange={(event) => {
+                          markCaptureContextEdited("whatHappened");
                           setWhatHappened(event.target.value);
                           setLifeSuggestionsReady(false);
                         }}
@@ -2671,7 +2777,10 @@ function CleanCaptureWorkspaceBody() {
                         <div style={{ display: "grid", gap: 10 }}>
                           <input
                             value={title}
-                            onChange={(event) => setTitle(event.target.value)}
+                            onChange={(event) => {
+                              markCaptureContextEdited("title");
+                              setTitle(event.target.value);
+                            }}
                             placeholder="Evidence title"
                             style={inputStyle}
                           />
@@ -2690,7 +2799,10 @@ function CleanCaptureWorkspaceBody() {
                             />
                             <input
                               value={learningArea}
-                              onChange={(event) => setLearningArea(event.target.value)}
+                              onChange={(event) => {
+                                markCaptureContextEdited("learningArea");
+                                setLearningArea(event.target.value);
+                              }}
                               placeholder="Learning area"
                               style={inputStyle}
                             />
@@ -2991,6 +3103,7 @@ function CleanCaptureWorkspaceBody() {
                       <textarea
                         value={getWorksheetParentNote(reflection)}
                         onChange={(event) => {
+                          markCaptureContextEdited("reflection");
                           const progressLine = worksheetProgressLevel
                             ? `Progress level: ${worksheetProgressLevel}`
                             : "";
@@ -3011,7 +3124,10 @@ function CleanCaptureWorkspaceBody() {
                       </span>
                       <textarea
                         value={learnerReflection}
-                        onChange={(event) => setLearnerReflection(event.target.value)}
+                        onChange={(event) => {
+                          markCaptureContextEdited("learnerReflection");
+                          setLearnerReflection(event.target.value);
+                        }}
                         placeholder="Optional: what felt easy, challenging, or worth trying next."
                         style={textAreaStyle}
                       />
@@ -3022,7 +3138,10 @@ function CleanCaptureWorkspaceBody() {
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
                 <input
                   value={title}
-                  onChange={(event) => setTitle(event.target.value)}
+                  onChange={(event) => {
+                    markCaptureContextEdited("title");
+                    setTitle(event.target.value);
+                  }}
                   placeholder={
                     curriculumCaptureActive
                       ? buildCurriculumTitleSuggestion(formCurriculumContext) || "Title (optional)"
@@ -3036,7 +3155,10 @@ function CleanCaptureWorkspaceBody() {
                 <div data-guidance-id="capture-note-field">
                   <textarea
                     value={whatHappened}
-                    onChange={(event) => setWhatHappened(event.target.value)}
+                    onChange={(event) => {
+                      markCaptureContextEdited("whatHappened");
+                      setWhatHappened(event.target.value);
+                    }}
                     placeholder={curriculumWhatHappenedPlaceholder}
                     style={textAreaStyle}
                   />
@@ -3057,7 +3179,10 @@ function CleanCaptureWorkspaceBody() {
                       </span>
                       <textarea
                         value={reflection}
-                        onChange={(event) => setReflection(event.target.value)}
+                        onChange={(event) => {
+                          markCaptureContextEdited("reflection");
+                          setReflection(event.target.value);
+                        }}
                         placeholder={reflectionPlaceholder}
                         style={textAreaStyle}
                       />
@@ -3107,9 +3232,12 @@ function CleanCaptureWorkspaceBody() {
                     <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                       Choose a consistent learning area so records stay easy to find.
                     </span>
-                    <select
-                      value={learningArea}
-                      onChange={(event) => setLearningArea(event.target.value)}
+                      <select
+                        value={learningArea}
+                        onChange={(event) => {
+                          markCaptureContextEdited("learningArea");
+                          setLearningArea(event.target.value);
+                        }}
                       style={inputStyle}
                     >
                       <option value="">Choose learning area</option>
@@ -3178,7 +3306,10 @@ function CleanCaptureWorkspaceBody() {
                     </span>
                     <select
                       value={calendarItemId}
-                      onChange={(event) => setCalendarItemId(event.target.value)}
+                      onChange={(event) => {
+                        markCaptureContextEdited("calendarItemId");
+                        setCalendarItemId(event.target.value);
+                      }}
                       style={inputStyle}
                     >
                       <option value="">No optional calendar block</option>
