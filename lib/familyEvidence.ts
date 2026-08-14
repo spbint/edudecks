@@ -672,6 +672,7 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
   id: string;
   attachmentUrls: string[];
   imageUrl: string | null;
+  fileUrl: string | null;
 }> {
   const evidenceId = safe(input.evidenceId);
   const studentId = safe(input.studentId);
@@ -720,7 +721,7 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
   });
 
   const response = await query
-    .select("id,attachment_urls,image_url")
+    .select("id,attachment_urls,image_url,file_url")
     .single();
 
   if (response.error) {
@@ -746,6 +747,7 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
     id?: unknown;
     attachment_urls?: unknown;
     image_url?: unknown;
+    file_url?: unknown;
   };
   const storedAttachmentValues = serializeAttachmentValues(
     flattenAttachmentValues(row.attachment_urls)
@@ -759,6 +761,8 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
   const storedPaths = attachmentPathSet(storedAttachmentValues);
   const storedImageUrl = safe(row.image_url) || null;
   const expectedImageUrl = safe(input.imageUrl) || null;
+  const storedFileUrl = safe(row.file_url) || null;
+  const expectedFileUrl = safe(input.fileUrl) || null;
   const hasStoredAllExpectedAttachments =
     !expectedPaths.size ||
     Array.from(expectedPaths).every((path) => storedPaths.has(path));
@@ -766,23 +770,30 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
     !expectedImageUrl ||
     storedImageUrl === expectedImageUrl ||
     storedPaths.has(expectedImageUrl);
+  const hasStoredExpectedFile =
+    !expectedFileUrl ||
+    storedFileUrl === expectedFileUrl ||
+    storedPaths.has(expectedFileUrl);
 
   logFamilyEvidenceAttachmentDiagnostic("update-succeeded", {
     evidenceId,
     storedAttachmentCount: storedAttachmentValues.length,
     storedImageUrlPresent: Boolean(storedImageUrl),
+    storedFileUrlPresent: Boolean(storedFileUrl),
     verifiedAttachments: hasStoredAllExpectedAttachments,
     verifiedImage: hasStoredExpectedImage,
+    verifiedFile: hasStoredExpectedFile,
   });
 
-  if (!hasStoredAllExpectedAttachments || !hasStoredExpectedImage) {
-    throw new Error("Evidence attachment update did not persist the uploaded photo reference.");
+  if (!hasStoredAllExpectedAttachments || !hasStoredExpectedImage || !hasStoredExpectedFile) {
+    throw new Error("Evidence attachment update did not persist the uploaded file reference.");
   }
 
   return {
     id: safe(row.id) || evidenceId,
     attachmentUrls: storedAttachmentValues,
     imageUrl: storedImageUrl,
+    fileUrl: storedFileUrl,
   };
 }
 

@@ -93,8 +93,8 @@ describe("Quick Capture doorway", () => {
   it("supports explicit learner isolation, optional captions and local photo retry", () => {
     expect(source).toContain("requestedLearnerId");
     expect(source).toContain("availableLearners: workspace.learners");
-    expect(source).toContain("Photo still needs attaching");
-    expect(source).toContain("Try photo again");
+    expect(source).toContain("Attachment still needs attaching");
+    expect(source).toContain("Try attachment again");
     expect(source).toContain("Add a photo or a short caption");
   });
 
@@ -107,7 +107,7 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain('aria-label="Choose a photo from your library"');
     expect(source).toContain("visuallyHiddenInputStyle");
     expect(source).toContain("Take a photo");
-    expect(source).toContain("Choose from library");
+    expect(source).toContain("Choose photo");
     expect(source).toContain("Replace photo");
     expect(source).toContain("Remove photo");
     expect(source).toContain("Add learning area");

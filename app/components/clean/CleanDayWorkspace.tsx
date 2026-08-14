@@ -1976,7 +1976,7 @@ function CleanDayWorkspaceBody() {
                                 <span style={blockMetaPillStyle}>{`Week / segment: ${segmentLabel}`}</span>
                               ) : null}
                               {capturedEvidence ? (
-                                <span style={blockMetaPillStyle}>Evidence captured</span>
+                                <span style={blockMetaPillStyle}>✓ Learning captured</span>
                               ) : null}
                             </div>
                             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
@@ -2079,7 +2079,7 @@ function CleanDayWorkspaceBody() {
                             ) : null}
                             {capturedEvidence ? (
                               <div style={{ color: "#0f766e", fontWeight: 700 }}>
-                                Evidence captured
+                                ✓ Learning captured
                               </div>
                             ) : null}
                             <div
@@ -2098,7 +2098,7 @@ function CleanDayWorkspaceBody() {
                                   href={buildCaptureHref(item)}
                                   style={{ color: "#1d4ed8", fontWeight: 700 }}
                                 >
-                                  Capture what happened
+                                  Quick Capture
                                 </Link>
                               )}
                               <Link

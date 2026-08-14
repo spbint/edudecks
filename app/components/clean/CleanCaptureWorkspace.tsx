@@ -24,6 +24,12 @@ import {
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparation";
+import {
+  CLEAN_CAPTURE_FILE_ACCEPT,
+  CLEAN_CAPTURE_MAX_FILE_BYTES,
+  CLEAN_CAPTURE_MAX_IMAGE_BYTES,
+  isSupportedCleanCaptureFile,
+} from "@/lib/clean/evidence/attachmentPolicy";
 import { consumeQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import { resolveLearnerContext } from "@/lib/clean/learnerContext";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
@@ -100,6 +106,31 @@ const buttonStyle: React.CSSProperties = {
   padding: "10px 14px",
   fontSize: 14,
   fontWeight: 700,
+  cursor: "pointer",
+};
+
+const visuallyHiddenFileInputStyle: React.CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
+
+const tertiaryButtonStyle: React.CSSProperties = {
+  minHeight: 36,
+  border: 0,
+  background: "transparent",
+  color: "#4f46b8",
+  padding: "6px 2px",
+  fontSize: 14,
+  fontWeight: 800,
+  textDecoration: "underline",
+  textUnderlineOffset: 3,
   cursor: "pointer",
 };
 
@@ -584,6 +615,9 @@ function CleanCaptureWorkspaceBody() {
   const [photoName, setPhotoName] = useState("");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [photoSelectionMessage, setPhotoSelectionMessage] = useState("No photo attached yet.");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidenceFileName, setEvidenceFileName] = useState("");
+  const [fileSelectionMessage, setFileSelectionMessage] = useState("No file attached yet.");
   const [lifeEvidenceType, setLifeEvidenceType] = useState("Real-world learning");
   const [lifeTags, setLifeTags] = useState("");
   const [lifeObservation, setLifeObservation] = useState("");
@@ -1000,6 +1034,9 @@ function CleanCaptureWorkspaceBody() {
       if (current) URL.revokeObjectURL(current);
       return "";
     });
+    setEvidenceFile(null);
+    setEvidenceFileName("");
+    setFileSelectionMessage("No file attached yet.");
     setSavedAttachments([]);
     setPendingAttachmentEvidenceId("");
     setPendingAttachmentError("");
@@ -1039,6 +1076,15 @@ function CleanCaptureWorkspaceBody() {
     setMessage(null);
     setSavedAttachments([]);
     setPendingUploadedAttachments([]);
+    if (file && (!file.type.startsWith("image/") || file.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES)) {
+      setActionError(
+        file.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES
+          ? "Choose an image smaller than 10 MB."
+          : "Choose an image file for this learning moment.",
+      );
+      event.currentTarget.value = "";
+      return;
+    }
     setPhotoFile(file);
     setPhotoName(file?.name ?? "");
     setPhotoSelectionMessage(
@@ -1048,6 +1094,7 @@ function CleanCaptureWorkspaceBody() {
       if (current) URL.revokeObjectURL(current);
       return file ? URL.createObjectURL(file) : "";
     });
+    event.currentTarget.value = "";
   }
 
   function removePhoto() {
@@ -1058,6 +1105,35 @@ function CleanCaptureWorkspaceBody() {
       if (current) URL.revokeObjectURL(current);
       return "";
     });
+  }
+
+  function handleEvidenceFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setActionError(null);
+    setMessage(null);
+    if (file && !isSupportedCleanCaptureFile(file)) {
+      setActionError("Choose a PDF, document, or common image file.");
+      event.currentTarget.value = "";
+      return;
+    }
+    if (file && file.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
+      setActionError("Choose a file smaller than 25 MB.");
+      event.currentTarget.value = "";
+      return;
+    }
+    setEvidenceFile(file);
+    setEvidenceFileName(file?.name ?? "");
+    setFileSelectionMessage(
+      file ? "File attached and ready to save." : "No file was selected. You can continue without one.",
+    );
+    event.currentTarget.value = "";
+  }
+
+  function removeEvidenceFile() {
+    setEvidenceFile(null);
+    setEvidenceFileName("");
+    setFileSelectionMessage("No file attached yet.");
+    setActionError(null);
   }
 
   function applyLearningFromLifeSuggestions() {
@@ -1255,6 +1331,7 @@ function CleanCaptureWorkspaceBody() {
         kind: attachment.kind,
       })),
       imageUrl: uploadedAttachments.find((attachment) => attachment.kind === "image")?.path ?? null,
+      fileUrl: uploadedAttachments.find((attachment) => attachment.kind === "file")?.path ?? null,
     });
 
     const storedAttachmentText = updateResult.attachmentUrls.join("\n");
@@ -1398,6 +1475,47 @@ function CleanCaptureWorkspaceBody() {
     }
 
     throw lastError ?? new Error("The photo could not be uploaded.");
+  }
+
+  async function uploadEvidenceFilesForEvidence(evidenceId: string, files: File[]) {
+    if (!workspace.profile) {
+      throw new Error("Family workspace is required before uploading an attachment.");
+    }
+    if (!learnerId) {
+      throw new Error("Choose a learner before uploading an attachment.");
+    }
+
+    const preparedFiles = await Promise.all(
+      files.map((file) => (file.type.startsWith("image/") ? compressCleanEvidenceImage(file) : file)),
+    );
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        setSavePhase(attempt === 1 ? "Uploading attachments..." : "Retrying attachment upload...");
+        const uploadResult = await uploadFamilyEvidenceFiles({
+          familyProfileId: workspace.profile.id,
+          studentId: learnerId,
+          evidenceId,
+          files: preparedFiles,
+        });
+        if (uploadResult.failed.length) {
+          throw new Error(
+            uploadResult.failed.map((failure) => `${failure.name}: ${failure.message}`).join(" "),
+          );
+        }
+        if (!uploadResult.uploaded.length) {
+          throw new Error("No attachment was uploaded. Please try again.");
+        }
+        await finaliseWorksheetPhotoAttachment(evidenceId, uploadResult.uploaded);
+        return uploadResult.uploaded;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Attachment upload failed.");
+        if (attempt < 2) continue;
+      }
+    }
+
+    throw lastError ?? new Error("Attachment upload failed. Check your connection and try again.");
   }
 
   useEffect(() => {
@@ -1653,6 +1771,14 @@ function CleanCaptureWorkspaceBody() {
         throw new Error("Please choose an image smaller than 10 MB.");
       }
 
+      if (evidenceFile && !isSupportedCleanCaptureFile(evidenceFile)) {
+        throw new Error("Choose a PDF, document, or common image file.");
+      }
+
+      if (evidenceFile && evidenceFile.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
+        throw new Error("Please choose a file smaller than 25 MB.");
+      }
+
       const nextCurriculumContext = buildCurriculumCaptureContext(formCurriculumContext || {});
       const nextPathwayContext = buildPathwayCaptureContext({
         ...(formPathwayContext || {}),
@@ -1789,9 +1915,12 @@ function CleanCaptureWorkspaceBody() {
       }
 
       let uploadedAttachments: UploadedFamilyEvidenceFile[] = [];
-      if (photoFile) {
+      const filesToUpload = [photoFile, evidenceFile].filter(Boolean) as File[];
+      if (filesToUpload.length) {
         try {
-          uploadedAttachments = await uploadWorksheetPhotoForEvidence(savedEntry.id, photoFile);
+          uploadedAttachments = worksheetEvidenceMode && photoFile && !evidenceFile
+            ? await uploadWorksheetPhotoForEvidence(savedEntry.id, photoFile)
+            : await uploadEvidenceFilesForEvidence(savedEntry.id, filesToUpload);
         } catch (uploadError) {
           const errorMessage =
             uploadError instanceof Error
@@ -1809,7 +1938,7 @@ function CleanCaptureWorkspaceBody() {
           setLastSavedPhotoAttached(false);
           setPendingAttachmentEvidenceId(savedEntry.id);
           setPendingAttachmentError(errorMessage);
-          setPendingAttachmentFileName(photoFile.name);
+          setPendingAttachmentFileName(filesToUpload.map((file) => file.name).join(", "));
           setPendingUploadedAttachments(uploadedAttachments);
           setMessage(null);
           setActionError(null);
@@ -1863,16 +1992,17 @@ function CleanCaptureWorkspaceBody() {
   }
 
   async function retryPendingPhotoUpload() {
-    if (!pendingAttachmentEvidenceId || !photoFile) return;
+    const filesToUpload = [photoFile, evidenceFile].filter(Boolean) as File[];
+    if (!pendingAttachmentEvidenceId || !filesToUpload.length) return;
 
     setSubmitting(true);
     setActionError(null);
     setPendingAttachmentError("");
     try {
-      const uploadedAttachments = await uploadWorksheetPhotoForEvidence(
-        pendingAttachmentEvidenceId,
-        photoFile,
-      );
+      const uploadedAttachments =
+        worksheetEvidenceMode && photoFile && !evidenceFile
+          ? await uploadWorksheetPhotoForEvidence(pendingAttachmentEvidenceId, photoFile)
+          : await uploadEvidenceFilesForEvidence(pendingAttachmentEvidenceId, filesToUpload);
       setSavedAttachments(uploadedAttachments);
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
       setLastSavedPhotoPreviewUrl((current) => {
@@ -1890,6 +2020,9 @@ function CleanCaptureWorkspaceBody() {
         if (current) URL.revokeObjectURL(current);
         return "";
       });
+      setEvidenceFile(null);
+      setEvidenceFileName("");
+      setFileSelectionMessage("No file attached yet.");
       await reloadEntries();
     } catch (error) {
       setPendingAttachmentError(
@@ -1932,6 +2065,9 @@ function CleanCaptureWorkspaceBody() {
         if (current) URL.revokeObjectURL(current);
         return "";
       });
+      setEvidenceFile(null);
+      setEvidenceFileName("");
+      setFileSelectionMessage("No file attached yet.");
       await reloadEntries();
     } catch (error) {
       setPendingAttachmentError(
@@ -2557,6 +2693,137 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
 
               <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
+                  <div
+                    className="mylearna-capture-attachment-section"
+                    data-capture-attachment-controls="active"
+                    style={{
+                      border: "1px dashed #cbd5e1",
+                      borderRadius: 16,
+                      background: "#f8fafc",
+                      padding: 14,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <strong style={{ color: "#17204b" }}>Optional attachments</strong>
+                      <span style={{ color: "#64748b", fontSize: 13 }}>
+                        Add a photo or file if it helps tell the learning story. Both are optional.
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 10,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                      }}
+                    >
+                      <label
+                        style={{
+                          border: "1px solid #d9d0ff",
+                          borderRadius: 14,
+                          background: "#ffffff",
+                          padding: 12,
+                          minHeight: 74,
+                          display: "grid",
+                          gap: 4,
+                          cursor: submitting ? "default" : "pointer",
+                        }}
+                      >
+                        <span style={{ color: "#17204b", fontWeight: 850 }}>Take photo</span>
+                        <span style={{ color: "#64748b", fontSize: 12 }}>Use the camera on your device.</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          disabled={submitting}
+                          onChange={handlePhotoChange}
+                          data-capture-photo-input-camera="active"
+                          aria-label="Take a photo"
+                          style={visuallyHiddenFileInputStyle}
+                        />
+                      </label>
+                      <label
+                        style={{
+                          border: "1px solid #d9d0ff",
+                          borderRadius: 14,
+                          background: "#ffffff",
+                          padding: 12,
+                          minHeight: 74,
+                          display: "grid",
+                          gap: 4,
+                          cursor: submitting ? "default" : "pointer",
+                        }}
+                      >
+                        <span style={{ color: "#17204b", fontWeight: 850 }}>Choose photo</span>
+                        <span style={{ color: "#64748b", fontSize: 12 }}>Select one from your library.</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={submitting}
+                          onChange={handlePhotoChange}
+                          data-capture-photo-input-library="active"
+                          aria-label="Choose a photo"
+                          style={visuallyHiddenFileInputStyle}
+                        />
+                      </label>
+                      <label
+                        style={{
+                          border: "1px solid #d9d0ff",
+                          borderRadius: 14,
+                          background: "#ffffff",
+                          padding: 12,
+                          minHeight: 74,
+                          display: "grid",
+                          gap: 4,
+                          cursor: submitting ? "default" : "pointer",
+                        }}
+                      >
+                        <span style={{ color: "#17204b", fontWeight: 850 }}>Upload file</span>
+                        <span style={{ color: "#64748b", fontSize: 12 }}>PDF, document, or common image.</span>
+                        <input
+                          type="file"
+                          accept={CLEAN_CAPTURE_FILE_ACCEPT}
+                          disabled={submitting}
+                          onChange={handleEvidenceFileChange}
+                          data-capture-file-input="active"
+                          aria-label="Upload a file"
+                          style={visuallyHiddenFileInputStyle}
+                        />
+                      </label>
+                    </div>
+                    {photoFile ? (
+                      <div style={{ display: "grid", gap: 8, border: "1px solid #bbf7d0", borderRadius: 12, padding: 10, background: "#f0fdf4" }}>
+                        <strong style={{ color: "#15803d", fontSize: 13 }}>Photo attached: {photoName}</strong>
+                        {photoPreviewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={photoPreviewUrl} alt="Selected learning evidence" style={{ width: "100%", maxHeight: 180, objectFit: "contain", borderRadius: 10 }} />
+                        ) : null}
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <label style={{ ...tertiaryButtonStyle, display: "inline-flex", alignItems: "center" }}>
+                            Replace photo
+                            <input type="file" accept="image/*" disabled={submitting} onChange={handlePhotoChange} style={visuallyHiddenFileInputStyle} />
+                          </label>
+                          <button type="button" onClick={removePhoto} disabled={submitting} style={tertiaryButtonStyle}>Remove photo</button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {evidenceFile ? (
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", border: "1px solid #dbeafe", borderRadius: 12, padding: 10, background: "#eff6ff" }}>
+                        <div style={{ display: "grid", gap: 3 }}>
+                          <strong style={{ color: "#1d4ed8", fontSize: 13 }}>File attached: {evidenceFileName}</strong>
+                          <label style={{ ...tertiaryButtonStyle, display: "inline-flex", alignItems: "center", width: "fit-content" }}>
+                            Replace file
+                            <input type="file" accept={CLEAN_CAPTURE_FILE_ACCEPT} disabled={submitting} onChange={handleEvidenceFileChange} style={visuallyHiddenFileInputStyle} />
+                          </label>
+                          <span style={{ color: "#64748b", fontSize: 12 }}>{fileSelectionMessage}</span>
+                        </div>
+                        <button type="button" onClick={removeEvidenceFile} disabled={submitting} style={tertiaryButtonStyle}>Remove file</button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div
                   className={worksheetEvidenceMode ? "mylearna-capture-learner-date" : undefined}
                   style={{
@@ -3388,14 +3655,14 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <strong style={{ color: "#C2410C", fontSize: 16 }}>
-                    Progress saved, but photo upload failed.
+                    Learning recorded, but an attachment upload failed.
                   </strong>
                   <p style={{ margin: 0, color: "#9A3412", lineHeight: 1.5 }}>
                     {pendingAttachmentFileName ? `${pendingAttachmentFileName}: ` : ""}
                     {pendingAttachmentError}
                   </p>
                   <p style={{ margin: 0, color: "#9A3412", fontSize: 13, lineHeight: 1.45 }}>
-                    Check your connection and try again. Your progress note has been saved.
+                    Check your connection and try again. Your learning note has been saved.
                   </p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
@@ -3415,7 +3682,7 @@ function CleanCaptureWorkspaceBody() {
                         ? savePhase || "Retrying photo upload..."
                         : pendingUploadedAttachments.length
                           ? "Retry attaching photo"
-                          : "Retry photo upload"}
+                        : "Retry attachment upload"}
                     </button>
                     <button
                       type="button"
@@ -3474,7 +3741,7 @@ function CleanCaptureWorkspaceBody() {
                       <span>{lastSavedDate ? formatDateLabel(lastSavedDate) : ""}</span>
                       {lastSavedLearningArea ? <span>{lastSavedLearningArea}</span> : null}
                       <span>
-                        {lastSavedPhotoAttached ? "Photo attached - " : ""}
+                        {lastSavedPhotoAttached ? "Attachment attached - " : ""}
                         {lastSavedPortfolioIncluded ? "Added to Portfolio" : "Not added to Portfolio"} -{" "}
                         {lastSavedReportIncluded ? "Included in Reports" : "Not included in Reports"}
                       </span>
@@ -3522,7 +3789,7 @@ function CleanCaptureWorkspaceBody() {
                   ) : null}
                   {savedAttachments.length ? (
                     <p style={{ margin: 0, color: "#0f766e", fontWeight: 700 }}>
-                      Photo attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
+                      Attachments attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
                     </p>
                   ) : null}
                   {lastSavedPathwayContext ? (

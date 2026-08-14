@@ -11,6 +11,12 @@ import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture"
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparation";
 import {
+  CLEAN_CAPTURE_FILE_ACCEPT,
+  CLEAN_CAPTURE_MAX_FILE_BYTES,
+  CLEAN_CAPTURE_MAX_IMAGE_BYTES,
+  isSupportedCleanCaptureFile,
+} from "@/lib/clean/evidence/attachmentPolicy";
+import {
   updateFamilyEvidenceEntryAttachments,
   uploadFamilyEvidenceFiles,
   type UploadedFamilyEvidenceFile,
@@ -105,11 +111,12 @@ async function finalisePhotoAttachment(evidenceId: string, uploaded: UploadedFam
       kind: attachment.kind,
     })),
     imageUrl: uploaded.find((attachment) => attachment.kind === "image")?.path ?? null,
+    fileUrl: uploaded.find((attachment) => attachment.kind === "file")?.path ?? null,
   });
 
   const storedText = result.attachmentUrls.join("\n");
   const missing = uploaded.find((attachment) => !storedText.includes(attachment.path) && result.imageUrl !== attachment.path);
-  if (missing) throw new Error("Evidence attachment update did not confirm the uploaded photo reference.");
+   if (missing) throw new Error("Evidence attachment update did not confirm the uploaded attachment reference.");
   return result;
 }
 
@@ -124,9 +131,13 @@ export default function CleanQuickCaptureWorkspace() {
   const [learnerId, setLearnerId] = useState(requestedLearnerId);
   const [observedOn, setObservedOn] = useState(getTodayDate);
   const [caption, setCaption] = useState("");
+  const [reflection, setReflection] = useState("");
   const [learningArea, setLearningArea] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidenceFileName, setEvidenceFileName] = useState("");
+  const [fileSelectionMessage, setFileSelectionMessage] = useState("No file attached yet.");
   const [submitting, setSubmitting] = useState(false);
   const [savePhase, setSavePhase] = useState("");
   const [error, setError] = useState("");
@@ -184,7 +195,7 @@ export default function CleanQuickCaptureWorkspace() {
       setError("Choose an image file for this learning moment.");
       return;
     }
-    if (file && file.size > 10 * 1024 * 1024) {
+    if (file && file.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES) {
       setError("Choose an image smaller than 10 MB.");
       return;
     }
@@ -195,6 +206,32 @@ export default function CleanQuickCaptureWorkspace() {
     });
     if (file) trackProductEvent("quick_capture_photo_selected", { area: "quick_capture", route: pathname, hasImage: true }, user?.id);
     event.currentTarget.value = "";
+  }
+
+  function handleEvidenceFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setError("");
+    setStatus("");
+    if (file && !isSupportedCleanCaptureFile(file)) {
+      setError("Choose a PDF, document, or common image file.");
+      event.currentTarget.value = "";
+      return;
+    }
+    if (file && file.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
+      setError("Choose a file smaller than 25 MB.");
+      event.currentTarget.value = "";
+      return;
+    }
+    setEvidenceFile(file);
+    setEvidenceFileName(file?.name ?? "");
+    setFileSelectionMessage(file ? "File attached and ready to save." : "No file was selected.");
+    event.currentTarget.value = "";
+  }
+
+  function removeEvidenceFile() {
+    setEvidenceFile(null);
+    setEvidenceFileName("");
+    setFileSelectionMessage("No file attached yet.");
   }
 
   function removePhoto() {
@@ -211,18 +248,22 @@ export default function CleanQuickCaptureWorkspace() {
     libraryInputRef.current?.click();
   }
 
-  async function uploadPhoto(entry: CleanEvidenceEntry, file: File) {
-    if (!workspace.profile) throw new Error("Family workspace is required before uploading a photo.");
-    setSavePhase("Uploading photo...");
-    const preparedFile = await compressCleanEvidenceImage(file);
+  async function uploadEvidenceFiles(entry: CleanEvidenceEntry, files: File[]) {
+    if (!workspace.profile) throw new Error("Family workspace is required before uploading attachments.");
+    setSavePhase("Uploading attachments...");
+    const preparedFiles = await Promise.all(
+      files.map((file) => (file.type.startsWith("image/") ? compressCleanEvidenceImage(file) : file)),
+    );
     const uploadResult = await uploadFamilyEvidenceFiles({
       familyProfileId: workspace.profile.id,
       studentId: entry.learnerId,
       evidenceId: entry.id,
-      files: [preparedFile],
+      files: preparedFiles,
     });
-    if (uploadResult.failed.length) throw new Error("Photo upload failed. Check your connection and try again.");
-    setSavePhase("Finalising...");
+    if (uploadResult.failed.length) {
+      throw new Error(uploadResult.failed.map((failure) => `${failure.name}: ${failure.message}`).join(" "));
+    }
+    setSavePhase("Finalising attachments...");
     await finalisePhotoAttachment(entry.id, uploadResult.uploaded);
     return uploadResult.uploaded;
   }
@@ -235,8 +276,16 @@ export default function CleanQuickCaptureWorkspace() {
       setError("Choose the learner for this learning moment.");
       return;
     }
-    if (!photoFile && !nextCaption) {
+    if (!photoFile && !evidenceFile && !nextCaption) {
       setError("Add a photo or a short caption before saving.");
+      return;
+    }
+    if (evidenceFile && !isSupportedCleanCaptureFile(evidenceFile)) {
+      setError("Choose a PDF, document, or common image file.");
+      return;
+    }
+    if (evidenceFile && evidenceFile.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
+      setError("Choose a file smaller than 25 MB.");
       return;
     }
     if (!learnerId) {
@@ -270,6 +319,7 @@ export default function CleanQuickCaptureWorkspace() {
         activityDate: observedOn,
         title: "Learning moment",
         whatHappened: nextCaption || "Learning moment captured.",
+        parentNote: reflection.trim() || null,
         learningArea: learningArea.trim() || null,
         sourceType: "quick-capture",
         clientSubmissionId: submissionIdRef.current,
@@ -279,13 +329,14 @@ export default function CleanQuickCaptureWorkspace() {
 
       setSavedEntry(result.entry);
       trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
-      if (photoFile) {
+      const filesToUpload = [photoFile, evidenceFile].filter(Boolean) as File[];
+      if (filesToUpload.length) {
         try {
-          await uploadPhoto(result.entry, photoFile);
-          setSavedPhotoAttached(true);
+          const uploaded = await uploadEvidenceFiles(result.entry, filesToUpload);
+          setSavedPhotoAttached(Boolean(uploaded.length));
         } catch (uploadError) {
-          setPhotoUploadError(uploadError instanceof Error ? uploadError.message : "The learning moment was saved, but the photo needs another try.");
-          trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: true }, user?.id);
+          setPhotoUploadError(uploadError instanceof Error ? uploadError.message : "The learning moment was saved, but the attachment needs another try.");
+          trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(photoFile), hasFile: Boolean(evidenceFile) }, user?.id);
         }
       }
       setSavePhase("");
@@ -302,15 +353,16 @@ export default function CleanQuickCaptureWorkspace() {
   }
 
   async function retryPhotoUpload() {
-    if (!savedEntry || !photoFile || submitting) return;
+    const filesToUpload = [photoFile, evidenceFile].filter(Boolean) as File[];
+    if (!savedEntry || !filesToUpload.length || submitting) return;
     setSubmitting(true);
     setPhotoUploadError("");
     try {
-      await uploadPhoto(savedEntry, photoFile);
+      await uploadEvidenceFiles(savedEntry, filesToUpload);
       setSavedPhotoAttached(true);
-      setStatus("Photo attached to the saved learning moment.");
+      setStatus("Attachment attached to the saved learning moment.");
     } catch (retryError) {
-      setPhotoUploadError(retryError instanceof Error ? retryError.message : "The photo could not be attached yet.");
+      setPhotoUploadError(retryError instanceof Error ? retryError.message : "The attachment could not be attached yet.");
     } finally {
       setSubmitting(false);
       setSavePhase("");
@@ -332,12 +384,16 @@ export default function CleanQuickCaptureWorkspace() {
     setSharingOpen(false);
     setLearningAreaOpen(false);
     setCaption("");
+    setReflection("");
     setLearningArea("");
     setPhotoFile(null);
     setPhotoPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return "";
     });
+    setEvidenceFile(null);
+    setEvidenceFileName("");
+    setFileSelectionMessage("No file attached yet.");
     setObservedOn(getTodayDate());
     setStatus("");
     setError("");
@@ -384,11 +440,11 @@ export default function CleanQuickCaptureWorkspace() {
             <strong>{savedLearnerLabel}</strong>
             <span>{formatDate(savedEntry.observedOn)}</span>
             {caption.trim() ? <span>{caption.trim()}</span> : null}
-            {savedPhotoAttached ? <span>Photo attached</span> : photoUploadError ? <span style={{ color: "#b45309" }}>Photo still needs attaching</span> : null}
+            {savedPhotoAttached ? <span>Attachment attached</span> : photoUploadError ? <span style={{ color: "#b45309" }}>Attachment still needs attaching</span> : null}
             <span>Added to Portfolio</span>
-            <span>Not included in Reports</span>
+            <span>Included in Reports</span>
           </div>
-          {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 38, marginTop: 8 }}>{submitting ? "Trying again..." : "Try photo again"}</button></div> : null}
+          {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 38, marginTop: 8 }}>{submitting ? "Trying again..." : "Try attachment again"}</button></div> : null}
           <div style={{ display: "grid", gap: 12 }}>
             <button type="button" onClick={() => setSharingOpen(true)} style={buttonStyle}>Create a share card</button>
             <Link href={`/my-portfolio?learner_id=${encodeURIComponent(savedEntry.learnerId)}&latestEvidenceId=${encodeURIComponent(savedEntry.id)}&source=my-capture`} style={secondaryButtonStyle}>View in Portfolio</Link>
@@ -406,16 +462,17 @@ export default function CleanQuickCaptureWorkspace() {
 
   return (
     <main className="mylearna-quick-capture-main" ref={quickCaptureTopRef} tabIndex={-1} style={{ minHeight: "calc(100dvh - 72px)", paddingBottom: "calc(112px + env(safe-area-inset-bottom, 0px))", display: "grid", alignContent: "start", gap: 16, maxWidth: 760, margin: "0 auto", outline: "none" }}>
-      <style jsx global>{`@media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
+      <style jsx global>{`.mylearna-quick-capture-main fieldset:first-of-type > div { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; } @media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p></div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         <form onSubmit={handleSave} style={{ display: "grid", gap: 14 }}>
-          <fieldset style={{ display: "grid", gap: 10, border: 0, padding: 0, margin: 0 }}><legend style={{ color: "#17204b", fontWeight: 850, padding: 0 }}>Photo <span style={{ color: "#5b6478", fontWeight: 500, fontSize: 13 }}>(optional if you add a caption)</span></legend><div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}><button type="button" onClick={() => cameraInputRef.current?.click()} style={{ ...secondaryButtonStyle, minHeight: 64, borderColor: "#c4b5fd", background: "#faf9ff" }}>Take a photo</button><button type="button" onClick={() => libraryInputRef.current?.click()} style={{ ...secondaryButtonStyle, minHeight: 64 }}>Choose from library</button></div><input ref={cameraInputRef} id="quick-capture-camera-input" aria-label="Take a photo" type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={visuallyHiddenInputStyle} /><input ref={libraryInputRef} id="quick-capture-library-input" aria-label="Choose a photo from your library" type="file" accept="image/*" onChange={handlePhotoChange} style={visuallyHiddenInputStyle} />{photoPreviewUrl ? <div style={{ display: "grid", gap: 8 }}><img className="mylearna-quick-capture-photo-preview" src={photoPreviewUrl} alt="Selected learning moment" style={{ width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 14, background: "#f8fafc" }} /><div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}><button type="button" onClick={replacePhoto} style={tertiaryButtonStyle}>Replace photo</button><button type="button" onClick={removePhoto} style={tertiaryButtonStyle}>Remove photo</button></div></div> : <span style={{ color: "#64748b", fontSize: 13 }}>A clear photo is optional. You can save a caption-only moment.</span>}</fieldset>
+          <fieldset style={{ display: "grid", gap: 10, border: 0, padding: 0, margin: 0 }}><legend style={{ color: "#17204b", fontWeight: 850, padding: 0 }}>Add evidence <span style={{ color: "#5b6478", fontWeight: 500, fontSize: 13 }}>(optional)</span></legend><div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}><button type="button" onClick={() => cameraInputRef.current?.click()} style={{ ...secondaryButtonStyle, minHeight: 64, borderColor: "#c4b5fd", background: "#faf9ff" }}>Take a photo</button><button type="button" onClick={() => libraryInputRef.current?.click()} style={{ ...secondaryButtonStyle, minHeight: 64 }}>Choose photo</button><label style={{ ...secondaryButtonStyle, minHeight: 64, display: "inline-flex", textAlign: "center" }}>Upload file<input aria-label="Upload a file" type="file" accept={CLEAN_CAPTURE_FILE_ACCEPT} onChange={handleEvidenceFileChange} style={visuallyHiddenInputStyle} /></label></div><input ref={cameraInputRef} id="quick-capture-camera-input" aria-label="Take a photo" type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={visuallyHiddenInputStyle} /><input ref={libraryInputRef} id="quick-capture-library-input" aria-label="Choose a photo from your library" type="file" accept="image/*" onChange={handlePhotoChange} style={visuallyHiddenInputStyle} />{photoPreviewUrl ? <div style={{ display: "grid", gap: 8 }}><img className="mylearna-quick-capture-photo-preview" src={photoPreviewUrl} alt="Selected learning moment" style={{ width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 14, background: "#f8fafc" }} /><div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}><button type="button" onClick={replacePhoto} style={tertiaryButtonStyle}>Replace photo</button><button type="button" onClick={removePhoto} style={tertiaryButtonStyle}>Remove photo</button></div></div> : null}{evidenceFile ? <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", border: "1px solid #dbeafe", borderRadius: 12, padding: 10, background: "#eff6ff" }}><strong style={{ color: "#1d4ed8", fontSize: 13 }}>File attached: {evidenceFileName}</strong><span style={{ color: "#64748b", fontSize: 12 }}>{fileSelectionMessage}</span><button type="button" onClick={removeEvidenceFile} style={tertiaryButtonStyle}>Remove file</button></div> : <span style={{ color: "#64748b", fontSize: 13 }}>A photo or file is optional. You can save a caption-only moment.</span>}</fieldset>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened? <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Learning moment caption" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Add a short caption" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>
+          <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label>
           <div style={{ borderTop: "1px solid #eef0f5", paddingTop: 12 }}><button type="button" onClick={() => setLearningAreaOpen((current) => !current)} aria-expanded={learningAreaOpen} style={{ ...tertiaryButtonStyle, textDecoration: "none", padding: 0 }}>{learningAreaOpen ? "Hide learning area" : "Add learning area"}</button>{learningAreaOpen ? <label style={{ display: "grid", gap: 6, marginTop: 10 }}><span style={{ color: "#17204b", fontWeight: 750 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label> : null}</div>
-          <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports off"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving..." : "Save learning moment"}</button></div>
+          <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving..." : "Save learning moment"}</button></div>
           {error ? <p role="alert" style={{ margin: 0, color: "#b91c1c", lineHeight: 1.5 }}>{error}</p> : null}
         </form>
       </section>
