@@ -62,6 +62,7 @@ import {
   generateCleanDailyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import {
   beginCleanPlanningTiming,
   recordCleanPlanningMilestone,
@@ -616,6 +617,7 @@ function CleanDayWorkspaceBody() {
     [pathwaysPathBase, selectedLearnerId],
   );
   const shouldShowPlacementPrompt =
+    PUBLIC_PATHWAYS_ENABLED &&
     !workspace.setupLoading &&
     workspace.learners.length > 0 &&
     !accountSetup.hasPathway &&
@@ -637,11 +639,13 @@ function CleanDayWorkspaceBody() {
             label: "Plan this week",
             tone: "blue" as const,
       },
-      {
-        href: currentPathwayHref,
-        label: pathwayLabel,
-        tone: "green" as const,
-      },
+      ...(PUBLIC_PATHWAYS_ENABLED
+        ? [{
+            href: currentPathwayHref,
+            label: pathwayLabel,
+            tone: "green" as const,
+          }]
+        : []),
       evidenceEntries.length
         ? {
             href: portfolioPathBase,
@@ -2126,7 +2130,7 @@ function CleanDayWorkspaceBody() {
               <CleanGuidanceRibbon cards={openGuidanceCards} compact />
             ) : null}
 
-            <section data-guidance-id="my-day-next-pathways" style={cardStyle}>
+            {PUBLIC_PATHWAYS_ENABLED ? <section data-guidance-id="my-day-next-pathways" style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
                 <div style={{ display: "grid", gap: 6, maxWidth: 620 }}>
                   <p style={{ margin: 0, color: "#2563eb", fontWeight: 800, fontSize: 13 }}>
@@ -2149,7 +2153,7 @@ function CleanDayWorkspaceBody() {
                   Open My Pathways
                 </Link>
               </div>
-            </section>
+            </section> : null}
 
             <CleanFeedbackPrompt pageName="My Day" />
           </>

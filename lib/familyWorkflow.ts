@@ -26,9 +26,9 @@ export const FAMILY_WORKFLOW_STAGES: Array<{
   },
   {
     key: "capture",
-    label: "My Capture",
+    label: "Quick Capture",
     href: "/capture",
-    detail: "Record learning moments and evidence while they are still fresh.",
+    detail: "Record learning moments quickly while they are still fresh.",
   },
   {
     key: "reports",

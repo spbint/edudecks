@@ -10,6 +10,7 @@ import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import CleanPageFeedbackWidget from "@/app/components/clean/CleanPageFeedbackWidget";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 type HeaderNavItem = {
   label: string;
@@ -36,16 +37,18 @@ const coreNavItems: HeaderNavItem[] = [
     href: "/my-calendar",
     matches: ["/my-calendar", "/clean-my-calendar"],
   },
-  {
-    label: "My Pathways",
-    href: "/my-pathways",
-    matches: ["/my-pathways", "/clean-my-pathways", "/pathways"],
-  },
+  ...(PUBLIC_PATHWAYS_ENABLED
+    ? [{
+        label: "My Pathways",
+        href: "/my-pathways",
+        matches: ["/my-pathways", "/clean-my-pathways", "/pathways"],
+      }]
+    : []),
 ];
 
 const outputNavItems: HeaderNavItem[] = [
   {
-    label: "My Capture",
+    label: "Quick Capture",
     href: "/my-capture",
     matches: ["/my-capture", "/clean-my-capture"],
   },

@@ -148,7 +148,7 @@ type PdfComposer = {
 const LOGO_PATH = "/branding/mylearna-logo.png";
 const NOT_RECORDED_YET = "Not recorded in MyLearna yet.";
 const NO_FORMAL_OUTCOMES_YET =
-  "No formal outcomes have been added yet. Use My Capture, My Portfolio, and My Reports to build supporting evidence.";
+  "No formal outcomes have been added yet. Use Quick Capture, My Portfolio, and My Reports to build supporting evidence.";
 const NO_ATTENDANCE_NOTE =
   "No attendance percentage is calculated in this prototype.";
 const NO_EVIDENCE_IN_AREA = "No evidence recorded in this area yet.";

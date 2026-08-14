@@ -47,9 +47,9 @@ describe("MyLearna Coach recommendation engine", () => {
     expect(getCoachRecommendation(state({ schemaMissing: true }))).toBeNull();
   });
 
-  it("moves through the first activation journey from real signals", () => {
-    for (const route of ["/my-day", "/my-calendar", "/my-pathways", "/my-portfolio", "/my-settings"]) {
-      expect(getCoachRecommendation(state({ route, hasPathway: false }))).toMatchObject({ id: "activation-choose-pathway" });
+  it("moves through the public core activation journey from real signals", () => {
+    for (const route of ["/my-day", "/my-calendar", "/my-portfolio", "/my-settings"]) {
+      expect(getCoachRecommendation(state({ route, hasPathway: false }))).toMatchObject({ id: "returning-capture-learning" });
     }
     expect(getCoachRecommendation(state({ route: "/my-day", hasEvidence: false }))).toMatchObject({ id: "activation-capture-learning" });
     expect(getCoachRecommendation(state({ route: "/my-day", hasPortfolioItem: false }))).toMatchObject({ id: "activation-review-portfolio" });
@@ -58,7 +58,7 @@ describe("MyLearna Coach recommendation engine", () => {
   it("does not use an absent or false today-plan signal to mask stronger actions", () => {
     for (const todayHasPlannedLearning of [undefined, false]) {
       expect(getCoachRecommendation(state({ route: "/my-day", todayHasPlannedLearning, hasPathway: false }))).toMatchObject({
-        id: "activation-choose-pathway",
+        id: "returning-capture-learning",
       });
       expect(getCoachRecommendation(state({ route: "/my-day", todayHasPlannedLearning, hasEvidence: false }))).toMatchObject({
         id: "activation-capture-learning",

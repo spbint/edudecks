@@ -196,7 +196,7 @@ export default function CleanBrentEvidencePackPreview({
             </div>
           ) : (
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              No formal outcomes have been added yet. Use My Capture, My Portfolio, and My Reports to build supporting evidence.
+              No formal outcomes have been added yet. Use Quick Capture, My Portfolio, and My Reports to build supporting evidence.
             </p>
           )}
         </section>

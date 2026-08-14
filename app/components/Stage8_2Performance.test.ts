@@ -24,7 +24,6 @@ describe("Stage 8.2 loading and navigation fluidity", () => {
       "/my-settings",
       "/my-capture?mode=quick",
       "/my-calendar",
-      "/my-pathways",
     ]);
     expect(getMobilePrefetchDestinations("CAPTURE")).toContain("/my-portfolio");
     expect(getMobilePrefetchDestinations("GROW")).toContain("/my-reports");

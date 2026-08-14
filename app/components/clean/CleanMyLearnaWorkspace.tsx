@@ -30,6 +30,7 @@ import {
   CURRICULUM_COVERAGE_EMPTY_COPY,
   generateCurriculumCoveragePdfBytes,
 } from "@/lib/clean/outputs/curriculumCoveragePdf";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e7eaf2",
@@ -374,9 +375,11 @@ export default function CleanMyLearnaWorkspace() {
     [selectedLearner?.yearLevel, visibleAssessmentStatuses, visibleEntries],
   );
   const latestEntry = visibleEntries[0] ?? null;
-  const latestPathwayContext = latestEntry ? parsePathwayContextFromNodeIds(latestEntry.curriculumNodeIds) : null;
+  const latestPathwayContext = PUBLIC_PATHWAYS_ENABLED && latestEntry
+    ? parsePathwayContextFromNodeIds(latestEntry.curriculumNodeIds)
+    : null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
-  const hasPathwaySignal = Boolean(
+  const hasPathwaySignal = PUBLIC_PATHWAYS_ENABLED && Boolean(
     summary.nextLearningSteps[0] &&
       (summary.activeLearningAreaRows.length > 0 || visibleAssessmentStatuses.some((status) => Boolean(status.pathwayStepId))),
   );
@@ -385,7 +388,7 @@ export default function CleanMyLearnaWorkspace() {
     ? { label: "Continue learning", href: pathwayPath(selectedLearnerId, nextStep) }
       : visibleEntries.length
       ? { label: "Add evidence", href: capturePath(selectedLearnerId, latestEntry) }
-      : { label: "Choose a learning pathway", href: pathwayPath(selectedLearnerId, null) };
+      : { label: "Add a learning record", href: capturePath(selectedLearnerId, latestEntry) };
   const quickCaptureHref = `/my-capture?mode=quick&learner_id=${encodeURIComponent(selectedLearnerId)}&returnTo=${encodeURIComponent("/my-learna")}`;
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
   const quietAreas = summary.allSubjectRows.filter((row) => !row.isActiveLearningArea);
@@ -486,19 +489,19 @@ export default function CleanMyLearnaWorkspace() {
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}><strong style={{ color: "#17204b", fontSize: 17 }}>Records</strong><span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{recordHealth.label}</span></div>
         <p style={{ ...quietTextStyle, margin: 0 }}>{recordHealth.copy}</p>
         {entriesError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{entriesError}</div> : null}
-        {assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
-        {entriesError || assessmentError ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
+        {PUBLIC_PATHWAYS_ENABLED && assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
+        {entriesError || (PUBLIC_PATHWAYS_ENABLED && assessmentError) ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
       </section>
-      <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
+      {PUBLIC_PATHWAYS_ENABLED ? <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
         <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>What the evidence suggests</h2>
         {latestJudgement ? <><p style={{ ...quietTextStyle, margin: 0 }}>Your latest saved judgement is <strong style={{ color: "#17204b" }}>{latestJudgement.judgement}</strong>.</p><p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{dateLabel(latestJudgement.dateValue)}{latestJudgement.subjectTitle ? ` · ${latestJudgement.subjectTitle}` : ""}{latestJudgement.stepTitle ? ` · ${latestJudgement.stepTitle}` : ""}</p><Link href={latestJudgement.sourceType === "evidence" ? `${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(latestJudgement.sourceId)}` : pathwayPath(selectedLearnerId, nextStep)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View the underlying record</Link></> : <p style={{ ...quietTextStyle, margin: 0 }}>There is not enough saved evidence yet to describe change over time.</p>}
-      </section>
-      <Disclosure id="progress-and-judgements" title="Progress and judgements" description="Saved judgements and pathway state, not activity volume.">
+      </section> : null}
+      {PUBLIC_PATHWAYS_ENABLED ? <Disclosure id="progress-and-judgements" title="Progress and judgements" description="Saved judgements and pathway state, not activity volume.">
         {assessmentLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading saved judgements...</p> : null}
         {assessmentRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing saved judgements...</p> : null}
         {summary.progressJudgementObservations.length ? summary.progressJudgementObservations.slice(0, 6).map((observation) => <article key={observation.id} style={{ borderTop: "1px solid #e7eaf2", paddingTop: 12, display: "grid", gap: 5 }}><strong style={{ color: "#17204b" }}>{observation.judgement}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(observation.dateValue)}{observation.subjectTitle ? ` · ${observation.subjectTitle}` : ""}{observation.stepTitle ? ` · ${observation.stepTitle}` : ""}</span></article>) : <p style={{ ...quietTextStyle, margin: 0 }}>No recognised progress judgement has been saved yet.</p>}
         {nextStep ? <Link href={pathwayPath(selectedLearnerId, nextStep)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Open pathway</Link> : null}
-      </Disclosure>
+      </Disclosure> : null}
       <Disclosure id="recent-records" title="Recent records" description="Saved observations and work samples, with Portfolio as the full record.">
         {entriesLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading recent records...</p> : null}
         {entriesRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing recent records...</p> : null}

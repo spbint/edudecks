@@ -616,7 +616,7 @@ function CleanSettingsWorkspaceBody() {
           ? "Use the workflow once this context is saved"
           : "Finish the core family context first",
         description: myDayContextReady
-          ? "After saving, head to My Day or My Pathways and let this context guide planning, evidence, and reporting."
+          ? "After saving, head to My Day and let this context guide planning, evidence, and reporting."
           : "Save country, curriculum, and reporting context first. That gives the rest of MyLearna a clearer frame to work with.",
         actionHref: myDayContextReady ? "/my-day" : "#edit-family-settings",
         actionLabel: myDayContextReady ? "Open My Day" : "Finish settings",

@@ -458,8 +458,8 @@ export default function FamilyCaptureWorkspace() {
 
   return (
     <FamilyTopNavShell
-      subtitle="My Capture"
-      heroTitle="My Capture"
+      subtitle="Quick Capture"
+      heroTitle="Quick Capture"
       heroText="Capture a learning moment while it is still fresh."
       heroAsideTitle="Linked context"
       heroAsideText="Capture inherits the plan context quietly, so curriculum can stay visible without cluttering the moment."

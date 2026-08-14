@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PUBLIC_ASSESSMENTS_ENABLED, PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 const shellStyle = {
   minHeight: "auto",
@@ -36,9 +37,9 @@ const linkStyle = {
 
 const previewRoutes = [
   { href: "/my-day", label: "My Day" },
-  { href: "/my-pathways", label: "My Pathways" },
-  { href: "/my-assessments", label: "My Assessments" },
-  { href: "/my-capture", label: "My Capture" },
+  ...(PUBLIC_PATHWAYS_ENABLED ? [{ href: "/my-pathways", label: "My Pathways" }] : []),
+  ...(PUBLIC_ASSESSMENTS_ENABLED ? [{ href: "/my-assessments", label: "My Assessments" }] : []),
+  { href: "/my-capture", label: "Quick Capture" },
   { href: "/my-portfolio", label: "My Portfolio" },
   { href: "/my-learna", label: "My Learna" },
   { href: "/my-reports", label: "My Reports" },

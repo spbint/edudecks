@@ -38,9 +38,9 @@ const STEPS = [
   },
   {
     step: "Step 4",
-    title: "Use pathways when helpful",
+    title: "Keep the useful record",
     text:
-      "Use My Pathways for practice, checks and worksheets. Completed pathway checks can become report-ready evidence.",
+      "Review learning moments in My Portfolio and keep the representative evidence that tells the story clearly.",
     href: "/start-free?source=get-started-step-4",
     cta: "Start free",
     tone: { bg: "#fff7ed", bd: "#fed7aa", fg: "#9a3412" },
@@ -61,7 +61,7 @@ export default function GetStartedPage() {
     <PublicSiteShell
       eyebrow="Your best first path"
       heroTitle="How to start homeschool record keeping with confidence."
-      heroText="Start with family setup, then connect planning, daily learning, evidence, pathways, portfolios and reports."
+      heroText="Start with family setup, then connect planning, daily learning, Quick Capture, portfolios and reports."
       heroBadges={[
         "Begin simply",
         "Curate gradually",

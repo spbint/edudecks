@@ -26,8 +26,8 @@ export const PAGE_INTRO_VIDEOS = {
   },
   myCapture: {
     pageKey: "my-capture",
-    title: "My Capture walkthrough",
-    shortTitle: "My Capture guide",
+    title: "Quick Capture walkthrough",
+    shortTitle: "Quick Capture guide",
     description:
       "See how to capture notes, photos, observations and work samples as learning evidence.",
     youtubeId: "edAUA_ACNxM",

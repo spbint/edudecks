@@ -1035,7 +1035,7 @@ export async function generateCurriculumCoveragePdfBytes(
           "Select the strongest examples for Portfolio or reporting when ready.",
         ]
       : [
-          "Choose a learning pathway.",
+          "Add a first observation or work sample.",
           "Add a first observation or work sample.",
           "Plan a learning activity and return here after work is saved.",
         ],

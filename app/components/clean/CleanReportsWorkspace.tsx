@@ -2250,7 +2250,7 @@ function CleanReportsWorkspaceBody() {
                           </div>
                         ) : (
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                            No report-ready learning records were found for this report period. Try widening the date range or recording learning from My Capture.
+                            No report-ready learning records were found for this report period. Try widening the date range or recording learning from Quick Capture.
                           </p>
                         )}
                         <div

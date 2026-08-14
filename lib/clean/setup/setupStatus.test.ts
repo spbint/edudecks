@@ -246,7 +246,7 @@ describe("deriveCleanSetupStatus", () => {
     expect(status.hasReport).toBe(true);
   });
 
-  it("recommends continuing a pathway when a pathway exists and evidence does not", () => {
+  it("recommends capture without requiring a pathway", () => {
     const activeLearner = learner("learner-1", "Ari");
     const status = deriveCleanSetupStatus({
       profile,
@@ -261,8 +261,8 @@ describe("deriveCleanSetupStatus", () => {
       },
     });
 
-    expect(status.nextAction.type).toBe("continue-pathway");
-    expect(status.nextAction.label).not.toContain("Choose");
+    expect(status.nextAction.type).toBe("capture-evidence");
+    expect(status.nextAction.label).toContain("Capture");
   });
 
   it("does not treat breaks as teaching periods", () => {

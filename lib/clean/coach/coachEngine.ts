@@ -1,4 +1,5 @@
 import type { CoachEngineResult, CoachState, CoachRecommendation } from "./types";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 function learnerRoute(base: string, state: CoachState) {
   if (!state.activeLearnerId) return base;
@@ -147,7 +148,7 @@ export function getCoachRecommendation(state: CoachState): CoachEngineResult {
     });
   }
 
-  if (!state.hasPathway) {
+  if (PUBLIC_PATHWAYS_ENABLED && !state.hasPathway) {
     return recommendation(state, {
       id: "activation-choose-pathway",
       category: "activation",

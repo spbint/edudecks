@@ -277,7 +277,7 @@ function nextPathLabel(nextPath: string) {
   if (nextPath.startsWith("/my-programs")) return "My Programs";
   if (nextPath.startsWith("/my-pathways")) return "My Pathways";
   if (nextPath.startsWith("/my-assessments")) return "My Assessments";
-  if (nextPath.startsWith("/my-capture")) return "My Capture";
+  if (nextPath.startsWith("/my-capture")) return "Quick Capture";
   if (nextPath.startsWith("/my-portfolio")) return "My Portfolio";
   if (nextPath.startsWith("/my-reports") || nextPath.startsWith("/my-outputs")) {
     return "Reports";

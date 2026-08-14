@@ -147,7 +147,7 @@ const SUGGEST_SOURCE_PAGE_LABELS: Record<string, string> = {
   "my-curriculum": "My Learna",
   "my-data": "My Learna",
   "my-assessments": "My Assessments",
-  "my-capture": "My Capture",
+  "my-capture": "Quick Capture",
   "my-portfolio": "My Portfolio",
   "my-reports": "My Reports",
   "my-outputs": "My Outputs",

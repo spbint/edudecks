@@ -270,7 +270,7 @@ function CleanProfileWorkspaceBody() {
           ? "Move into planning once this looks right"
           : "Finish family settings after learners are ready",
         description: setupContextReady
-          ? "Once names and the default learner feel right, head to My Day or My Pathways and start using the learning workflow."
+          ? "Once names and the default learner feel right, head to My Day and start using the learning workflow."
           : "After learner details are in place, open My Settings to choose country, curriculum, and reporting context.",
         actionHref: setupContextReady ? "/my-day" : "/my-settings",
         actionLabel: setupContextReady ? "Open My Day" : "Open My Settings",

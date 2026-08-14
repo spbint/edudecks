@@ -37,8 +37,8 @@ describe("Stage 8 mobile web shell", () => {
 
   it("exposes contextual pillar destinations without a second route grid", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
-      ["My Calendar", "My Pathways"],
-      ["My Capture", "My Portfolio"],
+      ["My Calendar"],
+      ["Quick Capture", "My Portfolio"],
       ["My Learna", "My Reports"],
     ]);
     expect(shellSource).toContain("mylearna-mobile-pillar-switcher");

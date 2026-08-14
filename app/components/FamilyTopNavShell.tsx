@@ -8,6 +8,7 @@ import PreviewBadge from "@/app/components/PreviewBadge";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import FamilyProfileMenu from "@/app/components/FamilyProfileMenu";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 type FamilyTopNavShellProps = {
   children: React.ReactNode;
@@ -51,11 +52,11 @@ function cx(...parts: Array<string | false | null | undefined>) {
 const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
-  { href: "/my-pathways", label: "My Pathways" },
+  ...(PUBLIC_PATHWAYS_ENABLED ? [{ href: "/my-pathways", label: "My Pathways" }] : []),
 ] as const;
 
 const SECONDARY_NAV = [
-  { href: "/my-capture", label: "My Capture" },
+  { href: "/my-capture", label: "Quick Capture" },
   { href: "/my-portfolio", label: "My Portfolio" },
   { href: "/my-reports", label: "My Reports" },
   { href: "/my-outputs", label: "My Outputs" },
@@ -97,7 +98,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
   if (pathname === "/my-month") return "My Calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
-  if (pathname === "/capture" || pathname === "/my-capture") return "My Capture";
+  if (pathname === "/capture" || pathname === "/my-capture") return "Quick Capture";
   if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/my-pathways") return "My Pathways";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";

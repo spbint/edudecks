@@ -1604,7 +1604,7 @@ function CleanPortfolioWorkspaceBody() {
                   Delete this evidence note?
                 </h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  This removes it from My Capture, Portfolio, Reports, and Outputs. This
+                  This removes it from Quick Capture, Portfolio, Reports, and Outputs. This
                   cannot be undone.
                 </p>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>

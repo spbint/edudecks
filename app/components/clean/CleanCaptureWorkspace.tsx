@@ -2188,7 +2188,7 @@ function CleanCaptureWorkspaceBody() {
 
         <CleanPageIntroVideo
           config={PAGE_INTRO_VIDEOS.myCapture}
-          promptTitle="New to My Capture?"
+          promptTitle="New to Quick Capture?"
           promptDescription="See how to save a quick learning moment."
         />
 
@@ -2204,7 +2204,7 @@ function CleanCaptureWorkspaceBody() {
             >
               Learning moments
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Capture</h1>
+            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>Quick Capture</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Save a learning moment privately. It starts in your Portfolio, and you can add more detail later.
             </p>

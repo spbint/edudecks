@@ -17,6 +17,7 @@ import {
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 export const v2Tokens = {
   page: "#F7F9FC",
@@ -73,13 +74,15 @@ export const finalProductNavSections = [
     label: "PLAN",
     items: [
       { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
-      { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways"] },
+      ...(PUBLIC_PATHWAYS_ENABLED
+        ? [{ href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route" as const, matches: ["/my-pathways"] }]
+        : []),
     ],
   },
   {
     label: "CAPTURE",
     items: [
-      { href: "/my-capture", label: "My Capture", shortLabel: "Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
+      { href: "/my-capture", label: "Quick Capture", shortLabel: "Quick Capture", icon: "camera", matches: ["/my-capture", "/capture"] },
       { href: "/my-portfolio", label: "My Portfolio", shortLabel: "Portfolio", icon: "folder", matches: ["/my-portfolio", "/portfolio"] },
     ],
   },
@@ -218,6 +221,7 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
 }
 
 function routeTitle(pathname: string) {
+  if (pathname === "/my-pathways") return "My Pathways";
   const item = navItems.find((candidate) =>
     candidate.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`)),
   );
@@ -262,6 +266,9 @@ function routeCrumbs(pathname: string): BreadcrumbItem[] {
   }
   if (pathname.startsWith("/my-pathways/placement") || pathname.startsWith("/clean-my-pathways/placement")) {
     return [{ label: "My Day", href: "/my-day" }, { label: "My Pathways", href: "/my-pathways" }, { label: "Placement" }];
+  }
+  if (pathname === "/my-pathways" || pathname === "/clean-my-pathways") {
+    return [{ label: "My Day", href: "/my-day" }, { label: "My Pathways" }];
   }
   if (pathname.startsWith("/practice/number-targeted")) {
     return [{ label: "My Pathways", href: "/my-pathways" }, { label: "Practise" }];
@@ -369,7 +376,7 @@ export function getMobilePrefetchDestinations(activeSection: MobileNavKey): stri
   const destinations = new Set(["/my-day", "/my-settings", "/my-capture?mode=quick"]);
   if (activeSection === "PLAN") {
     destinations.add("/my-calendar");
-    destinations.add("/my-pathways");
+    if (PUBLIC_PATHWAYS_ENABLED) destinations.add("/my-pathways");
   } else if (activeSection === "CAPTURE") {
     destinations.add("/my-capture");
     destinations.add("/my-portfolio");

@@ -11,6 +11,7 @@ import {
 } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { PATHWAY_SUBJECTS } from "@/lib/clean/pathways/pathwaySubjects";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 type CleanLearningIntelligenceDashboardProps = {
   learnerName: string;
@@ -355,13 +356,13 @@ export default function CleanLearningIntelligenceDashboard(
   );
 
   const latestActivity = summary.recentActivity[0] ?? null;
-  const leadNextStep = summary.nextLearningSteps[0] ?? null;
+  const leadNextStep = PUBLIC_PATHWAYS_ENABLED ? summary.nextLearningSteps[0] ?? null : null;
   const currentLearningArea =
     summary.activeLearningAreaRows[0]?.title || summary.selectedSubjectTitle;
   const primaryAction = leadNextStep
     ? { label: "Continue learning", href: leadNextStep.href }
     : summary.isEmpty
-      ? { label: "Choose a learning pathway", href: "/my-pathways" }
+      ? { label: "Add evidence", href: "/my-capture" }
       : { label: "Add evidence", href: "/my-capture" };
   const reportSummary =
     summary.reportEvidenceCount > 0
@@ -486,12 +487,11 @@ export default function CleanLearningIntelligenceDashboard(
               </>
             ) : summary.isEmpty ? (
               <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                Start building {props.learnerName}&rsquo;s learning overview by choosing a pathway
-                or adding a first observation.
+                Start building {props.learnerName}&rsquo;s learning overview by adding a first observation.
               </div>
             ) : (
               <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                Add evidence for recent work or review the current pathway when you are ready.
+                Add evidence for recent work when you are ready.
               </div>
             )}
           </aside>
@@ -527,12 +527,12 @@ export default function CleanLearningIntelligenceDashboard(
           <Metric
             label="Current learning area"
             value={currentLearningArea}
-            helper={summary.activeLearningAreaCount ? `${summary.areaCountLabel} represented` : "Choose a pathway to start"}
+            helper={summary.activeLearningAreaCount ? `${summary.areaCountLabel} represented` : "Add a learning record to begin"}
           />
           <Metric
             label="Learning records"
             value={summary.evidenceLinkedCount}
-            helper="Pathway-linked records for this learner"
+            helper="Linked learning records for this learner"
           />
           <Metric
             label="Portfolio"
@@ -565,7 +565,7 @@ export default function CleanLearningIntelligenceDashboard(
         </section>
       </section>
 
-      <section id="my-data-progress" style={sectionStyle}>
+      {PUBLIC_PATHWAYS_ENABLED ? <section id="my-data-progress" style={sectionStyle}>
         <div style={{ display: "grid", gap: 6 }}>
           <div style={eyebrowStyle}>Progress</div>
           <h3 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Current pathway progress</h3>
@@ -631,20 +631,20 @@ export default function CleanLearningIntelligenceDashboard(
             </div>
           </section>
         ) : null}
-      </section>
+      </section> : null}
 
       <section id="my-data-evidence" style={sectionStyle}>
         <div style={{ display: "grid", gap: 6 }}>
           <div style={eyebrowStyle}>Evidence</div>
           <h3 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Saved learning records</h3>
           <p style={{ margin: 0, ...mutedTextStyle }}>
-            Evidence totals use the same pathway-linked records that support Pathways and Portfolio.
+            Evidence totals use the same saved records that support Portfolio and Reports.
           </p>
         </div>
 
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))" }}>
           <Metric label="All learner evidence" value={props.evidenceEntries.length} />
-          <Metric label="Current pathway evidence" value={summary.evidenceLinkedCount} />
+          <Metric label="Linked learning evidence" value={summary.evidenceLinkedCount} />
           <Metric label="Portfolio items" value={summary.portfolioEvidenceCount} />
           <Metric label="Report-ready records" value={summary.reportEvidenceCount} />
         </div>

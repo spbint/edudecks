@@ -10,6 +10,7 @@ import type {
   CleanGuidanceStateInput,
   CleanGuidanceStepKey,
 } from "@/lib/clean/guidance/types";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 type GuidanceStateRow = {
   id: string;
@@ -129,7 +130,7 @@ export function buildCleanGuidanceCards(
     });
   }
 
-  if (input.hasMasterTemplate && !input.hasEvidence) {
+  if (PUBLIC_PATHWAYS_ENABLED && input.hasMasterTemplate && !input.hasEvidence) {
     openCards.push({
       key: "pathways",
       title: "Open My Pathways",
@@ -157,7 +158,7 @@ export function buildCleanGuidanceCards(
       title: "Capture today",
       description:
         "Use one of today's planned blocks as the anchor for your first learning note.",
-      actionLabel: "Open My Capture",
+      actionLabel: "Open Quick Capture",
       actionHref: "/my-capture",
     });
   }

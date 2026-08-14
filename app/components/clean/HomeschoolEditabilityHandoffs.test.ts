@@ -49,7 +49,7 @@ describe("Homeschool editability and journey handoffs", () => {
     expect(calendar).toContain("Your first learning plan is ready");
     expect(calendar).toContain("Continue to My Day");
     expect(calendar).toContain("Add another block");
-    expect(day).toContain("Open My Pathways");
+    expect(day).toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(day).toContain("Quick Capture");
     expect(pathways).toContain("Add completed work");
     expect(pathwayActions).toContain("Add completed work");

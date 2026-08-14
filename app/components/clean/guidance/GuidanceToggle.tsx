@@ -13,6 +13,7 @@ import {
   getSetupStep,
   getSetupStepNumber,
 } from "@/lib/clean/setup/setupFlow";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 const PENDING_TOUR_KEY = "mylearna.guidance.pendingTour";
 
@@ -360,7 +361,7 @@ export function GuidanceSetupProgress({
           textTransform: "uppercase",
         }}
       >
-        Getting started: Step {stepNumber} of {CLEAN_SETUP_STEPS.length}
+        Getting started: Step {stepNumber} of {publicSetupSteps.length}
       </div>
       <div style={{ display: "grid", gap: 6 }}>
         <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{title}</h2>
@@ -392,7 +393,11 @@ const setupTourIds: Record<CleanSetupStepId, GuidanceTourId> = {
   outputs: "my-outputs",
 };
 
-const checklistItems: SetupChecklistItem[] = CLEAN_SETUP_STEPS.map((step) => ({
+const publicSetupSteps = CLEAN_SETUP_STEPS.filter(
+  (step) => step.id !== "pathways" || PUBLIC_PATHWAYS_ENABLED,
+);
+
+const checklistItems: SetupChecklistItem[] = publicSetupSteps.map((step) => ({
   id: step.id,
   label: step.id === "profile" ? "Set up family profile" : step.requirement,
   href: step.route,

@@ -40,12 +40,12 @@ const FLOW_STEPS = [
     text: "Organise the week and see what is happening today.",
   },
   {
-    title: "Learn",
-    text: "Use your own resources or begin from My Pathways.",
+    title: "Capture",
+    text: "Record planned and spontaneous learning quickly while it is still fresh.",
   },
   {
-    title: "Capture",
-    text: "Save photos, notes, worksheets, projects and everyday learning.",
+    title: "Keep",
+    text: "Choose the moments that belong in your My Portfolio story.",
   },
   {
     title: "Report",
@@ -59,8 +59,8 @@ const VALUE_CARDS = [
     text: "Plan the week or month, then use My Day to follow the learning blocks for today.",
   },
   {
-    title: "Pathways with useful outputs",
-    text: "Practise, check understanding, open worksheets, and keep completed pathway checks as report-ready evidence.",
+    title: "Quick Capture for real life",
+    text: "Record photos, notes, work samples and everyday learning without rebuilding the story later.",
   },
   {
     title: "Evidence that keeps moving",
@@ -229,7 +229,7 @@ export default function HomePage() {
         >
           {sectionHeader(
             "Everything stays connected",
-            "Planning, pathways, evidence, portfolios and reports work together so the family’s learning story does not become scattered.",
+            "Planning, Quick Capture, portfolios and reports work together so the family’s learning story does not become scattered.",
           )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -285,7 +285,7 @@ export default function HomePage() {
       >
         {sectionHeader(
           "Everything you need to keep the story together",
-          "Calendar and My Day, Pathways and worksheets, Quick Capture, Portfolio, Reports and printable PDFs stay connected as learning unfolds.",
+          "My Calendar, My Day, Quick Capture, My Portfolio and My Reports stay connected as learning unfolds.",
         )}
         <div
           style={{
@@ -295,8 +295,7 @@ export default function HomePage() {
           }}
         >
           {[
-            "Calendar and My Day",
-            "Pathways and worksheets",
+            "My Calendar and My Day",
             "Quick Capture",
             "Portfolio",
             "Reports",

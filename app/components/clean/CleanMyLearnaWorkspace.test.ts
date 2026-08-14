@@ -10,7 +10,8 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).toContain("A calm learning picture");
     expect(source).toContain("Current focus");
     expect(source).toContain("Continue learning");
-    expect(source).toContain("Choose a learning pathway");
+    expect(source).toContain("PUBLIC_PATHWAYS_ENABLED");
+    expect(source).toContain("Add a learning record");
     expect(source).toContain("Add evidence");
     expect(source).toContain("Add a quick note or photo");
   });

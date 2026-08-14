@@ -3,6 +3,7 @@ import type { FamilyProfile } from "@/lib/clean/family/types";
 import type { Learner } from "@/lib/clean/learners/types";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import type { CleanTemplateBlock } from "@/lib/clean/templates/types";
+import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 export function isBreakLearningPeriod(
   period: Pick<CleanLearningPeriod, "isBreak" | "periodType">,
@@ -242,8 +243,6 @@ export function deriveCleanSetupStatus({
   const hasEvidence = counts.evidence > 0;
   const hasPortfolioItem = counts.portfolioItems > 0;
   const hasReport = counts.reports > 0;
-  const activeLearnerLabel = getCleanLearnerLabel(activeLearner);
-
   let nextAction: CleanSetupNextAction;
   if (!hasFamilyProfile) {
     nextAction = {
@@ -287,19 +286,26 @@ export function deriveCleanSetupStatus({
       href: "/my-calendar",
       category: "setup",
     };
-  } else if (!hasPathway) {
+  } else if (PUBLIC_PATHWAYS_ENABLED && !hasPathway) {
     nextAction = {
       type: "choose-pathway",
       label: "Choose a starting pathway",
       href: activeLearner ? `/my-pathways?learnerId=${encodeURIComponent(activeLearner.id)}` : "/my-pathways",
       category: "learning",
     };
-  } else if (!hasEvidence) {
+  } else if (PUBLIC_PATHWAYS_ENABLED && !hasEvidence) {
     nextAction = {
       type: "continue-pathway",
-      label: activeLearner ? `Continue ${activeLearnerLabel}'s current pathway` : "Continue current pathway",
+      label: activeLearner ? `Continue ${getCleanLearnerLabel(activeLearner)}'s current pathway` : "Continue current pathway",
       href: activeLearner ? `/my-pathways?learnerId=${encodeURIComponent(activeLearner.id)}` : "/my-pathways",
       category: "learning",
+    };
+  } else if (!hasEvidence) {
+    nextAction = {
+      type: "capture-evidence",
+      label: "Capture a learning moment",
+      href: activeLearner ? `/my-capture?learnerId=${encodeURIComponent(activeLearner.id)}` : "/my-capture",
+      category: "progress",
     };
   } else if (!hasPortfolioItem) {
     nextAction = {
