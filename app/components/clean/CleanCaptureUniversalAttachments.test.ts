@@ -15,6 +15,18 @@ const quickCaptureSource = readFileSync(
   join(process.cwd(), "app/components/clean/CleanQuickCaptureWorkspace.tsx"),
   "utf8",
 );
+const attachmentControlsSource = readFileSync(
+  join(process.cwd(), "app/components/clean/evidence/CleanEvidenceAttachmentControls.tsx"),
+  "utf8",
+);
+const attachmentHookSource = readFileSync(
+  join(process.cwd(), "lib/clean/evidence/useCleanEvidenceAttachments.ts"),
+  "utf8",
+);
+const attachmentPolicySource = readFileSync(
+  join(process.cwd(), "lib/clean/evidence/attachmentPolicy.ts"),
+  "utf8",
+);
 const daySource = readFileSync(
   join(process.cwd(), "app/components/clean/CleanDayWorkspace.tsx"),
   "utf8",
@@ -32,18 +44,13 @@ describe("universal Quick Capture attachments", () => {
   });
 
   it("shows the same camera, library, file, replace and remove controls in both modes", () => {
-    for (const source of [captureSource, quickCaptureSource]) {
-      expect(source.includes("Take photo") || source.includes("Take a photo")).toBe(true);
-      expect(source).toContain("Choose photo");
-      expect(source).toContain("Upload file");
-      expect(source).toContain("Remove photo");
-      expect(source).toContain("Remove file");
-      expect(source).toContain("CLEAN_CAPTURE_FILE_ACCEPT");
-      expect(source).toContain("uploadFamilyEvidenceFiles");
+    expect(captureSource).toContain("CleanEvidenceAttachmentControls");
+    expect(quickCaptureSource).toContain("CleanEvidenceAttachmentControls");
+    for (const label of ["Take photo", "Choose photo", "Upload file", "Replace photo", "Remove photo", "Replace file", "Remove file"]) {
+      expect(attachmentControlsSource).toContain(label);
     }
-    expect(captureSource).toContain("Replace photo");
-    expect(captureSource).toContain("Replace file");
-    expect(quickCaptureSource).toContain("Replace photo");
+    expect(attachmentControlsSource).toContain("CLEAN_CAPTURE_FILE_ACCEPT");
+    expect(attachmentHookSource).toContain("uploadFamilyEvidenceFiles");
   });
 
   it("keeps linked context and existing evidence defaults on the canonical save path", () => {
@@ -61,10 +68,26 @@ describe("universal Quick Capture attachments", () => {
   });
 
   it("persists file attachments through the existing evidence columns", () => {
-    expect(captureSource).toContain("fileUrl: uploadedAttachments.find");
-    expect(quickCaptureSource).toContain("fileUrl: uploaded.find");
+    expect(attachmentHookSource).toContain("fileUrl: uploadResult.uploaded.find");
+    expect(attachmentHookSource).toContain("const files = [photoFile, evidenceFile]");
+    expect(attachmentHookSource).toContain("attachmentMetadata(uploadResult.uploaded)");
     expect(familyEvidenceSource).toContain("file_url");
     expect(familyEvidenceSource).toContain("attachment_urls");
+  });
+
+  it("keeps selected attachments local until the save path invokes upload", () => {
+    expect(attachmentHookSource).toContain("if (!files.length) return []");
+    expect(attachmentControlsSource).not.toContain("uploadFamilyEvidenceFiles");
+    expect(attachmentControlsSource).not.toContain("updateFamilyEvidenceEntryAttachments");
+  });
+
+  it("revalidates selected files immediately before the shared storage helper", () => {
+    expect(attachmentHookSource).toContain("const currentValidationError = validateSelectedAttachments();");
+    expect(attachmentHookSource).toContain("const uploadResult = await uploadFamilyEvidenceFiles");
+    expect(attachmentHookSource.indexOf("const currentValidationError")).toBeLessThan(
+      attachmentHookSource.indexOf("const uploadResult = await uploadFamilyEvidenceFiles"),
+    );
+    expect(attachmentPolicySource).toContain("SUPPORTED_DOCUMENT_EXTENSIONS");
   });
 
   it("keeps completion separate and gives My Day one obvious capture action", () => {

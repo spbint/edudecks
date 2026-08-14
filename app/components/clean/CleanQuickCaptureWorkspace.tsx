@@ -7,20 +7,10 @@ import { useAuthUser } from "@/app/components/AuthUserProvider";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import CleanLearningMomentShareCard from "@/app/components/clean/CleanLearningMomentShareCard";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanEvidenceAttachmentControls from "@/app/components/clean/evidence/CleanEvidenceAttachmentControls";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
-import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparation";
-import {
-  CLEAN_CAPTURE_FILE_ACCEPT,
-  CLEAN_CAPTURE_MAX_FILE_BYTES,
-  CLEAN_CAPTURE_MAX_IMAGE_BYTES,
-  isSupportedCleanCaptureFile,
-} from "@/lib/clean/evidence/attachmentPolicy";
-import {
-  updateFamilyEvidenceEntryAttachments,
-  uploadFamilyEvidenceFiles,
-  type UploadedFamilyEvidenceFile,
-} from "@/lib/familyEvidence";
+import { useCleanEvidenceAttachments } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
@@ -64,18 +54,6 @@ const tertiaryButtonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const visuallyHiddenInputStyle: React.CSSProperties = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: "hidden",
-  clip: "rect(0, 0, 0, 0)",
-  whiteSpace: "nowrap",
-  border: 0,
-};
-
 function getTodayDate() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -100,26 +78,6 @@ function safeReturnPath(value: string | null | undefined, fallback: string) {
   return normalized.startsWith("/") && !normalized.startsWith("//") ? normalized : fallback;
 }
 
-async function finalisePhotoAttachment(evidenceId: string, uploaded: UploadedFamilyEvidenceFile[]) {
-  const result = await updateFamilyEvidenceEntryAttachments({
-    evidenceId,
-    attachmentUrls: uploaded.map((attachment) => ({
-      path: attachment.path,
-      name: attachment.label,
-      mimeType: attachment.mimeType,
-      size: attachment.size,
-      kind: attachment.kind,
-    })),
-    imageUrl: uploaded.find((attachment) => attachment.kind === "image")?.path ?? null,
-    fileUrl: uploaded.find((attachment) => attachment.kind === "file")?.path ?? null,
-  });
-
-  const storedText = result.attachmentUrls.join("\n");
-  const missing = uploaded.find((attachment) => !storedText.includes(attachment.path) && result.imageUrl !== attachment.path);
-   if (missing) throw new Error("Evidence attachment update did not confirm the uploaded attachment reference.");
-  return result;
-}
-
 export default function CleanQuickCaptureWorkspace() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
@@ -133,11 +91,7 @@ export default function CleanQuickCaptureWorkspace() {
   const [caption, setCaption] = useState("");
   const [reflection, setReflection] = useState("");
   const [learningArea, setLearningArea] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
-  const [evidenceFileName, setEvidenceFileName] = useState("");
-  const [fileSelectionMessage, setFileSelectionMessage] = useState("No file attached yet.");
+  const attachments = useCleanEvidenceAttachments();
   const [submitting, setSubmitting] = useState(false);
   const [savePhase, setSavePhase] = useState("");
   const [error, setError] = useState("");
@@ -148,8 +102,6 @@ export default function CleanQuickCaptureWorkspace() {
   const [sharingOpen, setSharingOpen] = useState(false);
   const [learningAreaOpen, setLearningAreaOpen] = useState(false);
   const quickCaptureTopRef = useRef<HTMLElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
-  const libraryInputRef = useRef<HTMLInputElement | null>(null);
   const submissionIdRef = useRef("");
 
   const selectedLearner = useMemo(
@@ -179,94 +131,9 @@ export default function CleanQuickCaptureWorkspace() {
     }
   }, [learnerId, requestedLearnerId, workspace.learners, workspace.profile?.defaultLearnerId, workspace.setupStatus.activeLearnerId]);
 
-  useEffect(() => () => {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-  }, [photoPreviewUrl]);
-
   useEffect(() => {
     trackProductEvent("quick_capture_opened", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId) }, user?.id);
   }, [learnerId, pathname, user?.id]);
-
-  function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setError("");
-    setStatus("");
-    if (file && !file.type.startsWith("image/")) {
-      setError("Choose an image file for this learning moment.");
-      return;
-    }
-    if (file && file.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES) {
-      setError("Choose an image smaller than 10 MB.");
-      return;
-    }
-    setPhotoFile(file);
-    setPhotoPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return file ? URL.createObjectURL(file) : "";
-    });
-    if (file) trackProductEvent("quick_capture_photo_selected", { area: "quick_capture", route: pathname, hasImage: true }, user?.id);
-    event.currentTarget.value = "";
-  }
-
-  function handleEvidenceFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setError("");
-    setStatus("");
-    if (file && !isSupportedCleanCaptureFile(file)) {
-      setError("Choose a PDF, document, or common image file.");
-      event.currentTarget.value = "";
-      return;
-    }
-    if (file && file.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
-      setError("Choose a file smaller than 25 MB.");
-      event.currentTarget.value = "";
-      return;
-    }
-    setEvidenceFile(file);
-    setEvidenceFileName(file?.name ?? "");
-    setFileSelectionMessage(file ? "File attached and ready to save." : "No file was selected.");
-    event.currentTarget.value = "";
-  }
-
-  function removeEvidenceFile() {
-    setEvidenceFile(null);
-    setEvidenceFileName("");
-    setFileSelectionMessage("No file attached yet.");
-  }
-
-  function removePhoto() {
-    setPhotoFile(null);
-    setPhotoPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return "";
-    });
-    setPhotoUploadError("");
-    setError("");
-  }
-
-  function replacePhoto() {
-    libraryInputRef.current?.click();
-  }
-
-  async function uploadEvidenceFiles(entry: CleanEvidenceEntry, files: File[]) {
-    if (!workspace.profile) throw new Error("Family workspace is required before uploading attachments.");
-    setSavePhase("Uploading attachments...");
-    const preparedFiles = await Promise.all(
-      files.map((file) => (file.type.startsWith("image/") ? compressCleanEvidenceImage(file) : file)),
-    );
-    const uploadResult = await uploadFamilyEvidenceFiles({
-      familyProfileId: workspace.profile.id,
-      studentId: entry.learnerId,
-      evidenceId: entry.id,
-      files: preparedFiles,
-    });
-    if (uploadResult.failed.length) {
-      throw new Error(uploadResult.failed.map((failure) => `${failure.name}: ${failure.message}`).join(" "));
-    }
-    setSavePhase("Finalising attachments...");
-    await finalisePhotoAttachment(entry.id, uploadResult.uploaded);
-    return uploadResult.uploaded;
-  }
 
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -276,16 +143,13 @@ export default function CleanQuickCaptureWorkspace() {
       setError("Choose the learner for this learning moment.");
       return;
     }
-    if (!photoFile && !evidenceFile && !nextCaption) {
+    if (!attachments.hasSelectedAttachments && !nextCaption) {
       setError("Add a photo or a short caption before saving.");
       return;
     }
-    if (evidenceFile && !isSupportedCleanCaptureFile(evidenceFile)) {
-      setError("Choose a PDF, document, or common image file.");
-      return;
-    }
-    if (evidenceFile && evidenceFile.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
-      setError("Choose a file smaller than 25 MB.");
+    const attachmentValidationError = attachments.validateSelectedAttachments();
+    if (attachmentValidationError) {
+      setError(attachmentValidationError);
       return;
     }
     if (!learnerId) {
@@ -328,15 +192,19 @@ export default function CleanQuickCaptureWorkspace() {
       });
 
       setSavedEntry(result.entry);
-      trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
-      const filesToUpload = [photoFile, evidenceFile].filter(Boolean) as File[];
-      if (filesToUpload.length) {
+      trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
+      if (attachments.hasSelectedAttachments) {
         try {
-          const uploaded = await uploadEvidenceFiles(result.entry, filesToUpload);
+          const uploaded = await attachments.uploadSelectedAttachments({
+            familyProfileId: workspace.profile.id,
+            studentId: result.entry.learnerId,
+            evidenceId: result.entry.id,
+            setPhase: setSavePhase,
+          });
           setSavedPhotoAttached(Boolean(uploaded.length));
         } catch (uploadError) {
           setPhotoUploadError(uploadError instanceof Error ? uploadError.message : "The learning moment was saved, but the attachment needs another try.");
-          trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(photoFile), hasFile: Boolean(evidenceFile) }, user?.id);
+          trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasFile: Boolean(attachments.evidenceFile) }, user?.id);
         }
       }
       setSavePhase("");
@@ -345,7 +213,7 @@ export default function CleanQuickCaptureWorkspace() {
       requestCoachStateRefresh("evidence-created", { refreshAlreadyApplied: true });
     } catch (saveError) {
       setError(normalizeCleanErrorMessage(saveError, "We could not save this learning moment. Try again."));
-      trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId), hasImage: Boolean(photoFile), hasCaption: Boolean(nextCaption) }, user?.id);
+      trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId), hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption) }, user?.id);
     } finally {
       setSubmitting(false);
       setSavePhase("");
@@ -353,12 +221,16 @@ export default function CleanQuickCaptureWorkspace() {
   }
 
   async function retryPhotoUpload() {
-    const filesToUpload = [photoFile, evidenceFile].filter(Boolean) as File[];
-    if (!savedEntry || !filesToUpload.length || submitting) return;
+    if (!savedEntry || !attachments.hasSelectedAttachments || submitting) return;
     setSubmitting(true);
     setPhotoUploadError("");
     try {
-      await uploadEvidenceFiles(savedEntry, filesToUpload);
+      await attachments.uploadSelectedAttachments({
+        familyProfileId: workspace.profile?.id ?? "",
+        studentId: savedEntry.learnerId,
+        evidenceId: savedEntry.id,
+        setPhase: setSavePhase,
+      });
       setSavedPhotoAttached(true);
       setStatus("Attachment attached to the saved learning moment.");
     } catch (retryError) {
@@ -371,7 +243,7 @@ export default function CleanQuickCaptureWorkspace() {
 
   function addMoreDetail() {
     if (!savedEntry) return;
-    setQuickCaptureDraft({ learnerId: savedEntry.learnerId, observedOn: savedEntry.observedOn, caption: caption.trim(), learningArea: learningArea.trim(), photoFile });
+    setQuickCaptureDraft({ learnerId: savedEntry.learnerId, observedOn: savedEntry.observedOn, caption: caption.trim(), learningArea: learningArea.trim(), photoFile: attachments.photoFile });
     const basePath = pathname.startsWith("/clean-my-capture") ? "/clean-my-capture" : "/my-capture";
     const params = new URLSearchParams({ learner_id: savedEntry.learnerId, observed_on: savedEntry.observedOn, quickDraft: "1", returnTo: returnPath });
     router.push(`${basePath}?${params.toString()}`);
@@ -386,14 +258,7 @@ export default function CleanQuickCaptureWorkspace() {
     setCaption("");
     setReflection("");
     setLearningArea("");
-    setPhotoFile(null);
-    setPhotoPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return "";
-    });
-    setEvidenceFile(null);
-    setEvidenceFileName("");
-    setFileSelectionMessage("No file attached yet.");
+    attachments.clearSelectedAttachments();
     setObservedOn(getTodayDate());
     setStatus("");
     setError("");
@@ -420,7 +285,7 @@ export default function CleanQuickCaptureWorkspace() {
         <CleanLearningMomentShareCard
           entry={savedEntry}
           learnerLabel={savedLearnerLabel}
-          imageUrl={photoPreviewUrl || null}
+          imageUrl={attachments.photoPreviewUrl || null}
           onClose={() => setSharingOpen(false)}
         />
       </main>
@@ -466,7 +331,7 @@ export default function CleanQuickCaptureWorkspace() {
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p></div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         <form onSubmit={handleSave} style={{ display: "grid", gap: 14 }}>
-          <fieldset style={{ display: "grid", gap: 10, border: 0, padding: 0, margin: 0 }}><legend style={{ color: "#17204b", fontWeight: 850, padding: 0 }}>Add evidence <span style={{ color: "#5b6478", fontWeight: 500, fontSize: 13 }}>(optional)</span></legend><div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}><button type="button" onClick={() => cameraInputRef.current?.click()} style={{ ...secondaryButtonStyle, minHeight: 64, borderColor: "#c4b5fd", background: "#faf9ff" }}>Take a photo</button><button type="button" onClick={() => libraryInputRef.current?.click()} style={{ ...secondaryButtonStyle, minHeight: 64 }}>Choose photo</button><label style={{ ...secondaryButtonStyle, minHeight: 64, display: "inline-flex", textAlign: "center" }}>Upload file<input aria-label="Upload a file" type="file" accept={CLEAN_CAPTURE_FILE_ACCEPT} onChange={handleEvidenceFileChange} style={visuallyHiddenInputStyle} /></label></div><input ref={cameraInputRef} id="quick-capture-camera-input" aria-label="Take a photo" type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={visuallyHiddenInputStyle} /><input ref={libraryInputRef} id="quick-capture-library-input" aria-label="Choose a photo from your library" type="file" accept="image/*" onChange={handlePhotoChange} style={visuallyHiddenInputStyle} />{photoPreviewUrl ? <div style={{ display: "grid", gap: 8 }}><img className="mylearna-quick-capture-photo-preview" src={photoPreviewUrl} alt="Selected learning moment" style={{ width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 14, background: "#f8fafc" }} /><div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}><button type="button" onClick={replacePhoto} style={tertiaryButtonStyle}>Replace photo</button><button type="button" onClick={removePhoto} style={tertiaryButtonStyle}>Remove photo</button></div></div> : null}{evidenceFile ? <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", border: "1px solid #dbeafe", borderRadius: 12, padding: 10, background: "#eff6ff" }}><strong style={{ color: "#1d4ed8", fontSize: 13 }}>File attached: {evidenceFileName}</strong><span style={{ color: "#64748b", fontSize: 12 }}>{fileSelectionMessage}</span><button type="button" onClick={removeEvidenceFile} style={tertiaryButtonStyle}>Remove file</button></div> : <span style={{ color: "#64748b", fontSize: 13 }}>A photo or file is optional. You can save a caption-only moment.</span>}</fieldset>
+          <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} compact />
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened? <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Learning moment caption" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Add a short caption" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>

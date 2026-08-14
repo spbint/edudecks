@@ -11,6 +11,7 @@ import {
 } from "@/lib/clean/evidence/learningMomentShareCard";
 
 const source = readFileSync(join(process.cwd(), "app/components/clean/CleanQuickCaptureWorkspace.tsx"), "utf8");
+const attachmentControlsSource = readFileSync(join(process.cwd(), "app/components/clean/evidence/CleanEvidenceAttachmentControls.tsx"), "utf8");
 const captureSource = readFileSync(join(process.cwd(), "app/components/clean/CleanCaptureWorkspace.tsx"), "utf8");
 const daySource = readFileSync(join(process.cwd(), "app/components/clean/CleanDayWorkspace.tsx"), "utf8");
 const portfolioSource = readFileSync(join(process.cwd(), "app/components/clean/CleanPortfolioWorkspace.tsx"), "utf8");
@@ -103,13 +104,14 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain(">Quick Capture</h1>");
     expect(source).toContain("Capture a learning moment now. Add more detail later.");
     expect(source).not.toContain("Add it to the portfolio later.");
-    expect(source).toContain('aria-label="Take a photo"');
-    expect(source).toContain('aria-label="Choose a photo from your library"');
-    expect(source).toContain("visuallyHiddenInputStyle");
-    expect(source).toContain("Take a photo");
-    expect(source).toContain("Choose photo");
-    expect(source).toContain("Replace photo");
-    expect(source).toContain("Remove photo");
+    expect(source).toContain("CleanEvidenceAttachmentControls");
+    expect(attachmentControlsSource).toContain('aria-label="Take a photo"');
+    expect(attachmentControlsSource).toContain('aria-label="Choose a photo"');
+    expect(attachmentControlsSource).toContain("visuallyHiddenFileInputStyle");
+    expect(attachmentControlsSource).toContain("Take photo");
+    expect(attachmentControlsSource).toContain("Choose photo");
+    expect(attachmentControlsSource).toContain("Replace photo");
+    expect(attachmentControlsSource).toContain("Remove photo");
     expect(source).toContain("Add learning area");
   });
 
