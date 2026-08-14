@@ -7,6 +7,7 @@ import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorks
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
+import CleanPathwayProgressConfirmation from "@/app/components/clean/CleanPathwayProgressConfirmation";
 import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
 import { getRegionalStageLabel } from "@/lib/clean/regionalStageLabels";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import type { CleanAssessmentStageKey } from "@/lib/clean/assessments/types";
 import {
   buildPathwayCaptureSearchParams,
 } from "@/lib/clean/evidence/curriculumContext";
@@ -1772,6 +1774,10 @@ function PathwaysWorkspaceBody() {
     });
   }
 
+  function handlePathwayProgressSaved() {
+    void reloadUnifiedPathwayStepState();
+  }
+
   return (
     <div style={shellStyle}>
       <style jsx global>{`
@@ -2888,6 +2894,7 @@ function PathwaysWorkspaceBody() {
                     regionalStageContext={regionalStageContext}
                     manualCompletions={manualCompletions}
                     onManualCompletionChange={handleManualCompletionChange}
+                    onPathwayProgressSaved={handlePathwayProgressSaved}
                     onActiveStageChange={handleSelectWorkspaceStage}
                   />
                 </MathematicsStrandWorkspaceShell>
@@ -3470,6 +3477,7 @@ function PathwayStageJourney({
   regionalStageContext,
   manualCompletions,
   onManualCompletionChange,
+  onPathwayProgressSaved,
   onActiveStageChange,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
@@ -3492,6 +3500,7 @@ function PathwayStageJourney({
   regionalStageContext: string | null;
   manualCompletions: ManualPathwayCompletionMap;
   onManualCompletionChange: (pathwayStepId: string, completed: boolean) => void;
+  onPathwayProgressSaved: () => void;
   onActiveStageChange: (stageKey: string) => void;
 }) {
   const activeStageTitle = activeStage
@@ -3689,6 +3698,7 @@ function PathwayStageJourney({
           regionalStageContext={regionalStageContext}
           manualCompletions={manualCompletions}
           onManualCompletionChange={onManualCompletionChange}
+          onPathwayProgressSaved={onPathwayProgressSaved}
         />
       ) : null}
     </div>
@@ -3905,6 +3915,7 @@ function DetailedMathematicsStageCard({
   regionalStageContext,
   manualCompletions,
   onManualCompletionChange,
+  onPathwayProgressSaved,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -3924,6 +3935,7 @@ function DetailedMathematicsStageCard({
   regionalStageContext: string | null;
   manualCompletions: ManualPathwayCompletionMap;
   onManualCompletionChange: (pathwayStepId: string, completed: boolean) => void;
+  onPathwayProgressSaved: () => void;
 }) {
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const stageDisplayTitle = getRegionalStageLabel(
@@ -4134,6 +4146,7 @@ function DetailedMathematicsStageCard({
               ] || null
             }
             onManualCompletionChange={onManualCompletionChange}
+            onPathwayProgressSaved={onPathwayProgressSaved}
           />
           );
         }) : (
@@ -4175,6 +4188,7 @@ function DetailedMathematicsStepCard({
   densityMode,
   manualCompletion,
   onManualCompletionChange,
+  onPathwayProgressSaved,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -4194,6 +4208,7 @@ function DetailedMathematicsStepCard({
   densityMode: PathwayDensityMode;
   manualCompletion: ManualPathwayCompletionRecord | null;
   onManualCompletionChange: (pathwayStepId: string, completed: boolean) => void;
+  onPathwayProgressSaved: () => void;
 }) {
   const statusState = getWorkspaceDisplayedPathwayStatus(
     selectedSubjectKey,
@@ -4218,22 +4233,6 @@ function DetailedMathematicsStepCard({
     stepIndex +
     1;
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
-  const stepUnifiedState = getUnifiedPathwayStepState(
-    unifiedPathwayStepStateIndex,
-    statusPathwayStepId,
-  );
-  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
-  const latestEvidenceEntry = stepUnifiedState?.latestEvidenceEntry ?? null;
-  const evidenceProgressMeta =
-    stepUnifiedState?.latestStatusSource === "evidence"
-      ? getWorksheetEvidenceProgressMeta(latestEvidenceEntry)
-      : null;
-  const statusChipMeta =
-    evidenceProgressMeta ||
-    (exactStepContext && confidenceStatusLabel === "Not checked yet"
-      ? statusMeta["Not started"]
-      : meta);
-  const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const canonicalStepKey = useMemo(
     () => buildPathwayRegistryStepKey(step.title, step.id),
     [step.id, step.title],
@@ -4247,6 +4246,25 @@ function DetailedMathematicsStepCard({
       stepKey: canonicalStepKey,
       stepNumber: String(step.id),
     });
+  const registryStep = canonicalPathwayStepId
+    ? getAllPathwaySteps().find((item) => item.id === canonicalPathwayStepId) || null
+    : null;
+  const stepUnifiedState = getUnifiedPathwayStepState(
+    unifiedPathwayStepStateIndex,
+    registryStep?.id || canonicalPathwayStepId,
+  );
+  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
+  const latestEvidenceEntry = stepUnifiedState?.latestEvidenceEntry ?? null;
+  const evidenceProgressMeta =
+    stepUnifiedState?.latestStatusSource === "evidence"
+      ? getWorksheetEvidenceProgressMeta(latestEvidenceEntry)
+      : null;
+  const statusChipMeta =
+    evidenceProgressMeta ||
+    (exactStepContext && confidenceStatusLabel === "Not checked yet"
+      ? statusMeta["Not started"]
+      : meta);
+  const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const worksheetResource = getWorksheetResourceForPathwayStep({
     pathwayStepId: canonicalPathwayStepId,
     stepKey: canonicalStepKey,
@@ -4688,6 +4706,25 @@ function DetailedMathematicsStepCard({
             : undefined
         }
       />
+
+      {isOpen && registryStep ? (
+        <CleanPathwayProgressConfirmation
+          familyId={familyId}
+          learnerId={selectedLearnerId}
+          subjectKey={registryStep.subjectKey}
+          stageKey={registryStep.stageKey as CleanAssessmentStageKey}
+          strandKey={registryStep.strandKey}
+          stepKey={registryStep.stepKey}
+          pathwayStepId={registryStep.id}
+          confirmedStatus={stepUnifiedState?.assessmentStatusRecord?.status || null}
+          evidenceSuggestion={
+            stepUnifiedState?.assessmentStatusRecord
+              ? null
+              : getWorksheetEvidenceProgressLabel(latestEvidenceEntry)
+          }
+          onSaved={onPathwayProgressSaved}
+        />
+      ) : null}
 
       <div
         id={detailPanelId}
