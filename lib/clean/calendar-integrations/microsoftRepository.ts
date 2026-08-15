@@ -1,18 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { OutboundCalendarRepository } from "@/lib/clean/calendar-integrations/outboundRepository";
 import {
-  GOOGLE_CALENDAR_NAME,
-  GOOGLE_CALENDAR_PROVIDER,
-  type GoogleConnection,
-  type GoogleConnectionMetadata,
-} from "@/lib/clean/calendar-integrations/googleTypes";
-import type { CalendarSyncJob } from "@/lib/clean/calendar-integrations/types";
+  MICROSOFT_CALENDAR_NAME,
+  MICROSOFT_CALENDAR_PROVIDER,
+  type MicrosoftConnection,
+  type MicrosoftConnectionMetadata,
+} from "@/lib/clean/calendar-integrations/microsoftTypes";
 
-export type { CalendarSyncJob };
-
-export function toGoogleConnectionMetadata(
-  connection: GoogleConnection,
-): GoogleConnectionMetadata {
+export function toMicrosoftConnectionMetadata(
+  connection: MicrosoftConnection,
+): MicrosoftConnectionMetadata {
   return {
     externalCalendarName: connection.externalCalendarName,
     status: connection.status,
@@ -24,8 +21,8 @@ export function toGoogleConnectionMetadata(
   };
 }
 
-export class GoogleCalendarRepository extends OutboundCalendarRepository {
+export class MicrosoftCalendarRepository extends OutboundCalendarRepository {
   constructor(admin?: SupabaseClient) {
-    super(GOOGLE_CALENDAR_PROVIDER, GOOGLE_CALENDAR_NAME, admin);
+    super(MICROSOFT_CALENDAR_PROVIDER, MICROSOFT_CALENDAR_NAME, admin);
   }
 }

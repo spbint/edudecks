@@ -9,6 +9,9 @@ const migration = read(
 const managementRoute = read("app/api/calendar-connections/google/route.ts");
 const callbackRoute = read("app/api/calendar-connections/google/callback/route.ts");
 const repository = read("lib/clean/calendar-integrations/googleRepository.ts");
+const outboundRepository = read(
+  "lib/clean/calendar-integrations/outboundRepository.ts",
+);
 const oauth = read("lib/clean/calendar-integrations/googleOAuth.ts");
 const googleTypes = read("lib/clean/calendar-integrations/googleTypes.ts");
 const event = read("lib/clean/calendar-integrations/googleEvent.ts");
@@ -34,7 +37,8 @@ describe("Google Calendar security boundaries", () => {
       "calendar_item_external_links_calendar_item_idx",
     );
     expect(migration).not.toMatch(/to anon/);
-    expect(repository).toContain('.eq("family_id", familyId)');
+    expect(outboundRepository).toContain('.eq("family_id", familyId)');
+    expect(repository).toContain("GOOGLE_CALENDAR_PROVIDER");
   });
 
   it("uses one-time hashed state, PKCE, fixed redirect and least privilege scope", () => {
@@ -60,18 +64,18 @@ describe("Google Calendar security boundaries", () => {
       "after insert or update of title, planned_date, starts_at, ends_at, learning_area or delete",
     );
     expect(migration).not.toMatch(/update of[^\n]*completed_at/);
-    expect(repository).toContain(
+    expect(outboundRepository).toContain(
       '.select("id,title,planned_date,starts_at,ends_at,learning_area,updated_at")',
     );
-    expect(repository).toContain("const pageSize = 500");
-    expect(repository).toContain(".range(offset, offset + pageSize - 1)");
+    expect(outboundRepository).toContain("const pageSize = 500");
+    expect(outboundRepository).toContain(".range(offset, offset + pageSize - 1)");
   });
 
   it("prevents a stale worker from consuming a newer queued mutation", () => {
     expect(migration).toContain("lock_token uuid");
     expect(migration).toMatch(/do update set[\s\S]*?lock_token = null/);
-    expect(repository).toContain('.eq("lock_token", job.lockToken)');
-    expect(repository).toContain('.eq("status", "processing")');
+    expect(outboundRepository).toContain('.eq("lock_token", job.lockToken)');
+    expect(outboundRepository).toContain('.eq("status", "processing")');
   });
 
   it("allowlists analytics fields and excludes identifiers and provider secrets", () => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processGoogleCalendarSyncBatch } from "@/lib/clean/calendar-integrations/googleSync";
+import { processMicrosoftCalendarSyncBatch } from "@/lib/clean/calendar-integrations/microsoftSync";
 import {
   CalendarRouteAuthorizationError,
   authorizeCalendarFamilyMember,
@@ -25,7 +26,15 @@ export async function POST(request: NextRequest) {
     const id = familyId(body.familyId);
     if (!id) return NextResponse.json({ ok: false }, { status: 400 });
     await authorizeCalendarFamilyMember(id);
-    const result = await processGoogleCalendarSyncBatch({ familyId: id, limit: 25 });
+    const [google, microsoft] = await Promise.all([
+      processGoogleCalendarSyncBatch({ familyId: id, limit: 25 }),
+      processMicrosoftCalendarSyncBatch({ familyId: id, limit: 25 }),
+    ]);
+    const result = {
+      claimed: google.claimed + microsoft.claimed,
+      succeeded: google.succeeded + microsoft.succeeded,
+      failed: google.failed + microsoft.failed,
+    };
     return NextResponse.json(
       { ok: true, result },
       { status: 202, headers: { "cache-control": "private, no-store" } },

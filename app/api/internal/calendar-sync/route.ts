@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { processGoogleCalendarSyncBatch } from "@/lib/clean/calendar-integrations/googleSync";
+import { processMicrosoftCalendarSyncBatch } from "@/lib/clean/calendar-integrations/microsoftSync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +21,11 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
   try {
-    const result = await processGoogleCalendarSyncBatch({ limit: 100 });
-    return NextResponse.json(result, {
+    const [google, microsoft] = await Promise.all([
+      processGoogleCalendarSyncBatch({ limit: 100 }),
+      processMicrosoftCalendarSyncBatch({ limit: 100 }),
+    ]);
+    return NextResponse.json({ google, microsoft }, {
       headers: { "cache-control": "private, no-store" },
     });
   } catch {

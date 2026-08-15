@@ -1,7 +1,4 @@
-import {
-  currentGoogleCalendarAnalyticsRoute,
-  trackGoogleCalendarEvent,
-} from "@/lib/clean/calendar-integrations/googleAnalytics";
+import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 
 export function requestCalendarProviderSync(familyId: string) {
   if (typeof window === "undefined" || !familyId) return;
@@ -17,13 +14,15 @@ export function requestCalendarProviderSync(familyId: string) {
         result?: { claimed?: number; failed?: number };
       } | null;
       if (!body?.result?.claimed) return;
-      trackGoogleCalendarEvent(
+      trackCoreJourneyEvent(
         body.result.failed
-          ? "google_calendar_sync_failed"
-          : "google_calendar_sync_succeeded",
+          ? "calendar_mirror_sync_failed"
+          : "calendar_mirror_sync_succeeded",
         {
+          area: "calendar_connections",
+          source: "calendar_mutation",
           outcome: body.result.failed ? "failed" : "succeeded",
-          route: currentGoogleCalendarAnalyticsRoute(),
+          route: window.location.pathname,
         },
       );
     })

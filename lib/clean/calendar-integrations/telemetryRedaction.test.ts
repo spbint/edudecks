@@ -67,4 +67,20 @@ describe("calendar feed observability redaction", () => {
     expect(serialized).not.toContain("structured-secret");
     expect(serialized).toContain("[redacted]");
   });
+
+  it("removes Microsoft OAuth codes, state and authorization request parameters", () => {
+    const event = redactCalendarFeedTelemetry({
+      request: {
+        url: "https://www.mylearna.com/api/calendar-connections/microsoft/callback?code=microsoft-secret-code&state=microsoft-secret-state",
+      },
+      breadcrumb: {
+        url: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=id&state=microsoft-secret-state&code_challenge=microsoft-secret-challenge",
+      },
+    });
+    const serialized = JSON.stringify(event);
+    expect(serialized).not.toContain("microsoft-secret-code");
+    expect(serialized).not.toContain("microsoft-secret-state");
+    expect(serialized).not.toContain("microsoft-secret-challenge");
+    expect(serialized).toContain("[redacted]");
+  });
 });

@@ -27,10 +27,12 @@ function repository(operation: "upsert" | "delete" = "upsert") {
     removed: vi.fn(),
   };
   const fake = {
+    provider: "google" as const,
     reclaimStaleJobs: vi.fn(),
     claimJobs: vi.fn().mockResolvedValue([
       {
         id: "job-1",
+        provider: "google" as const,
         familyId: "family-1",
         calendarItemId: "item-1",
         operation,
@@ -62,6 +64,7 @@ function repository(operation: "upsert" | "delete" = "upsert") {
       learningArea: "Mathematics",
       updatedAt: "2026-08-15T08:00:00.000Z",
     }),
+    getExternalLink: vi.fn().mockResolvedValue(null),
     saveExternalLink: calls.saved,
     completeJob: calls.completed,
     failJob: calls.failed,

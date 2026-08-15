@@ -6,6 +6,10 @@ const GOOGLE_OAUTH_CALLBACK =
   /\/api\/calendar-connections\/google\/callback\?[^\s"'<>]*/gi;
 const GOOGLE_AUTHORIZATION_URL =
   /https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth\?[^\s"'<>]*/gi;
+const MICROSOFT_OAUTH_CALLBACK =
+  /\/api\/calendar-connections\/microsoft\/callback\?[^\s"'<>]*/gi;
+const MICROSOFT_AUTHORIZATION_URL =
+  /https:\/\/login\.microsoftonline\.com\/common\/oauth2\/v2\.0\/authorize\?[^\s"'<>]*/gi;
 const SENSITIVE_CALENDAR_TELEMETRY_KEYS = new Set([
   "access_token",
   "authorization",
@@ -34,6 +38,14 @@ function redactValue(value: unknown, seen: WeakMap<object, unknown>): unknown {
       .replace(
         GOOGLE_AUTHORIZATION_URL,
         "https://accounts.google.com/o/oauth2/v2/auth?[redacted]",
+      )
+      .replace(
+        MICROSOFT_OAUTH_CALLBACK,
+        "/api/calendar-connections/microsoft/callback?[redacted]",
+      )
+      .replace(
+        MICROSOFT_AUTHORIZATION_URL,
+        "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?[redacted]",
       );
   }
   if (!value || typeof value !== "object") return value;

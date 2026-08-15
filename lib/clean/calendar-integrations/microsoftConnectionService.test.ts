@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { GoogleCalendarRepository } from "@/lib/clean/calendar-integrations/googleRepository";
+import type { MicrosoftCalendarRepository } from "@/lib/clean/calendar-integrations/microsoftRepository";
 import {
-  completeGoogleCalendarConnection,
-  startGoogleCalendarConnection,
-} from "@/lib/clean/calendar-integrations/googleConnectionService";
+  completeMicrosoftCalendarConnection,
+  disconnectMicrosoftCalendar,
+  startMicrosoftCalendarConnection,
+} from "@/lib/clean/calendar-integrations/microsoftConnectionService";
 import { encryptCalendarSecret } from "@/lib/clean/calendar-integrations/secretProtection";
-import { GOOGLE_CALENDAR_SCOPE } from "@/lib/clean/calendar-integrations/googleTypes";
 
 const original = { ...process.env };
 
 beforeEach(() => {
   process.env.CALENDAR_INTEGRATION_ENCRYPTION_KEY = Buffer.alloc(32, 4).toString("base64");
-  process.env.GOOGLE_CALENDAR_CLIENT_ID = "client-id";
-  process.env.GOOGLE_CALENDAR_CLIENT_SECRET = "client-secret";
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI =
-    "https://preview.test/api/calendar-connections/google/callback";
+  process.env.MICROSOFT_CALENDAR_CLIENT_ID = "client-id";
+  process.env.MICROSOFT_CALENDAR_CLIENT_SECRET = "client-secret";
+  process.env.MICROSOFT_CALENDAR_REDIRECT_URI =
+    "https://preview.test/api/calendar-connections/microsoft/callback";
 });
 
 afterEach(() => {
@@ -27,6 +27,7 @@ function repository(existingCalendarId: string | null = null) {
     id: "connection-1",
     familyId: input.familyId,
     connectedByUserId: input.userId,
+    provider: "microsoft",
     externalCalendarId: input.externalCalendarId,
     externalCalendarName: "MyLearna Homeschool",
     refreshTokenCiphertext: input.refreshTokenCiphertext,
@@ -39,7 +40,7 @@ function repository(existingCalendarId: string | null = null) {
     disconnectedAt: null,
   }));
   const fake = {
-    provider: "google" as const,
+    provider: "microsoft" as const,
     createOAuthState: vi.fn(),
     consumeOAuthState: vi.fn().mockResolvedValue({
       id: "state-row",
@@ -62,10 +63,14 @@ function repository(existingCalendarId: string | null = null) {
     reclaimStaleJobs: vi.fn(),
     claimJobs: vi.fn().mockResolvedValue([]),
   };
-  return { fake: fake as unknown as GoogleCalendarRepository, saveConnected, raw: fake };
+  return {
+    fake: fake as unknown as MicrosoftCalendarRepository,
+    saveConnected,
+    raw: fake,
+  };
 }
 
-function tokenResponse(scopes = GOOGLE_CALENDAR_SCOPE) {
+function tokenResponse(scopes = "Calendars.ReadWrite offline_access") {
   return new Response(
     JSON.stringify({
       access_token: "access-token",
@@ -77,32 +82,35 @@ function tokenResponse(scopes = GOOGLE_CALENDAR_SCOPE) {
   );
 }
 
-describe("Google Calendar connection lifecycle", () => {
-  it("stores only hashed/encrypted OAuth material before redirect", async () => {
+describe("Microsoft Calendar connection lifecycle", () => {
+  it("stores encrypted PKCE material before redirect", async () => {
     const repo = repository();
-    const result = await startGoogleCalendarConnection({
+    const result = await startMicrosoftCalendarConnection({
       familyId: "family-1",
       userId: "user-1",
       repository: repo.fake,
     });
-    expect(result.authorizationUrl).toContain("https://accounts.google.com/");
+    expect(result.authorizationUrl).toContain("login.microsoftonline.com/common");
     const stateInput = repo.raw.createOAuthState.mock.calls[0][0];
     expect(stateInput.rawState).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(stateInput.codeVerifierCiphertext).toMatch(/^v1\./);
-    expect(JSON.stringify(stateInput)).not.toContain("code_verifier");
   });
 
-  it("reauthorizes the exact user/family before creating the dedicated calendar", async () => {
+  it("reauthorizes the exact user/family and creates one dedicated calendar", async () => {
     const repo = repository();
-    const authorizeFamily = vi.fn().mockResolvedValue(undefined);
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(tokenResponse())
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "google-calendar-1" }), { status: 200 }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-    const result = await completeGoogleCalendarConnection({
+    const authorizeFamily = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(tokenResponse())
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ id: "microsoft-calendar-1" }), {
+            status: 201,
+          }),
+        ),
+    );
+    const result = await completeMicrosoftCalendarConnection({
       state: "s".repeat(43),
       code: "authorization-code",
       authenticatedUserId: "user-1",
@@ -111,22 +119,24 @@ describe("Google Calendar connection lifecycle", () => {
     });
     expect(authorizeFamily).toHaveBeenCalledWith("family-1", "user-1");
     expect(repo.saveConnected).toHaveBeenCalledWith(
-      expect.objectContaining({ externalCalendarId: "google-calendar-1" }),
+      expect.objectContaining({ externalCalendarId: "microsoft-calendar-1" }),
     );
     expect(result.connection).not.toHaveProperty("refreshTokenCiphertext");
     expect(result.connection).not.toHaveProperty("externalCalendarId");
   });
 
   it("reuses an accessible dedicated calendar on reconnect", async () => {
-    const repo = repository("google-calendar-existing");
+    const repo = repository("microsoft-calendar-existing");
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(tokenResponse())
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "google-calendar-existing" }), { status: 200 }),
+        new Response(JSON.stringify({ id: "microsoft-calendar-existing" }), {
+          status: 200,
+        }),
       );
     vi.stubGlobal("fetch", fetchMock);
-    await completeGoogleCalendarConnection({
+    await completeMicrosoftCalendarConnection({
       state: "s".repeat(43),
       code: "authorization-code",
       authenticatedUserId: "user-1",
@@ -135,27 +145,21 @@ describe("Google Calendar connection lifecycle", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1][1]?.method).toBeUndefined();
-    expect(repo.saveConnected).toHaveBeenCalledWith(
-      expect.objectContaining({ externalCalendarId: "google-calendar-existing" }),
-    );
   });
 
-  it("removes a newly created calendar if connection persistence fails", async () => {
+  it("cleans up a newly created calendar if persistence fails", async () => {
     const repo = repository();
     repo.saveConnected.mockRejectedValueOnce(new Error("database unavailable"));
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(tokenResponse())
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "google-calendar-orphan" }), {
-          status: 200,
-        }),
+        new Response(JSON.stringify({ id: "orphan-calendar" }), { status: 201 }),
       )
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
-
     await expect(
-      completeGoogleCalendarConnection({
+      completeMicrosoftCalendarConnection({
         state: "s".repeat(43),
         code: "authorization-code",
         authenticatedUserId: "user-1",
@@ -163,22 +167,50 @@ describe("Google Calendar connection lifecycle", () => {
         repository: repo.fake,
       }),
     ).rejects.toThrow("database unavailable");
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[2][0]).toContain(
-      "/calendars/google-calendar-orphan",
-    );
     expect(fetchMock.mock.calls[2][1]?.method).toBe("DELETE");
+    expect(String(fetchMock.mock.calls[2][0])).toContain("orphan-calendar");
   });
 
-  it("rejects callback replay under another authenticated user before provider calls", async () => {
+  it("disconnects locally even when revoked consent prevents provider cleanup", async () => {
+    const markDisconnected = vi.fn();
+    const fake = {
+      provider: "microsoft" as const,
+      getConnection: vi.fn().mockResolvedValue({
+        id: "connection-1",
+        familyId: "family-1",
+        provider: "microsoft",
+        externalCalendarId: "calendar-1",
+        refreshTokenCiphertext: encryptCalendarSecret("refresh-token"),
+        status: "active",
+      }),
+      markDisconnected,
+    } as unknown as MicrosoftCalendarRepository;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 }),
+      ),
+    );
+    const result = await disconnectMicrosoftCalendar({
+      familyId: "family-1",
+      repository: fake,
+    });
+    expect(result.warningCode).toBe("external_calendar_cleanup_failed");
+    expect(markDisconnected).toHaveBeenCalledWith(
+      "connection-1",
+      "external_calendar_cleanup_failed",
+    );
+  });
+
+  it("rejects callback replay under another MyLearna user", async () => {
     const repo = repository();
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     await expect(
-      completeGoogleCalendarConnection({
+      completeMicrosoftCalendarConnection({
         state: "s".repeat(43),
         code: "authorization-code",
-        authenticatedUserId: "attacker-user",
+        authenticatedUserId: "attacker",
         authorizeFamily: vi.fn(),
         repository: repo.fake,
       }),
@@ -186,11 +218,11 @@ describe("Google Calendar connection lifecycle", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("rejects incomplete consent without persisting a connection", async () => {
+  it("rejects incomplete calendar consent", async () => {
     const repo = repository();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(tokenResponse("other-scope")));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(tokenResponse("offline_access")));
     await expect(
-      completeGoogleCalendarConnection({
+      completeMicrosoftCalendarConnection({
         state: "s".repeat(43),
         code: "authorization-code",
         authenticatedUserId: "user-1",

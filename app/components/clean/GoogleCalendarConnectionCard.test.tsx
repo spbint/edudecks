@@ -106,13 +106,15 @@ describe("Google Calendar Settings connection", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("sits with Apple before the existing My Calendar next step", () => {
+  it("sits with Microsoft and Apple before the existing My Calendar next step", () => {
     const apple = settingsSource.indexOf("<AppleCalendarConnectionCard");
     const google = settingsSource.indexOf("<GoogleCalendarConnectionCard");
+    const microsoft = settingsSource.indexOf("<MicrosoftCalendarConnectionCard");
     const next = settingsSource.indexOf('data-guidance-id="settings-next-calendar"');
     expect(apple).toBeGreaterThan(-1);
-    expect(apple).toBeLessThan(google);
-    expect(google).toBeLessThan(next);
+    expect(google).toBeLessThan(microsoft);
+    expect(microsoft).toBeLessThan(apple);
+    expect(apple).toBeLessThan(next);
     expect(settingsSource).toContain("grid-template-columns: 1fr !important");
   });
 });
