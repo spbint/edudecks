@@ -116,7 +116,10 @@ import {
   getSignupCountryLabel,
   getSignupJurisdictionLabel,
 } from "@/lib/signupPrefill";
-import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  trackCoreJourneyEvent,
+  trackProductEvent,
+} from "@/lib/clean/analytics/productAnalytics";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 import {
   beginCleanPlanningTiming,
@@ -1933,6 +1936,11 @@ function CleanCalendarWorkspaceBody() {
       setPopoverProgramSegmentId(handoffDefaults.segmentId);
     }
     setPopoverOpen(true);
+    trackCoreJourneyEvent(
+      "calendar_block_form_opened",
+      { area: "my_calendar", route: pathname, outcome: "create" },
+      user?.id,
+    );
     setMessage(null);
     setActionError(null);
   }
@@ -1952,6 +1960,11 @@ function CleanCalendarWorkspaceBody() {
     setPopoverProgramId(item.programId ?? "");
     setPopoverProgramSegmentId(item.programSegmentId ?? "");
     setPopoverOpen(true);
+    trackCoreJourneyEvent(
+      "calendar_block_form_opened",
+      { area: "my_calendar", route: pathname, outcome: "edit" },
+      user?.id,
+    );
     setMessage(null);
     setActionError(null);
   }
@@ -2821,6 +2834,11 @@ function CleanCalendarWorkspaceBody() {
         )}). Regular learning blocks are paused for this break / holiday.`,
       );
       setMessage(null);
+      trackCoreJourneyEvent(
+        "calendar_block_save_failed",
+        { area: "my_calendar", route: pathname, failureStage: "validation" },
+        user?.id,
+      );
       popoverSubmitLockRef.current = false;
       return;
     }
@@ -2833,6 +2851,11 @@ function CleanCalendarWorkspaceBody() {
     if (!timeResult.ok) {
       setActionError(timeResult.message);
       setMessage(null);
+      trackCoreJourneyEvent(
+        "calendar_block_save_failed",
+        { area: "my_calendar", route: pathname, failureStage: "validation" },
+        user?.id,
+      );
       popoverSubmitLockRef.current = false;
       return;
     }
@@ -2896,9 +2919,28 @@ function CleanCalendarWorkspaceBody() {
         setMessage("This week's block was added.");
       }
 
+      trackCoreJourneyEvent(
+        "calendar_block_save_succeeded",
+        {
+          area: "my_calendar",
+          route: pathname,
+          outcome: editingItemId ? "updated" : "created",
+          hasLearner: Boolean(payload.learnerId),
+          hasLearningArea: Boolean(payload.learningArea),
+          hasStartTime: Boolean(payload.startsAt),
+          hasEndTime: Boolean(payload.endsAt),
+        },
+        user?.id,
+      );
+
       closePopover();
       await reloadCalendarItems();
     } catch (error) {
+      trackCoreJourneyEvent(
+        "calendar_block_save_failed",
+        { area: "my_calendar", route: pathname, failureStage: "request" },
+        user?.id,
+      );
       setActionError(
         normalizeCleanErrorMessage(
           error,

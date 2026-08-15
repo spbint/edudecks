@@ -1,5 +1,7 @@
 type ProductAnalyticsProperties = Record<string, unknown>;
 
+export type ProductViewportCategory = "phone" | "tablet" | "laptop" | "desktop" | "unknown";
+
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() ?? "";
 const POSTHOG_HOST = (process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() ?? "").replace(/\/+$/, "");
 
@@ -44,6 +46,18 @@ const SAFE_PROPERTY_KEYS = new Set([
   "hasMultipleLearners",
   "completionSource",
   "stateChanged",
+  "viewportCategory",
+  "failureStage",
+  "onlineHint",
+  "returnKind",
+  "includeInPortfolio",
+  "includeInReport",
+  "hasAttachment",
+  "outcome",
+  "destination",
+  "metric",
+  "metricValue",
+  "metricRating",
   "timestamp",
 ]);
 
@@ -58,7 +72,19 @@ function isConfigured() {
   return Boolean(POSTHOG_KEY && POSTHOG_HOST);
 }
 
-function sanitizeProperties(properties: ProductAnalyticsProperties = {}) {
+export function getProductViewportCategory(
+  width = typeof window === "undefined" ? null : window.innerWidth,
+): ProductViewportCategory {
+  if (typeof width !== "number" || !Number.isFinite(width) || width <= 0) return "unknown";
+  if (width < 768) return "phone";
+  if (width < 1024) return "tablet";
+  if (width < 1440) return "laptop";
+  return "desktop";
+}
+
+export function sanitizeProductAnalyticsProperties(
+  properties: ProductAnalyticsProperties = {},
+) {
   const sanitized: ProductAnalyticsProperties = {};
 
   for (const [key, value] of Object.entries(properties)) {
@@ -102,7 +128,7 @@ function posthogCapture(eventName: string, properties: ProductAnalyticsPropertie
     api_key: POSTHOG_KEY,
     event: eventName,
     distinct_id: userId || getAnonymousDistinctId(),
-    properties: sanitizeProperties(properties),
+    properties: sanitizeProductAnalyticsProperties(properties),
   });
 
   const url = `${POSTHOG_HOST}/capture/`;
@@ -131,13 +157,28 @@ export function trackProductEvent(
   posthogCapture(eventName, properties, userId);
 }
 
+export function trackCoreJourneyEvent(
+  eventName: string,
+  properties: ProductAnalyticsProperties = {},
+  userId?: string | null,
+) {
+  trackProductEvent(
+    eventName,
+    {
+      ...properties,
+      viewportCategory: getProductViewportCategory(),
+    },
+    userId,
+  );
+}
+
 export function identifyProductUser(userId: string | null | undefined, safeProperties: ProductAnalyticsProperties = {}) {
   if (!userId) return;
   posthogCapture("$identify", safeProperties, userId);
 }
 
 export function trackPageView(route: string, area: string, userId?: string | null) {
-  trackProductEvent("app_page_viewed", { route, area }, userId);
+  trackCoreJourneyEvent("app_page_viewed", { route, area }, userId);
 }
 
 export function getScoreBand(correctCount: number, questionCount: number) {

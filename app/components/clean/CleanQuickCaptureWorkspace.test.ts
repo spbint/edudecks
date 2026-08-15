@@ -96,7 +96,7 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("requestedLearnerId");
     expect(source).toContain("availableLearners: workspace.learners");
     expect(source).toContain("Attachment still needs attaching");
-    expect(source).toContain("Try attachment again");
+    expect(source).toContain("Retry attachment");
     expect(source).toContain("Add a photo or a short caption");
   });
 
@@ -157,7 +157,7 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("setSavedPhotoAttached(Boolean(uploaded.length))");
     expect(source).toContain("setPhotoUploadError");
     expect(source).toContain("retryPhotoUpload");
-    expect(source).toContain("Try attachment again");
+    expect(source).toContain("Retry attachment");
     expect(source).toContain("Attachment attached to the saved learning moment.");
   });
 

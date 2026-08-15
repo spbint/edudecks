@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
@@ -55,6 +56,7 @@ import {
   generateCleanReportPdfBytes,
 } from "@/lib/clean/outputs/pdf";
 import type { CleanReport } from "@/lib/clean/reports/types";
+import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -215,6 +217,7 @@ function getPathwayStepEvidenceMeta(item: CleanPortfolioItem): PathwayStepEviden
 
 function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user } = useAuthUser();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
@@ -266,6 +269,20 @@ function CleanPortfolioWorkspaceBody() {
   const createReportHref = selectedLearnerId
     ? `${reportsPathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}`
     : reportsPathBase;
+
+  function trackCreateReportSelected(source: "learning_record" | "next_step") {
+    trackCoreJourneyEvent(
+      "create_report_selected",
+      {
+        area: "my_portfolio",
+        route: pathname,
+        source,
+        hasLearner: Boolean(selectedLearnerId),
+        destination: "reports",
+      },
+      user?.id,
+    );
+  }
 
   const programLabelById = useMemo(
     () => new Map(programs.map((program) => [program.id, program.title])),
@@ -965,6 +982,7 @@ function CleanPortfolioWorkspaceBody() {
                   </button>
                   <Link
                     href={createReportHref}
+                    onClick={() => trackCreateReportSelected("learning_record")}
                     style={{
                       ...secondaryButtonStyle,
                       minHeight: 44,
@@ -1136,6 +1154,7 @@ function CleanPortfolioWorkspaceBody() {
                   </div>
                   <Link
                     href={createReportHref}
+                    onClick={() => trackCreateReportSelected("next_step")}
                     style={{
                       ...buttonStyle,
                       minHeight: 44,

@@ -56,7 +56,7 @@ function attachmentMetadata(uploaded: UploadedFamilyEvidenceFile[]) {
   }));
 }
 
-function assertStoredAttachments(
+export function assertStoredAttachmentsConfirmed(
   uploaded: UploadedFamilyEvidenceFile[],
   stored: { attachmentUrls: string[]; imageUrl: string | null; fileUrl: string | null },
 ) {
@@ -195,7 +195,7 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
           setAttachmentError(currentValidationError);
           throw new Error(currentValidationError);
         }
-        setPhase?.(attempt === 1 ? "Uploading attachments..." : "Retrying attachment upload...");
+        setPhase?.("Uploading evidence");
         const uploadResult = await uploadFamilyEvidenceFiles({
           familyProfileId,
           studentId,
@@ -209,14 +209,14 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
           throw new Error("No attachment was uploaded. Please try again.");
         }
 
-        setPhase?.("Finalising attachments...");
+        setPhase?.("Finalising evidence");
         const stored = await updateFamilyEvidenceEntryAttachments({
           evidenceId,
           attachmentUrls: attachmentMetadata(uploadResult.uploaded),
           imageUrl: uploadResult.uploaded.find((attachment) => attachment.kind === "image")?.path ?? null,
           fileUrl: uploadResult.uploaded.find((attachment) => attachment.kind === "file")?.path ?? null,
         });
-        assertStoredAttachments(uploadResult.uploaded, stored);
+        assertStoredAttachmentsConfirmed(uploadResult.uploaded, stored);
         return uploadResult.uploaded;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error("Attachment upload failed.");

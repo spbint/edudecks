@@ -20,8 +20,16 @@ import {
   buildQuickCaptureSuccessHandoff,
   safeQuickCaptureReturnPath,
 } from "@/lib/clean/evidence/quickCaptureSuccess";
-import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  trackCoreJourneyEvent,
+  trackProductEvent,
+} from "@/lib/clean/analytics/productAnalytics";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
+import {
+  attachmentRecoveryMessage,
+  captureRecoveryMessage,
+  useCaptureNetworkHint,
+} from "@/lib/clean/evidence/captureNetworkStatus";
 
 const MAX_CAPTION_LENGTH = 280;
 
@@ -94,6 +102,7 @@ export default function CleanQuickCaptureWorkspace() {
   const [reflection, setReflection] = useState("");
   const [learningArea, setLearningArea] = useState("");
   const attachments = useCleanEvidenceAttachments();
+  const networkHint = useCaptureNetworkHint();
   const [submitting, setSubmitting] = useState(false);
   const [savePhase, setSavePhase] = useState("");
   const [error, setError] = useState("");
@@ -105,6 +114,8 @@ export default function CleanQuickCaptureWorkspace() {
   const [learningAreaOpen, setLearningAreaOpen] = useState(false);
   const quickCaptureTopRef = useRef<HTMLElement | null>(null);
   const submissionIdRef = useRef("");
+  const openedTrackedRef = useRef(false);
+  const firstAttachmentTrackedRef = useRef(false);
 
   const selectedLearner = useMemo(
     () => workspace.learners.find((learner) => learner.id === learnerId) ?? null,
@@ -147,8 +158,24 @@ export default function CleanQuickCaptureWorkspace() {
   }, [learnerId, requestedLearnerId, workspace.learners, workspace.profile?.defaultLearnerId, workspace.setupStatus.activeLearnerId]);
 
   useEffect(() => {
-    trackProductEvent("quick_capture_opened", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId) }, user?.id);
+    if (openedTrackedRef.current) return;
+    trackCoreJourneyEvent(
+      "quick_capture_opened",
+      { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId) },
+      user?.id,
+    );
+    openedTrackedRef.current = true;
   }, [learnerId, pathname, user?.id]);
+
+  useEffect(() => {
+    if (!attachments.hasSelectedAttachments || firstAttachmentTrackedRef.current) return;
+    trackCoreJourneyEvent(
+      "capture_first_attachment_selected",
+      { area: "quick_capture", route: pathname, hasAttachment: true },
+      user?.id,
+    );
+    firstAttachmentTrackedRef.current = true;
+  }, [attachments.hasSelectedAttachments, pathname, user?.id]);
 
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -173,10 +200,11 @@ export default function CleanQuickCaptureWorkspace() {
     }
 
     setSubmitting(true);
-    setSavePhase("Saving learning moment...");
+    setSavePhase("Saving learning");
     setError("");
     setStatus("");
     setPhotoUploadError("");
+    let persistedEntry: CleanEvidenceEntry | null = null;
     try {
       if (!submissionIdRef.current) {
         submissionIdRef.current = typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -205,9 +233,21 @@ export default function CleanQuickCaptureWorkspace() {
         includeInPortfolio: true,
         includeInReport: true,
       });
+      persistedEntry = result.entry;
 
-      setSavedEntry(result.entry);
       trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
+      trackCoreJourneyEvent(
+        "capture_save_succeeded",
+        {
+          area: "quick_capture",
+          route: pathname,
+          hasLearner: true,
+          hasAttachment: attachments.hasSelectedAttachments,
+          includeInPortfolio: result.entry.includeInPortfolio,
+          includeInReport: result.entry.includeInReport,
+        },
+        user?.id,
+      );
       if (attachments.hasSelectedAttachments) {
         try {
           const uploaded = await attachments.uploadSelectedAttachments({
@@ -218,20 +258,67 @@ export default function CleanQuickCaptureWorkspace() {
           });
           setSavedPhotoAttached(Boolean(uploaded.length));
         } catch (uploadError) {
-          setPhotoUploadError(uploadError instanceof Error ? uploadError.message : "The learning moment was saved, but the attachment needs another try.");
-          trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasFile: Boolean(attachments.evidenceFile) }, user?.id);
+          setPhotoUploadError(
+            `${uploadError instanceof Error ? uploadError.message : "The learning moment was saved, but the attachment needs another try."} ${attachmentRecoveryMessage(networkHint)}`,
+          );
+          trackCoreJourneyEvent(
+            "capture_attachment_upload_failed",
+            {
+              area: "quick_capture",
+              route: pathname,
+              hasAttachment: true,
+              failureStage: "upload",
+              onlineHint: networkHint,
+            },
+            user?.id,
+          );
         }
       }
-      setSavePhase("");
+      setSavedEntry(result.entry);
+      setSavePhase("Finalising evidence");
       setStatus("");
       await workspace.reload();
       requestCoachStateRefresh("evidence-created", { refreshAlreadyApplied: true });
+      setSavePhase("Learning saved");
     } catch (saveError) {
-      setError(normalizeCleanErrorMessage(saveError, "We could not save this learning moment. Try again."));
+      if (persistedEntry) {
+        setSavedEntry(persistedEntry);
+        setSavePhase("Learning saved");
+        setStatus(
+          "Learning saved. We could not refresh this page yet; your entered content has not been discarded.",
+        );
+        trackCoreJourneyEvent(
+          "capture_finalise_failed",
+          {
+            area: "quick_capture",
+            route: pathname,
+            hasAttachment: attachments.hasSelectedAttachments,
+            failureStage: "finalise",
+            onlineHint: networkHint,
+          },
+          user?.id,
+        );
+        return;
+      }
+      setSavePhase("");
+      setError(
+        `${normalizeCleanErrorMessage(saveError, "We could not save this learning moment.")} ${captureRecoveryMessage(networkHint)}`,
+      );
       trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId), hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption) }, user?.id);
+      trackCoreJourneyEvent(
+        "capture_save_failed",
+        {
+          area: "quick_capture",
+          route: pathname,
+          hasLearner: Boolean(learnerId),
+          hasAttachment: attachments.hasSelectedAttachments,
+          failureStage: "save",
+          onlineHint: networkHint,
+        },
+        user?.id,
+      );
     } finally {
       setSubmitting(false);
-      setSavePhase("");
     }
   }
 
@@ -239,21 +326,48 @@ export default function CleanQuickCaptureWorkspace() {
     if (!savedEntry || !attachments.hasSelectedAttachments || submitting) return;
     setSubmitting(true);
     setPhotoUploadError("");
+    trackCoreJourneyEvent(
+      "capture_attachment_retry",
+      {
+        area: "quick_capture",
+        route: pathname,
+        hasAttachment: true,
+        onlineHint: networkHint,
+      },
+      user?.id,
+    );
     try {
-      await attachments.uploadSelectedAttachments({
+      const uploaded = await attachments.uploadSelectedAttachments({
         familyProfileId: workspace.profile?.id ?? "",
         studentId: savedEntry.learnerId,
         evidenceId: savedEntry.id,
         setPhase: setSavePhase,
       });
-      setSavedPhotoAttached(true);
+      setSavedPhotoAttached(Boolean(uploaded.length));
+      setSavePhase("Learning saved");
       setStatus("Attachment attached to the saved learning moment.");
     } catch (retryError) {
-      setPhotoUploadError(retryError instanceof Error ? retryError.message : "The attachment could not be attached yet.");
+      setSavePhase("Learning saved");
+      setPhotoUploadError(
+        `${retryError instanceof Error ? retryError.message : "The attachment could not be attached yet."} ${attachmentRecoveryMessage(networkHint)}`,
+      );
     } finally {
       setSubmitting(false);
-      setSavePhase("");
     }
+  }
+
+  function trackPrimaryHandoff() {
+    if (!successHandoff?.portfolioHref) return;
+    trackCoreJourneyEvent(
+      "view_in_portfolio_selected",
+      {
+        area: "quick_capture",
+        route: pathname,
+        destination: "portfolio",
+        returnKind: successHandoff.returnKind,
+      },
+      user?.id,
+    );
   }
 
   function addMoreDetail() {
@@ -278,6 +392,7 @@ export default function CleanQuickCaptureWorkspace() {
     setStatus("");
     setError("");
     submissionIdRef.current = "";
+    firstAttachmentTrackedRef.current = false;
   }
 
   if (workspace.loading) return <V2LoadingState title="Preparing Quick Capture" body="Your family learning space is loading." />;
@@ -336,7 +451,7 @@ export default function CleanQuickCaptureWorkspace() {
         `}</style>
         <CoreJourneyCue stage="capture" />
         <p role="status" aria-live="polite" style={{ margin: 0, color: "#15803d", fontSize: 14, fontWeight: 850 }}>
-          Learning saved
+          {submitting && savePhase ? savePhase : "Learning saved"}
         </p>
         <section style={{ border: "1px solid #bbf7d0", borderRadius: 20, background: "#f0fdf4", padding: "clamp(18px, 5vw, 30px)", display: "grid", gap: 16 }}>
           <div><p style={{ margin: 0, color: "#15803d", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Step 1 — Learning moment saved</p><h1 style={{ margin: "6px 0 0", color: "#14532d", fontSize: "clamp(28px, 6vw, 42px)" }}>Learning moment saved</h1></div>
@@ -348,10 +463,10 @@ export default function CleanQuickCaptureWorkspace() {
             {successHandoff?.portfolioMessage ? <span>{successHandoff.portfolioMessage}</span> : null}
             {successHandoff?.reportMessage ? <span>{successHandoff.reportMessage}</span> : null}
           </div>
-          {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 38, marginTop: 8 }}>{submitting ? "Trying again..." : "Try attachment again"}</button></div> : null}
+          {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 44, marginTop: 8 }}>{submitting ? savePhase || "Uploading evidence" : "Retry attachment"}</button></div> : null}
           <div style={{ display: "grid", gap: 12 }}>
             <div className="mylearna-quick-capture-receipt-primary-actions">
-              <Link href={successHandoff?.primaryHref ?? returnPath} style={buttonStyle}>
+              <Link href={successHandoff?.primaryHref ?? returnPath} style={buttonStyle} onClick={trackPrimaryHandoff}>
                 {successHandoff?.primaryLabel ?? "Return"}
               </Link>
               <button type="button" onClick={() => setSharingOpen(true)} style={secondaryButtonStyle}>Create a share card</button>
@@ -381,7 +496,14 @@ export default function CleanQuickCaptureWorkspace() {
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened? <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Learning moment caption" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Add a short caption" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label>
           <div style={{ borderTop: "1px solid #eef0f5", paddingTop: 12 }}><button type="button" onClick={() => setLearningAreaOpen((current) => !current)} aria-expanded={learningAreaOpen} style={{ ...tertiaryButtonStyle, textDecoration: "none", padding: 0 }}>{learningAreaOpen ? "Hide learning area" : "Add learning area"}</button>{learningAreaOpen ? <label style={{ display: "grid", gap: 6, marginTop: 10 }}><span style={{ color: "#17204b", fontWeight: 750 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label> : null}</div>
-          <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving..." : "Save learning moment"}</button></div>
+          <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" aria-live="polite" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving learning" : "Save learning moment"}</button></div>
+          {networkHint === "offline" ? (
+            <p role="status" aria-live="polite" style={{ margin: 0, color: "#92400e", lineHeight: 1.5 }}>
+              Your device appears offline. Keep this page open; your entries will stay
+              here. Reconnect, then choose Save again. Automatic background sync is not
+              available.
+            </p>
+          ) : null}
           {error ? <p role="alert" style={{ margin: 0, color: "#b91c1c", lineHeight: 1.5 }}>{error}</p> : null}
           <CoreJourneyHelp>
             <p>

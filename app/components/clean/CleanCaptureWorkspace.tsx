@@ -57,7 +57,15 @@ import {
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
 import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
-import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  trackCoreJourneyEvent,
+  trackProductEvent,
+} from "@/lib/clean/analytics/productAnalytics";
+import {
+  attachmentRecoveryMessage,
+  captureRecoveryMessage,
+  useCaptureNetworkHint,
+} from "@/lib/clean/evidence/captureNetworkStatus";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -583,6 +591,7 @@ function CleanCaptureWorkspaceBody() {
   const [worksheetProgressLevel, setWorksheetProgressLevel] =
     useState<WorksheetProgressLevel | "">("");
   const attachments = useCleanEvidenceAttachments();
+  const networkHint = useCaptureNetworkHint();
   const {
     photoFile,
     photoName,
@@ -633,6 +642,8 @@ function CleanCaptureWorkspaceBody() {
   const speechSessionStoppedManuallyRef = useRef(false);
   const speechStartInProgressRef = useRef(false);
   const quickDraftAppliedRef = useRef(false);
+  const captureOpenedTrackedRef = useRef(false);
+  const firstAttachmentTrackedRef = useRef(false);
   const captureContextEditsRef = useRef<CaptureContextEditState>({
     key: "",
     learnerId: false,
@@ -654,6 +665,26 @@ function CleanCaptureWorkspaceBody() {
       })),
     [workspace.learners],
   );
+
+  useEffect(() => {
+    if (captureOpenedTrackedRef.current) return;
+    trackCoreJourneyEvent(
+      "capture_opened",
+      { area: "my_capture", route: pathname, hasLearner: Boolean(learnerId) },
+      user?.id,
+    );
+    captureOpenedTrackedRef.current = true;
+  }, [learnerId, pathname, user?.id]);
+
+  useEffect(() => {
+    if (!attachments.hasSelectedAttachments || firstAttachmentTrackedRef.current) return;
+    trackCoreJourneyEvent(
+      "capture_first_attachment_selected",
+      { area: "my_capture", route: pathname, hasAttachment: true },
+      user?.id,
+    );
+    firstAttachmentTrackedRef.current = true;
+  }, [attachments.hasSelectedAttachments, pathname, user?.id]);
 
   const captureContextKey = searchParams.toString();
   const evidenceEntryIdFromQuery = safeQueryValue(searchParams.get("evidence_entry_id"));
@@ -744,6 +775,19 @@ function CleanCaptureWorkspaceBody() {
   const savedEvidenceLearningRecordPath = lastSavedEvidenceId
     ? `${savedEvidencePortfolioPath}&focus=learning-record`
     : portfolioLearningRecordPath;
+
+  function trackViewPortfolioSelected(returnKind: "pathways" | "other") {
+    trackCoreJourneyEvent(
+      "view_in_portfolio_selected",
+      {
+        area: "my_capture",
+        route: pathname,
+        destination: "portfolio",
+        returnKind,
+      },
+      user?.id,
+    );
+  }
   const worksheetReturnPath =
     returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
       ? returnToFromQuery
@@ -972,6 +1016,7 @@ function CleanCaptureWorkspaceBody() {
     setLifeAddToPortfolio(true);
     setLifeIncludeInReport(true);
     setLifeSuggestionsReady(false);
+    firstAttachmentTrackedRef.current = false;
     speechSessionHadTextRef.current = false;
     speechSessionStoppedManuallyRef.current = false;
     speechStartInProgressRef.current = false;
@@ -1215,7 +1260,7 @@ function CleanCaptureWorkspaceBody() {
     evidenceId: string,
     uploadedAttachments: UploadedFamilyEvidenceFile[],
   ) {
-    setSavePhase("Finalising attachment...");
+    setSavePhase("Finalising evidence");
     logWorksheetUploadDiagnostic("attachment-update-started", {
       evidenceEntryId: evidenceId,
       uploadedCount: uploadedAttachments.length,
@@ -1290,7 +1335,7 @@ function CleanCaptureWorkspaceBody() {
 
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
-        setSavePhase(attempt === 1 ? "Uploading photo..." : "Retrying photo upload...");
+        setSavePhase("Uploading evidence");
         logWorksheetUploadDiagnostic("upload-started", {
           evidenceEntryId: evidenceId,
           bucket: "evidence",
@@ -1631,8 +1676,10 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
     setPendingAttachmentError("");
     setPendingAttachmentEvidenceId("");
-    setSavePhase("Saving evidence...");
+    setSavePhase("Saving learning");
 
+    let captureRecordSaved = false;
+    let captureRequestStarted = false;
     try {
       if (worksheetEvidenceMode && !worksheetProgressLevel) {
         throw new Error("Choose how it went before saving.");
@@ -1684,6 +1731,7 @@ function CleanCaptureWorkspaceBody() {
             draftReportSentence: lifeDraftReportSentence,
           })
         : "";
+      captureRequestStarted = true;
       const captureResult = await saveUnifiedLearningCapture(
         {
           familyId: workspace.profile.id,
@@ -1739,6 +1787,29 @@ function CleanCaptureWorkspaceBody() {
         { entryId: editingEntryId || null },
       );
       const savedEntry: CleanEvidenceEntry = captureResult.entry;
+      captureRecordSaved = true;
+
+      trackCoreJourneyEvent(
+        "capture_save_succeeded",
+        {
+          area: "my_capture",
+          route: pathname,
+          hasLearner: Boolean(learnerId),
+          hasAttachment: attachments.hasSelectedAttachments,
+          includeInPortfolio: savedEntry.includeInPortfolio,
+          includeInReport: savedEntry.includeInReport,
+          source: learningFromLifeActive
+            ? "learning_from_life"
+            : worksheetEvidenceMode
+              ? "worksheet"
+              : nextPathwayContext
+                ? "my_pathways"
+                : calendarItemId
+                  ? "calendar"
+                  : "manual",
+        },
+        user?.id,
+      );
 
       if (editingEntryId) {
         trackProductEvent(
@@ -1810,10 +1881,24 @@ function CleanCaptureWorkspaceBody() {
           setPendingUploadedAttachments(uploadedAttachments);
           setMessage(null);
           setActionError(null);
+          setSavePhase("Learning saved");
+          trackCoreJourneyEvent(
+            "capture_attachment_upload_failed",
+            {
+              area: "my_capture",
+              route: pathname,
+              hasAttachment: true,
+              failureStage: uploadedAttachments.length ? "finalise" : "upload",
+              onlineHint: networkHint,
+            },
+            user?.id,
+          );
           await reloadEntries();
           return;
         }
       }
+
+      setSavePhase("Finalising evidence");
 
       setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
       setLastSavedPathwayContext(nextPathwayContext);
@@ -1846,15 +1931,50 @@ function CleanCaptureWorkspaceBody() {
         clearCaptureContext();
       }
       await reloadEntries();
+      setSavePhase("Learning saved");
     } catch (error) {
+      if (captureRecordSaved) {
+        setSavePhase("Learning saved");
+        setMessage(
+          "Learning saved. We could not refresh this page yet; your entered content has not been discarded.",
+        );
+        setActionError(null);
+        trackCoreJourneyEvent(
+          "capture_finalise_failed",
+          {
+            area: "my_capture",
+            route: pathname,
+            hasAttachment: attachments.hasSelectedAttachments,
+            failureStage: "finalise",
+            onlineHint: networkHint,
+          },
+          user?.id,
+        );
+        return;
+      }
+      const baseError = normalizeCleanErrorMessage(
+        error,
+        "We could not save this capture note.",
+      );
       setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not save this capture note.",
-        ),
+        captureRequestStarted
+          ? `${baseError} ${captureRecoveryMessage(networkHint)}`
+          : baseError,
+      );
+      trackCoreJourneyEvent(
+        "capture_save_failed",
+        {
+          area: "my_capture",
+          route: pathname,
+          hasLearner: Boolean(learnerId),
+          hasAttachment: attachments.hasSelectedAttachments,
+          failureStage: captureRequestStarted ? "save" : "validation",
+          onlineHint: networkHint,
+        },
+        user?.id,
       );
     } finally {
-      setSavePhase("");
+      if (!captureRecordSaved) setSavePhase("");
       setSubmitting(false);
     }
   }
@@ -1866,6 +1986,18 @@ function CleanCaptureWorkspaceBody() {
     setSubmitting(true);
     setActionError(null);
     setPendingAttachmentError("");
+    setSavePhase("Uploading evidence");
+    trackCoreJourneyEvent(
+      "capture_attachment_retry",
+      {
+        area: "my_capture",
+        route: pathname,
+        hasAttachment: true,
+        failureStage: "upload",
+        onlineHint: networkHint,
+      },
+      user?.id,
+    );
     try {
       const uploadedAttachments =
         worksheetEvidenceMode && photoFile && !evidenceFile
@@ -1882,16 +2014,15 @@ function CleanCaptureWorkspaceBody() {
       setPendingAttachmentFileName("");
       setPendingUploadedAttachments([]);
       setMessage("Learning recorded.");
+      setSavePhase("Learning saved");
       attachments.clearSelectedAttachments();
       await reloadEntries();
     } catch (error) {
+      setSavePhase("Learning saved");
       setPendingAttachmentError(
-        error instanceof Error
-          ? error.message
-          : "The photo could not be uploaded. Check your connection and try again.",
+        `${error instanceof Error ? error.message : "The attachment could not be uploaded."} ${attachmentRecoveryMessage(networkHint)}`,
       );
     } finally {
-      setSavePhase("");
       setSubmitting(false);
     }
   }
@@ -1902,6 +2033,18 @@ function CleanCaptureWorkspaceBody() {
     setSubmitting(true);
     setActionError(null);
     setPendingAttachmentError("");
+    setSavePhase("Finalising evidence");
+    trackCoreJourneyEvent(
+      "capture_attachment_retry",
+      {
+        area: "my_capture",
+        route: pathname,
+        hasAttachment: true,
+        failureStage: "finalise",
+        onlineHint: networkHint,
+      },
+      user?.id,
+    );
     try {
       await finaliseWorksheetPhotoAttachment(
         pendingAttachmentEvidenceId,
@@ -1919,16 +2062,15 @@ function CleanCaptureWorkspaceBody() {
       setPendingAttachmentFileName("");
       setPendingUploadedAttachments([]);
       setMessage("Learning recorded.");
+      setSavePhase("Learning saved");
       attachments.clearSelectedAttachments();
       await reloadEntries();
     } catch (error) {
+      setSavePhase("Learning saved");
       setPendingAttachmentError(
-        error instanceof Error
-          ? error.message
-          : "The photo could not be uploaded. Check your connection and try again.",
+        `${error instanceof Error ? error.message : "The attachment could not be finalised."} ${attachmentRecoveryMessage(networkHint)}`,
       );
     } finally {
-      setSavePhase("");
       setSubmitting(false);
     }
   }
@@ -3320,7 +3462,15 @@ function CleanCaptureWorkspaceBody() {
                 </div>
                 ) : null}
 
-                <div className={worksheetEvidenceMode ? "mylearna-capture-save-row" : undefined} data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {networkHint === "offline" ? (
+                  <p role="status" aria-live="polite" style={{ margin: 0, color: "#92400e", lineHeight: 1.5 }}>
+                    Your device appears offline. Keep this page open; your entries will stay
+                    here. Reconnect, then choose Save again. Automatic background sync is
+                    not available.
+                  </p>
+                ) : null}
+
+                <div className={worksheetEvidenceMode ? "mylearna-capture-save-row" : undefined} data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="submit"
                     style={{
@@ -3335,15 +3485,18 @@ function CleanCaptureWorkspaceBody() {
                     data-capture-save={worksheetEvidenceMode ? "active" : undefined}
                   >
                     {submitting
-                      ? worksheetEvidenceMode
-                        ? savePhase || "Recording completed work..."
-                        : "Saving..."
+                      ? savePhase || "Saving learning"
                       : worksheetEvidenceMode
                         ? photoFile
                           ? "Record completed work"
                           : "Record completed work without photo"
                         : "Record learning"}
                   </button>
+                  {savePhase ? (
+                    <span role="status" aria-live="polite" style={{ color: "#475569", fontSize: 14, fontWeight: 700 }}>
+                      {savePhase}
+                    </span>
+                  ) : null}
                   {editingEntryId ? (
                     <button
                       type="button"
@@ -3403,10 +3556,8 @@ function CleanCaptureWorkspaceBody() {
                       style={buttonStyle}
                     >
                       {submitting
-                        ? savePhase || "Retrying photo upload..."
-                        : pendingUploadedAttachments.length
-                          ? "Retry attaching photo"
-                        : "Retry attachment upload"}
+                        ? savePhase || "Uploading evidence"
+                        : "Retry attachment"}
                     </button>
                     <button
                       type="button"
@@ -3525,7 +3676,7 @@ function CleanCaptureWorkspaceBody() {
                       >
                         {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
                       </button>
-                      <Link href={savedEvidencePortfolioPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                      <Link href={savedEvidencePortfolioPath} onClick={() => trackViewPortfolioSelected("pathways")} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
                         View portfolio
                       </Link>
                       <Link href={savedEvidenceLearningRecordPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>

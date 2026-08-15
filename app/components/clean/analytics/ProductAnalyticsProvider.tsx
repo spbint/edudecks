@@ -1,10 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useReportWebVitals } from "next/web-vitals";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import {
   identifyProductUser,
+  trackCoreJourneyEvent,
   trackPageView,
   trackProductEvent,
 } from "@/lib/clean/analytics/productAnalytics";
@@ -27,11 +29,32 @@ function getAreaFromRoute(pathname: string) {
 
 export default function ProductAnalyticsProvider() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuthUser();
   const lastPageViewRef = useRef("");
+  const lastCapturePortfolioViewRef = useRef("");
   const signedInTrackedRef = useRef<string | null>(null);
 
   const area = useMemo(() => getAreaFromRoute(pathname), [pathname]);
+
+  const reportWebVital = useCallback<Parameters<typeof useReportWebVitals>[0]>(
+    (metric) => {
+      trackCoreJourneyEvent(
+        "core_web_vital",
+        {
+          route: pathname,
+          area,
+          metric: metric.name,
+          metricValue: Number(metric.value.toFixed(4)),
+          metricRating: metric.rating,
+        },
+        user?.id,
+      );
+    },
+    [area, pathname, user?.id],
+  );
+
+  useReportWebVitals(reportWebVital);
 
   useEffect(() => {
     if (!user?.id || signedInTrackedRef.current === user.id) return;
@@ -40,6 +63,22 @@ export default function ProductAnalyticsProvider() {
     trackProductEvent("product_signed_in", { route: pathname, area }, user.id);
     signedInTrackedRef.current = user.id;
   }, [area, pathname, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || area !== "my_portfolio") return;
+    if (searchParams.get("source") !== "my-capture") return;
+    const latestEvidenceId = searchParams.get("latestEvidenceId") ?? "";
+    if (!latestEvidenceId) return;
+
+    const viewKey = `${user.id}:${latestEvidenceId}`;
+    if (lastCapturePortfolioViewRef.current === viewKey) return;
+    trackCoreJourneyEvent(
+      "portfolio_viewed_after_capture",
+      { route: pathname, area, source: "quick_capture" },
+      user.id,
+    );
+    lastCapturePortfolioViewRef.current = viewKey;
+  }, [area, pathname, searchParams, user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
