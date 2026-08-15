@@ -22,7 +22,6 @@ describe("Apple Calendar analytics privacy", () => {
         familyId: "family-secret",
         title: "private learning title",
       } as never,
-      "user-1",
     );
 
     expect(trackCoreJourneyEvent).toHaveBeenCalledWith(
@@ -33,8 +32,8 @@ describe("Apple Calendar analytics privacy", () => {
         outcome: "succeeded",
         route: "/my-settings",
       },
-      "user-1",
     );
+    expect(trackCoreJourneyEvent.mock.calls[0]).toHaveLength(2);
     expect(JSON.stringify(trackCoreJourneyEvent.mock.calls)).not.toMatch(
       /token|feedUrl|family-secret|private learning/i,
     );

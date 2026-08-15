@@ -77,6 +77,9 @@ describe("Apple Calendar integration security boundaries", () => {
     expect(feedRoute).toContain('"x-robots-tag": "noindex, nofollow, noarchive"');
     expect(feedRoute).toContain('"content-type": "text/calendar; charset=utf-8"');
     expect(feedRoute).toContain("status: 404");
+    expect(feedRoute).toContain("readCalendarFeedPassword");
+    expect(feedRoute).toContain('request.headers.get("authorization")');
+    expect(feedRoute).toContain('"www-authenticate"');
     expect(feedRoute).not.toMatch(/track(Product|Core|Apple)|console\./);
     expect(robots).toContain('"/api/calendar-feeds/"');
     for (const source of [sentryServer, sentryEdge, sentryClient]) {
@@ -86,10 +89,19 @@ describe("Apple Calendar integration security boundaries", () => {
     }
   });
 
-  it("returns raw URLs only from create/rotate and never returns hashes", () => {
-    expect(managementRoute.match(/feedUrl: buildCalendarFeedUrl/g)).toHaveLength(2);
-    expect(managementRoute).not.toMatch(/tokenHash|token_hash|tokenPrefix|token_prefix/);
+  it("returns credentials only from create/rotate and keeps secrets out of paths", () => {
+    expect(managementRoute.match(/feedAddress: buildCalendarFeedAddress/g)).toHaveLength(2);
+    expect(managementRoute.match(/subscriptionPassword: result\.rawToken/g)).toHaveLength(2);
+    expect(managementRoute).not.toMatch(/tokenHash|token_hash|token_prefix/);
+    expect(managementRoute).not.toMatch(/\btokenPrefix\s*:/);
+    expect(feedRoute).toContain(
+      "const tokenPrefix = parseCalendarFeedPathSegment(feed)",
+    );
+    expect(feedRoute).not.toContain(
+      "const rawToken = parseCalendarFeedPathSegment(feed)",
+    );
     expect(managementRoute).toContain("mutationOriginAllowed");
+    expect(managementRoute).toContain("Boolean(origin && origin === request.nextUrl.origin)");
     expect(managementRoute).toContain('"cache-control": "private, no-store"');
   });
 });

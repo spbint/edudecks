@@ -73,6 +73,7 @@ describe("Apple Calendar feed management", () => {
     const fake = buildStore();
     const result = await createAppleCalendarFeed(context(role), fake.store, fixedToken, () => NOW);
     expect(result.rawToken).toBe("raw-token-returned-once");
+    expect(result.tokenPrefix).toBe("raw-toke");
     expect(result.subscription.status).toBe("active");
     expect(fake.persisted[0]).toMatchObject({
       familyId: "family-1",
@@ -100,6 +101,7 @@ describe("Apple Calendar feed management", () => {
       () => NOW,
     );
     expect(rotated.rawToken).toBe("raw-token-returned-once");
+    expect(rotated.tokenPrefix).toBe("raw-toke");
     expect(fake.current()?.status).toBe("active");
 
     const revoked = await revokeAppleCalendarFeed(context("owner"), fake.store, () => NOW);

@@ -28,11 +28,22 @@ afterEach(() => {
 describe("Apple Calendar Settings connection", () => {
   it("shows the not-connected state and creates a memory-only subscription link", async () => {
     const token = "A".repeat(43);
-    const feedUrl = `https://www.mylearna.com/api/calendar-feeds/${token}.ics`;
+    const feedAddress = "https://www.mylearna.com/api/calendar-feeds/AAAAAAAA.ics";
+    const authenticatedFeedUrl = `https://mylearna:${token}@www.mylearna.com/api/calendar-feeds/AAAAAAAA.ics`;
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(json({ ok: true, status: "not_connected", metadata: null }))
-      .mockResolvedValueOnce(json({ ok: true, status: "active", feedUrl }, 201));
+      .mockResolvedValueOnce(
+        json(
+          {
+            ok: true,
+            status: "active",
+            feedAddress,
+            subscriptionPassword: token,
+          },
+          201,
+        ),
+      );
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("fetch", fetchMock);
     Object.defineProperty(navigator, "clipboard", {
@@ -43,7 +54,6 @@ describe("Apple Calendar Settings connection", () => {
     render(
       React.createElement(AppleCalendarConnectionCard, {
         familyId: "11111111-1111-4111-8111-111111111111",
-        userId: "user-1",
         canManage: true,
       }),
     );
@@ -57,10 +67,12 @@ describe("Apple Calendar Settings connection", () => {
     expect(await screen.findByText("✓ MyLearna calendar ready")).toBeTruthy();
     const appleLink = screen.getByRole("link", { name: "Add to Apple Calendar" });
     expect(appleLink.getAttribute("href")).toBe(
-      `webcal://www.mylearna.com/api/calendar-feeds/${token}.ics`,
+      `webcal://mylearna:${token}@www.mylearna.com/api/calendar-feeds/AAAAAAAA.ics`,
     );
     fireEvent.click(screen.getByRole("button", { name: "Copy calendar link" }));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(feedUrl));
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(authenticatedFeedUrl),
+    );
     expect(window.localStorage.length).toBe(0);
   });
 
@@ -79,7 +91,6 @@ describe("Apple Calendar Settings connection", () => {
     render(
       React.createElement(AppleCalendarConnectionCard, {
         familyId: "11111111-1111-4111-8111-111111111111",
-        userId: "user-1",
         canManage: true,
       }),
     );
@@ -93,13 +104,29 @@ describe("Apple Calendar Settings connection", () => {
   });
 
   it("rotates and revokes with confirmation", async () => {
-    const oldFeedUrl = `https://www.mylearna.com/api/calendar-feeds/${"A".repeat(43)}.ics`;
-    const newFeedUrl = `https://www.mylearna.com/api/calendar-feeds/${"B".repeat(43)}.ics`;
+    const oldPassword = "A".repeat(43);
+    const newPassword = "B".repeat(43);
+    const oldFeedAddress = "https://www.mylearna.com/api/calendar-feeds/AAAAAAAA.ics";
+    const newFeedAddress = "https://www.mylearna.com/api/calendar-feeds/BBBBBBBB.ics";
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(json({ ok: true, status: "not_connected" }))
-      .mockResolvedValueOnce(json({ ok: true, status: "active", feedUrl: oldFeedUrl }, 201))
-      .mockResolvedValueOnce(json({ ok: true, status: "active", feedUrl: newFeedUrl }))
+      .mockResolvedValueOnce(
+        json({
+          ok: true,
+          status: "active",
+          feedAddress: oldFeedAddress,
+          subscriptionPassword: oldPassword,
+        }, 201),
+      )
+      .mockResolvedValueOnce(
+        json({
+          ok: true,
+          status: "active",
+          feedAddress: newFeedAddress,
+          subscriptionPassword: newPassword,
+        }),
+      )
       .mockResolvedValueOnce(json({ ok: true, status: "not_connected" }));
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -107,7 +134,6 @@ describe("Apple Calendar Settings connection", () => {
     render(
       React.createElement(AppleCalendarConnectionCard, {
         familyId: "11111111-1111-4111-8111-111111111111",
-        userId: "user-1",
         canManage: true,
       }),
     );
@@ -119,7 +145,7 @@ describe("Apple Calendar Settings connection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rotate link" }));
     expect(await screen.findByText(/Calendar link rotated/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Add to Apple Calendar" }).getAttribute("href"))
-      .toContain("B".repeat(43));
+      .toContain(`mylearna:${newPassword}@`);
 
     fireEvent.click(screen.getByRole("button", { name: "Revoke" }));
     expect(await screen.findByText("Apple Calendar link revoked.")).toBeTruthy();
@@ -138,7 +164,6 @@ describe("Apple Calendar Settings connection", () => {
     render(
       React.createElement(AppleCalendarConnectionCard, {
         familyId: "11111111-1111-4111-8111-111111111111",
-        userId: "user-caregiver",
         canManage: false,
       }),
     );

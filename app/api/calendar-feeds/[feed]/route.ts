@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readCalendarFeedPassword } from "@/lib/clean/calendar-integrations/basicAuth";
 import { renderICalendar } from "@/lib/clean/calendar-integrations/ics";
 import { loadAppleCalendarFeed } from "@/lib/clean/calendar-integrations/publicFeed";
 import { createCalendarFeedReadStore } from "@/lib/clean/calendar-integrations/serverRepositories";
@@ -19,17 +20,32 @@ function notFound() {
   });
 }
 
+function authenticationRequired() {
+  return new NextResponse("Authentication required", {
+    status: 401,
+    headers: {
+      ...PRIVATE_HEADERS,
+      "www-authenticate": 'Basic realm="MyLearna Calendar", charset="UTF-8"',
+    },
+  });
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ feed: string }> },
 ) {
   const { feed } = await params;
-  const rawToken = parseCalendarFeedPathSegment(feed);
-  if (!rawToken) return notFound();
+  const tokenPrefix = parseCalendarFeedPathSegment(feed);
+  if (!tokenPrefix) return notFound();
+  const rawToken = readCalendarFeedPassword(
+    request.headers.get("authorization"),
+  );
+  if (!rawToken) return authenticationRequired();
 
   try {
     const result = await loadAppleCalendarFeed(
       rawToken,
+      tokenPrefix,
       createCalendarFeedReadStore(),
     );
     if (!result) return notFound();

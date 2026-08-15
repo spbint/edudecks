@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { trackAppleCalendarEvent } from "@/lib/clean/calendar-integrations/analytics";
-import { toWebcalUrl } from "@/lib/clean/calendar-integrations/urls";
+import {
+  buildAuthenticatedCalendarFeedUrl,
+  toWebcalUrl,
+} from "@/lib/clean/calendar-integrations/urls";
 
 type AppleConnectionState = "loading" | "not_connected" | "active" | "unavailable";
 
 type Props = {
   familyId: string;
-  userId: string | null;
   canManage: boolean;
 };
 
@@ -47,25 +49,35 @@ async function readResponse(response: Response) {
 
 export default function AppleCalendarConnectionCard({
   familyId,
-  userId,
   canManage,
 }: Props) {
   const [connectionState, setConnectionState] = useState<AppleConnectionState>(
     canManage ? "loading" : "not_connected",
   );
-  const [feedUrl, setFeedUrl] = useState<string | null>(null);
+  const [feedCredential, setFeedCredential] = useState<{
+    feedAddress: string;
+    subscriptionPassword: string;
+  } | null>(null);
   const [pendingAction, setPendingAction] = useState<"create" | "rotate" | "revoke" | null>(
     null,
   );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const webcalUrl = feedUrl ? toWebcalUrl(feedUrl) : null;
+  const authenticatedFeedUrl = feedCredential
+    ? buildAuthenticatedCalendarFeedUrl(
+        feedCredential.feedAddress,
+        feedCredential.subscriptionPassword,
+      )
+    : null;
+  const webcalUrl = authenticatedFeedUrl
+    ? toWebcalUrl(authenticatedFeedUrl)
+    : null;
 
   useEffect(() => {
     if (!canManage) return;
     const controller = new AbortController();
     setConnectionState("loading");
-    setFeedUrl(null);
+    setFeedCredential(null);
 
     void fetch(
       `/api/calendar-connections/apple?familyId=${encodeURIComponent(familyId)}`,
@@ -108,18 +120,22 @@ export default function AppleCalendarConnectionCard({
 
       if (action === "revoke") {
         setConnectionState("not_connected");
-        setFeedUrl(null);
+        setFeedCredential(null);
         setMessage("Apple Calendar link revoked.");
         trackAppleCalendarEvent(
           "apple_calendar_feed_revoked",
           { outcome: "succeeded", route: "/my-settings" },
-          userId,
         );
       } else {
-        const nextFeedUrl = String(body.feedUrl ?? "").trim();
-        if (!nextFeedUrl) throw new Error("A new calendar link was not returned.");
+        const feedAddress = String(body.feedAddress ?? "").trim();
+        const subscriptionPassword = String(
+          body.subscriptionPassword ?? "",
+        ).trim();
+        if (!feedAddress || !subscriptionPassword) {
+          throw new Error("A new calendar link was not returned.");
+        }
         setConnectionState("active");
-        setFeedUrl(nextFeedUrl);
+        setFeedCredential({ feedAddress, subscriptionPassword });
         setMessage(
           action === "create"
             ? "MyLearna calendar ready."
@@ -130,7 +146,6 @@ export default function AppleCalendarConnectionCard({
             ? "apple_calendar_feed_created"
             : "apple_calendar_feed_rotated",
           { outcome: "succeeded", route: "/my-settings" },
-          userId,
         );
       }
     } catch (nextError) {
@@ -146,7 +161,6 @@ export default function AppleCalendarConnectionCard({
             ? "apple_calendar_feed_rotated"
             : "apple_calendar_feed_revoked",
         { outcome: "failed", route: "/my-settings" },
-        userId,
       );
     } finally {
       setPendingAction(null);
@@ -154,9 +168,9 @@ export default function AppleCalendarConnectionCard({
   }
 
   async function copyLink() {
-    if (!feedUrl) return;
+    if (!authenticatedFeedUrl) return;
     try {
-      await navigator.clipboard.writeText(feedUrl);
+      await navigator.clipboard.writeText(authenticatedFeedUrl);
       setMessage("Calendar link copied.");
       setError(null);
     } catch {
@@ -219,7 +233,7 @@ export default function AppleCalendarConnectionCard({
             <button
               type="button"
               style={actionStyle}
-              disabled={!feedUrl || actionsDisabled}
+              disabled={!authenticatedFeedUrl || actionsDisabled}
               onClick={() => void copyLink()}
             >
               Copy calendar link
@@ -259,7 +273,7 @@ export default function AppleCalendarConnectionCard({
               {pendingAction === "revoke" ? "Revoking…" : "Revoke"}
             </button>
           </div>
-          {!feedUrl ? (
+          {!feedCredential ? (
             <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
               Rotate the link to receive a new one for Apple Calendar.
             </p>
