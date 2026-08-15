@@ -101,7 +101,11 @@ export async function createAppleCalendarFeed(
         now: timestamp,
       });
 
-  return { subscription, rawToken: token.rawToken };
+  return {
+    subscription,
+    rawToken: token.rawToken,
+    tokenPrefix: token.tokenPrefix,
+  };
 }
 
 export async function rotateAppleCalendarFeed(
@@ -127,7 +131,11 @@ export async function rotateAppleCalendarFeed(
     tokenPrefix: token.tokenPrefix,
     now: now(),
   });
-  return { subscription, rawToken: token.rawToken };
+  return {
+    subscription,
+    rawToken: token.rawToken,
+    tokenPrefix: token.tokenPrefix,
+  };
 }
 
 export async function revokeAppleCalendarFeed(

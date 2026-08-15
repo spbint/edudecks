@@ -17,7 +17,6 @@ type AppleCalendarAnalyticsInput = {
 export function trackAppleCalendarEvent(
   eventName: AppleCalendarAnalyticsEvent,
   input: AppleCalendarAnalyticsInput,
-  userId?: string | null,
 ) {
   trackCoreJourneyEvent(
     eventName,
@@ -30,6 +29,5 @@ export function trackAppleCalendarEvent(
         ? { viewportCategory: input.viewportCategory }
         : {}),
     },
-    userId,
   );
 }

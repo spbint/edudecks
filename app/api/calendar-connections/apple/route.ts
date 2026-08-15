@@ -11,7 +11,7 @@ import {
   authorizeCalendarIntegrationManager,
 } from "@/lib/clean/calendar-integrations/serverAuthorization";
 import { createCalendarFeedManagementStore } from "@/lib/clean/calendar-integrations/serverRepositories";
-import { buildCalendarFeedUrl } from "@/lib/clean/calendar-integrations/urls";
+import { buildCalendarFeedAddress } from "@/lib/clean/calendar-integrations/urls";
 import type { CalendarFeedSubscriptionMetadata } from "@/lib/clean/calendar-integrations/types";
 
 export const runtime = "nodejs";
@@ -47,7 +47,7 @@ function safeMetadata(metadata: CalendarFeedSubscriptionMetadata | null) {
 
 function mutationOriginAllowed(request: NextRequest) {
   const origin = request.headers.get("origin");
-  return !origin || origin === request.nextUrl.origin;
+  return Boolean(origin && origin === request.nextUrl.origin);
 }
 
 async function readFamilyId(request: NextRequest) {
@@ -120,7 +120,11 @@ export async function POST(request: NextRequest) {
         ok: true,
         status: "active",
         metadata: safeMetadata(result.subscription),
-        feedUrl: buildCalendarFeedUrl(request.nextUrl.origin, result.rawToken),
+        feedAddress: buildCalendarFeedAddress(
+          request.nextUrl.origin,
+          result.tokenPrefix,
+        ),
+        subscriptionPassword: result.rawToken,
       },
       201,
     );
@@ -143,7 +147,11 @@ export async function PATCH(request: NextRequest) {
       ok: true,
       status: "active",
       metadata: safeMetadata(result.subscription),
-      feedUrl: buildCalendarFeedUrl(request.nextUrl.origin, result.rawToken),
+      feedAddress: buildCalendarFeedAddress(
+        request.nextUrl.origin,
+        result.tokenPrefix,
+      ),
+      subscriptionPassword: result.rawToken,
     });
   } catch (error) {
     return errorResponse(error);

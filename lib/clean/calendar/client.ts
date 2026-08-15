@@ -11,6 +11,7 @@ import type {
   CleanCalendarItemUpdate,
 } from "@/lib/clean/calendar/types";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
+import { requestCalendarProviderSync } from "@/lib/clean/calendar/providerSyncClient";
 
 type CalendarItemRow = {
   id: string;
@@ -262,6 +263,7 @@ export async function createCleanCalendarItem(
 
   const item = toCleanCalendarItem(response.data as CalendarItemRow);
   requestCoachStateRefresh("weekly-block-created");
+  requestCalendarProviderSync(familyId);
   return item;
 }
 
@@ -328,6 +330,7 @@ export async function createCleanCalendarItems(
     (response.data ?? []).map((row) => toCleanCalendarItem(row as CalendarItemRow)),
   );
   if (items.length) requestCoachStateRefresh("weekly-block-created");
+  if (items.length) requestCalendarProviderSync(familyId);
   return items;
 }
 
@@ -369,6 +372,7 @@ export async function updateCleanCalendarItem(
 
   const item = toCleanCalendarItem(response.data as CalendarItemRow);
   requestCoachStateRefresh("weekly-block-updated");
+  requestCalendarProviderSync(familyId);
   return item;
 }
 
@@ -392,4 +396,5 @@ export async function deleteCleanCalendarItem(
   }
 
   requestCoachStateRefresh("weekly-block-deleted");
+  requestCalendarProviderSync(familyId);
 }

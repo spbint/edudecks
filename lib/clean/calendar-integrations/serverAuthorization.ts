@@ -18,12 +18,7 @@ export class CalendarRouteAuthorizationError extends Error {
   }
 }
 
-export async function authorizeCalendarIntegrationManager(
-  familyId: string,
-): Promise<{
-  supabase: SupabaseClient;
-  context: CalendarIntegrationManagerContext;
-}> {
+async function requireCalendarFamilyMembership(familyId: string) {
   const supabase = await getServerAuthClient();
   const userResponse = await supabase.auth.getUser();
   const user = userResponse.data.user;
@@ -38,17 +33,41 @@ export async function authorizeCalendarIntegrationManager(
     .eq("user_id", user.id)
     .maybeSingle();
   const role = String(membershipResponse.data?.role ?? "") as FamilyMemberRole;
+  if (membershipResponse.error || !membershipResponse.data) {
+    throw new CalendarRouteAuthorizationError(403, "forbidden");
+  }
+  return { supabase, user, role };
+}
 
-  if (membershipResponse.error || !canManageCalendarIntegrations(role)) {
+export async function authorizeCalendarFamilyMember(familyId: string) {
+  const authorized = await requireCalendarFamilyMembership(familyId);
+  return {
+    supabase: authorized.supabase,
+    context: {
+      familyId,
+      userId: authorized.user.id,
+      role: authorized.role,
+    } satisfies CalendarIntegrationManagerContext,
+  };
+}
+
+export async function authorizeCalendarIntegrationManager(
+  familyId: string,
+): Promise<{
+  supabase: SupabaseClient;
+  context: CalendarIntegrationManagerContext;
+}> {
+  const authorized = await requireCalendarFamilyMembership(familyId);
+  if (!canManageCalendarIntegrations(authorized.role)) {
     throw new CalendarRouteAuthorizationError(403, "forbidden");
   }
 
   return {
-    supabase,
+    supabase: authorized.supabase,
     context: {
       familyId,
-      userId: user.id,
-      role,
+      userId: authorized.user.id,
+      role: authorized.role,
     },
   };
 }

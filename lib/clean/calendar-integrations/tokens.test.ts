@@ -5,7 +5,8 @@ import {
   hashCalendarFeedToken,
 } from "@/lib/clean/calendar-integrations/tokens";
 import {
-  buildCalendarFeedUrl,
+  buildAuthenticatedCalendarFeedUrl,
+  buildCalendarFeedAddress,
   parseCalendarFeedPathSegment,
   toWebcalUrl,
 } from "@/lib/clean/calendar-integrations/urls";
@@ -22,14 +23,29 @@ describe("Apple Calendar bearer tokens and URLs", () => {
     expect(first.tokenPrefix).toBe(first.rawToken.slice(0, 8));
   });
 
-  it("builds HTTPS and webcal subscription URLs without changing the token", () => {
-    const token = generateCalendarFeedToken().rawToken;
-    const httpsUrl = buildCalendarFeedUrl("https://www.mylearna.com", token);
-    expect(httpsUrl).toBe(`https://www.mylearna.com/api/calendar-feeds/${token}.ics`);
-    expect(toWebcalUrl(httpsUrl)).toBe(
-      `webcal://www.mylearna.com/api/calendar-feeds/${token}.ics`,
+  it("keeps the secret out of the request path and carries it as feed credentials", () => {
+    const token = generateCalendarFeedToken();
+    const feedAddress = buildCalendarFeedAddress(
+      "https://www.mylearna.com",
+      token.tokenPrefix,
     );
-    expect(parseCalendarFeedPathSegment(`${token}.ics`)).toBe(token);
+    expect(feedAddress).toBe(
+      `https://www.mylearna.com/api/calendar-feeds/${token.tokenPrefix}.ics`,
+    );
+    expect(feedAddress).not.toContain(token.rawToken);
+    const authenticatedUrl = buildAuthenticatedCalendarFeedUrl(
+      feedAddress,
+      token.rawToken,
+    );
+    expect(authenticatedUrl).toBe(
+      `https://mylearna:${token.rawToken}@www.mylearna.com/api/calendar-feeds/${token.tokenPrefix}.ics`,
+    );
+    expect(toWebcalUrl(authenticatedUrl)).toBe(
+      `webcal://mylearna:${token.rawToken}@www.mylearna.com/api/calendar-feeds/${token.tokenPrefix}.ics`,
+    );
+    expect(parseCalendarFeedPathSegment(`${token.tokenPrefix}.ics`)).toBe(
+      token.tokenPrefix,
+    );
     expect(parseCalendarFeedPathSegment("not-a-token.ics")).toBeNull();
   });
 });

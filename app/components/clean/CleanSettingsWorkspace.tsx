@@ -7,6 +7,8 @@ import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorks
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import AppleCalendarConnectionCard from "@/app/components/clean/AppleCalendarConnectionCard";
+import GoogleCalendarConnectionCard from "@/app/components/clean/GoogleCalendarConnectionCard";
+import MicrosoftCalendarConnectionCard from "@/app/components/clean/MicrosoftCalendarConnectionCard";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
@@ -1340,9 +1342,24 @@ function CleanSettingsWorkspaceBody() {
               </section>
             ) : null}
 
+            <GoogleCalendarConnectionCard
+              familyId={workspace.profile.id}
+              canManage={
+                workspace.membership?.role === "owner" ||
+                workspace.membership?.role === "parent"
+              }
+            />
+
+            <MicrosoftCalendarConnectionCard
+              familyId={workspace.profile.id}
+              canManage={
+                workspace.membership?.role === "owner" ||
+                workspace.membership?.role === "parent"
+              }
+            />
+
             <AppleCalendarConnectionCard
               familyId={workspace.profile.id}
-              userId={workspace.currentUserId}
               canManage={
                 workspace.membership?.role === "owner" ||
                 workspace.membership?.role === "parent"

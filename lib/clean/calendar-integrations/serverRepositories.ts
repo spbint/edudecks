@@ -167,7 +167,7 @@ export function createCalendarFeedReadStore(): CalendarFeedReadStore {
     async findActiveByTokenHash(tokenHash) {
       const response = await admin
         .from("calendar_feed_subscriptions")
-        .select("id,family_id")
+        .select("id,family_id,token_prefix")
         .eq("token_hash", tokenHash)
         .eq("status", "active")
         .maybeSingle();
@@ -175,6 +175,7 @@ export function createCalendarFeedReadStore(): CalendarFeedReadStore {
       return {
         id: safe(response.data.id),
         familyId: safe(response.data.family_id),
+        tokenPrefix: safe(response.data.token_prefix),
       };
     },
 
