@@ -6,6 +6,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
+import CoreJourneyCue, {
+  CoreJourneyHelp,
+} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import {
   CleanFeedbackPrompt,
   CleanContinueWhereYouLeftOffCard,
@@ -1171,10 +1174,19 @@ function CleanDayWorkspaceBody() {
               padding: 18px !important;
             }
 
-            .mylearna-day-header p:last-child,
             .mylearna-day-getting-started,
             .mylearna-day-continue-card {
               display: none !important;
+            }
+
+            .mylearna-day-intro-full,
+            .mylearna-day-overview-summary,
+            .mylearna-day-timeline-helper {
+              display: none !important;
+            }
+
+            .mylearna-day-intro-short {
+              display: inline !important;
             }
 
             .mylearna-day-plan-card {
@@ -1192,10 +1204,11 @@ function CleanDayWorkspaceBody() {
               letter-spacing: 0 !important;
             }
 
-            .mylearna-day-overview-card p,
-            .mylearna-day-next-step-copy,
-            .mylearna-day-timeline-helper {
-              display: none !important;
+            .mylearna-day-header-capture {
+              min-height: 44px !important;
+              border: 1px solid #cbd5e1 !important;
+              background: #ffffff !important;
+              color: #17204b !important;
             }
 
             .mylearna-day-progress-panel {
@@ -1219,7 +1232,12 @@ function CleanDayWorkspaceBody() {
               grid-template-columns: 1fr !important;
             }
           }
+
+          .mylearna-day-intro-short {
+            display: none;
+          }
         `}</style>
+        <CoreJourneyCue stage="plan" />
         {canShowMyDayGuidance ? <CleanFirstRunSetupGate currentStep="day" /> : null}
         {canShowMyDayGuidance ? (
           <GuidanceSetupProgress
@@ -1304,7 +1322,10 @@ function CleanDayWorkspaceBody() {
               {formatTodayHeading(selectedDate)}
             </p>
             <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
-              {familyGreeting} Start with one simple next step.
+              <span className="mylearna-day-intro-short">Plan one useful next step.</span>
+              <span className="mylearna-day-intro-full">
+                {familyGreeting} Start with one simple next step.
+              </span>
             </p>
             {canShowMyDayGuidance ? (
               <div>
@@ -1312,6 +1333,7 @@ function CleanDayWorkspaceBody() {
               </div>
             ) : null}
             <Link
+              className="mylearna-day-header-capture"
               href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(dayPathBase)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
               style={{
                 width: "fit-content",
@@ -1498,7 +1520,7 @@ function CleanDayWorkspaceBody() {
                       >
                         {isViewingToday ? "Learning blocks for today" : "Learning blocks for this day"}
                       </h2>
-                      <p style={{ margin: 0, color: "#475569", fontSize: 15, lineHeight: 1.75 }}>
+                      <p className="mylearna-day-overview-summary" style={{ margin: 0, color: "#475569", fontSize: 15, lineHeight: 1.75 }}>
                         {overviewSummary}
                       </p>
                       <p style={{ margin: 0, color: "#0f172a", fontWeight: 700, fontSize: 15 }}>
@@ -1634,11 +1656,17 @@ function CleanDayWorkspaceBody() {
                     >
                       Today&apos;s next step
                     </div>
-                    <div className="mylearna-day-next-step-copy" style={{ color: "#475569", lineHeight: 1.7 }}>
-                      Use My Day for today&apos;s learning. Add a quick block, open My
-                      Calendar for fuller planning, then capture evidence when something
-                      useful happens.
+                    <div style={{ color: "#334155", fontWeight: 700, lineHeight: 1.55 }}>
+                      Add a learning block, then capture what happens.
                     </div>
+                    <CoreJourneyHelp>
+                      <p>
+                        Use My Day for today&apos;s learning. Add a quick block, open My
+                        Calendar for fuller planning, then capture evidence when something
+                        useful happens. Learning blocks stay compact until you open their
+                        details.
+                      </p>
+                    </CoreJourneyHelp>
                   </div>
                 </div>
 

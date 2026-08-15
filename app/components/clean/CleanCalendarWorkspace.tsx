@@ -9,6 +9,9 @@ import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import CoreJourneyCue, {
+  CoreJourneyHelp,
+} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
@@ -3161,12 +3164,6 @@ function CleanCalendarWorkspaceBody() {
               padding: 16px !important;
             }
 
-            .mylearna-calendar-intro p,
-            .mylearna-calendar-board-copy,
-            .mylearna-calendar-secondary-copy {
-              display: none !important;
-            }
-
             .mylearna-calendar-board {
               padding: 14px !important;
             }
@@ -3289,6 +3286,7 @@ function CleanCalendarWorkspaceBody() {
             }
           }
         `}</style>
+        <CoreJourneyCue stage="plan" />
         {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
         {setupStatus !== "active" ? <CleanFirstRunSetupGate currentStep="calendar" /> : null}
         {setupStatus !== "active" ? (
@@ -3326,10 +3324,15 @@ function CleanCalendarWorkspaceBody() {
               MyLearna planning
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{calendarHeading}</h1>
-            <p style={secondaryTextStyle}>
-              Set term dates, keep a reusable master week, and shape the live week when
-              you need it.
+            <p style={{ ...secondaryTextStyle, margin: 0, fontWeight: 700 }}>
+              Plan the learning week.
             </p>
+            <CoreJourneyHelp>
+              <p>
+                Set term dates, keep a reusable master week, and shape the live week when
+                you need it.
+              </p>
+            </CoreJourneyHelp>
             <div>
               {!firstSetupMode ? <GuidancePageAction tourId="my-calendar" /> : null}
             </div>
@@ -3572,9 +3575,11 @@ function CleanCalendarWorkspaceBody() {
                       Master planning calendar
                     </div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>{calendarBoardLabel}</h2>
-                    <p className="mylearna-calendar-board-copy" style={secondaryTextStyle}>
-                      Plan learning blocks here. Today&apos;s blocks flow through to My Day.
-                    </p>
+                    <CoreJourneyHelp>
+                      <p>
+                        Plan learning blocks here. Today&apos;s blocks flow through to My Day.
+                      </p>
+                    </CoreJourneyHelp>
                   </div>
 
                   <div

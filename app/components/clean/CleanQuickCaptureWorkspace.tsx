@@ -5,6 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
+import CoreJourneyCue, {
+  CoreJourneyHelp,
+} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import CleanLearningMomentShareCard from "@/app/components/clean/CleanLearningMomentShareCard";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanEvidenceAttachmentControls from "@/app/components/clean/evidence/CleanEvidenceAttachmentControls";
@@ -290,6 +293,7 @@ export default function CleanQuickCaptureWorkspace() {
         tabIndex={-1}
         style={{ minHeight: "calc(100dvh - 72px)", paddingBottom: "calc(92px + env(safe-area-inset-bottom, 0px))", display: "grid", alignContent: "start", gap: 16, maxWidth: 760, margin: "0 auto", outline: "none" }}
       >
+        <CoreJourneyCue stage="capture" />
         <div style={{ display: "grid", gap: 6 }}>
           <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Step 2 — Create your share card</p>
           <p style={{ margin: 0, color: "#5b6478", lineHeight: 1.5 }}>Choose what you want to share from this saved learning moment.</p>
@@ -330,6 +334,7 @@ export default function CleanQuickCaptureWorkspace() {
             }
           }
         `}</style>
+        <CoreJourneyCue stage="capture" />
         <p role="status" aria-live="polite" style={{ margin: 0, color: "#15803d", fontSize: 14, fontWeight: 850 }}>
           Learning saved
         </p>
@@ -366,6 +371,7 @@ export default function CleanQuickCaptureWorkspace() {
   return (
     <main className="mylearna-quick-capture-main" ref={quickCaptureTopRef} tabIndex={-1} style={{ minHeight: "calc(100dvh - 72px)", paddingBottom: "calc(112px + env(safe-area-inset-bottom, 0px))", display: "grid", alignContent: "start", gap: 16, maxWidth: 760, margin: "0 auto", outline: "none" }}>
       <style jsx global>{`.mylearna-quick-capture-main fieldset:first-of-type > div { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; } @media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
+      <CoreJourneyCue stage="capture" />
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p></div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         <form onSubmit={handleSave} style={{ display: "grid", gap: 14 }}>
@@ -377,6 +383,13 @@ export default function CleanQuickCaptureWorkspace() {
           <div style={{ borderTop: "1px solid #eef0f5", paddingTop: 12 }}><button type="button" onClick={() => setLearningAreaOpen((current) => !current)} aria-expanded={learningAreaOpen} style={{ ...tertiaryButtonStyle, textDecoration: "none", padding: 0 }}>{learningAreaOpen ? "Hide learning area" : "Add learning area"}</button>{learningAreaOpen ? <label style={{ display: "grid", gap: 6, marginTop: 10 }}><span style={{ color: "#17204b", fontWeight: 750 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label> : null}</div>
           <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving..." : "Save learning moment"}</button></div>
           {error ? <p role="alert" style={{ margin: 0, color: "#b91c1c", lineHeight: 1.5 }}>{error}</p> : null}
+          <CoreJourneyHelp>
+            <p>
+              A photo or short caption is enough. Reflection and learning area are
+              optional. Saved moments stay private to your family and can contribute to
+              Portfolio and Reports.
+            </p>
+          </CoreJourneyHelp>
         </form>
       </section>
     </main>

@@ -7,6 +7,9 @@ import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorks
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import CoreJourneyCue, {
+  CoreJourneyHelp,
+} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 import CleanLearningMomentShareCard from "@/app/components/clean/CleanLearningMomentShareCard";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
@@ -685,10 +688,6 @@ function CleanPortfolioWorkspaceBody() {
             padding: 14px !important;
           }
 
-          .mylearna-portfolio-learning-record-hub p {
-            display: none !important;
-          }
-
           .mylearna-portfolio-learner-select.is-selected {
             min-height: 38px !important;
             font-size: 13px !important;
@@ -698,6 +697,16 @@ function CleanPortfolioWorkspaceBody() {
             width: 100% !important;
             min-height: 48px !important;
             font-size: 15px !important;
+            border-color: #cbd5e1 !important;
+            background: #ffffff !important;
+            color: #17204b !important;
+          }
+
+          .mylearna-portfolio-secondary-action {
+            min-height: 44px !important;
+            border: 1px solid #cbd5e1 !important;
+            background: #ffffff !important;
+            color: #17204b !important;
           }
 
           .mylearna-portfolio-just-captured {
@@ -710,17 +719,38 @@ function CleanPortfolioWorkspaceBody() {
             justify-self: stretch !important;
           }
 
-          .mylearna-portfolio-review-progress {
-            display: none !important;
+          .mylearna-portfolio-filter-details summary {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            color: #4338ca;
+            cursor: pointer;
+            font-weight: 800;
           }
 
-          .mylearna-portfolio-intro p,
-          .mylearna-portfolio-filter-panel {
-            display: none !important;
+          .mylearna-portfolio-filter-details summary:focus-visible {
+            border-radius: 8px;
+            outline: 3px solid rgba(108, 77, 246, 0.35);
+            outline-offset: 2px;
+          }
+
+          .mylearna-portfolio-filter-details:not([open]) > .mylearna-portfolio-filter-body {
+            display: none;
+          }
+        }
+
+        @media (min-width: 721px) {
+          .mylearna-portfolio-filter-details summary {
+            display: none;
+          }
+
+          .mylearna-portfolio-filter-details > .mylearna-portfolio-filter-body {
+            display: block !important;
           }
         }
       `}</style>
       <div style={wrapStyle}>
+        <CoreJourneyCue stage="portfolio" />
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="portfolio" />
         {!workspace.setupLoading && !workspace.setupStatus.hasPortfolioItem ? (
@@ -750,13 +780,17 @@ function CleanPortfolioWorkspaceBody() {
               Best evidence
             </div>
             <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>{portfolioHeading}</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Choose the moments that best show learning progress.
+            <p style={{ margin: 0, color: "#334155", lineHeight: 1.6, fontWeight: 700 }}>
+              Choose your strongest learning moments.
             </p>
+            <CoreJourneyHelp>
+              <p>Choose the moments that best show learning progress over time.</p>
+            </CoreJourneyHelp>
             <div>
               <GuidancePageAction tourId="my-portfolio" />
             </div>
             <Link
+              className="mylearna-portfolio-secondary-action"
               href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(pathname)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
               style={{ ...buttonStyle, width: "fit-content", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
             >
@@ -860,9 +894,12 @@ function CleanPortfolioWorkspaceBody() {
                       ? `Learning record for ${selectedLearnerLabel}`
                       : "Download learning record"}
                   </h2>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Use captured evidence directly from Portfolio. My Reports is still available for a fuller edited report.
-                  </p>
+                  <CoreJourneyHelp>
+                    <p>
+                      Use captured evidence directly from Portfolio. My Reports is still
+                      available for a fuller edited report.
+                    </p>
+                  </CoreJourneyHelp>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     {selectedLearnerLabel ? (
                       <>
@@ -1121,6 +1158,7 @@ function CleanPortfolioWorkspaceBody() {
               data-guidance-id="portfolio-review-progress"
               style={cardStyle}
             >
+              <CoreJourneyHelp>
               <div
                 style={{
                   display: "grid",
@@ -1143,9 +1181,13 @@ function CleanPortfolioWorkspaceBody() {
                   </ul>
                 </div>
               </div>
+              </CoreJourneyHelp>
             </section>
 
             <section className="mylearna-portfolio-filter-panel" data-guidance-id="portfolio-filter-learner" style={cardStyle}>
+              <details className="mylearna-portfolio-filter-details">
+                <summary>Filter portfolio</summary>
+                <div className="mylearna-portfolio-filter-body">
               <div
                 style={{
                   display: "flex",
@@ -1254,6 +1296,8 @@ function CleanPortfolioWorkspaceBody() {
                   <strong style={{ color: "#0f172a" }}>{items.length}</strong> evidence notes.
                 </div>
               </div>
+                </div>
+              </details>
             </section>
 
             <section data-guidance-id="portfolio-evidence-list" style={cardStyle}>

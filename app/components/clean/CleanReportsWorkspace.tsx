@@ -7,6 +7,9 @@ import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorks
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import CoreJourneyCue, {
+  CoreJourneyHelp,
+} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
@@ -1420,11 +1423,6 @@ function CleanReportsWorkspaceBody() {
               padding: 18px !important;
             }
 
-            .mylearna-reports-intro p,
-            .mylearna-reports-helper-detail {
-              display: none !important;
-            }
-
             .mylearna-reports-setup h2 {
               font-size: 20px !important;
             }
@@ -1439,6 +1437,7 @@ function CleanReportsWorkspaceBody() {
             }
           }
         `}</style>
+        <CoreJourneyCue stage="report" />
         <CleanWorkflowRibbon />
         <CleanFirstRunSetupGate currentStep="reports" />
         {!workspace.setupLoading && !workspace.setupStatus.hasReport ? (
@@ -1468,9 +1467,12 @@ function CleanReportsWorkspaceBody() {
               Prepare a report
               </div>
               <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>My Reports</h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Turn report-ready learning records into a clear report.
+              <p style={{ margin: 0, color: "#334155", lineHeight: 1.6, fontWeight: 700 }}>
+                Create a clear learning report.
               </p>
+              <CoreJourneyHelp>
+                <p>Turn report-ready learning records into a clear report.</p>
+              </CoreJourneyHelp>
               <div>
                 <GuidancePageAction tourId="my-reports" />
               </div>
@@ -1559,15 +1561,19 @@ function CleanReportsWorkspaceBody() {
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{introPrimaryAction}</div>
                 </div>
-                <div className="mylearna-reports-helper-detail" style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>How reports are built</strong>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Your report brings together report-ready learning records, written reflections, and learner context into one learning report.
-                  </p>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Not every capture needs to be in a report. Choose Include in Reports for records that belong in the formal report.
-                  </p>
-                </div>
+                <CoreJourneyHelp>
+                  <div className="mylearna-reports-helper-detail" style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>How reports are built</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Your report brings together report-ready learning records, written
+                      reflections, and learner context into one learning report.
+                    </p>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Not every capture needs to be in a report. Choose Include in Reports
+                      for records that belong in the formal report.
+                    </p>
+                  </div>
+                </CoreJourneyHelp>
               </div>
             </section>
 
