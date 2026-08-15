@@ -28,6 +28,7 @@ const PUBLIC_ALLOW_PATHS = [
 const PRIVATE_DISALLOW_PATHS = [
   "/api",
   "/api/",
+  "/api/calendar-feeds/",
   "/auth",
   "/auth/",
   "/dashboard",

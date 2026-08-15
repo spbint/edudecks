@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireSupabasePublicEnv } from "@/lib/supabaseClient";
 
-async function getServerAuthClient() {
+export async function getServerAuthClient() {
   const cookieStore = await cookies();
   const config = requireSupabasePublicEnv();
 
