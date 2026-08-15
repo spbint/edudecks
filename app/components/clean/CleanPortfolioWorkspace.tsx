@@ -13,7 +13,6 @@ import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
-  GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -261,6 +260,9 @@ function CleanPortfolioWorkspaceBody() {
   const reportsPathBase = pathname.startsWith("/clean-my-portfolio")
     ? "/clean-my-reports"
     : "/my-reports";
+  const createReportHref = selectedLearnerId
+    ? `${reportsPathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}`
+    : reportsPathBase;
 
   const programLabelById = useMemo(
     () => new Map(programs.map((program) => [program.id, program.title])),
@@ -702,6 +704,12 @@ function CleanPortfolioWorkspaceBody() {
             padding: 14px !important;
           }
 
+          .mylearna-portfolio-next-report a {
+            width: 100% !important;
+            min-height: 44px !important;
+            justify-self: stretch !important;
+          }
+
           .mylearna-portfolio-review-progress {
             display: none !important;
           }
@@ -919,11 +927,7 @@ function CleanPortfolioWorkspaceBody() {
                     {submitting ? "Preparing PDF..." : "Download learning record"}
                   </button>
                   <Link
-                    href={
-                      selectedLearnerId
-                        ? `${reportsPathBase}?learner_id=${selectedLearnerId}`
-                        : reportsPathBase
-                    }
+                    href={createReportHref}
                     style={{
                       ...secondaryButtonStyle,
                       minHeight: 44,
@@ -1053,6 +1057,62 @@ function CleanPortfolioWorkspaceBody() {
                     showTrigger
                   />
                 ) : null}
+              </section>
+            ) : null}
+
+            {!itemsLoading && (workspace.setupStatus.hasPortfolioItem || items.length > 0) ? (
+              <section
+                className="mylearna-portfolio-next-report"
+                style={{
+                  ...cardStyle,
+                  borderColor: "#ddd6fe",
+                  background: "#faf5ff",
+                  padding: "clamp(14px, 3vw, 18px)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                    gap: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div
+                      style={{
+                        color: "#6d28d9",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Next step
+                    </div>
+                    <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
+                      Your learning record is building.
+                    </h2>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
+                      Bring this evidence into My Reports when you are ready.
+                    </p>
+                  </div>
+                  <Link
+                    href={createReportHref}
+                    style={{
+                      ...buttonStyle,
+                      minHeight: 44,
+                      width: "fit-content",
+                      justifySelf: "end",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Create Report
+                  </Link>
+                </div>
               </section>
             ) : null}
 
@@ -1543,21 +1603,6 @@ function CleanPortfolioWorkspaceBody() {
               ) : null}
             </section>
 
-            {!workspace.setupLoading && workspace.setupStatus.hasPortfolioItem && !workspace.setupStatus.hasReport ? (
-            <section data-guidance-id="portfolio-next-reports" style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Reports</h2>
-              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                When portfolio evidence is ready, preview how it can become a clearer
-                learning record in My Reports.
-              </p>
-              <GuidanceSetupNextAction
-                stepId="portfolio"
-                nextHref={reportsPathBase}
-                label="Continue to My Reports"
-                helperText="You have reviewed how portfolio evidence is gathered. Continue to report preview."
-              />
-            </section>
-            ) : null}
           </>
         ) : null}
 

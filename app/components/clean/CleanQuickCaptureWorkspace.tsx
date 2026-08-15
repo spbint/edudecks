@@ -13,6 +13,10 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { useCleanEvidenceAttachments } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
+import {
+  buildQuickCaptureSuccessHandoff,
+  safeQuickCaptureReturnPath,
+} from "@/lib/clean/evidence/quickCaptureSuccess";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 
@@ -42,7 +46,7 @@ const secondaryButtonStyle: React.CSSProperties = {
 };
 
 const tertiaryButtonStyle: React.CSSProperties = {
-  minHeight: 36,
+  minHeight: 44,
   border: 0,
   background: "transparent",
   color: "#4f46b8",
@@ -73,11 +77,6 @@ function formatDate(value: string) {
   return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
-function safeReturnPath(value: string | null | undefined, fallback: string) {
-  const normalized = String(value ?? "").trim();
-  return normalized.startsWith("/") && !normalized.startsWith("//") ? normalized : fallback;
-}
-
 export default function CleanQuickCaptureWorkspace() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
@@ -85,7 +84,7 @@ export default function CleanQuickCaptureWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedLearnerId = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
-  const returnPath = safeReturnPath(searchParams.get("returnTo"), "/my-day");
+  const returnPath = safeQuickCaptureReturnPath(searchParams.get("returnTo"));
   const [learnerId, setLearnerId] = useState(requestedLearnerId);
   const [observedOn, setObservedOn] = useState(getTodayDate);
   const [caption, setCaption] = useState("");
@@ -112,6 +111,19 @@ export default function CleanQuickCaptureWorkspace() {
     ? workspace.learners.find((learner) => learner.id === savedEntry.learnerId) ?? null
     : null;
   const savedLearnerLabel = savedLearner ? learnerLabel(savedLearner) : "Your learner";
+  const successHandoff = savedEntry
+    ? buildQuickCaptureSuccessHandoff({
+        evidenceId: savedEntry.id,
+        learnerId: savedEntry.learnerId,
+        learnerLabel: savedLearnerLabel,
+        includeInPortfolio: savedEntry.includeInPortfolio,
+        includeInReport: savedEntry.includeInReport,
+        returnTo: returnPath,
+        portfolioPathBase: pathname.startsWith("/clean-my-capture")
+          ? "/clean-my-portfolio"
+          : "/my-portfolio",
+      })
+    : null;
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -295,10 +307,32 @@ export default function CleanQuickCaptureWorkspace() {
   if (savedEntry) {
     return (
       <main
+        className="mylearna-quick-capture-receipt"
         ref={quickCaptureTopRef}
         tabIndex={-1}
         style={{ minHeight: "calc(100dvh - 72px)", paddingBottom: "calc(92px + env(safe-area-inset-bottom, 0px))", display: "grid", alignContent: "start", gap: 16, maxWidth: 760, margin: "0 auto", outline: "none" }}
       >
+        <style jsx global>{`
+          .mylearna-quick-capture-receipt-primary-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+          }
+
+          .mylearna-quick-capture-receipt-primary-actions > * {
+            width: 100%;
+            min-height: 44px;
+          }
+
+          @media (max-width: 420px) {
+            .mylearna-quick-capture-receipt-primary-actions {
+              grid-template-columns: minmax(0, 1fr);
+            }
+          }
+        `}</style>
+        <p role="status" aria-live="polite" style={{ margin: 0, color: "#15803d", fontSize: 14, fontWeight: 850 }}>
+          Learning saved
+        </p>
         <section style={{ border: "1px solid #bbf7d0", borderRadius: 20, background: "#f0fdf4", padding: "clamp(18px, 5vw, 30px)", display: "grid", gap: 16 }}>
           <div><p style={{ margin: 0, color: "#15803d", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Step 1 — Learning moment saved</p><h1 style={{ margin: "6px 0 0", color: "#14532d", fontSize: "clamp(28px, 6vw, 42px)" }}>Learning moment saved</h1></div>
           <div style={{ display: "grid", gap: 6, color: "#166534", lineHeight: 1.55 }}>
@@ -306,17 +340,21 @@ export default function CleanQuickCaptureWorkspace() {
             <span>{formatDate(savedEntry.observedOn)}</span>
             {caption.trim() ? <span>{caption.trim()}</span> : null}
             {savedPhotoAttached ? <span>Attachment attached</span> : photoUploadError ? <span style={{ color: "#b45309" }}>Attachment still needs attaching</span> : null}
-            <span>Added to Portfolio</span>
-            <span>Included in Reports</span>
+            {successHandoff?.portfolioMessage ? <span>{successHandoff.portfolioMessage}</span> : null}
+            {successHandoff?.reportMessage ? <span>{successHandoff.reportMessage}</span> : null}
           </div>
           {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 38, marginTop: 8 }}>{submitting ? "Trying again..." : "Try attachment again"}</button></div> : null}
           <div style={{ display: "grid", gap: 12 }}>
-            <button type="button" onClick={() => setSharingOpen(true)} style={buttonStyle}>Create a share card</button>
-            <Link href={`/my-portfolio?learner_id=${encodeURIComponent(savedEntry.learnerId)}&latestEvidenceId=${encodeURIComponent(savedEntry.id)}&source=my-capture`} style={secondaryButtonStyle}>View in Portfolio</Link>
+            <div className="mylearna-quick-capture-receipt-primary-actions">
+              <Link href={successHandoff?.primaryHref ?? returnPath} style={buttonStyle}>
+                {successHandoff?.primaryLabel ?? "Return"}
+              </Link>
+              <button type="button" onClick={() => setSharingOpen(true)} style={secondaryButtonStyle}>Create a share card</button>
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
               <button type="button" onClick={addMoreDetail} style={tertiaryButtonStyle}>Add more detail</button>
-              <button type="button" onClick={captureAnother} style={tertiaryButtonStyle}>Capture another moment</button>
-              <Link href={returnPath} style={tertiaryButtonStyle}>Return</Link>
+              {successHandoff?.showCaptureAnother ? <button type="button" onClick={captureAnother} style={tertiaryButtonStyle}>Capture another</button> : null}
+              {successHandoff?.portfolioHref ? <Link href={successHandoff.returnHref} style={tertiaryButtonStyle}>{successHandoff.returnLabel}</Link> : null}
             </div>
           </div>
         </section>

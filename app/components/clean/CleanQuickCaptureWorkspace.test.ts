@@ -11,6 +11,7 @@ import {
 } from "@/lib/clean/evidence/learningMomentShareCard";
 
 const source = readFileSync(join(process.cwd(), "app/components/clean/CleanQuickCaptureWorkspace.tsx"), "utf8");
+const quickSuccessSource = readFileSync(join(process.cwd(), "lib/clean/evidence/quickCaptureSuccess.ts"), "utf8");
 const attachmentControlsSource = readFileSync(join(process.cwd(), "app/components/clean/evidence/CleanEvidenceAttachmentControls.tsx"), "utf8");
 const captureSource = readFileSync(join(process.cwd(), "app/components/clean/CleanCaptureWorkspace.tsx"), "utf8");
 const daySource = readFileSync(join(process.cwd(), "app/components/clean/CleanDayWorkspace.tsx"), "utf8");
@@ -137,6 +138,55 @@ describe("Quick Capture doorway", () => {
     expect(source).not.toContain("Close share card");
     expect(source).not.toContain('setStatus("Learning moment saved.")');
     expect(source).toContain("style={tertiaryButtonStyle}");
+  });
+
+  it("guides a successful save to Portfolio without changing persistence", () => {
+    expect(source).toContain('role="status" aria-live="polite"');
+    expect(source).toContain("Learning saved");
+    expect(source).toContain("successHandoff?.portfolioMessage");
+    expect(source).toContain("successHandoff?.reportMessage");
+    expect(source).toContain("successHandoff?.primaryHref");
+    expect(source).toContain("successHandoff?.primaryLabel");
+    expect(quickSuccessSource).toContain("View in Portfolio");
+    expect(source).not.toContain("<span>Added to Portfolio</span>");
+    expect(source).toContain("includeInPortfolio: true");
+    expect(source).toContain("includeInReport: true");
+  });
+
+  it("keeps upload completion and retry inside the same success receipt", () => {
+    expect(source).toContain("setSavedPhotoAttached(Boolean(uploaded.length))");
+    expect(source).toContain("setPhotoUploadError");
+    expect(source).toContain("retryPhotoUpload");
+    expect(source).toContain("Try attachment again");
+    expect(source).toContain("Attachment attached to the saved learning moment.");
+  });
+
+  it("preserves My Day and Pathways return behavior without automatic redirects", () => {
+    expect(source).toContain("successHandoff.returnHref");
+    expect(source).toContain("successHandoff.returnLabel");
+    expect(captureSource).toContain("lastSavedMyDayReturnPath");
+    expect(captureSource).toContain("Return to My Day");
+    expect(captureSource).toContain("savedEvidencePathwayReturnPath");
+    expect(captureSource).toContain("Return to pathway");
+    expect(source).not.toContain("router.replace(successHandoff");
+    expect(source).not.toContain("router.push(successHandoff");
+  });
+
+  it("keeps receipt actions responsive with 44px primary targets", () => {
+    expect(source).toContain("mylearna-quick-capture-receipt-primary-actions");
+    expect(source).toContain("repeat(auto-fit, minmax(180px, 1fr))");
+    expect(source).toContain("@media (max-width: 420px)");
+    expect(source).toContain("min-height: 44px");
+    expect(source).toContain("Capture another");
+  });
+
+  it("connects Portfolio to the existing learner-aware Reports route", () => {
+    expect(portfolioSource).toContain("Your learning record is building.");
+    expect(portfolioSource).toContain("Create Report");
+    expect(portfolioSource).toContain("createReportHref");
+    expect(portfolioSource).toContain("learner_id=${encodeURIComponent(selectedLearnerId)}");
+    expect(portfolioSource).toContain("mylearna-portfolio-next-report");
+    expect(portfolioSource).not.toContain("Share Portfolio");
   });
 });
 
