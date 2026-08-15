@@ -115,6 +115,24 @@ create table public.program_segments (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.marketplace_resources (
+  id uuid primary key default gen_random_uuid(),
+  source text default 'shopify',
+  external_product_id text not null,
+  external_variant_id text,
+  handle text not null,
+  title text not null,
+  thumbnail_url text,
+  marketplace_area text,
+  primary_collection text,
+  subcollection text,
+  resource_format text,
+  is_active boolean default true,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 create table public.calendar_items (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.family_profiles(id) on delete cascade,
@@ -134,11 +152,17 @@ create table public.calendar_items (
   source_program_segment_id uuid null references public.program_segments(id) on delete set null,
   generation_run_id uuid null,
   is_highlighted boolean not null default false,
+  marketplace_resource_id uuid null,
+  completed_at timestamptz,
   created_by_user_id uuid not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint calendar_items_source_type_check
-    check (source_type in ('manual', 'generated', 'template'))
+    check (source_type in ('manual', 'generated', 'template')),
+  constraint calendar_items_marketplace_resource_id_fkey
+    foreign key (marketplace_resource_id)
+    references public.marketplace_resources(id)
+    on delete set null
 );
 
 create table public.evidence_entries (
@@ -433,6 +457,9 @@ create index calendar_items_family_learner_date_idx
 
 create index calendar_items_generation_idx
   on public.calendar_items (family_id, planned_date, source_type, generation_run_id);
+
+create index idx_calendar_items_marketplace_resource_id
+  on public.calendar_items using btree (marketplace_resource_id);
 
 create index evidence_entries_family_learner_date_idx
   on public.evidence_entries (family_id, learner_id, observed_on desc);
