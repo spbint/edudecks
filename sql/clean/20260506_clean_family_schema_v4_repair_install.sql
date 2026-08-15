@@ -229,8 +229,91 @@ create table if not exists public.marketplace_resources (
   is_active boolean default true,
   metadata jsonb default '{}'::jsonb,
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  constraint marketplace_resources_source_external_product_id_key
+    unique (source, external_product_id)
 );
+
+do $$
+declare
+  marketplace_source_attnum smallint;
+  marketplace_external_product_attnum smallint;
+begin
+  select attnum
+  into marketplace_source_attnum
+  from pg_attribute
+  where attrelid = 'public.marketplace_resources'::regclass
+    and attname = 'source'
+    and not attisdropped;
+
+  select attnum
+  into marketplace_external_product_attnum
+  from pg_attribute
+  where attrelid = 'public.marketplace_resources'::regclass
+    and attname = 'external_product_id'
+    and not attisdropped;
+
+  if marketplace_source_attnum is null or marketplace_external_product_attnum is null then
+    raise exception 'Marketplace uniqueness baseline columns are missing.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_index index_row
+    join pg_class index_class
+      on index_class.oid = index_row.indexrelid
+    join pg_am access_method
+      on access_method.oid = index_class.relam
+    where index_row.indrelid = 'public.marketplace_resources'::regclass
+      and index_row.indisunique
+      and index_row.indisvalid
+      and index_row.indisready
+      and (
+        marketplace_source_attnum = any(index_row.indkey)
+        or marketplace_external_product_attnum = any(index_row.indkey)
+      )
+      and not (
+        index_row.indnkeyatts = 2
+        and index_row.indnatts = 2
+        and index_row.indexprs is null
+        and index_row.indpred is null
+        and access_method.amname = 'btree'
+        and marketplace_source_attnum = any(index_row.indkey)
+        and marketplace_external_product_attnum = any(index_row.indkey)
+      )
+  ) then
+    raise exception 'A conflicting Marketplace uniqueness definition already exists.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_index index_row
+    join pg_class index_class
+      on index_class.oid = index_row.indexrelid
+    join pg_am access_method
+      on access_method.oid = index_class.relam
+    where index_row.indrelid = 'public.marketplace_resources'::regclass
+      and index_row.indisunique
+      and index_row.indisvalid
+      and index_row.indisready
+      and index_row.indnkeyatts = 2
+      and index_row.indnatts = 2
+      and index_row.indexprs is null
+      and index_row.indpred is null
+      and access_method.amname = 'btree'
+      and marketplace_source_attnum = any(index_row.indkey)
+      and marketplace_external_product_attnum = any(index_row.indkey)
+  ) then
+    if to_regclass('public.marketplace_resources_source_external_product_id_key') is not null then
+      raise exception 'Index name marketplace_resources_source_external_product_id_key is already used by a different definition.';
+    end if;
+
+    alter table public.marketplace_resources
+      add constraint marketplace_resources_source_external_product_id_key
+      unique (source, external_product_id);
+  end if;
+end
+$$;
 
 create table if not exists public.calendar_items (
   id uuid primary key default gen_random_uuid(),
@@ -917,6 +1000,77 @@ alter table public.family_members enable row level security;
 alter table public.learners enable row level security;
 alter table public.programs enable row level security;
 alter table public.program_segments enable row level security;
+alter table public.marketplace_resources enable row level security;
+
+do $$
+declare
+  authenticated_role_oid oid;
+begin
+  select oid
+  into authenticated_role_oid
+  from pg_roles
+  where rolname = 'authenticated';
+
+  if authenticated_role_oid is null then
+    raise exception 'Required database role authenticated is missing.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_policy policy_row
+    where policy_row.polrelid = 'public.marketplace_resources'::regclass
+      and policy_row.polcmd = 'r'
+      and policy_row.polpermissive
+      and policy_row.polroles = array[authenticated_role_oid]::oid[]
+      and lower(
+        regexp_replace(
+          pg_get_expr(policy_row.polqual, policy_row.polrelid),
+          '[[:space:]()]',
+          '',
+          'g'
+        )
+      ) = 'is_active=true'
+      and policy_row.polwithcheck is null
+  ) then
+    if exists (
+      select 1
+      from pg_policy policy_row
+      where policy_row.polrelid = 'public.marketplace_resources'::regclass
+        and not (
+          policy_row.polcmd = 'r'
+          and policy_row.polpermissive
+          and policy_row.polroles = array[authenticated_role_oid]::oid[]
+          and lower(
+            regexp_replace(
+              pg_get_expr(policy_row.polqual, policy_row.polrelid),
+              '[[:space:]()]',
+              '',
+              'g'
+            )
+          ) = 'is_active=true'
+          and policy_row.polwithcheck is null
+        )
+    ) then
+      raise exception 'A conflicting Marketplace RLS policy already exists.';
+    end if;
+  else
+    if exists (
+      select 1
+      from pg_policy policy_row
+      where policy_row.polrelid = 'public.marketplace_resources'::regclass
+    ) then
+      raise exception 'A conflicting Marketplace RLS policy already exists.';
+    end if;
+
+    create policy "marketplace resources read active"
+      on public.marketplace_resources
+      for select
+      to authenticated
+      using (is_active = true);
+  end if;
+end
+$$;
+
 alter table public.calendar_items enable row level security;
 alter table public.evidence_entries enable row level security;
 alter table public.portfolio_highlights enable row level security;

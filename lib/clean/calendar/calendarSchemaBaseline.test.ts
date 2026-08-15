@@ -14,6 +14,21 @@ const quickCaptureWorkspace = read("app/components/clean/CleanQuickCaptureWorksp
 const unifiedCapture = read("lib/clean/evidence/unifiedCapture.ts");
 
 const marketplaceDefinition = /create table if not exists public\.marketplace_resources \([\s\S]*?\n\);/;
+const marketplacePolicySection = (source: string) => {
+  const start = source.indexOf(
+    "alter table public.marketplace_resources enable row level security;",
+  );
+  const calendarRls = source.indexOf(
+    "alter table public.calendar_items enable row level security;",
+    start,
+  );
+  const calendarColumns = source.indexOf("alter table public.calendar_items", start);
+  const end = [calendarRls, calendarColumns]
+    .filter((index) => index > start)
+    .sort((left, right) => left - right)[0];
+
+  return start >= 0 && end !== undefined ? source.slice(start, end) : "";
+};
 
 describe("calendar schema baseline reconciliation", () => {
   it("records the authoritative Marketplace resource shape without speculative fields", () => {
@@ -35,8 +50,69 @@ describe("calendar schema baseline reconciliation", () => {
       expect(table).toContain("metadata jsonb default '{}'::jsonb");
       expect(table).toContain("created_at timestamptz default now()");
       expect(table).toContain("updated_at timestamptz default now()");
+      expect(table).toContain("unique (source, external_product_id)");
       expect(table).not.toMatch(/\b(description|learner_id|family_id)\b/);
     }
+  });
+
+  it("reconciles composite uniqueness by indexed-column semantics", () => {
+    expect(migration).toContain("index_row.indisunique");
+    expect(migration).toContain("index_row.indnkeyatts = 2");
+    expect(migration).toContain("index_row.indnatts = 2");
+    expect(migration).toContain("marketplace_source_attnum = any(index_row.indkey)");
+    expect(migration).toContain(
+      "marketplace_external_product_attnum = any(index_row.indkey)",
+    );
+    expect(migration).toContain("access_method.amname = 'btree'");
+    expect(migration).toContain(
+      "add constraint marketplace_resources_source_external_product_id_key",
+    );
+    expect(migration).toContain(
+      "A conflicting Marketplace uniqueness definition already exists",
+    );
+    expect(migration).not.toMatch(/if not exists[\s\S]{0,240}conname/);
+  });
+
+  it("enables RLS and creates only the authenticated active-resource read policy", () => {
+    for (const source of [migration, resetSchema, repairSchema]) {
+      const policy = marketplacePolicySection(source);
+
+      expect(policy).toContain(
+        "alter table public.marketplace_resources enable row level security;",
+      );
+      expect(policy).toContain('create policy "marketplace resources read active"');
+      expect(policy).toContain("on public.marketplace_resources");
+      expect(policy).toContain("for select");
+      expect(policy).toContain("to authenticated");
+      expect(policy).toContain("using (is_active = true)");
+      expect(policy).not.toMatch(/to\s+anon/);
+      expect(policy).not.toMatch(/for\s+(all|insert|update|delete)/);
+      expect(policy).not.toMatch(/to\s+service_role/);
+    }
+  });
+
+  it("recognizes equivalent policies without relying on the policy name", () => {
+    expect(migration).toContain("from pg_policy policy_row");
+    expect(migration).toContain(
+      "policy_row.polrelid = 'public.marketplace_resources'::regclass",
+    );
+    expect(migration).toContain("policy_row.polcmd = 'r'");
+    expect(migration).toContain("policy_row.polpermissive");
+    expect(migration).toContain(
+      "policy_row.polroles = array[authenticated_role_oid]::oid[]",
+    );
+    expect(migration).toContain("pg_get_expr(policy_row.polqual, policy_row.polrelid)");
+    expect(migration).toContain(") = 'is_active=true'");
+    expect(migration).toContain("policy_row.polwithcheck is null");
+    expect(migration).toContain("A conflicting Marketplace RLS policy already exists");
+
+    const policyGuard = marketplacePolicySection(migration).slice(
+      0,
+      marketplacePolicySection(migration).indexOf(
+        'create policy "marketplace resources read active"',
+      ),
+    );
+    expect(policyGuard).not.toContain("polname");
   });
 
   it("keeps both calendar columns nullable with their authoritative types", () => {
@@ -89,7 +165,10 @@ describe("calendar schema baseline reconciliation", () => {
     expect(migration).toContain("create extension if not exists pgcrypto");
     expect(migration).toContain("create table if not exists public.marketplace_resources");
     expect(migration.match(/add column if not exists/g)).toHaveLength(2);
-    expect(migration.match(/if not exists \(/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(migration.match(/if not exists \(/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(migration).toContain(
+      "to_regclass('public.marketplace_resources_source_external_product_id_key') is not null",
+    );
     expect(migration).toContain(
       "to_regclass('public.idx_calendar_items_marketplace_resource_id') is not null",
     );
@@ -106,6 +185,10 @@ describe("calendar schema baseline reconciliation", () => {
       expect(source).toContain("on delete set null");
       expect(source).toContain("idx_calendar_items_marketplace_resource_id");
       expect(source).toContain("using btree (marketplace_resource_id)");
+      expect(source).toContain("unique (source, external_product_id)");
+      expect(source).toContain(
+        "alter table public.marketplace_resources enable row level security;",
+      );
     }
   });
 
