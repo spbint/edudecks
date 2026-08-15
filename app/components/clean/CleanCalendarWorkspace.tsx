@@ -936,6 +936,7 @@ function CleanCalendarWorkspaceBody() {
   const setupRequestGenerationRef = useRef(0);
   const calendarPrimaryMilestoneRef = useRef<string | null>(null);
   const calendarSettledMilestoneRef = useRef<string | null>(null);
+  const popoverSubmitLockRef = useRef(false);
 
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState("");
   const [selectedLearningPeriodId, setSelectedLearningPeriodId] = useState("");
@@ -2805,7 +2806,8 @@ function CleanCalendarWorkspaceBody() {
   }
 
   async function handlePopoverSave() {
-    if (!workspace.profile) return;
+    if (!workspace.profile || submitting || popoverSubmitLockRef.current) return;
+    popoverSubmitLockRef.current = true;
 
     const breakForPlannedDate = findBreakForDate(popoverDate, breakPeriodsForSelectedYear);
     if (breakForPlannedDate) {
@@ -2816,6 +2818,7 @@ function CleanCalendarWorkspaceBody() {
         )}). Regular learning blocks are paused for this break / holiday.`,
       );
       setMessage(null);
+      popoverSubmitLockRef.current = false;
       return;
     }
 
@@ -2827,6 +2830,7 @@ function CleanCalendarWorkspaceBody() {
     if (!timeResult.ok) {
       setActionError(timeResult.message);
       setMessage(null);
+      popoverSubmitLockRef.current = false;
       return;
     }
 
@@ -2900,6 +2904,7 @@ function CleanCalendarWorkspaceBody() {
       );
     } finally {
       setSubmitting(false);
+      popoverSubmitLockRef.current = false;
     }
   }
 
@@ -6760,6 +6765,7 @@ function CleanCalendarWorkspaceBody() {
         onClose={closePopover}
         onSave={() => void handlePopoverSave()}
         saving={submitting}
+        errorMessage={actionError}
       />
 
       <CleanRhythmBlockPopover
