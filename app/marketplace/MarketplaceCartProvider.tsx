@@ -8,7 +8,7 @@ type CartContextValue = {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  addLine: (variantId: string, quantity: number) => Promise<boolean>;
+  addLine: (variantId: string, quantity: number) => Promise<{ ok: boolean; error?: string }>;
   updateLine: (lineId: string, quantity: number) => Promise<void>;
   removeLine: (lineId: string) => Promise<void>;
 };
@@ -16,8 +16,13 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 async function readResponse(response: Response) {
-  const body = await response.json().catch(() => ({})) as { cart?: ShopifyCart | null; error?: string };
-  if (!response.ok) throw new Error(body.error || "The Marketplace cart is temporarily unavailable.");
+  const body = (await response.json().catch(() => ({}))) as {
+    cart?: ShopifyCart | null;
+    error?: string;
+  };
+  if (!response.ok) {
+    throw new Error(body.error || "The Marketplace cart is temporarily unavailable.");
+  }
   return body.cart ?? null;
 }
 
@@ -29,26 +34,61 @@ export function MarketplaceCartProvider({ children }: { children: React.ReactNod
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try { setCart(await readResponse(await fetch("/api/marketplace/cart", { cache: "no-store" }))); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "The Marketplace cart is temporarily unavailable."); }
-    finally { setLoading(false); }
+    try {
+      setCart(await readResponse(await fetch("/api/marketplace/cart", { cache: "no-store" })));
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The Marketplace cart is temporarily unavailable.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const mutate = useCallback(async (body: Record<string, unknown>) => {
     setError(null);
     try {
-      const next = await readResponse(await fetch("/api/marketplace/cart", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }));
+      const next = await readResponse(
+        await fetch("/api/marketplace/cart", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
       setCart(next);
-      return true;
+      return { ok: true };
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The Marketplace cart is temporarily unavailable.");
-      return false;
+      const error =
+        reason instanceof Error
+          ? reason.message
+          : "The Marketplace cart is temporarily unavailable.";
+      setError(error);
+      return { ok: false, error };
     }
   }, []);
 
-  const value = useMemo<CartContextValue>(() => ({ cart, loading, error, refresh, addLine: (variantId, quantity) => mutate({ action: "add", variantId, quantity }), updateLine: async (lineId, quantity) => { await mutate({ action: "update", lineId, quantity }); }, removeLine: async (lineId) => { await mutate({ action: "remove", lineId }); } }), [cart, error, loading, mutate, refresh]);
+  const value = useMemo<CartContextValue>(
+    () => ({
+      cart,
+      loading,
+      error,
+      refresh,
+      addLine: (variantId, quantity) => mutate({ action: "add", variantId, quantity }),
+      updateLine: async (lineId, quantity) => {
+        await mutate({ action: "update", lineId, quantity });
+      },
+      removeLine: async (lineId) => {
+        await mutate({ action: "remove", lineId });
+      },
+    }),
+    [cart, error, loading, mutate, refresh],
+  );
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 

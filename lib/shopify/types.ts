@@ -45,6 +45,7 @@ export type ShopifyProduct = {
 export type ShopifyProductSummary = Pick<ShopifyProduct, "id" | "handle" | "title" | "featuredImage" | "vendor" | "productType" | "tags"> & {
   priceRange: { minVariantPrice: ShopifyMoney; maxVariantPrice: ShopifyMoney };
   availableForSale: boolean;
+  collections: ShopifyCollectionSummary[];
 };
 
 export type ShopifyCollectionSummary = {
@@ -67,7 +68,9 @@ export type ShopifyCartLine = {
   merchandise: {
     id: string;
     title: string;
-    product: { handle: string; title: string; featuredImage: ShopifyImage | null };
+    availableForSale: boolean;
+    quantityAvailable: number | null;
+    product: { handle: string; title: string; featuredImage: ShopifyImage | null; collections: ShopifyCollectionSummary[] };
     price: ShopifyMoney;
   };
 };
@@ -75,9 +78,13 @@ export type ShopifyCartLine = {
 export type ShopifyCart = {
   id: string;
   checkoutUrl: string | null;
+  buyerIdentity: {
+    countryCode: string | null;
+  } | null;
   totalQuantity: number;
   cost: { subtotalAmount: ShopifyMoney; totalAmount: ShopifyMoney };
   lines: ShopifyCartLine[];
 };
 
 export type ShopifyUserError = { field: string[] | null; message: string; code: string | null };
+export type ShopifyCartWarning = { message: string; code: string | null };

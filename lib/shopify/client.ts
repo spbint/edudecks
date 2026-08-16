@@ -1,28 +1,186 @@
 import { ShopifyError } from "./errors";
-import type { ShopifyCart, ShopifyCollection, ShopifyCollectionSummary, ShopifyProduct, ShopifyProductSummary, ShopifyUserError } from "./types";
-import { CART_QUERY, COLLECTIONS_QUERY, COLLECTION_QUERY, HOME_QUERY, PRODUCT_QUERY } from "./queries";
-import { ADD_CART_LINES_MUTATION, CREATE_CART_MUTATION, REMOVE_CART_LINES_MUTATION, UPDATE_CART_LINES_MUTATION } from "./mutations";
+import type {
+  ShopifyCart,
+  ShopifyCartLine,
+  ShopifyCartWarning,
+  ShopifyCollection,
+  ShopifyCollectionSummary,
+  ShopifyImage,
+  ShopifyProduct,
+  ShopifyProductSummary,
+  ShopifyProductVariant,
+  ShopifyUserError,
+} from "./types";
+import {
+  isApprovedMarketplaceCollectionHandle,
+  isMarketplaceProductEligible,
+} from "./categories";
+import {
+  CART_QUERY,
+  COLLECTIONS_QUERY,
+  COLLECTION_QUERY,
+  HOME_QUERY,
+  PRODUCT_QUERY,
+  VARIANT_QUERY,
+} from "./queries";
+import {
+  ADD_CART_LINES_MUTATION,
+  CREATE_CART_MUTATION,
+  REMOVE_CART_LINES_MUTATION,
+  UPDATE_CART_BUYER_IDENTITY_MUTATION,
+  UPDATE_CART_LINES_MUTATION,
+} from "./mutations";
 
 type GraphqlResponse<T> = { data?: T; errors?: Array<{ message?: unknown }> };
 type RequestOptions = { cache?: "no-store" | "force-cache"; revalidate?: number };
+type ShopifyConnection<T> = { nodes?: T[] | null } | null | undefined;
+type RawShopifyProductSummary = Omit<ShopifyProductSummary, "collections"> & {
+  collections?: ShopifyConnection<ShopifyCollectionSummary>;
+};
+type RawShopifyProduct = Omit<ShopifyProduct, "images" | "variants" | "collections"> & {
+  images?: ShopifyConnection<ShopifyImage>;
+  variants?: ShopifyConnection<ShopifyProductVariant>;
+  collections?: ShopifyConnection<ShopifyCollectionSummary>;
+};
+type RawShopifyCollection = Omit<ShopifyCollection, "products"> & {
+  products?: ShopifyConnection<RawShopifyProductSummary>;
+};
+type RawShopifyCartLine = Omit<ShopifyCartLine, "merchandise"> & {
+  merchandise: Omit<ShopifyCartLine["merchandise"], "product"> & {
+    product: Omit<ShopifyCartLine["merchandise"]["product"], "collections"> & {
+      collections?: ShopifyConnection<ShopifyCollectionSummary>;
+    };
+  };
+};
+type RawShopifyCart = Omit<ShopifyCart, "lines"> & {
+  lines?: ShopifyConnection<RawShopifyCartLine>;
+};
 
-function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function text(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
 
-function config() {
-  const domain = text(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN).replace(/^https?:\/\//i, "").replace(/\/$/, "");
-  const apiVersion = text(process.env.SHOPIFY_STOREFRONT_API_VERSION) || "2026-04";
-  const publicToken = text(process.env.SHOPIFY_STOREFRONT_PUBLIC_TOKEN);
-  const privateToken = text(process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN);
-  if (!domain || (!publicToken && !privateToken)) throw new ShopifyError("not_configured", "Shopify Marketplace configuration is incomplete.");
+function marketplaceCountry() {
+  const country = text(process.env.SHOPIFY_COUNTRY).toUpperCase();
+  return country || undefined;
+}
+
+function connectionNodes<T>(connection: ShopifyConnection<T> | unknown): T[] {
+  const nodes =
+    connection && typeof connection === "object" && "nodes" in connection
+      ? (connection as { nodes?: unknown }).nodes
+      : null;
+  return Array.isArray(nodes) ? (nodes as T[]) : [];
+}
+
+function normalizeProduct(product: RawShopifyProduct | null | undefined): ShopifyProduct | null {
+  if (!product) return null;
   return {
-    endpoint: `https://${domain}/api/${apiVersion}/graphql.json`,
-    token: publicToken || privateToken,
-    header: publicToken ? "X-Shopify-Storefront-Access-Token" : "Shopify-Storefront-Private-Token",
-    timeoutMs: Math.min(Math.max(Number(process.env.SHOPIFY_REQUEST_TIMEOUT_MS) || 8000, 1000), 20000),
+    ...product,
+    images: connectionNodes<ShopifyImage>(product.images),
+    variants: connectionNodes<ShopifyProductVariant>(product.variants),
+    collections: connectionNodes<ShopifyCollectionSummary>(product.collections),
   };
 }
 
-async function request<T>(query: string, variables: Record<string, unknown>, options: RequestOptions = {}) {
+function normalizeProductSummary(product: RawShopifyProductSummary): ShopifyProductSummary {
+  return {
+    ...product,
+    collections: connectionNodes<ShopifyCollectionSummary>(product.collections),
+  };
+}
+
+function normalizeCollection(
+  collection: RawShopifyCollection | null | undefined,
+): ShopifyCollection | null {
+  if (!collection || !isApprovedMarketplaceCollectionHandle(collection.handle)) return null;
+  return {
+    ...collection,
+    products: connectionNodes<RawShopifyProductSummary>(collection.products)
+      .map(normalizeProductSummary)
+      .filter(isMarketplaceProductEligible),
+  };
+}
+
+function normalizeCart(cart: RawShopifyCart | null | undefined): ShopifyCart | null {
+  if (!cart) return null;
+  return {
+    ...cart,
+    buyerIdentity: cart.buyerIdentity
+      ? { countryCode: text(cart.buyerIdentity.countryCode).toUpperCase() || null }
+      : null,
+    lines: connectionNodes<RawShopifyCartLine>(cart.lines).map((line) => ({
+      ...line,
+      merchandise: {
+        ...line.merchandise,
+        product: {
+          ...line.merchandise.product,
+          collections: connectionNodes<ShopifyCollectionSummary>(
+            line.merchandise.product.collections,
+          ),
+        },
+      },
+    })),
+  };
+}
+
+export function isMarketplaceCartValid(cart: ShopifyCart) {
+  return cart.lines.every((line) =>
+    isMarketplaceProductEligible({ collections: line.merchandise.product.collections }),
+  );
+}
+
+function assertCartLineQuantity(
+  cart: ShopifyCart,
+  lineId: string | null,
+  variantId: string | null,
+  expectedQuantity: number,
+) {
+  const line = cart.lines.find((item) =>
+    lineId ? item.id === lineId : item.merchandise.id === variantId,
+  );
+  if (line?.quantity === expectedQuantity) return;
+  const available = line?.merchandise.quantityAvailable;
+  const message =
+    typeof available === "number"
+      ? `Only ${available} are currently available.`
+      : "Shopify could not set that cart quantity.";
+  throw new ShopifyError("quantity_unavailable", message);
+}
+
+function config() {
+  const domain = text(
+    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN,
+  )
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/$/, "");
+  const apiVersion = text(process.env.SHOPIFY_STOREFRONT_API_VERSION) || "2026-04";
+  const publicToken = text(process.env.SHOPIFY_STOREFRONT_PUBLIC_TOKEN);
+  const privateToken = text(process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN);
+  if (!domain || (!publicToken && !privateToken)) {
+    throw new ShopifyError(
+      "not_configured",
+      "Shopify Marketplace configuration is incomplete.",
+    );
+  }
+  return {
+    endpoint: `https://${domain}/api/${apiVersion}/graphql.json`,
+    token: publicToken || privateToken,
+    header: publicToken
+      ? "X-Shopify-Storefront-Access-Token"
+      : "Shopify-Storefront-Private-Token",
+    timeoutMs: Math.min(
+      Math.max(Number(process.env.SHOPIFY_REQUEST_TIMEOUT_MS) || 8000, 1000),
+      20000,
+    ),
+  };
+}
+
+async function request<T>(
+  query: string,
+  variables: Record<string, unknown>,
+  options: RequestOptions = {},
+) {
   const shopify = config();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), shopify.timeoutMs);
@@ -37,72 +195,277 @@ async function request<T>(query: string, variables: Record<string, unknown>, opt
       ...(options.revalidate ? { next: { revalidate: options.revalidate } } : {}),
     });
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw new ShopifyError("network", "Shopify Marketplace timed out.");
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ShopifyError("network", "Shopify Marketplace timed out.");
+    }
     throw new ShopifyError("network", "Shopify Marketplace could not be reached.");
-  } finally { clearTimeout(timer); }
-  if (!response.ok) throw new ShopifyError("network", "Shopify Marketplace returned an unavailable response.", response.status);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!response.ok) {
+    throw new ShopifyError(
+      "network",
+      "Shopify Marketplace returned an unavailable response.",
+      response.status,
+    );
+  }
   let payload: GraphqlResponse<T>;
-  try { payload = await response.json() as GraphqlResponse<T>; } catch { throw new ShopifyError("invalid_response", "Shopify Marketplace returned an invalid response."); }
-  if (payload.errors?.length) throw new ShopifyError("graphql", "Shopify Marketplace rejected the request.");
-  if (!payload.data) throw new ShopifyError("invalid_response", "Shopify Marketplace returned incomplete data.");
+  try {
+    payload = (await response.json()) as GraphqlResponse<T>;
+  } catch {
+    throw new ShopifyError(
+      "invalid_response",
+      "Shopify Marketplace returned an invalid response.",
+    );
+  }
+  if (payload.errors?.length) {
+    throw new ShopifyError("graphql", "Shopify Marketplace rejected the request.");
+  }
+  if (!payload.data) {
+    throw new ShopifyError(
+      "invalid_response",
+      "Shopify Marketplace returned incomplete data.",
+    );
+  }
   return payload.data;
 }
 
 function userErrors(errors: ShopifyUserError[] | undefined) {
-  if (errors?.length) throw new ShopifyError("user_error", "Shopify could not complete that cart request.");
+  if (errors?.length) {
+    throw new ShopifyError("user_error", "Shopify could not complete that cart request.");
+  }
+}
+
+function warnings(warningsList: ShopifyCartWarning[] | undefined) {
+  if (!warningsList?.length) return;
+  const stockWarning = warningsList.some((warning) =>
+    /stock|quantity|available/i.test(`${warning.code ?? ""} ${warning.message}`),
+  );
+  if (stockWarning) {
+    throw new ShopifyError(
+      "quantity_unavailable",
+      "Shopify could not add the requested quantity because availability changed.",
+    );
+  }
+  throw new ShopifyError("user_error", "Shopify could not complete that cart request.");
 }
 
 export async function getHome() {
-  const data = await request<{ collections: { nodes: ShopifyCollectionSummary[] }; products: { nodes: ShopifyProductSummary[] } }>(HOME_QUERY, { collectionFirst: 8, productFirst: 12, country: text(process.env.SHOPIFY_COUNTRY) || undefined }, { revalidate: 300 });
-  return { collections: data.collections.nodes, products: data.products.nodes };
+  const data = await request<{
+    collections: ShopifyConnection<ShopifyCollectionSummary>;
+    products: ShopifyConnection<RawShopifyProductSummary>;
+  }>(HOME_QUERY, { collectionFirst: 8, productFirst: 8 }, { revalidate: 300 });
+  return {
+    collections: connectionNodes<ShopifyCollectionSummary>(data.collections).filter(
+      (collection) => isApprovedMarketplaceCollectionHandle(collection.handle),
+    ),
+    products: connectionNodes<RawShopifyProductSummary>(data.products)
+      .map(normalizeProductSummary)
+      .filter(isMarketplaceProductEligible),
+  };
 }
 
 export async function getCollections() {
-  const data = await request<{ collections: { nodes: ShopifyCollectionSummary[] } }>(COLLECTIONS_QUERY, { first: 50 }, { revalidate: 300 });
-  return data.collections.nodes;
+  const data = await request<{ collections: ShopifyConnection<ShopifyCollectionSummary> }>(
+    COLLECTIONS_QUERY,
+    { first: 50 },
+    { revalidate: 300 },
+  );
+  return connectionNodes<ShopifyCollectionSummary>(data.collections).filter((collection) =>
+    isApprovedMarketplaceCollectionHandle(collection.handle),
+  );
 }
 
 export async function getCollection(handle: string) {
-  const data = await request<{ collectionByHandle: ShopifyCollection | null }>(COLLECTION_QUERY, { handle, first: 100 }, { revalidate: 120 });
-  return data.collectionByHandle;
+  if (!isApprovedMarketplaceCollectionHandle(handle)) return null;
+  const data = await request<{ collectionByHandle: RawShopifyCollection | null }>(
+    COLLECTION_QUERY,
+    { handle, first: 100 },
+    { revalidate: 120 },
+  );
+  return normalizeCollection(data.collectionByHandle);
 }
 
 export async function getProduct(handle: string) {
-  const data = await request<{ product: ShopifyProduct | null }>(PRODUCT_QUERY, { handle }, { revalidate: 120 });
-  return data.product;
+  const data = await request<{ product: RawShopifyProduct | null }>(
+    PRODUCT_QUERY,
+    { handle },
+    { revalidate: 120 },
+  );
+  const product = normalizeProduct(data.product);
+  return product && isMarketplaceProductEligible(product) ? product : null;
 }
 
-export async function getCart(id: string, options: RequestOptions = { cache: "no-store" }) {
-  const data = await request<{ cart: ShopifyCart | null }>(CART_QUERY, { id }, options);
-  return data.cart;
+export async function getMarketplaceVariantAvailability(variantId: string) {
+  const data = await request<{
+    node: {
+      id: string;
+      availableForSale: boolean;
+      quantityAvailable: number | null;
+      product: { collections?: ShopifyConnection<ShopifyCollectionSummary> } | null;
+    } | null;
+  }>(VARIANT_QUERY, { id: variantId }, { cache: "no-store" });
+  const product = data.node?.product;
+  return {
+    eligible: Boolean(
+      product &&
+        isMarketplaceProductEligible({
+          collections: connectionNodes<ShopifyCollectionSummary>(product.collections),
+        }),
+    ),
+    availableForSale: data.node?.availableForSale ?? false,
+    quantityAvailable:
+      typeof data.node?.quantityAvailable === "number" ? data.node.quantityAvailable : null,
+  };
 }
 
-export async function createCart(variantId?: string, quantity = 1) {
-  const data = await request<{ cartCreate: { cart: ShopifyCart | null; userErrors: ShopifyUserError[] } }>(CREATE_CART_MUTATION, { input: variantId ? { lines: [{ merchandiseId: variantId, quantity }] } : {} }, { cache: "no-store" });
+export async function isMarketplaceVariantEligible(variantId: string) {
+  return (await getMarketplaceVariantAvailability(variantId)).eligible;
+}
+
+export async function getCart(
+  id: string,
+  options: RequestOptions = { cache: "no-store" },
+) {
+  const data = await request<{ cart: RawShopifyCart | null }>(CART_QUERY, { id }, options);
+  return ensureCartCountry(normalizeCart(data.cart));
+}
+
+export async function createCart(
+  variantId?: string,
+  quantity = 1,
+  expectedQuantity = variantId ? quantity : undefined,
+) {
+  const input: Record<string, unknown> = variantId
+    ? { lines: [{ merchandiseId: variantId, quantity }] }
+    : {};
+  const country = marketplaceCountry();
+  if (country) input.buyerIdentity = { countryCode: country };
+  const data = await request<{
+    cartCreate: {
+      cart: RawShopifyCart | null;
+      userErrors: ShopifyUserError[];
+      warnings?: ShopifyCartWarning[];
+    };
+  }>(CREATE_CART_MUTATION, { input }, { cache: "no-store" });
   userErrors(data.cartCreate.userErrors);
-  if (!data.cartCreate.cart) throw new ShopifyError("invalid_response", "Shopify did not return a cart.");
-  return data.cartCreate.cart;
+  warnings(data.cartCreate.warnings);
+  const cart = normalizeCart(data.cartCreate.cart);
+  if (!cart) throw new ShopifyError("invalid_response", "Shopify did not return a cart.");
+  if (variantId && expectedQuantity !== undefined) {
+    assertCartLineQuantity(cart, null, variantId, expectedQuantity);
+  }
+  return cart;
 }
 
-export async function addCartLine(cartId: string, variantId: string, quantity: number) {
-  const data = await request<{ cartLinesAdd: { cart: ShopifyCart | null; userErrors: ShopifyUserError[] } }>(ADD_CART_LINES_MUTATION, { cartId, lines: [{ merchandiseId: variantId, quantity }] }, { cache: "no-store" });
+export async function addCartLine(
+  cartId: string,
+  variantId: string,
+  quantity: number,
+  expectedQuantity?: number,
+) {
+  await ensureCartCountryById(cartId);
+  const data = await request<{
+    cartLinesAdd: {
+      cart: RawShopifyCart | null;
+      userErrors: ShopifyUserError[];
+      warnings?: ShopifyCartWarning[];
+    };
+  }>(
+    ADD_CART_LINES_MUTATION,
+    { cartId, lines: [{ merchandiseId: variantId, quantity }] },
+    { cache: "no-store" },
+  );
   userErrors(data.cartLinesAdd.userErrors);
-  if (!data.cartLinesAdd.cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
-  return data.cartLinesAdd.cart;
+  warnings(data.cartLinesAdd.warnings);
+  const cart = normalizeCart(data.cartLinesAdd.cart);
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  if (expectedQuantity !== undefined) {
+    assertCartLineQuantity(cart, null, variantId, expectedQuantity);
+  }
+  return cart;
 }
 
-export async function updateCartLine(cartId: string, lineId: string, quantity: number) {
-  const data = await request<{ cartLinesUpdate: { cart: ShopifyCart | null; userErrors: ShopifyUserError[] } }>(UPDATE_CART_LINES_MUTATION, { cartId, lines: [{ id: lineId, quantity }] }, { cache: "no-store" });
+export async function updateCartLine(
+  cartId: string,
+  lineId: string,
+  quantity: number,
+  expectedQuantity?: number,
+) {
+  await ensureCartCountryById(cartId);
+  const data = await request<{
+    cartLinesUpdate: {
+      cart: RawShopifyCart | null;
+      userErrors: ShopifyUserError[];
+      warnings?: ShopifyCartWarning[];
+    };
+  }>(
+    UPDATE_CART_LINES_MUTATION,
+    { cartId, lines: [{ id: lineId, quantity }] },
+    { cache: "no-store" },
+  );
   userErrors(data.cartLinesUpdate.userErrors);
-  if (!data.cartLinesUpdate.cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
-  return data.cartLinesUpdate.cart;
+  warnings(data.cartLinesUpdate.warnings);
+  const cart = normalizeCart(data.cartLinesUpdate.cart);
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  if (expectedQuantity !== undefined) {
+    assertCartLineQuantity(cart, lineId, null, expectedQuantity);
+  }
+  return cart;
 }
 
 export async function removeCartLine(cartId: string, lineId: string) {
-  const data = await request<{ cartLinesRemove: { cart: ShopifyCart | null; userErrors: ShopifyUserError[] } }>(REMOVE_CART_LINES_MUTATION, { cartId, lineIds: [lineId] }, { cache: "no-store" });
+  await ensureCartCountryById(cartId);
+  const data = await request<{
+    cartLinesRemove: {
+      cart: RawShopifyCart | null;
+      userErrors: ShopifyUserError[];
+      warnings?: ShopifyCartWarning[];
+    };
+  }>(REMOVE_CART_LINES_MUTATION, { cartId, lineIds: [lineId] }, { cache: "no-store" });
   userErrors(data.cartLinesRemove.userErrors);
-  if (!data.cartLinesRemove.cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
-  return data.cartLinesRemove.cart;
+  warnings(data.cartLinesRemove.warnings);
+  const cart = normalizeCart(data.cartLinesRemove.cart);
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  return cart;
+}
+
+async function ensureCartCountry(cart: ShopifyCart | null) {
+  const country = marketplaceCountry();
+  if (!cart || !country || cart.buyerIdentity?.countryCode?.toUpperCase() === country) {
+    return cart;
+  }
+  return updateCartBuyerIdentity(cart.id, country);
+}
+
+async function ensureCartCountryById(cartId: string) {
+  const data = await request<{ cart: RawShopifyCart | null }>(
+    CART_QUERY,
+    { id: cartId },
+    { cache: "no-store" },
+  );
+  const cart = await ensureCartCountry(normalizeCart(data.cart));
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  return cart;
+}
+
+async function updateCartBuyerIdentity(cartId: string, countryCode: string) {
+  const data = await request<{
+    cartBuyerIdentityUpdate: {
+      cart: RawShopifyCart | null;
+      userErrors: ShopifyUserError[];
+      warnings?: ShopifyCartWarning[];
+    };
+  }>(
+    UPDATE_CART_BUYER_IDENTITY_MUTATION,
+    { cartId, buyerIdentity: { countryCode } },
+    { cache: "no-store" },
+  );
+  userErrors(data.cartBuyerIdentityUpdate.userErrors);
+  warnings(data.cartBuyerIdentityUpdate.warnings);
+  const cart = normalizeCart(data.cartBuyerIdentityUpdate.cart);
+  if (!cart) throw new ShopifyError("not_found", "That Shopify cart is no longer available.");
+  return cart;
 }
 
 export { config as shopifyConfigForTest, request as shopifyRequestForTest };

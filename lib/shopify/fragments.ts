@@ -24,6 +24,7 @@ export const PRODUCT_SUMMARY_FRAGMENT = `
     tags
     availableForSale
     featuredImage { ...MarketplaceImage }
+    collections(first: 12) { nodes { id handle title image { ...MarketplaceImage } } }
     priceRange {
       minVariantPrice { ...MarketplaceMoney }
       maxVariantPrice { ...MarketplaceMoney }
@@ -66,6 +67,9 @@ export const CART_FRAGMENT = `
   fragment MarketplaceCart on Cart {
     id
     checkoutUrl
+    buyerIdentity {
+      countryCode
+    }
     totalQuantity
     cost {
       subtotalAmount { ...MarketplaceMoney }
@@ -83,8 +87,15 @@ export const CART_FRAGMENT = `
           ... on ProductVariant {
             id
             title
+            availableForSale
+            quantityAvailable
             price { ...MarketplaceMoney }
-            product { handle title featuredImage { ...MarketplaceImage } }
+            product {
+              handle
+              title
+              featuredImage { ...MarketplaceImage }
+              collections(first: 12) { nodes { id handle title image { ...MarketplaceImage } } }
+            }
           }
         }
       }
