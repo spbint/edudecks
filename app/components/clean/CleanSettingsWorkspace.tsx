@@ -6,7 +6,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
-import AppleCalendarConnectionCard from "@/app/components/clean/AppleCalendarConnectionCard";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
@@ -802,25 +801,6 @@ function CleanSettingsWorkspaceBody() {
               min-height: 44px !important;
             }
 
-            .mylearna-calendar-connections-actions {
-              grid-template-columns: 1fr !important;
-            }
-          }
-
-          .mylearna-calendar-connections-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            background: #ffffff;
-            padding: 20px;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
-            display: grid;
-            gap: 14px;
-          }
-
-          .mylearna-calendar-connections-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 10px;
           }
         `}</style>
         {!firstSetupMode ? (
@@ -1339,15 +1319,6 @@ function CleanSettingsWorkspaceBody() {
                 </form>
               </section>
             ) : null}
-
-            <AppleCalendarConnectionCard
-              familyId={workspace.profile.id}
-              userId={workspace.currentUserId}
-              canManage={
-                workspace.membership?.role === "owner" ||
-                workspace.membership?.role === "parent"
-              }
-            />
 
             <section id="setup-status" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Setup status</h2>
