@@ -130,10 +130,15 @@ describe("public launch truthfulness", () => {
     expect(robots).toContain('"/my-*"');
     expect(robots).toContain('"/reports"');
     expect(robots).toContain('"/reports/"');
-    expect(sitemap).toContain('path: "/demo"');
-    expect(sitemap).toContain('path: "/homeschool-learning-evidence"');
+    expect(sitemap).toContain('"/demo"');
+    expect(sitemap).toContain('"/homeschool-learning-evidence"');
     expect(robots).toContain('"/homeschool-answers"');
-    expect(sitemap).toContain('path: "/homeschool-answers"');
+    expect(sitemap).toContain('"/homeschool-answers"');
+    expect(sitemap).not.toContain('"/login"');
+    expect(sitemap).not.toContain('"/signup"');
+    expect(sitemap).toContain('"/start-free"');
+    expect(sitemap).not.toContain("changeFrequency");
+    expect(sitemap).not.toContain("priority");
     expect(sitemap).not.toContain("LAST_MODIFIED");
     expect(sitemap).not.toContain("lastModified:");
   });
