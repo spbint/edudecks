@@ -230,6 +230,11 @@ export function buildFounderBehaviourIntelligence(
   const regularFamilies = customers.filter((customer) => customer.activeDays30 >= 3);
   const goingQuiet = customers.filter((customer) => customer.status === "Going quiet");
   const dormant = customers.filter((customer) => customer.status === "Dormant");
+  const singleDayFamilies = activeLast30Days.filter((customer) => customer.activeDays30 === 1);
+  const repeatUseConcentrated =
+    repeatFamilies.length === 1 &&
+    activeLast30Days.length > 1 &&
+    singleDayFamilies.length === activeLast30Days.length - 1;
   const averageActiveDays = activeLast30Days.length > 0
     ? activeLast30Days.reduce((total, customer) => total + customer.activeDays30, 0) / activeLast30Days.length
     : 0;
@@ -239,6 +244,7 @@ export function buildFounderBehaviourIntelligence(
   const observedPaths = buildObservedPaths(customers);
   const largestDrop = [...journeyDrops].sort((left, right) => right.count - left.count)[0];
   const topFeature = data.featureUsage[0];
+  const leadingPath = observedPaths[0];
 
   const read: string[] = [];
   if (activeLast30Days.length > 0) {
@@ -246,8 +252,19 @@ export function buildFounderBehaviourIntelligence(
   } else {
     read.push("No genuine family activity has been recorded in the current 30-day behaviour window yet.");
   }
+  if (repeatUseConcentrated) {
+    const others = singleDayFamilies.length;
+    read.push(others === 1
+      ? "Current repeat engagement is concentrated in one family; the other active family has used MyLearna on one day."
+      : `Current repeat engagement is concentrated in one family; the other ${others} active families have each used MyLearna on one day.`);
+  }
   if (topFeature?.users) {
     read.push(`${topFeature.label} is currently the widest-used product area, reaching ${plural(topFeature.users, "family", "families")}.`);
+  }
+  if (leadingPath?.families.length === 1 && leadingPath.count >= 2) {
+    read.push(`${leadingPath.from} → ${leadingPath.to} is currently a repeated within-family pattern (${plural(leadingPath.count, "transition")}) from one family, so it should not yet be read as a broad customer pattern.`);
+  } else if (leadingPath && leadingPath.families.length >= 2) {
+    read.push(`${leadingPath.from} → ${leadingPath.to} has been seen across ${plural(leadingPath.families.length, "family", "families")}, making it a broader cross-family behaviour signal.`);
   }
   if (largestDrop?.count) {
     read.push(`The largest observed journey gap is ${largestDrop.from} → ${largestDrop.to}, with ${plural(largestDrop.count, "family", "families")} not yet reaching the next stage.`);
