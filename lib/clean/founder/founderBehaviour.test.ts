@@ -94,4 +94,26 @@ describe("Founder behaviour intelligence", () => {
     expect(result.observedPaths[0]).toMatchObject({ from: "My Day", to: "Calendar" });
     expect(result.observedPaths[0].families[0].displayName).toBe("Example Family");
   });
+
+  it("uses the complete 30-day activity stream for exact actions and paths", () => {
+    const result = buildFounderBehaviourIntelligence(dashboard([
+      customer({
+        recentActivity: [{ occurredAt: "2026-08-22T00:50:00.000Z", label: "Saved a learning capture" }],
+        activity30: [
+          { occurredAt: "2026-08-22T00:50:00.000Z", label: "Saved a learning capture" },
+          { occurredAt: "2026-08-22T00:40:00.000Z", label: "Planned learning in Calendar" },
+          { occurredAt: "2026-08-22T00:30:00.000Z", label: "Opened My Day" },
+        ],
+      }),
+    ]));
+
+    expect(result.todayDetails.learningActions.map((item) => item.label)).toEqual([
+      "Saved a learning capture",
+      "Planned learning in Calendar",
+    ]);
+    expect(result.observedPaths.map((path) => `${path.from} → ${path.to}`)).toEqual([
+      "My Day → Calendar",
+      "Calendar → Quick Capture",
+    ]);
+  });
 });
