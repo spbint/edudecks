@@ -124,6 +124,14 @@
   gap: 2px;
 }
 
+.pathSummary::after {
+  content: "Context: 1 family = repeated within-family behaviour; 2+ families = seen across multiple families.";
+  margin-top: 3px;
+  color: #855d13;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .pathMeta {
   color: #7b8491;
   font-size: 11px;
