@@ -71,7 +71,7 @@ async function listAllUsers(admin: FounderAdminClient) {
 }
 
 async function listAllRows<T>(
-  loader: (from: number, to: number) => Promise<{ data: T[] | null; error: unknown }>,
+  loader: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
 ) {
   const rows: T[] = [];
   for (let page = 0; ; page += 1) {
