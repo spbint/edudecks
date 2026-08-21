@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import FounderBehavior from "@/app/founder/FounderBehavior";
 import FounderCockpit from "@/app/founder/FounderCockpit";
 import FounderCustomers from "@/app/founder/FounderCustomers";
 import { requireFounderAccess } from "@/lib/clean/founder/founderAccess";
+import { loadFounderBehavior } from "@/lib/clean/founder/founderBehavior";
+import {
+  loadFounderAdminUserIds,
+  loadFounderCustomers,
+} from "@/lib/clean/founder/founderCustomers";
 import { loadFounderCockpitData } from "@/lib/clean/founder/founderServer";
-import { loadFounderCustomers } from "@/lib/clean/founder/founderCustomers";
 
 export const dynamic = "force-dynamic";
 
@@ -14,15 +19,18 @@ export const metadata: Metadata = {
 
 export default async function FounderPage() {
   await requireFounderAccess();
-  const [data, customers] = await Promise.all([
+  const [data, customers, adminUserIds] = await Promise.all([
     loadFounderCockpitData(),
     loadFounderCustomers(),
+    loadFounderAdminUserIds(),
   ]);
+  const behavior = await loadFounderBehavior(adminUserIds);
 
   return (
     <>
       <FounderCockpit data={data} />
-      <FounderCustomers data={customers} />
+      <FounderBehavior behavior={behavior} customers={customers} />
+      <FounderCustomers data={customers} behavior={behavior} />
     </>
   );
 }
