@@ -3,9 +3,27 @@ import { createClient, type User } from "@supabase/supabase-js";
 const AUTH_PAGE_SIZE = 1000;
 const ROW_PAGE_SIZE = 1000;
 const FOUNDER_EMAIL = "sean@mylearna.com";
+export const FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS = [
+  "mailinator.com",
+  "codoteam.com",
+  "bezill.com",
+  "hutdot.com",
+] as const;
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/** Explicit, auditable exclusions for known development/synthetic accounts. */
+export function isFounderExcludedAccount(email: unknown) {
+  const normalized = clean(email).toLowerCase();
+  if (!normalized) return false;
+  if (normalized === FOUNDER_EMAIL) return true;
+  const atIndex = normalized.lastIndexOf("@");
+  if (atIndex <= 0) return false;
+  return FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS.includes(
+    normalized.slice(atIndex + 1) as (typeof FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS)[number],
+  );
 }
 
 function createFounderAdminClient() {
@@ -113,7 +131,7 @@ export async function loadFounderCustomers(now = new Date()): Promise<FounderCus
   }
 
   const customers = users
-    .filter((user) => clean(user.email).toLowerCase() !== FOUNDER_EMAIL)
+    .filter((user) => !isFounderExcludedAccount(user.email))
     .map((user): FounderCustomerBase | null => {
       const joinedAt = validIso(user.created_at);
       if (!joinedAt) return null;

@@ -7,6 +7,7 @@ import {
   type FounderDataProviders,
   type FounderProductAnalyticsSnapshot,
 } from "@/lib/clean/founder/founderData";
+import { isFounderExcludedAccount } from "@/lib/clean/founder/founderCustomers";
 
 const FOUNDER_TIME_ZONE = "Australia/Hobart";
 const AUTH_PAGE_SIZE = 1000;
@@ -110,13 +111,14 @@ async function countActiveFamilies(
 async function loadSignupAcquisition(
   admin: FounderAdminClient,
   now: Date,
+  excludedUserIds: Set<string>,
 ): Promise<Record<FounderAcquisitionChannel, number> | null> {
   const earliestRelevantInstant = new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString();
-  const rows: Array<{ source?: unknown; referrer?: unknown; created_at?: unknown }> = [];
+  const rows: Array<{ user_id?: unknown; source?: unknown; referrer?: unknown; created_at?: unknown }> = [];
   for (let page = 0; ; page += 1) {
     const result = await admin
       .from("signup_notifications")
-      .select("source,referrer,created_at")
+      .select("user_id,source,referrer,created_at")
       .gte("created_at", earliestRelevantInstant)
       .range(page * 1000, page * 1000 + 999);
     if (result.error) return null;
@@ -139,6 +141,7 @@ async function loadSignupAcquisition(
   };
   const today = dateKey(now);
   for (const row of rows) {
+    if (typeof row.user_id === "string" && excludedUserIds.has(row.user_id)) continue;
     const createdAt = validDate(typeof row.created_at === "string" ? row.created_at : null);
     if (!createdAt || dateKey(createdAt) !== today) continue;
     counts[classifyFounderAcquisition(row.source, row.referrer)] += 1;
@@ -147,9 +150,10 @@ async function loadSignupAcquisition(
 }
 
 export function summarizeFounderAuthUsers(users: User[], now = new Date()) {
+  const eligibleUsers = users.filter((user) => !isFounderExcludedAccount(user.email));
   const today = dateKey(now);
   const currentWeekStart = weekStartKey(now);
-  const activeUsers = users.filter((user) => {
+  const activeUsers = eligibleUsers.filter((user) => {
     const signedInAt = validDate(user.last_sign_in_at);
     if (!signedInAt) return false;
     const signedInKey = dateKey(signedInAt);
@@ -161,11 +165,11 @@ export function summarizeFounderAuthUsers(users: User[], now = new Date()) {
   });
 
   return {
-    signupsToday: users.filter((user) => {
+    signupsToday: eligibleUsers.filter((user) => {
       const createdAt = validDate(user.created_at);
       return createdAt !== null && dateKey(createdAt) === today;
     }).length,
-    returningToday: users.filter((user) => {
+    returningToday: eligibleUsers.filter((user) => {
       const createdAt = validDate(user.created_at);
       const signedInAt = validDate(user.last_sign_in_at);
       return (
@@ -177,7 +181,7 @@ export function summarizeFounderAuthUsers(users: User[], now = new Date()) {
     }).length,
     activeThisWeek: activeUsers.length,
     returningUserIds: returningActiveUsers.map((user) => user.id),
-    recentActivity: users
+    recentActivity: eligibleUsers
       .map((user) => validDate(user.created_at))
       .filter((createdAt): createdAt is Date => createdAt !== null)
       .sort((left, right) => right.getTime() - left.getTime())
@@ -195,6 +199,9 @@ export async function loadFounderAccountSnapshot(
   try {
     const users = await listAllUsers(admin);
     const summary = summarizeFounderAuthUsers(users, now);
+    const excludedUserIds = new Set(
+      users.filter((user) => isFounderExcludedAccount(user.email)).map((user) => user.id),
+    );
 
     return {
       signupsToday: summary.signupsToday,
@@ -204,7 +211,7 @@ export async function loadFounderAccountSnapshot(
         admin,
         summary.returningUserIds,
       ),
-      acquisitionToday: await loadSignupAcquisition(admin, now),
+      acquisitionToday: await loadSignupAcquisition(admin, now, excludedUserIds),
       recentActivity: summary.recentActivity,
     };
   } catch {

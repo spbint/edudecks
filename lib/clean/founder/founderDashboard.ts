@@ -12,6 +12,7 @@ import {
 
 const TIME_ZONE = "Australia/Hobart";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const RECENT_ACTIVITY_COLLAPSE_MS = 5 * 60 * 1000;
 
 export type FounderCustomerStatus =
   | "New"
@@ -217,6 +218,25 @@ function emptyUsage(): Usage {
   };
 }
 
+export function collapseRecentActivity(
+  items: FounderCustomerTimelineItem[],
+  windowMs = RECENT_ACTIVITY_COLLAPSE_MS,
+) {
+  const collapsed: FounderCustomerTimelineItem[] = [];
+  for (const item of items) {
+    const previous = collapsed[collapsed.length - 1];
+    if (
+      previous &&
+      previous.label === item.label &&
+      Math.abs(Date.parse(previous.occurredAt) - Date.parse(item.occurredAt)) <= windowMs
+    ) {
+      continue;
+    }
+    collapsed.push(item);
+  }
+  return collapsed;
+}
+
 function summarizeUsage(events: FounderProductEvent[]) {
   const usageByUserId = new Map<string, Usage>();
   for (const event of events) {
@@ -253,10 +273,13 @@ function summarizeUsage(events: FounderProductEvent[]) {
 
     const feature = featureForEvent(event.event);
     if (feature) usage.featureCounts.set(feature, (usage.featureCounts.get(feature) ?? 0) + 1);
-    if (event.event !== "app_page_viewed" && usage.recentActivity.length < 8) {
+    if (event.event !== "app_page_viewed") {
       usage.recentActivity.push({ occurredAt: event.occurredAt, label: eventLabel(event.event) });
     }
     usageByUserId.set(event.userId, usage);
+  }
+  for (const usage of usageByUserId.values()) {
+    usage.recentActivity = collapseRecentActivity(usage.recentActivity).slice(0, 8);
   }
   return usageByUserId;
 }
@@ -523,4 +546,5 @@ export const founderDashboardInternals = {
   buildJourney,
   biggestJourneyDrop,
   buildAttention,
+  collapseRecentActivity,
 };

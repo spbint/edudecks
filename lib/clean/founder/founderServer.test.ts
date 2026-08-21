@@ -51,4 +51,22 @@ describe("Founder account metrics", () => {
       occurredAt: "2026-08-16T01:00:00.000Z",
     });
   });
+
+  it("excludes synthetic and Founder accounts from every auth metric", () => {
+    const users = [
+      { ...authUser("genuine", "2026-07-01T00:00:00.000Z", "2026-08-16T02:00:00.000Z"), email: "parent@example.com" },
+      { ...authUser("synthetic", "2026-08-16T01:00:00.000Z", "2026-08-16T01:30:00.000Z"), email: "test@mailinator.com" },
+      { ...authUser("founder", "2026-08-16T01:00:00.000Z", "2026-08-16T01:30:00.000Z"), email: "sean@mylearna.com" },
+    ];
+
+    const summary = summarizeFounderAuthUsers(users, new Date("2026-08-16T03:00:00.000Z"));
+
+    expect(summary.signupsToday).toBe(0);
+    expect(summary.returningToday).toBe(1);
+    expect(summary.activeThisWeek).toBe(1);
+    expect(summary.returningUserIds).toEqual(["genuine"]);
+    expect(summary.recentActivity).toEqual([
+      { kind: "signup", occurredAt: "2026-07-01T00:00:00.000Z" },
+    ]);
+  });
 });

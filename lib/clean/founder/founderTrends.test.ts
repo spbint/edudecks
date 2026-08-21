@@ -67,4 +67,19 @@ describe("Founder trend intelligence", () => {
     expect(result.summary).toContain("private activity feed");
     expect(JSON.stringify(result)).not.toMatch(/distinct_id|HogQL|DAU|cohort/i);
   });
+
+  it("does not count events for accounts omitted from the eligible customer set", () => {
+    const result = buildFounderTrendIntelligence(
+      [customer("genuine", "2026-08-20T09:00:00.000Z")],
+      [
+        event("genuine", "quick_capture_saved", "2026-08-20T10:00:00.000Z"),
+        event("synthetic", "quick_capture_saved", "2026-08-20T10:05:00.000Z"),
+      ],
+      true,
+      now,
+    );
+
+    const capture = result.items.find((item) => item.label === "Quick Capture");
+    expect(capture).toMatchObject({ current: 1, previous: 0 });
+  });
 });
