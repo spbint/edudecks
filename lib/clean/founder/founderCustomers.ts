@@ -57,6 +57,7 @@ type FamilyProfileRow = {
   jurisdiction_code: string | null;
 };
 type LearnerRow = { family_id: string };
+type AdminProfileRow = { id: string; is_admin: boolean | null };
 
 async function listAllUsers(admin: FounderAdminClient) {
   const users: User[] = [];
@@ -109,6 +110,20 @@ function customerStatus(
   return "Inactive";
 }
 
+export async function loadFounderAdminUserIds(): Promise<string[]> {
+  const admin = createFounderAdminClient();
+  if (!admin) return [];
+
+  try {
+    const profiles = await listAllRows<AdminProfileRow>((from, to) =>
+      admin.from("profiles").select("id,is_admin").eq("is_admin", true).range(from, to),
+    );
+    return profiles.filter((profile) => profile.is_admin === true).map((profile) => profile.id);
+  } catch {
+    return [];
+  }
+}
+
 export async function loadFounderCustomers(now = new Date()): Promise<FounderCustomersData> {
   const admin = createFounderAdminClient();
   if (!admin) {
@@ -119,7 +134,7 @@ export async function loadFounderCustomers(now = new Date()): Promise<FounderCus
     };
   }
 
-  const [users, members, profiles, learners] = await Promise.all([
+  const [users, members, profiles, learners, adminProfiles] = await Promise.all([
     listAllUsers(admin),
     listAllRows<FamilyMemberRow>((from, to) =>
       admin.from("family_members").select("user_id,family_id").range(from, to),
@@ -133,8 +148,14 @@ export async function loadFounderCustomers(now = new Date()): Promise<FounderCus
     listAllRows<LearnerRow>((from, to) =>
       admin.from("learners").select("family_id").range(from, to),
     ),
+    listAllRows<AdminProfileRow>((from, to) =>
+      admin.from("profiles").select("id,is_admin").eq("is_admin", true).range(from, to),
+    ),
   ]);
 
+  const adminUserIds = new Set(
+    adminProfiles.filter((profile) => profile.is_admin === true).map((profile) => profile.id),
+  );
   const familyIdByUserId = new Map(members.map((row) => [row.user_id, row.family_id]));
   const profileById = new Map(profiles.map((row) => [row.id, row]));
   const learnerCountByFamilyId = new Map<string, number>();
@@ -146,6 +167,7 @@ export async function loadFounderCustomers(now = new Date()): Promise<FounderCus
   }
 
   const customers = users
+    .filter((user) => !adminUserIds.has(user.id))
     .map((user): FounderCustomer | null => {
       const joinedAt = validIso(user.created_at);
       if (!joinedAt) return null;
