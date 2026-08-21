@@ -91,9 +91,11 @@ function comparisonDetail(
   const pluralNoun = unit === "families" ? "families" : "actions";
   const suffix = subject ? ` ${subject}` : "";
 
-  if (current === 0 && previous === 0) return `No${suffix} activity in either 7-day period.`;
+  if (current === 0 && previous === 0) {
+    return `No ${pluralNoun}${suffix} in either 7-day period.`;
+  }
   if (previous === 0 && current > 0) {
-    return `${plural(current, noun, pluralNoun)}${suffix} appeared for the first time in this comparison.`;
+    return `${plural(current, noun, pluralNoun)}${suffix} this week; none did in the previous 7 days.`;
   }
   const difference = current - previous;
   if (difference > 0) {
