@@ -48,6 +48,19 @@ function Metric({ value, label, note }: { value: number; label: string; note: st
   );
 }
 
+function TrendMetric({ item }: { item: FounderDashboardData["trends"]["items"][number] }) {
+  const current = item.current === null ? "—" : NUMBER.format(item.current);
+  const previous = item.previous === null ? "—" : NUMBER.format(item.previous);
+  return (
+    <article className={styles.metricCard}>
+      <p className={styles.metricValue}>{current}</p>
+      <p className={styles.metricLabel}>{item.label}</p>
+      <p className={styles.metricNote}>{item.status} · previous 7 days: {previous}</p>
+      <p className={styles.metricNote}>{item.detail}</p>
+    </article>
+  );
+}
+
 function customerActivitySummary(data: FounderDashboardData["customers"][number]) {
   const parts = [
     data.myDayViews > 0 ? `My Day ${NUMBER.format(data.myDayViews)}` : null,
@@ -97,6 +110,23 @@ export default function FounderDashboardV2({ data }: { data: FounderDashboardDat
           <div className={styles.changeCard}>
             <span className={styles.changeLabel}>What changed?</span>
             <p>{data.whatChanged}</p>
+          </div>
+        </section>
+
+        <section className={styles.section} aria-labelledby="trend-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Trend intelligence</p>
+              <h2 id="trend-title">What is changing over time?</h2>
+            </div>
+            <p className={styles.sectionHint}>{data.trends.periodLabel}</p>
+          </div>
+          <div className={styles.changeCard}>
+            <span className={styles.changeLabel}>Founder read</span>
+            <p>{data.trends.summary}</p>
+          </div>
+          <div className={styles.metricsGrid}>
+            {data.trends.items.map((item) => <TrendMetric key={item.label} item={item} />)}
           </div>
         </section>
 
@@ -280,7 +310,7 @@ export default function FounderDashboardV2({ data }: { data: FounderDashboardDat
 
         {!data.productActivityAvailable ? (
           <aside className={styles.connectionNote}>
-            Customer and family information is live. The private product-activity feed still needs its read-only connection enabled before behaviour, journeys and feature use can populate fully.
+            Customer and family information is live. The private product-activity feed still needs its read-only connection enabled before behaviour, journeys, feature use and product trends can populate fully.
           </aside>
         ) : null}
       </div>
