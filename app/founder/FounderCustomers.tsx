@@ -1,3 +1,4 @@
+import type { FounderBehaviorData } from "@/lib/clean/founder/founderBehavior";
 import type { FounderCustomerStatus, FounderCustomersData } from "@/lib/clean/founder/founderCustomers";
 import styles from "./FounderCustomers.module.css";
 
@@ -40,13 +41,21 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default function FounderCustomers({ data }: { data: FounderCustomersData }) {
+export default function FounderCustomers({
+  data,
+  behavior,
+}: {
+  data: FounderCustomersData;
+  behavior: FounderBehaviorData;
+}) {
+  const behaviorByUserId = new Map(behavior.customers.map((row) => [row.userId, row]));
+
   return (
     <section className={styles.section} aria-labelledby="founder-customers">
       <div className={styles.header}>
         <div>
           <h2 id="founder-customers">Users</h2>
-          <p>Shopify-style customer view from MyLearna account and family data.</p>
+          <p>Shopify-style customer view from MyLearna account, family and product-use data.</p>
         </div>
         <p>Child names and learning content are intentionally excluded.</p>
       </div>
@@ -69,7 +78,10 @@ export default function FounderCustomers({ data }: { data: FounderCustomersData 
                   <th>Location</th>
                   <th>Learners</th>
                   <th>Profile</th>
-                  <th>Last active</th>
+                  <th>Last sign-in</th>
+                  <th>Active days</th>
+                  <th>Sign-ins</th>
+                  <th>Product actions</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -78,6 +90,7 @@ export default function FounderCustomers({ data }: { data: FounderCustomersData 
                   const location = [customer.jurisdictionCode, customer.countryCode]
                     .filter(Boolean)
                     .join(", ");
+                  const usage = behaviorByUserId.get(customer.userId);
                   return (
                     <tr key={customer.userId}>
                       <td>
@@ -91,6 +104,15 @@ export default function FounderCustomers({ data }: { data: FounderCustomersData 
                       <td>{NUMBER_FORMATTER.format(customer.learnerCount)}</td>
                       <td>{customer.profileCompleted ? "Complete" : "Incomplete"}</td>
                       <td>{formatDateTime(customer.lastActiveAt)}</td>
+                      <td className={!behavior.configured ? styles.muted : undefined}>
+                        {behavior.configured ? NUMBER_FORMATTER.format(usage?.activeDays ?? 0) : "—"}
+                      </td>
+                      <td className={!behavior.configured ? styles.muted : undefined}>
+                        {behavior.configured ? NUMBER_FORMATTER.format(usage?.signIns ?? 0) : "—"}
+                      </td>
+                      <td className={!behavior.configured ? styles.muted : undefined}>
+                        {behavior.configured ? NUMBER_FORMATTER.format(usage?.actions ?? 0) : "—"}
+                      </td>
                       <td>
                         <span className={statusClass(customer.status)}>{customer.status}</span>
                       </td>
@@ -104,7 +126,7 @@ export default function FounderCustomers({ data }: { data: FounderCustomersData 
           <div className={styles.empty}>No customer accounts are available yet.</div>
         )}
         <div className={styles.note}>
-          “Last active” currently uses the most recent Supabase sign-in. Session frequency and in-product journeys will be added from PostHog once server-side reporting access is configured.
+          Last sign-in comes from Supabase. Active days, sign-ins and product actions use the last {behavior.periodDays} days of privacy-safe PostHog product events when server reporting is configured.
         </div>
       </div>
     </section>
