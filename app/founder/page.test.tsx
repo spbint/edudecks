@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -72,6 +72,7 @@ const data = {
       topArea: "My Day",
       status: "New" as const,
       recentActivity: [{ occurredAt: "2026-08-21T01:00:00.000Z", label: "Opened My Day" }],
+      activity30: [{ occurredAt: "2026-08-21T01:00:00.000Z", label: "Opened My Day" }],
     },
   ],
   journey: [
@@ -130,6 +131,14 @@ describe("Founder page", () => {
     expect(screen.getAllByText(/click for who/i)).toHaveLength(8);
     expect(document.body.textContent).not.toMatch(/distinct_id|person_id|hogql|dau|cohort/i);
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+  });
+
+  it("opens a shared full-width KPI drill-down instead of expanding the card itself", () => {
+    render(<FounderDashboardV21 data={data} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /New families/i }));
+    expect(screen.getByRole("region", { name: "New families today — 2" })).toBeTruthy();
+    expect(screen.getByText("Exactly who joined today.")).toBeTruthy();
   });
 
   it("keeps the original v2 personification contract intact", () => {
