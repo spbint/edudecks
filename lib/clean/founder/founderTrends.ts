@@ -202,7 +202,7 @@ function buildSummary(items: FounderTrendItem[], analyticsAvailable: boolean) {
   const newFamilies = items.find((entry) => entry.label === "New families");
   const sentences: string[] = [];
 
-  if (analyticsAvailable && active?.current !== null && active?.previous !== null) {
+  if (analyticsAvailable && active && active.current !== null && active.previous !== null) {
     if (active.current > active.previous) sentences.push("More families are using MyLearna than in the previous 7 days.");
     else if (active.current < active.previous) sentences.push("Fewer families have used MyLearna than in the previous 7 days.");
     else sentences.push("The number of families using MyLearna is steady week to week.");
@@ -210,16 +210,21 @@ function buildSummary(items: FounderTrendItem[], analyticsAvailable: boolean) {
     sentences.push("New-family trends are live now; product-use trends will join them when the private activity feed is connected.");
   }
 
-  if (analyticsAvailable && capture?.current !== null && capture?.previous !== null) {
+  if (analyticsAvailable && capture && capture.current !== null && capture.previous !== null) {
     if (capture.current > capture.previous) sentences.push("Quick Capture is reaching more families.");
     else if (capture.current < capture.previous) sentences.push("Quick Capture use has softened this week.");
   }
 
-  if (analyticsAvailable && reports?.current === 0 && reports?.previous === 0) {
+  if (analyticsAvailable && reports && reports.current === 0 && reports.previous === 0) {
     sentences.push("Reports remain quiet, so that is still a later-stage behaviour to watch.");
   }
 
-  if (newFamilies?.current !== null && newFamilies?.previous !== null && newFamilies.current > newFamilies.previous) {
+  if (
+    newFamilies &&
+    newFamilies.current !== null &&
+    newFamilies.previous !== null &&
+    newFamilies.current > newFamilies.previous
+  ) {
     sentences.push("New-family growth is also ahead of the previous 7 days.");
   }
 
