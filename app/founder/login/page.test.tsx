@@ -9,6 +9,7 @@ const { accessMock, redirectMock, notFoundMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/clean/founder/founderAccess", () => ({ getFounderAccessContext: accessMock }));
+vi.mock("@/lib/authRedirect", () => ({ buildAuthCallbackUrl: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: redirectMock, notFound: notFoundMock, useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/lib/supabaseClient", () => ({ hasSupabaseEnv: false, supabase: null }));
 
@@ -26,7 +27,8 @@ describe("Founder login route", () => {
     accessMock.mockResolvedValue({ decision: "unauthenticated", user: null });
     render(await FounderLoginPage());
     expect(screen.getByRole("heading", { name: "MyLearna Founder" })).toBeTruthy();
-    expect(screen.getByLabelText("Email")).toBeTruthy();
+    expect(screen.getByText("sean@mylearna.com")).toBeTruthy();
+    expect(screen.queryByLabelText("Email")).toBeNull();
     expect(screen.getByLabelText("Password")).toBeTruthy();
   });
 
