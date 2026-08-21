@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import FounderLoginForm from "./FounderLoginForm";
 import { getFounderAccessContext } from "@/lib/clean/founder/founderAccess";
 
@@ -11,6 +11,5 @@ export const metadata = {
 export default async function FounderLoginPage() {
   const access = await getFounderAccessContext();
   if (access.decision === "allowed") redirect("/founder");
-  if (access.decision === "forbidden") notFound();
   return <FounderLoginForm />;
 }
