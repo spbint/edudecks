@@ -6,19 +6,28 @@ const {
   getUserMock,
   updateUserMock,
   maybeSingleMock,
+  eqMock,
+  selectMock,
+  fromMock,
   replaceMock,
   refreshMock,
-} = vi.hoisted(() => ({
-  getUserMock: vi.fn(),
-  updateUserMock: vi.fn(),
-  maybeSingleMock: vi.fn(),
-  replaceMock: vi.fn(),
-  refreshMock: vi.fn(),
-}));
+} = vi.hoisted(() => {
+  const maybeSingleMock = vi.fn();
+  const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
+  const selectMock = vi.fn(() => ({ eq: eqMock }));
+  const fromMock = vi.fn(() => ({ select: selectMock }));
 
-const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
-const selectMock = vi.fn(() => ({ eq: eqMock }));
-const fromMock = vi.fn(() => ({ select: selectMock }));
+  return {
+    getUserMock: vi.fn(),
+    updateUserMock: vi.fn(),
+    maybeSingleMock,
+    eqMock,
+    selectMock,
+    fromMock,
+    replaceMock: vi.fn(),
+    refreshMock: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/supabaseClient", () => ({
   hasSupabaseEnv: true,
