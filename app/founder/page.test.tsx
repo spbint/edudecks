@@ -17,6 +17,7 @@ vi.mock("@/lib/clean/founder/founderDashboard", () => ({
 }));
 
 import FounderDashboardV2 from "./FounderDashboardV2";
+import FounderDashboardV21 from "./FounderDashboardV21";
 import FounderPage from "./page";
 
 const data = {
@@ -97,16 +98,17 @@ describe("Founder page", () => {
     loadFounderDashboardMock.mockResolvedValue(data);
   });
 
-  it("renders the plain-language dashboard after the Founder server gate succeeds", async () => {
+  it("renders the behaviour-intelligence dashboard after the Founder server gate succeeds", async () => {
     render(await FounderPage());
 
     expect(requireFounderAccessMock).toHaveBeenCalledOnce();
     expect(loadFounderDashboardMock).toHaveBeenCalledOnce();
     expect(screen.getByRole("heading", { name: "MyLearna Founder" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Today at MyLearna" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "How families are behaving" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "What is changing over time?" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "People" })).toBeTruthy();
-    expect(screen.getByText("Example Family")).toBeTruthy();
+    expect(screen.getAllByText("Example Family").length).toBeGreaterThan(0);
   });
 
   it("does not catch an unauthenticated redirect or ordinary-user denial", async () => {
@@ -119,7 +121,18 @@ describe("Founder page", () => {
     expect(loadFounderDashboardMock).not.toHaveBeenCalled();
   });
 
-  it("personifies analytics and trend intelligence without exposing PostHog jargon", () => {
+  it("adds who-level drill-downs and behaviour synthesis without exposing PostHog jargon", () => {
+    render(<FounderDashboardV21 data={data} />);
+
+    expect(screen.getByText("How families are behaving")).toBeTruthy();
+    expect(screen.getByText("Repeat-use families")).toBeTruthy();
+    expect(screen.getByText("What families do next")).toBeTruthy();
+    expect(screen.getAllByText(/click for who/i)).toHaveLength(8);
+    expect(document.body.textContent).not.toMatch(/distinct_id|person_id|hogql|dau|cohort/i);
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+  });
+
+  it("keeps the original v2 personification contract intact", () => {
     render(<FounderDashboardV2 data={data} />);
 
     expect(screen.getByText("Example Family")).toBeTruthy();
