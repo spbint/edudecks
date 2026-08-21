@@ -95,6 +95,10 @@ function compactFamily(customer: FounderCustomer): FounderBehaviourFamily {
   };
 }
 
+function fullActivity(customer: FounderCustomer) {
+  return customer.activity30 ?? customer.recentActivity;
+}
+
 const MEANINGFUL_ACTIVITY_LABELS = new Set([
   "Planned learning in Calendar",
   "Saved a Calendar plan",
@@ -159,7 +163,7 @@ function buildObservedPaths(customers: FounderCustomer[]) {
   const paths = new Map<string, { from: string; to: string; count: number; userIds: Set<string> }>();
 
   for (const customer of customers) {
-    const areas = [...customer.recentActivity]
+    const areas = [...fullActivity(customer)]
       .sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt))
       .map((activity) => areaForActivityLabel(activity.label))
       .filter((area): area is FounderArea => area !== null);
@@ -209,7 +213,7 @@ export function buildFounderBehaviourIntelligence(
   const customerById = new Map(customers.map((customer) => [customer.userId, customer]));
 
   const learningActions = (data.productActivityAvailable ? customers : [])
-    .flatMap((customer) => customer.recentActivity
+    .flatMap((customer) => fullActivity(customer)
       .filter((activity) => dateKey(activity.occurredAt) === today && MEANINGFUL_ACTIVITY_LABELS.has(activity.label))
       .map((activity): FounderBehaviourAction => ({
         userId: customer.userId,
