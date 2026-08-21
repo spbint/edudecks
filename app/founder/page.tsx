@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import FounderCockpit from "@/app/founder/FounderCockpit";
+import FounderDashboardV2 from "@/app/founder/FounderDashboardV2";
 import { requireFounderAccess } from "@/lib/clean/founder/founderAccess";
-import { loadFounderCockpitData } from "@/lib/clean/founder/founderServer";
+import { loadFounderDashboard } from "@/lib/clean/founder/founderDashboard";
 
+// Founder Dashboard v2 preview validation trigger.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -12,7 +13,6 @@ export const metadata: Metadata = {
 
 export default async function FounderPage() {
   await requireFounderAccess();
-  const data = await loadFounderCockpitData();
-  return <FounderCockpit data={data} />;
+  const data = await loadFounderDashboard();
+  return <FounderDashboardV2 data={data} />;
 }
-
