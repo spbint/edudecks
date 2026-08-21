@@ -3,24 +3,31 @@ import type { User } from "@supabase/supabase-js";
 import { getServerAuthClient } from "@/lib/auth/serverRouteAuth";
 
 export type FounderAccessDecision = "allowed" | "forbidden" | "unauthenticated";
+export const FOUNDER_EMAIL = "sean@mylearna.com";
+
+export type FounderAccessContext = {
+  decision: FounderAccessDecision;
+  user: User | null;
+};
 
 export function getFounderAccessDecision(
-  user: Pick<User, "id"> | null,
+  user: Pick<User, "id" | "email"> | null,
   profile: { is_admin?: boolean | null } | null,
   profileError = false,
 ): FounderAccessDecision {
   if (!user) return "unauthenticated";
+  if (user.email?.trim().toLowerCase() !== FOUNDER_EMAIL) return "forbidden";
   if (profileError || profile?.is_admin !== true) return "forbidden";
   return "allowed";
 }
 
-export async function requireFounderAccess() {
+export async function getFounderAccessContext(): Promise<FounderAccessContext> {
   const supabase = await getServerAuthClient();
   const userResult = await supabase.auth.getUser();
   const user = userResult.data.user ?? null;
 
   if (!user || userResult.error) {
-    redirect("/login?next=%2Ffounder");
+    return { decision: "unauthenticated", user: null };
   }
 
   const profileResult = await supabase
@@ -29,10 +36,16 @@ export async function requireFounderAccess() {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (getFounderAccessDecision(user, profileResult.data, Boolean(profileResult.error)) !== "allowed") {
-    notFound();
-  }
-
-  return user;
+  return {
+    decision: getFounderAccessDecision(user, profileResult.data, Boolean(profileResult.error)),
+    user,
+  };
 }
 
+export async function requireFounderAccess() {
+  const access = await getFounderAccessContext();
+  if (access.decision === "unauthenticated") redirect("/founder/login");
+  if (access.decision !== "allowed") notFound();
+
+  return access.user;
+}

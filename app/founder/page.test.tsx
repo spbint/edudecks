@@ -101,6 +101,7 @@ describe("Founder page", () => {
     expect(screen.getAllByText("Not available yet").length).toBeGreaterThan(0);
     expect(document.body.textContent).not.toMatch(/learner name|evidence text|parent note|private@example/i);
     expect(screen.getByText("New signup")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
   it("has narrow-screen layout safeguards and no demo dashboard fixture", () => {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { FounderCockpitData, FounderMetric } from "@/lib/clean/founder/founderData";
+import FounderSignOutButton from "./FounderSignOutButton";
 import styles from "./FounderCockpit.module.css";
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-AU", { maximumFractionDigits: 0 });
@@ -87,6 +88,7 @@ export default function FounderCockpit({ data }: { data: FounderCockpitData }) {
             <Link className={styles.backLink} href="/my-day">
               Return to MyLearna
             </Link>
+            <FounderSignOutButton />
           </div>
           <div className={styles.heroCopy}>
             <h1>MyLearna Founder</h1>
@@ -215,4 +217,3 @@ export default function FounderCockpit({ data }: { data: FounderCockpitData }) {
     </main>
   );
 }
-
