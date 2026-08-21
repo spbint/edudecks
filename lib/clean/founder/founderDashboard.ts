@@ -509,7 +509,8 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
     : movement > 0
       ? `${plural(movement, "more family", "more families")} than yesterday`
       : `${plural(Math.abs(movement), "fewer family", "fewer families")} than yesterday`;
-  const whatChanged = `${plural(newToday, "new family", "new families")} joined today. ${plural(activeTodayIds.size, "family", "families")} used MyLearna, ${movementText}, and ${plural(meaningfulToday, "meaningful learning action")} was recorded.`;
+  const actionVerb = meaningfulToday === 1 ? "was" : "were";
+  const whatChanged = `${plural(newToday, "new family", "new families")} joined today. ${plural(activeTodayIds.size, "family", "families")} used MyLearna, ${movementText}, and ${plural(meaningfulToday, "meaningful learning action")} ${actionVerb} recorded.`;
 
   const journey = buildJourney(customers);
   const featureUsage = buildFeatureUsage(customerEvents, customerIds);
