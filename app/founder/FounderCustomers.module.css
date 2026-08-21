@@ -1,6 +1,10 @@
 .section {
+  width: min(100%, 1320px);
+  box-sizing: border-box;
+  margin: 0 auto;
   display: grid;
   gap: 14px;
+  padding: 0 clamp(14px, 4vw, 30px) 64px;
 }
 
 .header {
@@ -174,6 +178,10 @@
 }
 
 @media (max-width: 430px) {
+  .section {
+    padding-inline: 12px;
+  }
+
   .metricGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
