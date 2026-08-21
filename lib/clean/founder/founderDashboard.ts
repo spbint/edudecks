@@ -42,6 +42,7 @@ export type FounderCustomer = FounderCustomerBase & {
   topArea: string | null;
   status: FounderCustomerStatus;
   recentActivity: FounderCustomerTimelineItem[];
+  activity30?: FounderCustomerTimelineItem[];
 };
 
 export type FounderAttentionItem = {
@@ -98,6 +99,7 @@ type Usage = {
   pathwayViews: number;
   featureCounts: Map<string, number>;
   recentActivity: FounderCustomerTimelineItem[];
+  activity30: FounderCustomerTimelineItem[];
   lastActiveAt: string | null;
 };
 
@@ -214,6 +216,7 @@ function emptyUsage(): Usage {
     pathwayViews: 0,
     featureCounts: new Map<string, number>(),
     recentActivity: [],
+    activity30: [],
     lastActiveAt: null,
   };
 }
@@ -274,7 +277,9 @@ function summarizeUsage(events: FounderProductEvent[]) {
     const feature = featureForEvent(event.event);
     if (feature) usage.featureCounts.set(feature, (usage.featureCounts.get(feature) ?? 0) + 1);
     if (event.event !== "app_page_viewed") {
-      usage.recentActivity.push({ occurredAt: event.occurredAt, label: eventLabel(event.event) });
+      const activity = { occurredAt: event.occurredAt, label: eventLabel(event.event) };
+      usage.activity30.push(activity);
+      usage.recentActivity.push(activity);
     }
     usageByUserId.set(event.userId, usage);
   }
@@ -468,6 +473,7 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
       topArea: topArea(usage),
       status: customerStatus(customer, usage, now),
       recentActivity: usage.recentActivity,
+      activity30: usage.activity30,
     };
   });
 
