@@ -116,4 +116,35 @@ describe("Founder behaviour intelligence", () => {
       "Calendar → Quick Capture",
     ]);
   });
+
+  it("calls out when repeat engagement is concentrated in one family", () => {
+    const result = buildFounderBehaviourIntelligence(dashboard([
+      customer({ activeDays30: 16 }),
+      customer({ userId: "family-2", displayName: "Second Family", activeDays30: 1 }),
+      customer({ userId: "family-3", displayName: "Third Family", activeDays30: 1 }),
+      customer({ userId: "family-4", displayName: "Fourth Family", activeDays30: 1 }),
+      customer({ userId: "family-5", displayName: "Fifth Family", activeDays30: 1 }),
+    ]));
+
+    expect(result.founderRead).toContain("Current repeat engagement is concentrated in one family");
+    expect(result.founderRead).toContain("the other 4 active families have each used MyLearna on one day");
+  });
+
+  it("labels a repeated one-family path as a within-family pattern rather than broad behaviour", () => {
+    const result = buildFounderBehaviourIntelligence(dashboard([
+      customer({
+        activity30: [
+          { occurredAt: "2026-08-22T00:10:00.000Z", label: "Opened My Day" },
+          { occurredAt: "2026-08-22T00:20:00.000Z", label: "Planned learning in Calendar" },
+          { occurredAt: "2026-08-22T00:30:00.000Z", label: "Opened My Day" },
+          { occurredAt: "2026-08-22T00:40:00.000Z", label: "Saved a Calendar plan" },
+        ],
+      }),
+      customer({ userId: "family-2", displayName: "Second Family", recentActivity: [], activity30: [], activeDays30: 1 }),
+    ]));
+
+    expect(result.observedPaths[0]).toMatchObject({ from: "My Day", to: "Calendar", count: 2 });
+    expect(result.founderRead).toContain("repeated within-family pattern");
+    expect(result.founderRead).toContain("should not yet be read as a broad customer pattern");
+  });
 });
