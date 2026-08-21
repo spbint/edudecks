@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { getServerAuthClient } from "@/lib/auth/serverRouteAuth";
+import { FOUNDER_EMAIL } from "@/lib/clean/founder/founderIdentity";
 
 export type FounderAccessDecision = "allowed" | "forbidden" | "unauthenticated";
-export const FOUNDER_EMAIL = "sean@mylearna.com";
 
 export type FounderAccessContext = {
   decision: FounderAccessDecision;
