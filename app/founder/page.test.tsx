@@ -29,6 +29,15 @@ const data = {
     meaningfulActions: 4,
   },
   whatChanged: "2 new families joined today. 3 families used MyLearna and 4 meaningful learning actions were recorded.",
+  trends: {
+    periodLabel: "Last 7 days compared with the previous 7 days",
+    summary: "More families are using MyLearna than in the previous 7 days. Quick Capture is reaching more families.",
+    items: [
+      { label: "New families", current: 2, previous: 1, unit: "families" as const, status: "Growing" as const, detail: "1 more family joined than in the previous 7 days." },
+      { label: "Active families", current: 3, previous: 2, unit: "families" as const, status: "Growing" as const, detail: "1 more family used MyLearna than in the previous 7 days." },
+      { label: "Quick Capture", current: 2, previous: 1, unit: "families" as const, status: "Growing" as const, detail: "1 more family used Quick Capture than in the previous 7 days." },
+    ],
+  },
   attention: [
     {
       tone: "attention" as const,
@@ -95,6 +104,7 @@ describe("Founder page", () => {
     expect(loadFounderDashboardMock).toHaveBeenCalledOnce();
     expect(screen.getByRole("heading", { name: "MyLearna Founder" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Today at MyLearna" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "What is changing over time?" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "People" })).toBeTruthy();
     expect(screen.getByText("Example Family")).toBeTruthy();
   });
@@ -109,11 +119,12 @@ describe("Founder page", () => {
     expect(loadFounderDashboardMock).not.toHaveBeenCalled();
   });
 
-  it("personifies analytics without exposing PostHog jargon", () => {
+  it("personifies analytics and trend intelligence without exposing PostHog jargon", () => {
     render(<FounderDashboardV2 data={data} />);
 
     expect(screen.getByText("Example Family")).toBeTruthy();
     expect(screen.getByText(/1 family has planned but not captured/i)).toBeTruthy();
+    expect(screen.getByText(/More families are using MyLearna/i)).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/distinct_id|person_id|hogql|dau|cohort/i);
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
