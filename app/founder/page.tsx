@@ -3,6 +3,7 @@ import FounderDashboardV2 from "@/app/founder/FounderDashboardV2";
 import { requireFounderAccess } from "@/lib/clean/founder/founderAccess";
 import { loadFounderDashboard } from "@/lib/clean/founder/founderDashboard";
 
+// Founder Dashboard v2 preview validation trigger.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
