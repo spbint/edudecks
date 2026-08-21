@@ -5,6 +5,10 @@ import {
   type FounderTrackedEventName,
 } from "@/lib/clean/founder/founderPosthog";
 import { loadFounderAccountSnapshot } from "@/lib/clean/founder/founderServer";
+import {
+  buildFounderTrendIntelligence,
+  type FounderTrendIntelligence,
+} from "@/lib/clean/founder/founderTrends";
 
 const TIME_ZONE = "Australia/Hobart";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -67,6 +71,7 @@ export type FounderDashboardData = {
     meaningfulActions: number;
   };
   whatChanged: string;
+  trends: FounderTrendIntelligence;
   attention: FounderAttentionItem[];
   customers: FounderCustomer[];
   journey: FounderJourneyStage[];
@@ -480,6 +485,12 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
   const journey = buildJourney(customers);
   const featureUsage = buildFeatureUsage(customerEvents, customerIds);
   const attention = buildAttention(customers, featureUsage, postHog.available, now);
+  const trends = buildFounderTrendIntelligence(
+    customerSnapshot.customers,
+    customerEvents,
+    postHog.available,
+    now,
+  );
 
   return {
     generatedAt: now.toISOString(),
@@ -491,6 +502,7 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
       meaningfulActions: meaningfulToday,
     },
     whatChanged,
+    trends,
     attention,
     customers,
     journey,
