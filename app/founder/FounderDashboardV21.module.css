@@ -1,0 +1,141 @@
+.metricButton {
+  width: 100%;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.metricButton:hover,
+.metricButton:focus-visible {
+  border-color: #b7cfc0;
+  background: #f8fbf9;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 139, 87, 0.1);
+}
+
+.metricButtonActive {
+  border-color: #8fbea1;
+  background: #f2f8f4;
+}
+
+.sharedDrill {
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px solid #d8ebdd;
+  border-radius: 14px;
+  background: #f7fbf8;
+}
+
+.sharedDrillHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.sharedDrillHeader h3 {
+  margin: 0;
+  color: #20262d;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.sharedDrillHeader p {
+  margin: 4px 0 0;
+  color: #69737f;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sharedDrillClose {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid #d5ddd8;
+  border-radius: 9px;
+  background: #fff;
+  color: #5f6873;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.sharedDrillClose:hover,
+.sharedDrillClose:focus-visible {
+  border-color: #9abca7;
+  outline: none;
+}
+
+.familyLine {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.familyMeta {
+  color: #7b8491;
+  font-size: 11px;
+}
+
+.habitButton {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: #f7f8f9;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.habitButton strong,
+.habitButton span {
+  display: block;
+}
+
+.habitButton strong {
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.habitButton span {
+  margin-top: 7px;
+  color: #747d88;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.habitButton:hover,
+.habitButton:focus-visible,
+.habitButtonActive {
+  border-color: #b7cfc0;
+  background: #f2f8f4;
+  outline: none;
+}
+
+.pathSummary {
+  display: grid;
+  gap: 2px;
+}
+
+.pathMeta {
+  color: #7b8491;
+  font-size: 11px;
+}
+
+@media (max-width: 680px) {
+  .sharedDrillHeader {
+    flex-direction: column;
+  }
+
+  .sharedDrillClose {
+    align-self: flex-end;
+    margin-top: -42px;
+  }
+}
