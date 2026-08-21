@@ -220,6 +220,61 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
   );
 }
 
+function MyLearnaBrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={`mylearna-v2-brand-mark${compact ? " mylearna-v2-mobile-brand" : ""}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: compact ? 5 : 8,
+        minWidth: 0,
+        flexShrink: 0,
+      }}
+    >
+      <Link
+        href="/my-day"
+        aria-label="MyLearna home"
+        className="mylearna-v2-brand-link"
+        style={{ display: "block", textDecoration: "none", flexShrink: 0 }}
+      >
+        <Image
+          src="/branding/MyLearna Logo.png"
+          alt="MyLearna"
+          width={1916}
+          height={821}
+          priority={!compact}
+          className="mylearna-v2-brand-logo"
+          style={{
+            width: compact ? 68 : 154,
+            height: "auto",
+            display: "block",
+          }}
+        />
+      </Link>
+      <span
+        className="mylearna-v2-beta-badge"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          border: `1px solid ${v2Tokens.border}`,
+          borderRadius: 999,
+          background: v2Tokens.lavender,
+          color: v2Tokens.navy,
+          padding: compact ? "3px 5px" : "4px 7px",
+          fontSize: compact ? 9 : 10,
+          fontWeight: 800,
+          lineHeight: 1,
+          letterSpacing: "0.02em",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Beta v1
+      </span>
+    </div>
+  );
+}
+
 function routeTitle(pathname: string) {
   if (pathname === "/my-pathways") return "My Pathways";
   const item = navItems.find((candidate) =>
@@ -833,6 +888,19 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             gap: 10px !important;
           }
 
+          .mylearna-v2-mobile-header-leading {
+            gap: 8px !important;
+          }
+
+          .mylearna-v2-mobile-brand .mylearna-v2-brand-logo {
+            width: 62px !important;
+          }
+
+          .mylearna-v2-mobile-brand .mylearna-v2-beta-badge {
+            padding: 3px 5px !important;
+            font-size: 9px !important;
+          }
+
           .mylearna-v2-shell {
             min-height: 100dvh;
           }
@@ -1068,16 +1136,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             gap: 22,
           }}
         >
-          <Link href="/my-day" style={{ display: "block", textDecoration: "none" }}>
-            <Image
-              src="/branding/MyLearna Logo.png"
-              alt="MyLearna"
-              width={1916}
-              height={821}
-              priority
-              style={{ width: 154, height: "auto", display: "block" }}
-            />
-          </Link>
+          <MyLearnaBrandMark />
 
           <nav
             className="mylearna-v2-nav"
@@ -1128,7 +1187,12 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               padding: "8px clamp(16px, 3vw, 26px)",
             }}
           >
-            <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
+            <div
+              className="mylearna-v2-mobile-header-leading"
+              style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}
+            >
+              <MyLearnaBrandMark compact />
+              <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
               <nav
                 className="mylearna-v2-breadcrumb"
                 aria-label="Breadcrumb"
@@ -1179,6 +1243,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               </nav>
               <div className="mylearna-v2-mobile-title" style={{ color: v2Tokens.navy, fontSize: 17, fontWeight: 650 }}>
                 {title}
+              </div>
               </div>
             </div>
             <div className="mylearna-v2-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>

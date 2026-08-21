@@ -14,6 +14,9 @@ const accountMenuSource = readFileSync(
   "utf8",
 );
 
+const sitemapSource = readFileSync(join(process.cwd(), "app/sitemap.ts"), "utf8");
+const robotsSource = readFileSync(join(process.cwd(), "app/robots.ts"), "utf8");
+
 describe("Stage 8 mobile web shell", () => {
   it("uses compact mobile navigation instead of the full desktop route grid", () => {
     expect(shellSource).toContain("mylearna-v2-mobile-bottom-nav");
@@ -78,6 +81,20 @@ describe("Stage 8 mobile web shell", () => {
     expect(shellSource).toContain("mylearna-v2-mobile-title");
     expect(shellSource).toContain("mylearna-v2-breadcrumb");
     expect(shellSource).toContain(".mylearna-v2-breadcrumb");
+  });
+
+  it("shows the non-interactive Beta v1 status beside the shared desktop and mobile brand", () => {
+    expect(shellSource).toContain("function MyLearnaBrandMark");
+    expect(shellSource.match(/<MyLearnaBrandMark(?: compact)? \/>/g)).toHaveLength(2);
+    expect(shellSource).toContain(">\n        Beta v1\n      </span>");
+    expect(shellSource).toContain("</Link>\n      <span");
+    expect(shellSource).toContain("mylearna-v2-mobile-brand");
+  });
+
+  it("does not reintroduce beta routes or public indexing references", () => {
+    expect(shellSource).not.toContain("/beta");
+    expect(sitemapSource).not.toContain("/beta");
+    expect(robotsSource).not.toContain("/beta");
   });
 
   it("uses mobile sheet behavior for account controls at narrow width", () => {
