@@ -1,0 +1,201 @@
+.actionIntro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid #dfe5e1;
+  border-radius: 14px;
+  background: #f8faf9;
+}
+
+.actionIntro > div {
+  display: grid;
+  gap: 3px;
+}
+
+.actionIntro strong {
+  color: #20262d;
+  font-size: 14px;
+}
+
+.actionIntro span,
+.storageNote {
+  color: #737c88;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.actionGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.actionCard {
+  padding: 18px;
+  border: 1px solid #e1e4e6;
+  border-radius: 15px;
+  background: #ffffff;
+}
+
+.actionTopline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+}
+
+.confidence {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.confidenceNow {
+  background: #fff3df;
+  color: #855d13;
+}
+
+.confidenceWatch {
+  background: #eef4ff;
+  color: #315d9d;
+}
+
+.confidenceOpportunity {
+  background: #e9f7ee;
+  color: #176b42;
+}
+
+.familyName {
+  color: #69727e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.actionCard h3 {
+  margin: 0;
+  color: #20262d;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.summary {
+  margin: 7px 0 0;
+  color: #36404b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.why {
+  margin: 8px 0 0;
+  color: #69727e;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.evidence {
+  margin-top: 13px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  background: #f7f8f9;
+}
+
+.evidence summary {
+  cursor: pointer;
+  color: #39434d;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.evidence ul {
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: #69727e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.actionButtons button,
+.primaryAction,
+.resetButton {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d5dadd;
+  border-radius: 9px;
+  background: #fff;
+  color: #303943;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.actionButtons button:hover,
+.actionButtons button:focus-visible,
+.resetButton:hover,
+.resetButton:focus-visible,
+.primaryAction:hover,
+.primaryAction:focus-visible {
+  border-color: #9ebaaa;
+  outline: none;
+}
+
+.primaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: #2c8b57;
+  background: #2c8b57;
+  color: #fff;
+}
+
+.primaryAction:hover,
+.primaryAction:focus-visible {
+  border-color: #247548;
+  background: #247548;
+}
+
+.dismissAction {
+  color: #7a4d4d !important;
+}
+
+.resetButton {
+  white-space: nowrap;
+}
+
+.storageNote {
+  margin: 12px 0 0;
+}
+
+@media (max-width: 680px) {
+  .actionIntro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actionButtons {
+    align-items: stretch;
+  }
+
+  .actionButtons button,
+  .primaryAction {
+    flex: 1 1 140px;
+  }
+}
