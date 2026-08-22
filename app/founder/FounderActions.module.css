@@ -59,6 +59,23 @@
   text-transform: uppercase;
 }
 
+.operatingType {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+}
+
+.operatingAct { background: #e8f5ec; color: #176b42; }
+.operatingCheck { background: #fff3df; color: #855d13; }
+.operatingInvestigate { background: #f1eafd; color: #63409a; }
+.operatingMonitor { background: #eef4ff; color: #315d9d; }
+.operatingAsk { background: #e9f7ee; color: #176b42; }
+
 .confidenceNow {
   background: #fff3df;
   color: #855d13;

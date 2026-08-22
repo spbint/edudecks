@@ -42,6 +42,14 @@ function confidenceClass(confidence: FounderAction["confidence"]) {
   return actionStyles.confidenceWatch;
 }
 
+function operatingTypeClass(type: FounderAction["operatingType"]) {
+  if (type === "ACT") return actionStyles.operatingAct;
+  if (type === "CHECK") return actionStyles.operatingCheck;
+  if (type === "INVESTIGATE") return actionStyles.operatingInvestigate;
+  if (type === "MONITOR") return actionStyles.operatingMonitor;
+  return actionStyles.operatingAsk;
+}
+
 function isHidden(decision: Decision | undefined) {
   if (!decision) return false;
   if (decision.state === "snoozed" && decision.until && decision.until <= Date.now()) return false;
@@ -58,6 +66,7 @@ function ActionCard({
   const emailHref = mailto(action);
   return <article className={actionStyles.actionCard}>
     <div className={actionStyles.actionTopline}>
+      <span className={`${actionStyles.operatingType} ${operatingTypeClass(action.operatingType)}`}>{action.operatingType}</span>
       <span className={`${actionStyles.confidence} ${confidenceClass(action.confidence)}`}>{action.confidence}</span>
       <span className={actionStyles.familyName}>{action.family.displayName}</span>
     </div>
@@ -66,7 +75,7 @@ function ActionCard({
     <p className={actionStyles.why}>{action.why}</p>
 
     <details className={actionStyles.evidence}>
-      <summary>View evidence</summary>
+      <summary>Evidence</summary>
       <ul>{action.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
     </details>
 
@@ -84,10 +93,13 @@ export default function FounderActions({ data }: { data: FounderDashboardData })
   const [decisions, setDecisions] = useState<Decisions>({});
   const [hydrated, setHydrated] = useState(false);
 
+  // Browser-only decisions must hydrate after mount to keep the server render stable.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDecisions(loadDecisions());
     setHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const eligibleActions = actions.filter((action) => !isHidden(decisions[action.id]));
   const visibleActions = eligibleActions.slice(0, MAX_VISIBLE_ACTIONS);
@@ -118,13 +130,13 @@ export default function FounderActions({ data }: { data: FounderDashboardData })
 
     <div className={actionStyles.actionIntro}>
       <div>
-        <strong>{count === 0 ? "Nothing urgent right now" : `${count} ${count === 1 ? "thing" : "things"} worth your attention`}</strong>
-        <span>Focused on welcome, setup help, first-value friction, going quiet, and useful feedback opportunities.</span>
+        <strong>{count === 0 ? "Nothing currently needs action" : `${count} ${count === 1 ? "thing" : "things"} worth your attention`}</strong>
+        <span>{count === 0 ? "Quiet days are valid. Lower-priority monitoring will appear when there is a useful signal." : "Do today: ACT and CHECK. Watch or investigate: MONITOR, ASK and INVESTIGATE."}</span>
       </div>
       {hydrated && hiddenCount > 0 ? <button type="button" className={actionStyles.resetButton} onClick={resetDecisions}>Reset {hiddenCount} hidden {hiddenCount === 1 ? "action" : "actions"}</button> : null}
     </div>
 
-    {visibleActions.length > 0 ? <div className={actionStyles.actionGrid}>{visibleActions.map((action) => <ActionCard key={action.id} action={action} onDecision={saveDecision} />)}</div> : <div className={styles.softEmpty}>No current customer signal is strong enough to become a Founder Action. Keep using the behaviour dashboard as the evidence base.</div>}
+    {visibleActions.length > 0 ? <div className={actionStyles.actionGrid}>{visibleActions.map((action) => <ActionCard key={action.id} action={action} onDecision={saveDecision} />)}</div> : <div className={styles.softEmpty}>Nothing currently needs action. Keep using the behaviour dashboard as the evidence base.</div>}
 
     <p className={actionStyles.storageNote}>Done, snoozed and dismissed decisions are stored only in this browser for now.</p>
   </section>;

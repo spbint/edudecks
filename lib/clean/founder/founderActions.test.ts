@@ -55,7 +55,7 @@ function dashboard(customers: FounderDashboardData["customers"]): FounderDashboa
 describe("Founder Actions", () => {
   it("prioritizes a personal welcome for a genuine new family", () => {
     const actions = buildFounderActions(dashboard([customer()]), new Date(NOW));
-    expect(actions[0]).toMatchObject({ kind: "welcome", confidence: "Worth doing now" });
+    expect(actions[0]).toMatchObject({ kind: "welcome", confidence: "Worth doing now", operatingType: "ACT" });
     expect(actions[0].emailDraft?.subject).toBe("Welcome to MyLearna");
   });
 
@@ -77,7 +77,7 @@ describe("Founder Actions", () => {
       lastActiveAt: "2026-08-21T00:00:00.000Z",
       status: "Active",
     })]), new Date(NOW));
-    expect(actions[0]?.kind).toBe("first-value-gap");
+    expect(actions[0]).toMatchObject({ kind: "first-value-gap", operatingType: "CHECK" });
     expect(actions[0]?.evidence).toContain("0 learning captures saved");
   });
 
@@ -88,7 +88,7 @@ describe("Founder Actions", () => {
       activeDays30: 2,
       status: "Going quiet",
     })]), new Date(NOW));
-    expect(actions[0]).toMatchObject({ kind: "going-quiet", confidence: "Worth watching" });
+    expect(actions[0]).toMatchObject({ kind: "going-quiet", confidence: "Worth watching", operatingType: "MONITOR", emailDraft: null });
     expect(actions[0]?.why).toMatch(/without assuming|worth checking|natural pause/i);
   });
 
@@ -102,7 +102,8 @@ describe("Founder Actions", () => {
       reportViews: 1,
       status: "Active",
     })]), new Date(NOW));
-    expect(actions[0]).toMatchObject({ kind: "feedback", confidence: "Opportunity" });
+    expect(actions[0]).toMatchObject({ kind: "feedback", confidence: "Opportunity", operatingType: "ASK" });
+    expect(actions[0]?.emailDraft?.body).not.toMatch(/I noticed|analytics show|I can see you haven.t/i);
   });
 
   it("caps the daily queue at five and gives each family only its strongest current action", () => {
@@ -115,5 +116,28 @@ describe("Founder Actions", () => {
     const actions = buildFounderActions(dashboard(customers), new Date(NOW));
     expect(actions).toHaveLength(5);
     expect(new Set(actions.map((action) => action.family.userId)).size).toBe(5);
+  });
+
+  it("keeps first-capture contact conservative and identity stable", () => {
+    const base = customer({
+      joinedAt: "2026-08-18T00:00:00.000Z",
+      myDayViews: 1,
+      calendarActions: 1,
+      lastActiveAt: "2026-08-21T00:00:00.000Z",
+      activeDays30: 1,
+      status: "Active",
+    });
+    const weak = buildFounderActions(dashboard([base]), new Date(NOW))[0];
+    const changedTimestamp = buildFounderActions(dashboard([{
+      ...base,
+      lastActiveAt: "2026-08-21T12:00:00.000Z",
+    }]), new Date(NOW))[0];
+    expect(weak).toMatchObject({ operatingType: "CHECK", emailDraft: null });
+    expect(changedTimestamp?.id).toBe(weak?.id);
+  });
+
+  it("does not offer contact when the family email is missing", () => {
+    const action = buildFounderActions(dashboard([customer({ email: null })]), new Date(NOW))[0];
+    expect(action?.emailDraft).toBeNull();
   });
 });

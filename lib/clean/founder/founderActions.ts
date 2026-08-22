@@ -10,12 +10,14 @@ export type FounderActionKind =
   | "feedback";
 
 export type FounderActionConfidence = "Worth doing now" | "Worth watching" | "Opportunity";
+export type FounderActionOperatingType = "ACT" | "CHECK" | "INVESTIGATE" | "MONITOR" | "ASK";
 
 export type FounderAction = {
   id: string;
   kind: FounderActionKind;
   priority: number;
   confidence: FounderActionConfidence;
+  operatingType: FounderActionOperatingType;
   title: string;
   summary: string;
   why: string;
@@ -62,35 +64,35 @@ function familyRef(customer: FounderCustomer): FounderAction["family"] {
 function welcomeDraft(): FounderAction["emailDraft"] {
   return {
     subject: "Welcome to MyLearna",
-    body: "Hi,\n\nI wanted to personally welcome you to MyLearna. I’m the founder, and I’m really glad you’ve joined us.\n\nIf anything feels unclear while you’re getting started, just reply to this email and I’ll be happy to help.\n\nSean\nFounder, MyLearna",
+    body: "Hi,\n\nI wanted to personally welcome you to MyLearna. I’m the founder, and I’m really glad you’ve joined us.\n\nIf anything feels unclear while you’re getting started, just reply to this email and I’ll be happy to help.",
   };
 }
 
 function setupDraft(): FounderAction["emailDraft"] {
   return {
     subject: "How are you getting on with MyLearna?",
-    body: "Hi,\n\nI wanted to check in while you’re getting started with MyLearna. If you’ve hit anything confusing while setting up your family or learners, just reply and I’ll be happy to help.\n\nSean\nFounder, MyLearna",
+    body: "Hi,\n\nI wanted to check in while you’re getting started with MyLearna. If you’ve hit anything confusing while setting up your family or learners, just reply and I’ll be happy to help.",
   };
 }
 
 function captureDraft(): FounderAction["emailDraft"] {
   return {
     subject: "A quick MyLearna check-in",
-    body: "Hi,\n\nI wanted to check in as you’re getting started with planning and capturing learning in MyLearna. If anything has felt unclear or harder than it should, I’d really value hearing about it.\n\nSean\nFounder, MyLearna",
+    body: "Hi,\n\nI wanted to check in as you’re getting started with planning and capturing learning in MyLearna. If anything has felt unclear or harder than it should, I’d really value hearing about it.",
   };
 }
 
 function quietDraft(): FounderAction["emailDraft"] {
   return {
     subject: "A quick MyLearna check-in",
-    body: "Hi,\n\nI wanted to check in and see how you’re getting on with MyLearna. If you’ve run into anything that has made it harder to keep using, I’d be grateful to hear about it and happy to help.\n\nSean\nFounder, MyLearna",
+    body: "Hi,\n\nI wanted to check in and see how you’re getting on with MyLearna. If you’ve run into anything that has made it harder to keep using, I’d be grateful to hear about it and happy to help.",
   };
 }
 
 function feedbackDraft(): FounderAction["emailDraft"] {
   return {
     subject: "Could I ask for your MyLearna feedback?",
-    body: "Hi,\n\nThanks for spending some time with MyLearna. As the founder, I’d really value hearing what has been most useful so far and anything you think I could improve.\n\nSean\nFounder, MyLearna",
+    body: "Hi,\n\nThanks for spending some time with MyLearna. As the founder, I’d really value hearing what has been most useful so far and anything you think I could improve.",
   };
 }
 
@@ -102,10 +104,11 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
 
   if (joinedDays <= 1) {
     return {
-      id: `welcome:${customer.userId}:${customer.joinedAt}`,
+      id: `welcome:${customer.userId}`,
       kind: "welcome",
       priority: 100,
       confidence: "Worth doing now",
+      operatingType: "ACT",
       title: "Send a personal welcome",
       summary: `${customer.displayName} joined ${dayLabel(joinedDays)} ago.`,
       why: "A short personal welcome is useful while the relationship is still new and gives the family an easy route to ask for help.",
@@ -121,11 +124,12 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
 
   if (joinedDays <= 7 && (!customer.profileCompleted || customer.learnerCount === 0)) {
     return {
-      id: `setup:${customer.userId}:${customer.joinedAt}`,
+      id: `setup:${customer.userId}`,
       kind: "setup-help",
       priority: 95,
-      confidence: "Worth doing now",
-      title: "Offer setup help",
+      confidence: customer.lastActiveAt ? "Worth doing now" : "Worth watching",
+      operatingType: customer.lastActiveAt ? "ACT" : "CHECK",
+      title: customer.lastActiveAt ? "Check whether setup is blocking this family" : "Review this family’s setup",
       summary: `${customer.displayName} joined ${dayLabel(joinedDays)} ago and setup is still incomplete.`,
       why: "This is a clear early friction signal. A personal check-in may reveal something confusing before the family disengages.",
       evidence: [
@@ -134,17 +138,20 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
         customer.lastActiveAt ? `Last active ${dayLabel(inactiveDays)} ago` : "No product activity recorded yet",
       ],
       family: familyRef(customer),
-      emailDraft: customer.email ? setupDraft() : null,
+      emailDraft: customer.email && joinedDays >= 3 && customer.lastActiveAt ? setupDraft() : null,
     };
   }
 
+  const plannedActions = customer.myDayViews + customer.calendarActions;
+  const strongFirstCaptureSignal = plannedActions >= 3 && customer.activeDays30 >= 2;
   if (joinedDays <= 14 && planned && customer.capturesSaved === 0 && inactiveDays <= 7) {
     return {
-      id: `first-capture:${customer.userId}:${customer.lastActiveAt ?? customer.joinedAt}`,
+      id: `first-capture:${customer.userId}`,
       kind: "first-value-gap",
       priority: 90,
-      confidence: "Worth doing now",
-      title: "Check first-capture friction",
+      confidence: strongFirstCaptureSignal ? "Worth doing now" : "Worth watching",
+      operatingType: "CHECK",
+      title: "Review first-capture friction",
       summary: `${customer.displayName} has planned learning but has not saved a first capture yet.`,
       why: "Planning without a first saved learning record is the clearest current gap between setup and experiencing MyLearna’s record-keeping value.",
       evidence: [
@@ -153,17 +160,18 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
         "0 learning captures saved",
       ],
       family: familyRef(customer),
-      emailDraft: customer.email ? captureDraft() : null,
+      emailDraft: strongFirstCaptureSignal && customer.email ? captureDraft() : null,
     };
   }
 
   if (customer.status === "Going quiet") {
     return {
-      id: `quiet:${customer.userId}:${customer.lastActiveAt ?? "none"}`,
+      id: `quiet:${customer.userId}`,
       kind: "going-quiet",
       priority: 80,
       confidence: "Worth watching",
-      title: "Check in with a family going quiet",
+      operatingType: "MONITOR",
+      title: "Monitor this family’s return pattern",
       summary: `${customer.displayName} used MyLearna previously but has not been active for ${dayLabel(inactiveDays)}.`,
       why: "A previously active family becoming quiet can reveal a support need, a product friction point, or simply a natural pause. It is worth checking before assuming why.",
       evidence: [
@@ -172,7 +180,7 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
         customer.topArea ? `Most-used area: ${customer.topArea}` : "No strongest product area yet",
       ],
       family: familyRef(customer),
-      emailDraft: customer.email ? quietDraft() : null,
+      emailDraft: null,
     };
   }
 
@@ -182,6 +190,7 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
       kind: "feedback",
       priority: 60,
       confidence: "Opportunity",
+      operatingType: "ASK",
       title: "Ask an engaged family what is working",
       summary: `${customer.displayName} has returned on ${customer.activeDays30} separate days in the current 30-day window.`,
       why: "This family has enough repeat experience to give useful qualitative feedback about what is genuinely helping and what still feels awkward.",
@@ -210,4 +219,5 @@ export function buildFounderActions(data: FounderDashboardData, now = new Date(d
 export const founderActionInternals = {
   ageInDays,
   actionForCustomer,
+  quietDraft,
 };

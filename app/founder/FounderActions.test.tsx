@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import FounderActions from "./FounderActions";
 import type { FounderDashboardData } from "@/lib/clean/founder/founderDashboard";
@@ -46,9 +46,40 @@ describe("Founder Actions UI", () => {
     expect(screen.getByText("Send a personal welcome")).toBeTruthy();
   });
 
+  it("keeps Done hidden after a browser reload", async () => {
+    const first = render(<FounderActions data={data} />);
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    first.unmount();
+    render(<FounderActions data={data} />);
+    await waitFor(() => expect(screen.queryByText("Send a personal welcome")).toBeNull());
+  });
+
+  it("supports snooze, expiry, dismiss and reset semantics", async () => {
+    const first = render(<FounderActions data={data} />);
+    fireEvent.click(screen.getByRole("button", { name: "Snooze 3 days" }));
+    await waitFor(() => expect(screen.queryByText("Send a personal welcome")).toBeNull());
+    first.unmount();
+
+    window.localStorage.setItem("mylearna:founder-actions:v1", JSON.stringify({
+      "welcome:family-1": { state: "snoozed", until: Date.now() - 1, updatedAt: Date.now() },
+    }));
+    render(<FounderActions data={data} />);
+    await waitFor(() => expect(screen.getByText("Send a personal welcome")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    await waitFor(() => expect(screen.queryByText("Send a personal welcome")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: /Reset 1 hidden action/i }));
+    expect(screen.getByText("Send a personal welcome")).toBeTruthy();
+  });
+
   it("exposes the evidence behind the suggestion", () => {
     render(<FounderActions data={data} />);
-    fireEvent.click(screen.getByText("View evidence"));
+    fireEvent.click(screen.getByText("Evidence"));
     expect(screen.getByText("Family profile is set up")).toBeTruthy();
+  });
+
+  it("shows a confident quiet-day state when no strong signals exist", () => {
+    render(<FounderActions data={{ ...data, customers: [] }} />);
+    expect(screen.getByText("Nothing currently needs action")).toBeTruthy();
+    expect(screen.getByText(/Quiet days are valid/i)).toBeTruthy();
   });
 });
