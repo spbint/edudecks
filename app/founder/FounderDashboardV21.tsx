@@ -8,6 +8,7 @@ import {
   type FounderBehaviourAction,
   type FounderBehaviourFamily,
 } from "@/lib/clean/founder/founderBehaviour";
+import FounderActions from "./FounderActions";
 import FounderSignOutButton from "./FounderSignOutButton";
 import styles from "./FounderDashboardV2.module.css";
 import v21 from "./FounderDashboardV21.module.css";
@@ -134,6 +135,8 @@ export default function FounderDashboardV21({ data }: { data: FounderDashboardDa
       {todayDrill === "actions" ? <SharedDrill id="today-drill" title={`Learning actions today — ${N.format(data.today.meaningfulActions)}`} note="The complete named action list behind the headline count." onClose={() => setTodayDrill(null)}><Actions items={b.todayDetails.learningActions} /></SharedDrill> : null}
       <div className={styles.changeCard}><span className={styles.changeLabel}>What changed?</span><p>{data.whatChanged}</p></div>
     </section>
+
+    <FounderActions data={data} />
 
     <section className={styles.section} aria-labelledby="behaviour-title"><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Behaviour intelligence</p><h2 id="behaviour-title">How families are behaving</h2></div><p className={styles.sectionHint}>Activity, retention, stickiness, lifecycle and paths synthesized from MyLearna’s real product events.</p></div>
       <div className={styles.changeCard}><span className={styles.changeLabel}>Founder read</span><p>{b.founderRead}</p></div>
