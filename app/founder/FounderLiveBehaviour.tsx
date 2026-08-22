@@ -59,7 +59,7 @@ function dwell(item: FounderLiveTimelineItem) {
 function SessionDetail({ session }: { session: FounderLiveSession }) {
   return <div className={styles.sessionDetail}>
     {session.bottlenecks.length ? <div className={styles.frictionBox}>
-      <strong>Potential friction</strong>
+      <strong>CHECK — Potential friction</strong>
       {session.bottlenecks.map((item) => <div key={`${item.kind}-${item.title}`} className={styles.frictionItem}>
         <span>{item.title}</span>
         <p>{item.detail}</p>
@@ -187,6 +187,7 @@ export default function FounderLiveBehaviour({
       <section className={styles.block}>
         <div className={styles.blockHeader}><div><span className={styles.eyebrow}>Potential bottlenecks</span><h3>Patterns worth reviewing</h3></div></div>
         {snapshot.signals.length ? <div className={styles.signalList}>{snapshot.signals.map((signal) => <article key={signal.kind} className={styles.signalCard}>
+          <span className={styles.eyebrow}>INVESTIGATE</span>
           <div><strong>{signal.title}</strong><span>{signal.occurrences} observed {signal.occurrences === 1 ? "session" : "sessions"} · {signal.families.length} {signal.families.length === 1 ? "family" : "families"}</span></div>
           <p>{signal.detail}</p>
           <small>{signal.families.join(", ")}</small>

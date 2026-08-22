@@ -56,8 +56,7 @@ describe("Founder live behaviour", () => {
     expect(alpha?.bottlenecks.map((item) => item.kind)).toEqual(["capture-abandoned", "navigation-loop"]);
     expect(alpha?.events.find((item) => item.route === "/my-day")?.estimatedPageSeconds).toBe(120);
 
-    expect(result.signals.map((signal) => signal.kind).sort()).toEqual(["capture-abandoned", "navigation-loop"]);
-    expect(result.signals.every((signal) => signal.families.includes("Alpha Family"))).toBe(true);
+    expect(result.signals).toEqual([]);
   });
 
   it("starts a new behaviour session after thirty minutes without tracked activity", () => {
@@ -73,6 +72,18 @@ describe("Founder live behaviour", () => {
     expect(result.recentSessions).toHaveLength(2);
   });
 
+  it("uses the inclusive five-minute active-now boundary and emits no private content", () => {
+    const now = new Date("2026-08-22T02:30:00.000Z");
+    const result = buildFounderLiveBehaviour(
+      [customer("a", "Alpha Family")],
+      [event("a", "app_page_viewed", "2026-08-22T02:25:00.000Z", "/my-day", "My Day")],
+      now,
+      true,
+    );
+    expect(result.activeNow).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toMatch(/child|learner|evidence|content|distinct_id/i);
+  });
+
   it("does not call an unfinished capture a bottleneck while the family is still active", () => {
     const now = new Date("2026-08-22T02:30:00.000Z");
     const customers = [customer("a", "Alpha Family")];
@@ -85,5 +96,37 @@ describe("Founder live behaviour", () => {
     expect(result.activeNow).toHaveLength(1);
     expect(result.recentSessions[0]?.bottlenecks).toEqual([]);
     expect(result.signals).toEqual([]);
+  });
+
+  it("requires two genuine families before surfacing aggregate investigation signals", () => {
+    const now = new Date("2026-08-22T02:30:00.000Z");
+    const customers = [customer("a", "Alpha Family"), customer("b", "Beta Family")];
+    const events = [
+      event("a", "daily_plan_viewed", "2026-08-22T01:00:00.000Z", "/my-day", "My Day"),
+      event("a", "calendar_block_created", "2026-08-22T01:05:00.000Z", "/calendar", "Calendar"),
+      event("b", "daily_plan_viewed", "2026-08-22T01:10:00.000Z", "/my-day", "My Day"),
+      event("b", "calendar_block_created", "2026-08-22T01:15:00.000Z", "/calendar", "Calendar"),
+    ];
+    const result = buildFounderLiveBehaviour(customers, events, now, true);
+    expect(result.signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "planning-without-capture", families: ["Alpha Family", "Beta Family"] }),
+    ]));
+  });
+
+  it("does not invent final-page dwell and detects capture without later Portfolio discovery", () => {
+    const now = new Date("2026-08-22T02:30:00.000Z");
+    const result = buildFounderLiveBehaviour(
+      [customer("a", "Alpha Family")],
+      [
+        event("a", "app_page_viewed", "2026-08-22T02:00:00.000Z", "/quick-capture", "Quick Capture"),
+        event("a", "quick_capture_saved", "2026-08-22T02:02:00.000Z", "/quick-capture", "Quick Capture"),
+      ],
+      now,
+      true,
+    );
+    const session = result.recentSessions[0];
+    expect(session?.events[0]?.estimatedPageSeconds).toBe(120);
+    expect(session?.events[1]?.estimatedPageSeconds).toBeNull();
+    expect(session?.bottlenecks.map((item) => item.kind)).toContain("capture-without-portfolio");
   });
 });

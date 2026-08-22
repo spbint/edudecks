@@ -12,7 +12,11 @@ const MAX_SESSIONS = 24;
 const MAX_TIMELINE_EVENTS = 150;
 
 export type FounderLiveEventKind = "page" | "sign-in" | "action";
-export type FounderLiveBottleneckKind = "capture-abandoned" | "navigation-loop";
+export type FounderLiveBottleneckKind =
+  | "capture-abandoned"
+  | "navigation-loop"
+  | "planning-without-capture"
+  | "capture-without-portfolio";
 
 export type FounderLiveTimelineItem = {
   event: FounderTrackedEventName;
@@ -110,9 +114,16 @@ function displayName(customer: FounderCustomerBase) {
 function routePath(route: string | null) {
   if (!route) return null;
   try {
-    return new URL(route, "https://mylearna.local").pathname || "/";
+    const path = new URL(route, "https://mylearna.local").pathname || "/";
+    const safePrefixes = [
+      "/my-day", "/my-calendar", "/calendar", "/my-capture", "/capture",
+      "/my-portfolio", "/portfolio", "/my-reports", "/reports", "/my-pathways",
+      "/pathways", "/my-coach", "/coach", "/my-settings", "/settings",
+      "/my-profile", "/profile", "/marketplace",
+    ];
+    return safePrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)) ? path : null;
   } catch {
-    return route.split("?")[0]?.split("#")[0] || null;
+    return null;
   }
 }
 
@@ -132,13 +143,13 @@ function friendlyPage(event: FounderProductEvent) {
   if (haystack.includes("setting")) return "Settings";
   if (haystack.includes("marketplace")) return "Marketplace";
 
-  if (area) return area;
+  if (area) {
+    const knownAreas = ["My Day", "Calendar", "Quick Capture", "Portfolio", "Reports", "Pathways", "Coach", "Profile", "Settings", "Marketplace"];
+    const knownArea = knownAreas.find((known) => known.toLowerCase() === area.toLowerCase());
+    if (knownArea) return knownArea;
+  }
   if (!path || path === "/") return "MyLearna home";
-  const segment = path.split("/").filter(Boolean).pop() || "MyLearna";
-  return segment
-    .replaceAll("-", " ")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return "MyLearna";
 }
 
 function actionLabel(event: FounderTrackedEventName) {
@@ -213,11 +224,12 @@ function pageTimelineLabel(event: FounderProductEvent) {
 }
 
 function findCurrentLocation(events: FounderProductEvent[]) {
+  const latest = events[events.length - 1];
+  if (latest && latest.event !== "product_signed_in") return friendlyPage(latest);
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index];
     if (event.event === "app_page_viewed") return friendlyPage(event);
   }
-  const latest = events[events.length - 1];
   return latest ? actionLabel(latest.event) : "MyLearna";
 }
 
@@ -238,6 +250,31 @@ function detectBottlenecks(events: FounderProductEvent[], activeNow: boolean): F
         detail: "A capture was started, but no save event followed before this tracked session ended.",
       });
     }
+  }
+
+  const planningCount = events.filter((event) =>
+    event.event === "daily_plan_viewed" ||
+    event.event === "calendar_block_created" ||
+    event.event === "calendar_block_save_succeeded" ||
+    event.event === "calendar_block_updated",
+  ).length;
+  const hasCapture = events.some((event) => CAPTURE_SAVED.has(event.event));
+  if (planningCount >= 2 && !hasCapture) {
+    bottlenecks.push({
+      kind: "planning-without-capture",
+      title: "Planning without a saved capture",
+      detail: "Repeated My Day or Calendar activity was recorded without reaching a saved learning capture. This is worth checking as a possible journey bottleneck.",
+    });
+  }
+
+  const captureSavedIndex = events.findIndex((event) => CAPTURE_SAVED.has(event.event));
+  const portfolioAfterCapture = captureSavedIndex >= 0 && events.slice(captureSavedIndex + 1).some((event) => event.event === "portfolio_viewed");
+  if (captureSavedIndex >= 0 && !portfolioAfterCapture) {
+    bottlenecks.push({
+      kind: "capture-without-portfolio",
+      title: "Capture saved without Portfolio discovery",
+      detail: "A learning capture was saved, but Portfolio was not reached later in this tracked session. This is a possible value-discovery bottleneck worth checking.",
+    });
   }
 
   const pageMoves = events
@@ -272,15 +309,11 @@ function buildSession(draft: SessionDraft, now: Date): FounderLiveSession {
   const completeTimeline = draft.events.map((event, index): FounderLiveTimelineItem => {
     let estimatedPageSeconds: number | null = null;
     if (event.event === "app_page_viewed") {
-      let endMs = sessionEndMs;
-      for (let next = index + 1; next < draft.events.length; next += 1) {
-        if (draft.events[next].event === "app_page_viewed") {
-          endMs = Date.parse(draft.events[next].occurredAt);
-          break;
-        }
+      const next = draft.events[index + 1];
+      if (next) {
+        const seconds = Math.floor((Date.parse(next.occurredAt) - Date.parse(event.occurredAt)) / 1000);
+        estimatedPageSeconds = seconds > 0 ? Math.min(30 * 60, seconds) : null;
       }
-      const seconds = Math.floor((endMs - Date.parse(event.occurredAt)) / 1000);
-      estimatedPageSeconds = seconds > 0 ? Math.min(30 * 60, seconds) : null;
     }
     return {
       event: event.event,
@@ -310,17 +343,17 @@ function buildSession(draft: SessionDraft, now: Date): FounderLiveSession {
 }
 
 function aggregateSignals(sessions: FounderLiveSession[]): FounderLiveSignal[] {
-  const groups = new Map<FounderLiveBottleneckKind, { occurrences: number; families: Set<string>; title: string; detail: string }>();
+  const groups = new Map<FounderLiveBottleneckKind, { occurrences: number; families: Map<string, string>; title: string; detail: string }>();
   for (const session of sessions) {
     for (const bottleneck of session.bottlenecks) {
       const current = groups.get(bottleneck.kind) ?? {
         occurrences: 0,
-        families: new Set<string>(),
+        families: new Map<string, string>(),
         title: bottleneck.title,
         detail: bottleneck.detail,
       };
       current.occurrences += 1;
-      current.families.add(session.displayName);
+      current.families.set(session.userId, session.displayName);
       groups.set(bottleneck.kind, current);
     }
   }
@@ -330,8 +363,9 @@ function aggregateSignals(sessions: FounderLiveSession[]): FounderLiveSignal[] {
       title: value.title,
       detail: value.detail,
       occurrences: value.occurrences,
-      families: [...value.families].sort(),
+      families: [...value.families.values()].sort(),
     }))
+    .filter((signal) => signal.families.length >= 2)
     .sort((left, right) => right.occurrences - left.occurrences || left.title.localeCompare(right.title));
 }
 

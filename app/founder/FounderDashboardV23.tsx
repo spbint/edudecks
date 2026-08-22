@@ -17,10 +17,10 @@ function activeNowCount(data: FounderDashboardData) {
 
 export default function FounderDashboardV23({ data }: { data: FounderDashboardData }) {
   return <>
-    <FounderDashboardV21 data={data} />
     <FounderLiveBehaviour
       initialActiveNowCount={activeNowCount(data)}
       initiallyAvailable={data.productActivityAvailable}
     />
+    <FounderDashboardV21 data={data} />
   </>;
 }
