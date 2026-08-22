@@ -44,6 +44,28 @@ export function clearCleanPlanningCache() {
   calendarItemsInFlight.clear();
 }
 
+/**
+ * Invalidate all visible planning ranges for one family after a calendar
+ * mutation. Day and Calendar use separate keys, so clearing only the current
+ * view can leave My Day showing a stale block after a Calendar deletion.
+ */
+export function clearCleanPlanningCacheForFamily(familyId: string | null | undefined) {
+  const targetFamilyId = String(familyId ?? "").trim();
+  if (!targetFamilyId) return;
+
+  for (const key of calendarItemsCache.keys()) {
+    if (key.split("|")[1] === targetFamilyId) {
+      calendarItemsCache.delete(key);
+    }
+  }
+
+  for (const key of calendarItemsInFlight.keys()) {
+    if (key.split("|")[1] === targetFamilyId) {
+      calendarItemsInFlight.delete(key);
+    }
+  }
+}
+
 export function getOrCreateCleanPlanningCalendarItemsRequest(
   key: string,
   request: () => Promise<CleanCalendarItem[]>,

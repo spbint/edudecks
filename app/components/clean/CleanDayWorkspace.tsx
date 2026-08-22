@@ -307,6 +307,7 @@ function CleanDayWorkspaceBody() {
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
+  const [itemsResolvedKey, setItemsResolvedKey] = useState<string | null>(null);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [guidanceCards, setGuidanceCards] = useState<CleanGuidanceCard[]>([]);
   const [guidanceLoading, setGuidanceLoading] = useState(false);
@@ -726,6 +727,7 @@ function CleanDayWorkspaceBody() {
       if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
         dayRequestGenerationRef.current += 1;
         setItems([]);
+        setItemsResolvedKey(null);
         setEvidenceEntries([]);
         setPrograms([]);
         setProgramSegments([]);
@@ -733,6 +735,7 @@ function CleanDayWorkspaceBody() {
       }
 
       const requestGeneration = ++dayRequestGenerationRef.current;
+      const selectedDayDataKey = `${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`;
       const cacheKey = buildCleanPlanningCacheKey({
         userId: workspace.currentUserId,
         familyId: workspace.profile.id,
@@ -742,6 +745,7 @@ function CleanDayWorkspaceBody() {
       });
       const cachedItems = readCleanPlanningCalendarItems(cacheKey);
       setItems(cachedItems ?? []);
+      setItemsResolvedKey(cachedItems ? selectedDayDataKey : null);
       setEvidenceEntries([]);
       setItemsLoading(!cachedItems);
       setItemsError(null);
@@ -788,6 +792,7 @@ function CleanDayWorkspaceBody() {
         if (requestGeneration !== dayRequestGenerationRef.current) return;
         writeCleanPlanningCalendarItems(cacheKey, nextItems);
         setItems(nextItems);
+        setItemsResolvedKey(selectedDayDataKey);
         setItemsLoading(false);
       } catch (error) {
         itemsTiming("error");
@@ -798,6 +803,7 @@ function CleanDayWorkspaceBody() {
               "We could not load this day's learning blocks.",
             ),
           );
+          setItemsResolvedKey(null);
           setItemsLoading(false);
         }
       }
@@ -1132,14 +1138,17 @@ function CleanDayWorkspaceBody() {
     }
   }
 
-  const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const readyForDay = !workspace.loading && !workspace.setupLoading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const hasPlannedItemsForSelectedDate = items.length > 0;
-  const myDayPresentationState: CleanMyDayPresentationState = deriveCleanMyDayPresentationState({
-    setupStatus: accountSetup,
-    hasPlannedItemsForSelectedDate,
-  });
   const dayPrimaryKey = workspace.profile
     ? `${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`
+    : null;
+  const dayDataResolved = Boolean(readyForDay && !itemsLoading && !itemsError && dayPrimaryKey && itemsResolvedKey === dayPrimaryKey);
+  const myDayPresentationState: CleanMyDayPresentationState | null = dayDataResolved
+    ? deriveCleanMyDayPresentationState({
+        setupStatus: accountSetup,
+        hasPlannedItemsForSelectedDate,
+      })
     : null;
 
   useEffect(() => {
@@ -1175,7 +1184,7 @@ function CleanDayWorkspaceBody() {
 
   return (
     <div style={shellStyle}>
-      <div className={`mylearna-day-shell mylearna-day-shell-${myDayPresentationState.toLowerCase()}`} style={wrapStyle}>
+      <div className={`mylearna-day-shell mylearna-day-shell-${myDayPresentationState?.toLowerCase() ?? "loading"}`} style={wrapStyle}>
         <style jsx global>{`
           @media (max-width: 640px) {
             .mylearna-day-header {
@@ -1245,6 +1254,10 @@ function CleanDayWorkspaceBody() {
             display: none;
           }
 
+          .mylearna-day-shell-loading .mylearna-day-mature-top {
+            display: none !important;
+          }
+
           .mylearna-day-desktop-activation {
             display: none;
           }
@@ -1308,6 +1321,15 @@ function CleanDayWorkspaceBody() {
             }
           }
         `}</style>
+        {readyForDay && !myDayPresentationState ? (
+          <section
+            data-testid="my-day-primary-loading-state"
+            style={{ ...cardStyle, color: "#475569" }}
+            aria-live="polite"
+          >
+            Loading this day&apos;s plan...
+          </section>
+        ) : null}
         <div className="mylearna-day-mature-top">
         <CoreJourneyCue stage="plan" />
         {canShowMyDayGuidance ? <CleanFirstRunSetupGate currentStep="day" /> : null}
@@ -1514,7 +1536,7 @@ function CleanDayWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForDay ? (
+        {readyForDay && myDayPresentationState ? (
           <>
             <section
               className={`mylearna-day-desktop-activation mylearna-day-desktop-activation-${myDayPresentationState.toLowerCase()}`}

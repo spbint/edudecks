@@ -54,6 +54,7 @@ import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import {
   buildCleanPlanningCacheKey,
+  clearCleanPlanningCacheForFamily,
   getOrCreateCleanPlanningCalendarItemsRequest,
   readCleanPlanningCalendarItems,
   writeCleanPlanningCalendarItems,
@@ -2962,6 +2963,7 @@ function CleanCalendarWorkspaceBody() {
 
     try {
       await deleteCleanCalendarItem(workspace.profile.id, item.id);
+      clearCleanPlanningCacheForFamily(workspace.profile.id);
       trackProductEvent(
         "calendar_block_deleted",
         {

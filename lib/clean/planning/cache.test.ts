@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCleanPlanningCacheKey,
   clearCleanPlanningCache,
+  clearCleanPlanningCacheForFamily,
   getOrCreateCleanPlanningCalendarItemsRequest,
   getCleanPlanningCacheAge,
   readCleanPlanningCalendarItems,
@@ -107,5 +108,41 @@ describe("clean planning cache scope", () => {
     expect(factoryCalls).toBe(1);
     resolveRequest([]);
     await expect(first).resolves.toEqual([]);
+  });
+
+  it("invalidates every cached route for a family after a calendar mutation", () => {
+    clearCleanPlanningCache();
+    const familyKey = buildCleanPlanningCacheKey({
+      userId: "user-a",
+      familyId: "family-a",
+      route: "day",
+      fromDate: "2026-07-23",
+      toDate: "2026-07-23",
+    });
+    const calendarKey = buildCleanPlanningCacheKey({
+      userId: "user-a",
+      familyId: "family-a",
+      route: "calendar",
+      fromDate: "2026-07-20",
+      toDate: "2026-07-26",
+      view: "week",
+    });
+    const otherFamilyKey = buildCleanPlanningCacheKey({
+      userId: "user-b",
+      familyId: "family-b",
+      route: "day",
+      fromDate: "2026-07-23",
+      toDate: "2026-07-23",
+    });
+
+    writeCleanPlanningCalendarItems(familyKey, []);
+    writeCleanPlanningCalendarItems(calendarKey, []);
+    writeCleanPlanningCalendarItems(otherFamilyKey, []);
+
+    clearCleanPlanningCacheForFamily("family-a");
+
+    expect(readCleanPlanningCalendarItems(familyKey)).toBeNull();
+    expect(readCleanPlanningCalendarItems(calendarKey)).toBeNull();
+    expect(readCleanPlanningCalendarItems(otherFamilyKey)).toEqual([]);
   });
 });

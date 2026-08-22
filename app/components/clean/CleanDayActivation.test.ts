@@ -33,4 +33,12 @@ describe("desktop My Day activation safeguards", () => {
     expect(source).toContain("Capture something you already did");
     expect(source).toContain("Open My Calendar");
   });
+
+  it("does not derive an activation state until setup and selected-day data resolve", () => {
+    expect(source).toContain("!workspace.setupLoading");
+    expect(source).toContain("itemsResolvedKey === dayPrimaryKey");
+    expect(source).toContain("!itemsLoading");
+    expect(source).toContain('data-testid="my-day-primary-loading-state"');
+    expect(source).toContain("myDayPresentationState ? (");
+  });
 });
