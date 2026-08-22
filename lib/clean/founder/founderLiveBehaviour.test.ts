@@ -104,8 +104,10 @@ describe("Founder live behaviour", () => {
     const events = [
       event("a", "daily_plan_viewed", "2026-08-22T01:00:00.000Z", "/my-day", "My Day"),
       event("a", "calendar_block_created", "2026-08-22T01:05:00.000Z", "/calendar", "Calendar"),
+      event("a", "daily_plan_viewed", "2026-08-22T01:40:01.000Z", "/my-day", "My Day"),
       event("b", "daily_plan_viewed", "2026-08-22T01:10:00.000Z", "/my-day", "My Day"),
       event("b", "calendar_block_created", "2026-08-22T01:15:00.000Z", "/calendar", "Calendar"),
+      event("b", "daily_plan_viewed", "2026-08-22T01:50:01.000Z", "/my-day", "My Day"),
     ];
     const result = buildFounderLiveBehaviour(customers, events, now, true);
     expect(result.signals).toEqual(expect.arrayContaining([
@@ -113,7 +115,7 @@ describe("Founder live behaviour", () => {
     ]));
   });
 
-  it("does not invent final-page dwell and detects capture without later Portfolio discovery", () => {
+  it("does not flag a saved capture when the session simply ends", () => {
     const now = new Date("2026-08-22T02:30:00.000Z");
     const result = buildFounderLiveBehaviour(
       [customer("a", "Alpha Family")],
@@ -127,6 +129,59 @@ describe("Founder live behaviour", () => {
     const session = result.recentSessions[0];
     expect(session?.events[0]?.estimatedPageSeconds).toBe(120);
     expect(session?.events[1]?.estimatedPageSeconds).toBeNull();
-    expect(session?.bottlenecks.map((item) => item.kind)).toContain("capture-without-portfolio");
+    expect(session?.bottlenecks.map((item) => item.kind)).not.toContain("capture-without-portfolio");
+  });
+
+  it("flags capture without Portfolio after a later session or twenty-four hours", () => {
+    const customers = [customer("a", "Alpha Family")];
+    const laterSession = buildFounderLiveBehaviour(customers, [
+      event("a", "quick_capture_saved", "2026-08-21T00:00:00.000Z", "/quick-capture", "Quick Capture"),
+      event("a", "app_page_viewed", "2026-08-21T00:40:01.000Z", "/my-day", "My Day"),
+    ], new Date("2026-08-21T01:00:00.000Z"), true);
+    expect(laterSession.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).toContain("capture-without-portfolio");
+
+    const olderCapture = buildFounderLiveBehaviour(customers, [
+      event("a", "quick_capture_saved", "2026-08-20T00:00:00.000Z", "/quick-capture", "Quick Capture"),
+    ], new Date("2026-08-22T01:00:00.000Z"), true);
+    expect(olderCapture.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).toContain("capture-without-portfolio");
+  });
+
+  it("clears capture friction when Portfolio is reached later", () => {
+    const result = buildFounderLiveBehaviour([customer("a", "Alpha Family")], [
+      event("a", "quick_capture_saved", "2026-08-21T00:00:00.000Z", "/quick-capture", "Quick Capture"),
+      event("a", "app_page_viewed", "2026-08-21T00:40:01.000Z", "/my-portfolio", "Portfolio"),
+      event("a", "portfolio_viewed", "2026-08-21T00:40:02.000Z", "/my-portfolio", "Portfolio"),
+    ], new Date("2026-08-21T01:00:00.000Z"), true);
+    expect(result.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).not.toContain("capture-without-portfolio");
+  });
+
+  it("requires planning across sessions or a later return, not two events in one session", () => {
+    const oneSession = buildFounderLiveBehaviour([customer("a", "Alpha Family")], [
+      event("a", "daily_plan_viewed", "2026-08-21T00:00:00.000Z", "/my-day", "My Day"),
+      event("a", "calendar_block_created", "2026-08-21T00:05:00.000Z", "/calendar", "Calendar"),
+    ], new Date("2026-08-21T01:00:00.000Z"), true);
+    expect(oneSession.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).not.toContain("planning-without-capture");
+
+    const twoSessions = buildFounderLiveBehaviour([customer("a", "Alpha Family")], [
+      event("a", "daily_plan_viewed", "2026-08-21T00:00:00.000Z", "/my-day", "My Day"),
+      event("a", "calendar_block_created", "2026-08-21T00:05:00.000Z", "/calendar", "Calendar"),
+      event("a", "daily_plan_viewed", "2026-08-21T01:00:01.000Z", "/my-day", "My Day"),
+    ], new Date("2026-08-21T02:00:00.000Z"), true);
+    expect(twoSessions.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).toContain("planning-without-capture");
+
+    const laterReturn = buildFounderLiveBehaviour([customer("a", "Alpha Family")], [
+      event("a", "daily_plan_viewed", "2026-08-21T00:00:00.000Z", "/my-day", "My Day"),
+      event("a", "app_page_viewed", "2026-08-21T01:00:01.000Z", "/my-day", "My Day"),
+    ], new Date("2026-08-21T02:00:00.000Z"), true);
+    expect(laterReturn.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).toContain("planning-without-capture");
+  });
+
+  it("clears planning friction once a saved capture exists", () => {
+    const result = buildFounderLiveBehaviour([customer("a", "Alpha Family")], [
+      event("a", "daily_plan_viewed", "2026-08-21T00:00:00.000Z", "/my-day", "My Day"),
+      event("a", "daily_plan_viewed", "2026-08-21T01:00:01.000Z", "/my-day", "My Day"),
+      event("a", "quick_capture_saved", "2026-08-21T01:02:00.000Z", "/quick-capture", "Quick Capture"),
+    ], new Date("2026-08-21T02:00:00.000Z"), true);
+    expect(result.recentSessions.flatMap((session) => session.bottlenecks).map((item) => item.kind)).not.toContain("planning-without-capture");
   });
 });

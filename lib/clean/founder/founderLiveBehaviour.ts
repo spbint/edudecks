@@ -252,31 +252,6 @@ function detectBottlenecks(events: FounderProductEvent[], activeNow: boolean): F
     }
   }
 
-  const planningCount = events.filter((event) =>
-    event.event === "daily_plan_viewed" ||
-    event.event === "calendar_block_created" ||
-    event.event === "calendar_block_save_succeeded" ||
-    event.event === "calendar_block_updated",
-  ).length;
-  const hasCapture = events.some((event) => CAPTURE_SAVED.has(event.event));
-  if (planningCount >= 2 && !hasCapture) {
-    bottlenecks.push({
-      kind: "planning-without-capture",
-      title: "Planning without a saved capture",
-      detail: "Repeated My Day or Calendar activity was recorded without reaching a saved learning capture. This is worth checking as a possible journey bottleneck.",
-    });
-  }
-
-  const captureSavedIndex = events.findIndex((event) => CAPTURE_SAVED.has(event.event));
-  const portfolioAfterCapture = captureSavedIndex >= 0 && events.slice(captureSavedIndex + 1).some((event) => event.event === "portfolio_viewed");
-  if (captureSavedIndex >= 0 && !portfolioAfterCapture) {
-    bottlenecks.push({
-      kind: "capture-without-portfolio",
-      title: "Capture saved without Portfolio discovery",
-      detail: "A learning capture was saved, but Portfolio was not reached later in this tracked session. This is a possible value-discovery bottleneck worth checking.",
-    });
-  }
-
   const pageMoves = events
     .filter((event) => event.event === "app_page_viewed")
     .map((event) => friendlyPage(event));
@@ -342,6 +317,75 @@ function buildSession(draft: SessionDraft, now: Date): FounderLiveSession {
   };
 }
 
+function addBottleneck(session: FounderLiveSession, bottleneck: FounderLiveBottleneck) {
+  if (!session.bottlenecks.some((item) => item.kind === bottleneck.kind)) {
+    session.bottlenecks.push(bottleneck);
+  }
+}
+
+function refineFamilyBottlenecks(sessions: FounderLiveSession[], now: Date) {
+  const sessionsByUser = new Map<string, FounderLiveSession[]>();
+  for (const session of sessions) {
+    const current = sessionsByUser.get(session.userId) ?? [];
+    current.push(session);
+    sessionsByUser.set(session.userId, current);
+  }
+
+  for (const familySessions of sessionsByUser.values()) {
+    const orderedSessions = [...familySessions].sort((left, right) => Date.parse(left.startedAt) - Date.parse(right.startedAt));
+    const allEvents = orderedSessions.flatMap((session) => session.events).sort(
+      (left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt),
+    );
+    const savedCaptures = allEvents.filter((event) => CAPTURE_SAVED.has(event.event));
+
+    if (savedCaptures.length > 0) {
+      const latestCapture = savedCaptures[savedCaptures.length - 1];
+      const portfolioAfterCapture = allEvents.some(
+        (event) => event.event === "portfolio_viewed" && Date.parse(event.occurredAt) > Date.parse(latestCapture.occurredAt),
+      );
+      const laterSessionExists = orderedSessions.some(
+        (session) => Date.parse(session.startedAt) > Date.parse(latestCapture.occurredAt),
+      );
+      const captureAgeMs = now.getTime() - Date.parse(latestCapture.occurredAt);
+      if (!portfolioAfterCapture && (laterSessionExists || captureAgeMs >= 24 * 60 * 60 * 1000)) {
+        const captureSession = orderedSessions.find((session) =>
+          session.events.some((event) => event.occurredAt === latestCapture.occurredAt && CAPTURE_SAVED.has(event.event)),
+        );
+        if (captureSession && !captureSession.activeNow) {
+          addBottleneck(captureSession, {
+            kind: "capture-without-portfolio",
+            title: "Portfolio has not been reached after a saved capture",
+            detail: "Worth checking whether Portfolio discovery is clear.",
+          });
+        }
+      }
+    }
+
+    if (savedCaptures.length === 0) {
+      const planningSessions = orderedSessions.filter((session) => session.events.filter((event) =>
+        event.event === "daily_plan_viewed" ||
+        event.event === "calendar_block_created" ||
+        event.event === "calendar_block_save_succeeded" ||
+        event.event === "calendar_block_updated",
+      ).length > 0);
+      const laterReturn = planningSessions.some((session) =>
+        !session.activeNow && orderedSessions.some((later) => Date.parse(later.startedAt) > Date.parse(session.lastSeenAt)),
+      );
+      const eligible = planningSessions.length >= 2 || laterReturn;
+      if (eligible) {
+        const target = [...planningSessions].reverse().find((session) => !session.activeNow) ?? planningSessions[planningSessions.length - 1];
+        if (target) {
+          addBottleneck(target, {
+            kind: "planning-without-capture",
+            title: "Planning without a saved capture",
+            detail: "Planning activity recurred without reaching a saved capture. Worth checking the journey without assuming why.",
+          });
+        }
+      }
+    }
+  }
+}
+
 function aggregateSignals(sessions: FounderLiveSession[]): FounderLiveSignal[] {
   const groups = new Map<FounderLiveBottleneckKind, { occurrences: number; families: Map<string, string>; title: string; detail: string }>();
   for (const session of sessions) {
@@ -381,6 +425,7 @@ export function buildFounderLiveBehaviour(
   const sessions = buildDrafts(customers, customerEvents)
     .map((draft) => buildSession(draft, now))
     .sort((left, right) => Date.parse(right.lastSeenAt) - Date.parse(left.lastSeenAt));
+  refineFamilyBottlenecks(sessions, now);
 
   const recentCutoff = nowMs - RECENT_SESSION_MS;
   const recentSessions = sessions
