@@ -1273,6 +1273,33 @@ function CleanDayWorkspaceBody() {
             .mylearna-day-shell-returning_empty .mylearna-day-mature-top {
               display: none !important;
             }
+
+            /* Keep the existing Quick Add form usable from the minimalist
+               returning-empty state without exposing the mature workspace. */
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open {
+              display: block !important;
+              padding: 0 !important;
+            }
+
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > * {
+              display: none !important;
+            }
+
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > .mylearna-day-plan-card {
+              display: block !important;
+            }
+
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > .mylearna-day-plan-card > div {
+              display: block !important;
+            }
+
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > .mylearna-day-plan-card > div > * {
+              display: none !important;
+            }
+
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open form.mylearna-day-quick-add-form {
+              display: grid !important;
+            }
           }
 
           @media (max-width: 767px) {
@@ -1520,12 +1547,16 @@ function CleanDayWorkspaceBody() {
               {myDayPresentationState === "RETURNING_EMPTY" ? (
                 <>
                   <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Nothing planned for today.</h1>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Add something for today, capture learning that already happened, or adjust your usual week.</p>
                   <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>Add a learning block</button>
-                  <Link href={calendarPathBase} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>Open My Calendar</Link>
+                  <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
+                    Capture something you already did
+                  </Link>
+                  <Link href={calendarPathBase} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>Open My Calendar →</Link>
                 </>
               ) : null}
             </section>
-            {workspace.learners.length ? <div className={`mylearna-day-mature-content mylearna-day-mature-content-${myDayPresentationState.toLowerCase()}`}>
+            {workspace.learners.length ? <div className={`mylearna-day-mature-content mylearna-day-mature-content-${myDayPresentationState.toLowerCase()}${quickAddOpen ? " mylearna-day-quick-add-open" : ""}`}>
             {guidanceLoading ? (
               <section style={cardStyle}>
                 <p style={{ margin: 0, color: "#475569" }}>Loading your next steps...</p>
@@ -1793,6 +1824,7 @@ function CleanDayWorkspaceBody() {
 
                 {quickAddOpen ? (
                   <form
+                    className="mylearna-day-quick-add-form"
                     onSubmit={(event) => void handleQuickAddSubmit(event)}
                     style={quickAddCardStyle}
                   >

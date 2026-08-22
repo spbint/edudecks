@@ -18,4 +18,19 @@ describe("desktop My Day activation safeguards", () => {
     expect(source).toContain('href={calendarPathBase}');
     expect(source).toContain('mode=quick');
   });
+
+  it("keeps the returning-empty Quick Add form visible on desktop", () => {
+    expect(source).toContain("mylearna-day-quick-add-open");
+    expect(source).toContain("mylearna-day-quick-add-form");
+    expect(source).toContain("onClick={openQuickAdd}");
+    expect(source).toContain("Create quick block");
+    expect(source).toContain("onClick={closeQuickAdd}");
+  });
+
+  it("keeps the approved mobile flow from using the desktop-only empty state", () => {
+    expect(source).toContain("mylearna-day-mature-content");
+    expect(source).toContain("display: contents");
+    expect(source).toContain("Capture something you already did");
+    expect(source).toContain("Open My Calendar");
+  });
 });
