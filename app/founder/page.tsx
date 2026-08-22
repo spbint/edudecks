@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import FounderDashboardV21 from "@/app/founder/FounderDashboardV21";
+import FounderDashboardV23 from "@/app/founder/FounderDashboardV23";
 import { requireFounderAccess } from "@/lib/clean/founder/founderAccess";
 import { loadFounderDashboard } from "@/lib/clean/founder/founderDashboard";
 
@@ -13,5 +13,5 @@ export const metadata: Metadata = {
 export default async function FounderPage() {
   await requireFounderAccess();
   const data = await loadFounderDashboard();
-  return <FounderDashboardV21 data={data} />;
+  return <FounderDashboardV23 data={data} />;
 }

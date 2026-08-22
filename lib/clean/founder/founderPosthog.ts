@@ -94,12 +94,15 @@ function parseQueryRows(payload: PostHogQueryResponse): FounderProductEvent[] {
     .filter((event): event is FounderProductEvent => event !== null);
 }
 
-export async function loadFounderPostHogSnapshot(): Promise<FounderPostHogSnapshot> {
+export async function loadFounderPostHogSnapshot(lookbackDays = 30): Promise<FounderPostHogSnapshot> {
   const apiKey = queryApiKey();
   if (!apiKey) return { available: false, events: [] };
 
+  const days = Number.isFinite(lookbackDays)
+    ? Math.max(1, Math.min(30, Math.floor(lookbackDays)))
+    : 30;
   const eventList = FOUNDER_EVENT_NAMES.map(escapeSqlString).join(",");
-  const query = `SELECT distinct_id, event, timestamp, properties.route AS route, properties.area AS area\nFROM events\nWHERE timestamp >= now() - INTERVAL 30 DAY\n  AND event IN (${eventList})\nORDER BY timestamp DESC\nLIMIT 10000`;
+  const query = `SELECT distinct_id, event, timestamp, properties.route AS route, properties.area AS area\nFROM events\nWHERE timestamp >= now() - INTERVAL ${days} DAY\n  AND event IN (${eventList})\nORDER BY timestamp DESC\nLIMIT 10000`;
 
   try {
     const response = await fetch(`${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/query/`, {
