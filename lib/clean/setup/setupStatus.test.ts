@@ -7,6 +7,7 @@ import {
   isValidCleanTemplateBlock,
   countValidCleanWeeklyBlocks,
   resolveCleanActiveLearner,
+  deriveCleanMyDayPresentationState,
 } from "@/lib/clean/setup/setupStatus";
 import type { CleanAcademicYear, CleanLearningPeriod } from "@/lib/clean/terms/types";
 import type { FamilyProfile } from "@/lib/clean/family/types";
@@ -322,6 +323,44 @@ describe("deriveCleanSetupStatus", () => {
     expect(getCleanFamilyDisplayName({ ...profile, displayName: "" })).toBe(
       "Your family's learning week",
     );
+  });
+});
+
+describe("My Day presentation state", () => {
+  const completeSetup = {
+    hasFamilyProfile: true,
+    hasLearner: true,
+    hasLearningSettings: true,
+    hasLearningYear: true,
+    hasTeachingPeriod: true,
+    hasWeeklyBlock: false,
+    hasEvidence: false,
+  };
+
+  it("uses actual setup milestones rather than guidance state", () => {
+    expect(deriveCleanMyDayPresentationState({
+      setupStatus: { ...completeSetup, hasFamilyProfile: false },
+      hasPlannedItemsForSelectedDate: false,
+    })).toBe("SETUP_INCOMPLETE");
+    expect(deriveCleanMyDayPresentationState({
+      setupStatus: completeSetup,
+      hasPlannedItemsForSelectedDate: false,
+    })).toBe("READY_FOR_FIRST_VALUE");
+  });
+
+  it("recognises planning, evidence and populated-day milestones", () => {
+    expect(deriveCleanMyDayPresentationState({
+      setupStatus: { ...completeSetup, hasWeeklyBlock: true },
+      hasPlannedItemsForSelectedDate: false,
+    })).toBe("RETURNING_EMPTY");
+    expect(deriveCleanMyDayPresentationState({
+      setupStatus: { ...completeSetup, hasEvidence: true },
+      hasPlannedItemsForSelectedDate: false,
+    })).toBe("RETURNING_EMPTY");
+    expect(deriveCleanMyDayPresentationState({
+      setupStatus: completeSetup,
+      hasPlannedItemsForSelectedDate: true,
+    })).toBe("POPULATED_DAY");
   });
 });
 

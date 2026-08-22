@@ -58,6 +58,10 @@ import {
   listCleanAcademicYears,
   listCleanLearningPeriods,
 } from "@/lib/clean/terms/client";
+import {
+  deriveCleanMyDayPresentationState,
+  type CleanMyDayPresentationState,
+} from "@/lib/clean/setup/setupStatus";
 import { hasAnyPathwayPlacementForLearner } from "@/lib/clean/pathways/pathwayPlacement";
 import {
   buildCleanDailyPlannerPdfFilename,
@@ -1130,6 +1134,10 @@ function CleanDayWorkspaceBody() {
 
   const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const hasPlannedItemsForSelectedDate = items.length > 0;
+  const myDayPresentationState: CleanMyDayPresentationState = deriveCleanMyDayPresentationState({
+    setupStatus: accountSetup,
+    hasPlannedItemsForSelectedDate,
+  });
   const dayPrimaryKey = workspace.profile
     ? `${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`
     : null;
@@ -1167,7 +1175,7 @@ function CleanDayWorkspaceBody() {
 
   return (
     <div style={shellStyle}>
-      <div style={wrapStyle}>
+      <div className={`mylearna-day-shell mylearna-day-shell-${myDayPresentationState.toLowerCase()}`} style={wrapStyle}>
         <style jsx global>{`
           @media (max-width: 640px) {
             .mylearna-day-header {
@@ -1236,7 +1244,44 @@ function CleanDayWorkspaceBody() {
           .mylearna-day-intro-short {
             display: none;
           }
+
+          .mylearna-day-desktop-activation {
+            display: none;
+          }
+
+          @media (min-width: 768px) {
+            .mylearna-day-desktop-activation-setup_incomplete,
+            .mylearna-day-desktop-activation-ready_for_first_value,
+            .mylearna-day-desktop-activation-returning_empty {
+              display: grid;
+              gap: 12px;
+              padding: 28px;
+              border: 1px solid #dbeafe;
+              border-radius: 18px;
+              background: #f8fbff;
+              box-shadow: 0 8px 22px rgba(15,23,42,0.04);
+            }
+
+            .mylearna-day-mature-content-setup_incomplete,
+            .mylearna-day-mature-content-ready_for_first_value,
+            .mylearna-day-mature-content-returning_empty {
+              display: none !important;
+            }
+
+            .mylearna-day-shell-setup_incomplete .mylearna-day-mature-top,
+            .mylearna-day-shell-ready_for_first_value .mylearna-day-mature-top,
+            .mylearna-day-shell-returning_empty .mylearna-day-mature-top {
+              display: none !important;
+            }
+          }
+
+          @media (max-width: 767px) {
+            .mylearna-day-mature-content {
+              display: contents;
+            }
+          }
         `}</style>
+        <div className="mylearna-day-mature-top">
         <CoreJourneyCue stage="plan" />
         {canShowMyDayGuidance ? <CleanFirstRunSetupGate currentStep="day" /> : null}
         {canShowMyDayGuidance ? (
@@ -1362,6 +1407,7 @@ function CleanDayWorkspaceBody() {
         <div className="mylearna-day-continue-card" data-guidance-id="my-day-next-steps">
           <CleanContinueWhereYouLeftOffCard actions={continueActions} />
         </div>
+        </div>
 
         {workspace.loading && !workspace.profile && user?.id ? (
           <section
@@ -1441,8 +1487,45 @@ function CleanDayWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForDay && workspace.learners.length ? (
+        {readyForDay ? (
           <>
+            <section
+              className={`mylearna-day-desktop-activation mylearna-day-desktop-activation-${myDayPresentationState.toLowerCase()}`}
+              aria-labelledby="my-day-activation-title"
+            >
+              <p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                My Day
+              </p>
+              {myDayPresentationState === "SETUP_INCOMPLETE" ? (
+                <>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Let&apos;s get MyLearna ready for your family.</h1>
+                  <Link href={accountSetup.nextAction.href} style={primaryButtonStyle}>{accountSetup.nextAction.label}</Link>
+                  {accountSetup.hasLearner ? (
+                    <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
+                      Capture something you already did
+                    </Link>
+                  ) : null}
+                </>
+              ) : null}
+              {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? (
+                <>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Set up your usual week.</h1>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Start with one learning block. You can add more later.</p>
+                  <Link href={calendarPathBase} style={primaryButtonStyle}>Set up your usual week</Link>
+                  <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
+                    Capture something you already did
+                  </Link>
+                </>
+              ) : null}
+              {myDayPresentationState === "RETURNING_EMPTY" ? (
+                <>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Nothing planned for today.</h1>
+                  <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>Add a learning block</button>
+                  <Link href={calendarPathBase} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>Open My Calendar</Link>
+                </>
+              ) : null}
+            </section>
+            {workspace.learners.length ? <div className={`mylearna-day-mature-content mylearna-day-mature-content-${myDayPresentationState.toLowerCase()}`}>
             {guidanceLoading ? (
               <section style={cardStyle}>
                 <p style={{ margin: 0, color: "#475569" }}>Loading your next steps...</p>
@@ -2184,6 +2267,7 @@ function CleanDayWorkspaceBody() {
             </section> : null}
 
             <CleanFeedbackPrompt pageName="My Day" />
+            </div> : null}
           </>
         ) : null}
       </div>

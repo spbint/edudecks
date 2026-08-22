@@ -106,6 +106,33 @@ export type CleanSetupStatus = {
   nextAction: CleanSetupNextAction;
 };
 
+export type CleanMyDayPresentationState =
+  | "SETUP_INCOMPLETE"
+  | "READY_FOR_FIRST_VALUE"
+  | "RETURNING_EMPTY"
+  | "POPULATED_DAY";
+
+export function deriveCleanMyDayPresentationState({
+  setupStatus,
+  hasPlannedItemsForSelectedDate,
+}: {
+  setupStatus: Pick<
+    CleanSetupStatus,
+    "hasFamilyProfile" | "hasLearner" | "hasLearningSettings" | "hasLearningYear" | "hasTeachingPeriod" | "hasWeeklyBlock" | "hasEvidence"
+  >;
+  hasPlannedItemsForSelectedDate: boolean;
+}): CleanMyDayPresentationState {
+  const setupIncomplete = !setupStatus.hasFamilyProfile ||
+    !setupStatus.hasLearner ||
+    !setupStatus.hasLearningSettings ||
+    !setupStatus.hasLearningYear ||
+    !setupStatus.hasTeachingPeriod;
+  if (setupIncomplete) return "SETUP_INCOMPLETE";
+  if (hasPlannedItemsForSelectedDate) return "POPULATED_DAY";
+  if (setupStatus.hasWeeklyBlock || setupStatus.hasEvidence) return "RETURNING_EMPTY";
+  return "READY_FOR_FIRST_VALUE";
+}
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
