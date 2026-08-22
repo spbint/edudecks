@@ -8,6 +8,7 @@ import actionStyles from "./FounderActions.module.css";
 
 const STORAGE_KEY = "mylearna:founder-actions:v1";
 const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+const MAX_VISIBLE_ACTIONS = 5;
 
 type Decision = {
   state: "done" | "dismissed" | "snoozed";
@@ -39,6 +40,12 @@ function confidenceClass(confidence: FounderAction["confidence"]) {
   if (confidence === "Worth doing now") return actionStyles.confidenceNow;
   if (confidence === "Opportunity") return actionStyles.confidenceOpportunity;
   return actionStyles.confidenceWatch;
+}
+
+function isHidden(decision: Decision | undefined) {
+  if (!decision) return false;
+  if (decision.state === "snoozed" && decision.until && decision.until <= Date.now()) return false;
+  return true;
 }
 
 function ActionCard({
@@ -73,7 +80,7 @@ function ActionCard({
 }
 
 export default function FounderActions({ data }: { data: FounderDashboardData }) {
-  const actions = useMemo(() => buildFounderActions(data), [data]);
+  const actions = useMemo(() => buildFounderActions(data, new Date(data.generatedAt), 25), [data]);
   const [decisions, setDecisions] = useState<Decisions>({});
   const [hydrated, setHydrated] = useState(false);
 
@@ -82,13 +89,9 @@ export default function FounderActions({ data }: { data: FounderDashboardData })
     setHydrated(true);
   }, []);
 
-  const visibleActions = actions.filter((action) => {
-    const decision = decisions[action.id];
-    if (!decision) return true;
-    if (decision.state === "snoozed" && decision.until && decision.until <= Date.now()) return true;
-    return false;
-  });
-  const hiddenCount = actions.length - visibleActions.length;
+  const eligibleActions = actions.filter((action) => !isHidden(decisions[action.id]));
+  const visibleActions = eligibleActions.slice(0, MAX_VISIBLE_ACTIONS);
+  const hiddenCount = actions.filter((action) => isHidden(decisions[action.id])).length;
 
   function saveDecision(actionId: string, decision: Decision) {
     setDecisions((current) => {
