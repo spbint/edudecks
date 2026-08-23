@@ -61,6 +61,14 @@ const dayNavItem = {
   matches: ["/my-day", "/home", "/dashboard"],
 } as const satisfies ProductNavItem;
 
+const myPlanNavItem = {
+  href: "/my-day",
+  label: "My Plan",
+  shortLabel: "Plan",
+  icon: "calendar",
+  matches: ["/my-day", "/clean-my-day", "/my-calendar", "/clean-my-calendar", "/home", "/dashboard"],
+} as const satisfies ProductNavItem;
+
 const settingsNavItem = {
   href: "/my-settings",
   label: "My Settings",
@@ -99,7 +107,7 @@ const groupedNavItems: readonly ProductNavItem[] = finalProductNavSections.flatM
   (section): readonly ProductNavItem[] => section.items,
 );
 
-const navItems: readonly ProductNavItem[] = [dayNavItem, ...groupedNavItems, settingsNavItem];
+const navItems: readonly ProductNavItem[] = [dayNavItem, ...groupedNavItems, settingsNavItem, myPlanNavItem];
 
 type ShellIconName = ProductNavIconName | "learner" | "review" | "help";
 
@@ -1143,7 +1151,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             aria-label="MyLearna sections"
             style={{ display: "grid", gap: 6, alignContent: "start" }}
           >
-            <NavLink item={dayNavItem} pathname={pathname} />
+            <NavLink item={myPlanNavItem} pathname={pathname} />
             {finalProductNavSections.map((section) => (
               <div key={section.label} style={{ display: "grid", gap: 5 }}>
                 <div
@@ -1159,7 +1167,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                 >
                   {section.label}
                 </div>
-                {section.items.map((item) => (
+                {section.items.filter((item) => item.href !== "/my-calendar").map((item) => (
                   <NavLink key={item.href} item={item} pathname={pathname} />
                 ))}
               </div>

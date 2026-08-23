@@ -12,6 +12,7 @@ import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import CoreJourneyCue, {
   CoreJourneyHelp,
 } from "@/app/components/clean/design-v2/CoreJourneyCue";
+import MyPlanHeader from "@/app/components/clean/design-v2/MyPlanHeader";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
@@ -3201,6 +3202,7 @@ function CleanCalendarWorkspaceBody() {
 
   return (
     <div style={shellStyle}>
+      <MyPlanHeader />
       <div style={wrapStyle}>
         <style jsx global>{`
           @media (max-width: 720px) {
