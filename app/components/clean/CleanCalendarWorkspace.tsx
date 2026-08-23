@@ -1601,7 +1601,9 @@ function CleanCalendarWorkspaceBody() {
       setSelectedTemplateId((current) =>
         current && nextMasterTemplates.some((template) => template.id === current)
           ? current
-          : nextMasterTemplates[0]?.id ?? "",
+          : nextMasterTemplates.length === 1
+            ? nextMasterTemplates[0]?.id ?? ""
+            : "",
       );
       setupTiming("success");
     } catch (error) {
@@ -6219,32 +6221,23 @@ function CleanCalendarWorkspaceBody() {
                         </div>
                       ) : null}
 
-                      <div data-guidance-id="calendar-add-plan" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          style={buttonStyle}
-                          onClick={() => void handlePreviewGeneration()}
-                          disabled={Boolean(selectedWeekPlanningMessage)}
-                        >
-                          Plan this week using master
-                        </button>
-                        <button
-                          data-guidance-id="calendar-save-plan"
-                          type="button"
-                          style={mutedButtonStyle}
-                          onClick={() => void handleApplyGeneratedWeek()}
-                          disabled={
-                            !previewSuggestions.length ||
-                            !previewRows.some((item) => item.canApply) ||
-                            Boolean(selectedWeekPlanningMessage) ||
-                            submitting
-                          }
-                        >
-                          {submitting ? "Adding..." : "Add master blocks to this week"}
-                        </button>
-                      </div>
-
-                      {!selectedTemplate ? (
+                      {!masterTemplates.length ? (
+                        <div data-guidance-id="calendar-add-plan" style={{ display: "grid", gap: 8 }}>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            Set up your usual weekly rhythm first.
+                          </p>
+                          <button
+                            type="button"
+                            style={buttonStyle}
+                            onClick={() => {
+                              setPlanningView("master");
+                              setShowTemplateComposer(true);
+                            }}
+                          >
+                            Create your master week
+                          </button>
+                        </div>
+                      ) : !selectedTemplate ? (
                         <div
                           style={{
                             border: "1px solid #cbd5e1",
@@ -6255,8 +6248,53 @@ function CleanCalendarWorkspaceBody() {
                             lineHeight: 1.6,
                           }}
                         >
-                          Choose or create a master week first, then plan this week using
-                          master.
+                          Choose which master week you want to use before previewing this week.
+                        </div>
+                      ) : (
+                        <div data-guidance-id="calendar-add-plan" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          {!previewSuggestions.length ? (
+                            <button
+                              type="button"
+                              style={{
+                                ...buttonStyle,
+                                opacity: selectedWeekPlanningMessage ? 0.55 : 1,
+                                cursor: selectedWeekPlanningMessage ? "not-allowed" : "pointer",
+                              }}
+                              onClick={() => void handlePreviewGeneration()}
+                              disabled={Boolean(selectedWeekPlanningMessage)}
+                            >
+                              Preview this week from master
+                            </button>
+                          ) : previewRows.some((item) => item.canApply) ? (
+                            <button
+                              data-guidance-id="calendar-save-plan"
+                              type="button"
+                              style={{
+                                ...mutedButtonStyle,
+                                opacity: selectedWeekPlanningMessage || submitting ? 0.55 : 1,
+                                cursor: selectedWeekPlanningMessage || submitting ? "not-allowed" : "pointer",
+                              }}
+                              onClick={() => void handleApplyGeneratedWeek()}
+                              disabled={Boolean(selectedWeekPlanningMessage) || submitting}
+                            >
+                              {submitting ? "Adding..." : "Add master blocks to this week"}
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+
+                      {selectedTemplate && previewSuggestions.length && !previewRows.some((item) => item.canApply) ? (
+                        <div
+                          style={{
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 14,
+                            padding: 14,
+                            background: "#f8fafc",
+                            color: "#475569",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          This week already contains these master blocks, or none can be added under the current planning rules.
                         </div>
                       ) : null}
 

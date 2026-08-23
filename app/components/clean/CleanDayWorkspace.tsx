@@ -1301,6 +1301,13 @@ function CleanDayWorkspaceBody() {
             }
           }
 
+          @media (min-width: 901px) {
+            /* Established desktop users should reach today's learning before tutorial chrome. */
+            .mylearna-day-shell-populated_day .mylearna-day-mature-top {
+              display: none !important;
+            }
+          }
+
           .mylearna-day-desktop-activation {
             display: none;
           }
