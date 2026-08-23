@@ -41,4 +41,13 @@ describe("desktop My Day activation safeguards", () => {
     expect(source).toContain('data-testid="my-day-primary-loading-state"');
     expect(source).toContain("myDayPresentationState ? (");
   });
+
+  it("offers balanced Plan and Capture first-value choices without changing the mature returning state", () => {
+    expect(source).toContain("How would you like to begin?");
+    expect(source).toContain("Plan our learning");
+    expect(source).toContain("Capture learning");
+    expect(source).toContain('trackFirstValueChoice("plan")');
+    expect(source).toContain('trackFirstValueChoice("capture")');
+    expect(source).toContain('myDayPresentationState === "RETURNING_EMPTY"');
+  });
 });

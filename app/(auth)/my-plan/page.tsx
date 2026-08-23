@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function MyPlanPage() {
-  redirect("/my-calendar");
+  redirect("/my-day");
 }

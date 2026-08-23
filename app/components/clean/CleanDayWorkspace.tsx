@@ -333,6 +333,7 @@ function CleanDayWorkspaceBody() {
   const dayRequestGenerationRef = useRef(0);
   const dayPrimaryMilestoneRef = useRef<string | null>(null);
   const daySettledMilestoneRef = useRef<string | null>(null);
+  const firstValueChoiceTrackedRef = useRef(false);
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
@@ -1153,6 +1154,24 @@ function CleanDayWorkspaceBody() {
     : null;
 
   useEffect(() => {
+    if (myDayPresentationState !== "READY_FOR_FIRST_VALUE" || firstValueChoiceTrackedRef.current) return;
+    firstValueChoiceTrackedRef.current = true;
+    trackProductEvent(
+      "first_value_choice_viewed",
+      { area: "my_day", route: pathname, presentation: "plan_or_capture" },
+      user?.id,
+    );
+  }, [myDayPresentationState, pathname, user?.id]);
+
+  function trackFirstValueChoice(destination: "plan" | "capture") {
+    trackProductEvent(
+      "first_value_choice_selected",
+      { area: "my_day", route: pathname, presentation: "plan_or_capture", destination },
+      user?.id,
+    );
+  }
+
+  useEffect(() => {
     if (!readyForDay || !workspace.profile || !dayPrimaryKey) return;
     if (dayPrimaryMilestoneRef.current === dayPrimaryKey) return;
     dayPrimaryMilestoneRef.current = dayPrimaryKey;
@@ -1560,12 +1579,20 @@ function CleanDayWorkspaceBody() {
               ) : null}
               {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? (
                 <>
-                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Set up your usual week.</h1>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Start with one learning block. You can add more later.</p>
-                  <Link href={calendarPathBase} style={primaryButtonStyle}>Set up your usual week</Link>
-                  <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
-                    Capture something you already did
-                  </Link>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>How would you like to begin?</h1>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Start by planning what&apos;s ahead, or capture learning that has already happened.</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                    <Link href={calendarPathBase} onClick={() => trackFirstValueChoice("plan")} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
+                      <span style={{ display: "grid", gap: 4 }}>
+                        <strong>Plan our learning</strong>
+                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Set up your usual rhythm and see what&apos;s coming up.</span>
+                      </span>
+                    </Link>
+                    <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} onClick={() => trackFirstValueChoice("capture")} style={{ ...secondaryButtonStyle, textDecoration: "none", display: "grid", gap: 4 }}>
+                      <strong>Capture learning</strong>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>Record something you&apos;ve already done and start your learning record.</span>
+                    </Link>
+                  </div>
                 </>
               ) : null}
               {myDayPresentationState === "RETURNING_EMPTY" ? (
