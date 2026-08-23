@@ -64,7 +64,7 @@ describe("universal Quick Capture attachments", () => {
     expect(quickCaptureSource).toContain("includeInPortfolio: true");
     expect(quickCaptureSource).toContain("includeInReport: true");
     expect(quickCaptureSource).toContain('parentNote: reflection.trim() || null');
-    expect(quickCaptureSource).not.toContain("calendarItemId:");
+    expect(quickCaptureSource).toContain("calendarItemId: requestedCalendarItemId || null");
   });
 
   it("persists file attachments through the existing evidence columns", () => {

@@ -53,6 +53,7 @@ import type {
 } from "@/lib/clean/generation/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
+import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCleanPlanningCacheKey,
   clearCleanPlanningCacheForFamily,
@@ -924,6 +925,9 @@ function CleanCalendarWorkspaceBody() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const capturePathBase = pathname.startsWith("/clean-my-calendar")
+    ? "/clean-my-capture"
+    : "/my-capture";
 
   const [academicYears, setAcademicYears] = useState<CleanAcademicYear[]>([]);
   const [learningPeriods, setLearningPeriods] = useState<CleanLearningPeriod[]>([]);
@@ -934,6 +938,7 @@ function CleanCalendarWorkspaceBody() {
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [generationRuns, setGenerationRuns] = useState<CleanGenerationRun[]>([]);
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
+  const [evidenceByCalendarItemId, setEvidenceByCalendarItemId] = useState<Map<string, string>>(new Map());
 
   const [setupLoading, setSetupLoading] = useState(true);
   const [templateBlocksLoading, setTemplateBlocksLoading] = useState(false);
@@ -945,6 +950,7 @@ function CleanCalendarWorkspaceBody() {
   const calendarPrimaryMilestoneRef = useRef<string | null>(null);
   const calendarSettledMilestoneRef = useRef<string | null>(null);
   const popoverSubmitLockRef = useRef(false);
+  const [completionUpdatingId, setCompletionUpdatingId] = useState<string | null>(null);
 
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState("");
   const [selectedLearningPeriodId, setSelectedLearningPeriodId] = useState("");
@@ -1820,6 +1826,35 @@ function CleanCalendarWorkspaceBody() {
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+
+  useEffect(() => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setEvidenceByCalendarItemId(new Map());
+      return;
+    }
+
+    let active = true;
+    void listCleanEvidenceEntries(workspace.profile.id, {
+      fromDate: selectedCalendarStart,
+      toDate: selectedCalendarEnd,
+      limit: 240,
+    }).then((entries) => {
+      if (!active) return;
+      setEvidenceByCalendarItemId(
+        new Map(
+          entries
+            .filter((entry) => entry.calendarItemId)
+            .map((entry) => [entry.calendarItemId as string, entry.id]),
+        ),
+      );
+    }).catch(() => {
+      if (active) setEvidenceByCalendarItemId(new Map());
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedCalendarEnd, selectedCalendarStart, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
 
   useEffect(() => {
     if (
@@ -2997,6 +3032,42 @@ function CleanCalendarWorkspaceBody() {
     }
   }
 
+  async function handleCalendarCompletionToggle(item: CleanCalendarItem) {
+    if (!workspace.profile || completionUpdatingId) return;
+
+    setCompletionUpdatingId(item.id);
+    try {
+      const updatedItem = await updateCleanCalendarItem(workspace.profile.id, item.id, {
+        completedAt: item.completedAt ? null : new Date().toISOString(),
+      });
+      clearCleanPlanningCacheForFamily(workspace.profile.id);
+      setItems((current) => current.map((currentItem) => currentItem.id === updatedItem.id ? updatedItem : currentItem));
+      trackProductEvent(
+        "calendar_block_completed",
+        { area: "my_calendar", route: pathname, source: "calendar", stateChanged: true },
+        user?.id,
+      );
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not update this block."));
+    } finally {
+      setCompletionUpdatingId(null);
+    }
+  }
+
+  function buildCalendarCaptureHref(item: CleanCalendarItem) {
+    const params = new URLSearchParams({
+      mode: "quick",
+      calendar_item_id: item.id,
+      observed_on: item.plannedDate,
+      returnTo: pathname.startsWith("/clean-my-calendar") ? "/clean-my-calendar" : "/my-calendar",
+    });
+    if (item.learnerId) params.set("learner_id", item.learnerId);
+    if (item.programId) params.set("program_id", item.programId);
+    if (item.programSegmentId) params.set("program_segment_id", item.programSegmentId);
+    if (item.learningArea) params.set("learning_area", item.learningArea);
+    return `${capturePathBase}?${params.toString()}`;
+  }
+
   async function handleConfirmCalendarDelete() {
     if (!pendingDelete) return;
     const deleteRequest = pendingDelete;
@@ -4099,6 +4170,34 @@ function CleanCalendarWorkspaceBody() {
                                           >
                                             Delete
                                           </button>
+                                          <button
+                                            type="button"
+                                            style={mutedButtonStyle}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleCalendarCompletionToggle(item);
+                                            }}
+                                            disabled={completionUpdatingId === item.id}
+                                          >
+                                            {item.completedAt ? "Mark not complete" : "Mark complete"}
+                                          </button>
+                                          {evidenceByCalendarItemId.has(item.id) ? (
+                                            <Link
+                                              href={`${buildCalendarCaptureHref(item)}&evidence_entry_id=${encodeURIComponent(evidenceByCalendarItemId.get(item.id) ?? "")}`}
+                                              onClick={(event) => event.stopPropagation()}
+                                              style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 13, alignSelf: "center" }}
+                                            >
+                                              View capture
+                                            </Link>
+                                          ) : (
+                                            <Link
+                                              href={buildCalendarCaptureHref(item)}
+                                              onClick={(event) => event.stopPropagation()}
+                                              style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 13, alignSelf: "center" }}
+                                            >
+                                              Capture this moment
+                                            </Link>
+                                          )}
                                         </div>
                                       ) : null}
                                     </div>
@@ -6575,6 +6674,34 @@ function CleanCalendarWorkspaceBody() {
                                           >
                                             Delete
                                           </button>
+                                          <button
+                                            type="button"
+                                            style={mutedButtonStyle}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleCalendarCompletionToggle(item);
+                                            }}
+                                            disabled={completionUpdatingId === item.id}
+                                          >
+                                            {item.completedAt ? "Mark not complete" : "Mark complete"}
+                                          </button>
+                                          {evidenceByCalendarItemId.has(item.id) ? (
+                                            <Link
+                                              href={`${buildCalendarCaptureHref(item)}&evidence_entry_id=${encodeURIComponent(evidenceByCalendarItemId.get(item.id) ?? "")}`}
+                                              onClick={(event) => event.stopPropagation()}
+                                              style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 13, alignSelf: "center" }}
+                                            >
+                                              View capture
+                                            </Link>
+                                          ) : (
+                                            <Link
+                                              href={buildCalendarCaptureHref(item)}
+                                              onClick={(event) => event.stopPropagation()}
+                                              style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 13, alignSelf: "center" }}
+                                            >
+                                              Capture this moment
+                                            </Link>
+                                          )}
                                         </div>
                                       </div>
                                     );

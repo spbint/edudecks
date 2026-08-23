@@ -1279,6 +1279,28 @@ function CleanDayWorkspaceBody() {
             display: none !important;
           }
 
+          .mylearna-day-essential-navigator {
+            display: none;
+          }
+
+          @media (min-width: 768px) {
+            .mylearna-day-essential-navigator {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              flex-wrap: wrap;
+              padding: 10px 12px;
+              border: 1px solid #e2e8f0;
+              border-radius: 14px;
+              background: #ffffff;
+            }
+
+            .mylearna-day-internal-navigator {
+              display: none !important;
+            }
+          }
+
           .mylearna-day-desktop-activation {
             display: none;
           }
@@ -1350,6 +1372,22 @@ function CleanDayWorkspaceBody() {
           >
             Loading this day&apos;s plan...
           </section>
+        ) : null}
+        {readyForDay && (myDayPresentationState === "RETURNING_EMPTY" || myDayPresentationState === "POPULATED_DAY") ? (
+          <nav className="mylearna-day-essential-navigator" aria-label="My Day date navigation">
+            <button type="button" onClick={() => router.push(buildDayPath(addDays(selectedDate, -1)))} style={secondaryButtonStyle} aria-label="Go to previous day">
+              ‹ Previous day
+            </button>
+            <div style={{ display: "grid", gap: 2, justifyItems: "center", color: "#17204b", fontWeight: 800 }}>
+              <span>{formatTodayHeading(selectedDate)}</span>
+              <button type="button" onClick={() => router.push(buildDayPath(today))} style={{ ...secondaryButtonStyle, padding: "5px 9px", fontSize: 12 }} disabled={isViewingToday}>
+                Today
+              </button>
+            </div>
+            <button type="button" onClick={() => router.push(buildDayPath(addDays(selectedDate, 1)))} style={secondaryButtonStyle} aria-label="Go to next day">
+              Next day ›
+            </button>
+          </nav>
         ) : null}
         <div className="mylearna-day-mature-top">
         <CoreJourneyCue stage="plan" />
@@ -1717,7 +1755,7 @@ function CleanDayWorkspaceBody() {
                       >
                         Day
                       </label>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <div className="mylearna-day-internal-navigator" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button
                           type="button"
                           style={secondaryButtonStyle}

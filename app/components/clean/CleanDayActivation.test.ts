@@ -50,4 +50,12 @@ describe("desktop My Day activation safeguards", () => {
     expect(source).toContain('trackFirstValueChoice("capture")');
     expect(source).toContain('myDayPresentationState === "RETURNING_EMPTY"');
   });
+
+  it("keeps daily navigation available for resolved returning and populated days", () => {
+    expect(source).toContain("mylearna-day-essential-navigator");
+    expect(source).toContain('myDayPresentationState === "RETURNING_EMPTY" || myDayPresentationState === "POPULATED_DAY"');
+    expect(source).toContain("Go to previous day");
+    expect(source).toContain("Go to next day");
+    expect(source).toContain("buildDayPath(today)");
+  });
 });

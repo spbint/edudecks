@@ -95,12 +95,18 @@ export default function CleanQuickCaptureWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedLearnerId = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
+  const requestedCalendarItemId = searchParams.get("calendar_item_id") || "";
+  const requestedProgramId = searchParams.get("program_id") || "";
+  const requestedObservedOn = searchParams.get("observed_on") || "";
+  const requestedLearningArea = searchParams.get("learning_area") || "";
   const returnPath = safeQuickCaptureReturnPath(searchParams.get("returnTo"));
   const [learnerId, setLearnerId] = useState(requestedLearnerId);
-  const [observedOn, setObservedOn] = useState(getTodayDate);
+  const [observedOn, setObservedOn] = useState(
+    /^\d{4}-\d{2}-\d{2}$/.test(requestedObservedOn) ? requestedObservedOn : getTodayDate,
+  );
   const [caption, setCaption] = useState("");
   const [reflection, setReflection] = useState("");
-  const [learningArea, setLearningArea] = useState("");
+  const [learningArea, setLearningArea] = useState(requestedLearningArea);
   const attachments = useCleanEvidenceAttachments();
   const networkHint = useCaptureNetworkHint();
   const [submitting, setSubmitting] = useState(false);
@@ -228,6 +234,8 @@ export default function CleanQuickCaptureWorkspace() {
         whatHappened: nextCaption || "Learning moment captured.",
         parentNote: reflection.trim() || null,
         learningArea: learningArea.trim() || null,
+        programId: requestedProgramId || null,
+        calendarItemId: requestedCalendarItemId || null,
         sourceType: "quick-capture",
         clientSubmissionId: submissionIdRef.current,
         includeInPortfolio: true,
@@ -488,7 +496,7 @@ export default function CleanQuickCaptureWorkspace() {
       <style jsx global>{`.mylearna-quick-capture-main fieldset:first-of-type > div { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; } @media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
       <CoreJourneyCue stage="capture" />
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p></div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         <form onSubmit={handleSave} style={{ display: "grid", gap: 14 }}>
           <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} compact />
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
