@@ -471,8 +471,8 @@ function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boo
 }
 
 function getSourceLabel(sourceType: string | null) {
-  if (sourceType === "generated") return "Added from master week";
-  if (sourceType === "template") return "From master week";
+  if (sourceType === "generated") return "Added from usual week";
+  if (sourceType === "template") return "From usual week";
   return "Added";
 }
 
@@ -614,10 +614,10 @@ function CleanRhythmBlockPopover({
               textTransform: "uppercase",
             }}
           >
-            Master week
+            Your usual week
           </div>
           <h2 style={{ margin: 0, color: "#0f172a" }}>
-            {mode === "edit" ? "Edit master block" : "Add master block"}
+            {mode === "edit" ? "Edit usual block" : "Add usual block"}
           </h2>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
             {weekdayLabel}
@@ -1643,7 +1643,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setSetupError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load this master week just now.",
+          "We could not load your usual week just now.",
         ),
       );
     } finally {
@@ -2636,7 +2636,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
       setSelectedTemplateId(created.id);
       setShowTemplateComposer(false);
-      setMessage("Master week saved.");
+      setMessage("Your usual week was saved.");
       setTemplateTitle("");
       setTemplateDescription("");
       setTemplateLearnerId("");
@@ -2646,7 +2646,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save this master week.",
+          "We could not save your usual week.",
         ),
       );
     } finally {
@@ -2785,7 +2785,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     }
 
     if (!selectedTemplateId) {
-      setMessage("Choose or create a master week first, then plan this week using master.");
+      setMessage("Choose or create a usual week first, then preview this week.");
       setActionError(null);
       return;
     }
@@ -2805,7 +2805,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     }
 
     if (!selectedTemplateId) {
-      setMessage("Choose or create a master week first, then plan this week using master.");
+      setMessage("Choose or create a usual week first, then preview this week.");
       setActionError(null);
       return;
     }
@@ -3131,7 +3131,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       const sourceLabel = weekItems.length
         ? "Built from this week's live calendar"
         : templateBlocks.length
-          ? "Built from your master week"
+          ? "Built from your usual week"
           : "Built as an open weekly layout";
       const pdfBytes = await generateCleanWeeklyPlannerPdfBytes({
         familyName: workspace.profile.displayName || null,
@@ -3482,7 +3482,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
             </Link>
             <CoreJourneyHelp>
               <p>
-                Set term dates, keep a reusable master week, and shape the live week when
+                Set term dates, keep your usual week, and shape the live week when
                 you need it.
               </p>
             </CoreJourneyHelp>
@@ -3598,7 +3598,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={secondaryTextStyle}>
               Add at least one learner on <Link href="/my-profile">My Profile</Link> before
-              setting learning periods or building a master week.
+                      setting learning periods or building your usual week.
             </p>
           </section>
         ) : null}
@@ -3725,7 +3725,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                         textTransform: "uppercase",
                       }}
                     >
-                      Master planning calendar
+                      Planning setup
                     </div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>{calendarBoardLabel}</h2>
                     <CoreJourneyHelp>
@@ -4343,9 +4343,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     </p>
                   </div>
                   <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Master week</strong>
+                    <strong style={{ color: "#0f172a" }}>Your usual week</strong>
                     <p style={{ ...secondaryTextStyle, margin: 0 }}>
-                      Use Master week when you want to set up a repeatable weekly pattern. You
+                      Use your usual week when you want to set up a repeatable weekly pattern. You
                       can then apply it to an actual week and adjust that week without changing
                       the master.
                     </p>
@@ -5471,7 +5471,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                   <div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>{planningOnly ? "Your usual week" : "Weekly planner"}</h2>
                     <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                      {planningOnly ? "Add the learning blocks you usually repeat each week." : "Open This week for day-to-day changes. Use Master week when you want to update the reusable template."}
+                      {planningOnly ? "Add the learning blocks you usually repeat each week." : "Open This week for day-to-day changes. Use Planning Setup when you want to update your usual week."}
                     </p>
                     {!planningOnly ? <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
                       School week keeps the focus on Monday to Friday. Full week includes
@@ -5512,7 +5512,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       }}
                       onClick={() => setPlanningView("master")}
                     >
-                      {planningOnly ? "Your usual week" : "Master week"}
+                      Your usual week
                     </button>
                   </div>
                 </div>
@@ -5530,9 +5530,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                         }}
                       >
                         <div style={{ display: "grid", gap: 6 }}>
-                          <strong style={{ color: "#0f172a" }}>{planningOnly ? "Your usual week" : "Choose a master week"}</strong>
+                          <strong style={{ color: "#0f172a" }}>{planningOnly ? "Your usual week" : "Choose your usual week"}</strong>
                           <p style={secondaryTextStyle}>
-                            {planningOnly ? "Start with one block. You can add more anytime." : "This is your reusable master calendar. It does not change the live week until you choose to plan inside This week."}
+                            {planningOnly ? "Start with one block. You can add more anytime." : "This is your recurring weekly rhythm. It does not change the live week until you choose to use it."}
                           </p>
                         </div>
                         <button
@@ -5540,7 +5540,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                           style={mutedButtonStyle}
                           onClick={() => setShowTemplateComposer((current) => !current)}
                         >
-                          {shouldShowTemplateComposer ? "Hide usual week form" : planningOnly ? "Add your first usual block" : "Add master week"}
+                          {shouldShowTemplateComposer ? "Hide usual week form" : "Add your first usual block"}
                         </button>
                       </div>
 
@@ -5556,7 +5556,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                             <input
                               value={templateTitle}
                               onChange={(event) => setTemplateTitle(event.target.value)}
-                              placeholder="Family master week or Maya's master week"
+                              placeholder="Family usual week or learner's usual week"
                               style={inputStyle}
                             />
                             <select
@@ -5591,12 +5591,12 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                           <textarea
                             value={templateDescription}
                             onChange={(event) => setTemplateDescription(event.target.value)}
-                            placeholder="Optional notes about how this master week works for your family"
+                            placeholder="Optional notes about how this usual week works for your family"
                             style={textAreaStyle}
                           />
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <button type="submit" style={buttonStyle} disabled={submitting}>
-                              {submitting ? "Saving..." : "Save master week"}
+                              {submitting ? "Saving..." : "Save usual week"}
                             </button>
                           </div>
                         </form>
@@ -5659,7 +5659,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                   {template.scopeType === "learner" ? learnerLabel : "Whole family"}
                                 </div>
                                 <div style={{ color: "#64748b", fontSize: 13 }}>
-                                  {template.description || "Reusable master week"}
+                                  {template.description || "Your recurring weekly rhythm"}
                                 </div>
                               </button>
                             );
@@ -5667,7 +5667,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                         </div>
                     ) : (
                         <p style={secondaryTextStyle}>
-                          No master week yet. You can still plan directly inside This week.
+                          No usual week yet. You can still plan directly inside This week.
                         </p>
                       )}
                     </div>
@@ -5685,7 +5685,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       >
                         <strong style={{ color: "#0f172a" }}>Ready to place into this week</strong>
                         <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                          {handoffSummary}. Choose a master week, then click inside a day to
+                          {handoffSummary}. Choose your usual week, then click inside a day to
                           place this reusable block without retyping it.
                         </div>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -5828,7 +5828,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               {selectedTemplate.scopeType === "learner"
                                 ? learnerOptions.find(
                                     (option) => option.value === selectedTemplate.learnerId,
-                                  )?.label || "Learner master week"
+                                  )?.label || "Learner usual week"
                                 : "Whole family"}
                             </div>
                           </div>
@@ -5845,13 +5845,13 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               lineHeight: 1.6,
                             }}
                           >
-                            Weekend blocks are still part of this master week. Switch to Full week
+                            Weekend blocks are still part of this usual week. Switch to Full week
                             to view or edit Saturday and Sunday.
                           </div>
                         ) : null}
 
                         {templateBlocksLoading ? (
-                          <p style={secondaryTextStyle}>Loading your master week...</p>
+                          <p style={secondaryTextStyle}>Loading your usual week...</p>
                         ) : (
                           <div style={{ overflowX: masterWeekView === "school" ? "visible" : "auto", paddingBottom: 4 }}>
                             <div
@@ -6052,7 +6052,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                           <strong style={{ color: "#0f172a" }}>This week</strong>
                           <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
                             This week is the real calendar you adjust day to day. Use your
-                            master week as a guide, then choose what to add into the live week.
+                          usual week as a guide, then choose what to add into the live week.
                           </p>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -6280,7 +6280,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                             lineHeight: 1.6,
                           }}
                         >
-                          Choose which master week you want to use before previewing this week.
+                          Choose which usual week you want to use before previewing this week.
                         </div>
                       ) : selectedTemplate && (planningOnly || masterTemplates.length > 1) ? (
                         <div data-guidance-id="calendar-add-plan" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -6509,7 +6509,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                         </div>
                       ) : (
                         <p style={secondaryTextStyle}>
-                          Choose a master week, then plan this week using master to preview
+                          Choose a usual week, then preview this week to see what could be added.
                           what could be added.
                         </p>
                       )}
@@ -6924,7 +6924,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     ? "Delete this break / holiday?"
                     : "Delete this learning period?"
                   : pendingDelete.type === "template-block"
-                    ? "Delete this master week block?"
+                    ? "Delete this usual week block?"
                     : "Delete this calendar block?"}
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
@@ -6933,7 +6933,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                   : pendingDelete.type === "learning-period"
                   ? "This removes the date range from planning. Learners and programs are not deleted."
                   : pendingDelete.type === "template-block"
-                    ? "This removes the block from the master week template."
+                     ? "This removes the block from your usual week."
                     : "This removes the block from this week."}
               </p>
               <div style={{ color: "#64748b", lineHeight: 1.6 }}>

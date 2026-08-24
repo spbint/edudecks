@@ -4,7 +4,7 @@ import { listCleanMasterTemplates, listCleanTemplateBlocks } from "@/lib/clean/t
 import { listCleanAcademicYears, listCleanBlackoutDays, listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import { getBreakPeriods, getPeriodForDate, isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
-import type { CleanGenerationRun } from "@/lib/clean/generation/types";
+import type { CleanGeneratedWeekSuggestion, CleanGenerationRun } from "@/lib/clean/generation/types";
 import {
   applyCleanGeneratedWeek,
   buildCleanGeneratedWeekPreview,
@@ -22,6 +22,8 @@ type MaterializeInput = {
 export type CleanOperationalWeekMaterialization = {
   status:
     | "created"
+    | "reconciled"
+    | "already-current"
     | "already-materialized"
     | "past-week"
     | "no-usual-week"
@@ -64,6 +66,65 @@ export function hasCleanAppliedGenerationRun(
   );
 }
 
+type ReconciliationSuggestion = CleanGeneratedWeekSuggestion;
+
+function normalizeFingerprintText(value: string | null | undefined) {
+  return String(value ?? "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
+}
+
+export function buildCleanGeneratedOccurrenceKey(
+  item: Pick<ReconciliationSuggestion, "plannedDate" | "sourceTemplateBlockId">,
+) {
+  const blockId = String(item.sourceTemplateBlockId ?? "").trim();
+  return blockId ? `${item.plannedDate}::${blockId}` : null;
+}
+
+export function buildCleanLegacyGeneratedFingerprint(
+  item: Pick<ReconciliationSuggestion, "plannedDate" | "title" | "learnerId" | "startsAt" | "endsAt" | "learningArea">,
+) {
+  return [
+    item.plannedDate,
+    normalizeFingerprintText(item.learnerId),
+    normalizeFingerprintText(item.title),
+    item.startsAt ?? "",
+    item.endsAt ?? "",
+    normalizeFingerprintText(item.learningArea),
+  ].join("|");
+}
+
+export function deriveCleanReconciliationCandidates({
+  desired,
+  previouslyGenerated,
+  liveItems,
+}: {
+  desired: ReconciliationSuggestion[];
+  previouslyGenerated: ReconciliationSuggestion[];
+  liveItems: Array<Pick<ReconciliationSuggestion, "plannedDate" | "title" | "learnerId" | "startsAt" | "endsAt" | "learningArea" | "sourceTemplateBlockId"> & { sourceType?: string | null }>;
+}) {
+  const liveKeys = new Set(
+    liveItems.map((item) => buildCleanGeneratedOccurrenceKey(item)).filter(Boolean),
+  );
+  const legacyGeneratedFingerprints = new Set(
+    liveItems
+      .filter((item) => item.sourceType === "generated" && !item.sourceTemplateBlockId)
+      .map((item) => buildCleanLegacyGeneratedFingerprint(item)),
+  );
+  const previouslyGeneratedKeys = new Set(
+    previouslyGenerated
+      .filter((item) => !item.skippedReason)
+      .map((item) => buildCleanGeneratedOccurrenceKey(item))
+      .filter(Boolean),
+  );
+
+  return desired.filter((item) => {
+    const key = buildCleanGeneratedOccurrenceKey(item);
+    if (key && liveKeys.has(key)) return false;
+    if (legacyGeneratedFingerprints.has(buildCleanLegacyGeneratedFingerprint(item))) return false;
+    if (key && previouslyGeneratedKeys.has(key)) return false;
+    return true;
+  });
+}
+
 async function runMaterialization(input: MaterializeInput): Promise<CleanOperationalWeekMaterialization> {
   if (input.weekEndsOn < input.today) return empty("past-week");
 
@@ -81,16 +142,8 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     masterTemplateId: selectedTemplate.id,
     weekStartsOn: input.weekStartsOn,
     weekEndsOn: input.weekEndsOn,
-    limit: 10,
+    limit: 1000,
   });
-  if (hasCleanAppliedGenerationRun(runs, {
-    templateId: selectedTemplate.id,
-    weekStartsOn: input.weekStartsOn,
-    weekEndsOn: input.weekEndsOn,
-  })) {
-    return empty("already-materialized");
-  }
-
   const [academicYears, learningPeriods, blackoutDays, templateBlocks, existingItems] = await Promise.all([
     listCleanAcademicYears(input.familyId, { limit: 50 }),
     listCleanLearningPeriods(input.familyId, { limit: 100 }),
@@ -141,8 +194,20 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     },
   });
   const automaticPreview = filterCleanAutomaticWeekSuggestions(preview, input);
-  const applicablePreview = automaticPreview.filter((suggestion) => !suggestion.skippedReason);
-  if (!applicablePreview.length) return empty("no-applicable-blocks");
+  const desiredPreview = automaticPreview.filter((suggestion) => !suggestion.skippedReason);
+  if (!desiredPreview.length) return empty("no-applicable-blocks");
+
+  const previouslyGenerated = runs
+    .filter((run) => run.status === "applied")
+    .flatMap((run) => run.previewPayload);
+  const reconciliationCandidates = deriveCleanReconciliationCandidates({
+    desired: desiredPreview,
+    previouslyGenerated,
+    liveItems: existingItems,
+  });
+  if (!reconciliationCandidates.length) {
+    return empty(runs.some((run) => run.status === "applied") ? "already-current" : "no-applicable-blocks");
+  }
 
   const result = await applyCleanGeneratedWeek(input.familyId, {
     academicYearId: academicYear.id,
@@ -150,7 +215,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     masterTemplateId: selectedTemplate.id,
     weekStartsOn: input.weekStartsOn,
     weekEndsOn: input.weekEndsOn,
-    previewSuggestions: automaticPreview,
+    previewSuggestions: reconciliationCandidates,
     existingCalendarItems: existingItems.map((item) => ({
       plannedDate: item.plannedDate,
       sourceTemplateBlockId: item.sourceTemplateBlockId,
@@ -159,7 +224,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
 
   clearCleanPlanningCacheForFamily(input.familyId);
   return {
-    status: result.createdItems.length ? "created" : "already-materialized",
+    status: runs.some((run) => run.status === "applied") ? "reconciled" : "created",
     createdItems: result.createdItems,
     generationRun: result.generationRun,
   };

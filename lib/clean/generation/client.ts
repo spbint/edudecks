@@ -158,6 +158,8 @@ function getSuggestionKey(plannedDate: string, sourceTemplateBlockId: string | n
   return `${plannedDate}::${blockId}`;
 }
 
+const appliedWeekInFlight = new Map<string, Promise<CleanApplyGeneratedWeekResult>>();
+
 function buildSuggestionFromBlock(
   dateValue: string,
   block: BuildCleanGeneratedWeekPreviewInput["templateBlocks"][number],
@@ -279,7 +281,7 @@ export function buildCleanGeneratedWeekPreview(
   });
 }
 
-export async function applyCleanGeneratedWeek(
+async function applyCleanGeneratedWeekInternal(
   familyId: string,
   input: CleanApplyGeneratedWeekInput,
 ): Promise<CleanApplyGeneratedWeekResult> {
@@ -362,6 +364,24 @@ export async function applyCleanGeneratedWeek(
     createdItems,
     skippedItems,
   };
+}
+
+export function applyCleanGeneratedWeek(
+  familyId: string,
+  input: CleanApplyGeneratedWeekInput,
+) {
+  const requestKey = [familyId, input.masterTemplateId ?? "", input.weekStartsOn, input.weekEndsOn].join(":");
+  const existing = appliedWeekInFlight.get(requestKey);
+  if (existing) return existing;
+
+  const request = applyCleanGeneratedWeekInternal(familyId, input);
+  appliedWeekInFlight.set(requestKey, request);
+  void request.finally(() => {
+    if (appliedWeekInFlight.get(requestKey) === request) {
+      appliedWeekInFlight.delete(requestKey);
+    }
+  });
+  return request;
 }
 
 export async function listCleanGenerationRuns(
