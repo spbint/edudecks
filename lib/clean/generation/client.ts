@@ -385,6 +385,14 @@ export async function listCleanGenerationRuns(
     query = query.eq("learning_period_id", safe(options.learningPeriodId));
   }
 
+  if (safe(options.weekStartsOn)) {
+    query = query.eq("week_starts_on", safe(options.weekStartsOn));
+  }
+
+  if (safe(options.weekEndsOn)) {
+    query = query.eq("week_ends_on", safe(options.weekEndsOn));
+  }
+
   if (typeof options.limit === "number" && options.limit > 0) {
     query = query.limit(options.limit);
   }

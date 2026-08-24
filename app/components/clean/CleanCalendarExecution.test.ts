@@ -6,7 +6,7 @@ const source = readFileSync(join(process.cwd(), "app/components/clean/CleanCalen
 
 describe("live Calendar execution actions", () => {
   it("uses one progressive next action for master-to-week planning", () => {
-    expect(source).toContain("Create your master week");
+    expect(source).toContain("Set up your usual week");
     expect(source).toContain("Preview this week from master");
     expect(source).toContain("Add master blocks to this week");
     expect(source).toContain("This week already contains these master blocks");

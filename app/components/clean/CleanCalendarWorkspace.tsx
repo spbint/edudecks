@@ -47,6 +47,7 @@ import {
   buildCleanGeneratedWeekPreview,
   listCleanGenerationRuns,
 } from "@/lib/clean/generation/client";
+import { ensureCleanOperationalWeekFromUsualWeek } from "@/lib/clean/generation/materialize";
 import type {
   CleanGeneratedWeekSuggestion,
   CleanGenerationRun,
@@ -1674,6 +1675,15 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setItemsError(null);
 
     try {
+      if (!planningOnly && calendarBoardView === "week") {
+        await ensureCleanOperationalWeekFromUsualWeek({
+          familyId: workspace.profile.id,
+          weekStartsOn: selectedWeekStart,
+          weekEndsOn: selectedWeekEnd,
+          today: getTodayDate(),
+          templateId: selectedTemplateId || null,
+        });
+      }
       const nextItems = await getOrCreateCleanPlanningCalendarItemsRequest(
         cacheKey,
         () =>
@@ -1707,7 +1717,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     }
   }, [
     calendarBoardView,
+    planningOnly,
     workspace.currentUserId,
+    selectedTemplateId,
+    selectedWeekEnd,
+    selectedWeekStart,
     selectedCalendarEnd,
     selectedCalendarStart,
     workspace.profile,
@@ -3442,7 +3456,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase" }}>Account setup</div>
               <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>Planning Setup</h1>
-              <p style={{ ...secondaryTextStyle, margin: 0 }}>Set the structure you usually follow. You can adjust real life anytime in My Plan.</p>
+              <p style={{ ...secondaryTextStyle, margin: 0 }}>Set the structure you usually follow. Changes apply to upcoming weeks; adjust this week in My Plan.</p>
             </div>
           </section>
         ) : null}
@@ -3908,7 +3922,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                 </div>
 
                 {itemsLoading ? (
-                  <p style={secondaryTextStyle}>Loading planned blocks...</p>
+                  <p style={secondaryTextStyle}>
+                    {!planningOnly && calendarBoardView === "week"
+                      ? "Preparing this week..."
+                      : "Loading planned blocks..."}
+                  </p>
                 ) : null}
                 {itemsError ? (
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -6205,23 +6223,25 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                             ))}
                           </select>
                         </div>
-                        <div style={{ display: "grid", gap: 6 }}>
-                          <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>
-                            Master week
-                          </span>
-                          <select
-                            value={selectedTemplateId}
-                            onChange={(event) => setSelectedTemplateId(event.target.value)}
-                            style={inputStyle}
-                          >
-                            <option value="">Optional: choose a master week</option>
-                            {masterTemplates.map((template) => (
-                              <option key={template.id} value={template.id}>
-                                {template.title}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        {planningOnly || masterTemplates.length > 1 ? (
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                              Your usual week
+                            </span>
+                            <select
+                              value={selectedTemplateId}
+                              onChange={(event) => setSelectedTemplateId(event.target.value)}
+                              style={inputStyle}
+                            >
+                              <option value="">Choose your usual week</option>
+                              {masterTemplates.map((template) => (
+                                <option key={template.id} value={template.id}>
+                                  {template.title}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : null}
                       </div>
 
                       {selectedWeekPlanningMessage ? (
@@ -6243,20 +6263,13 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       {!masterTemplates.length ? (
                         <div data-guidance-id="calendar-add-plan" style={{ display: "grid", gap: 8 }}>
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                            Set up your usual weekly rhythm first.
+                            Set up your usual week before planning recurring blocks.
                           </p>
-                          <button
-                            type="button"
-                            style={buttonStyle}
-                            onClick={() => {
-                              setPlanningView("master");
-                              setShowTemplateComposer(true);
-                            }}
-                          >
-                            Create your master week
+                          <button type="button" style={buttonStyle} onClick={() => router.push("/my-settings/planning")}>
+                            Set up your usual week
                           </button>
                         </div>
-                      ) : !selectedTemplate ? (
+                      ) : !selectedTemplate && (planningOnly || masterTemplates.length > 1) ? (
                         <div
                           style={{
                             border: "1px solid #cbd5e1",
@@ -6269,7 +6282,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                         >
                           Choose which master week you want to use before previewing this week.
                         </div>
-                      ) : (
+                      ) : selectedTemplate && (planningOnly || masterTemplates.length > 1) ? (
                         <div data-guidance-id="calendar-add-plan" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           {!previewSuggestions.length ? (
                             <button
@@ -6300,9 +6313,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                             </button>
                           ) : null}
                         </div>
-                      )}
+                      ) : null}
 
-                      {selectedTemplate && previewSuggestions.length && !previewRows.some((item) => item.canApply) ? (
+                      {selectedTemplate && (planningOnly || masterTemplates.length > 1) && previewSuggestions.length && !previewRows.some((item) => item.canApply) ? (
                         <div
                           style={{
                             border: "1px solid #cbd5e1",
@@ -6548,7 +6561,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       </div>
 
                       {itemsLoading ? (
-                        <p style={secondaryTextStyle}>Loading this week&apos;s blocks...</p>
+                        <p style={secondaryTextStyle}>
+                          {!planningOnly && calendarBoardView === "week"
+                            ? "Preparing this week..."
+                            : "Loading this week&apos;s blocks..."}
+                        </p>
                       ) : null}
                       {itemsError ? (
                         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>

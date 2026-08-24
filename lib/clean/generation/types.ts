@@ -67,6 +67,8 @@ export type CleanGenerationRunInput = {
 export type CleanGenerationRunsOptions = {
   masterTemplateId?: string | null;
   learningPeriodId?: string | null;
+  weekStartsOn?: string | null;
+  weekEndsOn?: string | null;
   limit?: number;
 };
 
