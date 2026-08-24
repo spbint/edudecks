@@ -45,9 +45,9 @@ describe("external calendar removal", () => {
       expect(settingsSource).not.toContain(removedText);
     }
 
-    expect(settingsSource).toContain("Next step: My Calendar");
-    expect(settingsSource).toContain('href="/my-calendar"');
-    expect(settingsSource).toContain("Open My Calendar");
+    expect(settingsSource).toContain("Next step: Planning Setup");
+    expect(settingsSource).toContain('href="/my-settings/planning"');
+    expect(settingsSource).toContain("Open Planning Setup");
   });
 
   it("does not expose or link the removed provider routes", () => {

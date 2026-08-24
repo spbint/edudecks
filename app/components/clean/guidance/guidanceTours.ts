@@ -91,8 +91,8 @@ export const GUIDANCE_TOURS: Record<GuidanceTourId, GuidanceTourDefinition> = {
       },
       {
         guidanceId: "settings-next-calendar",
-        title: "Next step: plan the week",
-        body: "After settings are ready, use My Calendar to create a simple weekly plan.",
+        title: "Next step: planning setup",
+        body: "After settings are ready, set your learning year, periods and usual week.",
       },
     ],
   },

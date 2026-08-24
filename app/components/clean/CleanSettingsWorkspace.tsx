@@ -1340,22 +1340,22 @@ function CleanSettingsWorkspaceBody() {
 
             {!firstSetupMode ? (
             <section data-guidance-id="settings-next-calendar" style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Calendar</h2>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: Planning Setup</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                After your settings are saved, create a simple weekly plan in My Calendar.
+                After your settings are saved, set your learning year, periods and usual week.
               </p>
               {guidanceSetupStatus === "active" ? (
                 <GuidanceSetupNextAction
                   stepId="settings"
-                  nextHref="/my-calendar"
-                  label="Set up My Calendar"
+                  nextHref="/my-settings/planning"
+                  label="Open Planning Setup"
                   helperText="Settings are ready when country, region, curriculum and reporting mode are saved."
                   disabled={!myDayContextReady}
                   disabledText="Save country, region, curriculum and reporting settings first."
                 />
               ) : (
-                <Link href="/my-calendar" style={buttonStyle}>
-                  Open My Calendar
+                <Link href="/my-settings/planning" style={buttonStyle}>
+                  Open Planning Setup
                 </Link>
               )}
             </section>

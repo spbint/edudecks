@@ -918,7 +918,7 @@ function CleanRhythmBlockPopover({
   );
 }
 
-function CleanCalendarWorkspaceBody() {
+function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: boolean }) {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
   const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
@@ -1021,7 +1021,7 @@ function CleanCalendarWorkspaceBody() {
   const [popoverProgramId, setPopoverProgramId] = useState("");
   const [popoverProgramSegmentId, setPopoverProgramSegmentId] = useState("");
 
-  const [planningView, setPlanningView] = useState<PlanningView>("week");
+  const [planningView, setPlanningView] = useState<PlanningView>(planningOnly ? "master" : "week");
   const [calendarBoardView, setCalendarBoardView] = useState<CalendarBoardView>("week");
   const [showYearComposer, setShowYearComposer] = useState(false);
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
@@ -3269,12 +3269,12 @@ function CleanCalendarWorkspaceBody() {
     : "My Calendar";
   const firstSetupMode =
     guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
-  const shouldShowTermSetup = !firstSetupMode || academicYears.length > 0;
-  const shouldShowWeeklyPlanner = !firstSetupMode || learningTermsForSelectedYear.length > 0;
+  const shouldShowTermSetup = planningOnly || !firstSetupMode || academicYears.length > 0;
+  const shouldShowWeeklyPlanner = planningOnly || !firstSetupMode || learningTermsForSelectedYear.length > 0;
   const shouldShowCalendarNextStep = !firstSetupMode || calendarSetupReady;
 
   return (
-    <div style={shellStyle}>
+    <div className={`mylearna-calendar-shell${planningOnly ? " mylearna-calendar-shell-planning-setup" : " mylearna-calendar-shell-operational"}`} style={shellStyle}>
       <MyPlanHeader />
       <div style={wrapStyle}>
         <style jsx global>{`
@@ -3389,6 +3389,14 @@ function CleanCalendarWorkspaceBody() {
             padding: 14px 4px 4px 0;
           }
 
+          .mylearna-calendar-shell-operational .mylearna-calendar-structural-setup {
+            display: none !important;
+          }
+
+          .mylearna-calendar-shell-operational .mylearna-calendar-usual-week-setup {
+            display: none !important;
+          }
+
           @media (max-width: 720px) {
             .mylearna-calendar-planner-content {
               gap: 0;
@@ -3405,10 +3413,10 @@ function CleanCalendarWorkspaceBody() {
             }
           }
         `}</style>
-        <CoreJourneyCue stage="plan" />
-        {!firstSetupMode ? <CleanWorkflowRibbon /> : null}
-        {setupStatus !== "active" ? <CleanFirstRunSetupGate currentStep="calendar" /> : null}
-        {setupStatus !== "active" ? (
+        {!planningOnly ? <CoreJourneyCue stage="plan" /> : null}
+        {!planningOnly && !firstSetupMode ? <CleanWorkflowRibbon /> : null}
+        {!planningOnly && setupStatus !== "active" ? <CleanFirstRunSetupGate currentStep="calendar" /> : null}
+        {!planningOnly && setupStatus !== "active" ? (
           <GuidanceSetupProgress
             stepId="calendar"
             title="Set your learning year and first term."
@@ -3417,7 +3425,7 @@ function CleanCalendarWorkspaceBody() {
           />
         ) : null}
 
-        {!firstSetupMode ? (
+        {!planningOnly && !firstSetupMode ? (
         <CleanPageIntroVideo
           configs={[
             PAGE_INTRO_VIDEOS.myCalendarWeeklyPlanner,
@@ -3429,7 +3437,16 @@ function CleanCalendarWorkspaceBody() {
         />
         ) : null}
 
-        <section className="mylearna-calendar-intro" data-guidance-id="calendar-week-view" style={cardStyle}>
+        {planningOnly ? (
+          <section className="mylearna-planning-setup-intro" style={cardStyle}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase" }}>Account setup</div>
+              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>Planning Setup</h1>
+              <p style={{ ...secondaryTextStyle, margin: 0 }}>Set the structure you usually follow. You can adjust real life anytime in My Plan.</p>
+            </div>
+          </section>
+        ) : null}
+        {!planningOnly ? <section className="mylearna-calendar-intro" data-guidance-id="calendar-week-view" style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -3443,9 +3460,12 @@ function CleanCalendarWorkspaceBody() {
               MyLearna planning
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{calendarHeading}</h1>
-            <p style={{ ...secondaryTextStyle, margin: 0, fontWeight: 700 }}>
+              <p style={{ ...secondaryTextStyle, margin: 0, fontWeight: 700 }}>
               Plan the learning week.
             </p>
+            <Link href="/my-settings/planning" style={{ color: "#1d4ed8", fontWeight: 800, width: "fit-content" }}>
+              Manage your usual week
+            </Link>
             <CoreJourneyHelp>
               <p>
                 Set term dates, keep a reusable master week, and shape the live week when
@@ -3456,7 +3476,7 @@ function CleanCalendarWorkspaceBody() {
               {!firstSetupMode ? <GuidancePageAction tourId="my-calendar" /> : null}
             </div>
           </div>
-        </section>
+        </section> : null}
 
         {workspace.loading && !workspace.profile && user?.id ? (
           <section
@@ -3608,13 +3628,13 @@ function CleanCalendarWorkspaceBody() {
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button
+                    {!planningOnly ? <button
                       type="button"
                       style={mutedButtonStyle}
                       onClick={() => setSelectedWeekStart(getWeekStart())}
                     >
                       Today
-                    </button>
+                    </button> : null}
                     <button
                       type="button"
                       style={mutedButtonStyle}
@@ -3663,9 +3683,9 @@ function CleanCalendarWorkspaceBody() {
               </section>
             ) : null}
 
-            {hasExistingPlanningSetup ? (
+            {!planningOnly && hasExistingPlanningSetup ? (
             <section
-              className="mylearna-calendar-board mylearna-calendar-planner-shell"
+              className="mylearna-calendar-board mylearna-calendar-planner-shell mylearna-calendar-operational-board"
               style={cardStyle}
               role="region"
               aria-label="Calendar planner board"
@@ -4278,7 +4298,7 @@ function CleanCalendarWorkspaceBody() {
             </section>
             ) : null}
 
-            {!firstSetupMode ? (
+            {!planningOnly && !firstSetupMode ? (
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 14 }}>
                 <div>
@@ -4333,6 +4353,7 @@ function CleanCalendarWorkspaceBody() {
             ) : null}
 
             <section
+              className="mylearna-calendar-structural-setup"
               style={{
                 ...cardStyle,
                 background: "#f8fafc",
@@ -4451,7 +4472,7 @@ function CleanCalendarWorkspaceBody() {
                       }}
                     >
                       <div style={{ display: "grid", gap: 6 }}>
-                        <strong style={{ color: "#0f172a" }}>1. Choose your year</strong>
+                        <strong style={{ color: "#0f172a" }}>{planningOnly ? "Learning year" : "1. Choose your year"}</strong>
                         <p style={secondaryTextStyle}>
                           Start with the bigger date window you want the planner to work
                           inside.
@@ -4783,7 +4804,7 @@ function CleanCalendarWorkspaceBody() {
                       }}
                     >
                       <div style={{ display: "grid", gap: 6 }}>
-                        <strong style={{ color: "#0f172a" }}>2. Add your learning periods</strong>
+                        <strong style={{ color: "#0f172a" }}>{planningOnly ? "Learning periods & breaks" : "2. Add your learning periods"}</strong>
                         <p style={secondaryTextStyle}>
                           Choose the year, then add the learning terms you do want planned.
                           Breaks and holidays stay separate.
@@ -5418,7 +5439,7 @@ function CleanCalendarWorkspaceBody() {
             ) : null}
 
             {shouldShowWeeklyPlanner ? (
-            <section style={cardStyle}>
+            <section className="mylearna-calendar-usual-week-setup" style={cardStyle}>
               <div style={{ display: "grid", gap: 18 }}>
                 <div
                   style={{
@@ -5430,15 +5451,14 @@ function CleanCalendarWorkspaceBody() {
                   }}
                 >
                   <div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Weekly planner</h2>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>{planningOnly ? "Your usual week" : "Weekly planner"}</h2>
                     <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                      Open This week for day-to-day changes. Use Master week when you want
-                      to update the reusable template.
+                      {planningOnly ? "Add the learning blocks you usually repeat each week." : "Open This week for day-to-day changes. Use Master week when you want to update the reusable template."}
                     </p>
-                    <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                    {!planningOnly ? <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
                       School week keeps the focus on Monday to Friday. Full week includes
                       Saturday and Sunday when you need weekend planning.
-                    </p>
+                    </p> : null}
                   </div>
                   <div
                     style={{
@@ -5474,7 +5494,7 @@ function CleanCalendarWorkspaceBody() {
                       }}
                       onClick={() => setPlanningView("master")}
                     >
-                      Master week
+                      {planningOnly ? "Your usual week" : "Master week"}
                     </button>
                   </div>
                 </div>
@@ -5492,10 +5512,9 @@ function CleanCalendarWorkspaceBody() {
                         }}
                       >
                         <div style={{ display: "grid", gap: 6 }}>
-                          <strong style={{ color: "#0f172a" }}>Choose a master week</strong>
+                          <strong style={{ color: "#0f172a" }}>{planningOnly ? "Your usual week" : "Choose a master week"}</strong>
                           <p style={secondaryTextStyle}>
-                            This is your reusable master calendar. It does not change the live
-                            week until you choose to plan inside This week.
+                            {planningOnly ? "Start with one block. You can add more anytime." : "This is your reusable master calendar. It does not change the live week until you choose to plan inside This week."}
                           </p>
                         </div>
                         <button
@@ -5503,7 +5522,7 @@ function CleanCalendarWorkspaceBody() {
                           style={mutedButtonStyle}
                           onClick={() => setShowTemplateComposer((current) => !current)}
                         >
-                          {shouldShowTemplateComposer ? "Hide master form" : "Add master week"}
+                          {shouldShowTemplateComposer ? "Hide usual week form" : planningOnly ? "Add your first usual block" : "Add master week"}
                         </button>
                       </div>
 
@@ -7040,7 +7059,7 @@ function CleanCalendarWorkspaceBody() {
   );
 }
 
-export default function CleanCalendarWorkspace() {
-  return <CleanCalendarWorkspaceBody />;
+export default function CleanCalendarWorkspace({ planningOnly = false }: { planningOnly?: boolean }) {
+  return <CleanCalendarWorkspaceBody planningOnly={planningOnly} />;
 }
 

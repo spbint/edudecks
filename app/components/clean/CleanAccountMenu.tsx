@@ -263,6 +263,9 @@ export default function CleanAccountMenu({
           <Link href="/my-settings" className="mylearna-account-menu-item" style={menuItemStyle} onClick={() => setOpen(false)}>
             My Settings
           </Link>
+          <Link href="/my-settings/planning" className="mylearna-account-menu-item" style={menuItemStyle} onClick={() => setOpen(false)}>
+            Planning Setup
+          </Link>
           <button
             type="button"
             role="menuitem"

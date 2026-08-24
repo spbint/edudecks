@@ -1627,7 +1627,7 @@ function CleanDayWorkspaceBody() {
                   <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>How would you like to begin?</h1>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Start by planning what&apos;s ahead, or capture learning that has already happened.</p>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-                    <Link href={calendarPathBase} onClick={() => trackFirstValueChoice("plan")} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
+                    <Link href="/my-settings/planning" onClick={() => trackFirstValueChoice("plan")} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
                       <span style={{ display: "grid", gap: 4 }}>
                         <strong>Plan our learning</strong>
                         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Set up your usual rhythm and see what&apos;s coming up.</span>
