@@ -10,6 +10,7 @@ import CoreJourneyCue, {
   CoreJourneyHelp,
 } from "@/app/components/clean/design-v2/CoreJourneyCue";
 import MyPlanHeader from "@/app/components/clean/design-v2/MyPlanHeader";
+import CleanMiniCalendarNavigator from "@/app/components/clean/CleanMiniCalendarNavigator";
 import {
   CleanFeedbackPrompt,
   CleanContinueWhereYouLeftOffCard,
@@ -1413,10 +1414,14 @@ function CleanDayWorkspaceBody() {
               ‹ Previous day
             </button>
             <div style={{ display: "grid", gap: 2, justifyItems: "center", color: "#17204b", fontWeight: 800 }}>
-              <span>{formatTodayHeading(selectedDate)}</span>
-              <button type="button" onClick={() => router.push(buildDayPath(today))} style={{ ...secondaryButtonStyle, padding: "5px 9px", fontSize: 12 }} disabled={isViewingToday}>
-                Today
-              </button>
+              <CleanMiniCalendarNavigator
+                selectedDate={selectedDate}
+                today={today}
+                onSelectDate={(dateValue) => router.push(buildDayPath(dateValue))}
+                onToday={() => router.push(buildDayPath(today))}
+                ariaLabel={`Choose date, ${formatTodayHeading(selectedDate)}`}
+              />
+              {!isViewingToday ? <span style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>Today is available in the date picker</span> : null}
             </div>
             <button type="button" onClick={() => router.push(buildDayPath(addDays(selectedDate, 1)))} style={secondaryButtonStyle} aria-label="Go to next day">
               Next day ›

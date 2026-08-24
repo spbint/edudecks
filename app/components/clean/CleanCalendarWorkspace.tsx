@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
+import CleanMiniCalendarNavigator from "@/app/components/clean/CleanMiniCalendarNavigator";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
@@ -4622,6 +4623,16 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               }}
                               style={inputStyle}
                             />
+                            <CleanMiniCalendarNavigator
+                              selectedDate={yearStartsOn}
+                              onSelectDate={(value) => {
+                                setYearStartsOn(value);
+                                if (value > yearEndsOn) setYearEndsOn(value);
+                              }}
+                              maxDate={yearEndsOn}
+                              mode="structural"
+                              ariaLabel="Choose learning year start date"
+                            />
                           </div>
                           <div style={{ display: "grid", gap: 6 }}>
                             <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
@@ -4633,6 +4644,13 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               min={yearStartsOn}
                               onChange={(event) => setYearEndsOn(event.target.value)}
                               style={inputStyle}
+                            />
+                            <CleanMiniCalendarNavigator
+                              selectedDate={yearEndsOn}
+                              onSelectDate={(value) => setYearEndsOn(value)}
+                              minDate={yearStartsOn}
+                              mode="structural"
+                              ariaLabel="Choose learning year end date"
                             />
                           </div>
                         </div>
@@ -5021,6 +5039,17 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               }}
                               style={inputStyle}
                             />
+                            <CleanMiniCalendarNavigator
+                              selectedDate={periodStartsOn}
+                              onSelectDate={(value) => {
+                                setPeriodStartsOn(value);
+                                if (value > periodEndsOn) setPeriodEndsOn(value);
+                              }}
+                              minDate={selectedAcademicYear?.startsOn}
+                              maxDate={selectedAcademicYear?.endsOn}
+                              mode="structural"
+                              ariaLabel="Choose learning period start date"
+                            />
                           </div>
                           <div style={{ display: "grid", gap: 6 }}>
                             <label style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
@@ -5033,6 +5062,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               max={selectedAcademicYear?.endsOn}
                               onChange={(event) => setPeriodEndsOn(event.target.value)}
                               style={inputStyle}
+                            />
+                            <CleanMiniCalendarNavigator
+                              selectedDate={periodEndsOn}
+                              onSelectDate={(value) => setPeriodEndsOn(value)}
+                              minDate={periodStartsOn}
+                              maxDate={selectedAcademicYear?.endsOn}
+                              mode="structural"
+                              ariaLabel="Choose learning period end date"
                             />
                           </div>
                         </div>
@@ -5294,6 +5331,19 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                       }}
                                       style={inputStyle}
                                     />
+                                    <CleanMiniCalendarNavigator
+                                      selectedDate={editingLearningPeriodStartsOn}
+                                      onSelectDate={(value) => {
+                                        setEditingLearningPeriodStartsOn(value);
+                                        if (value > editingLearningPeriodEndsOn) {
+                                          setEditingLearningPeriodEndsOn(value);
+                                        }
+                                      }}
+                                      minDate={editingAcademicYear?.startsOn}
+                                      maxDate={editingAcademicYear?.endsOn}
+                                      mode="structural"
+                                      ariaLabel="Choose edited learning period start date"
+                                    />
                                     <input
                                       type="date"
                                       value={editingLearningPeriodEndsOn}
@@ -5303,6 +5353,16 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                         setEditingLearningPeriodEndsOn(event.target.value)
                                       }
                                       style={inputStyle}
+                                    />
+                                    <CleanMiniCalendarNavigator
+                                      selectedDate={editingLearningPeriodEndsOn}
+                                      onSelectDate={(value) =>
+                                        setEditingLearningPeriodEndsOn(value)
+                                      }
+                                      minDate={editingLearningPeriodStartsOn}
+                                      maxDate={editingAcademicYear?.endsOn}
+                                      mode="structural"
+                                      ariaLabel="Choose edited learning period end date"
                                     />
                                   </div>
 
@@ -6141,6 +6201,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       <div style={{ color: "#475569", fontWeight: 700 }}>
                         {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
                       </div>
+
+                      <CleanMiniCalendarNavigator
+                        selectedDate={selectedWeekStart}
+                        today={getTodayDate()}
+                        onSelectDate={(dateValue) => setSelectedWeekStart(getWeekStart(dateValue))}
+                        onToday={() => setSelectedWeekStart(getWeekStart())}
+                        ariaLabel={`Choose calendar date, week of ${formatLongDateLabel(selectedWeekStart)}`}
+                      />
 
                       {hasCalendarHandoff ? (
                         <div
