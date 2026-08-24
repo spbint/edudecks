@@ -168,6 +168,9 @@ export default function CleanMiniCalendarNavigator({
           setOpen((value) => !value);
         }}
         style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 7,
           minHeight: 40,
           border: "1px solid #cbd5e1",
           borderRadius: 10,
@@ -178,7 +181,8 @@ export default function CleanMiniCalendarNavigator({
           cursor: disabled ? "not-allowed" : "pointer",
         }}
       >
-        {triggerText}
+        <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>▦</span>
+        <span>{triggerText}</span>
       </button>
       {open ? (
         <div

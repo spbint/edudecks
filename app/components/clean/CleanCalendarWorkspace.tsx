@@ -3753,6 +3753,19 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     >
                       Today
                     </button>
+                    <CleanMiniCalendarNavigator
+                      selectedDate={calendarBoardView === "month" ? selectedMonthStart : selectedWeekStart}
+                      today={getTodayDate()}
+                      onSelectDate={(dateValue) => {
+                        setSelectedWeekStart(getWeekStart(dateValue));
+                        if (calendarBoardView === "month") {
+                          setCalendarBoardView("month");
+                        }
+                      }}
+                      onToday={() => setSelectedWeekStart(getWeekStart())}
+                      triggerLabel={calendarBoardView === "month" ? formatDayMonthLabel(selectedMonthStart) : formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
+                      ariaLabel="Choose calendar date"
+                    />
                     <button
                       type="button"
                       style={mutedButtonStyle}
