@@ -240,6 +240,7 @@ function CleanPortfolioWorkspaceBody() {
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeleteItem, setPendingDeleteItem] = useState<CleanPortfolioItem | null>(null);
+  const [expandedEvidenceId, setExpandedEvidenceId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -573,6 +574,8 @@ function CleanPortfolioWorkspaceBody() {
 
   const readyForPortfolio =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const hasPortfolioEvidence = Boolean(workspace.setupStatus.hasPortfolioItem || items.length);
+  const showPortfolioGuidance = !workspace.setupLoading && !hasPortfolioEvidence;
   const selectedLearnerLabel =
     learnerOptions.find((option) => option.value === selectedLearnerId)?.label || "";
   const quickRecordEvidenceItems = useMemo(
@@ -767,25 +770,26 @@ function CleanPortfolioWorkspaceBody() {
         }
       `}</style>
       <div style={wrapStyle}>
-        <CoreJourneyCue stage="portfolio" />
-        <CleanWorkflowRibbon />
-        <CleanFirstRunSetupGate currentStep="portfolio" />
-        {!workspace.setupLoading && !workspace.setupStatus.hasPortfolioItem ? (
-          <GuidanceSetupProgress
-            stepId="portfolio"
-            title="Review captured evidence."
-            body="See how captured learning can become a clearer portfolio over time."
-          />
+        {showPortfolioGuidance ? (
+          <>
+            <CoreJourneyCue stage="portfolio" />
+            <CleanWorkflowRibbon />
+            <CleanFirstRunSetupGate currentStep="portfolio" />
+            <GuidanceSetupProgress
+              stepId="portfolio"
+              title="Review captured evidence."
+              body="See how captured learning can become a clearer portfolio over time."
+            />
+            <CleanPageIntroVideo
+              config={PAGE_INTRO_VIDEOS.myPortfolio}
+              promptTitle="New to My Portfolio?"
+              promptDescription="See how to choose the strongest learning moments."
+            />
+          </>
         ) : null}
 
-        <CleanPageIntroVideo
-          config={PAGE_INTRO_VIDEOS.myPortfolio}
-          promptTitle="New to My Portfolio?"
-          promptDescription="See how to choose the strongest learning moments."
-        />
-
         <section className="mylearna-portfolio-intro" style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: hasPortfolioEvidence ? 4 : 8 }}>
             <div
               style={{
                 fontSize: 12,
@@ -794,18 +798,22 @@ function CleanPortfolioWorkspaceBody() {
                 color: "#64748b",
               }}
             >
-              Best evidence
+              {showPortfolioGuidance ? "Best evidence" : "My Portfolio"}
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>{portfolioHeading}</h1>
-            <p style={{ margin: 0, color: "#334155", lineHeight: 1.6, fontWeight: 700 }}>
-              Choose your strongest learning moments.
-            </p>
-            <CoreJourneyHelp>
-              <p>Choose the moments that best show learning progress over time.</p>
-            </CoreJourneyHelp>
-            <div>
-              <GuidancePageAction tourId="my-portfolio" />
-            </div>
+            <h1 style={{ margin: 0, fontSize: hasPortfolioEvidence ? 24 : 26, color: "#17204B", fontWeight: 650 }}>{portfolioHeading}</h1>
+            {showPortfolioGuidance ? (
+              <>
+                <p style={{ margin: 0, color: "#334155", lineHeight: 1.6, fontWeight: 700 }}>
+                  Choose your strongest learning moments.
+                </p>
+                <CoreJourneyHelp>
+                  <p>Choose the moments that best show learning progress over time.</p>
+                </CoreJourneyHelp>
+                <div>
+                  <GuidancePageAction tourId="my-portfolio" />
+                </div>
+              </>
+            ) : null}
             <Link
               className="mylearna-portfolio-secondary-action"
               href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(pathname)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
@@ -885,6 +893,7 @@ function CleanPortfolioWorkspaceBody() {
                 ...cardStyle,
                 borderColor: "#dbeafe",
                 background: "#f8fbff",
+                padding: hasPortfolioEvidence ? 12 : 18,
               }}
             >
               <div
@@ -911,12 +920,19 @@ function CleanPortfolioWorkspaceBody() {
                       ? `Learning record for ${selectedLearnerLabel}`
                       : "Download learning record"}
                   </h2>
-                  <CoreJourneyHelp>
-                    <p>
-                      Use captured evidence directly from Portfolio. My Reports is still
-                      available for a fuller edited report.
+                  {!hasPortfolioEvidence ? (
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Your learning record is building.
                     </p>
-                  </CoreJourneyHelp>
+                  ) : null}
+                  {!hasPortfolioEvidence ? (
+                    <CoreJourneyHelp>
+                      <p>
+                        Use captured evidence directly from Portfolio. My Reports is still
+                        available for a fuller edited report.
+                      </p>
+                    </CoreJourneyHelp>
+                  ) : null}
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     {selectedLearnerLabel ? (
                       <>
@@ -992,7 +1008,7 @@ function CleanPortfolioWorkspaceBody() {
                       textDecoration: "none",
                     }}
                   >
-                    Create full report
+                    Create Report
                   </Link>
                 </div>
               </div>
@@ -1115,64 +1131,7 @@ function CleanPortfolioWorkspaceBody() {
               </section>
             ) : null}
 
-            {!itemsLoading && (workspace.setupStatus.hasPortfolioItem || items.length > 0) ? (
-              <section
-                className="mylearna-portfolio-next-report"
-                style={{
-                  ...cardStyle,
-                  borderColor: "#ddd6fe",
-                  background: "#faf5ff",
-                  padding: "clamp(14px, 3vw, 18px)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-                    gap: 14,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <div
-                      style={{
-                        color: "#6d28d9",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Next step
-                    </div>
-                    <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
-                      Your learning record is building.
-                    </h2>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
-                      Bring this evidence into My Reports when you are ready.
-                    </p>
-                  </div>
-                  <Link
-                    href={createReportHref}
-                    onClick={() => trackCreateReportSelected("next_step")}
-                    style={{
-                      ...buttonStyle,
-                      minHeight: 44,
-                      width: "fit-content",
-                      justifySelf: "end",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textDecoration: "none",
-                    }}
-                  >
-                    Create Report
-                  </Link>
-                </div>
-              </section>
-            ) : null}
-
-            <section
+            {showPortfolioGuidance ? <section
               className="mylearna-portfolio-review-progress"
               data-guidance-id="portfolio-review-progress"
               style={cardStyle}
@@ -1201,7 +1160,7 @@ function CleanPortfolioWorkspaceBody() {
                 </div>
               </div>
               </CoreJourneyHelp>
-            </section>
+            </section> : null}
 
             <section className="mylearna-portfolio-filter-panel" data-guidance-id="portfolio-filter-learner" style={cardStyle}>
               <details className="mylearna-portfolio-filter-details">
@@ -1320,11 +1279,15 @@ function CleanPortfolioWorkspaceBody() {
             </section>
 
             <section data-guidance-id="portfolio-evidence-list" style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Pathway checks</h2>
-              <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Recent pathway check-ins are shown here for reference alongside other
-                evidence notes.
-              </p>
+              {assessmentEvidenceEvents.length || !hasPortfolioEvidence ? (
+                <>
+                  <h2 style={{ marginTop: 0, color: "#0f172a" }}>Pathway checks</h2>
+                  <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    Recent pathway check-ins are shown here for reference alongside other
+                    evidence notes.
+                  </p>
+                </>
+              ) : null}
               {itemsLoading ? (
                 <p style={{ margin: 0, color: "#475569" }}>Loading pathway checks...</p>
               ) : assessmentEvidenceEvents.length ? (
@@ -1340,7 +1303,7 @@ function CleanPortfolioWorkspaceBody() {
                         style={{
                           border: "1px solid #dbeafe",
                           borderRadius: 14,
-                          padding: 14,
+                          padding: 12,
                           background: "#f8fbff",
                           display: "grid",
                           gap: 8,
@@ -1389,14 +1352,14 @@ function CleanPortfolioWorkspaceBody() {
                     );
                   })}
                 </div>
-              ) : (
+              ) : !hasPortfolioEvidence ? (
                 <div style={{ ...helperCardStyle, marginBottom: 24 }}>
                   <strong style={{ color: "#0f172a" }}>No pathway checks yet</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                     Completed pathway checks can appear here as evidence for your portfolio.
                   </p>
                 </div>
-              )}
+              ) : null}
 
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
               <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
@@ -1428,7 +1391,7 @@ function CleanPortfolioWorkspaceBody() {
 
               {!itemsLoading && !itemsError && items.length && !filteredItems.length ? (
                 <p style={{ margin: 0, color: "#475569" }}>
-                  No evidence matches these filters yet.
+                  No learning moments match these filters.
                 </p>
               ) : null}
 
@@ -1458,17 +1421,20 @@ function CleanPortfolioWorkspaceBody() {
                         : null;
                     const evidenceMeta = getEvidencePresentationMeta(item);
                     const previewImage = getEvidencePreviewImage(item.evidence);
+                    const isExpanded = expandedEvidenceId === item.evidence.id;
+                    const evidenceSummary = getParentFacingEvidenceSummary(item);
 
                     return (
-                      <div
+                      <article
                         data-guidance-id="portfolio-evidence-card"
+                        data-testid="portfolio-evidence-card"
                         key={item.evidence.id}
                         style={{
                           border: item.isHighlighted
                             ? "2px solid #1d4ed8"
                             : "1px solid #e2e8f0",
                           borderRadius: 14,
-                          padding: 14,
+                          padding: 12,
                           display: "grid",
                           gap: 8,
                         }}
@@ -1482,16 +1448,18 @@ function CleanPortfolioWorkspaceBody() {
                           }}
                         >
                           <div>
-                            <strong>{portfolioCardTitle(item)}</strong>
-                            <div style={{ color: "#64748b", marginTop: 4 }}>
-                              {formatDateLabel(item.evidence.observedOn)} - {learnerLabel}
+                            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 16, lineHeight: 1.25 }}>
+                              {portfolioCardTitle(item)}
+                            </h3>
+                            <div style={{ color: "#64748b", marginTop: 4, fontSize: 13 }}>
+                              {learnerLabel} · {formatDateLabel(item.evidence.observedOn)}
                               {item.evidence.learningArea
-                                ? ` - ${item.evidence.learningArea}`
+                                ? ` · ${item.evidence.learningArea}`
                                 : ""}
                             </div>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {isExpanded ? <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           <span
                             style={{
                               border: "1px solid #dbeafe",
@@ -1550,17 +1518,29 @@ function CleanPortfolioWorkspaceBody() {
                               Reports
                             </span>
                           ) : null}
-                        </div>
+                        </div> : null}
                         {previewImage ? (
                           <EvidenceThumbnail
                             image={previewImage}
+                            width={84}
+                            height={64}
                             title="Evidence photo"
                           />
                         ) : null}
-                        <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                          {getParentFacingEvidenceSummary(item)}
+                        <p
+                          style={{
+                            margin: 0,
+                            color: "#334155",
+                            lineHeight: 1.45,
+                            display: "-webkit-box",
+                            WebkitBoxOrient: "vertical",
+                            WebkitLineClamp: isExpanded ? 6 : 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {evidenceSummary}
                         </p>
-                        {pathwayMeta ? (
+                        {isExpanded && pathwayMeta ? (
                           <div
                             style={{
                               display: "flex",
@@ -1596,7 +1576,7 @@ function CleanPortfolioWorkspaceBody() {
                             ) : null}
                           </div>
                         ) : null}
-                        {linkedProgram || linkedSegment || linkedCalendarItem ? (
+                        {isExpanded && (linkedProgram || linkedSegment || linkedCalendarItem) ? (
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                             {linkedProgram ? `Program: ${linkedProgram}` : ""}
                             {linkedProgram && linkedSegment ? " | " : ""}
@@ -1606,60 +1586,78 @@ function CleanPortfolioWorkspaceBody() {
                           </div>
                         ) : null}
                         <div data-guidance-id="portfolio-reflection-note" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            style={{
-                              ...buttonStyle,
-                              background: item.isHighlighted ? "#1d4ed8" : "#0f172a",
-                              borderColor: item.isHighlighted ? "#1d4ed8" : "#0f172a",
-                            }}
-                            onClick={() => void handleToggleHighlight(item)}
-                            disabled={submitting}
-                          >
-                            {item.isHighlighted ? "Remove highlight" : "Highlight evidence"}
-                          </button>
-                          <Link
-                            href={`${capturePathBase}?evidence_entry_id=${item.evidence.id}`}
-                            style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
-                          >
-                            Open capture
-                          </Link>
-                          {previewImage ? (
-                            <CleanLearningMomentShareCard
-                              entry={item.evidence}
-                              learnerLabel={learnerLabel}
-                              imageUrl={previewImage.url}
-                              imageStoragePath={previewImage.storagePath}
-                              showTrigger
-                            />
-                          ) : null}
-                          {item.evidence.includeInReport ? (
-                            <Link
-                              href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`}
-                              style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
-                            >
-                              Use in report
-                            </Link>
-                          ) : null}
-                          <button
-                            type="button"
-                            style={{
-                              ...buttonStyle,
-                              background: "#b91c1c",
-                              borderColor: "#b91c1c",
-                            }}
-                            onClick={() => setPendingDeleteItem(item)}
-                            disabled={submitting}
-                          >
-                            Delete evidence
-                          </button>
                           {item.isHighlighted ? (
-                            <span style={{ color: "#0f766e", fontWeight: 700 }}>
-                              In portfolio
+                            <span aria-label="In portfolio" style={{ borderRadius: 999, padding: "4px 9px", background: "#eff6ff", color: "#1d4ed8", fontSize: 12, fontWeight: 800 }}>
+                              ✓ In portfolio
                             </span>
+                          ) : (
+                            <button type="button" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }} onClick={() => void handleToggleHighlight(item)} disabled={submitting}>
+                              Add to portfolio
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            aria-expanded={isExpanded}
+                            aria-controls={`portfolio-detail-${item.evidence.id}`}
+                            onClick={() => setExpandedEvidenceId(isExpanded ? null : item.evidence.id)}
+                            style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
+                          >
+                            {isExpanded ? "Hide details" : "View"}
+                          </button>
+                          {!isExpanded ? (
+                            <button type="button" aria-label="More actions" onClick={() => setExpandedEvidenceId(item.evidence.id)} style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
+                              More
+                            </button>
+                          ) : null}
+                          {isExpanded ? (
+                            <div id={`portfolio-detail-${item.evidence.id}`} style={{ display: "grid", gap: 8, flexBasis: "100%", borderTop: "1px solid #e2e8f0", paddingTop: 10 }}>
+                              {item.evidence.reflection ? (
+                                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                                  <strong style={{ color: "#0f172a" }}>Reflection</strong>
+                                  <div>{item.evidence.reflection}</div>
+                                </div>
+                              ) : null}
+                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", color: "#475569", fontSize: 13 }}>
+                                {pathwayMeta ? <span>Pathway: {pathwayMeta.label}</span> : null}
+                                {repeatedPathwayStep ? <span>Multiple notes for this step</span> : null}
+                                {linkedProgram ? <span>Program: {linkedProgram}</span> : null}
+                                {linkedSegment ? <span>Segment: {linkedSegment}</span> : null}
+                                {linkedCalendarItem ? <span>Block: {linkedCalendarItem.title}</span> : null}
+                              </div>
+                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                                {item.isHighlighted ? (
+                                  <button type="button" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }} onClick={() => void handleToggleHighlight(item)} disabled={submitting}>
+                                    Remove from portfolio
+                                  </button>
+                                ) : null}
+                                <Link
+                                  href={`${capturePathBase}?evidence_entry_id=${item.evidence.id}`}
+                                  style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
+                                >
+                                  Open capture
+                                </Link>
+                                {previewImage ? (
+                                  <CleanLearningMomentShareCard
+                                    entry={item.evidence}
+                                    learnerLabel={learnerLabel}
+                                    imageUrl={previewImage.url}
+                                    imageStoragePath={previewImage.storagePath}
+                                    showTrigger
+                                  />
+                                ) : null}
+                                {item.evidence.includeInReport ? (
+                                  <Link href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`} style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}>
+                                    Use in report
+                                  </Link>
+                                ) : null}
+                                <button type="button" style={{ ...secondaryButtonStyle, borderColor: "#fecaca", color: "#b91c1c", padding: "7px 10px", fontSize: 12 }} onClick={() => setPendingDeleteItem(item)} disabled={submitting}>
+                                  Delete evidence
+                                </button>
+                              </div>
+                            </div>
                           ) : null}
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
