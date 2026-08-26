@@ -533,7 +533,7 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
       lastSignInAt: customer.lastSignInAt,
       profileCompleted: customer.profileCompleted,
       learnerCount: customer.learnerCount,
-      planningStarted: customer.myDayViews > 0 || customer.calendarActions > 0 || customer.capturesSaved > 0,
+      planningStarted: customer.calendarActions > 0 || customer.capturesSaved > 0,
       evidenceSaved: customer.capturesSaved > 0,
     })),
     events: postHog.events,
@@ -543,7 +543,7 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
     now,
   });
   const authFunnel30 = deriveFounderAuthFunnel({
-    accounts: customers.map((customer) => ({ userId: customer.userId, displayName: customer.displayName, joinedAt: customer.joinedAt, confirmedAt: customer.confirmedAt ?? null, lastSignInAt: customer.lastSignInAt, profileCompleted: customer.profileCompleted, learnerCount: customer.learnerCount, planningStarted: customer.myDayViews > 0 || customer.calendarActions > 0 || customer.capturesSaved > 0, evidenceSaved: customer.capturesSaved > 0 })),
+    accounts: customers.map((customer) => ({ userId: customer.userId, displayName: customer.displayName, joinedAt: customer.joinedAt, confirmedAt: customer.confirmedAt ?? null, lastSignInAt: customer.lastSignInAt, profileCompleted: customer.profileCompleted, learnerCount: customer.learnerCount, planningStarted: customer.calendarActions > 0 || customer.capturesSaved > 0, evidenceSaved: customer.capturesSaved > 0 })),
     events: postHog.events,
     posthogAvailable: postHog.available,
     supabaseAvailable: customerSnapshot.customers.length > 0 || accounts !== null,

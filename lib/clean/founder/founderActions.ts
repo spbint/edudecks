@@ -208,6 +208,10 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
   return null;
 }
 
+function aggregateAuthAction(signal: NonNullable<FounderDashboardData["authFunnel"]>["signals"][number], rangeDays: 7 | 30): FounderAction {
+  return { id: `auth-aggregate:${signal.id.replace("auth-", "")}:${rangeDays}d`, kind: "feedback", priority: signal.operatingType === "INVESTIGATE" ? 75 : 65, confidence: "Worth watching", operatingType: signal.operatingType, title: signal.title, summary: signal.summary, why: "Review the authentication journey using aggregate, privacy-safe signals.", evidence: [signal.summary], family: { userId: "aggregate", displayName: "Aggregate auth signal", email: null, joinedAt: new Date(0).toISOString(), lastActiveAt: null, activeDays30: 0 }, emailDraft: null };
+}
+
 function authActionForCustomer(customer: FounderCustomer, now: Date): FounderAction | null {
   if (customer.confirmedAt === undefined) return null;
   const age = ageInDays(now, customer.joinedAt);
@@ -224,8 +228,8 @@ export function buildFounderActions(data: FounderDashboardData, now = new Date(d
     .flatMap((customer) => [actionForCustomer(customer, now), authActionForCustomer(customer, now)])
     .filter((action): action is FounderAction => action !== null)
     .sort((left, right) => right.priority - left.priority || left.family.displayName.localeCompare(right.family.displayName))
-    .slice(0, Math.max(0, limit));
-  return actions;
+  if (data.authFunnel?.signals) actions.push(...data.authFunnel.signals.map((signal) => aggregateAuthAction(signal, 7)));
+  return actions.sort((left, right) => right.priority - left.priority || left.family.displayName.localeCompare(right.family.displayName)).slice(0, Math.max(0, limit));
 }
 
 export const founderActionInternals = {
