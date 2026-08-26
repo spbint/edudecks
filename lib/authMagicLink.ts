@@ -25,6 +25,7 @@ export type MagicLinkErrorDetails = {
 };
 
 export type MagicLinkMode = "login" | "signup";
+export type EmailAuthChallengeDelivery = "magic-link" | "otp-code";
 
 export const MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS = 30000;
 export const MAGIC_LINK_CLIENT_RESEND_DELAY_MS = 30000;
@@ -289,6 +290,17 @@ export async function sendMagicLink(input: {
   source: string;
   signupPrefill?: SignupPrefill | null;
 }) {
+  return sendEmailAuthChallenge({ ...input, delivery: "magic-link" });
+}
+
+export async function sendEmailAuthChallenge(input: {
+  email: string;
+  mode: MagicLinkMode;
+  nextPath: string;
+  source: string;
+  delivery: EmailAuthChallengeDelivery;
+  signupPrefill?: SignupPrefill | null;
+}) {
   const normalizedEmail = normalizeMagicLinkEmail(input.email);
 
   if (!isValidMagicLinkEmail(normalizedEmail)) {
@@ -328,7 +340,7 @@ export async function sendMagicLink(input: {
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        emailRedirectTo,
+        ...(input.delivery === "magic-link" ? { emailRedirectTo } : {}),
         shouldCreateUser,
         ...(shouldCreateUser
           ? {
@@ -351,8 +363,6 @@ export async function sendMagicLink(input: {
         diagnosticCode: details.diagnosticCode,
         provider: details.provider,
         retryable: details.isRetryable,
-        message: safe(error.message),
-        rawMessage: details.rawMessage,
       });
       throw error;
     }

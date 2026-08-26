@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
+import { trackAuthEvent } from "@/lib/authAnalytics";
 
 type CallbackErrorKind = "none" | "missing-pkce" | "expired-link" | "generic";
 
@@ -110,6 +111,24 @@ async function withTimeout<T>(promise: Promise<T>, ms: number) {
   }
 }
 
+async function reconcileExistingSession(requestedNextPath: string) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const session = (await supabase.auth.getSession()).data.session;
+    if (session?.user) {
+      try {
+        const familyState = await withTimeout(loadCleanFamilyProfile(), 1000);
+        if (!familyState.profile) return "/my-profile";
+        if (!hasRequiredLearningSettings(familyState.profile) && requestedNextPath !== "/my-settings") return "/my-settings";
+      } catch {
+        // Keep the requested safe path when the family lookup is temporarily unavailable.
+      }
+      return requestedNextPath;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return null;
+}
+
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={null}>
@@ -154,6 +173,7 @@ function AuthCallbackPageContent() {
 
     async function completeAuth() {
       try {
+        trackAuthEvent("auth_callback_entered", { route: "/auth/callback" });
         console.info("[auth] callback entered", {
           requestedNextPath,
           hasCode: Boolean(codeParam),
@@ -311,9 +331,23 @@ function AuthCallbackPageContent() {
         redirectInProgress.current = true;
         router.replace(resolvedNextPath);
       } catch (authError: unknown) {
-        console.error("[auth] callback failed", authError);
+        console.error("[auth] callback failed", { kind: isMissingPkceError(authError) ? "missing_pkce" : isExpiredOrUsedLinkError(authError) ? "expired" : "unknown" });
         if (!mounted) return;
         if (isMissingPkceError(authError)) {
+          trackAuthEvent("auth_callback_missing_pkce", { route: "/auth/callback", resultReason: "missing_pkce" });
+          const reconciledPath = await reconcileExistingSession(requestedNextPath);
+          if (reconciledPath) {
+            trackAuthEvent("auth_callback_reconciled", { route: "/auth/callback", resultReason: "missing_pkce" });
+            resolvedNextPathRef.current = reconciledPath;
+            setTitle("Signed in");
+            setMessage("Signed in. Taking you to MyLearna...");
+            setErrorKind("none");
+            if (!redirectInProgress.current) {
+              redirectInProgress.current = true;
+              router.replace(reconciledPath);
+            }
+            return;
+          }
           setTitle("Finish signing in from this browser");
           setMessage(
             "This sign-in link opened in a different browser or email app, so we could not finish automatically. Please sign in here and we'll take you back into MyLearna.",
@@ -323,6 +357,7 @@ function AuthCallbackPageContent() {
         }
 
         if (isExpiredOrUsedLinkError(authError)) {
+          trackAuthEvent("auth_callback_expired", { route: "/auth/callback", resultReason: "expired_code" });
           setTitle("That sign-in link needs a fresh try");
           setMessage(
             "That sign-in link has expired or has already been used. Please request a fresh link and we'll get you back into MyLearna.",
@@ -332,6 +367,7 @@ function AuthCallbackPageContent() {
         }
 
         setTitle("Sign-in link needs another try");
+        trackAuthEvent("auth_callback_failed", { route: "/auth/callback", resultReason: "unknown" });
         setMessage("We could not finish sign-in from this link. Please sign in again or request a new link.");
         setErrorKind("generic");
       }

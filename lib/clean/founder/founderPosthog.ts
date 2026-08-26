@@ -26,6 +26,21 @@ const FOUNDER_EVENT_NAMES = [
   "native_share_opened",
   "share_card_created",
   "share_card_opened",
+  "auth_page_viewed",
+  "auth_email_submitted",
+  "auth_challenge_sent",
+  "auth_challenge_send_failed",
+  "auth_resend_selected",
+  "auth_verification_started",
+  "auth_verification_succeeded",
+  "auth_verification_failed",
+  "auth_session_ready",
+  "auth_product_entry",
+  "auth_callback_entered",
+  "auth_callback_reconciled",
+  "auth_callback_missing_pkce",
+  "auth_callback_expired",
+  "auth_callback_failed",
 ] as const;
 
 export type FounderTrackedEventName = (typeof FOUNDER_EVENT_NAMES)[number];

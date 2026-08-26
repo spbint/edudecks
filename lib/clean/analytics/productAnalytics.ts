@@ -59,6 +59,10 @@ const SAFE_PROPERTY_KEYS = new Set([
   "metricValue",
   "metricRating",
   "timestamp",
+  "attemptId",
+  "journey",
+  "challengeType",
+  "resultReason",
 ]);
 
 const UNSAFE_KEY_PATTERN =
