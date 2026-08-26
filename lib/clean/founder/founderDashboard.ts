@@ -525,9 +525,9 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
     now,
   );
   const authFunnel = deriveFounderAuthFunnel({
-    accounts: customerSnapshot.customers.map((customer) => ({
+    accounts: customers.map((customer) => ({
       userId: customer.userId,
-      displayName: displayName(customer),
+      displayName: customer.displayName,
       joinedAt: customer.joinedAt,
       confirmedAt: customer.confirmedAt ?? null,
       lastSignInAt: customer.lastSignInAt,

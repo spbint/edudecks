@@ -41,6 +41,7 @@ export type FounderAuthAttemptOutcome = {
   callbackRecovered: boolean;
   callbackFailed: boolean;
   browserContext: string;
+  sessionHandoffUnresolved: boolean;
 };
 
 export type FounderAuthFunnel = {
@@ -89,6 +90,7 @@ export function deriveAuthAttemptOutcomes(events: FounderProductEvent[]): Founde
       callbackRecovered: ordered.some((event) => event.event === "auth_callback_reconciled"),
       callbackFailed: ordered.some((event) => event.event === "auth_callback_missing_pkce" || event.event === "auth_callback_failed"),
       browserContext: contexts[0] ?? "unknown",
+      sessionHandoffUnresolved: ordered.some((event) => event.event === "auth_verification_succeeded") && !ordered.some((event) => event.event === "auth_product_entry"),
     };
   });
 }
@@ -140,6 +142,7 @@ export function deriveFounderAuthFunnel(input: {
   if (unresolved((o) => o.callbackFailed && !o.callbackRecovered) >= 2) signals.push({ id: "auth-callback-friction", operatingType: "INVESTIGATE", title: "INVESTIGATE — CALLBACK BROWSER HANDOFF", summary: "Multiple auth attempts did not recover from callback handoff friction." });
   if (unresolved((o) => o.verificationFailed && !o.verificationSucceeded) >= 2) signals.push({ id: "auth-verification-friction", operatingType: "INVESTIGATE", title: "INVESTIGATE — VERIFICATION FRICTION", summary: "Multiple auth attempts failed verification without later success." });
   if (unresolved((o) => o.resendCount > 1 && !o.verificationSucceeded) >= 2) signals.push({ id: "auth-repeat-resend", operatingType: "CHECK", title: "CHECK — REPEATED RESEND", summary: "Multiple auth attempts resent challenges without verification." });
+  if (unresolved((o) => o.sessionHandoffUnresolved) >= 2) signals.push({ id: "auth-session-handoff", operatingType: "INVESTIGATE", title: "INVESTIGATE — SESSION HANDOFF", summary: "Multiple verified attempts did not later enter MyLearna." });
   const browserContext: Record<string, number> = {};
   for (const outcome of outcomes) browserContext[outcome.browserContext] = (browserContext[outcome.browserContext] ?? 0) + 1;
   return { rangeDays: input.rangeDays, accountOutcomes, detailed, posthogAvailable: input.posthogAvailable, supabaseAvailable: input.supabaseAvailable, earliestTrackedAuthEventAt: earliest, coverageMessage: !input.posthogAvailable ? "Detailed auth behaviour unavailable" : earliest ? `Detailed tracking available since ${earliest}` : "Detailed auth-step tracking begins after this release is deployed.", flags, signals, browserContext };

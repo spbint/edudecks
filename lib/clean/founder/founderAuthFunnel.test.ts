@@ -35,4 +35,12 @@ describe("founder auth funnel", () => {
     const result = deriveFounderAuthFunnel({ accounts: [], events, posthogAvailable: true, supabaseAvailable: false, rangeDays: 7, now });
     expect(result.signals[0]?.operatingType).toBe("INVESTIGATE");
   });
+
+  it("emits session handoff investigation only for two unresolved verified attempts", () => {
+    const events = ["a1", "a2"].flatMap((id, i) => [event("auth_verification_succeeded", `2026-08-25T0${i + 1}:00:00Z`, { authAttemptId: id })]);
+    const result = deriveFounderAuthFunnel({ accounts: [], events, posthogAvailable: true, supabaseAvailable: false, rangeDays: 7, now });
+    expect(result.signals.map((signal) => signal.id)).toContain("auth-session-handoff");
+    const recovered = deriveFounderAuthFunnel({ accounts: [], events: [...events, event("auth_session_ready", "2026-08-25T03:00:00Z", { authAttemptId: "a1" }), event("auth_product_entry", "2026-08-25T04:00:00Z", { authAttemptId: "a1" })], posthogAvailable: true, supabaseAvailable: false, rangeDays: 7, now });
+    expect(recovered.signals.map((signal) => signal.id)).not.toContain("auth-session-handoff");
+  });
 });
