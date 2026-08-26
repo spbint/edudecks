@@ -87,6 +87,7 @@ export type FounderDashboardData = {
   };
   acquisitionToday: Record<string, number> | null;
   authFunnel?: FounderAuthFunnel;
+  authFunnel30?: FounderAuthFunnel;
 };
 
 type Usage = {
@@ -540,6 +541,14 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
     rangeDays: 7,
     now,
   });
+  const authFunnel30 = deriveFounderAuthFunnel({
+    accounts: customerSnapshot.customers.map((customer) => ({ userId: customer.userId, displayName: displayName(customer), joinedAt: customer.joinedAt, confirmedAt: customer.confirmedAt ?? null, lastSignInAt: customer.lastSignInAt, profileCompleted: customer.profileCompleted, learnerCount: customer.learnerCount, firstValueAt: null })),
+    events: postHog.events,
+    posthogAvailable: postHog.available,
+    supabaseAvailable: customerSnapshot.customers.length > 0 || accounts !== null,
+    rangeDays: 30,
+    now,
+  });
 
   return {
     generatedAt: now.toISOString(),
@@ -564,6 +573,7 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
     },
     acquisitionToday: accounts?.acquisitionToday ?? null,
     authFunnel,
+    authFunnel30,
   };
 }
 

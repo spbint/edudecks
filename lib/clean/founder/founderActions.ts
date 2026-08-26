@@ -208,16 +208,29 @@ function actionForCustomer(customer: FounderCustomer, now: Date): FounderAction 
   return null;
 }
 
+function authActionForCustomer(customer: FounderCustomer, now: Date): FounderAction | null {
+  if (customer.confirmedAt === undefined) return null;
+  const age = ageInDays(now, customer.joinedAt);
+  if (age < 30 / 1440) return null;
+  const family = familyRef(customer);
+  if (!customer.confirmedAt) return { id: `auth:${customer.userId}:unconfirmed`, kind: "setup-help", priority: 70, confidence: "Worth doing now", operatingType: "CHECK", title: "CHECK — EMAIL NOT CONFIRMED", summary: `${customer.displayName} has not confirmed their email.`, why: "The account is old enough to check whether email confirmation is blocking entry.", evidence: ["Email confirmation is still pending", "Account is more than 30 minutes old"], family, emailDraft: null };
+  if (!customer.lastSignInAt) return { id: `auth:${customer.userId}:confirmed-no-signin`, kind: "setup-help", priority: 70, confidence: "Worth doing now", operatingType: "CHECK", title: "CHECK — CONFIRMED BUT NOT SIGNED IN", summary: `${customer.displayName} confirmed email but has not entered MyLearna.`, why: "A confirmed account with no sign-in may indicate entry friction.", evidence: ["Email confirmed more than 30 minutes ago", "No completed sign-in found"], family, emailDraft: null };
+  if (!customer.profileCompleted && ageInDays(now, customer.lastSignInAt) >= 30 / 1440) return { id: `auth:${customer.userId}:signed-in-no-family`, kind: "setup-help", priority: 70, confidence: "Worth doing now", operatingType: "CHECK", title: "CHECK — SIGNED IN BUT SETUP NOT STARTED", summary: `${customer.displayName} signed in but has not created a family profile.`, why: "The first setup destination may need a private Founder check.", evidence: ["Successful sign-in found", "No family profile found"], family, emailDraft: null };
+  return null;
+}
+
 export function buildFounderActions(data: FounderDashboardData, now = new Date(data.generatedAt), limit = 5): FounderAction[] {
-  return data.customers
-    .map((customer) => actionForCustomer(customer, now))
+  const actions = data.customers
+    .flatMap((customer) => [actionForCustomer(customer, now), authActionForCustomer(customer, now)])
     .filter((action): action is FounderAction => action !== null)
     .sort((left, right) => right.priority - left.priority || left.family.displayName.localeCompare(right.family.displayName))
     .slice(0, Math.max(0, limit));
+  return actions;
 }
 
 export const founderActionInternals = {
   ageInDays,
   actionForCustomer,
+  authActionForCustomer,
   quietDraft,
 };

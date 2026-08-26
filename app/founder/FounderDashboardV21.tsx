@@ -107,12 +107,13 @@ function CustomerList({ data }: { data: FounderDashboardData }) {
 }
 
 function AuthFunnel({ data }: { data: FounderDashboardData }) {
-  const funnel = data.authFunnel;
+  const [range, setRange] = useState<7 | 30>(7);
+  const funnel = range === 30 ? (data.authFunnel30 ?? data.authFunnel) : data.authFunnel;
   if (!funnel) return null;
   const account = funnel.accountOutcomes;
   const detailed = funnel.detailed;
   return <section className={styles.section} aria-labelledby="auth-funnel-title">
-    <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Entry health</p><h2 id="auth-funnel-title">Sign-in funnel</h2></div><span className={styles.updated}>Last 7 days</span></div>
+    <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Entry health</p><h2 id="auth-funnel-title">Sign-in funnel</h2></div><div role="group" aria-label="Auth funnel range"><button type="button" aria-pressed={range === 7} onClick={() => setRange(7)}>Last 7 days</button><button type="button" aria-pressed={range === 30} onClick={() => setRange(30)}>30 days</button></div></div>
     <div className={styles.metricGrid}>
       {[['Created', account?.created], ['Confirmed', account?.confirmed], ['Signed in', account?.signedIn], ['Family setup', account?.familySetup], ['Learner added', account?.learnerAdded], ['First value', account?.firstValue]].map(([label, value]) => <article className={styles.metricCard} key={label as string}><p className={styles.metricValue}>{typeof value === 'number' ? N.format(value) : 'Unavailable'}</p><p className={styles.metricLabel}>{label as string}</p><p className={styles.metricNote}>Supabase account outcome</p></article>)}
     </div>
