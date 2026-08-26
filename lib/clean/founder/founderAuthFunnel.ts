@@ -16,6 +16,8 @@ export type FounderAuthAccount = {
   lastSignInAt: string | null;
   profileCompleted: boolean;
   learnerCount: number;
+  planningStarted?: boolean;
+  evidenceSaved?: boolean;
   firstValueAt?: string | null;
 };
 
@@ -43,7 +45,7 @@ export type FounderAuthAttemptOutcome = {
 
 export type FounderAuthFunnel = {
   rangeDays: 7 | 30;
-  accountOutcomes: { created: number; confirmed: number; signedIn: number; familySetup: number; learnerAdded: number; firstValue: number } | null;
+  accountOutcomes: { created: number; confirmed: number; signedIn: number; familySetup: number; learnerAdded: number; planningStarted: number; evidenceSaved: number } | null;
   detailed: { challengeSent: number; verificationSucceeded: number; sessionReady: number; productEntry: number; callbackRecovery: number; callbackFailures: number; resends: number } | null;
   posthogAvailable: boolean;
   supabaseAvailable: boolean;
@@ -109,7 +111,8 @@ export function deriveFounderAuthFunnel(input: {
     signedIn: accounts.filter((a) => inWindow(a.lastSignInAt, start, end) || (parsed(a.lastSignInAt) !== null && parsed(a.lastSignInAt)! >= parsed(a.joinedAt)!)).length,
     familySetup: accounts.filter((a) => a.profileCompleted).length,
     learnerAdded: accounts.filter((a) => a.learnerCount > 0).length,
-    firstValue: accounts.filter((a) => a.firstValueAt).length,
+    planningStarted: accounts.filter((a) => a.planningStarted || a.evidenceSaved || a.firstValueAt).length,
+    evidenceSaved: accounts.filter((a) => a.evidenceSaved || a.firstValueAt).length,
   } : null;
   const authEvents = input.events.filter((event) => inWindow(event.occurredAt, start, end));
   const outcomes = deriveAuthAttemptOutcomes(authEvents);
