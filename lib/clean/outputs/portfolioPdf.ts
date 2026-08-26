@@ -334,10 +334,11 @@ function drawEvidence(composer: Composer, items: CleanReportPdfEvidenceItem[], i
   composer.y -= 8;
   items.forEach((item, index) => {
     const image = images.get(item.id) ?? null;
-    const photoHeight = image ? 150 : 0;
     const parsedReflection = parsePortfolioReflection(item.reflection);
     const narrative = [cleanText(item.whatHappened), parsedReflection.reflection, parsedReflection.parentReflection, parsedReflection.learnerReflection].filter(Boolean).join("\n\n");
-    const needed = 80 + photoHeight + Math.min(180, wrap(narrative, composer.regular, 10.5, PAGE_WIDTH - MARGIN * 2).length * 14);
+    const sparsePhoto = Boolean(image && narrative.length < 220 && !parsedReflection.parentReflection && !parsedReflection.learnerReflection);
+    const photoHeight = image ? (sparsePhoto ? 170 : 260) : 0;
+    const needed = sparsePhoto ? 205 : 80 + photoHeight + Math.min(220, wrap(narrative, composer.regular, 10.5, PAGE_WIDTH - MARGIN * 2).length * 14);
     if (composer.y < needed + 70) Object.assign(composer, newPage(composer));
     if (item.progressLevel || item.pathwayLabel) header(composer, item.pathwayLabel || "Learning moment");
     text(composer, `${index + 1}. ${safe(item.title) || "Learning moment"}`, MARGIN, 15, COLORS.heading, composer.bold);
