@@ -106,6 +106,22 @@ function CustomerList({ data }: { data: FounderDashboardData }) {
   </div> : <div className={styles.softEmpty}>No family accounts are available yet.</div>}</div>;
 }
 
+function AuthFunnel({ data }: { data: FounderDashboardData }) {
+  const funnel = data.authFunnel;
+  if (!funnel) return null;
+  const account = funnel.accountOutcomes;
+  const detailed = funnel.detailed;
+  return <section className={styles.section} aria-labelledby="auth-funnel-title">
+    <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Entry health</p><h2 id="auth-funnel-title">Sign-in funnel</h2></div><span className={styles.updated}>Last 7 days</span></div>
+    <div className={styles.metricGrid}>
+      {[['Created', account?.created], ['Confirmed', account?.confirmed], ['Signed in', account?.signedIn], ['Family setup', account?.familySetup], ['Learner added', account?.learnerAdded], ['First value', account?.firstValue]].map(([label, value]) => <article className={styles.metricCard} key={label as string}><p className={styles.metricValue}>{typeof value === 'number' ? N.format(value) : 'Unavailable'}</p><p className={styles.metricLabel}>{label as string}</p><p className={styles.metricNote}>Supabase account outcome</p></article>)}
+    </div>
+    <div className={styles.changeCard}><span className={styles.changeLabel}>Detailed auth steps</span><p>{funnel.coverageMessage}</p>{detailed ? <p>Challenge sent {detailed.challengeSent} · Verified {detailed.verificationSucceeded} · Session ready {detailed.sessionReady} · Entered MyLearna {detailed.productEntry}</p> : null}</div>
+    {funnel.flags.length ? <div className={styles.changeCard}><span className={styles.changeLabel}>Checks</span><p>{funnel.flags.length} account{funnel.flags.length === 1 ? '' : 's'} need a private Founder check.</p></div> : null}
+    {funnel.signals.length ? <div className={styles.changeCard}><span className={styles.changeLabel}>Signals</span>{funnel.signals.map((signal) => <p key={signal.id}>{signal.title}: {signal.summary}</p>)}</div> : null}
+  </section>;
+}
+
 export default function FounderDashboardV21({ data }: { data: FounderDashboardData }) {
   const b = buildFounderBehaviourIntelligence(data);
   const [todayDrill, setTodayDrill] = useState<"new" | "active" | "returning" | "actions" | null>(null);
@@ -122,6 +138,7 @@ export default function FounderDashboardV21({ data }: { data: FounderDashboardDa
   return <main className={styles.page}><div className={styles.shell}>
     <header className={styles.header}><div><span className={styles.privatePill}>Private Founder view</span><h1>MyLearna Founder</h1><p className={styles.intro}>What is happening, who is using MyLearna, how families are behaving, and what needs attention.</p></div><div className={styles.headerActions}><Link href="/my-day" className={styles.secondaryAction}>Return to MyLearna</Link><FounderSignOutButton /></div></header>
 
+    <AuthFunnel data={data} />
     <section className={styles.section} aria-labelledby="today-title"><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>What + who</p><h2 id="today-title">Today at MyLearna</h2></div><span className={styles.updated}>Updated {when(data.generatedAt)}</span></div>
       <div className={styles.metricsGrid}>
         <MetricButton value={data.today.newFamilies} label="New families" note="Joined today" active={todayDrill === "new"} controls="today-drill" onClick={() => toggleToday("new")} />

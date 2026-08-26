@@ -48,6 +48,7 @@ export type FounderCustomerBase = {
   email: string | null;
   joinedAt: string;
   lastSignInAt: string | null;
+  confirmedAt?: string | null;
   familyDisplayName: string | null;
   countryCode: string | null;
   jurisdictionCode: string | null;
@@ -144,6 +145,7 @@ export async function loadFounderCustomers(now = new Date()): Promise<FounderCus
         email: clean(user.email) || null,
         joinedAt,
         lastSignInAt: validIso(user.last_sign_in_at),
+        confirmedAt: validIso(user.email_confirmed_at ?? user.confirmed_at),
         familyDisplayName: profile ? clean(profile.display_name) || null : null,
         countryCode: profile ? clean(profile.country_code) || null : null,
         jurisdictionCode: profile ? clean(profile.jurisdiction_code) || null : null,

@@ -9,6 +9,7 @@ import {
   buildFounderTrendIntelligence,
   type FounderTrendIntelligence,
 } from "@/lib/clean/founder/founderTrends";
+import { deriveFounderAuthFunnel, type FounderAuthFunnel } from "@/lib/clean/founder/founderAuthFunnel";
 
 const TIME_ZONE = "Australia/Hobart";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -85,6 +86,7 @@ export type FounderDashboardData = {
     goingQuiet: number;
   };
   acquisitionToday: Record<string, number> | null;
+  authFunnel?: FounderAuthFunnel;
 };
 
 type Usage = {
@@ -521,6 +523,23 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
     postHog.available,
     now,
   );
+  const authFunnel = deriveFounderAuthFunnel({
+    accounts: customerSnapshot.customers.map((customer) => ({
+      userId: customer.userId,
+      displayName: displayName(customer),
+      joinedAt: customer.joinedAt,
+      confirmedAt: customer.confirmedAt ?? null,
+      lastSignInAt: customer.lastSignInAt,
+      profileCompleted: customer.profileCompleted,
+      learnerCount: customer.learnerCount,
+      firstValueAt: null,
+    })),
+    events: postHog.events,
+    posthogAvailable: postHog.available,
+    supabaseAvailable: customerSnapshot.customers.length > 0 || accounts !== null,
+    rangeDays: 7,
+    now,
+  });
 
   return {
     generatedAt: now.toISOString(),
@@ -544,6 +563,7 @@ export async function loadFounderDashboard(now = new Date()): Promise<FounderDas
       goingQuiet: customers.filter((customer) => customer.status === "Going quiet").length,
     },
     acquisitionToday: accounts?.acquisitionToday ?? null,
+    authFunnel,
   };
 }
 

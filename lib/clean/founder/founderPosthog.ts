@@ -51,6 +51,15 @@ export type FounderProductEvent = {
   occurredAt: string;
   route: string | null;
   area: string | null;
+  authAttemptId?: string | null;
+  journey?: "login" | "signup" | null;
+  challengeType?: "otp_code" | "magic_link" | "password" | null;
+  requestedDestination?: string | null;
+  browserContextCategory?: string | null;
+  resultReason?: string | null;
+  callbackKind?: string | null;
+  attemptNumber?: number | null;
+  elapsedTimeBand?: string | null;
 };
 
 export type FounderPostHogSnapshot = {
@@ -88,6 +97,15 @@ function parseQueryRows(payload: PostHogQueryResponse): FounderProductEvent[] {
     occurredAt: columns.indexOf("timestamp"),
     route: columns.indexOf("route"),
     area: columns.indexOf("area"),
+    authAttemptId: columns.indexOf("authAttemptId"),
+    journey: columns.indexOf("journey"),
+    challengeType: columns.indexOf("challengeType"),
+    requestedDestination: columns.indexOf("requestedDestination"),
+    browserContextCategory: columns.indexOf("browserContextCategory"),
+    resultReason: columns.indexOf("resultReason"),
+    callbackKind: columns.indexOf("callbackKind"),
+    attemptNumber: columns.indexOf("attemptNumber"),
+    elapsedTimeBand: columns.indexOf("elapsedTimeBand"),
   };
   if (indexes.userId < 0 || indexes.event < 0 || indexes.occurredAt < 0) return [];
 
@@ -104,6 +122,15 @@ function parseQueryRows(payload: PostHogQueryResponse): FounderProductEvent[] {
         occurredAt: new Date(occurredAt).toISOString(),
         route: indexes.route >= 0 ? clean(row[indexes.route]) || null : null,
         area: indexes.area >= 0 ? clean(row[indexes.area]) || null : null,
+        authAttemptId: indexes.authAttemptId >= 0 ? clean(row[indexes.authAttemptId]) || null : null,
+        journey: indexes.journey >= 0 && (row[indexes.journey] === "login" || row[indexes.journey] === "signup") ? row[indexes.journey] : null,
+        challengeType: indexes.challengeType >= 0 && ["otp_code", "magic_link", "password"].includes(clean(row[indexes.challengeType])) ? clean(row[indexes.challengeType]) as FounderProductEvent["challengeType"] : null,
+        requestedDestination: indexes.requestedDestination >= 0 ? clean(row[indexes.requestedDestination]) || null : null,
+        browserContextCategory: indexes.browserContextCategory >= 0 ? clean(row[indexes.browserContextCategory]) || null : null,
+        resultReason: indexes.resultReason >= 0 ? clean(row[indexes.resultReason]) || "unknown" : null,
+        callbackKind: indexes.callbackKind >= 0 ? clean(row[indexes.callbackKind]) || null : null,
+        attemptNumber: indexes.attemptNumber >= 0 && Number.isFinite(Number(row[indexes.attemptNumber])) ? Number(row[indexes.attemptNumber]) : null,
+        elapsedTimeBand: indexes.elapsedTimeBand >= 0 ? clean(row[indexes.elapsedTimeBand]) || null : null,
       };
     })
     .filter((event): event is FounderProductEvent => event !== null);
@@ -117,7 +144,7 @@ export async function loadFounderPostHogSnapshot(lookbackDays = 30): Promise<Fou
     ? Math.max(1, Math.min(30, Math.floor(lookbackDays)))
     : 30;
   const eventList = FOUNDER_EVENT_NAMES.map(escapeSqlString).join(",");
-  const query = `SELECT distinct_id, event, timestamp, properties.route AS route, properties.area AS area\nFROM events\nWHERE timestamp >= now() - INTERVAL ${days} DAY\n  AND event IN (${eventList})\nORDER BY timestamp DESC\nLIMIT 10000`;
+  const query = `SELECT distinct_id, event, timestamp, properties.route AS route, properties.area AS area, properties.authAttemptId AS authAttemptId, properties.journey AS journey, properties.challengeType AS challengeType, properties.requestedDestination AS requestedDestination, properties.browserContextCategory AS browserContextCategory, properties.resultReason AS resultReason, properties.callbackKind AS callbackKind, properties.attemptNumber AS attemptNumber, properties.elapsedTimeBand AS elapsedTimeBand\nFROM events\nWHERE timestamp >= now() - INTERVAL ${days} DAY\n  AND event IN (${eventList})\nORDER BY timestamp DESC\nLIMIT 10000`;
 
   try {
     const response = await fetch(`${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/query/`, {
