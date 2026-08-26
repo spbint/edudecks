@@ -5,6 +5,7 @@ import {
   buildCleanPortfolioPdfFilename,
   generateCleanPortfolioPdfBytes,
   getPortfolioImageFit,
+  parsePortfolioReflection,
   type CleanPortfolioPdfModel,
 } from "@/lib/clean/outputs/portfolioPdf";
 
@@ -41,6 +42,13 @@ function model(items: ReturnType<typeof item>[]): CleanPortfolioPdfModel {
 }
 
 describe("premium Portfolio PDF", () => {
+  it("strips technical reflection metadata and repeated labels", () => {
+    expect(parsePortfolioReflection("Parent note: Testing Source: calendar")).toEqual({ parentReflection: "Testing", learnerReflection: null, reflection: null });
+    expect(parsePortfolioReflection("Parent note: Parent note: Testing Source: calendar Source: calendar").parentReflection).toBe("Testing");
+    expect(parsePortfolioReflection("Learner reflection: I know that Jupiter is the largest planet Source: calendar").learnerReflection).toBe("I know that Jupiter is the largest planet");
+    expect(parsePortfolioReflection("Parent note: test Learner reflection: test Source: calendar")).toEqual({ parentReflection: "test", learnerReflection: "test", reflection: null });
+    expect(parsePortfolioReflection("The source was a primary document.").reflection).toBe("The source was a primary document.");
+  });
   it("creates a valid titled PDF with a formal record appendix", async () => {
     const bytes = await generateCleanPortfolioPdfBytes(model([item(1), item(2), item(3)]));
     const pdf = await PDFDocument.load(bytes);
