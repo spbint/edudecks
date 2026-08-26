@@ -6,6 +6,7 @@ import { PDFDocument } from "pdf-lib";
 import {
   buildCleanReportPdfFilename,
   generateCleanReportPdfBytes,
+  parseCleanReportReflection,
   type CleanReportPdfEvidenceItem,
   type CleanReportPdfModel,
 } from "@/lib/clean/outputs/pdf";
@@ -126,6 +127,12 @@ async function pageCountFor(input: CleanReportPdfModel) {
 }
 
 describe("clean learning report PDF", () => {
+  it("sanitizes structured reflection metadata for published reports", () => {
+    expect(parseCleanReportReflection("Parent note: Parent note: Testing Source: calendar")).toEqual({ parent: "Testing", learner: null, generic: null });
+    expect(parseCleanReportReflection("Parent note: test Learner reflection: test Source: calendar")).toEqual({ parent: "test", learner: "test", generic: null });
+    expect(parseCleanReportReflection("Learner reflection: I know that Jupiter is the largest planet Source: calendar")).toEqual({ parent: null, learner: "I know that Jupiter is the largest planet", generic: null });
+    expect(parseCleanReportReflection("The source was a primary document.")).toEqual({ parent: null, learner: null, generic: "The source was a primary document." });
+  });
   it("keeps zero-data reports concise", async () => {
     await expect(pageCountFor(model([]))).resolves.toBeLessThanOrEqual(2);
   });

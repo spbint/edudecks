@@ -110,6 +110,8 @@ function normalizeText(value: string | null | undefined) {
 
 function cleanParentFacingEvidenceText(value: string | null | undefined) {
   return normalizeText(value)
+    .replace(/(?:^|\s)Source\s*:\s*(?:calendar|my-capture|my_capture|learning moment|my_pathways|worksheet_evidence)\b/gi, " ")
+    .replace(/(?:^|\s)(?:Parent\s+note\s*:\s*){2,}/gi, " Parent note: ")
     .split(/\n+/)
     .map((line) => line.trim())
     .filter((line) => {
@@ -123,6 +125,21 @@ function cleanParentFacingEvidenceText(value: string | null | undefined) {
     })
     .join("\n")
     .trim();
+}
+
+type CleanReflectionPresentation = {
+  parent: string | null;
+  learner: string | null;
+  generic: string | null;
+};
+
+export function parseCleanReportReflection(value: string | null | undefined): CleanReflectionPresentation {
+  const cleaned = cleanParentFacingEvidenceText(value);
+  if (!cleaned) return { parent: null, learner: null, generic: null };
+  const parent = cleaned.match(/Parent\s+note\s*:\s*(.*?)(?=Learner\s+reflection\s*:|$)/i)?.[1]?.trim() || null;
+  const learner = cleaned.match(/Learner\s+reflection\s*:\s*(.*)$/i)?.[1]?.trim() || null;
+  if (parent || learner) return { parent, learner, generic: null };
+  return { parent: null, learner: null, generic: cleaned.replace(/^(?:Parent\s+note\s*:\s*)+/i, "").trim() || null };
 }
 
 function sanitizeFilePart(value: string, fallback: string) {
@@ -898,18 +915,20 @@ async function drawEvidenceDetailCard(
   const metaLines = metaLine
     ? wrapText(metaLine, composer.regular, 10, width)
     : [];
+  const reflection = parseCleanReportReflection(item.reflection);
   const narrativeBlocks = [
     {
       label: "What happened",
       lines: wrapText(cleanParentFacingEvidenceText(item.whatHappened), composer.regular, 10.75, width),
     },
-    ...(cleanParentFacingEvidenceText(item.reflection)
-      ? [
-          {
-            label: "Learner reflection",
-            lines: wrapText(cleanParentFacingEvidenceText(item.reflection), composer.regular, 10.75, width),
-          },
-        ]
+    ...(reflection.parent
+      ? [{ label: "Parent reflection", lines: wrapText(reflection.parent, composer.regular, 10.75, width) }]
+      : []),
+    ...(reflection.learner
+      ? [{ label: "Learner reflection", lines: wrapText(reflection.learner, composer.regular, 10.75, width) }]
+      : []),
+    ...(reflection.generic
+      ? [{ label: "Reflection", lines: wrapText(reflection.generic, composer.regular, 10.75, width) }]
       : []),
     ...(normalizeText(item.portfolioNote)
       ? [

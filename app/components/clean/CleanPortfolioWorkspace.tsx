@@ -52,9 +52,10 @@ import {
 } from "@/lib/clean/programs/client";
 import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
 import {
-  buildCleanPortfolioPdfFilename,
-  generateCleanPortfolioPdfBytes,
-} from "@/lib/clean/outputs/portfolioPdf";
+  buildCleanLearningRecordPdfFilename,
+  generateCleanReportPdfBytes,
+} from "@/lib/clean/outputs/pdf";
+import type { CleanReport } from "@/lib/clean/reports/types";
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
@@ -615,30 +616,6 @@ function CleanPortfolioWorkspaceBody() {
       selectedLearnerLabel,
     ],
   );
-  const portfolioPdfEvidenceItems = useMemo(
-    () =>
-      selectedLearnerId
-        ? buildReportPdfEvidenceItems(
-            items.filter((item) => item.evidence.learnerId === selectedLearnerId),
-            {
-              calendarItemById,
-              learnerLabelById,
-              programLabelById,
-              segmentLabelById,
-              selectedLearnerLabel,
-            },
-          )
-        : [],
-    [
-      calendarItemById,
-      items,
-      learnerLabelById,
-      programLabelById,
-      segmentLabelById,
-      selectedLearnerId,
-      selectedLearnerLabel,
-    ],
-  );
   const justCapturedItem = useMemo(() => {
     if (latestEvidenceIdFromQuery) {
       return items.find((item) => item.evidence.id === latestEvidenceIdFromQuery) ?? null;
@@ -672,21 +649,44 @@ function CleanPortfolioWorkspaceBody() {
         .sort();
       const startsOn = observedDates[0] || today;
       const endsOn = observedDates[observedDates.length - 1] || today;
-      const pdfBytes = await generateCleanPortfolioPdfBytes({
+      const title = `${selectedLearnerLabel} learning record`;
+      const report: CleanReport = {
+        id: "portfolio-learning-record",
+        familyId: workspace.profile.id,
+        learnerId: selectedLearnerId,
+        reportingPeriodId: "portfolio-learning-record",
+        title,
+        status: "ready",
+        createdByUserId: workspace.profile.createdByUserId,
+        createdAt: null,
+        updatedAt: null,
+      };
+      const pdfBytes = await generateCleanReportPdfBytes({
+        report,
         learnerLabel: selectedLearnerLabel,
-        startsOn,
-        endsOn,
-        portfolioEvidenceItems: portfolioPdfEvidenceItems,
-        recordEvidenceItems: quickRecordPdfEvidenceItems,
+        reportingPeriod: {
+          id: "portfolio-learning-record",
+          familyId: workspace.profile.id,
+          learnerId: selectedLearnerId,
+          title: "Portfolio learning record",
+          startsOn,
+          endsOn,
+          createdByUserId: workspace.profile.createdByUserId,
+          createdAt: null,
+          updatedAt: null,
+        },
+        sections: [],
+        evidenceItems: quickRecordPdfEvidenceItems,
         assessmentEvidenceItems: quickRecordAssessmentEvidenceItems,
         preparedOnLabel: formatDateLabel(today),
+        statusLabel: "Ready",
       });
 
       downloadPdf(
         pdfBytes,
-        buildCleanPortfolioPdfFilename(selectedLearnerLabel, today),
+        buildCleanLearningRecordPdfFilename(selectedLearnerLabel, today),
       );
-      setMessage("Portfolio PDF downloaded.");
+      setMessage("Learning record PDF downloaded.");
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
