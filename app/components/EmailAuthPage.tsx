@@ -1515,6 +1515,10 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     </div>
   );
 
+  // Authentication is the primary task; the detailed journey guidance remains
+  // defined for future contextual use but is intentionally not shown on login.
+  void loginSupportPanel;
+
   return (
     <PublicSiteShell
       title="MyLearna"
@@ -1548,7 +1552,6 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           </>
         ) : (
           <>
-            {loginSupportPanel}
             {formCard}
           </>
         )}

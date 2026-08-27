@@ -150,7 +150,8 @@ function AuthCallbackPageContent() {
   const requestedNextPath = useMemo(() => {
     const fallback = normalizeAuthNextPath("/my-profile", "/my-profile");
     const candidate = searchParams.get("next");
-    return normalizeAuthNextPath(candidate || fallback, "/my-profile");
+    const normalized = normalizeAuthNextPath(candidate || fallback, "/my-profile");
+    return normalized === "/" ? "/my-day" : normalized;
   }, [searchParams]);
 
   const errorParam = useMemo(() => safe(searchParams.get("error")), [searchParams]);
@@ -239,6 +240,8 @@ function AuthCallbackPageContent() {
         if (!sessionData.session) {
           throw new Error("We could not complete sign-in from that link. Please try again.");
         }
+
+        trackAuthEvent("auth_session_ready", { route: resolvedNextPathRef.current || requestedNextPath, challengeType: "magic_link" });
 
         const { data: userData } = await supabase.auth.getUser();
         const user = userData.user;
@@ -329,6 +332,7 @@ function AuthCallbackPageContent() {
 
         if (redirectInProgress.current) return;
         redirectInProgress.current = true;
+        trackAuthEvent("auth_product_entry", { route: resolvedNextPath, challengeType: "magic_link" });
         router.replace(resolvedNextPath);
       } catch (authError: unknown) {
         console.error("[auth] callback failed", { kind: isMissingPkceError(authError) ? "missing_pkce" : isExpiredOrUsedLinkError(authError) ? "expired" : "unknown" });
@@ -338,6 +342,8 @@ function AuthCallbackPageContent() {
           const reconciledPath = await reconcileExistingSession(requestedNextPath);
           if (reconciledPath) {
             trackAuthEvent("auth_callback_reconciled", { route: "/auth/callback", resultReason: "missing_pkce" });
+            trackAuthEvent("auth_session_ready", { route: reconciledPath, challengeType: "magic_link" });
+            trackAuthEvent("auth_product_entry", { route: reconciledPath, challengeType: "magic_link" });
             resolvedNextPathRef.current = reconciledPath;
             setTitle("Signed in");
             setMessage("Signed in. Taking you to MyLearna...");
