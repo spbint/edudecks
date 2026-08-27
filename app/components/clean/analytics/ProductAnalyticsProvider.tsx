@@ -10,6 +10,7 @@ import {
   trackPageView,
   trackProductEvent,
 } from "@/lib/clean/analytics/productAnalytics";
+import { consumePendingProductEntry } from "@/lib/authAnalytics";
 
 function getAreaFromRoute(pathname: string) {
   if (pathname.startsWith("/my-day")) return "my_day";
@@ -62,6 +63,13 @@ export default function ProductAnalyticsProvider() {
     identifyProductUser(user.id, { source: "authenticated_app" });
     trackProductEvent("product_signed_in", { route: pathname, area }, user.id);
     signedInTrackedRef.current = user.id;
+  }, [area, pathname, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const pending = consumePendingProductEntry();
+    if (!pending) return;
+    trackProductEvent("auth_product_entry", { route: pathname, area, challengeType: pending.challengeType, journey: pending.journey }, user.id);
   }, [area, pathname, user?.id]);
 
   useEffect(() => {

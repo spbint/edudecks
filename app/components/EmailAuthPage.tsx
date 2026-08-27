@@ -18,7 +18,7 @@ import {
   sendMagicLink,
 } from "@/lib/authMagicLink";
 import { getEmailAuthDelivery } from "@/lib/authEmailMode";
-import { resetAuthAttempt, trackAuthEvent } from "@/lib/authAnalytics";
+import { markPendingProductEntry, resetAuthAttempt, trackAuthEvent } from "@/lib/authAnalytics";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
 import { completeFamilySignOut } from "@/lib/familySignOut";
@@ -547,7 +547,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     await waitForBrowserSessionPropagation();
     await waitForServerSessionReadiness();
     trackAuthEvent("auth_session_ready", { journey: mode, challengeType, route: targetPath });
-    trackAuthEvent("auth_product_entry", { journey: mode, challengeType, route: targetPath });
+    markPendingProductEntry({ journey: mode, challengeType, destination: targetPath });
     resetAuthAttempt();
     window.sessionStorage.removeItem("mylearna.auth.email");
     window.sessionStorage.removeItem("mylearna.auth.journey");

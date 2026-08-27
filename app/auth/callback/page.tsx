@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
-import { trackAuthEvent } from "@/lib/authAnalytics";
+import { markPendingProductEntry, trackAuthEvent } from "@/lib/authAnalytics";
 
 type CallbackErrorKind = "none" | "missing-pkce" | "expired-link" | "generic";
 
@@ -109,6 +109,17 @@ async function withTimeout<T>(promise: Promise<T>, ms: number) {
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+async function waitForServerSessionReadiness() {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      const response = await fetch(`/api/auth/session-ready?ts=${Date.now()}`, { cache: "no-store", credentials: "same-origin", headers: { "x-mylearna-auth-probe": "1" } });
+      if (response.ok) return;
+    } catch { /* bounded retry */ }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  throw new Error("Session handoff is not ready yet.");
 }
 
 async function reconcileExistingSession(requestedNextPath: string) {
@@ -241,8 +252,6 @@ function AuthCallbackPageContent() {
           throw new Error("We could not complete sign-in from that link. Please try again.");
         }
 
-        trackAuthEvent("auth_session_ready", { route: resolvedNextPathRef.current || requestedNextPath, challengeType: "magic_link" });
-
         const { data: userData } = await supabase.auth.getUser();
         const user = userData.user;
         let resolvedNextPath = requestedNextPath;
@@ -330,9 +339,12 @@ function AuthCallbackPageContent() {
         setErrorKind("none");
         resolvedNextPathRef.current = resolvedNextPath;
 
+        await waitForServerSessionReadiness();
+        trackAuthEvent("auth_session_ready", { route: resolvedNextPath, challengeType: "magic_link" });
+        markPendingProductEntry({ journey: "login", challengeType: "magic_link", destination: resolvedNextPath });
+
         if (redirectInProgress.current) return;
         redirectInProgress.current = true;
-        trackAuthEvent("auth_product_entry", { route: resolvedNextPath, challengeType: "magic_link" });
         router.replace(resolvedNextPath);
       } catch (authError: unknown) {
         console.error("[auth] callback failed", { kind: isMissingPkceError(authError) ? "missing_pkce" : isExpiredOrUsedLinkError(authError) ? "expired" : "unknown" });
@@ -343,7 +355,8 @@ function AuthCallbackPageContent() {
           if (reconciledPath) {
             trackAuthEvent("auth_callback_reconciled", { route: "/auth/callback", resultReason: "missing_pkce" });
             trackAuthEvent("auth_session_ready", { route: reconciledPath, challengeType: "magic_link" });
-            trackAuthEvent("auth_product_entry", { route: reconciledPath, challengeType: "magic_link" });
+            await waitForServerSessionReadiness();
+            markPendingProductEntry({ journey: "login", challengeType: "magic_link", destination: reconciledPath });
             resolvedNextPathRef.current = reconciledPath;
             setTitle("Signed in");
             setMessage("Signed in. Taking you to MyLearna...");
