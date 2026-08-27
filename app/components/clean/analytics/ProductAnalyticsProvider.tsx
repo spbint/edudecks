@@ -69,7 +69,7 @@ export default function ProductAnalyticsProvider() {
     if (!user?.id) return;
     const pending = consumePendingProductEntry();
     if (!pending) return;
-    trackProductEvent("auth_product_entry", { route: pathname, area, challengeType: pending.challengeType, journey: pending.journey }, user.id);
+    trackProductEvent("auth_product_entry", { route: pathname, area, challengeType: pending.challengeType, journey: pending.journey, attemptId: pending.attemptId }, user.id);
   }, [area, pathname, user?.id]);
 
   useEffect(() => {

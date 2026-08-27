@@ -354,8 +354,8 @@ function AuthCallbackPageContent() {
           const reconciledPath = await reconcileExistingSession(requestedNextPath);
           if (reconciledPath) {
             trackAuthEvent("auth_callback_reconciled", { route: "/auth/callback", resultReason: "missing_pkce" });
-            trackAuthEvent("auth_session_ready", { route: reconciledPath, challengeType: "magic_link" });
             await waitForServerSessionReadiness();
+            trackAuthEvent("auth_session_ready", { route: reconciledPath, challengeType: "magic_link" });
             markPendingProductEntry({ journey: "login", challengeType: "magic_link", destination: reconciledPath });
             resolvedNextPathRef.current = reconciledPath;
             setTitle("Signed in");
