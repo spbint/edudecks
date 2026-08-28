@@ -856,6 +856,13 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       trackAuthEvent("auth_verification_started", { journey: mode, challengeType: "otp_code", route: window.location.pathname });
       const { error } = await supabase.auth.verifyOtp({ email: safe(email).toLowerCase(), token: verificationCode.trim(), type: "email" });
       if (error) throw error;
+      setStatus(
+        isSignup ? "signed-up" : "signed-in",
+        isSignup ? "Account created" : "Signed in",
+        isSignup ? "Account created. Taking you to your first setup step..." : "Signed in. Taking you to MyLearna...",
+        "email-link",
+      );
+      setIsRedirecting(true);
       const session = (await supabase.auth.getSession()).data.session;
       if (!session?.user) throw new Error("session_not_ready");
       trackAuthEvent("auth_verification_succeeded", { journey: mode, challengeType: "otp_code", route: window.location.pathname });
@@ -968,7 +975,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     );
   }
 
-  if (user) {
+  if (user && saveState !== "code-entry") {
     return (
       <PublicSiteShell
         title="MyLearna"
