@@ -13,11 +13,11 @@ describe("guided-start-family-setup mission state", () => {
   it("derives the next step from authorised workspace state", () => {
     expect(deriveGuidedStartStep({ hasProfile: false, learnerCount: 0, pathname: "/my-profile" })).toBe("family-details");
     expect(deriveGuidedStartStep({ hasProfile: true, learnerCount: 0, pathname: "/my-profile" })).toBe("first-learner");
-    expect(deriveGuidedStartStep({ hasProfile: true, learnerCount: 1, pathname: "/my-profile" })).toBe("continue-settings");
+    expect(deriveGuidedStartStep({ hasProfile: true, learnerCount: 1, pathname: "/my-profile" })).toBe("activation-choice");
     expect(deriveGuidedStartStep({ hasProfile: true, learnerCount: 1, pathname: "/my-settings" })).toBe("complete");
   });
 
-  it("only considers the mission complete after the real settings route is reached", () => {
+  it("keeps the legacy settings completion rule available", () => {
     expect(isGuidedStartComplete({ hasProfile: true, learnerCount: 1, pathname: "/my-profile" })).toBe(false);
     expect(isGuidedStartComplete({ hasProfile: true, learnerCount: 0, pathname: "/my-settings" })).toBe(false);
     expect(isGuidedStartComplete({ hasProfile: true, learnerCount: 1, pathname: "/my-settings" })).toBe(true);
@@ -64,6 +64,6 @@ describe("guided-start-family-setup mission state", () => {
       shouldAutoOfferGuidedStart({ ...base, persistedState: { status: "paused", step: "family-details", welcomeDismissed: true } }),
     ).toBe(false);
     expect(shouldAutoOfferGuidedStart({ ...base, workspaceLoading: true, persistedState: null })).toBe(false);
-    expect(shouldAutoOfferGuidedStart({ ...base, hasProfile: true, learnerCount: 1, persistedState: null })).toBe(false);
+    expect(shouldAutoOfferGuidedStart({ ...base, hasProfile: true, learnerCount: 1, persistedState: null })).toBe(true);
   });
 });

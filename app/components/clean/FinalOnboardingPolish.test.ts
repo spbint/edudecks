@@ -18,12 +18,12 @@ describe("final Homeschool onboarding polish", () => {
     expect(setupClient).toContain("listCleanTemplateBlocks");
   });
 
-  it("gates the Profile to Settings handoff on an authorised saved learner", () => {
+  it("gates the Profile activation fork on an authorised saved learner", () => {
     expect(profile).toContain("const canContinueToSettings");
     expect(profile).toContain("workspace.learners.length > 0");
     expect(profile).toContain("!submitting");
     expect(profile).toContain("!error");
-    expect(profile).toContain("canContinueToSettings ?");
+    expect(profile).toContain("profile-activation-fork");
   });
 
   it("keeps Calendar in year, period, optional break, weekly block order", () => {

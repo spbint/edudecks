@@ -31,17 +31,17 @@ describe("Guided Start family setup integration", () => {
     expect(missionSource).toContain("Not now");
     expect(missionSource).toContain("Complete the highlighted step to continue.");
     expect(missionSource).toContain("Family setup complete");
-    expect(missionSource).toContain("Continue with My Settings");
+    expect(missionSource).toContain("Choose how you want to start");
     expect(missionSource).toContain('aria-live="polite"');
   });
 
   it("uses the existing profile targets and observes real profile/learner mutations", () => {
     expect(missionDefinitionSource).toContain('"profile-family-details"');
     expect(missionDefinitionSource).toContain('"profile-add-learner"');
-    expect(missionDefinitionSource).toContain('"profile-next-settings"');
+    expect(missionDefinitionSource).toContain('"profile-activation-fork"');
     expect(profileSource).toContain('data-guidance-id="profile-family-details"');
     expect(profileSource).toContain('data-guidance-id="profile-add-learner"');
-    expect(profileSource).toContain('data-guidance-id="profile-next-settings"');
+    expect(profileSource).toContain('data-guidance-id="profile-activation-fork"');
     expect(profileSource).toContain("createCleanFamilyProfile");
     expect(profileSource).toContain("createCleanLearner");
     expect(profileSource).toContain("workspace.reload");

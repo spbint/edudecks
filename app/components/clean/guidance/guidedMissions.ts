@@ -6,7 +6,7 @@ export type GuidedStartStep =
   | "welcome"
   | "family-details"
   | "first-learner"
-  | "continue-settings"
+  | "activation-choice"
   | "complete";
 
 export type GuidedStartPresentation = "mobile" | "desktop";
@@ -49,7 +49,7 @@ export function shouldAutoOfferGuidedStart({
     return false;
   }
 
-  if (hasProfile && learnerCount > 0) return false;
+  if (hasProfile && learnerCount > 0 && persistedState?.status === "completed") return false;
   return persistedState === null || persistedState.status === "not_started";
 }
 
@@ -58,7 +58,7 @@ export const GUIDED_START_STEP_COUNT = 4;
 export const GUIDED_START_TARGETS: Record<Exclude<GuidedStartStep, "welcome" | "complete">, string> = {
   "family-details": "profile-family-details",
   "first-learner": "profile-add-learner",
-  "continue-settings": "profile-next-settings",
+  "activation-choice": "profile-activation-fork",
 };
 
 function hashScope(value: string) {
@@ -94,7 +94,7 @@ export function deriveGuidedStartStep({
   if (!hasProfile) return "family-details";
   if (learnerCount < 1) return "first-learner";
   if (isGuidedStartSettingsRoute(pathname)) return "complete";
-  return "continue-settings";
+  return "activation-choice";
 }
 
 export function reconcileGuidedStartState({
@@ -131,6 +131,9 @@ export function reconcileGuidedStartState({
     return { ...persistedState, step: realStep };
   }
 
+  if (persistedState.status === "completed" && hasProfile && learnerCount > 0) {
+    return { ...persistedState, step: "complete", welcomeDismissed: true };
+  }
   if (persistedState.status === "completed") {
     return {
       status: "not_started",
@@ -185,7 +188,7 @@ export function readGuidedStartState(
       parsed.step === "welcome" ||
       parsed.step === "family-details" ||
       parsed.step === "first-learner" ||
-      parsed.step === "continue-settings" ||
+      parsed.step === "activation-choice" ||
       parsed.step === "complete"
         ? parsed.step
         : "welcome";

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
@@ -10,7 +10,6 @@ import {
   GuidanceGettingStartedCard,
   GuidancePageAction,
   GuidanceSetupProgress,
-  GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
 import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
@@ -33,6 +32,13 @@ import {
 import type { Learner } from "@/lib/clean/learners/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  getGuidedStartStorageKey,
+  readGuidedStartState,
+  writeGuidedStartState,
+} from "@/app/components/clean/guidance/guidedMissions";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -145,6 +151,8 @@ function titleCaseSlug(value: string | null | undefined) {
 function CleanProfileWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const { enabled: guidanceEnabled, setupStatus } = useGuidance();
+  const { user } = useAuthUser();
+  const router = useRouter();
   const [familyName, setFamilyName] = useState("");
   const [learnerFirstName, setLearnerFirstName] = useState("");
   const [learnerPreferredName, setLearnerPreferredName] = useState("");
@@ -157,7 +165,37 @@ function CleanProfileWorkspaceBody() {
   const [learnerActionId, setLearnerActionId] = useState<string | null>(null);
   const [signupPrefill, setSignupPrefill] = useState<SignupPrefill | null>(null);
   const [showExtraLearnerForm, setShowExtraLearnerForm] = useState(false);
+  const [activationCompleted, setActivationCompleted] = useState(false);
   const signupPrefillApplied = useRef(false);
+  const activationViewedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user?.id || typeof window === "undefined") return;
+    const stored = readGuidedStartState(window.localStorage, getGuidedStartStorageKey(user.id));
+    setActivationCompleted(stored?.status === "completed");
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (activationCompleted || !workspace.profile || workspace.learners.length < 1 || activationViewedRef.current) return;
+    activationViewedRef.current = true;
+    trackProductEvent("activation_choice_viewed", { route: "/my-profile", source: "activation_fork" });
+  }, [activationCompleted, workspace.learners.length, workspace.profile]);
+
+  function chooseActivation(destination: "/my-calendar" | "/my-day") {
+    if (!user?.id || typeof window === "undefined") return;
+    writeGuidedStartState(window.localStorage, getGuidedStartStorageKey(user.id), {
+      status: "completed",
+      step: "complete",
+      welcomeDismissed: true,
+    });
+    setActivationCompleted(true);
+    trackProductEvent("activation_choice_selected", {
+      route: "/my-profile",
+      source: "activation_fork",
+      destination,
+    });
+    router.push(destination);
+  }
 
   useEffect(() => {
     const prefill = readSignupPrefill();
@@ -268,12 +306,12 @@ function CleanProfileWorkspaceBody() {
         label: "Next best step",
         title: setupContextReady
           ? "Move into planning once this looks right"
-          : "Finish family settings after learners are ready",
+          : "Choose how to start",
         description: setupContextReady
           ? "Once names and the default learner feel right, head to My Day and start using the learning workflow."
-          : "After learner details are in place, open My Settings to choose country, curriculum, and reporting context.",
-        actionHref: setupContextReady ? "/my-day" : "/my-settings",
-        actionLabel: setupContextReady ? "Open My Day" : "Open My Settings",
+          : "Your family space is ready. Choose whether to plan your usual week or start with today.",
+        actionHref: setupContextReady ? "/my-day" : "#profile-activation-fork",
+        actionLabel: setupContextReady ? "Open My Day" : "Choose how to start",
       },
     ];
   }, [setupContextReady, workspace.learners.length, workspace.requiresFamilyCreation]);
@@ -962,25 +1000,27 @@ function CleanProfileWorkspaceBody() {
               </section>
             )}
 
-            {canContinueToSettings ? <section data-guidance-id="profile-next-settings" style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Next step: My Settings</h2>
-              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                After your profile is ready, choose your country, curriculum and reporting
-                context in My Settings.
-              </p>
-              {setupStatus === "active" ? (
-                <GuidanceSetupNextAction
-                  stepId="profile"
-                  nextHref="/my-settings"
-                  label="Continue to My Settings"
-                  helperText="Family profile is started. Continue when you are ready to choose your learning settings."
-                />
-              ) : (
-                <Link href="/my-settings" style={buttonStyle}>
-                  Open My Settings
-                </Link>
-              )}
-            </section> : null}
+            {canContinueToSettings && !setupContextReady && !activationCompleted ? (
+              <section data-guidance-id="profile-activation-fork" style={cardStyle}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Your family space is ready</h2>
+                <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                  Choose how you want to begin. You can change this later.
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 14 }}>
+                  <div style={{ border: "2px solid #6C4DF6", borderRadius: 16, padding: 16, background: "#faf9ff", display: "grid", gap: 10 }}>
+                    <div style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 850, textTransform: "uppercase", letterSpacing: "0.06em" }}>Recommended</div>
+                    <h3 style={{ margin: 0, color: "#17204B", fontSize: 18 }}>Plan our usual week</h3>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>Set up the rhythm you normally follow so My Day has some structure.</p>
+                    <button type="button" onClick={() => chooseActivation("/my-calendar")} style={{ ...buttonStyle, minHeight: 48 }}>Plan our usual week</button>
+                  </div>
+                  <div style={{ border: "1px solid #E7EAF2", borderRadius: 16, padding: 16, background: "#ffffff", display: "grid", gap: 10 }}>
+                    <h3 style={{ margin: 0, color: "#17204B", fontSize: 18 }}>Start with today</h3>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>Skip weekly setup for now and go straight to today&apos;s learning.</p>
+                    <button type="button" onClick={() => chooseActivation("/my-day")} style={{ ...secondaryButtonStyle, minHeight: 48 }}>Start with today</button>
+                  </div>
+                </div>
+              </section>
+            ) : null}
           </>
         ) : null}
 

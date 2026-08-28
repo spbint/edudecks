@@ -35,9 +35,9 @@ const stepCopy: Record<Exclude<GuidedStartStep, "welcome" | "complete">, { title
     title: "Add your first learner",
     body: "Each learner gets their own pathways, evidence, Portfolio and reports.",
   },
-  "continue-settings": {
-    title: "Your family space is ready",
-    body: "Next, choose the learning and reporting settings that suit your family.",
+  "activation-choice": {
+    title: "Choose how you want to start",
+    body: "Plan your usual week for more structure, or start with today and begin using MyLearna now.",
   },
 };
 
@@ -297,7 +297,7 @@ function GuidedStartFamilySetup() {
   if (!welcomeVisible && !activeVisible && !completionVisible) return null;
 
   const visibleStep =
-    activeStep === "family-details" || activeStep === "first-learner" || activeStep === "continue-settings"
+    activeStep === "family-details" || activeStep === "first-learner" || activeStep === "activation-choice"
       ? stepCopy[activeStep]
       : null;
   const stepLabel = activeStep ? `Step ${getGuidedStartStepNumber(activeStep)} of 4` : "Step 1 of 4";
