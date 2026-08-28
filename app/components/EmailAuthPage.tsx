@@ -13,6 +13,7 @@ import {
 import { buildAuthCallbackUrl, normalizeAuthNextPath } from "@/lib/authRedirect";
 import {
   getMagicLinkRetryAfterMs,
+  MAGIC_LINK_CLIENT_RESEND_DELAY_MS,
   mapMagicLinkError,
   sendEmailAuthChallenge,
   sendMagicLink,
@@ -474,6 +475,21 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     clearFeedback();
   }, [isSignup, searchParams]);
 
+  useEffect(() => {
+    if (authUserLoading || user || emailDelivery === "magic-link") return;
+    const storedEmail = window.sessionStorage.getItem("mylearna.auth.email") ?? "";
+    const storedJourney = window.sessionStorage.getItem("mylearna.auth.journey") ?? "";
+    const storedNextPath = window.sessionStorage.getItem("mylearna.auth.nextPath") ?? "";
+    if (!isValidEmail(storedEmail) || storedJourney !== mode || normalizeAuthNextPath(storedNextPath, defaultNextPath) !== nextPath) return;
+    setEmail(storedEmail);
+    setSaveState("code-entry");
+    setAuthAction("email-link");
+    setStatusTitle("Check your email");
+    setMessage(`Enter the code we sent to ${maskedEmail(storedEmail)}.`);
+    const sentAt = Number(window.sessionStorage.getItem("mylearna.auth.sentAt") ?? 0);
+    if (sentAt > 0) setResendRemainingMs(Math.max(0, MAGIC_LINK_CLIENT_RESEND_DELAY_MS - (Date.now() - sentAt)));
+  }, [authUserLoading, defaultNextPath, emailDelivery, mode, nextPath, user]);
+
   async function waitForBrowserSessionPropagation() {
     if (typeof window === "undefined") {
       return;
@@ -552,6 +568,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     window.sessionStorage.removeItem("mylearna.auth.email");
     window.sessionStorage.removeItem("mylearna.auth.journey");
     window.sessionStorage.removeItem("mylearna.auth.nextPath");
+    window.sessionStorage.removeItem("mylearna.auth.sentAt");
 
     if (redirectStarted.current) return;
     redirectStarted.current = true;
@@ -801,16 +818,17 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       } else {
         await sendEmailAuthChallenge({ email: safe(email).toLowerCase(), mode, nextPath, source: isSignup ? "signup-page" : "login-page", delivery: emailDelivery, signupPrefill: isSignup ? readSignupPrefill() : null });
       }
-      setResendRemainingMs(30000);
+      setResendRemainingMs(MAGIC_LINK_CLIENT_RESEND_DELAY_MS);
       setVerificationCode("");
       window.sessionStorage.setItem("mylearna.auth.email", safe(email).toLowerCase());
       window.sessionStorage.setItem("mylearna.auth.journey", mode);
       window.sessionStorage.setItem("mylearna.auth.nextPath", nextPath);
+      window.sessionStorage.setItem("mylearna.auth.sentAt", String(Date.now()));
       trackAuthEvent("auth_challenge_sent", { journey: mode, challengeType: emailDelivery !== "magic-link" ? "otp_code" : "magic_link", route: window.location.pathname });
       setStatus(
         emailDelivery !== "magic-link" ? "code-entry" : "check-email",
         emailDelivery !== "magic-link" ? "Check your email" : "Check your inbox",
-        emailDelivery !== "magic-link" ? `Enter the code from your email. We sent it to ${maskedEmail(safe(email).toLowerCase())}.` : "Open the secure MyLearna link to continue. It may take a moment to arrive. Check spam or promotions if you do not see it.",
+        emailDelivery !== "magic-link" ? `We sent a six-digit code to ${maskedEmail(safe(email).toLowerCase())}. Enter it below to continue.` : "Open the secure MyLearna link to continue. It may take a moment to arrive. Check spam or promotions if you do not see it.",
         "email-link",
       );
     } catch (error) {
@@ -842,10 +860,18 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       if (!session?.user) throw new Error("session_not_ready");
       trackAuthEvent("auth_verification_succeeded", { journey: mode, challengeType: "otp_code", route: window.location.pathname });
       const resolvedPath = await resolveFirstAppPath(nextPath);
-      await redirectAfterSession("Signed in", "Signed in. Taking you to MyLearna...", resolvedPath, "otp_code");
+      await redirectAfterSession(
+        isSignup ? "Account created" : "Signed in",
+        isSignup ? "Account created. Taking you to your first setup step..." : "Signed in. Taking you to MyLearna...",
+        resolvedPath,
+        "otp_code",
+      );
       resetAuthAttempt();
     } catch {
-      setStatus("error", "We could not verify that code", "That code was not recognised. Check it and try again.", "email-link");
+      setSaveState("code-entry");
+      setAuthAction("email-link");
+      setStatusTitle("We could not verify that code");
+      setMessage("That code was not recognised. Check it and try again.");
       trackAuthEvent("auth_verification_failed", { journey: mode, challengeType: "otp_code", route: window.location.pathname, resultReason: "invalid_code" });
     }
   }
@@ -859,17 +885,17 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
 
   const formLabel = isSignup ? "Secure email sign-in" : "Sign in";
   const formTitle = isSignup ? "Open your private MyLearna space" : "Sign in to MyLearna";
-  const formText = isSignup
+  const magicFormText = isSignup
     ? "Enter your email and we’ll send a secure one-time link. There is no password to create, remember or reset."
     : "Enter your email and we'll send you a secure sign-in link. No password needed.";
-  const introNotice = isSignup
+  const magicIntroNotice = isSignup
     ? "No password. No credit card. Your family space stays private."
     : "No password needed. Open the secure sign-in link from your email and we'll bring you back into MyLearna.";
   const heroTitle = isSignup ? "Open your private MyLearna space" : "Sign in to MyLearna";
-  const heroText = isSignup
+  const magicHeroText = isSignup
     ? "Enter your email and we’ll send a secure one-time link. There is no password to create, remember or reset."
     : "Enter your email and we'll send you a secure sign-in link so you can get back into today, the week ahead, and your growing family record.";
-  const heroMicrocopy = isSignup
+  const magicHeroMicrocopy = isSignup
     ? "No password. No credit card. Your family space stays private."
     : `No password needed. After sign-in, we will take you to ${destinationLabel}.`;
   const passwordButtonLabel = isSignup ? "Create account with password" : "Continue with password";
@@ -878,10 +904,15 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     ? "Taking you to your first setup step..."
     : "Taking you to MyLearna...";
   const emailLinkButtonLabel = emailDelivery !== "magic-link" ? "Continue" : "Send secure sign-in link";
-  const emailLinkHelperText = isSignup
+  const magicEmailLinkHelperText = isSignup
     ? "We’ll send one secure email link. Open it to enter your private family space and follow the guided setup."
     : "We'll email you a secure sign-in link. Open it on this device if you can, and we'll bring you straight back into MyLearna.";
-  const emailLinkSendingLabel = "Sending sign-in link...";
+  const emailLinkSendingLabel = emailDelivery === "magic-link" ? "Sending sign-in link..." : "Sending code...";
+  const formText = emailDelivery === "magic-link" ? magicFormText : "Enter your email and we'll send you a secure one-time code.";
+  const introNotice = emailDelivery === "magic-link" ? magicIntroNotice : "No password needed. Enter the code from your email here in MyLearna.";
+  const heroText = emailDelivery === "magic-link" ? magicHeroText : "Enter your email and we'll send a secure one-time code.";
+  const heroMicrocopy = emailDelivery === "magic-link" ? magicHeroMicrocopy : "No password needed. Enter the code from your email here in MyLearna.";
+  const emailLinkHelperText = emailDelivery === "magic-link" ? magicEmailLinkHelperText : "Enter the code from your email here in MyLearna.";
   const alternatePrompt = isSignup ? "Already have an account?" : "New to MyLearna?";
   const alternateLabel = isSignup ? "Sign in" : "Create an account";
   const footerPrimary = isSignup
@@ -1097,18 +1128,18 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
               <input
                 id="mylearna-email-code"
                 value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ""))}
+                onChange={(event) => { setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6)); if (saveState === "code-entry" && message) setMessage(""); }}
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={12}
+                maxLength={6}
                 style={inputStyle(false)}
                 disabled={isBusy}
               />
             </div>
-            <button type="submit" disabled={!verificationCode.trim() || isBusy} style={primaryButtonStyle(!verificationCode.trim() || isBusy)}>
+            <button type="submit" disabled={verificationCode.length !== 6 || isBusy} style={primaryButtonStyle(verificationCode.length !== 6 || isBusy)}>
               {isBusy ? "Signing you in..." : "Continue"}
             </button>
-            <button type="button" onClick={() => { setVerificationCode(""); setResendRemainingMs(0); window.sessionStorage.removeItem("mylearna.auth.email"); resetAuthAttempt(); clearFeedback(); }} style={{ border: "none", background: "transparent", color: "#2563eb", fontWeight: 800, cursor: "pointer" }}>
+            <button type="button" onClick={() => { setVerificationCode(""); setResendRemainingMs(0); ["mylearna.auth.email", "mylearna.auth.journey", "mylearna.auth.nextPath", "mylearna.auth.sentAt"].forEach((key) => window.sessionStorage.removeItem(key)); resetAuthAttempt(); clearFeedback(); }} style={{ border: "none", background: "transparent", color: "#2563eb", fontWeight: 800, cursor: "pointer" }}>
               Change email
             </button>
             <button type="button" onClick={() => void handleResend()} disabled={resendRemainingMs > 0 || isBusy} style={secondaryButtonStyle(resendRemainingMs > 0 || isBusy)}>
@@ -1117,7 +1148,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           </>
         ) : saveState === "check-email" && authAction === "email-link" ? (
           <>
-            <button type="button" onClick={() => { setResendRemainingMs(0); window.sessionStorage.removeItem("mylearna.auth.email"); resetAuthAttempt(); clearFeedback(); }} style={secondaryButtonStyle(false)}>Change email</button>
+            <button type="button" onClick={() => { setResendRemainingMs(0); ["mylearna.auth.email", "mylearna.auth.journey", "mylearna.auth.nextPath", "mylearna.auth.sentAt"].forEach((key) => window.sessionStorage.removeItem(key)); resetAuthAttempt(); clearFeedback(); }} style={secondaryButtonStyle(false)}>Change email</button>
             <button type="button" onClick={() => void handleResend()} disabled={resendRemainingMs > 0 || isBusy} style={secondaryButtonStyle(resendRemainingMs > 0 || isBusy)}>
               {resendRemainingMs > 0 ? `Resend available in ${Math.ceil(resendRemainingMs / 1000)}s` : "Resend sign-in link"}
             </button>

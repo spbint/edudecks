@@ -27,8 +27,8 @@ export type MagicLinkErrorDetails = {
 export type MagicLinkMode = "login" | "signup";
 export type EmailAuthChallengeDelivery = "magic-link" | "otp-code";
 
-export const MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS = 30000;
-export const MAGIC_LINK_CLIENT_RESEND_DELAY_MS = 30000;
+export const MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS = 60000;
+export const MAGIC_LINK_CLIENT_RESEND_DELAY_MS = 60000;
 
 const inFlightMagicLinkEmails = new Set<string>();
 const magicLinkCooldowns = new Map<string, number>();
