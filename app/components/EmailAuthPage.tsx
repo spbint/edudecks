@@ -868,6 +868,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       );
       resetAuthAttempt();
     } catch {
+      setIsRedirecting(false);
       setSaveState("code-entry");
       setAuthAction("email-link");
       setStatusTitle("We could not verify that code");
@@ -936,6 +937,32 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26 }}>
             Checking your session...
           </h2>
+        </section>
+      </PublicSiteShell>
+    );
+  }
+
+  if (isRedirecting) {
+    return (
+      <PublicSiteShell
+        title="MyLearna"
+        eyebrow={isSignup ? "Account created" : "Signed in"}
+        heroTitle={isSignup ? "Account created" : "Signed in"}
+        heroText={isSignup ? "Taking you to your first setup step..." : "Taking you to MyLearna..."}
+        primaryCta={null}
+        secondaryCta={null}
+        compactHero
+      >
+        <section style={{ maxWidth: 680 }}>
+          <div style={cardStyle()}>
+            <div style={sectionLabelStyle()}>Secure handoff</div>
+            <h2 style={{ margin: 0, color: "#0f172a", fontSize: 26 }}>
+              {isSignup ? "Account created" : "Signed in"}
+            </h2>
+            <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.7 }}>
+              {isSignup ? "Taking you to your first setup step..." : "Taking you to MyLearna..."}
+            </p>
+          </div>
         </section>
       </PublicSiteShell>
     );
