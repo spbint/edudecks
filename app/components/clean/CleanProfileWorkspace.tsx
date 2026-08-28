@@ -150,7 +150,7 @@ function titleCaseSlug(value: string | null | undefined) {
 
 function CleanProfileWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
-  const { enabled: guidanceEnabled, setupStatus } = useGuidance();
+  const { enabled: guidanceEnabled, setupStatus, setSetupStatus } = useGuidance();
   const { user } = useAuthUser();
   const router = useRouter();
   const [familyName, setFamilyName] = useState("");
@@ -168,6 +168,7 @@ function CleanProfileWorkspaceBody() {
   const [activationCompleted, setActivationCompleted] = useState(false);
   const signupPrefillApplied = useRef(false);
   const activationViewedRef = useRef(false);
+  const activationChoiceSelectedRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id || typeof window === "undefined") return;
@@ -175,25 +176,43 @@ function CleanProfileWorkspaceBody() {
     setActivationCompleted(stored?.status === "completed");
   }, [user?.id]);
 
+  const showActivationFork = Boolean(
+    workspace.profile &&
+      workspace.learners.length > 0 &&
+      !submitting &&
+      !error &&
+      !activationCompleted,
+  );
+
   useEffect(() => {
-    if (activationCompleted || !workspace.profile || workspace.learners.length < 1 || activationViewedRef.current) return;
+    if (!showActivationFork || activationViewedRef.current) return;
     activationViewedRef.current = true;
     trackProductEvent("activation_choice_viewed", { route: "/my-profile", source: "activation_fork" });
-  }, [activationCompleted, workspace.learners.length, workspace.profile]);
+  }, [showActivationFork]);
 
   function chooseActivation(destination: "/my-calendar" | "/my-day") {
-    if (!user?.id || typeof window === "undefined") return;
-    writeGuidedStartState(window.localStorage, getGuidedStartStorageKey(user.id), {
+    if (!user?.id || typeof window === "undefined" || activationChoiceSelectedRef.current) return;
+    activationChoiceSelectedRef.current = true;
+    const key = getGuidedStartStorageKey(user.id);
+    const stored = readGuidedStartState(window.localStorage, key);
+    const guidedActivationActive = stored?.status === "active" && stored.step === "activation-choice";
+    writeGuidedStartState(window.localStorage, key, {
       status: "completed",
       step: "complete",
       welcomeDismissed: true,
     });
+    setSetupStatus("completed");
     setActivationCompleted(true);
     trackProductEvent("activation_choice_selected", {
       route: "/my-profile",
       source: "activation_fork",
       destination,
     });
+    if (guidedActivationActive) {
+      const presentation = window.innerWidth <= 720 ? "mobile" : "desktop";
+      trackProductEvent("guided_start_step_completed", { mission: "guided-start-family-setup", step: "activation-choice", route: "/my-profile", presentation });
+      trackProductEvent("guided_start_completed", { mission: "guided-start-family-setup", step: "complete", route: "/my-profile", presentation });
+    }
     router.push(destination);
   }
 
@@ -319,9 +338,6 @@ function CleanProfileWorkspaceBody() {
   const profileHeading = familyDisplayName ? `${familyDisplayName} profile` : "My Profile";
   const firstSetupMode =
     guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
-  const canContinueToSettings =
-    Boolean(workspace.profile) && workspace.learners.length > 0 && !submitting && !error;
-
   async function handleCreateFamilyProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -1000,7 +1016,7 @@ function CleanProfileWorkspaceBody() {
               </section>
             )}
 
-            {canContinueToSettings && !setupContextReady && !activationCompleted ? (
+            {showActivationFork ? (
               <section data-guidance-id="profile-activation-fork" style={cardStyle}>
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>Your family space is ready</h2>
                 <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>

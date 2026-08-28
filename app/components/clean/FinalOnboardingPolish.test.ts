@@ -19,7 +19,7 @@ describe("final Homeschool onboarding polish", () => {
   });
 
   it("gates the Profile activation fork on an authorised saved learner", () => {
-    expect(profile).toContain("const canContinueToSettings");
+    expect(profile).toContain("const showActivationFork");
     expect(profile).toContain("workspace.learners.length > 0");
     expect(profile).toContain("!submitting");
     expect(profile).toContain("!error");
