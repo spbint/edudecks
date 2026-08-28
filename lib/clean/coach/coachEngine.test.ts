@@ -40,6 +40,14 @@ describe("MyLearna Coach recommendation engine", () => {
     expect(getCoachRecommendation(state(overrides))).toMatchObject({ id: expected, mandatorySetup: true });
   });
 
+  it("keeps first-week planning in Calendar when settings are incomplete", () => {
+    expect(
+      getCoachRecommendation(
+        state({ route: "/my-calendar", hasLearningSettings: false, hasWeeklyBlock: false }),
+      ),
+    ).toMatchObject({ id: "setup-weekly-block", primaryRoute: "/my-calendar" });
+  });
+
   it("returns no recommendation while the authorised workspace is loading or errored", () => {
     expect(getCoachRecommendation(state({ workspaceResolved: false }))).toBeNull();
     expect(getCoachRecommendation(state({ setupResolved: false }))).toBeNull();

@@ -80,7 +80,11 @@ export function getCoachRecommendation(state: CoachState): CoachEngineResult {
     });
   }
 
-  if (!state.hasLearningSettings) {
+  const calendarPlanningRoute = state.route === "/my-calendar" || state.route.startsWith("/my-calendar/");
+
+  // Keep an explicit Plan activation in Calendar; Settings remains available
+  // elsewhere but must not become a rebound step for this journey.
+  if (!state.hasLearningSettings && !calendarPlanningRoute) {
     return recommendation(state, {
       id: "setup-learning-settings",
       category: "setup",

@@ -1030,6 +1030,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
   const [showMasterBlockHandoff, setShowMasterBlockHandoff] = useState(false);
+  const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(false);
   const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
   const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
@@ -2704,11 +2705,15 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         );
       }
 
+      const creatingFirstBlock = !editingTemplateBlockId && !hasMasterWeekBlock;
       closeRhythmPopover();
       if (firstSetupMode && !hasMasterWeekBlock) {
         setShowMasterBlockHandoff(true);
       }
-      setMessage(hasMasterWeekBlock ? "Master block updated." : "Learning plan started.");
+      if (creatingFirstBlock) {
+        setShowFirstValueHandoff(true);
+      }
+      setMessage(hasMasterWeekBlock ? "Master block updated." : "Your usual week is ready.");
       await reloadTemplateBlocks();
       requestCoachStateRefresh(editingTemplateBlockId ? "weekly-block-updated" : "weekly-block-created");
     } catch (error) {
@@ -3478,9 +3483,16 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
               <p style={{ ...secondaryTextStyle, margin: 0, fontWeight: 700 }}>
               Plan the learning week.
             </p>
-            <Link href="/my-settings/planning" style={{ color: "#1d4ed8", fontWeight: 800, width: "fit-content" }}>
-              Manage your usual week
-            </Link>
+            <button
+              type="button"
+              onClick={focusMasterWeekTemplate}
+              style={{ ...mutedButtonStyle, width: "fit-content" }}
+            >
+              Set up your usual week
+            </button>
+            <p style={{ ...secondaryTextStyle, margin: 0 }}>
+              Add the learning blocks your family normally follows. You can change them anytime.
+            </p>
             <CoreJourneyHelp>
               <p>
                 Set term dates, keep your usual week, and shape the live week when
@@ -6346,7 +6358,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                             Set up your usual week before planning recurring blocks.
                           </p>
-                          <button type="button" style={buttonStyle} onClick={() => router.push("/my-settings/planning")}>
+                          <button type="button" style={buttonStyle} onClick={focusMasterWeekTemplate}>
                             Set up your usual week
                           </button>
                         </div>
@@ -6956,6 +6968,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         {message ? (
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+            {showFirstValueHandoff ? (
+              <Link href="/my-day" style={buttonStyle}>
+                Open My Day
+              </Link>
+            ) : null}
           </section>
         ) : null}
 

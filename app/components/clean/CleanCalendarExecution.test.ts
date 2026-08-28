@@ -13,6 +13,14 @@ describe("live Calendar execution actions", () => {
     expect(source).toContain("nextMasterTemplates.length === 1");
   });
 
+  it("keeps first-value usual-week setup inside Calendar", () => {
+    expect(source).toContain("Add the learning blocks your family normally follows");
+    expect(source).toContain("Your usual week is ready.");
+    expect(source).toContain('href="/my-day"');
+    expect(source).not.toContain('router.push("/my-settings/planning")');
+    expect(source).not.toContain("Manage your usual week");
+  });
+
   it("preserves planning controls and adds completion/capture actions for live items", () => {
     expect(source).toContain("handleCalendarCompletionToggle");
     expect(source).toContain("Mark complete");
