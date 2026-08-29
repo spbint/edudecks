@@ -48,7 +48,7 @@ import {
   buildCleanGeneratedWeekPreview,
   listCleanGenerationRuns,
 } from "@/lib/clean/generation/client";
-import { ensureCleanOperationalWeekFromUsualWeek } from "@/lib/clean/generation/materialize";
+import { materializeMasterWeekRange } from "@/lib/clean/generation/materialize";
 import type {
   CleanGeneratedWeekSuggestion,
   CleanGenerationRun,
@@ -1674,13 +1674,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setItemsError(null);
 
     try {
-      if (!planningOnly && calendarBoardView === "week") {
-        await ensureCleanOperationalWeekFromUsualWeek({
+      if (!planningOnly) {
+        await materializeMasterWeekRange({
           familyId: workspace.profile.id,
-          weekStartsOn: selectedWeekStart,
-          weekEndsOn: selectedWeekEnd,
+          startsOn: selectedCalendarStart,
+          endsOn: selectedCalendarEnd,
           today: getTodayDate(),
           templateId: selectedTemplateId || null,
+          academicYearId: selectedAcademicYearId || null,
         });
       }
       const nextItems = await getOrCreateCleanPlanningCalendarItemsRequest(
@@ -1719,8 +1720,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     planningOnly,
     workspace.currentUserId,
     selectedTemplateId,
-    selectedWeekEnd,
-    selectedWeekStart,
+    selectedAcademicYearId,
     selectedCalendarEnd,
     selectedCalendarStart,
     workspace.profile,
@@ -2715,6 +2715,15 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       }
       setMessage(hasMasterWeekBlock ? "Master Week block updated." : "Your Master Week is ready.");
       await reloadTemplateBlocks();
+      await materializeMasterWeekRange({
+        familyId: workspace.profile.id,
+        templateId: selectedTemplateId,
+        academicYearId: selectedAcademicYearId || null,
+        startsOn: getTodayDate(),
+        endsOn: selectedAcademicYear?.endsOn ?? selectedWeekEnd,
+        today: getTodayDate(),
+      });
+      setMessage(hasMasterWeekBlock ? "Current Calendar updated." : "Your Master Week is ready.");
       requestCoachStateRefresh(editingTemplateBlockId ? "weekly-block-updated" : "weekly-block-created");
     } catch (error) {
       setActionError(
@@ -2740,6 +2749,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       closeRhythmPopover();
       setMessage("Block deleted.");
       await reloadTemplateBlocks();
+      await materializeMasterWeekRange({
+        familyId: workspace.profile.id,
+        templateId: selectedTemplateId,
+        academicYearId: selectedAcademicYearId || null,
+        startsOn: getTodayDate(),
+        endsOn: selectedAcademicYear?.endsOn ?? selectedWeekEnd,
+        today: getTodayDate(),
+      });
       requestCoachStateRefresh("weekly-block-deleted");
     } catch (error) {
       setActionError(
@@ -2944,8 +2961,17 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         sourceType: "manual" as const,
       };
 
+      const updatePayload = editingItemId
+        ? {
+            ...payload,
+            ...(items.find((item) => item.id === editingItemId)?.sourceType === "generated"
+              ? { sourceType: "manual" as const, sourceTemplateBlockId: null, generationRunId: null }
+              : {}),
+          }
+        : payload;
+
       if (editingItemId) {
-        await updateCleanCalendarItem(workspace.profile.id, editingItemId, payload);
+        await updateCleanCalendarItem(workspace.profile.id, editingItemId, updatePayload);
         trackProductEvent(
           "calendar_block_updated",
           {

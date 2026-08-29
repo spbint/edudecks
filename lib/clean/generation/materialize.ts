@@ -1,4 +1,9 @@
-import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
+import {
+  deleteCleanCalendarItem,
+  listCleanCalendarItems,
+  updateCleanCalendarItem,
+} from "@/lib/clean/calendar/client";
+import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import { clearCleanPlanningCacheForFamily } from "@/lib/clean/planning/cache";
 import { listCleanMasterTemplates, listCleanTemplateBlocks } from "@/lib/clean/templates/client";
 import { listCleanAcademicYears, listCleanBlackoutDays, listCleanLearningPeriods } from "@/lib/clean/terms/client";
@@ -17,6 +22,7 @@ type MaterializeInput = {
   weekEndsOn: string;
   today: string;
   templateId?: string | null;
+  academicYearId?: string | null;
 };
 
 export type CleanOperationalWeekMaterialization = {
@@ -35,6 +41,13 @@ export type CleanOperationalWeekMaterialization = {
   generationRun: CleanGenerationRun | null;
 };
 
+export type CleanMasterWeekRangeMaterialization = {
+  weeks: CleanOperationalWeekMaterialization[];
+  createdItems: CleanCalendarItem[];
+  updatedItemsCount: number;
+  removedItemsCount: number;
+};
+
 const inFlight = new Map<string, Promise<CleanOperationalWeekMaterialization>>();
 
 function key(input: MaterializeInput) {
@@ -43,6 +56,19 @@ function key(input: MaterializeInput) {
 
 function empty(status: CleanOperationalWeekMaterialization["status"]): CleanOperationalWeekMaterialization {
   return { status, createdItems: [], generationRun: null };
+}
+
+function addDays(dateValue: string, offset: number) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function getWeekStart(dateValue: string) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  const weekday = date.getDay();
+  date.setDate(date.getDate() + (weekday === 0 ? -6 : 1 - weekday));
+  return date.toISOString().slice(0, 10);
 }
 
 export function filterCleanAutomaticWeekSuggestions<T extends { plannedDate: string }>(
@@ -156,19 +182,14 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     }),
   ]);
 
-  if (!templateBlocks.length) return empty("no-applicable-blocks");
-
   const anchorDate = input.weekStartsOn > input.today ? input.weekStartsOn : input.today;
-  const academicYear = academicYears.find(
-    (year) => year.startsOn <= anchorDate && year.endsOn >= anchorDate,
-  );
-  if (!academicYear) return empty("outside-learning-year");
-
-  const periodsForYear = learningPeriods.filter((period) => period.academicYearId === academicYear.id);
-  const breakAtAnchor = getPeriodForDate(getBreakPeriods(periodsForYear), anchorDate);
-  if (breakAtAnchor) return empty("blocked-week");
-  const periodAtAnchor = getPeriodForDate(periodsForYear, anchorDate);
-  if (!periodAtAnchor || isBreakLearningPeriod(periodAtAnchor)) return empty("blocked-week");
+  const academicYear = input.academicYearId
+    ? academicYears.find((year) => year.id === input.academicYearId) ?? null
+    : academicYears.find((year) => year.startsOn <= anchorDate && year.endsOn >= anchorDate) ?? null;
+  const periodsForYear = academicYear
+    ? learningPeriods.filter((period) => period.academicYearId === academicYear.id)
+    : [];
+  const teachingPeriods = periodsForYear.filter((period) => !isBreakLearningPeriod(period));
 
   const preview = buildCleanGeneratedWeekPreview({
     weekStartsOn: input.weekStartsOn,
@@ -185,33 +206,85 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
       endsOn: period.endsOn,
       title: period.title,
     })),
-    selectedLearningPeriod: {
-      title: periodAtAnchor.title,
-      startsOn: periodAtAnchor.startsOn,
-      endsOn: periodAtAnchor.endsOn,
-      isBreak: periodAtAnchor.isBreak,
-      periodType: periodAtAnchor.periodType,
-    },
+    selectedLearningPeriod: null,
   });
-  const automaticPreview = filterCleanAutomaticWeekSuggestions(preview, input);
+  const automaticPreview = filterCleanAutomaticWeekSuggestions(preview, input).map((suggestion) => {
+    if (suggestion.skippedReason || !teachingPeriods.length) return suggestion;
+    const teachingPeriod = getPeriodForDate(teachingPeriods, suggestion.plannedDate);
+    return teachingPeriod
+      ? suggestion
+      : { ...suggestion, skippedReason: "This date falls outside your configured learning periods." };
+  });
   const desiredPreview = automaticPreview.filter((suggestion) => !suggestion.skippedReason);
-  if (!desiredPreview.length) return empty("no-applicable-blocks");
-
   const previouslyGenerated = runs
     .filter((run) => run.status === "applied")
     .flatMap((run) => run.previewPayload);
+  const evidenceEntries = await listCleanEvidenceEntries(input.familyId, {
+    fromDate: input.today,
+    toDate: input.weekEndsOn,
+    limit: 1000,
+  });
+  const protectedItemIds = new Set(
+    evidenceEntries.map((entry) => entry.calendarItemId).filter(Boolean),
+  );
+  const desiredByKey = new Map(
+    desiredPreview.map((item) => [buildCleanGeneratedOccurrenceKey(item), item]),
+  );
+  const historicalBlockIds = new Set(
+    runs.flatMap((run) => run.previewPayload.map((item) => item.sourceTemplateBlockId)).filter(Boolean),
+  );
+  templateBlocks.forEach((block) => historicalBlockIds.add(block.id));
+  for (const existing of existingItems) {
+    if (
+      existing.sourceType !== "generated" ||
+      !existing.sourceTemplateBlockId ||
+      existing.plannedDate < input.today ||
+      existing.completedAt ||
+      protectedItemIds.has(existing.id) ||
+      !historicalBlockIds.has(existing.sourceTemplateBlockId)
+    ) continue;
+    const desired = desiredByKey.get(buildCleanGeneratedOccurrenceKey(existing));
+    if (!desired) {
+      await deleteCleanCalendarItem(input.familyId, existing.id);
+      continue;
+    }
+    if (
+      existing.title !== desired.title ||
+      existing.learnerId !== desired.learnerId ||
+      existing.learningArea !== desired.learningArea ||
+      existing.startsAt !== desired.startsAt ||
+      existing.endsAt !== desired.endsAt ||
+      existing.programId !== desired.programId ||
+      existing.programSegmentId !== desired.programSegmentId ||
+      existing.description !== desired.notes ||
+      existing.sessionLabel !== desired.sessionLabel
+    ) {
+      await updateCleanCalendarItem(input.familyId, existing.id, {
+        title: desired.title,
+        learnerId: desired.learnerId,
+        learningArea: desired.learningArea,
+        startsAt: desired.startsAt,
+        endsAt: desired.endsAt,
+        programId: desired.programId,
+        programSegmentId: desired.programSegmentId,
+        description: desired.notes,
+        sessionLabel: desired.sessionLabel,
+      });
+    }
+  }
   const reconciliationCandidates = deriveCleanReconciliationCandidates({
     desired: desiredPreview,
     previouslyGenerated,
     liveItems: existingItems,
   });
   if (!reconciliationCandidates.length) {
+    clearCleanPlanningCacheForFamily(input.familyId);
     return empty(runs.some((run) => run.status === "applied") ? "already-current" : "no-applicable-blocks");
   }
 
   const result = await applyCleanGeneratedWeek(input.familyId, {
-    academicYearId: academicYear.id,
-    learningPeriodId: periodAtAnchor.id,
+    academicYearId: academicYear?.id ?? null,
+    learningPeriodId: null,
     masterTemplateId: selectedTemplate.id,
     weekStartsOn: input.weekStartsOn,
     weekEndsOn: input.weekEndsOn,
@@ -240,4 +313,28 @@ export function ensureCleanOperationalWeekFromUsualWeek(input: MaterializeInput)
     if (inFlight.get(requestKey) === request) inFlight.delete(requestKey);
   });
   return request;
+}
+
+export async function materializeMasterWeekRange(input: Omit<MaterializeInput, "weekStartsOn" | "weekEndsOn"> & {
+  startsOn: string;
+  endsOn: string;
+}) {
+  const weeks: CleanOperationalWeekMaterialization[] = [];
+  const startsOn = input.startsOn < input.today ? input.today : input.startsOn;
+  for (let weekStartsOn = getWeekStart(startsOn); weekStartsOn <= input.endsOn; weekStartsOn = addDays(weekStartsOn, 7)) {
+    const weekEndsOn = addDays(weekStartsOn, 6);
+    if (weekEndsOn < startsOn) continue;
+    weeks.push(await ensureCleanOperationalWeekFromUsualWeek({
+      ...input,
+      weekStartsOn,
+      weekEndsOn: weekEndsOn > input.endsOn ? input.endsOn : weekEndsOn,
+    }));
+  }
+  clearCleanPlanningCacheForFamily(input.familyId);
+  return {
+    weeks,
+    createdItems: weeks.flatMap((week) => week.createdItems),
+    updatedItemsCount: 0,
+    removedItemsCount: 0,
+  } satisfies CleanMasterWeekRangeMaterialization;
 }
