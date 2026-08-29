@@ -39,7 +39,7 @@ describe("Planning Setup extraction", () => {
   });
 
   it("routes first-value planning to Calendar while preserving structural settings guidance", () => {
-    expect(day).toContain('href="/my-calendar"');
+    expect(day).toContain('href={calendarPathBase}');
     expect(day).not.toContain('href="/my-settings/planning"');
     expect(settings).toContain('nextHref="/my-settings/planning"');
     expect(settings).toContain("Open Planning Setup");

@@ -336,6 +336,7 @@ function CleanDayWorkspaceBody() {
   const dayPrimaryMilestoneRef = useRef<string | null>(null);
   const daySettledMilestoneRef = useRef<string | null>(null);
   const firstValueChoiceTrackedRef = useRef(false);
+  const [setupStatusReadyOnce, setSetupStatusReadyOnce] = useState(false);
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
@@ -375,6 +376,7 @@ function CleanDayWorkspaceBody() {
 
       params.set("calendar_item_id", item.id);
       params.set("observed_on", item.plannedDate);
+      params.set("returnTo", buildDayPath(selectedDate));
 
       if (item.learnerId) {
         params.set("learner_id", item.learnerId);
@@ -390,7 +392,7 @@ function CleanDayWorkspaceBody() {
 
       return `${capturePathBase}?${params.toString()}`;
     },
-    [capturePathBase],
+    [buildDayPath, capturePathBase, selectedDate],
   );
 
   const learnerOptions = useMemo(
@@ -580,16 +582,27 @@ function CleanDayWorkspaceBody() {
 
   const nextUpLabel = isViewingToday ? "Next up" : "Looking ahead";
   const quickAddHeading = isViewingToday
-    ? "Add one quick block for today"
-    : "Add one quick block for this day";
+    ? "Add to My Day"
+    : "Add to My Day";
   const quickAddLead = isViewingToday
-    ? "Add a simple block now. Capture evidence later if something useful happens."
-    : "Add a simple block for this day. Capture evidence later if needed.";
+    ? "Add one thing for today. You can plan more whenever you need to."
+    : "Add one thing for this day. You can plan more whenever you need to.";
   const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
   const familyGreeting = familyDisplayName
     ? `Welcome back, ${familyDisplayName}.`
     : "Welcome back.";
   const accountSetup = workspace.setupStatus;
+  const quickCaptureLearnerId = selectedLearnerId || accountSetup.activeLearnerId || "";
+  const quickCaptureHref = `${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(buildDayPath(selectedDate))}${quickCaptureLearnerId ? `&learner_id=${encodeURIComponent(quickCaptureLearnerId)}` : ""}`;
+  const defaultQuickAddLearnerId = useMemo(() => {
+    if (selectedLearnerId && workspace.learners.some((learner) => learner.id === selectedLearnerId)) {
+      return selectedLearnerId;
+    }
+    if (accountSetup.activeLearnerId && workspace.learners.some((learner) => learner.id === accountSetup.activeLearnerId)) {
+      return accountSetup.activeLearnerId;
+    }
+    return workspace.learners.length === 1 ? workspace.learners[0]?.id || "" : "";
+  }, [accountSetup.activeLearnerId, selectedLearnerId, workspace.learners]);
   const canShowMyDayGuidance =
     !workspace.loading &&
     !workspace.setupLoading &&
@@ -700,6 +713,10 @@ function CleanDayWorkspaceBody() {
   }, [workspace.learners]);
 
   useEffect(() => {
+    if (!workspace.setupLoading) setSetupStatusReadyOnce(true);
+  }, [workspace.setupLoading]);
+
+  useEffect(() => {
     if (!placementPromptLearnerId) {
       setHasPlacementForPromptLearner(false);
       return;
@@ -722,9 +739,9 @@ function CleanDayWorkspaceBody() {
         return current;
       }
 
-      return selectedLearnerId;
+      return defaultQuickAddLearnerId;
     });
-  }, [learnerOptions, quickAddOpen, selectedLearnerId]);
+  }, [defaultQuickAddLearnerId, learnerOptions, quickAddOpen]);
 
   useEffect(() => {
     async function loadItems() {
@@ -1045,7 +1062,7 @@ function CleanDayWorkspaceBody() {
 
   function openQuickAdd() {
     setQuickAddOpen(true);
-    setQuickAddLearnerId(selectedLearnerId);
+    setQuickAddLearnerId(defaultQuickAddLearnerId);
     setQuickAddError(null);
     setQuickAddMessage(null);
   }
@@ -1053,7 +1070,7 @@ function CleanDayWorkspaceBody() {
   function closeQuickAdd() {
     setQuickAddOpen(false);
     setQuickAddTitle("");
-    setQuickAddLearnerId(selectedLearnerId);
+    setQuickAddLearnerId(defaultQuickAddLearnerId);
     setQuickAddTime("");
     setQuickAddLearningArea("");
     setQuickAddError(null);
@@ -1076,7 +1093,7 @@ function CleanDayWorkspaceBody() {
 
     const title = String(quickAddTitle ?? "").trim();
     if (!title) {
-      setQuickAddError("Add a title before saving this quick block.");
+      setQuickAddError("Add an activity before saving to My Day.");
       return;
     }
 
@@ -1109,7 +1126,7 @@ function CleanDayWorkspaceBody() {
       );
       setItems((current) => [...current, createdItem]);
       setExpandedItemIds([createdItem.id]);
-      setQuickAddMessage("Quick block added to My Day.");
+      setQuickAddMessage("Added to My Day.");
       setQuickAddTitle("");
       setQuickAddTime("");
       setQuickAddLearningArea("");
@@ -1168,7 +1185,7 @@ function CleanDayWorkspaceBody() {
     }
   }
 
-  const readyForDay = !workspace.loading && !workspace.setupLoading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const readyForDay = !workspace.loading && (setupStatusReadyOnce || !workspace.setupLoading) && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const hasPlannedItemsForSelectedDate = items.length > 0;
   const dayPrimaryKey = workspace.profile
     ? `${workspace.currentUserId}:${workspace.profile.id}:${selectedDate}`
@@ -1186,15 +1203,15 @@ function CleanDayWorkspaceBody() {
     firstValueChoiceTrackedRef.current = true;
     trackProductEvent(
       "first_value_choice_viewed",
-      { area: "my_day", route: pathname, presentation: "plan_or_capture" },
+      { area: "my_day", route: pathname, presentation: "today_first_value" },
       user?.id,
     );
   }, [myDayPresentationState, pathname, user?.id]);
 
-  function trackFirstValueChoice(destination: "plan" | "capture") {
+  function trackFirstValueChoice(destination: "add-today" | "capture" | "plan-master-week") {
     trackProductEvent(
       "first_value_choice_selected",
-      { area: "my_day", route: pathname, presentation: "plan_or_capture", destination },
+      { area: "my_day", route: pathname, presentation: "today_first_value", destination },
       user?.id,
     );
   }
@@ -1229,6 +1246,52 @@ function CleanDayWorkspaceBody() {
       gatesPage: false,
     });
   }, [dayPrimaryKey, guidanceLoading, itemsLoading, user?.id]);
+
+  function renderQuickAddForm() {
+    if (!quickAddOpen) return null;
+
+    return (
+      <form
+        className="mylearna-day-quick-add-form"
+        onSubmit={(event) => void handleQuickAddSubmit(event)}
+        style={quickAddCardStyle}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <strong style={{ color: "#0f172a", fontSize: 18, letterSpacing: "-0.02em" }}>{quickAddHeading}</strong>
+            <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>{quickAddLead}</p>
+          </div>
+          <button type="button" onClick={closeQuickAdd} style={secondaryButtonStyle} disabled={quickAddSubmitting}>Cancel</button>
+        </div>
+        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Activity</span>
+            <input value={quickAddTitle} onChange={(event) => setQuickAddTitle(event.target.value)} style={inputStyle} placeholder="Read-aloud, maths, nature walk" autoFocus />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Who is this for?</span>
+            <select value={quickAddLearnerId} onChange={(event) => setQuickAddLearnerId(event.target.value)} style={inputStyle}>
+              <option value="">Whole family</option>
+              {learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Time (optional)</span>
+            <input type="time" value={quickAddTime} onChange={(event) => setQuickAddTime(event.target.value)} style={inputStyle} />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learning area (optional)</span>
+            <input value={quickAddLearningArea} onChange={(event) => setQuickAddLearningArea(event.target.value)} list="clean-my-day-learning-areas" style={inputStyle} placeholder="Optional" />
+          </label>
+        </div>
+        {quickAddError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{quickAddError}</div> : null}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button type="submit" disabled={quickAddSubmitting} style={primaryButtonStyle}>{quickAddSubmitting ? "Adding..." : "Add to My Day"}</button>
+          <Link href={calendarPathBase} style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>Open My Calendar instead</Link>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <div style={shellStyle}>
@@ -1336,23 +1399,7 @@ function CleanDayWorkspaceBody() {
             }
           }
 
-          .mylearna-day-desktop-activation {
-            display: none;
-          }
-
           @media (min-width: 768px) {
-            .mylearna-day-desktop-activation-setup_incomplete,
-            .mylearna-day-desktop-activation-ready_for_first_value,
-            .mylearna-day-desktop-activation-returning_empty {
-              display: grid;
-              gap: 12px;
-              padding: 28px;
-              border: 1px solid #dbeafe;
-              border-radius: 18px;
-              background: #f8fbff;
-              box-shadow: 0 8px 22px rgba(15,23,42,0.04);
-            }
-
             .mylearna-day-mature-content-setup_incomplete,
             .mylearna-day-mature-content-ready_for_first_value,
             .mylearna-day-mature-content-returning_empty {
@@ -1365,38 +1412,18 @@ function CleanDayWorkspaceBody() {
               display: none !important;
             }
 
-            /* Keep the existing Quick Add form usable from the minimalist
-               returning-empty state without exposing the mature workspace. */
-            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open {
-              display: block !important;
-              padding: 0 !important;
-            }
-
-            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > * {
-              display: none !important;
-            }
-
-            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > .mylearna-day-plan-card {
-              display: block !important;
-            }
-
-            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > .mylearna-day-plan-card > div {
-              display: block !important;
-            }
-
-            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open > .mylearna-day-plan-card > div > * {
-              display: none !important;
-            }
-
-            .mylearna-day-shell-returning_empty .mylearna-day-mature-content-returning_empty.mylearna-day-quick-add-open form.mylearna-day-quick-add-form {
-              display: grid !important;
-            }
           }
 
           @media (max-width: 767px) {
-            .mylearna-day-mature-content {
+            .mylearna-day-mature-content-populated_day {
               display: contents;
             }
+          }
+
+          .mylearna-day-mature-content-setup_incomplete,
+          .mylearna-day-mature-content-ready_for_first_value,
+          .mylearna-day-mature-content-returning_empty {
+            display: none !important;
           }
         `}</style>
         {readyForDay && !myDayPresentationState ? (
@@ -1526,7 +1553,7 @@ function CleanDayWorkspaceBody() {
             ) : null}
             <Link
               className="mylearna-day-header-capture"
-              href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(dayPathBase)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
+              href={quickCaptureHref}
               style={{
                 width: "fit-content",
                 minHeight: 46,
@@ -1636,9 +1663,10 @@ function CleanDayWorkspaceBody() {
 
         {readyForDay && myDayPresentationState ? (
           <>
-            <section
-              className={`mylearna-day-desktop-activation mylearna-day-desktop-activation-${myDayPresentationState.toLowerCase()}`}
+            {myDayPresentationState !== "POPULATED_DAY" ? <section
+              className={`mylearna-day-first-value mylearna-day-first-value-${myDayPresentationState.toLowerCase()}`}
               aria-labelledby="my-day-activation-title"
+              style={{ display: "grid", gap: 12, padding: "clamp(18px, 4vw, 28px)", border: "1px solid #dbeafe", borderRadius: 18, background: "#f8fbff", boxShadow: "0 8px 22px rgba(15,23,42,0.04)" }}
             >
               <p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 My Day
@@ -1648,7 +1676,7 @@ function CleanDayWorkspaceBody() {
                   <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Let&apos;s get MyLearna ready for your family.</h1>
                   <Link href={accountSetup.nextAction.href} style={primaryButtonStyle}>{accountSetup.nextAction.label}</Link>
                   {accountSetup.hasLearner ? (
-                    <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
+                    <Link href={quickCaptureHref} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
                       Capture something you already did
                     </Link>
                   ) : null}
@@ -1656,34 +1684,29 @@ function CleanDayWorkspaceBody() {
               ) : null}
               {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? (
                 <>
-                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>How would you like to begin?</h1>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Start by planning what&apos;s ahead, or capture learning that has already happened.</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-                    <Link href="/my-calendar" onClick={() => trackFirstValueChoice("plan")} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
-                      <span style={{ display: "grid", gap: 4 }}>
-                        <strong>Plan our Master Week</strong>
-                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Set the recurring weekly pattern your family normally follows.</span>
-                      </span>
-                    </Link>
-                    <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} onClick={() => trackFirstValueChoice("capture")} style={{ ...secondaryButtonStyle, textDecoration: "none", display: "grid", gap: 4 }}>
-                      <strong>Capture learning</strong>
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>Record something you&apos;ve already done and start your learning record.</span>
-                    </Link>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "What are you learning today?" : "What are you learning on this day?"}</h1>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Add one thing to get started. You can plan more whenever you need to.</p>
+                  <div style={{ display: "grid", gap: 10, width: "min(100%, 480px)" }}>
+                    <button type="button" onClick={() => { trackFirstValueChoice("add-today"); openQuickAdd(); }} style={primaryButtonStyle}>{isViewingToday ? "Add something for today" : "Add something for this day"}</button>
+                    <Link href={quickCaptureHref} onClick={() => trackFirstValueChoice("capture")} style={{ ...secondaryButtonStyle, textDecoration: "none", textAlign: "center" }}>Capture something you already did</Link>
+                    <Link href={calendarPathBase} onClick={() => trackFirstValueChoice("plan-master-week")} style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>Plan our Master Week</Link>
                   </div>
                 </>
               ) : null}
               {myDayPresentationState === "RETURNING_EMPTY" ? (
                 <>
-                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "Nothing planned for today." : "Nothing planned for this day."}</h1>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "Nothing planned for today yet." : "Nothing planned for this day yet."}</h1>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{isViewingToday ? "Add something for today, capture learning that already happened, or open My Calendar." : "Add something for this day, capture learning that already happened, or open My Calendar."}</p>
-                  <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>Add a learning block</button>
-                  <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
+                  <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>{isViewingToday ? "Add something for today" : "Add something for this day"}</button>
+                  <Link href={quickCaptureHref} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
                     Capture something you already did
                   </Link>
                   <Link href={calendarPathBase} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>Open My Calendar →</Link>
                 </>
               ) : null}
-            </section>
+              {myDayPresentationState !== "SETUP_INCOMPLETE" ? renderQuickAddForm() : null}
+              {quickAddMessage ? <div role="status" style={{ color: "#166534", fontSize: 13, fontWeight: 700 }}>{quickAddMessage}</div> : null}
+            </section> : null}
             {workspace.learners.length ? <div className={`mylearna-day-mature-content mylearna-day-mature-content-${myDayPresentationState.toLowerCase()}${quickAddOpen ? " mylearna-day-quick-add-open" : ""}`}>
             {guidanceLoading ? (
               <section style={cardStyle}>
@@ -1950,123 +1973,7 @@ function CleanDayWorkspaceBody() {
                   </div>
                 </div>
 
-                {quickAddOpen ? (
-                  <form
-                    className="mylearna-day-quick-add-form"
-                    onSubmit={(event) => void handleQuickAddSubmit(event)}
-                    style={quickAddCardStyle}
-                  >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "flex-start",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <strong style={{ color: "#0f172a", fontSize: 18, letterSpacing: "-0.02em" }}>
-                        {quickAddHeading}
-                      </strong>
-                      <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
-                        {quickAddLead}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={closeQuickAdd}
-                      style={secondaryButtonStyle}
-                      disabled={quickAddSubmitting}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    }}
-                  >
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                        Activity
-                      </span>
-                      <input
-                        value={quickAddTitle}
-                        onChange={(event) => setQuickAddTitle(event.target.value)}
-                        style={inputStyle}
-                        placeholder="Read-aloud, maths, nature walk"
-                        autoFocus
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                        Who is this for?
-                      </span>
-                      <select
-                        value={quickAddLearnerId}
-                        onChange={(event) => setQuickAddLearnerId(event.target.value)}
-                        style={inputStyle}
-                      >
-                        <option value="">Whole family</option>
-                        {learnerOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                        Optional time
-                      </span>
-                      <input
-                        type="time"
-                        value={quickAddTime}
-                        onChange={(event) => setQuickAddTime(event.target.value)}
-                        style={inputStyle}
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                        Learning area
-                      </span>
-                      <input
-                        value={quickAddLearningArea}
-                        onChange={(event) => setQuickAddLearningArea(event.target.value)}
-                        list="clean-my-day-learning-areas"
-                        style={inputStyle}
-                        placeholder="Optional"
-                      />
-                    </label>
-
-                  </div>
-
-                  {quickAddError ? (
-                    <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
-                      {quickAddError}
-                    </div>
-                  ) : null}
-
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    <button type="submit" disabled={quickAddSubmitting} style={primaryButtonStyle}>
-                      {quickAddSubmitting ? "Creating..." : "Create quick block"}
-                    </button>
-                    <Link
-                      href={calendarPathBase}
-                      style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}
-                    >
-                      Open My Calendar instead
-                    </Link>
-                  </div>
-                  </form>
-                ) : null}
+                {renderQuickAddForm()}
 
                 {quickAddMessage ? (
                   <div role="status" style={{ color: "#166534", fontSize: 13, fontWeight: 700 }}>

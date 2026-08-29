@@ -14,10 +14,10 @@ describe("My Day desktop density safeguards", () => {
     expect(source).toContain("display: none !important");
   });
 
-  it("keeps first-value and setup states represented by their existing state classes", () => {
+  it("keeps first-value and setup states represented by the shared state surface", () => {
     expect(source).toContain("mylearna-day-shell-ready_for_first_value");
     expect(source).toContain("mylearna-day-shell-setup_incomplete");
-    expect(source).toContain("mylearna-day-desktop-activation");
+    expect(source).toContain("mylearna-day-first-value");
   });
 
   it("does not apply the populated desktop rule at the mobile breakpoint", () => {
