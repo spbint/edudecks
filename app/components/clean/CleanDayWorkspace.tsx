@@ -768,7 +768,7 @@ function CleanDayWorkspaceBody() {
           setItemsError(
             normalizeCleanErrorMessage(
               error,
-              "We couldn't bring your usual week into this week yet.",
+              "We couldn't prepare this week's planned items yet.",
             ),
           );
           setItemsResolvedKey(null);
@@ -1661,8 +1661,8 @@ function CleanDayWorkspaceBody() {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
                     <Link href="/my-calendar" onClick={() => trackFirstValueChoice("plan")} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
                       <span style={{ display: "grid", gap: 4 }}>
-                        <strong>Plan our learning</strong>
-                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Set up your usual rhythm and see what&apos;s coming up.</span>
+                        <strong>Plan our Master Week</strong>
+                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Set the recurring weekly pattern your family normally follows.</span>
                       </span>
                     </Link>
                     <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} onClick={() => trackFirstValueChoice("capture")} style={{ ...secondaryButtonStyle, textDecoration: "none", display: "grid", gap: 4 }}>
@@ -1675,7 +1675,7 @@ function CleanDayWorkspaceBody() {
               {myDayPresentationState === "RETURNING_EMPTY" ? (
                 <>
                   <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Nothing planned for today.</h1>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Add something for today, capture learning that already happened, or adjust your usual week.</p>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Add something for today, capture learning that already happened, or open My Calendar.</p>
                   <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>Add a learning block</button>
                   <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
                     Capture something you already did

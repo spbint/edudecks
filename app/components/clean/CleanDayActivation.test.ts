@@ -44,7 +44,7 @@ describe("desktop My Day activation safeguards", () => {
 
   it("offers balanced Plan and Capture first-value choices without changing the mature returning state", () => {
     expect(source).toContain("How would you like to begin?");
-    expect(source).toContain("Plan our learning");
+    expect(source).toContain("Plan our Master Week");
     expect(source).toContain('href="/my-calendar"');
     expect(source).not.toContain('href="/my-settings/planning"');
     expect(source).toContain("Capture learning");

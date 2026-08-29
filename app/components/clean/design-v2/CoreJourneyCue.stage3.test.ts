@@ -53,7 +53,7 @@ describe("Stage 3 core journey orientation", () => {
     expect(cueSource).toContain("<summary>Need help?</summary>");
     expect(cueSource).toContain("summary:focus-visible");
     expect(daySource).toContain("Add a learning block, then capture what happens.");
-    expect(calendarSource).toContain("Plan the learning week.");
+    expect(calendarSource).toContain("See and adjust what is actually planned on real dates.");
     expect(portfolioSource).toContain("Choose your strongest learning moments.");
     expect(reportsSource).toContain("Create a clear learning report.");
   });

@@ -15,10 +15,12 @@ describe("Planning Setup extraction", () => {
     expect(account).toContain("Planning Setup");
   });
 
-  it("reuses structural planning state and presents a usual-week vocabulary", () => {
+  it("reuses structural planning state and presents the Master Week vocabulary", () => {
     expect(calendar).toContain("planningOnly");
     expect(calendar).toContain("Planning Setup");
-    expect(calendar).toContain("Your usual week");
+    expect(calendar).toContain("Master Week");
+    expect(calendar).toContain("Current Calendar");
+    expect(calendar).toContain("Calendar settings");
     expect(calendar).toContain("learning year");
     expect(calendar).toContain("learning periods");
     expect(calendar).toContain("createCleanMasterTemplate");

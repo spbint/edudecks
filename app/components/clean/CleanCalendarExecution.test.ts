@@ -4,21 +4,34 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync(join(process.cwd(), "app/components/clean/CleanCalendarWorkspace.tsx"), "utf8");
 
-describe("live Calendar execution actions", () => {
-  it("uses one progressive next action for master-to-week planning", () => {
-    expect(source).toContain("Set up your usual week");
-    expect(source).toContain("Preview this week from master");
-    expect(source).toContain("Add master blocks to this week");
-    expect(source).toContain("This week already contains these master blocks");
-    expect(source).toContain("nextMasterTemplates.length === 1");
+describe("Calendar planning model", () => {
+  it("presents Master Week and Current Calendar as the two top-level modes", () => {
+    expect(source).toContain('aria-label="Calendar planning mode"');
+    expect(source).toContain("Master Week");
+    expect(source).toContain("Current Calendar");
+    expect(source).toContain('planningView === "master"');
+    expect(source).toContain('planningView === "week"');
   });
 
-  it("keeps first-value usual-week setup inside Calendar", () => {
-    expect(source).toContain("Add the learning blocks your family normally follows");
-    expect(source).toContain("Your usual week is ready.");
+  it("defaults a family without Master Week blocks to Master Week", () => {
+    expect(source).toContain("if (!hasMasterWeekBlock) setPlanningView(\"master\")");
+    expect(source).toContain("Add your first Master Week block");
+    expect(source).toContain("Your Master Week is ready.");
     expect(source).toContain('href="/my-day"');
-    expect(source).not.toContain('router.push("/my-settings/planning")');
-    expect(source).not.toContain("Manage your usual week");
+  });
+
+  it("keeps dated planning in Current Calendar with Week and Month boards", () => {
+    expect(source).toContain('planningView === "week"');
+    expect(source).toContain("Current Calendar");
+    expect(source).toContain("Week");
+    expect(source).toContain("Month");
+    expect(source).toContain("openEditPopover(item)");
+  });
+
+  it("keeps learning dates and breaks behind Calendar settings", () => {
+    expect(source).toContain("Calendar settings");
+    expect(source).toContain("Set learning dates, terms and breaks when you need them.");
+    expect(source).toContain("calendarSettingsOpen ? <section");
   });
 
   it("preserves planning controls and adds completion/capture actions for live items", () => {
@@ -39,7 +52,7 @@ describe("live Calendar execution actions", () => {
     expect(source).toContain("returnTo");
   });
 
-  it("keeps master-week template rendering separate from live item actions", () => {
+  it("keeps Master Week template rendering separate from dated item actions", () => {
     expect(source).toContain("templateBlocksByWeekday");
     expect(source).toContain("handleTemplateBlockDelete");
   });

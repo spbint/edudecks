@@ -328,7 +328,7 @@ function CleanProfileWorkspaceBody() {
           : "Choose how to start",
         description: setupContextReady
           ? "Once names and the default learner feel right, head to My Day and start using the learning workflow."
-          : "Your family space is ready. Choose whether to plan your usual week or start with today.",
+          : "Your family space is ready. Choose whether to plan your Master Week or start with today.",
         actionHref: setupContextReady ? "/my-day" : "#profile-activation-fork",
         actionLabel: setupContextReady ? "Open My Day" : "Choose how to start",
       },
@@ -1025,9 +1025,9 @@ function CleanProfileWorkspaceBody() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 14 }}>
                   <div style={{ border: "2px solid #6C4DF6", borderRadius: 16, padding: 16, background: "#faf9ff", display: "grid", gap: 10 }}>
                     <div style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 850, textTransform: "uppercase", letterSpacing: "0.06em" }}>Recommended</div>
-                    <h3 style={{ margin: 0, color: "#17204B", fontSize: 18 }}>Plan our usual week</h3>
+                    <h3 style={{ margin: 0, color: "#17204B", fontSize: 18 }}>Plan our Master Week</h3>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>Set up the rhythm you normally follow so My Day has some structure.</p>
-                    <button type="button" onClick={() => chooseActivation("/my-calendar")} style={{ ...buttonStyle, minHeight: 48 }}>Plan our usual week</button>
+                    <button type="button" onClick={() => chooseActivation("/my-calendar")} style={{ ...buttonStyle, minHeight: 48 }}>Plan our Master Week</button>
                   </div>
                   <div style={{ border: "1px solid #E7EAF2", borderRadius: 16, padding: 16, background: "#ffffff", display: "grid", gap: 10 }}>
                     <h3 style={{ margin: 0, color: "#17204B", fontSize: 18 }}>Start with today</h3>

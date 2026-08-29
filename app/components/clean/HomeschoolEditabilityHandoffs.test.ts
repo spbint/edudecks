@@ -42,7 +42,7 @@ describe("Homeschool editability and journey handoffs", () => {
   });
 
   it("keeps the core handoff sequence explicit", () => {
-    expect(profile).toContain("Plan our usual week");
+    expect(profile).toContain("Plan our Master Week");
     expect(profile).toContain("Start with today");
     expect(settings).toContain("Set up My Calendar");
     expect(calendar).toContain("Add your first learning period");
