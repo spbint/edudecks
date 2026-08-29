@@ -466,7 +466,35 @@ function inferImageFormat(url: string, contentType: string | null) {
   ) {
     return "jpg";
   }
+  if (normalizedContentType.includes("webp") || normalizedUrl.endsWith(".webp")) return "webp";
   return null;
+}
+
+async function convertBrowserImageToJpeg(blob: Blob) {
+  if (typeof document === "undefined" || typeof Image === "undefined") return null;
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("Unable to decode evidence image."));
+      element.src = objectUrl;
+    });
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const jpeg = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    return jpeg ? jpeg.arrayBuffer() : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 async function getEvidenceThumbnailUrl(item: CleanReportPdfEvidenceItem) {
@@ -504,7 +532,9 @@ async function loadSafeEvidenceThumbnailImage(
     const format = inferImageFormat(url, contentType);
     if (!format) return null;
 
-    const bytes = await response.arrayBuffer();
+    const blob = await response.blob();
+    const bytes = format === "webp" ? await convertBrowserImageToJpeg(blob) : await blob.arrayBuffer();
+    if (!bytes) return null;
     if (!bytes.byteLength || bytes.byteLength > MAX_PDF_EVIDENCE_IMAGE_BYTES) return null;
 
     if (format === "png") return await doc.embedPng(bytes);

@@ -24,8 +24,8 @@ describe("Portfolio density hierarchy", () => {
   });
 
   it("keeps selection, report, sharing, and destructive actions reachable", () => {
-    expect(source).toContain("Add to portfolio");
-    expect(source).toContain("Remove from portfolio");
+    expect(source).toContain("Feature in Portfolio");
+    expect(source).toContain("Remove feature");
     expect(source).toContain("CleanLearningMomentShareCard");
     expect(source).toContain("Use in report");
     expect(source).toContain("Delete evidence");

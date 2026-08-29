@@ -13,7 +13,8 @@ export async function compressCleanEvidenceImage(file: File) {
 
     const maxDimension = 1600;
     const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-    if (scale >= 1 && file.size <= 2.5 * 1024 * 1024) return file;
+    const isPdfSafe = file.type === "image/jpeg" || file.type === "image/jpg" || file.type === "image/png";
+    if (isPdfSafe && scale >= 1 && file.size <= 2.5 * 1024 * 1024) return file;
 
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(image.width * scale));
@@ -25,7 +26,8 @@ export async function compressCleanEvidenceImage(file: File) {
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob(resolve, "image/jpeg", 0.82);
     });
-    if (!blob || blob.size >= file.size) return file;
+    if (!blob) return file;
+    if (isPdfSafe && blob.size >= file.size) return file;
 
     const baseName = file.name.replace(/\.[^.]+$/, "") || "learning-moment";
     return new File([blob], `${baseName}-compressed.jpg`, {

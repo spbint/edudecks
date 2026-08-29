@@ -1238,8 +1238,8 @@ function CleanPortfolioWorkspaceBody() {
                     style={inputStyle}
                   >
                     <option value="all">All evidence</option>
-                    <option value="selected">Selected for portfolio</option>
-                    <option value="not-selected">Not selected yet</option>
+                    <option value="selected">Featured</option>
+                    <option value="not-selected">Not featured</option>
                   </select>
                   <select
                     value={pathwayFilter}
@@ -1362,8 +1362,8 @@ function CleanPortfolioWorkspaceBody() {
 
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
               <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Unselected evidence is shown first so you can choose what belongs in the
-                portfolio.
+                Everything shown here has been added to Portfolio. Feature the examples you
+                want to stand out.
               </p>
               {filteredPathwayEvidenceSummary.repeatedSteps.length ? (
                 <div style={{ ...helperCardStyle, marginBottom: 16 }}>
@@ -1591,7 +1591,7 @@ function CleanPortfolioWorkspaceBody() {
                             </span>
                           ) : (
                             <button type="button" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }} onClick={() => void handleToggleHighlight(item)} disabled={submitting}>
-                              Add to portfolio
+                              Feature in Portfolio
                             </button>
                           )}
                           <button
@@ -1626,7 +1626,7 @@ function CleanPortfolioWorkspaceBody() {
                               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                                 {item.isHighlighted ? (
                                   <button type="button" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }} onClick={() => void handleToggleHighlight(item)} disabled={submitting}>
-                                    Remove from portfolio
+                                     Remove feature
                                   </button>
                                 ) : null}
                                 <Link
