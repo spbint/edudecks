@@ -33,10 +33,6 @@ function isDownstreamOfProfile(stepId: CleanSetupStepId) {
   return stepId !== "profile";
 }
 
-function isDownstreamOfSettings(stepId: CleanSetupStepId) {
-  return !["profile", "settings"].includes(stepId);
-}
-
 export default function CleanFirstRunSetupGate({
   currentStep,
 }: {
@@ -51,23 +47,11 @@ export default function CleanFirstRunSetupGate({
     !workspace.schemaMissing &&
     isDownstreamOfProfile(currentStep) &&
     !workspace.profile;
-  const settingsMissing =
-    !workspace.loading &&
-    !workspace.schemaMissing &&
-    isDownstreamOfSettings(currentStep) &&
-    workspace.profile &&
-    !workspace.setupStatus.hasLearningSettings;
-
   useEffect(() => {
     if (profileMissing) {
       setCurrentSetupStep("profile");
-      return;
     }
-
-    if (settingsMissing) {
-      setCurrentSetupStep("settings");
-    }
-  }, [profileMissing, setCurrentSetupStep, settingsMissing]);
+  }, [profileMissing, setCurrentSetupStep]);
 
   if (!setupIsRunning || guidedStartActive || workspace.loading || workspace.schemaMissing) return null;
 
@@ -85,25 +69,6 @@ export default function CleanFirstRunSetupGate({
         </div>
         <Link href="/my-profile" style={buttonStyle}>
           Go to My Profile
-        </Link>
-      </section>
-    );
-  }
-
-  if (settingsMissing) {
-    return (
-      <section style={cardStyle}>
-        <div style={{ display: "grid", gap: 6 }}>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-            Choose your learning settings
-          </h2>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-            Save country, region, curriculum and reporting settings when you are
-            ready. This page remains available while setup is incomplete.
-          </p>
-        </div>
-        <Link href="/my-settings" style={buttonStyle}>
-          Go to My Settings
         </Link>
       </section>
     );

@@ -3288,9 +3288,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     ? `${familyDisplayName} learning week`
     : "My Calendar";
   const firstSetupMode =
-    guidanceEnabled && (setupStatus === "not_started" || setupStatus === "active");
+    guidanceEnabled &&
+    (setupStatus === "not_started" || setupStatus === "active") &&
+    (!workspace.profile || workspace.learners.length === 0);
   const shouldShowTermSetup = planningOnly || !firstSetupMode || academicYears.length > 0;
-  const shouldShowWeeklyPlanner = planningOnly || !firstSetupMode || learningTermsForSelectedYear.length > 0;
+  const shouldShowWeeklyPlanner = true;
   const shouldShowCalendarNextStep = !firstSetupMode || calendarSetupReady;
 
   return (
@@ -3410,10 +3412,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           }
 
           .mylearna-calendar-shell-operational .mylearna-calendar-structural-setup {
-            display: none !important;
-          }
-
-          .mylearna-calendar-shell-operational .mylearna-calendar-usual-week-setup {
             display: none !important;
           }
 

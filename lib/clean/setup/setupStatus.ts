@@ -122,11 +122,10 @@ export function deriveCleanMyDayPresentationState({
   >;
   hasPlannedItemsForSelectedDate: boolean;
 }): CleanMyDayPresentationState {
-  const setupIncomplete = !setupStatus.hasFamilyProfile ||
-    !setupStatus.hasLearner ||
-    !setupStatus.hasLearningSettings ||
-    !setupStatus.hasLearningYear ||
-    !setupStatus.hasTeachingPeriod;
+  // Profile + learner is the minimum activation threshold. The remaining
+  // planning/configuration records are progressive setup, not blockers to
+  // entering My Day and experiencing first value.
+  const setupIncomplete = !setupStatus.hasFamilyProfile || !setupStatus.hasLearner;
   if (setupIncomplete) return "SETUP_INCOMPLETE";
   if (hasPlannedItemsForSelectedDate) return "POPULATED_DAY";
   if (setupStatus.hasWeeklyBlock || setupStatus.hasEvidence) return "RETURNING_EMPTY";
@@ -287,9 +286,9 @@ export function deriveCleanSetupStatus({
     };
   } else if (!hasLearningSettings) {
     nextAction = {
-      type: "save-learning-settings",
-      label: "Save learning settings",
-      href: "/my-settings",
+      type: "add-weekly-block",
+      label: "Add your first weekly learning block",
+      href: "/my-calendar",
       category: "setup",
     };
   } else if (!hasLearningYear) {

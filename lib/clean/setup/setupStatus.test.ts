@@ -204,8 +204,8 @@ describe("deriveCleanSetupStatus", () => {
       counts: emptyCounts,
     });
     expect(afterLearner.nextAction).toMatchObject({
-      type: "save-learning-settings",
-      href: "/my-settings",
+      type: "add-weekly-block",
+      href: "/my-calendar",
     });
 
     const afterSettings = deriveCleanSetupStatus({
@@ -344,6 +344,15 @@ describe("My Day presentation state", () => {
     })).toBe("SETUP_INCOMPLETE");
     expect(deriveCleanMyDayPresentationState({
       setupStatus: completeSetup,
+      hasPlannedItemsForSelectedDate: false,
+    })).toBe("READY_FOR_FIRST_VALUE");
+    expect(deriveCleanMyDayPresentationState({
+      setupStatus: {
+        ...completeSetup,
+        hasLearningSettings: false,
+        hasLearningYear: false,
+        hasTeachingPeriod: false,
+      },
       hasPlannedItemsForSelectedDate: false,
     })).toBe("READY_FOR_FIRST_VALUE");
   });
