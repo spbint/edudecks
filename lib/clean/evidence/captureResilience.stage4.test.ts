@@ -125,7 +125,7 @@ describe("Stage 4 capture resilience", () => {
       returnTo: "/my-pathways?step=one",
     });
 
-    expect(dayHandoff.primaryLabel).toBe("View in Portfolio");
+    expect(dayHandoff.primaryLabel).toBe("Back to My Day");
     expect(dayHandoff.returnLabel).toBe("Back to My Day");
     expect(pathwayHandoff.primaryLabel).toBe("Return to pathway");
     expect(pathwayHandoff.returnHref).toContain("/my-pathways");

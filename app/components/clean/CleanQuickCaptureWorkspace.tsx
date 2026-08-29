@@ -138,7 +138,7 @@ export default function CleanQuickCaptureWorkspace() {
         learnerLabel: savedLearnerLabel,
         includeInPortfolio: savedEntry.includeInPortfolio,
         includeInReport: savedEntry.includeInReport,
-        returnTo: returnPath,
+        returnTo: searchParams.get("returnTo"),
         portfolioPathBase: pathname.startsWith("/clean-my-capture")
           ? "/clean-my-portfolio"
           : "/my-portfolio",
@@ -474,15 +474,26 @@ export default function CleanQuickCaptureWorkspace() {
           {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 44, marginTop: 8 }}>{submitting ? savePhase || "Uploading evidence" : "Retry attachment"}</button></div> : null}
           <div style={{ display: "grid", gap: 12 }}>
             <div className="mylearna-quick-capture-receipt-primary-actions">
-              <Link href={successHandoff?.primaryHref ?? returnPath} style={buttonStyle} onClick={trackPrimaryHandoff}>
-                {successHandoff?.primaryLabel ?? "Return"}
-              </Link>
+              {successHandoff?.returnKind !== "other" ? (
+                <Link href={successHandoff?.returnHref ?? returnPath} style={buttonStyle}>
+                  {successHandoff?.returnLabel ?? "Return"}
+                </Link>
+              ) : null}
+              {successHandoff?.portfolioHref ? (
+                <Link
+                  href={successHandoff.portfolioHref}
+                  style={successHandoff.returnKind === "other" ? buttonStyle : secondaryButtonStyle}
+                  onClick={trackPrimaryHandoff}
+                >
+                  View in Portfolio
+                </Link>
+              ) : null}
               <button type="button" onClick={() => setSharingOpen(true)} style={secondaryButtonStyle}>Create a share card</button>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
               <button type="button" onClick={addMoreDetail} style={tertiaryButtonStyle}>Add more detail</button>
               {successHandoff?.showCaptureAnother ? <button type="button" onClick={captureAnother} style={tertiaryButtonStyle}>Capture another</button> : null}
-              {successHandoff?.portfolioHref ? <Link href={successHandoff.returnHref} style={tertiaryButtonStyle}>{successHandoff.returnLabel}</Link> : null}
+              {successHandoff?.returnKind === "other" ? <Link href={successHandoff.returnHref} style={tertiaryButtonStyle}>{successHandoff.returnLabel}</Link> : null}
             </div>
           </div>
         </section>

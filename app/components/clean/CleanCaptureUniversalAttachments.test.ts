@@ -60,7 +60,7 @@ describe("universal Quick Capture attachments", () => {
     expect(captureSource).toContain("includeInPortfolio: lifeAddToPortfolio");
     expect(captureSource).toContain("includeInReport: lifeIncludeInReport");
     expect(captureSource).toContain("lastSavedMyDayReturnPath");
-    expect(captureSource).toContain("Return to My Day");
+    expect(captureSource).toContain("Back to My Day");
     expect(quickCaptureSource).toContain("includeInPortfolio: true");
     expect(quickCaptureSource).toContain("includeInReport: true");
     expect(quickCaptureSource).toContain('parentNote: reflection.trim() || null');

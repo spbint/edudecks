@@ -1,4 +1,4 @@
-export type QuickCaptureReturnKind = "my-day" | "pathways" | "other";
+export type QuickCaptureReturnKind = "my-day" | "pathways" | "curriculum" | "other";
 
 export type QuickCaptureSuccessHandoff = {
   portfolioHref: string | null;
@@ -40,6 +40,14 @@ function getReturnKind(returnHref: string): QuickCaptureReturnKind {
   ) {
     return "pathways";
   }
+  if (
+    pathname === "/my-learna" ||
+    pathname.startsWith("/my-learna/") ||
+    pathname === "/clean-my-curriculum" ||
+    pathname.startsWith("/clean-my-curriculum/")
+  ) {
+    return "curriculum";
+  }
   return "other";
 }
 
@@ -61,13 +69,15 @@ export function buildQuickCaptureSuccessHandoff({
   portfolioPathBase?: "/my-portfolio" | "/clean-my-portfolio";
 }): QuickCaptureSuccessHandoff {
   const returnHref = safeQuickCaptureReturnPath(returnTo);
-  const returnKind = getReturnKind(returnHref);
+  const returnKind = String(returnTo ?? "").trim() ? getReturnKind(returnHref) : "other";
   const returnLabel =
     returnKind === "my-day"
       ? "Back to My Day"
       : returnKind === "pathways"
         ? "Return to pathway"
-        : "Return";
+        : returnKind === "curriculum"
+          ? "Back to My Learna"
+          : "Return";
   const portfolioHref = includeInPortfolio
     ? `${portfolioPathBase}?learner_id=${encodeURIComponent(learnerId)}&latestEvidenceId=${encodeURIComponent(evidenceId)}&source=my-capture`
     : null;
@@ -78,11 +88,11 @@ export function buildQuickCaptureSuccessHandoff({
       ? `Added to ${learnerLabel}’s Portfolio.`
       : null,
     reportMessage: includeInReport ? "Included in Reports." : null,
-    primaryHref: portfolioHref ?? returnHref,
-    primaryLabel: portfolioHref ? "View in Portfolio" : returnLabel,
+    primaryHref: returnKind === "other" ? portfolioHref ?? returnHref : returnHref,
+    primaryLabel: returnKind === "other" && portfolioHref ? "View in Portfolio" : returnLabel,
     returnHref,
     returnKind,
     returnLabel,
-    showCaptureAnother: returnKind !== "pathways",
+    showCaptureAnother: true,
   };
 }

@@ -635,7 +635,7 @@ function CleanCaptureWorkspaceBody() {
   const [savePhase, setSavePhase] = useState("");
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const speechSessionHadTextRef = useRef(false);
@@ -644,6 +644,7 @@ function CleanCaptureWorkspaceBody() {
   const quickDraftAppliedRef = useRef(false);
   const captureOpenedTrackedRef = useRef(false);
   const firstAttachmentTrackedRef = useRef(false);
+  const successReceiptRef = useRef<HTMLDivElement | null>(null);
   const captureContextEditsRef = useRef<CaptureContextEditState>({
     key: "",
     learnerId: false,
@@ -764,7 +765,9 @@ function CleanCaptureWorkspaceBody() {
     ? "/clean-my-pathways"
     : "/my-pathways";
   const portfolioReturnPath = `${pathname.startsWith("/clean-my-capture") ? "/clean-my-portfolio" : "/my-portfolio"}${
-    learnerIdFromQuery ? `?learner_id=${encodeURIComponent(learnerIdFromQuery)}` : ""
+    learnerId || learnerIdFromQuery
+      ? `?learner_id=${encodeURIComponent(learnerId || learnerIdFromQuery)}`
+      : ""
   }`;
   const portfolioLearningRecordPath = `${portfolioReturnPath}${
     portfolioReturnPath.includes("?") ? "&" : "?"
@@ -776,7 +779,9 @@ function CleanCaptureWorkspaceBody() {
     ? `${savedEvidencePortfolioPath}&focus=learning-record`
     : portfolioLearningRecordPath;
 
-  function trackViewPortfolioSelected(returnKind: "pathways" | "other") {
+  const showSavedReceipt = Boolean(lastSavedEvidenceId && !pendingAttachmentError);
+
+  function trackViewPortfolioSelected(returnKind: "my-day" | "pathways" | "other") {
     trackCoreJourneyEvent(
       "view_in_portfolio_selected",
       {
@@ -802,6 +807,9 @@ function CleanCaptureWorkspaceBody() {
   }
   const savedEvidencePathwayReturnPath = appendSavedEvidenceReturnParams(
     lastSavedReturnPath || pathwaysReturnPath,
+  );
+  const savedEvidenceCurriculumReturnPath = appendSavedEvidenceReturnParams(
+    lastSavedReturnPath || curriculumReturnPath,
   );
 
   const selectedProgram = useMemo(
@@ -993,6 +1001,16 @@ function CleanCaptureWorkspaceBody() {
     programId,
   ]);
 
+  useEffect(() => {
+    if (!showSavedReceipt) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      successReceiptRef.current?.focus();
+      successReceiptRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [showSavedReceipt]);
+
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,
     [editingEntryId, entries],
@@ -1051,6 +1069,31 @@ function CleanCaptureWorkspaceBody() {
       setFormPathwayContext(null);
     }
     setLearnerId(nextLearnerId ?? workspace.profile?.defaultLearnerId ?? workspace.learners[0]?.id ?? "");
+  }
+
+  function captureAnother() {
+    const nextLearnerId = learnerId;
+    setMessage(null);
+    setActionError(null);
+    setLastSavedCurriculumContext(null);
+    setLastSavedPathwayContext(null);
+    setLastSavedReturnPath("");
+    setLastSavedEvidenceId("");
+    setLastSavedLearnerLabel("");
+    setLastSavedTitle("");
+    setLastSavedDate("");
+    setLastSavedLearningArea("");
+    setLastSavedMyDayReturnPath(null);
+    setLastSavedPortfolioIncluded(true);
+    setLastSavedReportIncluded(true);
+    setLastSavedWorksheetProgress("");
+    setLastSavedPhotoAttached(false);
+    setLastSavedPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return "";
+    });
+    resetForm(nextLearnerId);
+    trackCoreJourneyEvent("capture_another_selected", { area: "my_capture", route: pathname }, user?.id);
   }
 
   function clearCaptureContext() {
@@ -1871,7 +1914,13 @@ function CleanCaptureWorkspaceBody() {
               : [];
           setLastSavedCurriculumContext(null);
           setLastSavedPathwayContext(nextPathwayContext);
-          setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
+          setLastSavedReturnPath(
+            returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
+              ? returnToFromQuery
+              : worksheetEvidenceMode
+                ? worksheetReturnPath
+                : "",
+          );
           setLastSavedEvidenceId(savedEntry.id);
           setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
           setLastSavedPhotoAttached(false);
@@ -1902,7 +1951,13 @@ function CleanCaptureWorkspaceBody() {
 
       setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
       setLastSavedPathwayContext(nextPathwayContext);
-      setLastSavedReturnPath(worksheetEvidenceMode ? worksheetReturnPath : "");
+      setLastSavedReturnPath(
+        returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
+          ? returnToFromQuery
+          : worksheetEvidenceMode
+            ? worksheetReturnPath
+            : "",
+      );
       setLastSavedEvidenceId(savedEntry.id);
       setLastSavedLearnerLabel(
         learnerOptions.find((option) => option.value === savedEntry.learnerId)?.label || "",
@@ -2686,6 +2741,7 @@ function CleanCaptureWorkspaceBody() {
                 </div>
               ) : null}
 
+              {!showSavedReceipt ? (
               <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
                   <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} title="Optional attachments" />
@@ -3518,6 +3574,7 @@ function CleanCaptureWorkspaceBody() {
                   <p style={{ margin: 0, color: "#b91c1c" }}>{linkingError}</p>
                 ) : null}
               </form>
+              ) : null}
 
               {pendingAttachmentError ? (
                 <div
@@ -3587,8 +3644,11 @@ function CleanCaptureWorkspaceBody() {
                 </div>
               ) : null}
 
-              {message ? (
+              {showSavedReceipt ? (
                 <div
+                  ref={successReceiptRef}
+                  tabIndex={-1}
+                  role="status"
                   className="mylearna-capture-success-panel"
                   data-capture-success={lastSavedPathwayContext ? "saved" : undefined}
                   style={{
@@ -3602,7 +3662,7 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <strong style={{ margin: 0, color: "#0f766e", fontSize: 16 }}>
-                    Learning recorded
+                    ✓ Learning saved
                   </strong>
                   {lastSavedPathwayContext ? (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
@@ -3616,9 +3676,10 @@ function CleanCaptureWorkspaceBody() {
                       <span>{lastSavedDate ? formatDateLabel(lastSavedDate) : ""}</span>
                       {lastSavedLearningArea ? <span>{lastSavedLearningArea}</span> : null}
                       <span>
-                        {lastSavedPhotoAttached ? "Attachment attached - " : ""}
-                        {lastSavedPortfolioIncluded ? "Added to Portfolio" : "Not added to Portfolio"} -{" "}
-                        {lastSavedReportIncluded ? "Included in Reports" : "Not included in Reports"}
+                        {lastSavedPortfolioIncluded
+                          ? `Added to ${lastSavedLearnerLabel || "your learner"}'s Portfolio.`
+                          : "Learning saved. Not added to Portfolio."}
+                        {lastSavedReportIncluded ? " Available for Reports." : ""}
                       </span>
                     </div>
                   ) : (
@@ -3628,15 +3689,17 @@ function CleanCaptureWorkspaceBody() {
                       {lastSavedDate ? <span>{formatDateLabel(lastSavedDate)}</span> : null}
                       {lastSavedLearningArea ? <span>{lastSavedLearningArea}</span> : null}
                       <span>
-                        {lastSavedPortfolioIncluded ? "Added to Portfolio" : "Not added to Portfolio"} -{" "}
-                        {lastSavedReportIncluded ? "Included in Reports" : "Not included in Reports"}
+                        {lastSavedPortfolioIncluded
+                          ? `Added to ${lastSavedLearnerLabel || "your learner"}'s Portfolio.`
+                          : "Learning saved. Not added to Portfolio."}
+                        {lastSavedReportIncluded ? " Available for Reports." : ""}
                       </span>
                     </div>
                   )}
-                  {lastSavedPhotoPreviewUrl ? (
+                  {lastSavedPhotoAttached && lastSavedPhotoPreviewUrl ? (
                     <div
                       role="img"
-                      aria-label="Saved worksheet evidence preview"
+                      aria-label="Saved learning photo preview"
                       style={{
                         width: 124,
                         height: 86,
@@ -3648,76 +3711,49 @@ function CleanCaptureWorkspaceBody() {
                       }}
                     />
                   ) : null}
-                  {lastSavedMyDayReturnPath ? (
-                    <Link
-                      href={lastSavedMyDayReturnPath}
-                      style={{
-                        ...buttonStyle,
-                        background: "#ffffff",
-                        color: "#0f172a",
-                        textDecoration: "none",
-                        width: "fit-content",
-                      }}
-                    >
-                      Return to My Day
-                    </Link>
-                  ) : null}
                   {savedAttachments.length ? (
                     <p style={{ margin: 0, color: "#0f766e", fontWeight: 700 }}>
                       Attachments attached: {savedAttachments.map((attachment) => attachment.label).join(", ")}
                     </p>
                   ) : null}
-                  {lastSavedPathwayContext ? (
-                    <div className="mylearna-capture-success-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                        onClick={() => router.push(savedEvidencePathwayReturnPath)}
-                      >
+                  <div className="mylearna-capture-success-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {lastSavedMyDayReturnPath ? (
+                      <Link href={lastSavedMyDayReturnPath} style={{ ...buttonStyle, textDecoration: "none" }}>
+                        Back to My Day
+                      </Link>
+                    ) : lastSavedPathwayContext ? (
+                      <button type="button" style={buttonStyle} onClick={() => router.push(savedEvidencePathwayReturnPath)}>
                         {lastSavedReturnPath ? "Return to pathway" : "Back to My Pathways"}
                       </button>
-                      <Link href={savedEvidencePortfolioPath} onClick={() => trackViewPortfolioSelected("pathways")} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
-                        View portfolio
-                      </Link>
-                      <Link href={savedEvidenceLearningRecordPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
-                        Download learning record
-                      </Link>
-                      <button
-                        type="button"
-                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                        onClick={() => {
-                          setMessage(null);
-                          setLastSavedPathwayContext(null);
-                          setLastSavedEvidenceId("");
-                          setLastSavedTitle("");
-                          setLastSavedDate("");
-                          setLastSavedLearningArea("");
-                          setLastSavedMyDayReturnPath(null);
-                          setLastSavedPortfolioIncluded(true);
-                          setLastSavedReportIncluded(true);
-                          setLastSavedWorksheetProgress("");
-                          setLastSavedPhotoAttached(false);
-                          setLastSavedPhotoPreviewUrl((current) => {
-                            if (current) URL.revokeObjectURL(current);
-                            return "";
-                          });
-                        }}
-                      >
-                        Add another capture
-                      </button>
-                    </div>
-                  ) : null}
-                  {lastSavedCurriculumContext ? (
-                    <div>
-                      <button
-                        type="button"
-                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                        onClick={() => router.push(curriculumReturnPath)}
-                      >
+                    ) : lastSavedCurriculumContext ? (
+                      <button type="button" style={buttonStyle} onClick={() => router.push(savedEvidenceCurriculumReturnPath)}>
                         Back to My Learna
                       </button>
-                    </div>
-                  ) : null}
+                    ) : lastSavedPortfolioIncluded ? (
+                      <Link href={savedEvidencePortfolioPath} onClick={() => trackViewPortfolioSelected("other")} style={{ ...buttonStyle, textDecoration: "none" }}>
+                        View in My Portfolio
+                      </Link>
+                    ) : null}
+                    {lastSavedPortfolioIncluded && (lastSavedMyDayReturnPath || lastSavedPathwayContext || lastSavedCurriculumContext) ? (
+                      <Link
+                        href={savedEvidencePortfolioPath}
+                        onClick={() => trackViewPortfolioSelected(lastSavedMyDayReturnPath ? "my-day" : lastSavedPathwayContext ? "pathways" : "other")}
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}
+                      >
+                        View in My Portfolio
+                      </Link>
+                    ) : null}
+                    <button
+                      type="button"
+                      style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                      onClick={captureAnother}
+                    >
+                      Capture another
+                    </button>
+                    <Link href={savedEvidenceLearningRecordPath} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a", textDecoration: "none" }}>
+                      Download learning record
+                    </Link>
+                  </div>
                 </div>
               ) : null}
 

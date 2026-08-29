@@ -145,8 +145,8 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("Learning saved");
     expect(source).toContain("successHandoff?.portfolioMessage");
     expect(source).toContain("successHandoff?.reportMessage");
-    expect(source).toContain("successHandoff?.primaryHref");
-    expect(source).toContain("successHandoff?.primaryLabel");
+    expect(source).toContain('successHandoff?.returnKind !== "other"');
+    expect(source).toContain("successHandoff?.portfolioHref");
     expect(quickSuccessSource).toContain("View in Portfolio");
     expect(source).not.toContain("<span>Added to Portfolio</span>");
     expect(source).toContain("includeInPortfolio: true");
@@ -165,7 +165,7 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("successHandoff.returnHref");
     expect(source).toContain("successHandoff.returnLabel");
     expect(captureSource).toContain("lastSavedMyDayReturnPath");
-    expect(captureSource).toContain("Return to My Day");
+    expect(captureSource).toContain("Back to My Day");
     expect(captureSource).toContain("savedEvidencePathwayReturnPath");
     expect(captureSource).toContain("Return to pathway");
     expect(source).not.toContain("router.replace(successHandoff");

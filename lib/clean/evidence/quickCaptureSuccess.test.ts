@@ -22,7 +22,7 @@ describe("Quick Capture success handoffs", () => {
     expect(handoff.portfolioMessage).toBe("Added to Alex’s Portfolio.");
     expect(handoff.reportMessage).toBe("Included in Reports.");
     expect(handoff.returnHref).toBe("/my-day");
-    expect(handoff.returnLabel).toBe("Back to My Day");
+    expect(handoff.returnLabel).toBe("Return");
     expect(handoff.showCaptureAnother).toBe(true);
   });
 
@@ -39,6 +39,7 @@ describe("Quick Capture success handoffs", () => {
     expect(handoff.returnKind).toBe("my-day");
     expect(handoff.returnHref).toBe("/my-day?learnerId=learner-1#today");
     expect(handoff.returnLabel).toBe("Back to My Day");
+    expect(handoff.primaryLabel).toBe("Back to My Day");
   });
 
   it("never claims or links Portfolio inclusion when the saved entry says false", () => {
@@ -58,7 +59,7 @@ describe("Quick Capture success handoffs", () => {
     expect(handoff.primaryLabel).toBe("Back to My Day");
   });
 
-  it("preserves Pathways return context and avoids offering a competing repeat capture", () => {
+  it("preserves Pathways return context while keeping Portfolio secondary", () => {
     const returnTo =
       "/my-pathways?subjectKey=mathematics&strandKey=number&learnerId=learner-1#pathway-step-number-2";
     const handoff = buildQuickCaptureSuccessHandoff({
@@ -73,7 +74,8 @@ describe("Quick Capture success handoffs", () => {
     expect(handoff.returnKind).toBe("pathways");
     expect(handoff.returnHref).toBe(returnTo);
     expect(handoff.returnLabel).toBe("Return to pathway");
-    expect(handoff.showCaptureAnother).toBe(false);
+    expect(handoff.primaryLabel).toBe("Return to pathway");
+    expect(handoff.showCaptureAnother).toBe(true);
   });
 
   it("rejects external and protocol-relative return destinations", () => {
