@@ -80,11 +80,13 @@ export function getCoachRecommendation(state: CoachState): CoachEngineResult {
     });
   }
 
-  const calendarPlanningRoute = state.route === "/my-calendar" || state.route.startsWith("/my-calendar/");
+  const planningRoute =
+    state.route === "/my-calendar" || state.route.startsWith("/my-calendar/") ||
+    state.route === "/my-day" || state.route.startsWith("/my-day/");
 
   // Keep an explicit Plan activation in Calendar; Settings remains available
   // elsewhere but must not become a rebound step for this journey.
-  if (!state.hasLearningSettings && !calendarPlanningRoute) {
+  if (!state.hasLearningSettings && !planningRoute) {
     return recommendation(state, {
       id: "setup-learning-settings",
       category: "setup",
@@ -101,7 +103,7 @@ export function getCoachRecommendation(state: CoachState): CoachEngineResult {
     });
   }
 
-  if (!state.hasLearningYear) {
+  if (!state.hasLearningYear && !planningRoute) {
     return recommendation(state, {
       id: "setup-learning-year",
       category: "setup",
@@ -118,7 +120,7 @@ export function getCoachRecommendation(state: CoachState): CoachEngineResult {
     });
   }
 
-  if (!state.hasTeachingPeriod) {
+  if (!state.hasTeachingPeriod && !planningRoute) {
     return recommendation(state, {
       id: "setup-learning-period",
       category: "setup",

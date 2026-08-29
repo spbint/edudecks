@@ -1674,8 +1674,8 @@ function CleanDayWorkspaceBody() {
               ) : null}
               {myDayPresentationState === "RETURNING_EMPTY" ? (
                 <>
-                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>Nothing planned for today.</h1>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Add something for today, capture learning that already happened, or open My Calendar.</p>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "Nothing planned for today." : "Nothing planned for this day."}</h1>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{isViewingToday ? "Add something for today, capture learning that already happened, or open My Calendar." : "Add something for this day, capture learning that already happened, or open My Calendar."}</p>
                   <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>Add a learning block</button>
                   <Link href={`${capturePathBase}?mode=quick${accountSetup.activeLearnerId ? `&learner_id=${encodeURIComponent(accountSetup.activeLearnerId)}` : ""}`} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
                     Capture something you already did

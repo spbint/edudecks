@@ -32,12 +32,25 @@ describe("MyLearna Coach recommendation engine", () => {
   it.each([
     [{ hasFamilyProfile: false }, "setup-family-profile"],
     [{ hasLearner: false }, "setup-first-learner"],
-    [{ hasLearningSettings: false }, "setup-learning-settings"],
-    [{ hasLearningYear: false }, "setup-learning-year"],
-    [{ hasTeachingPeriod: false }, "setup-learning-period"],
     [{ hasWeeklyBlock: false }, "setup-weekly-block"],
   ])("prioritises mandatory setup: %s", (overrides, expected) => {
     expect(getCoachRecommendation(state(overrides))).toMatchObject({ id: expected, mandatorySetup: true });
+  });
+
+  it("keeps settings recommendations progressive while planning", () => {
+    for (const route of ["/my-calendar", "/my-day"]) {
+      for (const overrides of [
+        { hasLearningSettings: false },
+        { hasLearningYear: false },
+        { hasTeachingPeriod: false },
+      ]) {
+        expect(getCoachRecommendation(state({ route, ...overrides }))).not.toMatchObject({
+          id: expect.stringMatching(/^setup-learning-(settings|year|period)$/),
+          mandatorySetup: true,
+        });
+      }
+    }
+    expect(getCoachRecommendation(state({ route: "/my-settings", hasLearningYear: false }))).toMatchObject({ id: "setup-learning-year" });
   });
 
   it("keeps first-week planning in Calendar when settings are incomplete", () => {

@@ -2712,6 +2712,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       }
       if (creatingFirstBlock) {
         setShowFirstValueHandoff(true);
+      } else {
+        setShowFirstValueHandoff(false);
       }
       setMessage(hasMasterWeekBlock ? "Master Week block updated." : "Your Master Week is ready.");
       await reloadTemplateBlocks();
@@ -5576,10 +5578,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                 >
                   <div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>Master Week</h2>
-                    <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                      Set the weekly pattern your family normally follows.
-                    </p>
-                    <p style={{ ...secondaryTextStyle, marginTop: 8 }}>Changes here shape future planning. You can still change individual days later.</p>
                   </div>
                 </div>
 
@@ -5597,16 +5595,17 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       >
                         <div style={{ display: "grid", gap: 6 }}>
                           <strong style={{ color: "#0f172a" }}>Master Week</strong>
-                          <p style={secondaryTextStyle}>
-                            This is your recurring weekly pattern, not a particular dated week.
-                          </p>
                         </div>
                         <button
                           type="button"
                           style={mutedButtonStyle}
                           onClick={() => setShowTemplateComposer((current) => !current)}
                         >
-                          {shouldShowTemplateComposer ? "Hide Master Week form" : "Add your first Master Week block"}
+                          {shouldShowTemplateComposer
+                            ? "Hide Master Week form"
+                            : !masterWeekBlocksResolved || !hasMasterWeekBlock
+                              ? "Add your first Master Week block"
+                              : "Add a Master Week block"}
                         </button>
                       </div>
 
