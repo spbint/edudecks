@@ -161,6 +161,25 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("Attachment attached to the saved learning moment.");
   });
 
+  it("keeps the receipt above the non-blocking Coach refresh and only Capture another clears it", () => {
+    const savedEntryStart = source.indexOf("setSavedEntry(result.entry)");
+    const savePhaseStart = source.indexOf('setSavePhase("Learning saved")', savedEntryStart);
+    const captureAnotherStart = source.indexOf("function captureAnother()");
+    const captureAnotherEnd = source.indexOf("if (workspace.loading)", captureAnotherStart);
+
+    expect(savedEntryStart).toBeGreaterThan(-1);
+    expect(savePhaseStart).toBeGreaterThan(savedEntryStart);
+    expect(source).not.toContain("await workspace.reload()");
+    expect(source).not.toContain("requestCoachStateRefresh");
+    expect(source).toContain("Creating evidence already notifies the Coach refresh subscriber");
+    expect(source.slice(captureAnotherStart, captureAnotherEnd)).toContain("setSavedEntry(null)");
+    expect(source.match(/setSavedEntry\(null\)/g)).toHaveLength(1);
+    expect(source).toContain("if (savedEntry) {");
+    expect(source).toContain("Learning moment saved");
+    expect(source).toContain("Attachment still needs attaching");
+    expect(source).toContain("Retry attachment");
+  });
+
   it("preserves My Day and Pathways return behavior without automatic redirects", () => {
     expect(source).toContain("successHandoff.returnHref");
     expect(source).toContain("successHandoff.returnLabel");

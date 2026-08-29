@@ -24,7 +24,6 @@ import {
   trackCoreJourneyEvent,
   trackProductEvent,
 } from "@/lib/clean/analytics/productAnalytics";
-import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 import {
   attachmentRecoveryMessage,
   captureRecoveryMessage,
@@ -283,11 +282,10 @@ export default function CleanQuickCaptureWorkspace() {
         }
       }
       setSavedEntry(result.entry);
-      setSavePhase("Finalising evidence");
-      setStatus("");
-      await workspace.reload();
-      requestCoachStateRefresh("evidence-created", { refreshAlreadyApplied: true });
       setSavePhase("Learning saved");
+      setStatus("");
+      // Creating evidence already notifies the Coach refresh subscriber. Keep the
+      // receipt local and visible while that secondary workspace refresh runs.
     } catch (saveError) {
       if (persistedEntry) {
         setSavedEntry(persistedEntry);

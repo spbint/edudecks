@@ -32,12 +32,13 @@ describe("authenticated family setup route guard", () => {
     ).toBeNull();
   });
 
-  it("waits for workspace state and does not redirect errors", () => {
+  it("waits for workspace state but leaves optional setup enrichment non-blocking", () => {
     expect(getFamilySetupRedirectPath({ ...baseState, loading: true })).toBeNull();
     expect(getFamilySetupRedirectPath({ ...baseState, setupLoading: true })).toBeNull();
     expect(getFamilySetupRedirectPath({ ...baseState, error: "workspace unavailable" })).toBeNull();
     expect(getFamilySetupRedirectPath({ ...baseState, schemaMissing: true })).toBeNull();
     expect(shouldHoldForFamilySetup({ ...baseState, loading: true })).toBe(true);
+    expect(shouldHoldForFamilySetup({ ...baseState, setupLoading: true })).toBe(false);
   });
 
   it("allows the profile route and clean route keeps its clean destination", () => {

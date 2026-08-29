@@ -17,7 +17,7 @@ export function shouldHoldForFamilySetup(state: FamilySetupRouteState) {
   return Boolean(
     state.authenticated &&
       !isFamilyProfileRoute(state.pathname) &&
-      (state.loading || state.setupLoading),
+      state.loading,
   );
 }
 
