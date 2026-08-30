@@ -27,6 +27,7 @@ type CleanPathwayProgressConfirmationProps = {
   pathwayStepId: string;
   confirmedStatus?: CleanAssessmentStatusValue | null;
   evidenceSuggestion?: string | null;
+  actionLabel?: string;
   onSaved?: (status: CleanAssessmentSkillStatus) => void;
 };
 
@@ -52,6 +53,7 @@ export default function CleanPathwayProgressConfirmation({
   pathwayStepId,
   confirmedStatus = null,
   evidenceSuggestion = null,
+  actionLabel = "Confirm progress",
   onSaved,
 }: CleanPathwayProgressConfirmationProps) {
   const confirmedParentStatus = confirmedStatus
@@ -139,7 +141,7 @@ export default function CleanPathwayProgressConfirmation({
         </div>
         {!open ? (
           <button type="button" onClick={beginEditing} style={secondaryButtonStyle}>
-            Confirm progress
+            {actionLabel}
           </button>
         ) : null}
       </div>

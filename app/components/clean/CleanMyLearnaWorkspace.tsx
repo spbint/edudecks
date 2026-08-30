@@ -5,12 +5,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
+import CleanPathwayProgressConfirmation from "@/app/components/clean/CleanPathwayProgressConfirmation";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
+import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
+import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
 import {
   buildPathwayCaptureContext,
   buildPathwayCaptureSearchParams,
-  parsePathwayContextFromNodeIds,
 } from "@/lib/clean/evidence/curriculumContext";
 import {
   listCleanEvidenceEntries,
@@ -24,6 +26,9 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import { buildLearningIntelligenceSummary } from "@/lib/clean/curriculum/learningIntelligenceSummary";
+import { buildExplainableProgressStory } from "@/lib/clean/pathways/explainableProgressStory";
+import type { PathwayStageKey } from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import { buildUnifiedPathwayStepStateIndex, type UnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
 import {
   buildCleanCoverageRecordPdfFilename,
   buildCurriculumCoveragePdfModel,
@@ -117,15 +122,31 @@ function pathwayPath(learnerId: string, nextStep: NextStep | null) {
   return query ? `/my-pathways?${query}` : "/my-pathways";
 }
 
-function capturePath(learnerId: string, latestEntry: CleanEvidenceEntry | null) {
-  const sourceContext = latestEntry
-    ? parsePathwayContextFromNodeIds(latestEntry.curriculumNodeIds)
-    : null;
-  const validContext = sourceContext ? buildPathwayCaptureContext(sourceContext) : null;
-  if (validContext) {
-    return `/my-capture?${buildPathwayCaptureSearchParams(validContext, { learnerId }).toString()}`;
-  }
-  return learnerPath("/my-capture", learnerId);
+function pathwayCapturePath(learnerId: string, step: NextStep) {
+  const context = buildPathwayCaptureContext({
+    subjectKey: step.subjectKey,
+    subjectLabel: step.subjectTitle,
+    pathwayKey: step.strandKey,
+    pathwayLabel: step.strandTitle,
+    stageKey: step.stageKey,
+    stageLabel: step.stageTitle,
+    pathwayStepId: step.pathwayStepId,
+    stepKey: step.pathwayStepId.split("::").at(-1) || step.pathwayStepId,
+    stepTitle: step.stepTitle,
+    stepMeaning: step.stepDescription,
+  });
+  if (!context) return learnerPath("/my-capture", learnerId);
+  const params = buildPathwayCaptureSearchParams(context, {
+    learnerId,
+    learningAreaKey: step.subjectKey,
+    learningAreaLabel: step.subjectTitle,
+  });
+  params.set("returnTo", `/my-learna?learner_id=${encodeURIComponent(learnerId)}`);
+  return `/my-capture?${params.toString()}`;
+}
+
+function pathwayEvidencePath(learnerId: string) {
+  return learnerPath("/my-portfolio", learnerId);
 }
 
 function downloadPdf(bytes: Uint8Array, filename: string) {
@@ -207,6 +228,78 @@ function EmptyWorkspace({
   );
 }
 
+function CurrentLearningCard({
+  step,
+  stepIndex,
+  attempts,
+  learnerId,
+  familyId,
+  onProgressSaved,
+}: {
+  step: NextStep;
+  stepIndex: UnifiedPathwayStepStateIndex;
+  attempts: CleanAssessmentAttempt[];
+  learnerId: string;
+  familyId: string;
+  onProgressSaved: () => void;
+}) {
+  const [whyOpen, setWhyOpen] = useState(false);
+  const story = buildExplainableProgressStory({
+    pathwayStepId: step.pathwayStepId,
+    stepState: stepIndex.get(step.pathwayStepId),
+    attempts,
+  });
+  const whyId = `why-this-is-shown-${step.pathwayStepId.replace(/[^a-z0-9]+/gi, "-")}`;
+  const nextCopy: Record<typeof story.nextAction, string> = {
+    "add-completed-work": "Add supporting learning",
+    "confirm-progress": "Confirm progress",
+    "more-support": "Continue practising",
+    "check-understanding": "Review this step",
+    "next-step": "Continue to the next step",
+    "review-this-step": "Review this step",
+  };
+
+  return <article style={{ ...cardStyle, display: "grid", gap: 14 }} data-current-learning-card={step.pathwayStepId}>
+    <div style={{ display: "grid", gap: 5 }}>
+      <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{step.subjectTitle}{step.strandTitle ? ` · ${step.strandTitle}` : ""}</p>
+      <h3 style={{ margin: 0, color: "#17204b", fontSize: 20 }}>{step.stepTitle}</h3>
+    </div>
+    <div style={{ display: "grid", gap: 4 }}>
+      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Current progress</span>
+      <strong style={{ color: "#17204b", fontSize: 19 }}>{story.currentProgress}</strong>
+      {story.currentProgressSource === "parent-confirmation" ? <span style={{ ...quietTextStyle, fontSize: 13 }}>Confirmed by you · {dateLabel(story.currentProgressConfirmedAt)}</span> : <span style={{ ...quietTextStyle, fontSize: 13 }}>No progress confirmation has been saved yet.</span>}
+    </div>
+    <p style={{ ...quietTextStyle, margin: 0, fontSize: 14 }}>{story.supportingEvidenceCount} {story.supportingEvidenceCount === 1 ? "supporting learning record" : "supporting learning records"}{story.completedCheckCount ? ` · ${story.completedCheckCount} completed ${story.completedCheckCount === 1 ? "check" : "checks"}` : ""}</p>
+    {story.hasSignalConflict ? <p role="status" style={{ margin: 0, color: "#7c2d12", fontSize: 13 }}>{story.conflictExplanation}</p> : null}
+    <div style={{ display: "grid", gap: 4 }}><span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Suggested next</span><strong style={{ color: "#17204b" }}>{nextCopy[story.nextAction]}</strong></div>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <Link href={pathwayCapturePath(learnerId, step)} style={primaryActionStyle}>Add learning</Link>
+      <button type="button" onClick={() => setWhyOpen((open) => !open)} aria-expanded={whyOpen} aria-controls={whyId} style={{ ...secondaryActionStyle, cursor: "pointer" }}>Why this is shown</button>
+      <Link href={pathwayEvidencePath(learnerId)} style={{ ...secondaryActionStyle, minHeight: 44 }}>View evidence</Link>
+    </div>
+    {whyOpen ? <section id={whyId} aria-label={`Why this is shown for ${step.stepTitle}`} style={{ display: "grid", gap: 8, paddingTop: 2, borderTop: "1px solid #e7eaf2" }}>
+      {story.currentProgressSource === "parent-confirmation" ? <p style={{ ...quietTextStyle, margin: 0 }}>Parent confirmation: {story.currentProgress} · {dateLabel(story.currentProgressConfirmedAt)}</p> : <p style={{ ...quietTextStyle, margin: 0 }}>No parent-confirmed progress has been saved.</p>}
+      <p style={{ ...quietTextStyle, margin: 0 }}>Supporting evidence: {story.supportingEvidenceCount} learning records{story.latestEvidence ? ` · Latest: ${story.latestEvidence.title} · ${dateLabel(story.latestEvidence.observedOn)}` : ""}</p>
+      {story.latestObservedProgress ? <p style={{ ...quietTextStyle, margin: 0 }}>Latest observed progress: {story.latestObservedProgress} · {dateLabel(story.latestObservedAt)}</p> : null}
+      {story.latestCheck ? <p style={{ ...quietTextStyle, margin: 0 }}>Completed checks: {story.completedCheckCount} · Latest check: {story.latestCheck.itemCount ? `${story.latestCheck.correctCount} of ${story.latestCheck.itemCount} correct` : story.latestCheck.factualStatus} · {dateLabel(story.latestCheck.completedAt)}</p> : null}
+      {story.hasSignalConflict ? <p style={{ margin: 0, color: "#7c2d12", fontSize: 13 }}>{story.conflictExplanation}</p> : null}
+    </section> : null}
+    <CleanPathwayProgressConfirmation
+      familyId={familyId}
+      learnerId={learnerId}
+      subjectKey={step.subjectKey}
+      stageKey={step.stageKey as PathwayStageKey}
+      strandKey={step.strandKey}
+      stepKey={step.pathwayStepId.split("::").at(-1) || step.pathwayStepId}
+      pathwayStepId={step.pathwayStepId}
+      confirmedStatus={stepIndex.get(step.pathwayStepId)?.assessmentStatusRecord?.status ?? null}
+      evidenceSuggestion={stepIndex.get(step.pathwayStepId)?.latestEvidenceProgressLevel ?? null}
+      actionLabel="Update progress"
+      onSaved={onProgressSaved}
+    />
+  </article>;
+}
+
 export default function CleanMyLearnaWorkspace() {
   const workspace = useCleanFamilyWorkspace();
   const router = useRouter();
@@ -214,10 +307,12 @@ export default function CleanMyLearnaWorkspace() {
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
+  const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesRefreshing, setEntriesRefreshing] = useState(false);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
   const [assessmentRefreshing, setAssessmentRefreshing] = useState(false);
+  const [attemptsLoading, setAttemptsLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [coverageSubmitting, setCoverageSubmitting] = useState(false);
@@ -231,6 +326,7 @@ export default function CleanMyLearnaWorkspace() {
   const lastRefreshStartedAtRef = useRef(0);
   const loadedEvidenceKeyRef = useRef("");
   const loadedAssessmentKeyRef = useRef("");
+  const loadedAttemptsKeyRef = useRef("");
 
   const queryLearnerId = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
   const pathname = usePathname();
@@ -260,6 +356,10 @@ export default function CleanMyLearnaWorkspace() {
     () => (loadedAssessmentKeyRef.current === evidenceKey ? assessmentStatuses : []),
     [assessmentStatuses, evidenceKey],
   );
+  const visibleAssessmentAttempts = useMemo(
+    () => (loadedAttemptsKeyRef.current === evidenceKey ? assessmentAttempts : []),
+    [assessmentAttempts, evidenceKey],
+  );
 
   const reloadLearnerData = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (!evidenceKey || !profileId || workspace.schemaMissing || workspace.requiresFamilyCreation) return;
@@ -274,6 +374,7 @@ export default function CleanMyLearnaWorkspace() {
     const generation = ++requestGenerationRef.current;
     const hasLoadedEvidence = loadedEvidenceKeyRef.current === evidenceKey;
     const hasLoadedAssessment = loadedAssessmentKeyRef.current === evidenceKey;
+    const hasLoadedAttempts = loadedAttemptsKeyRef.current === evidenceKey;
 
     setEntriesError(null);
     setAssessmentError(null);
@@ -281,8 +382,10 @@ export default function CleanMyLearnaWorkspace() {
     setEntriesRefreshing(hasLoadedEvidence);
     setAssessmentLoading(!hasLoadedAssessment);
     setAssessmentRefreshing(hasLoadedAssessment);
+    setAttemptsLoading(!hasLoadedAttempts);
     if (!hasLoadedEvidence) setEntries([]);
     if (!hasLoadedAssessment) setAssessmentStatuses([]);
+    if (!hasLoadedAttempts) setAssessmentAttempts([]);
 
     const refreshPromise = Promise.all([
       listCleanEvidenceEntries(profileId, { learnerId: selectedLearnerId, limit: 250 })
@@ -315,6 +418,24 @@ export default function CleanMyLearnaWorkspace() {
           setAssessmentLoading(false);
           setAssessmentRefreshing(false);
         }),
+      listAssessmentAttemptsForLearner(profileId, {
+        learnerId: selectedLearnerId,
+        status: "completed",
+        limit: 250,
+      })
+        .then((nextAttempts) => {
+          if (generation !== requestGenerationRef.current) return;
+          loadedAttemptsKeyRef.current = evidenceKey;
+          setAssessmentAttempts(nextAttempts);
+        })
+        .catch(() => {
+          if (generation !== requestGenerationRef.current) return;
+          setAssessmentAttempts([]);
+        })
+        .finally(() => {
+          if (generation !== requestGenerationRef.current) return;
+          setAttemptsLoading(false);
+        }),
     ]).then(() => undefined).finally(() => {
       if (inFlightRefreshRef.current?.key === evidenceKey) {
         inFlightRefreshRef.current = null;
@@ -331,12 +452,15 @@ export default function CleanMyLearnaWorkspace() {
       inFlightRefreshRef.current = null;
       loadedEvidenceKeyRef.current = "";
       loadedAssessmentKeyRef.current = "";
+      loadedAttemptsKeyRef.current = "";
       setEntries([]);
       setAssessmentStatuses([]);
+      setAssessmentAttempts([]);
       setEntriesLoading(false);
       setEntriesRefreshing(false);
       setAssessmentLoading(false);
       setAssessmentRefreshing(false);
+      setAttemptsLoading(false);
       return;
     }
 
@@ -374,21 +498,23 @@ export default function CleanMyLearnaWorkspace() {
     }),
     [selectedLearner?.yearLevel, visibleAssessmentStatuses, visibleEntries],
   );
+  const pathwayStepIndex = useMemo(
+    () => buildUnifiedPathwayStepStateIndex({
+      evidenceEntries: visibleEntries,
+      assessmentStatuses: visibleAssessmentStatuses,
+    }),
+    [visibleAssessmentStatuses, visibleEntries],
+  );
   const latestEntry = visibleEntries[0] ?? null;
-  const latestPathwayContext = PUBLIC_PATHWAYS_ENABLED && latestEntry
-    ? parsePathwayContextFromNodeIds(latestEntry.curriculumNodeIds)
-    : null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
   const hasPathwaySignal = PUBLIC_PATHWAYS_ENABLED && Boolean(
     summary.nextLearningSteps[0] &&
       (summary.activeLearningAreaRows.length > 0 || visibleAssessmentStatuses.some((status) => Boolean(status.pathwayStepId))),
   );
   const nextStep = hasPathwaySignal ? summary.nextLearningSteps[0] ?? null : null;
-  const primaryAction = nextStep
-    ? { label: "Continue learning", href: pathwayPath(selectedLearnerId, nextStep) }
-      : visibleEntries.length
-      ? { label: "Add evidence", href: capturePath(selectedLearnerId, latestEntry) }
-      : { label: "Add a learning record", href: capturePath(selectedLearnerId, latestEntry) };
+  const currentLearningSteps = hasPathwaySignal
+    ? summary.nextLearningSteps.slice(0, 3)
+    : [];
   const quickCaptureHref = `/my-capture?mode=quick&learner_id=${encodeURIComponent(selectedLearnerId)}&returnTo=${encodeURIComponent("/my-learna")}`;
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
   const quietAreas = summary.allSubjectRows.filter((row) => !row.isActiveLearningArea);
@@ -474,16 +600,27 @@ export default function CleanMyLearnaWorkspace() {
           <span style={{ color: "#6c4df6", fontSize: 13, fontWeight: 800 }}>{entriesLoading ? "Refreshing recent records" : "Based on saved records"}</span>
         </aside>
       </section>
-      <section style={{ ...cardStyle, display: "grid", gap: 16 }}>
-        <div style={{ display: "grid", gap: 8 }}>
-          <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Current focus</p>
-          <h2 style={{ margin: 0, color: "#17204b", fontSize: 22 }}>{nextStep ? `${nextStep.subjectTitle} · ${nextStep.strandTitle}` : summary.activeLearningAreaRows[0]?.title || "A new learning story"}</h2>
-          <p style={{ ...quietTextStyle, margin: 0 }}>{nextStep?.stepTitle || latestPathwayContext?.stepTitle || (visibleEntries.length ? "Recent learning is ready to review." : "Choose a pathway to discover a current focus.")}</p>
-        </div>
+      <section aria-label="Quick actions" style={{ ...cardStyle, display: "grid", gap: 12 }}>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick actions</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link href={primaryAction.href} style={primaryActionStyle}>{primaryAction.label}</Link>
-          <Link href={quickCaptureHref} style={secondaryActionStyle}>Add a quick note or photo</Link>
+          <Link href={quickCaptureHref} style={primaryActionStyle}>Add learning</Link>
+          <Link href={learnerPath("/my-day", selectedLearnerId)} style={secondaryActionStyle}>Open My Day</Link>
+          <Link href={learnerPath("/my-portfolio", selectedLearnerId)} style={secondaryActionStyle}>View Portfolio</Link>
+          <Link href={learnerPath("/my-reports", selectedLearnerId)} style={secondaryActionStyle}>View Reports</Link>
         </div>
+      </section>
+      <section aria-labelledby="current-learning-heading" style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gap: 5, padding: "4px 2px" }}>
+          <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Current learning</p>
+          <h2 id="current-learning-heading" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>What {selectedLearnerName} is working on</h2>
+          <p style={{ ...quietTextStyle, margin: 0 }}>Current progress remains your confirmation. Learning records and checks give useful context without changing it automatically.</p>
+        </div>
+        {PUBLIC_PATHWAYS_ENABLED && currentLearningSteps.length ? currentLearningSteps.map((step) => <CurrentLearningCard key={step.pathwayStepId} step={step} stepIndex={pathwayStepIndex} attempts={visibleAssessmentAttempts} learnerId={selectedLearnerId} familyId={profileId} onProgressSaved={() => void reloadLearnerData({ force: true })} />) : <section style={cardStyle}>
+          <h3 style={{ margin: 0, color: "#17204b", fontSize: 20 }}>Start building {selectedLearnerName}&apos;s learning story</h3>
+          <p style={{ ...quietTextStyle, margin: "10px 0 0" }}>Add a learning record and MyLearna will bring together evidence, progress and next steps here.</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}><Link href={quickCaptureHref} style={primaryActionStyle}>Add learning</Link><Link href={learnerPath("/my-day", selectedLearnerId)} style={secondaryActionStyle}>Open My Day</Link></div>
+        </section>}
+        {attemptsLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>Loading completed checks...</p> : null}
       </section>
       <section style={{ ...cardStyle, display: "grid", gap: 8, borderColor: recordHealth.label === "Attention" ? "#fcd34d" : "#e7eaf2" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}><strong style={{ color: "#17204b", fontSize: 17 }}>Records</strong><span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{recordHealth.label}</span></div>
@@ -500,7 +637,6 @@ export default function CleanMyLearnaWorkspace() {
         {assessmentLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading saved judgements...</p> : null}
         {assessmentRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing saved judgements...</p> : null}
         {summary.progressJudgementObservations.length ? summary.progressJudgementObservations.slice(0, 6).map((observation) => <article key={observation.id} style={{ borderTop: "1px solid #e7eaf2", paddingTop: 12, display: "grid", gap: 5 }}><strong style={{ color: "#17204b" }}>{observation.judgement}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(observation.dateValue)}{observation.subjectTitle ? ` · ${observation.subjectTitle}` : ""}{observation.stepTitle ? ` · ${observation.stepTitle}` : ""}</span></article>) : <p style={{ ...quietTextStyle, margin: 0 }}>No recognised progress judgement has been saved yet.</p>}
-        {nextStep ? <Link href={pathwayPath(selectedLearnerId, nextStep)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Open pathway</Link> : null}
       </Disclosure> : null}
       <Disclosure id="recent-records" title="Recent records" description="Saved observations and work samples, with Portfolio as the full record.">
         {entriesLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading recent records...</p> : null}

@@ -5,20 +5,25 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(join(process.cwd(), "app/components/clean/CleanMyLearnaWorkspace.tsx"), "utf8");
 
 describe("My Learna parent guidance workspace", () => {
-  it("uses a learner-specific, parent-facing first viewport", () => {
+  it("uses a learner-specific, parent-facing hub first viewport", () => {
     expect(source).toContain("selectedLearnerName}&apos;s Learning");
     expect(source).toContain("A calm learning picture");
-    expect(source).toContain("Current focus");
-    expect(source).toContain("Continue learning");
+    expect(source).toContain("Quick actions");
+    expect(source).toContain("Current learning");
+    expect(source).toContain("Add learning");
+    expect(source).toContain("Open My Day");
+    expect(source).toContain("View Portfolio");
+    expect(source).toContain("View Reports");
     expect(source).toContain("PUBLIC_PATHWAYS_ENABLED");
-    expect(source).toContain("Add a learning record");
-    expect(source).toContain("Add evidence");
-    expect(source).toContain("Add a quick note or photo");
+    expect(source).toContain("Start building {selectedLearnerName}&apos;s learning story");
   });
 
   it("uses cautious evidence interpretation and transparent record health", () => {
-    expect(source).toContain("Your latest saved judgement is");
-    expect(source).toContain("There is not enough saved evidence yet to describe change over time.");
+    expect(source).toContain("buildExplainableProgressStory");
+    expect(source).toContain("Current progress remains your confirmation");
+    expect(source).toContain("Why this is shown");
+    expect(source).toContain("Latest observed progress");
+    expect(source).toContain("Completed checks:");
     expect(source).toContain("Your learning record is taking shape.");
     expect(source).toContain("Quiet areas are not treated as missing.");
     expect(source).not.toContain("Progress over time");
@@ -36,6 +41,11 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).toContain("/my-portfolio");
     expect(source).toContain("/my-reports");
     expect(source).toContain("generateCurriculumCoveragePdfBytes");
+    expect(source).toContain("listAssessmentAttemptsForLearner");
+    expect(source).toContain("pathwayCapturePath");
+    expect(source).toContain("CleanPathwayProgressConfirmation");
+    expect(source).toContain("actionLabel=\"Update progress\"");
+    expect(source).not.toContain(">Open pathway<");
   });
 
   it("keeps recent evidence fresh when the route or evidence changes", () => {
