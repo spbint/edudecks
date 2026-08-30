@@ -25,9 +25,9 @@ describe("Stage 8 mobile web shell", () => {
     expect(shellSource).not.toContain("grid-auto-flow: column !important");
   });
 
-  it("keeps the approved Day Plan Capture Grow More mobile model", () => {
-    expect(shellSource).toContain("<span>Day</span>");
-    expect(shellSource).toContain("Plan");
+  it("keeps the approved My Day My Calendar Capture Grow More mobile model", () => {
+    expect(shellSource).toContain("<span>My Day</span>");
+    expect(shellSource).toContain("My Calendar");
     expect(shellSource).toContain("Capture");
     expect(shellSource).toContain("Grow");
     expect(shellSource).toContain("More");
@@ -53,7 +53,7 @@ describe("Stage 8 mobile web shell", () => {
   });
 
   it("keeps retired and secondary destinations out of top-level mobile navigation", () => {
-    const mobileButtonLabels = ["Day", "Plan", "Capture", "Grow", "More"];
+    const mobileButtonLabels = ["My Day", "My Calendar", "Capture", "Grow", "More"];
     expect(mobileButtonLabels).not.toContain("My Review");
     expect(mobileButtonLabels).not.toContain("My Learna");
     expect(shellSource).toContain("shortLabel: \"Learna\"");

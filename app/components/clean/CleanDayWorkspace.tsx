@@ -9,7 +9,6 @@ import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CoreJourneyCue, {
   CoreJourneyHelp,
 } from "@/app/components/clean/design-v2/CoreJourneyCue";
-import MyPlanHeader from "@/app/components/clean/design-v2/MyPlanHeader";
 import CleanMiniCalendarNavigator from "@/app/components/clean/CleanMiniCalendarNavigator";
 import {
   CleanFeedbackPrompt,
@@ -1295,7 +1294,6 @@ function CleanDayWorkspaceBody() {
 
   return (
     <div style={shellStyle}>
-      <MyPlanHeader />
       <div className={`mylearna-day-shell mylearna-day-shell-${myDayPresentationState?.toLowerCase() ?? "loading"}`} style={wrapStyle}>
         <style jsx global>{`
           @media (max-width: 640px) {

@@ -56,18 +56,20 @@ type MobileNavKey = "day" | "PLAN" | "CAPTURE" | "GROW" | "more";
 const dayNavItem = {
   href: "/my-day",
   label: "My Day",
-  shortLabel: "Day",
+  shortLabel: "My Day",
   icon: "sun",
-  matches: ["/my-day", "/home", "/dashboard"],
+  matches: ["/my-day", "/clean-my-day", "/home", "/dashboard", "/my-plan"],
 } as const satisfies ProductNavItem;
 
-const myPlanNavItem = {
-  href: "/my-day",
-  label: "My Plan",
-  shortLabel: "Plan",
+const calendarNavItem = {
+  href: "/my-calendar",
+  label: "My Calendar",
+  shortLabel: "My Calendar",
   icon: "calendar",
-  matches: ["/my-day", "/clean-my-day", "/my-calendar", "/clean-my-calendar", "/home", "/dashboard"],
+  matches: ["/my-calendar", "/clean-my-calendar", "/calendar", "/my-month", "/planner"],
 } as const satisfies ProductNavItem;
+
+const myPlanNavItems = [dayNavItem, calendarNavItem] as const;
 
 const settingsNavItem = {
   href: "/my-settings",
@@ -81,7 +83,7 @@ export const finalProductNavSections = [
   {
     label: "PLAN",
     items: [
-      { href: "/my-calendar", label: "My Calendar", shortLabel: "Calendar", icon: "calendar", matches: ["/my-calendar", "/calendar"] },
+      calendarNavItem,
       ...(PUBLIC_PATHWAYS_ENABLED
         ? [{ href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route" as const, matches: ["/my-pathways"] }]
         : []),
@@ -107,7 +109,7 @@ const groupedNavItems: readonly ProductNavItem[] = finalProductNavSections.flatM
   (section): readonly ProductNavItem[] => section.items,
 );
 
-const navItems: readonly ProductNavItem[] = [dayNavItem, ...groupedNavItems, settingsNavItem, myPlanNavItem];
+const navItems: readonly ProductNavItem[] = [...myPlanNavItems, ...groupedNavItems, settingsNavItem];
 
 type ShellIconName = ProductNavIconName | "learner" | "review" | "help";
 
@@ -376,9 +378,11 @@ function isActive(pathname: string, matches: readonly string[]) {
 function NavLink({
   item,
   pathname,
+  nested = false,
 }: {
-  item: (typeof navItems)[number];
+  item: ProductNavItem;
   pathname: string;
+  nested?: boolean;
 }) {
   const active = isActive(pathname, item.matches);
 
@@ -393,7 +397,7 @@ function NavLink({
         alignItems: "center",
         gap: 10,
         borderRadius: 14,
-        padding: "9px 11px",
+        padding: nested ? "9px 11px 9px 24px" : "9px 11px",
         textDecoration: "none",
         background: active ? v2Tokens.lavender : "transparent",
         color: active ? v2Tokens.purple : v2Tokens.navy,
@@ -419,6 +423,54 @@ function NavLink({
         {item.shortLabel}
       </span>
     </Link>
+  );
+}
+
+function MyPlanNavGroup({ pathname }: { pathname: string }) {
+  const planActive = myPlanNavItems.some((item) => isActive(pathname, item.matches));
+  const [expanded, setExpanded] = React.useState(planActive);
+
+  React.useEffect(() => {
+    if (planActive) setExpanded(true);
+  }, [planActive]);
+
+  return (
+    <div style={{ display: "grid", gap: 4 }}>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="mylearna-my-plan-navigation"
+        onClick={() => setExpanded((current) => !current)}
+        style={{
+          minHeight: 44,
+          display: "grid",
+          gridTemplateColumns: "28px minmax(0, 1fr) auto",
+          alignItems: "center",
+          gap: 10,
+          border: 0,
+          borderRadius: 14,
+          padding: "9px 11px",
+          background: planActive ? v2Tokens.lavender : "transparent",
+          color: planActive ? v2Tokens.purple : v2Tokens.navy,
+          font: "inherit",
+          fontSize: 14,
+          fontWeight: 650,
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <span aria-hidden="true" style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", color: planActive ? v2Tokens.purple : v2Tokens.slate }}>
+          <ShellIcon name="calendar" />
+        </span>
+        <span>My Plan</span>
+        <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>{expanded ? "▾" : "›"}</span>
+      </button>
+      {expanded ? (
+        <div id="mylearna-my-plan-navigation" style={{ display: "grid", gap: 3 }}>
+          {myPlanNavItems.map((item) => <NavLink key={item.href} item={item} pathname={pathname} nested />)}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -1151,7 +1203,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             aria-label="MyLearna sections"
             style={{ display: "grid", gap: 6, alignContent: "start" }}
           >
-            <NavLink item={myPlanNavItem} pathname={pathname} />
+            <MyPlanNavGroup pathname={pathname} />
             {finalProductNavSections.map((section) => (
               <div key={section.label} style={{ display: "grid", gap: 5 }}>
                 <div
@@ -1354,7 +1406,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       <nav className="mylearna-v2-mobile-bottom-nav" aria-label="Mobile primary navigation">
         <Link
           href={dayNavItem.href}
-          aria-label="Day"
+          aria-label="My Day"
           aria-current={activeMobileSection === "day" ? "page" : undefined}
           className="mylearna-v2-mobile-nav-button"
           style={{
@@ -1373,10 +1425,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           }}
         >
           <ShellIcon name="sun" size={19} />
-          <span>Day</span>
+          <span>My Day</span>
         </Link>
         {[
-          { href: "/my-calendar", icon: "calendar" as const, label: "Plan", section: "PLAN" as const },
+          { href: "/my-calendar", icon: "calendar" as const, label: "My Calendar", section: "PLAN" as const },
           { href: "/my-capture", icon: "camera" as const, label: "Capture", section: "CAPTURE" as const },
           { href: "/my-learna", icon: "learner" as const, label: "Grow", section: "GROW" as const },
         ].map((item) => (
