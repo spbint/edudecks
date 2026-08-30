@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  finalProductNavSections,
+  getVisibleDesktopSectionItems,
+  routeCrumbs,
+} from "@/app/components/clean/design-v2/MyLearnaAppShellV2";
 
 const shell = readFileSync(
   join(process.cwd(), "app/components/clean/design-v2/MyLearnaAppShellV2.tsx"),
@@ -35,12 +40,30 @@ describe("My Plan navigation hierarchy", () => {
 
   it("renders neither flat desktop duplicates nor the retired page-level planning tabs", () => {
     expect(shell).toContain("<MyPlanNavGroup pathname={pathname} />");
-    expect(shell).toContain('section.items.filter((item) => item.href !== "/my-calendar")');
+    expect(shell).toContain("getVisibleDesktopSectionItems(section.items)");
     expect(existsSync(join(process.cwd(), "app/components/clean/design-v2/MyPlanHeader.tsx"))).toBe(false);
     expect(day).not.toContain("MyPlanHeader");
     expect(calendar).not.toContain("MyPlanHeader");
     expect(day).toContain("My Day");
     expect(calendar).toContain("My Calendar");
+  });
+
+  it("uses My Plan as the non-navigating breadcrumb parent for planning routes", () => {
+    expect(routeCrumbs("/my-day")).toEqual([{ label: "My Plan" }, { label: "My Day" }]);
+    expect(routeCrumbs("/my-calendar")).toEqual([{ label: "My Plan" }, { label: "My Calendar" }]);
+    expect(routeCrumbs("/home")).toEqual([{ label: "My Plan" }, { label: "My Day" }]);
+    expect(routeCrumbs("/planner")).toEqual([{ label: "My Plan" }, { label: "My Calendar" }]);
+  });
+
+  it("does not render a desktop section heading without visible children", () => {
+    const planSection = finalProductNavSections.find((section) => section.label === "PLAN");
+    const captureSection = finalProductNavSections.find((section) => section.label === "CAPTURE");
+
+    expect(getVisibleDesktopSectionItems(planSection?.items ?? [])).toEqual([]);
+    expect(getVisibleDesktopSectionItems(captureSection?.items ?? []).map((item) => item.label)).toEqual([
+      "Quick Capture",
+      "My Portfolio",
+    ]);
   });
 
   it("keeps mobile destinations compact but uses the same customer-facing names", () => {

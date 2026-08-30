@@ -314,7 +314,13 @@ type BreadcrumbItem = {
   href?: string;
 };
 
-function routeCrumbs(pathname: string): BreadcrumbItem[] {
+export function routeCrumbs(pathname: string): BreadcrumbItem[] {
+  if (isActive(pathname, dayNavItem.matches)) {
+    return [{ label: "My Plan" }, { label: "My Day" }];
+  }
+  if (isActive(pathname, calendarNavItem.matches)) {
+    return [{ label: "My Plan" }, { label: "My Calendar" }];
+  }
   if (pathname.startsWith("/my-profile") || pathname.startsWith("/clean-my-profile")) {
     return [{ label: "My Day", href: "/my-day" }, { label: "My Profile" }];
   }
@@ -373,6 +379,10 @@ function formatActivityContext(value: string | null) {
 
 function isActive(pathname: string, matches: readonly string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
+}
+
+export function getVisibleDesktopSectionItems(items: readonly ProductNavItem[]) {
+  return items.filter((item) => item.href !== "/my-calendar");
 }
 
 function NavLink({
@@ -1204,8 +1214,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             style={{ display: "grid", gap: 6, alignContent: "start" }}
           >
             <MyPlanNavGroup pathname={pathname} />
-            {finalProductNavSections.map((section) => (
-              <div key={section.label} style={{ display: "grid", gap: 5 }}>
+            {finalProductNavSections.map((section) => {
+              const visibleItems = getVisibleDesktopSectionItems(section.items);
+              if (!visibleItems.length) return null;
+
+              return <div key={section.label} style={{ display: "grid", gap: 5 }}>
                 <div
                   className="mylearna-v2-nav-section-label"
                   aria-hidden="true"
@@ -1219,11 +1232,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                 >
                   {section.label}
                 </div>
-                {section.items.filter((item) => item.href !== "/my-calendar").map((item) => (
+                {visibleItems.map((item) => (
                   <NavLink key={item.href} item={item} pathname={pathname} />
                 ))}
-              </div>
-            ))}
+              </div>;
+            })}
             <NavLink item={settingsNavItem} pathname={pathname} />
           </nav>
 
