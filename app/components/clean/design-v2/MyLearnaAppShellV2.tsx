@@ -1443,7 +1443,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         {[
           { href: "/my-calendar", icon: "calendar" as const, label: "My Calendar", section: "PLAN" as const },
           { href: "/my-capture", icon: "camera" as const, label: "Capture", section: "CAPTURE" as const },
-          { href: "/my-learna", icon: "learner" as const, label: "Grow", section: "GROW" as const },
+          { href: "/my-learna", icon: "learner" as const, label: "My Learna", section: "GROW" as const },
         ].map((item) => (
           <Link
             key={item.label}

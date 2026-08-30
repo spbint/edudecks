@@ -25,11 +25,11 @@ describe("Stage 8 mobile web shell", () => {
     expect(shellSource).not.toContain("grid-auto-flow: column !important");
   });
 
-  it("keeps the approved My Day My Calendar Capture Grow More mobile model", () => {
+  it("keeps the five-slot My Day My Calendar Capture My Learna More mobile model", () => {
     expect(shellSource).toContain("<span>My Day</span>");
     expect(shellSource).toContain("My Calendar");
     expect(shellSource).toContain("Capture");
-    expect(shellSource).toContain("Grow");
+    expect(shellSource).toContain('label: "My Learna", section: "GROW"');
     expect(shellSource).toContain("More");
     expect(finalProductNavSections.map((section) => section.label)).toEqual([
       "PLAN",
@@ -53,9 +53,10 @@ describe("Stage 8 mobile web shell", () => {
   });
 
   it("keeps retired and secondary destinations out of top-level mobile navigation", () => {
-    const mobileButtonLabels = ["My Day", "My Calendar", "Capture", "Grow", "More"];
+    const mobileButtonLabels = ["My Day", "My Calendar", "Capture", "My Learna", "More"];
     expect(mobileButtonLabels).not.toContain("My Review");
-    expect(mobileButtonLabels).not.toContain("My Learna");
+    expect(mobileButtonLabels).toHaveLength(5);
+    expect(mobileButtonLabels).not.toContain("Grow");
     expect(shellSource).toContain("shortLabel: \"Learna\"");
     expect(mobileButtonLabels).not.toContain("Output History");
     expect(shellSource).not.toContain("label: \"Output History\"");
@@ -67,6 +68,15 @@ describe("Stage 8 mobile web shell", () => {
     expect(shellSource).toContain("env(safe-area-inset-bottom");
     expect(shellSource).toContain("100dvh");
     expect(shellSource).toContain("mylearna-v2-content-main");
+    expect(shellSource).toContain('aria-current={activeMobileSection === item.section ? "page" : undefined}');
+    expect(shellSource).toContain('href: "/my-learna"');
+  });
+
+  it("keeps My Pathways out of the visible mobile navigation and More focused on secondary controls", () => {
+    expect(shellSource).toContain("PUBLIC_PATHWAYS_ENABLED");
+    expect(shellSource).toContain('label: "My Settings"');
+    expect(shellSource).toContain("<span>Account</span>");
+    expect(shellSource).not.toContain('href: "/my-pathways", icon: "route" as const, label: "My Pathways"');
   });
 
   it("preserves the desktop sidebar while hiding it on mobile", () => {
