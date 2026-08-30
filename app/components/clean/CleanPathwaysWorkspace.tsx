@@ -50,6 +50,11 @@ import {
   type UnifiedPathwayStepStateIndex,
 } from "@/lib/clean/pathways/pathwayStepState";
 import {
+  buildExplainableProgressStory,
+  type ExplainableProgressNextAction,
+} from "@/lib/clean/pathways/explainableProgressStory";
+import type { ParentProgressStatus } from "@/lib/clean/pathways/parentProgress";
+import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
   type PathwaySubjectDefinition,
@@ -429,6 +434,17 @@ type StageSummaryCounts = {
   evidenceStarted: number;
   practising: number;
   notStarted: number;
+};
+
+const parentProgressChipMeta: Record<
+  ParentProgressStatus,
+  { fill: string; border: string; text: string; dot: string }
+> = {
+  "Not checked yet": { fill: "#F8FAFC", border: "#E2E8F0", text: "#64748B", dot: "#94A3B8" },
+  "Needs support": { fill: "#FFF1F2", border: "#FECDD3", text: "#BE123C", dot: "#FB7185" },
+  Developing: { fill: "#FFF7ED", border: "#FED7AA", text: "#C2410C", dot: "#FB923C" },
+  Consolidating: { fill: "#FFFBEB", border: "#FDE68A", text: "#92400E", dot: "#F59E0B" },
+  Secure: { fill: "#ECFDF5", border: "#BBF7D0", text: "#166534", dot: "#22C55E" },
 };
 
 function getLearnerLabel(learner: Learner | null) {
@@ -2879,6 +2895,7 @@ function PathwaysWorkspaceBody() {
                     activeStageIndex={selectedWorkspaceActiveStageIndex}
                     currentStageIndex={selectedWorkspaceStageIndex}
                     unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
+                    assessmentAttempts={assessmentAttempts}
                     selectedSubjectKey={selectedSubject.key}
                     selectedSubjectTitle={selectedSubject.title}
                     familyId={workspace.profile?.id || ""}
@@ -3462,6 +3479,7 @@ function PathwayStageJourney({
   activeStageIndex,
   currentStageIndex,
   unifiedPathwayStepStateIndex,
+  assessmentAttempts,
   selectedSubjectKey,
   selectedSubjectTitle,
   familyId,
@@ -3485,6 +3503,7 @@ function PathwayStageJourney({
   activeStageIndex: number;
   currentStageIndex: number;
   unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
+  assessmentAttempts: CleanAssessmentAttempt[];
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   familyId: string;
@@ -3685,6 +3704,7 @@ function PathwayStageJourney({
           stageIndex={activeStageIndex}
           currentStageIndex={currentStageIndex}
           unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
+          assessmentAttempts={assessmentAttempts}
           selectedSubjectKey={selectedSubjectKey}
           selectedSubjectTitle={selectedSubjectTitle}
           familyId={familyId}
@@ -3902,6 +3922,7 @@ function DetailedMathematicsStageCard({
   stageIndex,
   currentStageIndex,
   unifiedPathwayStepStateIndex,
+  assessmentAttempts,
   selectedSubjectKey,
   selectedSubjectTitle,
   familyId,
@@ -3922,6 +3943,7 @@ function DetailedMathematicsStageCard({
   stageIndex: number;
   currentStageIndex: number;
   unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
+  assessmentAttempts: CleanAssessmentAttempt[];
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   familyId: string;
@@ -4129,6 +4151,7 @@ function DetailedMathematicsStageCard({
             step={step}
             stepIndex={stepIndex}
             unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
+            assessmentAttempts={assessmentAttempts}
             selectedSubjectKey={selectedSubjectKey}
             selectedSubjectTitle={selectedSubjectTitle}
             familyId={familyId}
@@ -4177,6 +4200,7 @@ function DetailedMathematicsStepCard({
   step,
   stepIndex,
   unifiedPathwayStepStateIndex,
+  assessmentAttempts,
   selectedSubjectKey,
   selectedSubjectTitle,
   familyId,
@@ -4197,6 +4221,7 @@ function DetailedMathematicsStepCard({
   step: MathematicsDetailedStrandStep;
   stepIndex: number;
   unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
+  assessmentAttempts: CleanAssessmentAttempt[];
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   familyId: string;
@@ -4253,14 +4278,22 @@ function DetailedMathematicsStepCard({
     unifiedPathwayStepStateIndex,
     registryStep?.id || canonicalPathwayStepId,
   );
+  const progressStory = buildExplainableProgressStory({
+    pathwayStepId: registryStep?.id || canonicalPathwayStepId || "",
+    stepState: stepUnifiedState,
+    attempts: assessmentAttempts,
+  });
   const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
   const latestEvidenceEntry = stepUnifiedState?.latestEvidenceEntry ?? null;
   const evidenceProgressMeta =
+    progressStory.currentProgressSource !== "parent-confirmation" &&
     stepUnifiedState?.latestStatusSource === "evidence"
       ? getWorksheetEvidenceProgressMeta(latestEvidenceEntry)
       : null;
   const statusChipMeta =
-    evidenceProgressMeta ||
+    progressStory.currentProgressSource === "parent-confirmation"
+      ? parentProgressChipMeta[progressStory.currentProgress]
+      : evidenceProgressMeta ||
     (exactStepContext && confidenceStatusLabel === "Not checked yet"
       ? statusMeta["Not started"]
       : meta);
@@ -4457,7 +4490,9 @@ function DetailedMathematicsStepCard({
             <div
               data-guidance-id="pathways-progress-status"
               title={
-                evidenceProgressMeta?.helper ||
+                progressStory.currentProgressSource === "parent-confirmation"
+                  ? "Confirmed by you."
+                  : evidenceProgressMeta?.helper ||
                 (exactStepContext ? confidenceStatusLabel : meta.helper)
               }
               style={{
@@ -4481,7 +4516,9 @@ function DetailedMathematicsStepCard({
                 }}
               />
               <strong style={{ color: statusChipMeta.text, fontSize: 12, fontWeight: 650 }}>
-                {evidenceProgressMeta
+                {progressStory.currentProgressSource === "parent-confirmation"
+                  ? progressStory.currentProgress
+                  : evidenceProgressMeta
                   ? evidenceProgressMeta.label
                   : exactStepContext && confidenceStatusLabel !== "Not checked yet"
                     ? getCustomerPathwayStatusLabel(confidenceStatusLabel)
@@ -4726,6 +4763,8 @@ function DetailedMathematicsStepCard({
         />
       ) : null}
 
+      {isOpen ? <ExplainableProgressStorySection story={progressStory} /> : null}
+
       <div
         id={detailPanelId}
         hidden={!isOpen}
@@ -4767,6 +4806,130 @@ function DetailedMathematicsStepCard({
         </details>
       </div>
     </article>
+  );
+}
+
+function formatProgressStoryDate(value: string | null) {
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+  }).format(parsed);
+}
+
+function nextActionCopy(action: ExplainableProgressNextAction) {
+  switch (action) {
+    case "confirm-progress":
+      return "Confirm progress";
+    case "more-support":
+      return "Use the support activity";
+    case "check-understanding":
+      return "Check understanding";
+    case "next-step":
+      return "Continue to the next step";
+    case "review-this-step":
+      return "Review this step and update progress";
+    case "add-completed-work":
+    default:
+      return "Add completed work";
+  }
+}
+
+function ExplainableProgressStorySection({
+  story,
+}: {
+  story: ReturnType<typeof buildExplainableProgressStory>;
+}) {
+  const confirmedDate = formatProgressStoryDate(story.currentProgressConfirmedAt);
+  const observedDate = formatProgressStoryDate(story.latestObservedAt);
+  const evidenceDate = formatProgressStoryDate(story.latestEvidence?.observedOn || null);
+  const checkDate = formatProgressStoryDate(story.latestCheck?.completedAt || null);
+  const checkSummary = story.latestCheck
+    ? story.latestCheck.itemCount > 0
+      ? `${story.latestCheck.correctCount} of ${story.latestCheck.itemCount} correct`
+      : story.latestCheck.factualStatus
+    : null;
+
+  return (
+    <section
+      aria-label="Explainable progress"
+      style={{
+        border: "1px solid #DDD6FE",
+        borderRadius: 16,
+        background: "#FAF9FF",
+        padding: 14,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div style={{ display: "grid", gap: 4 }}>
+        <div style={eyebrowStyle}>Current progress</div>
+        <strong style={{ color: "#17204B", fontSize: 18 }}>{story.currentProgress}</strong>
+        {story.currentProgressSource === "parent-confirmation" ? (
+          <span style={{ color: "#5B6478", fontSize: 13 }}>
+            Confirmed by you{confirmedDate ? ` · ${confirmedDate}` : ""}
+          </span>
+        ) : (
+          <span style={{ color: "#5B6478", fontSize: 13 }}>
+            No progress confirmation has been saved yet.
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gap: 7 }}>
+        <div style={eyebrowStyle}>Why this is shown</div>
+        {story.supportingEvidenceCount ? (
+          <div style={{ color: "#334155", fontSize: 13 }}>
+            {story.supportingEvidenceCount} supporting learning {story.supportingEvidenceCount === 1 ? "record" : "records"}
+            {story.latestEvidence
+              ? ` · Latest: ${story.latestEvidence.title}${evidenceDate ? ` · ${evidenceDate}` : ""}`
+              : ""}
+          </div>
+        ) : null}
+        {story.latestObservedProgress ? (
+          <div style={{ color: "#334155", fontSize: 13 }}>
+            Latest observed progress: <strong>{story.latestObservedProgress}</strong>
+            {observedDate ? ` · ${observedDate}` : ""}
+          </div>
+        ) : null}
+        {story.completedCheckCount ? (
+          <div style={{ color: "#334155", fontSize: 13 }}>
+            {story.completedCheckCount} completed {story.completedCheckCount === 1 ? "check" : "checks"}
+            {checkSummary ? ` · Latest: ${checkSummary}` : ""}
+            {checkDate ? ` · ${checkDate}` : ""}
+          </div>
+        ) : null}
+        {!story.supportingEvidenceCount && !story.latestObservedProgress && !story.completedCheckCount ? (
+          <div style={{ color: "#5B6478", fontSize: 13 }}>
+            No supporting learning records or completed checks have been saved yet.
+          </div>
+        ) : null}
+      </div>
+
+      {story.hasSignalConflict && story.conflictExplanation ? (
+        <p
+          style={{
+            margin: 0,
+            borderLeft: "3px solid #F59E0B",
+            paddingLeft: 10,
+            color: "#854D0E",
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          {story.conflictExplanation}
+        </p>
+      ) : null}
+
+      <div style={{ display: "grid", gap: 3 }}>
+        <div style={eyebrowStyle}>Next</div>
+        <strong style={{ color: "#17204B", fontSize: 14 }}>{nextActionCopy(story.nextAction)}</strong>
+      </div>
+    </section>
   );
 }
 
