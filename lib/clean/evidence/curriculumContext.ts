@@ -516,6 +516,34 @@ export function encodePathwayContextNodeIds(
   return dedupeNodeIds(pathwayNodeIds);
 }
 
+/**
+ * Rebuilds the single primary pathway link used by Portfolio. A saved
+ * observation about how a specific step went is only retained when the
+ * evidence remains linked to that exact step; otherwise it would become an
+ * unsupported judgement about a different skill.
+ */
+export function replacePortfolioPathwayLinkNodeIds(
+  existingNodeIds: string[],
+  context: CleanPathwayCaptureContext,
+) {
+  const current = parsePathwayContextFromNodeIds(existingNodeIds);
+  const keepsExistingStep =
+    safe(current?.pathwayStepId) &&
+    safe(current?.pathwayStepId) === safe(context.pathwayStepId);
+
+  return encodePathwayContextNodeIds(
+    existingNodeIds,
+    buildPathwayCaptureContext({
+      ...context,
+      observedSkillStatus: keepsExistingStep ? current?.observedSkillStatus : null,
+    }),
+  );
+}
+
+export function removePortfolioPathwayLinkNodeIds(existingNodeIds: string[]) {
+  return encodePathwayContextNodeIds(existingNodeIds, null);
+}
+
 export function parseCurriculumContextFromNodeIds(nodeIds: string[]) {
   let source = "";
   const parsed: Partial<CleanCurriculumCaptureContext> = {};

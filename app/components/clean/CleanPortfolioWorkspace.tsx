@@ -22,6 +22,7 @@ import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
   deleteCleanEvidenceEntry,
+  updateCleanEvidenceEntry,
 } from "@/lib/clean/evidence/client";
 import {
   listAssessmentLearningEvidenceEventsForLearners,
@@ -45,7 +46,15 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
-import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
+import {
+  buildPathwayCaptureContext,
+  parsePathwayContextFromNodeIds,
+  removePortfolioPathwayLinkNodeIds,
+  replacePortfolioPathwayLinkNodeIds,
+} from "@/lib/clean/evidence/curriculumContext";
+import {
+  getAllPathwaySteps,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
   listCleanProgramSegments,
   listCleanPrograms,
@@ -241,9 +250,49 @@ function CleanPortfolioWorkspaceBody() {
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeleteItem, setPendingDeleteItem] = useState<CleanPortfolioItem | null>(null);
+  const [linkingItem, setLinkingItem] = useState<CleanPortfolioItem | null>(null);
+  const [selectedPathwayStepId, setSelectedPathwayStepId] = useState("");
+  const [selectedPathwaySubjectKey, setSelectedPathwaySubjectKey] = useState("");
+  const [selectedPathwayStrandKey, setSelectedPathwayStrandKey] = useState("");
+  const [selectedPathwayStageKey, setSelectedPathwayStageKey] = useState("");
   const [expandedEvidenceId, setExpandedEvidenceId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const pathwaySteps = useMemo(() => getAllPathwaySteps(), []);
+  const pathwaySubjects = useMemo(
+    () => Array.from(new Map(pathwaySteps.map((step) => [step.subjectKey, step])).values()),
+    [pathwaySteps],
+  );
+  const pathwayStrands = useMemo(
+    () => Array.from(new Map(
+      pathwaySteps
+        .filter((step) => step.subjectKey === selectedPathwaySubjectKey)
+        .map((step) => [step.strandKey, step]),
+    ).values()),
+    [pathwaySteps, selectedPathwaySubjectKey],
+  );
+  const pathwayStages = useMemo(
+    () => Array.from(new Map(
+      pathwaySteps
+        .filter(
+          (step) =>
+            step.subjectKey === selectedPathwaySubjectKey &&
+            step.strandKey === selectedPathwayStrandKey,
+        )
+        .map((step) => [step.stageKey, step]),
+    ).values()),
+    [pathwaySteps, selectedPathwayStrandKey, selectedPathwaySubjectKey],
+  );
+  const pathwayStepOptions = useMemo(
+    () =>
+      pathwaySteps.filter(
+        (step) =>
+          step.subjectKey === selectedPathwaySubjectKey &&
+          step.strandKey === selectedPathwayStrandKey &&
+          step.stageKey === selectedPathwayStageKey,
+      ),
+    [pathwaySteps, selectedPathwayStageKey, selectedPathwayStrandKey, selectedPathwaySubjectKey],
+  );
 
   const learnerOptions = useMemo(
     () =>
@@ -568,6 +617,123 @@ function CleanPortfolioWorkspaceBody() {
           "We could not delete this evidence note.",
         ),
       );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openPathwayLink(item: CleanPortfolioItem) {
+    const existingContext = parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds);
+    const existingStep = pathwaySteps.find(
+      (step) => step.id === existingContext?.pathwayStepId,
+    );
+    const exactSubjectMatch = pathwaySubjects.find((subject) => {
+      const learningArea = String(item.evidence.learningArea ?? "").trim().toLowerCase();
+      return learningArea === subject.subjectKey || learningArea === subject.subjectTitle.toLowerCase();
+    });
+    const subjectKey = existingStep?.subjectKey ?? exactSubjectMatch?.subjectKey ?? "";
+
+    setLinkingItem(item);
+    setSelectedPathwaySubjectKey(subjectKey);
+    setSelectedPathwayStrandKey(existingStep?.strandKey ?? "");
+    setSelectedPathwayStageKey(existingStep?.stageKey ?? "");
+    setSelectedPathwayStepId(existingStep?.id ?? "");
+    setActionError(null);
+  }
+
+  function closePathwayLink() {
+    setLinkingItem(null);
+    setSelectedPathwayStepId("");
+  }
+
+  function changePathwaySubject(subjectKey: string) {
+    setSelectedPathwaySubjectKey(subjectKey);
+    setSelectedPathwayStrandKey("");
+    setSelectedPathwayStageKey("");
+    setSelectedPathwayStepId("");
+  }
+
+  function changePathwayStrand(strandKey: string) {
+    setSelectedPathwayStrandKey(strandKey);
+    setSelectedPathwayStageKey("");
+    setSelectedPathwayStepId("");
+  }
+
+  function changePathwayStage(stageKey: string) {
+    setSelectedPathwayStageKey(stageKey);
+    setSelectedPathwayStepId("");
+  }
+
+  async function savePathwayLink() {
+    if (!workspace.profile || !linkingItem) return;
+    const selectedStep = pathwaySteps.find((step) => step.id === selectedPathwayStepId);
+    if (!selectedStep) {
+      setActionError("Choose a Pathway step before saving.");
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+    try {
+      const existingContext = parsePathwayContextFromNodeIds(linkingItem.evidence.curriculumNodeIds);
+      const nextContext = buildPathwayCaptureContext({
+        source: "my-pathways",
+        subjectKey: selectedStep.subjectKey,
+        subjectLabel: selectedStep.subjectTitle,
+        pathwayKey: selectedStep.strandKey,
+        pathwayLabel: selectedStep.pathwayLabel,
+        stageKey: selectedStep.stageKey,
+        stageLabel: selectedStep.stageTitle,
+        pathwayStepId: selectedStep.id,
+        stepKey: selectedStep.stepKey,
+        stepNumber: selectedStep.legacyStepNumber,
+        stepTitle: selectedStep.stepTitle,
+        stepMeaning: selectedStep.stepDescription,
+        skillFocus: selectedStep.skillFocus,
+      });
+      if (!nextContext) throw new Error("Could not prepare this Pathway link.");
+
+      await updateCleanEvidenceEntry(workspace.profile.id, linkingItem.evidence.id, {
+        curriculumNodeIds: replacePortfolioPathwayLinkNodeIds(
+          linkingItem.evidence.curriculumNodeIds,
+          nextContext,
+        ),
+      });
+      const action = existingContext?.pathwayStepId
+        ? existingContext.pathwayStepId === selectedStep.id
+          ? "added"
+          : "changed"
+        : "added";
+      trackProductEvent(`portfolio_pathway_link_${action}`, {
+        surface: "portfolio",
+        subject: selectedStep.subjectKey,
+        strand: selectedStep.strandKey,
+      }, user?.id);
+      setMessage(action === "changed" ? "Pathway link changed." : "Linked to Pathway.");
+      closePathwayLink();
+      await reloadItems();
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not link this evidence to a Pathway step."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function removePathwayLink(item: CleanPortfolioItem) {
+    if (!workspace.profile) return;
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+    try {
+      await updateCleanEvidenceEntry(workspace.profile.id, item.evidence.id, {
+        curriculumNodeIds: removePortfolioPathwayLinkNodeIds(item.evidence.curriculumNodeIds),
+      });
+      trackProductEvent("portfolio_pathway_link_removed", { surface: "portfolio" }, user?.id);
+      setMessage("Pathway link removed.");
+      await reloadItems();
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not remove this Pathway link."));
     } finally {
       setSubmitting(false);
     }
@@ -1633,6 +1799,40 @@ function CleanPortfolioWorkspaceBody() {
                                 {linkedSegment ? <span>Segment: {linkedSegment}</span> : null}
                                 {linkedCalendarItem ? <span>Block: {linkedCalendarItem.title}</span> : null}
                               </div>
+                              <section
+                                aria-label="Pathway link"
+                                style={{
+                                  border: "1px solid #dbeafe",
+                                  borderRadius: 12,
+                                  background: "#f8fbff",
+                                  padding: 10,
+                                  display: "grid",
+                                  gap: 7,
+                                }}
+                              >
+                                {pathwayMeta ? (
+                                  <>
+                                    <div style={{ display: "grid", gap: 2 }}>
+                                      <strong style={{ color: "#0f172a", fontSize: 13 }}>Linked to Pathway</strong>
+                                      <span style={{ color: "#475569", fontSize: 13 }}>
+                                        {parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds)?.subjectLabel || "Pathway"} · {pathwayMeta.label}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                      <button type="button" onClick={() => openPathwayLink(item)} disabled={submitting} style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
+                                        Change link
+                                      </button>
+                                      <button type="button" onClick={() => void removePathwayLink(item)} disabled={submitting} style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
+                                        Remove link
+                                      </button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <button type="button" onClick={() => openPathwayLink(item)} disabled={submitting} style={{ ...secondaryButtonStyle, width: "fit-content", padding: "7px 10px", fontSize: 12 }}>
+                                    Link to a Pathway step
+                                  </button>
+                                )}
+                              </section>
                               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                                 {item.isHighlighted ? (
                                   <button type="button" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }} onClick={() => void handleToggleHighlight(item)} disabled={submitting}>
@@ -1686,6 +1886,82 @@ function CleanPortfolioWorkspaceBody() {
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#b91c1c" }}>{actionError}</p>
           </section>
+        ) : null}
+
+        {linkingItem ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="portfolio-pathway-link-title"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !submitting) closePathwayLink();
+            }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 60,
+              overflowY: "auto",
+              background: "rgba(15,23,42,0.35)",
+              padding: "max(16px, env(safe-area-inset-top)) 12px",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <section
+              style={{
+                ...cardStyle,
+                width: "min(100%, 600px)",
+                margin: "auto",
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "grid", gap: 6 }}>
+                <h2 id="portfolio-pathway-link-title" style={{ margin: 0, color: "#0f172a", fontSize: 21 }}>
+                  Link to a Pathway step
+                </h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
+                  This keeps the learning record as supporting evidence. It does not confirm progress or completion.
+                </p>
+              </div>
+              <label style={{ display: "grid", gap: 6, color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                Subject
+                <select value={selectedPathwaySubjectKey} onChange={(event) => changePathwaySubject(event.target.value)} style={{ ...inputStyle, minHeight: 44 }}>
+                  <option value="">Choose a subject</option>
+                  {pathwaySubjects.map((subject) => <option key={subject.subjectKey} value={subject.subjectKey}>{subject.subjectTitle}</option>)}
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                Strand / area
+                <select value={selectedPathwayStrandKey} onChange={(event) => changePathwayStrand(event.target.value)} disabled={!selectedPathwaySubjectKey} style={{ ...inputStyle, minHeight: 44 }}>
+                  <option value="">Choose a strand / area</option>
+                  {pathwayStrands.map((strand) => <option key={strand.strandKey} value={strand.strandKey}>{strand.strandTitle}</option>)}
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                Stage
+                <select value={selectedPathwayStageKey} onChange={(event) => changePathwayStage(event.target.value)} disabled={!selectedPathwayStrandKey} style={{ ...inputStyle, minHeight: 44 }}>
+                  <option value="">Choose a stage</option>
+                  {pathwayStages.map((stage) => <option key={stage.stageKey} value={stage.stageKey}>{stage.stageTitle}</option>)}
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                Pathway step
+                <select value={selectedPathwayStepId} onChange={(event) => setSelectedPathwayStepId(event.target.value)} disabled={!selectedPathwayStageKey} style={{ ...inputStyle, minHeight: 44 }}>
+                  <option value="">Choose a Pathway step</option>
+                  {pathwayStepOptions.map((step) => <option key={step.id} value={step.id}>Step {step.legacyStepNumber} — {step.stepTitle}</option>)}
+                </select>
+              </label>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <button type="button" onClick={closePathwayLink} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 44 }}>
+                  Cancel
+                </button>
+                <button type="button" onClick={() => void savePathwayLink()} disabled={submitting || !selectedPathwayStepId} style={{ ...buttonStyle, minHeight: 44 }}>
+                  {submitting ? "Saving…" : "Save link"}
+                </button>
+              </div>
+            </section>
+          </div>
         ) : null}
 
         {pendingDeleteItem ? (
