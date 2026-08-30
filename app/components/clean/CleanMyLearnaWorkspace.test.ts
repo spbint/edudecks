@@ -32,6 +32,12 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).not.toContain("academic readiness");
   });
 
+  it("keeps canonical progress in the visible learner hub when My Pathways navigation is hidden", () => {
+    expect(source).toContain("const currentLearningSteps = selectCurrentLearningCandidates");
+    expect(source).toContain("{currentLearningSteps.length ? currentLearningSteps.map");
+    expect(source).not.toContain("PUBLIC_PATHWAYS_ENABLED && currentLearningSteps.length");
+  });
+
   it("provides accessible progressive disclosure and preserves deeper links", () => {
     expect(source).toContain("Progress and judgements");
     expect(source).toContain("Recent records");

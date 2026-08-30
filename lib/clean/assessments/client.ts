@@ -274,7 +274,7 @@ export function parseAssessmentEvidenceLinkFromNodeIds(nodeIds: string[]) {
   } satisfies CleanAssessmentEvidenceLink;
 }
 
-function toCleanAssessmentSkillStatus(
+export function mapAssessmentSkillStatusRow(
   row: AssessmentSkillStatusRow,
 ): CleanAssessmentSkillStatus {
   const subjectKey = normalizeSubjectKey(row.subject_key);
@@ -373,7 +373,7 @@ export async function listCleanAssessmentSkillStatuses(
 
   return sortStatuses(
     (response.data ?? []).map((row) =>
-      toCleanAssessmentSkillStatus(row as unknown as AssessmentSkillStatusRow),
+      mapAssessmentSkillStatusRow(row as unknown as AssessmentSkillStatusRow),
     ),
   );
 }
@@ -467,7 +467,7 @@ export async function upsertCleanAssessmentSkillStatus(
     );
   }
 
-  return toCleanAssessmentSkillStatus(
+  return mapAssessmentSkillStatusRow(
     fallbackResponse.data as unknown as AssessmentSkillStatusRow,
   );
 }

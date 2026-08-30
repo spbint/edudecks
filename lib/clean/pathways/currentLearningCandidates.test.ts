@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
+import { mapAssessmentSkillStatusRow } from "@/lib/clean/assessments/client";
+import { mapAssessmentAttemptRow } from "@/lib/clean/assessments/attemptClient";
 import { buildPathwayCaptureContext, encodePathwayContextNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { buildUnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
@@ -24,6 +26,80 @@ function attempt(pathwayStepId = stepTwo): CleanAssessmentAttempt {
 }
 
 describe("current learning candidates", () => {
+  it("carries the exact live parent-status row through the loader mapping and into a canonical candidate", () => {
+    const pathwayStepId = "mathematics::number-and-place-value::middle-primary::estimate-and-check-reasonableness";
+    const loadedStatus = mapAssessmentSkillStatusRow({
+      id: "live-status",
+      family_id: "family-james",
+      learner_id: "learner-james",
+      subject_key: "mathematics",
+      strand_key: "number-and-place-value",
+      stage_key: "middle-primary",
+      pathway_step_id: pathwayStepId,
+      step_key: "estimate-and-check-reasonableness",
+      skill_key: pathwayStepId,
+      status: "Developing",
+      note: null,
+      created_by_user_id: "parent-james",
+      created_at: "2026-08-14T09:00:00.000Z",
+      updated_at: "2026-08-14T09:00:00.000Z",
+    });
+
+    expect(loadedStatus).toMatchObject({
+      pathwayStepId,
+      strandKey: "number-and-place-value",
+      stepKey: "estimate-and-check-reasonableness",
+      status: "Developing",
+    });
+
+    const index = buildUnifiedPathwayStepStateIndex({ assessmentStatuses: [loadedStatus] });
+    const candidates = selectCurrentLearningCandidates({ stepIndex: index });
+    expect(candidates).toMatchObject([{ pathwayStepId, source: "parent-confirmation" }]);
+  });
+
+  it("carries an exact live completed-check row through the loader mapping without promoting attainment", () => {
+    const pathwayStepId = "mathematics::number-and-place-value::middle-primary::recall-and-apply-multiplication-facts";
+    const loadedAttempt = mapAssessmentAttemptRow({
+      id: "live-attempt",
+      family_id: "family-james",
+      learner_id: "learner-james",
+      subject_key: "mathematics",
+      strand_key: "number-and-place-value",
+      stage_key: "middle-primary",
+      pathway_step_id: pathwayStepId,
+      step_key: "recall-and-apply-multiplication-facts",
+      progression_band_key: null,
+      item_bank_key: "multiplication-facts",
+      mode: "mini_check",
+      source_route: null,
+      status: "completed",
+      item_count: 5,
+      attempted_count: 5,
+      auto_correct_count: 4,
+      auto_incorrect_count: 1,
+      review_needed_count: 0,
+      summary_snapshot: {},
+      started_at: "2026-08-15T09:00:00.000Z",
+      completed_at: "2026-08-15T09:05:00.000Z",
+      created_by_user_id: "parent-james",
+      created_at: "2026-08-15T09:00:00.000Z",
+      updated_at: "2026-08-15T09:05:00.000Z",
+    });
+
+    expect(loadedAttempt).toMatchObject({
+      pathwayStepId,
+      strandKey: "number-and-place-value",
+      stepKey: "recall-and-apply-multiplication-facts",
+      status: "completed",
+      itemCount: 5,
+      autoCorrectCount: 4,
+    });
+    expect(selectCurrentLearningCandidates({
+      stepIndex: buildUnifiedPathwayStepStateIndex({}),
+      attempts: [loadedAttempt],
+    })).toMatchObject([{ pathwayStepId, source: "completed-check" }]);
+  });
+
   it("surfaces canonical parent confirmations even when a legacy focus list is empty", () => {
     const index = buildUnifiedPathwayStepStateIndex({ assessmentStatuses: [status("confirmed-a")], evidenceEntries: Array.from({ length: 31 }, (_, index) => evidence(`generic-${index}`, null)) });
     expect(selectCurrentLearningCandidates({ stepIndex: index, fallbackPathwayStepIds: [] })).toMatchObject([{ pathwayStepId: stepOne, source: "parent-confirmation" }]);

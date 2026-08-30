@@ -247,7 +247,7 @@ function EmptyWorkspace({
   );
 }
 
-function CurrentLearningCard({
+export function CurrentLearningCard({
   step,
   stepIndex,
   attempts,
@@ -526,13 +526,13 @@ export default function CleanMyLearnaWorkspace() {
   );
   const latestEntry = visibleEntries[0] ?? null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
-  const currentLearningSteps = PUBLIC_PATHWAYS_ENABLED
-    ? selectCurrentLearningCandidates({
-        stepIndex: pathwayStepIndex,
-        attempts: visibleAssessmentAttempts,
-        fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
-      }).map(candidateToNextStep)
-    : [];
+  // My Pathways can remain hidden from public navigation without hiding the
+  // learner hub's existing canonical progress signals.
+  const currentLearningSteps = selectCurrentLearningCandidates({
+    stepIndex: pathwayStepIndex,
+    attempts: visibleAssessmentAttempts,
+    fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
+  }).map(candidateToNextStep);
   const quickCaptureHref = `/my-capture?mode=quick&learner_id=${encodeURIComponent(selectedLearnerId)}&returnTo=${encodeURIComponent("/my-learna")}`;
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
   const quietAreas = summary.allSubjectRows.filter((row) => !row.isActiveLearningArea);
@@ -633,7 +633,7 @@ export default function CleanMyLearnaWorkspace() {
           <h2 id="current-learning-heading" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>What {selectedLearnerName} is working on</h2>
           <p style={{ ...quietTextStyle, margin: 0 }}>Current progress remains your confirmation. Learning records and checks give useful context without changing it automatically.</p>
         </div>
-        {PUBLIC_PATHWAYS_ENABLED && currentLearningSteps.length ? currentLearningSteps.map((step) => <CurrentLearningCard key={step.pathwayStepId} step={step} stepIndex={pathwayStepIndex} attempts={visibleAssessmentAttempts} learnerId={selectedLearnerId} familyId={profileId} onProgressSaved={() => void reloadLearnerData({ force: true })} />) : <section style={cardStyle}>
+        {currentLearningSteps.length ? currentLearningSteps.map((step) => <CurrentLearningCard key={step.pathwayStepId} step={step} stepIndex={pathwayStepIndex} attempts={visibleAssessmentAttempts} learnerId={selectedLearnerId} familyId={profileId} onProgressSaved={() => void reloadLearnerData({ force: true })} />) : <section style={cardStyle}>
           <h3 style={{ margin: 0, color: "#17204b", fontSize: 20 }}>Start building {selectedLearnerName}&apos;s learning story</h3>
           <p style={{ ...quietTextStyle, margin: "10px 0 0" }}>Add a learning record and MyLearna will bring together evidence, progress and next steps here.</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}><Link href={quickCaptureHref} style={primaryActionStyle}>Add learning</Link><Link href={learnerPath("/my-day", selectedLearnerId)} style={secondaryActionStyle}>Open My Day</Link></div>
@@ -644,8 +644,8 @@ export default function CleanMyLearnaWorkspace() {
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}><strong style={{ color: "#17204b", fontSize: 17 }}>Records</strong><span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{recordHealth.label}</span></div>
         <p style={{ ...quietTextStyle, margin: 0 }}>{recordHealth.copy}</p>
         {entriesError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{entriesError}</div> : null}
-        {PUBLIC_PATHWAYS_ENABLED && assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
-        {entriesError || (PUBLIC_PATHWAYS_ENABLED && assessmentError) ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
+        {assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
+        {entriesError || assessmentError ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
       </section>
       {PUBLIC_PATHWAYS_ENABLED ? <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
         <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>What the evidence suggests</h2>

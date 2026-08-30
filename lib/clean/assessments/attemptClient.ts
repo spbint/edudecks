@@ -225,7 +225,7 @@ function sortAssessmentAttemptResponses(items: CleanAssessmentAttemptResponse[])
   });
 }
 
-function mapAssessmentAttemptRow(row: AssessmentAttemptRow): CleanAssessmentAttempt {
+export function mapAssessmentAttemptRow(row: AssessmentAttemptRow): CleanAssessmentAttempt {
   return {
     id: safe(row.id),
     familyId: safe(row.family_id),
