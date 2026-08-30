@@ -20,6 +20,8 @@ describe("My Learna parent guidance workspace", () => {
 
   it("uses cautious evidence interpretation and transparent record health", () => {
     expect(source).toContain("buildExplainableProgressStory");
+    expect(source).toContain("selectCurrentLearningCandidates");
+    expect(source).toContain("fallbackPathwayStepIds: summary.nextLearningSteps");
     expect(source).toContain("Current progress remains your confirmation");
     expect(source).toContain("Why this is shown");
     expect(source).toContain("Latest observed progress");

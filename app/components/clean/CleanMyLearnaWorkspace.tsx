@@ -27,6 +27,7 @@ import {
 } from "@/lib/clean/family/client";
 import { buildLearningIntelligenceSummary } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import { buildExplainableProgressStory } from "@/lib/clean/pathways/explainableProgressStory";
+import { selectCurrentLearningCandidates } from "@/lib/clean/pathways/currentLearningCandidates";
 import type { PathwayStageKey } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import { buildUnifiedPathwayStepStateIndex, type UnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
 import {
@@ -108,6 +109,24 @@ function learnerPath(path: string, learnerId: string) {
 }
 
 type NextStep = ReturnType<typeof buildLearningIntelligenceSummary>["nextLearningSteps"][number];
+
+function candidateToNextStep(candidate: ReturnType<typeof selectCurrentLearningCandidates>[number]): NextStep {
+  const step = candidate.registryItem;
+  return {
+    key: step.id,
+    subjectKey: step.subjectKey,
+    subjectTitle: step.subjectTitle,
+    strandKey: step.strandKey,
+    strandTitle: step.strandTitle,
+    stageKey: step.stageKey,
+    stageTitle: step.stageTitle,
+    pathwayStepId: step.id,
+    stepTitle: step.stepTitle,
+    stepDescription: step.stepDescription,
+    reason: candidate.source,
+    href: "/my-learna",
+  };
+}
 
 function pathwayPath(learnerId: string, nextStep: NextStep | null) {
   const params = new URLSearchParams();
@@ -507,13 +526,12 @@ export default function CleanMyLearnaWorkspace() {
   );
   const latestEntry = visibleEntries[0] ?? null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
-  const hasPathwaySignal = PUBLIC_PATHWAYS_ENABLED && Boolean(
-    summary.nextLearningSteps[0] &&
-      (summary.activeLearningAreaRows.length > 0 || visibleAssessmentStatuses.some((status) => Boolean(status.pathwayStepId))),
-  );
-  const nextStep = hasPathwaySignal ? summary.nextLearningSteps[0] ?? null : null;
-  const currentLearningSteps = hasPathwaySignal
-    ? summary.nextLearningSteps.slice(0, 3)
+  const currentLearningSteps = PUBLIC_PATHWAYS_ENABLED
+    ? selectCurrentLearningCandidates({
+        stepIndex: pathwayStepIndex,
+        attempts: visibleAssessmentAttempts,
+        fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
+      }).map(candidateToNextStep)
     : [];
   const quickCaptureHref = `/my-capture?mode=quick&learner_id=${encodeURIComponent(selectedLearnerId)}&returnTo=${encodeURIComponent("/my-learna")}`;
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
@@ -597,7 +615,7 @@ export default function CleanMyLearnaWorkspace() {
         <aside style={{ borderRadius: 18, padding: 18, background: "#f5f3ff", border: "1px solid #ddd6fe", display: "grid", gap: 10, alignContent: "start" }}>
           <strong style={{ color: "#17204b", fontSize: 16 }}>A calm learning picture</strong>
           <p style={{ ...quietTextStyle, margin: 0 }}>You&apos;re building a useful picture of {selectedLearnerName}&apos;s recent learning.</p>
-          <span style={{ color: "#6c4df6", fontSize: 13, fontWeight: 800 }}>{entriesLoading ? "Refreshing recent records" : "Based on saved records"}</span>
+          <span style={{ color: "#6c4df6", fontSize: 13, fontWeight: 800 }}>{entriesLoading ? "Refreshing recent records" : `${visibleEntries.length} learning records · ${summary.progressJudgementObservations.length} progress judgements`}</span>
         </aside>
       </section>
       <section aria-label="Quick actions" style={{ ...cardStyle, display: "grid", gap: 12 }}>
@@ -631,7 +649,7 @@ export default function CleanMyLearnaWorkspace() {
       </section>
       {PUBLIC_PATHWAYS_ENABLED ? <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
         <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>What the evidence suggests</h2>
-        {latestJudgement ? <><p style={{ ...quietTextStyle, margin: 0 }}>Your latest saved judgement is <strong style={{ color: "#17204b" }}>{latestJudgement.judgement}</strong>.</p><p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{dateLabel(latestJudgement.dateValue)}{latestJudgement.subjectTitle ? ` · ${latestJudgement.subjectTitle}` : ""}{latestJudgement.stepTitle ? ` · ${latestJudgement.stepTitle}` : ""}</p><Link href={latestJudgement.sourceType === "evidence" ? `${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(latestJudgement.sourceId)}` : pathwayPath(selectedLearnerId, nextStep)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View the underlying record</Link></> : <p style={{ ...quietTextStyle, margin: 0 }}>There is not enough saved evidence yet to describe change over time.</p>}
+        {latestJudgement ? <><p style={{ ...quietTextStyle, margin: 0 }}>Your latest saved judgement is <strong style={{ color: "#17204b" }}>{latestJudgement.judgement}</strong>.</p><p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{dateLabel(latestJudgement.dateValue)}{latestJudgement.subjectTitle ? ` · ${latestJudgement.subjectTitle}` : ""}{latestJudgement.stepTitle ? ` · ${latestJudgement.stepTitle}` : ""}</p><Link href={latestJudgement.sourceType === "evidence" ? `${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(latestJudgement.sourceId)}` : pathwayPath(selectedLearnerId, currentLearningSteps[0] ?? null)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View the underlying record</Link></> : <p style={{ ...quietTextStyle, margin: 0 }}>There is not enough saved evidence yet to describe change over time.</p>}
       </section> : null}
       {PUBLIC_PATHWAYS_ENABLED ? <Disclosure id="progress-and-judgements" title="Progress and judgements" description="Saved judgements and pathway state, not activity volume.">
         {assessmentLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading saved judgements...</p> : null}
