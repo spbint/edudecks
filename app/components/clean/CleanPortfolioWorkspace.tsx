@@ -54,9 +54,10 @@ import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/typ
 import {
   buildCleanLearningRecordPdfFilename,
   generateCleanReportPdfBytes,
+  type CleanReportPdfGenerationMetrics,
 } from "@/lib/clean/outputs/pdf";
 import type { CleanReport } from "@/lib/clean/reports/types";
-import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
+import { trackCoreJourneyEvent, trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -680,6 +681,15 @@ function CleanPortfolioWorkspaceBody() {
         assessmentEvidenceItems: quickRecordAssessmentEvidenceItems,
         preparedOnLabel: formatDateLabel(today),
         statusLabel: "Ready",
+      }, {
+        onTiming: (metrics: CleanReportPdfGenerationMetrics) => {
+          trackProductEvent("learning_record_pdf_generated", {
+            area: "my_portfolio",
+            route: "/my-portfolio",
+            surface: "portfolio",
+            ...metrics,
+          }, user?.id);
+        },
       });
 
       downloadPdf(

@@ -58,8 +58,10 @@ import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
 import {
   buildCleanReportPdfFilename,
   generateCleanReportPdfBytes,
+  type CleanReportPdfGenerationMetrics,
 } from "@/lib/clean/outputs/pdf";
 import { createCleanReportExport } from "@/lib/clean/outputs/client";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 type PendingReportAction =
   | { type: "archive"; report: CleanReport }
@@ -1340,6 +1342,15 @@ function CleanReportsWorkspaceBody() {
         assessmentEvidenceItems: assessmentEvidenceEvents,
         preparedOnLabel: formatDateLabel(new Date().toISOString().slice(0, 10)),
         statusLabel: getReportStatusLabel("ready"),
+      }, {
+        onTiming: (metrics: CleanReportPdfGenerationMetrics) => {
+          trackProductEvent("learning_record_pdf_generated", {
+            area: "my_reports",
+            route: "/my-reports",
+            surface: "reports",
+            ...metrics,
+          });
+        },
       });
       const filename = buildCleanReportPdfFilename(
         selectedReportLearnerLabel,

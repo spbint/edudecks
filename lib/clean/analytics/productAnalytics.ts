@@ -10,6 +10,7 @@ const SAFE_PROPERTY_KEYS = new Set([
   "step",
   "presentation",
   "area",
+  "surface",
   "route",
   "featureArea",
   "learnerCount",
@@ -63,6 +64,14 @@ const SAFE_PROPERTY_KEYS = new Set([
   "journey",
   "challengeType",
   "resultReason",
+  "durationMs",
+  "imagePreparationMs",
+  "pdfAssemblyMs",
+  "evidenceCount",
+  "imageCount",
+  "preparedImageCount",
+  "failedImageCount",
+  "webpConversionCount",
 ]);
 
 const UNSAFE_KEY_PATTERN =

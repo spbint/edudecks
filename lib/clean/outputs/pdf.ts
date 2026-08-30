@@ -86,6 +86,28 @@ const DISCLAIMER_TEXT =
   "Family learning record. Check local home education requirements before submitting.";
 const LOGO_PATH = "/branding/mylearna-logo.png";
 const MAX_PDF_EVIDENCE_IMAGE_BYTES = 2.5 * 1024 * 1024;
+export const PDF_IMAGE_PREPARATION_CONCURRENCY = 4;
+
+export type CleanReportPdfGenerationMetrics = {
+  durationMs: number;
+  imagePreparationMs: number;
+  pdfAssemblyMs: number;
+  evidenceCount: number;
+  imageCount: number;
+  preparedImageCount: number;
+  failedImageCount: number;
+  webpConversionCount: number;
+};
+
+export type GenerateCleanReportPdfOptions = {
+  onTiming?: (metrics: CleanReportPdfGenerationMetrics) => void;
+};
+
+export type PreparedEvidenceImageAsset = {
+  format: "png" | "jpg";
+  bytes: ArrayBuffer;
+  convertedFromWebp: boolean;
+};
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -454,7 +476,7 @@ async function loadSafeLogoImage(doc: PDFDocument) {
   }
 }
 
-function inferImageFormat(url: string, contentType: string | null) {
+export function inferImageFormat(url: string, contentType: string | null) {
   const normalizedContentType = safe(contentType).toLowerCase();
   const normalizedUrl = safe(url).split("?")[0]?.toLowerCase() ?? "";
   if (normalizedContentType.includes("png") || normalizedUrl.endsWith(".png")) return "png";
@@ -497,6 +519,37 @@ async function convertBrowserImageToJpeg(blob: Blob) {
   }
 }
 
+export async function mapWithConcurrency<T, R>(
+  values: readonly T[],
+  limit: number,
+  map: (value: T, index: number) => Promise<R>,
+) {
+  const concurrency = Math.max(1, Math.floor(limit) || 1);
+  const results = new Array<R>(values.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < values.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await map(values[index]!, index);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, values.length) }, () => worker()),
+  );
+  return results;
+}
+
+function getEvidenceImageSourceKey(item: CleanReportPdfEvidenceItem) {
+  const directUrl = safe(item.previewImageUrl);
+  if (directUrl) return `url:${directUrl}`;
+
+  const storagePath = safe(item.previewImageStoragePath);
+  return storagePath ? `storage:${storagePath}` : null;
+}
+
 async function getEvidenceThumbnailUrl(item: CleanReportPdfEvidenceItem) {
   const directUrl = safe(item.previewImageUrl);
   if (directUrl) return directUrl;
@@ -514,10 +567,9 @@ async function getEvidenceThumbnailUrl(item: CleanReportPdfEvidenceItem) {
   }
 }
 
-async function loadSafeEvidenceThumbnailImage(
-  doc: PDFDocument,
+async function prepareEvidenceImageAsset(
   item: CleanReportPdfEvidenceItem,
-): Promise<PDFImage | null> {
+): Promise<PreparedEvidenceImageAsset | null> {
   const url = await getEvidenceThumbnailUrl(item);
   if (!url || typeof window === "undefined") return null;
 
@@ -533,12 +585,57 @@ async function loadSafeEvidenceThumbnailImage(
     if (!format) return null;
 
     const blob = await response.blob();
-    const bytes = format === "webp" ? await convertBrowserImageToJpeg(blob) : await blob.arrayBuffer();
+    const convertedFromWebp = format === "webp";
+    const bytes = convertedFromWebp ? await convertBrowserImageToJpeg(blob) : await blob.arrayBuffer();
     if (!bytes) return null;
     if (!bytes.byteLength || bytes.byteLength > MAX_PDF_EVIDENCE_IMAGE_BYTES) return null;
 
-    if (format === "png") return await doc.embedPng(bytes);
-    return await doc.embedJpg(bytes);
+    return {
+      format: format === "png" ? "png" : "jpg",
+      bytes,
+      convertedFromWebp,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function prepareEvidenceImageAssets(
+  items: CleanReportPdfEvidenceItem[],
+  prepare: (item: CleanReportPdfEvidenceItem) => Promise<PreparedEvidenceImageAsset | null> =
+    prepareEvidenceImageAsset,
+) {
+  const sourceItems = new Map<string, CleanReportPdfEvidenceItem>();
+  items.forEach((item) => {
+    const key = getEvidenceImageSourceKey(item);
+    if (key && !sourceItems.has(key)) sourceItems.set(key, item);
+  });
+
+  const entries = [...sourceItems.entries()];
+  const assets = await mapWithConcurrency(
+    entries,
+    PDF_IMAGE_PREPARATION_CONCURRENCY,
+    async ([key, item]) => {
+      try {
+        return [key, await prepare(item)] as const;
+      } catch {
+        return [key, null] as const;
+      }
+    },
+  );
+
+  return new Map(assets);
+}
+
+async function embedPreparedEvidenceImage(
+  doc: PDFDocument,
+  asset: PreparedEvidenceImageAsset | null | undefined,
+) {
+  if (!asset) return null;
+  try {
+    return asset.format === "png"
+      ? await doc.embedPng(asset.bytes)
+      : await doc.embedJpg(asset.bytes);
   } catch {
     return null;
   }
@@ -926,8 +1023,9 @@ async function drawEvidenceDetailCard(
   composer: PdfComposer,
   item: CleanReportPdfEvidenceItem,
   index: number,
+  preparedImage: PreparedEvidenceImageAsset | null | undefined,
 ) {
-  const thumbnailImage = await loadSafeEvidenceThumbnailImage(composer.doc, item);
+  const thumbnailImage = await embedPreparedEvidenceImage(composer.doc, preparedImage);
   const thumbnailMaxWidth = 280;
   const thumbnailMaxHeight = 190;
   const thumbnailDimensions = thumbnailImage
@@ -1238,7 +1336,21 @@ export function buildCleanLearningRecordPdfFilename(
   return `MyLearna-Learning-Record-${learnerPart}-${datePart}.pdf`;
 }
 
-export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
+export async function generateCleanReportPdfBytes(
+  model: CleanReportPdfModel,
+  options: GenerateCleanReportPdfOptions = {},
+) {
+  const totalStartedAt = performance.now();
+  const imagePreparationStartedAt = performance.now();
+  const preparedImageAssets = await prepareEvidenceImageAssets(model.evidenceItems);
+  const imagePreparationMs = performance.now() - imagePreparationStartedAt;
+  const imageCount = preparedImageAssets.size;
+  const preparedImageCount = [...preparedImageAssets.values()].filter(Boolean).length;
+  const failedImageCount = imageCount - preparedImageCount;
+  const webpConversionCount = [...preparedImageAssets.values()].filter(
+    (asset) => asset?.convertedFromWebp,
+  ).length;
+  const pdfAssemblyStartedAt = performance.now();
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -1400,11 +1512,27 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
       });
       for (const item of group.items) {
         evidenceIndex += 1;
-        composer = await drawEvidenceDetailCard(composer, item, evidenceIndex - 1);
+        composer = await drawEvidenceDetailCard(
+          composer,
+          item,
+          evidenceIndex - 1,
+          preparedImageAssets.get(getEvidenceImageSourceKey(item) || ""),
+        );
       }
     }
   }
 
   addFooter(doc, regular, theme);
-  return doc.save();
+  const bytes = await doc.save();
+  options.onTiming?.({
+    durationMs: performance.now() - totalStartedAt,
+    imagePreparationMs,
+    pdfAssemblyMs: performance.now() - pdfAssemblyStartedAt,
+    evidenceCount: model.evidenceItems.length,
+    imageCount,
+    preparedImageCount,
+    failedImageCount,
+    webpConversionCount,
+  });
+  return bytes;
 }

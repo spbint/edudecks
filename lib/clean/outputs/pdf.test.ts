@@ -6,7 +6,11 @@ import { PDFDocument } from "pdf-lib";
 import {
   buildCleanReportPdfFilename,
   generateCleanReportPdfBytes,
+  inferImageFormat,
+  mapWithConcurrency,
   parseCleanReportReflection,
+  PDF_IMAGE_PREPARATION_CONCURRENCY,
+  prepareEvidenceImageAssets,
   type CleanReportPdfEvidenceItem,
   type CleanReportPdfModel,
 } from "@/lib/clean/outputs/pdf";
@@ -120,6 +124,16 @@ function model(
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    resolve = nextResolve;
+    reject = nextReject;
+  });
+  return { promise, resolve, reject };
+}
+
 async function pageCountFor(input: CleanReportPdfModel) {
   const bytes = await generateCleanReportPdfBytes(input);
   const pdf = await PDFDocument.load(bytes);
@@ -127,6 +141,63 @@ async function pageCountFor(input: CleanReportPdfModel) {
 }
 
 describe("clean learning report PDF", () => {
+  it("prepares image tasks with bounded concurrency while preserving input order", async () => {
+    const gates = Array.from({ length: 5 }, () => deferred<string>());
+    const started: number[] = [];
+    let active = 0;
+    let maxActive = 0;
+    const pending = mapWithConcurrency(gates, PDF_IMAGE_PREPARATION_CONCURRENCY, async (gate, index) => {
+      started.push(index);
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      const value = await gate.promise;
+      active -= 1;
+      return value;
+    });
+
+    await Promise.resolve();
+    expect(started).toEqual([0, 1, 2, 3]);
+    expect(maxActive).toBe(4);
+
+    gates[2]!.resolve("third");
+    for (let tick = 0; tick < 4 && started.length < 5; tick += 1) {
+      await Promise.resolve();
+    }
+    expect(started).toEqual([0, 1, 2, 3, 4]);
+
+    gates[4]!.resolve("fifth");
+    gates[1]!.resolve("second");
+    gates[0]!.resolve("first");
+    gates[3]!.resolve("fourth");
+    await expect(pending).resolves.toEqual(["first", "second", "third", "fourth", "fifth"]);
+  });
+
+  it("deduplicates prepared sources and isolates individual image failures", async () => {
+    const shared = evidence(1, { previewImageStoragePath: "family/f/evidence/shared.webp" });
+    const failed = evidence(2, { previewImageStoragePath: "family/f/evidence/failed.webp" });
+    const calls: string[] = [];
+    const assets = await prepareEvidenceImageAssets([shared, failed, { ...shared, id: "evidence-3" }], async (item) => {
+      calls.push(item.id);
+      if (item.id === "evidence-2") throw new Error("broken image");
+      return {
+        format: "jpg",
+        bytes: new Uint8Array([1, 2, 3]).buffer,
+        convertedFromWebp: true,
+      };
+    });
+
+    expect(calls).toEqual(["evidence-1", "evidence-2"]);
+    expect(assets.get("storage:family/f/evidence/shared.webp")?.format).toBe("jpg");
+    expect(assets.get("storage:family/f/evidence/failed.webp")).toBeNull();
+  });
+
+  it("keeps JPEG, PNG, and WebP preparation format handling distinct", () => {
+    expect(inferImageFormat("https://example.test/photo.jpg", "image/jpeg")).toBe("jpg");
+    expect(inferImageFormat("https://example.test/photo.png", "image/png")).toBe("png");
+    expect(inferImageFormat("https://example.test/photo.webp", "image/webp")).toBe("webp");
+    expect(inferImageFormat("https://example.test/photo.bmp", "image/bmp")).toBeNull();
+  });
+
   it("sanitizes structured reflection metadata for published reports", () => {
     expect(parseCleanReportReflection("Parent note: Parent note: Testing Source: calendar")).toEqual({ parent: "Testing", learner: null, generic: null });
     expect(parseCleanReportReflection("Parent note: test Learner reflection: test Source: calendar")).toEqual({ parent: "test", learner: "test", generic: null });
@@ -135,6 +206,26 @@ describe("clean learning report PDF", () => {
   });
   it("keeps zero-data reports concise", async () => {
     await expect(pageCountFor(model([]))).resolves.toBeLessThanOrEqual(2);
+  });
+
+  it("reports non-PII generation timing after ordered PDF assembly", async () => {
+    let metrics: Record<string, number> | null = null;
+    await generateCleanReportPdfBytes(model([evidence(1)]), {
+      onTiming: (nextMetrics) => {
+        metrics = nextMetrics;
+      },
+    });
+
+    expect(metrics).toMatchObject({
+      evidenceCount: 1,
+      imageCount: 0,
+      preparedImageCount: 0,
+      failedImageCount: 0,
+      webpConversionCount: 0,
+    });
+    expect(metrics?.durationMs).toBeGreaterThanOrEqual(0);
+    expect(metrics?.imagePreparationMs).toBeGreaterThanOrEqual(0);
+    expect(metrics?.pdfAssemblyMs).toBeGreaterThanOrEqual(0);
   });
 
   it("keeps one-record reports concise and useful", async () => {

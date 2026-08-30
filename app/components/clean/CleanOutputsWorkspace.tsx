@@ -26,6 +26,7 @@ import {
   buildCleanReportPdfFilename,
   generateCleanReportPdfBytes,
   type CleanReportPdfEvidenceItem,
+  type CleanReportPdfGenerationMetrics,
 } from "@/lib/clean/outputs/pdf";
 import {
   createCleanReportExport,
@@ -650,6 +651,7 @@ function CleanOutputsWorkspaceBody() {
     setSubmitting(true);
     setActionError(null);
     setMessage(null);
+    let generationMetrics: CleanReportPdfGenerationMetrics | null = null;
 
     try {
       const pdfBytes = await generateCleanReportPdfBytes({
@@ -661,6 +663,10 @@ function CleanOutputsWorkspaceBody() {
         assessmentEvidenceItems: assessmentEvidenceEvents,
         preparedOnLabel: formatDateLabel(new Date().toISOString().slice(0, 10)),
         statusLabel: getReportStatusLabel(selectedReport.status),
+      }, {
+        onTiming: (metrics: CleanReportPdfGenerationMetrics) => {
+          generationMetrics = metrics;
+        },
       });
       const filename = buildCleanReportPdfFilename(
         selectedLearnerLabel,
@@ -675,6 +681,8 @@ function CleanOutputsWorkspaceBody() {
           route: "/my-outputs",
           hasEvidence: previewEvidenceItems.length > 0 || assessmentEvidenceEvents.length > 0,
           learnerCount: selectedReport.learnerId ? 1 : 0,
+          surface: "outputs",
+          ...(generationMetrics ?? {}),
         },
         user?.id,
       );
