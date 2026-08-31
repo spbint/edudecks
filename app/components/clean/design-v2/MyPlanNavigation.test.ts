@@ -23,6 +23,7 @@ describe("My Plan navigation hierarchy", () => {
     expect(shell).not.toContain('href="/my-plan"');
     expect(shell).toContain('href: "/my-day"');
     expect(shell).toContain('href: "/my-calendar"');
+    expect(shell).toContain('href: "/my-programs"');
   });
 
   it("automatically expands for My Day and My Calendar while keeping active children accessible", () => {
@@ -36,6 +37,7 @@ describe("My Plan navigation hierarchy", () => {
     expect(shell).toContain('"/calendar"');
     expect(shell).toContain('"/my-month"');
     expect(shell).toContain('"/planner"');
+    expect(shell).toContain('"/my-programs"');
   });
 
   it("renders neither flat desktop duplicates nor the retired page-level planning tabs", () => {
@@ -53,6 +55,7 @@ describe("My Plan navigation hierarchy", () => {
     expect(routeCrumbs("/my-calendar")).toEqual([{ label: "My Plan" }, { label: "My Calendar" }]);
     expect(routeCrumbs("/home")).toEqual([{ label: "My Plan" }, { label: "My Day" }]);
     expect(routeCrumbs("/planner")).toEqual([{ label: "My Plan" }, { label: "My Calendar" }]);
+    expect(routeCrumbs("/my-programs")).toEqual([{ label: "My Plan" }, { label: "My Programs" }]);
   });
 
   it("does not render a desktop section heading without visible children", () => {
@@ -71,5 +74,6 @@ describe("My Plan navigation hierarchy", () => {
     expect(shell).toContain("<span>My Day</span>");
     expect(shell).toContain('label: "My Calendar", section: "PLAN"');
     expect(shell).toContain("mylearna-v2-mobile-bottom-nav");
+    expect(shell).toContain('[programsNavItem, settingsNavItem]');
   });
 });

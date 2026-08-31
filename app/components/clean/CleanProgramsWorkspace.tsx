@@ -1,33 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
-import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
-  createCleanProgram,
-  createCleanProgramSegment,
-  deleteCleanProgramSegment,
   addCleanProgramLessons,
-  listCleanProgramSegments,
-  listCleanProgramLessons,
   listCleanProgramLessonCounts,
+  listCleanProgramLessons,
   listCleanPrograms,
   normalizeBulkProgramLessonTitles,
   removeCleanProgramLesson,
   reorderCleanProgramLessons,
   updateCleanProgram,
   updateCleanProgramLesson,
-  updateCleanProgramSegment,
+  createCleanProgram,
 } from "@/lib/clean/programs/client";
-import type {
-  CleanProgram,
-  CleanProgramLesson,
-  CleanProgramSegment,
-} from "@/lib/clean/programs/types";
 import { moveProgramLesson } from "@/lib/clean/programs/programLessons";
+import type { CleanProgram, CleanProgramLesson } from "@/lib/clean/programs/types";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -40,7 +29,7 @@ const shellStyle: React.CSSProperties = {
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 1100,
+  maxWidth: 960,
   margin: "0 auto",
   display: "grid",
   gap: 20,
@@ -50,17 +39,8 @@ const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 18,
   background: "#ffffff",
-  padding: 20,
+  padding: "clamp(16px, 3vw, 22px)",
   boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
-};
-
-const helperCardStyle: React.CSSProperties = {
-  border: "1px solid #dbeafe",
-  borderRadius: 16,
-  background: "#f8fbff",
-  padding: 16,
-  display: "grid",
-  gap: 8,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -68,16 +48,17 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   borderRadius: 10,
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: 16,
 };
 
 const textAreaStyle: React.CSSProperties = {
   ...inputStyle,
-  minHeight: 100,
+  minHeight: 92,
   resize: "vertical",
 };
 
 const buttonStyle: React.CSSProperties = {
+  minHeight: 44,
   border: "1px solid #0f172a",
   background: "#0f172a",
   color: "#ffffff",
@@ -88,169 +69,83 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
-function getLearnerLabel(firstName: string, preferredName: string | null) {
-  return preferredName || firstName;
-}
+type ProgramView = "list" | "create" | "edit";
 
-function CleanProgramsWorkspaceBody() {
+export default function CleanProgramsWorkspace() {
   const workspace = useCleanFamilyWorkspace();
-  const pathname = usePathname();
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
-  const [programsLoading, setProgramsLoading] = useState(false);
-  const [programsError, setProgramsError] = useState<string | null>(null);
-  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
-  const [segments, setSegments] = useState<CleanProgramSegment[]>([]);
-  const [segmentsLoading, setSegmentsLoading] = useState(false);
-  const [segmentsError, setSegmentsError] = useState<string | null>(null);
-  const [lessons, setLessons] = useState<CleanProgramLesson[]>([]);
-  const [lessonsLoading, setLessonsLoading] = useState(false);
-  const [lessonsError, setLessonsError] = useState<string | null>(null);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
+  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
+  const [view, setView] = useState<ProgramView>("list");
+  const [lessons, setLessons] = useState<CleanProgramLesson[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [programTitle, setProgramTitle] = useState("");
   const [programLearningArea, setProgramLearningArea] = useState("");
   const [programDescription, setProgramDescription] = useState("");
-  const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
-
-  const [segmentTitle, setSegmentTitle] = useState("");
-  const [segmentLearnerId, setSegmentLearnerId] = useState("");
-  const [segmentOrder, setSegmentOrder] = useState("0");
-  const [segmentNotes, setSegmentNotes] = useState("");
-  const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonInstructions, setLessonInstructions] = useState("");
   const [lessonDuration, setLessonDuration] = useState("");
   const [bulkLessonTitles, setBulkLessonTitles] = useState("");
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  const learnerOptions = useMemo(
-    () =>
-      workspace.learners.map((learner) => ({
-        value: learner.id,
-        label: getLearnerLabel(learner.firstName, learner.preferredName),
-      })),
-    [workspace.learners],
+  const selectedProgram = useMemo(
+    () => programs.find((program) => program.id === selectedProgramId) ?? null,
+    [programs, selectedProgramId],
   );
 
-  const selectedProgram =
-    programs.find((program) => program.id === selectedProgramId) ?? null;
+  const ready = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
 
-  const reloadPrograms = useCallback(
-    async (nextSelectedProgramId?: string | null) => {
-      if (!workspace.profile) return;
+  const reloadPrograms = useCallback(async () => {
+    if (!workspace.profile) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [nextPrograms, nextCounts] = await Promise.all([
+        listCleanPrograms(workspace.profile.id, { limit: 100 }),
+        listCleanProgramLessonCounts(workspace.profile.id),
+      ]);
+      setPrograms(nextPrograms);
+      setLessonCounts(nextCounts);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not load your programs just now."));
+    } finally {
+      setLoading(false);
+    }
+  }, [workspace.profile]);
 
-      setProgramsLoading(true);
-      setProgramsError(null);
-      try {
-        const [nextPrograms, nextLessonCounts] = await Promise.all([
-          listCleanPrograms(workspace.profile.id, { limit: 50 }),
-          listCleanProgramLessonCounts(workspace.profile.id),
-        ]);
-        setPrograms(nextPrograms);
-        setLessonCounts(nextLessonCounts);
-
-        const selectedId = nextSelectedProgramId ?? selectedProgramId;
-        const hasSelected = selectedId
-          ? nextPrograms.some((program) => program.id === selectedId)
-          : false;
-
-        if (hasSelected) {
-          setSelectedProgramId(selectedId);
-        } else {
-          setSelectedProgramId(nextPrograms[0]?.id ?? null);
-        }
-      } catch (error) {
-        setProgramsError(
-          normalizeCleanErrorMessage(
-            error,
-            "We could not load your programs just now.",
-          ),
-        );
-      } finally {
-        setProgramsLoading(false);
-      }
-    },
-    [selectedProgramId, workspace.profile],
-  );
-
-  const reloadSegments = useCallback(
-    async (programId: string | null) => {
-      if (!workspace.profile || !programId) {
-        setSegments([]);
-        return;
-      }
-
-      setSegmentsLoading(true);
-      setSegmentsError(null);
-      try {
-        const nextSegments = await listCleanProgramSegments(
-          workspace.profile.id,
-          programId,
-        );
-        setSegments(nextSegments);
-      } catch (error) {
-        setSegmentsError(
-          normalizeCleanErrorMessage(
-            error,
-            "We could not load these week or segment entries just now.",
-          ),
-        );
-      } finally {
-        setSegmentsLoading(false);
-      }
-    },
-    [workspace.profile],
-  );
-
-  const reloadLessons = useCallback(
-    async (programId: string | null) => {
-      if (!workspace.profile || !programId) {
-        setLessons([]);
-        return;
-      }
-
-      setLessonsLoading(true);
-      setLessonsError(null);
-      try {
-        setLessons(await listCleanProgramLessons(workspace.profile.id, programId));
-      } catch (error) {
-        setLessonsError(
-          normalizeCleanErrorMessage(error, "We could not load these lessons just now."),
-        );
-      } finally {
-        setLessonsLoading(false);
-      }
-    },
-    [workspace.profile],
-  );
+  const reloadLessons = useCallback(async (programId: string) => {
+    if (!workspace.profile) return;
+    setLessonsLoading(true);
+    setError(null);
+    try {
+      setLessons(await listCleanProgramLessons(workspace.profile.id, programId));
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not load these lessons just now."));
+    } finally {
+      setLessonsLoading(false);
+    }
+  }, [workspace.profile]);
 
   useEffect(() => {
-    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+    if (!ready) {
       setPrograms([]);
-      setSegments([]);
-      setLessons([]);
       setLessonCounts({});
-      setSelectedProgramId(null);
+      setLessons([]);
       return;
     }
-
     void reloadPrograms();
-  }, [reloadPrograms, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+  }, [ready, reloadPrograms]);
 
   useEffect(() => {
-    void reloadSegments(selectedProgramId);
-  }, [reloadSegments, selectedProgramId]);
-
-  useEffect(() => {
-    void reloadLessons(selectedProgramId);
-  }, [reloadLessons, selectedProgramId]);
+    if (view === "edit" && selectedProgramId) void reloadLessons(selectedProgramId);
+  }, [reloadLessons, selectedProgramId, view]);
 
   function resetProgramForm() {
-    setEditingProgramId(null);
     setProgramTitle("");
     setProgramLearningArea("");
     setProgramDescription("");
@@ -263,105 +158,94 @@ function CleanProgramsWorkspaceBody() {
     setLessonDuration("");
   }
 
-  function resetSegmentForm() {
-    setEditingSegmentId(null);
-    setSegmentTitle("");
-    setSegmentLearnerId("");
-    setSegmentOrder("0");
-    setSegmentNotes("");
+  function openCreate() {
+    resetProgramForm();
+    setSelectedProgramId(null);
+    setLessons([]);
+    setView("create");
+    setMessage(null);
+    setError(null);
+  }
+
+  function openProgram(program: CleanProgram) {
+    setSelectedProgramId(program.id);
+    setProgramTitle(program.title);
+    setProgramLearningArea(program.learningArea || "");
+    setProgramDescription(program.description || "");
+    resetLessonForm();
+    setView("edit");
+    setMessage(null);
+    setError(null);
+  }
+
+  function returnToPrograms() {
+    setView("list");
+    setSelectedProgramId(null);
+    setLessons([]);
+    resetProgramForm();
+    resetLessonForm();
+    setError(null);
   }
 
   async function handleProgramSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
-
     setSubmitting(true);
     setMessage(null);
-    setActionError(null);
-
+    setError(null);
     try {
-      const payload = {
+      const input = {
         title: programTitle,
         learningArea: programLearningArea || null,
         description: programDescription || null,
       };
-
-      let savedProgramId: string | null = null;
-
-      if (editingProgramId) {
-        const updated = await updateCleanProgram(
-          workspace.profile.id,
-          editingProgramId,
-          payload,
-        );
-        savedProgramId = updated.id;
-        setMessage("Program updated.");
-      } else {
-        const created = await createCleanProgram(workspace.profile.id, payload);
-        savedProgramId = created.id;
-        setMessage("Program created.");
+      if (view === "create") {
+        const created = await createCleanProgram(workspace.profile.id, input);
+        await reloadPrograms();
+        setSelectedProgramId(created.id);
+        setProgramTitle(created.title);
+        setProgramLearningArea(created.learningArea || "");
+        setProgramDescription(created.description || "");
+        setLessons([]);
+        setView("edit");
+        setMessage("Program created. Add its lessons when you are ready.");
+      } else if (selectedProgram) {
+        const updated = await updateCleanProgram(workspace.profile.id, selectedProgram.id, input);
+        await reloadPrograms();
+        setProgramTitle(updated.title);
+        setProgramLearningArea(updated.learningArea || "");
+        setProgramDescription(updated.description || "");
+        setMessage("Program details updated.");
       }
-
-      resetProgramForm();
-      await reloadPrograms(savedProgramId);
-    } catch (error) {
-      setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not save this program.",
-        ),
-      );
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not save this program."));
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleArchiveProgram(program: CleanProgram) {
-    if (!workspace.profile) return;
-
+  async function handleArchive() {
+    if (!workspace.profile || !selectedProgram) return;
     setSubmitting(true);
     setMessage(null);
-    setActionError(null);
-
+    setError(null);
     try {
-      await updateCleanProgram(workspace.profile.id, program.id, { status: "archived" });
-      if (editingProgramId === program.id) {
-        resetProgramForm();
-      }
-      if (selectedProgramId === program.id) {
-        resetSegmentForm();
-      }
-      setMessage("Program archived. Its existing learning links stay intact.");
-      await reloadPrograms(program.id);
-    } catch (error) {
-      setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not archive this program.",
-        ),
-      );
+      await updateCleanProgram(workspace.profile.id, selectedProgram.id, { status: "archived" });
+      await reloadPrograms();
+      setMessage("Program archived. Existing learning links stay intact.");
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not archive this program."));
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function handleEditProgram(program: CleanProgram) {
-    setEditingProgramId(program.id);
-    setProgramTitle(program.title);
-    setProgramLearningArea(program.learningArea || "");
-    setProgramDescription(program.description || "");
-    setSelectedProgramId(program.id);
-    setMessage(null);
-    setActionError(null);
   }
 
   async function handleLessonSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile || !selectedProgram) return;
-
     setSubmitting(true);
     setMessage(null);
-    setActionError(null);
+    setError(null);
     try {
       const input = {
         title: lessonTitle,
@@ -376,9 +260,9 @@ function CleanProgramsWorkspaceBody() {
         setMessage("Lesson added.");
       }
       resetLessonForm();
-      await reloadLessons(selectedProgram.id);
-    } catch (error) {
-      setActionError(normalizeCleanErrorMessage(error, "We could not save this lesson."));
+      await Promise.all([reloadLessons(selectedProgram.id), reloadPrograms()]);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not save this lesson."));
     } finally {
       setSubmitting(false);
     }
@@ -389,58 +273,37 @@ function CleanProgramsWorkspaceBody() {
     if (!workspace.profile || !selectedProgram) return;
     const titles = normalizeBulkProgramLessonTitles(bulkLessonTitles);
     if (!titles.length) {
-      setActionError("Paste at least one lesson title.");
+      setError("Paste at least one lesson title.");
       return;
     }
-
     setSubmitting(true);
     setMessage(null);
-    setActionError(null);
+    setError(null);
     try {
-      await addCleanProgramLessons(
-        workspace.profile.id,
-        selectedProgram.id,
-        titles.map((title) => ({ title })),
-      );
+      await addCleanProgramLessons(workspace.profile.id, selectedProgram.id, titles.map((title) => ({ title })));
       setBulkLessonTitles("");
       setMessage(`${titles.length} lessons added.`);
-      await reloadLessons(selectedProgram.id);
-    } catch (error) {
-      setActionError(normalizeCleanErrorMessage(error, "We could not add these lessons."));
+      await Promise.all([reloadLessons(selectedProgram.id), reloadPrograms()]);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not add these lessons."));
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleEditLesson(lesson: CleanProgramLesson) {
-    setEditingLessonId(lesson.id);
-    setLessonTitle(lesson.title);
-    setLessonInstructions(lesson.instructions || "");
-    setLessonDuration(lesson.estimatedDurationMinutes ? String(lesson.estimatedDurationMinutes) : "");
-    setMessage(null);
-    setActionError(null);
-  }
-
   async function handleMoveLesson(lessonId: string, direction: -1 | 1) {
     if (!workspace.profile || !selectedProgram) return;
-    const currentIndex = lessons.findIndex((lesson) => lesson.id === lessonId);
-    const nextIndex = currentIndex + direction;
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= lessons.length) return;
-
     const reordered = moveProgramLesson(lessons, lessonId, direction);
+    if (reordered === lessons) return;
     setSubmitting(true);
     setMessage(null);
-    setActionError(null);
+    setError(null);
     try {
-      await reorderCleanProgramLessons(
-        workspace.profile.id,
-        selectedProgram.id,
-        reordered.map((lesson) => lesson.id),
-      );
+      await reorderCleanProgramLessons(workspace.profile.id, selectedProgram.id, reordered.map((lesson) => lesson.id));
       setMessage("Lesson order updated.");
       await reloadLessons(selectedProgram.id);
-    } catch (error) {
-      setActionError(normalizeCleanErrorMessage(error, "We could not reorder these lessons."));
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not reorder these lessons."));
     } finally {
       setSubmitting(false);
     }
@@ -450,807 +313,89 @@ function CleanProgramsWorkspaceBody() {
     if (!workspace.profile || !selectedProgram) return;
     setSubmitting(true);
     setMessage(null);
-    setActionError(null);
+    setError(null);
     try {
       await removeCleanProgramLesson(workspace.profile.id, selectedProgram.id, lesson.id);
       if (editingLessonId === lesson.id) resetLessonForm();
       setMessage("Lesson removed.");
-      await reloadLessons(selectedProgram.id);
-    } catch (error) {
-      setActionError(normalizeCleanErrorMessage(error, "We could not remove this lesson."));
+      await Promise.all([reloadLessons(selectedProgram.id), reloadPrograms()]);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not remove this lesson."));
     } finally {
       setSubmitting(false);
     }
-  }
-
-  async function handleSegmentSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!workspace.profile || !selectedProgram) return;
-
-    setSubmitting(true);
-    setMessage(null);
-    setActionError(null);
-
-    try {
-      const payload = {
-        title: segmentTitle,
-        learnerId: segmentLearnerId || null,
-        segmentOrder: Number.parseInt(segmentOrder || "0", 10) || 0,
-        notes: segmentNotes || null,
-      };
-
-      if (editingSegmentId) {
-        await updateCleanProgramSegment(
-          workspace.profile.id,
-          editingSegmentId,
-          payload,
-        );
-        setMessage("Week / segment updated.");
-      } else {
-        await createCleanProgramSegment(
-          workspace.profile.id,
-          selectedProgram.id,
-          payload,
-        );
-        setMessage("Week / segment created.");
-      }
-
-      resetSegmentForm();
-      await reloadSegments(selectedProgram.id);
-    } catch (error) {
-      setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not save this week or segment entry.",
-        ),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleDeleteSegment(segment: CleanProgramSegment) {
-    if (!workspace.profile || !selectedProgram) return;
-
-    setSubmitting(true);
-    setMessage(null);
-    setActionError(null);
-
-    try {
-      await deleteCleanProgramSegment(workspace.profile.id, segment.id);
-      if (editingSegmentId === segment.id) {
-        resetSegmentForm();
-      }
-      setMessage("Week / segment deleted.");
-      await reloadSegments(selectedProgram.id);
-    } catch (error) {
-      setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not delete this week or segment entry.",
-        ),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function handleEditSegment(segment: CleanProgramSegment) {
-    setEditingSegmentId(segment.id);
-    setSegmentTitle(segment.title);
-    setSegmentLearnerId(segment.learnerId || "");
-    setSegmentOrder(String(segment.segmentOrder));
-    setSegmentNotes(segment.notes || "");
-    setMessage(null);
-    setActionError(null);
-  }
-
-  const readyForPrograms =
-    !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
-
-  const calendarPath = pathname.startsWith("/clean-my-programs")
-    ? "/clean-my-calendar"
-    : "/my-calendar";
-
-  function buildCalendarHandoffHref(
-    view: "master" | "week",
-    programId: string,
-    segmentId?: string | null,
-  ) {
-    const params = new URLSearchParams({
-      view,
-      programId,
-    });
-
-    if (segmentId) {
-      params.set("segmentId", segmentId);
-    }
-
-    return `${calendarPath}?${params.toString()}`;
   }
 
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanWorkflowRibbon />
-
         <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#64748b",
-                textTransform: "uppercase",
-              }}
-            >
-              Shape learning
-            </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Programs</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Build a reusable program and its ordered lesson list. Scheduling and learner
-              assignment come later.
-            </p>
-          </div>
+          <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>My Plan</p>
+          <h1 style={{ margin: "6px 0 0", fontSize: 28, color: "#0f172a" }}>My Programs</h1>
+          <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
+            Create reusable learning programs and organise their lessons. Scheduling comes after you assign a program to a learner.
+          </p>
         </section>
 
-        {workspace.loading ? (
-          <V2LoadingState
-            title="Preparing programs"
-            body="We are loading longer learning threads and planning blocks."
-          />
-        ) : null}
+        {workspace.loading ? <V2LoadingState title="Preparing programs" body="We are loading your program definitions." /> : null}
+        {!workspace.loading && workspace.schemaMissing ? <section style={cardStyle}><strong>{CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}</strong></section> : null}
+        {!workspace.loading && !workspace.schemaMissing && workspace.error ? <section style={cardStyle}><strong>Workspace error</strong><p style={{ color: "#475569" }}>{workspace.error}</p></section> : null}
+        {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? <section style={cardStyle}><h2 style={{ marginTop: 0 }}>Create family profile first</h2><p style={{ marginBottom: 0, color: "#475569" }}>Programs are private to your family. Create the family profile first on My Profile.</p></section> : null}
 
-        {!workspace.loading && workspace.schemaMissing ? (
-          <section style={cardStyle}>
-            <strong style={{ display: "block", marginBottom: 8 }}>
-              {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
-            </strong>
-            <p style={{ margin: 0, color: "#475569" }}>
-              Planning is temporarily unavailable. Try again shortly.
-            </p>
-          </section>
-        ) : null}
-
-        {!workspace.loading && !workspace.schemaMissing && workspace.error ? (
-          <section style={cardStyle}>
-            <strong style={{ display: "block", marginBottom: 8 }}>Workspace error</strong>
-            <p style={{ margin: 0, color: "#475569" }}>{workspace.error}</p>
-          </section>
-        ) : null}
-
-        {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
-          <section style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
-            <p style={{ margin: 0, color: "#475569" }}>
-              Programs are family-scoped in the clean rebuild. Create the family profile first on My Profile.
-            </p>
-          </section>
-        ) : null}
-
-        {readyForPrograms && !workspace.learners.length ? (
-          <section style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
-            <p style={{ margin: 0, color: "#475569" }}>
-              You can build family-wide programs, but add at least one learner before
-              planning begins.
-            </p>
-          </section>
-        ) : null}
-
-        {readyForPrograms && workspace.profile && workspace.learners.length ? (
+        {ready && workspace.profile ? (
           <>
-            <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 14 }}>
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>What this means</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    My Programs gives your planning a bigger learning structure, then breaks it
-                    into chunks you can actually place into the week.
-                  </p>
+            {view === "list" ? (
+              <section style={cardStyle} aria-labelledby="existing-programs-heading">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <div><h2 id="existing-programs-heading" style={{ margin: 0, color: "#0f172a" }}>Existing Programs</h2><p style={{ margin: "6px 0 0", color: "#475569" }}>Programs are reusable definitions. They are not assigned or scheduled yet.</p></div>
+                  <button type="button" style={buttonStyle} onClick={openCreate} disabled={submitting}>Create Program</button>
                 </div>
+                {loading ? <p style={{ color: "#475569" }}>Loading programs...</p> : null}
+                {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
+                {!loading && !error && !programs.length ? <p style={{ color: "#475569", margin: "20px 0 0" }}>No programs yet. Create a program to organise its lessons.</p> : null}
+                {!loading && !error && programs.length ? <div style={{ display: "grid", gap: 12, marginTop: 20 }}>{programs.map((program) => {
+                  const count = lessonCounts[program.id] ?? 0;
+                  return <article key={program.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 16, display: "grid", gap: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><strong style={{ color: "#0f172a" }}>{program.title}</strong><div style={{ color: "#64748b", marginTop: 4 }}>{program.learningArea || "Learning area not set"} · {count} {count === 1 ? "lesson" : "lessons"}{program.status === "archived" ? " · Archived" : ""}</div></div><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => openProgram(program)} disabled={submitting}>Open / Edit</button></div>
+                    {program.description ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{program.description}</p> : null}
+                  </article>;
+                })}</div> : null}
+              </section>
+            ) : null}
 
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  }}
-                >
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Program</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      A program is the bigger learning thread you are working through, such as
-                      science, writing, history, or a family project.
-                    </p>
-                  </div>
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Week / segment</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      A week or segment is the next chunk of that program that you want to
-                      place into planning.
-                    </p>
-                  </div>
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>What happens next</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Once a segment exists, you can add it to Master week or plan it directly
-                      into This week.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
+            {view === "create" || (view === "edit" && selectedProgram) ? (
+              <>
+                <section style={cardStyle} aria-labelledby="program-editor-heading">
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", flexWrap: "wrap" }}><div><h2 id="program-editor-heading" style={{ margin: 0, color: "#0f172a" }}>{view === "create" ? "Create Program" : "Program details"}</h2><p style={{ margin: "6px 0 0", color: "#475569" }}>A program is a reusable lesson definition, ready for learner assignment and scheduling later.</p></div><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={returnToPrograms} disabled={submitting}>Back to Programs</button></div>
+                  <form onSubmit={handleProgramSubmit} style={{ display: "grid", gap: 12, marginTop: 20 }}>
+                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Program name<input value={programTitle} onChange={(event) => setProgramTitle(event.target.value)} placeholder="For example, Maths Level 3" style={inputStyle} required /></label>
+                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Learning area<input value={programLearningArea} onChange={(event) => setProgramLearningArea(event.target.value)} placeholder="For example, Mathematics" style={inputStyle} /></label>
+                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Description <span style={{ fontWeight: 400 }}>(optional)</span><textarea value={programDescription} onChange={(event) => setProgramDescription(event.target.value)} placeholder="A short note about this program" style={textAreaStyle} /></label>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="submit" style={buttonStyle} disabled={submitting}>{submitting ? "Saving..." : view === "create" ? "Create Program" : "Save details"}</button>{view === "edit" ? <button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => void handleArchive()} disabled={submitting}>Archive Program</button> : null}</div>
+                  </form>
+                </section>
 
-            <section style={cardStyle} aria-labelledby="program-lessons-heading">
-              <h2 id="program-lessons-heading" style={{ marginTop: 0, color: "#0f172a" }}>
-                Ordered lessons
-              </h2>
-              {!selectedProgram ? (
-                <p style={{ margin: 0, color: "#475569" }}>
-                  Select a program to add its lesson list.
-                </p>
-              ) : (
-                <>
-                  <div style={{ display: "grid", gap: 4, marginBottom: 16 }}>
-                    <strong>{selectedProgram.title}</strong>
-                    <span style={{ color: "#475569" }}>
-                      {lessons.length} {lessons.length === 1 ? "lesson" : "lessons"}
-                      {lessons[0] ? ` · Program starts with: ${lessons[0].title}` : ""}
-                    </span>
-                  </div>
-
+                {view === "edit" && selectedProgram ? <section style={cardStyle} aria-labelledby="program-lessons-heading">
+                  <h2 id="program-lessons-heading" style={{ marginTop: 0, color: "#0f172a" }}>Lessons</h2>
+                  <p style={{ margin: "0 0 18px", color: "#475569" }}>{lessons.length} {lessons.length === 1 ? "lesson" : "lessons"}{lessons[0] ? ` · Program starts with: ${lessons[0].title}` : ""}</p>
                   <form onSubmit={handleLessonSubmit} style={{ display: "grid", gap: 12 }}>
-                    <h3 style={{ margin: 0, color: "#0f172a", fontSize: 17 }}>
-                      {editingLessonId ? "Edit lesson" : "Add lesson"}
-                    </h3>
-                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                      Lesson title
-                      <input
-                        value={lessonTitle}
-                        onChange={(event) => setLessonTitle(event.target.value)}
-                        placeholder="For example, Comparing simple fractions"
-                        style={inputStyle}
-                        required
-                      />
-                    </label>
-                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-                      <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                        Instructions <span style={{ fontWeight: 400 }}>(optional)</span>
-                        <textarea
-                          value={lessonInstructions}
-                          onChange={(event) => setLessonInstructions(event.target.value)}
-                          placeholder="A short parent note"
-                          style={{ ...textAreaStyle, minHeight: 72 }}
-                        />
-                      </label>
-                      <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                        Estimated minutes <span style={{ fontWeight: 400 }}>(optional)</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={lessonDuration}
-                          onChange={(event) => setLessonDuration(event.target.value)}
-                          placeholder="30"
-                          style={inputStyle}
-                        />
-                      </label>
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button type="submit" style={buttonStyle} disabled={submitting}>
-                        {submitting ? "Saving..." : editingLessonId ? "Save lesson" : "Add lesson"}
-                      </button>
-                      {editingLessonId ? (
-                        <button
-                          type="button"
-                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                          onClick={resetLessonForm}
-                          disabled={submitting}
-                        >
-                          Cancel edit
-                        </button>
-                      ) : null}
-                    </div>
+                    <h3 style={{ margin: 0, fontSize: 17 }}>{editingLessonId ? "Edit lesson" : "Add lesson"}</h3>
+                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Lesson title<input value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} placeholder="For example, Comparing simple fractions" style={inputStyle} required /></label>
+                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}><label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Instructions <span style={{ fontWeight: 400 }}>(optional)</span><textarea value={lessonInstructions} onChange={(event) => setLessonInstructions(event.target.value)} placeholder="A short parent note" style={{ ...textAreaStyle, minHeight: 72 }} /></label><label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Estimated minutes <span style={{ fontWeight: 400 }}>(optional)</span><input type="number" min="1" value={lessonDuration} onChange={(event) => setLessonDuration(event.target.value)} placeholder="30" style={inputStyle} /></label></div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="submit" style={buttonStyle} disabled={submitting}>{submitting ? "Saving..." : editingLessonId ? "Save lesson" : "Add lesson"}</button>{editingLessonId ? <button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={resetLessonForm} disabled={submitting}>Cancel edit</button> : null}</div>
                   </form>
-
-                  <form onSubmit={handleBulkLessonsSubmit} style={{ display: "grid", gap: 10, marginTop: 24 }}>
-                    <h3 style={{ margin: 0, color: "#0f172a", fontSize: 17 }}>Paste lesson list</h3>
-                    <p style={{ margin: 0, color: "#475569" }}>
-                      Paste one lesson title per line. Blank lines are ignored.
-                    </p>
-                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                      Lesson titles
-                      <textarea
-                        value={bulkLessonTitles}
-                        onChange={(event) => setBulkLessonTitles(event.target.value)}
-                        placeholder={"Introduction\nCounting to 10\nComparing numbers"}
-                        style={textAreaStyle}
-                      />
-                    </label>
-                    <div>
-                      <button type="submit" style={buttonStyle} disabled={submitting}>
-                        {submitting ? "Adding..." : "Add pasted lessons"}
-                      </button>
-                    </div>
-                  </form>
-
-                  {lessonsLoading ? (
-                    <p style={{ margin: "20px 0 0", color: "#475569" }}>Loading lessons...</p>
-                  ) : null}
-                  {lessonsError ? (
-                    <p style={{ margin: "20px 0 0", color: "#b91c1c" }}>{lessonsError}</p>
-                  ) : null}
-                  {!lessonsLoading && !lessonsError && !lessons.length ? (
-                    <p style={{ margin: "20px 0 0", color: "#475569" }}>
-                      No lessons yet. Add one lesson or paste a list to start this program.
-                    </p>
-                  ) : null}
-                  {!lessonsLoading && !lessonsError && lessons.length ? (
-                    <ol style={{ display: "grid", gap: 10, margin: "20px 0 0", paddingLeft: 24 }}>
-                      {lessons.map((lesson, index) => (
-                        <li key={lesson.id} style={{ paddingLeft: 4 }}>
-                          <div
-                            style={{
-                              border: "1px solid #e2e8f0",
-                              borderRadius: 14,
-                              padding: 14,
-                              display: "grid",
-                              gap: 8,
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                              <div>
-                                <strong>{lesson.title}</strong>
-                                {lesson.estimatedDurationMinutes ? (
-                                  <div style={{ color: "#64748b", marginTop: 4 }}>
-                                    About {lesson.estimatedDurationMinutes} minutes
-                                  </div>
-                                ) : null}
-                              </div>
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                                  onClick={() => void handleMoveLesson(lesson.id, -1)}
-                                  disabled={submitting || index === 0}
-                                  aria-label={`Move ${lesson.title} up`}
-                                >
-                                  Move up
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                                  onClick={() => void handleMoveLesson(lesson.id, 1)}
-                                  disabled={submitting || index === lessons.length - 1}
-                                  aria-label={`Move ${lesson.title} down`}
-                                >
-                                  Move down
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                                  onClick={() => handleEditLesson(lesson)}
-                                  disabled={submitting}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
-                                  onClick={() => void handleRemoveLesson(lesson)}
-                                  disabled={submitting}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                            {lesson.instructions ? (
-                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{lesson.instructions}</p>
-                            ) : null}
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
-                  ) : null}
-                </>
-              )}
-            </section>
-
-            <section style={cardStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Program details</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    A program holds the bigger learning thread. Add week or segment chunks
-                    underneath it, then send them into Master week or This week when you plan.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  style={buttonStyle}
-                  onClick={() => void reloadPrograms()}
-                  disabled={programsLoading || submitting}
-                >
-                  {programsLoading ? "Refreshing..." : "Refresh"}
-                </button>
-              </div>
-
-              <form onSubmit={handleProgramSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                  Program name
-                  <input
-                    value={programTitle}
-                    onChange={(event) => setProgramTitle(event.target.value)}
-                    placeholder="For example, Maths Level 3"
-                    style={inputStyle}
-                    required
-                  />
-                </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  }}
-                >
-                  <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                    Learning area
-                    <input
-                      value={programLearningArea}
-                      onChange={(event) => setProgramLearningArea(event.target.value)}
-                      placeholder="For example, Mathematics"
-                      style={inputStyle}
-                    />
-                  </label>
-                </div>
-                <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-                  Short description <span style={{ fontWeight: 400 }}>(optional)</span>
-                  <textarea
-                    value={programDescription}
-                    onChange={(event) => setProgramDescription(event.target.value)}
-                    placeholder="A short note about this program"
-                    style={textAreaStyle}
-                  />
-                </label>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="submit" style={buttonStyle} disabled={submitting}>
-                    {submitting ? "Saving..." : editingProgramId ? "Save program" : "Add program"}
-                  </button>
-                  {editingProgramId ? (
-                    <button
-                      type="button"
-                      style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                      onClick={resetProgramForm}
-                      disabled={submitting}
-                    >
-                      Cancel edit
-                    </button>
-                  ) : null}
-                </div>
-              </form>
-            </section>
-
-            <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Programs</h2>
-              <p style={{ marginTop: 0, color: "#475569" }}>
-                Each program is a reusable ordered lesson list. It is not assigned to a
-                learner or schedule yet.
-              </p>
-
-              {programsLoading ? <p style={{ margin: 0, color: "#475569" }}>Loading programs...</p> : null}
-              {programsError ? <p style={{ margin: 0, color: "#b91c1c" }}>{programsError}</p> : null}
-
-              {!programsLoading && !programsError && !programs.length ? (
-                <p style={{ margin: 0, color: "#475569" }}>
-                  No programs yet. Add one above to start shaping learning.
-                </p>
-              ) : null}
-
-              {!programsLoading && !programsError && programs.length ? (
-                <div style={{ display: "grid", gap: 12 }}>
-                  {programs.map((program) => {
-                    const isSelected = selectedProgramId === program.id;
-                    const lessonCount = lessonCounts[program.id] ?? 0;
-
-                    return (
-                      <div
-                        key={program.id}
-                        style={{
-                          border: isSelected ? "2px solid #1d4ed8" : "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          padding: 14,
-                          display: "grid",
-                          gap: 8,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <div>
-                            <strong>{program.title}</strong>
-                            <div style={{ color: "#64748b", marginTop: 4 }}>
-                              {program.learningArea || "Learning area not set"} · {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
-                              {program.status === "archived" ? " · Archived" : ""}
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button
-                              type="button"
-                              style={{
-                                ...buttonStyle,
-                                background: isSelected ? "#1d4ed8" : "#ffffff",
-                                borderColor: isSelected ? "#1d4ed8" : "#0f172a",
-                                color: isSelected ? "#ffffff" : "#0f172a",
-                              }}
-                              onClick={() => setSelectedProgramId(program.id)}
-                              disabled={submitting}
-                            >
-                              {isSelected ? "Selected" : "Select"}
-                            </button>
-                            <Link
-                              href={buildCalendarHandoffHref("master", program.id)}
-                              style={{
-                                ...buttonStyle,
-                                background: "#ffffff",
-                                color: "#0f172a",
-                                textDecoration: "none",
-                              }}
-                            >
-                              Add to Master week
-                            </Link>
-                            <Link
-                              href={buildCalendarHandoffHref("week", program.id)}
-                              style={{
-                                ...buttonStyle,
-                                background: "#ffffff",
-                                color: "#0f172a",
-                                textDecoration: "none",
-                              }}
-                            >
-                              Plan in My Calendar
-                            </Link>
-                            <button
-                              type="button"
-                              style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                              onClick={() => handleEditProgram(program)}
-                              disabled={submitting}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
-                              onClick={() => void handleArchiveProgram(program)}
-                              disabled={submitting}
-                            >
-                              Archive
-                            </button>
-                          </div>
-                        </div>
-                        {program.description ? (
-                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                            {program.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </section>
-
-            <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Weeks / segments</h2>
-              {!selectedProgram ? (
-                <p style={{ margin: 0, color: "#475569" }}>
-                  Select a program to shape its week or segment entries.
-                </p>
-              ) : (
-                <>
-                  <p style={{ marginTop: 0, color: "#475569" }}>
-                    Working in: <strong>{selectedProgram.title}</strong>
-                  </p>
-                  <form onSubmit={handleSegmentSubmit} style={{ display: "grid", gap: 12 }}>
-                    <input
-                      value={segmentTitle}
-                      onChange={(event) => setSegmentTitle(event.target.value)}
-                      placeholder="Week / segment"
-                      style={inputStyle}
-                    />
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 12,
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                      }}
-                    >
-                      <select
-                        value={segmentLearnerId}
-                        onChange={(event) => setSegmentLearnerId(event.target.value)}
-                        style={inputStyle}
-                      >
-                        <option value="">Family / all learners</option>
-                        {learnerOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        value={segmentOrder}
-                        onChange={(event) => setSegmentOrder(event.target.value)}
-                        placeholder="Order"
-                        style={inputStyle}
-                      />
-                    </div>
-                    <textarea
-                      value={segmentNotes}
-                      onChange={(event) => setSegmentNotes(event.target.value)}
-                      placeholder="Planned focus, resources, or what this chunk of learning should cover"
-                      style={textAreaStyle}
-                    />
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button type="submit" style={buttonStyle} disabled={submitting}>
-                        {submitting ? "Saving..." : editingSegmentId ? "Save segment" : "Add segment"}
-                      </button>
-                      {editingSegmentId ? (
-                        <button
-                          type="button"
-                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                          onClick={resetSegmentForm}
-                          disabled={submitting}
-                        >
-                          Cancel edit
-                        </button>
-                      ) : null}
-                    </div>
-                  </form>
-
-                  {segmentsLoading ? (
-                    <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>
-                      Loading your week or segment entries...
-                    </p>
-                  ) : null}
-                  {segmentsError ? (
-                    <p style={{ marginTop: 16, marginBottom: 0, color: "#b91c1c" }}>
-                      {segmentsError}
-                    </p>
-                  ) : null}
-                  {!segmentsLoading && !segmentsError && !segments.length ? (
-                    <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>
-                      No week or segment entries yet for this program.
-                    </p>
-                  ) : null}
-                  {!segmentsLoading && !segmentsError && segments.length ? (
-                    <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                      {segments.map((segment) => {
-                        const learnerLabel =
-                          learnerOptions.find((option) => option.value === segment.learnerId)?.label ||
-                          "Family / all learners";
-
-                        return (
-                          <div
-                            key={segment.id}
-                            style={{
-                              border: "1px solid #e2e8f0",
-                              borderRadius: 14,
-                              padding: 14,
-                              display: "grid",
-                              gap: 8,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                flexWrap: "wrap",
-                              }}
-                            >
-                              <div>
-                                <strong>
-                                  {segment.segmentOrder}. {segment.title}
-                                </strong>
-                                <div style={{ color: "#64748b", marginTop: 4 }}>
-                                  {learnerLabel}
-                                </div>
-                              </div>
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                <Link
-                                  href={buildCalendarHandoffHref(
-                                    "master",
-                                    selectedProgram.id,
-                                    segment.id,
-                                  )}
-                                  style={{
-                                    ...buttonStyle,
-                                    background: "#ffffff",
-                                    color: "#0f172a",
-                                    textDecoration: "none",
-                                  }}
-                                >
-                                  Add to Master week
-                                </Link>
-                                <Link
-                                  href={buildCalendarHandoffHref(
-                                    "week",
-                                    selectedProgram.id,
-                                    segment.id,
-                                  )}
-                                  style={{
-                                    ...buttonStyle,
-                                    background: "#ffffff",
-                                    color: "#0f172a",
-                                    textDecoration: "none",
-                                  }}
-                                >
-                                  Plan in My Calendar
-                                </Link>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                                  onClick={() => handleEditSegment(segment)}
-                                  disabled={submitting}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
-                                  onClick={() => void handleDeleteSegment(segment)}
-                                  disabled={submitting}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                            {segment.notes ? (
-                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                {segment.notes}
-                              </p>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </section>
+                  <form onSubmit={handleBulkLessonsSubmit} style={{ display: "grid", gap: 10, marginTop: 28, paddingTop: 22, borderTop: "1px solid #e2e8f0" }}><h3 style={{ margin: 0, fontSize: 17 }}>Paste lesson list</h3><p style={{ margin: 0, color: "#475569" }}>Paste one lesson title per line. Blank lines are ignored.</p><label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>Lesson titles<textarea value={bulkLessonTitles} onChange={(event) => setBulkLessonTitles(event.target.value)} placeholder={"Introduction\nCounting to 10\nComparing numbers"} style={textAreaStyle} /></label><div><button type="submit" style={buttonStyle} disabled={submitting}>{submitting ? "Adding..." : "Add pasted lessons"}</button></div></form>
+                  {lessonsLoading ? <p style={{ color: "#475569" }}>Loading lessons...</p> : null}
+                  {!lessonsLoading && !lessons.length ? <p style={{ color: "#475569", margin: "24px 0 0" }}>No lessons yet. Add lesson or Paste lesson list to start this program.</p> : null}
+                  {lessons.length ? <ol style={{ display: "grid", gap: 10, margin: "24px 0 0", paddingLeft: 24 }}>{lessons.map((lesson, index) => <li key={lesson.id} style={{ paddingLeft: 4 }}><article style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 8 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><strong>{lesson.title}</strong>{lesson.estimatedDurationMinutes ? <div style={{ color: "#64748b", marginTop: 4 }}>About {lesson.estimatedDurationMinutes} minutes</div> : null}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => void handleMoveLesson(lesson.id, -1)} disabled={submitting || index === 0} aria-label={`Move ${lesson.title} up`}>Move up</button><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => void handleMoveLesson(lesson.id, 1)} disabled={submitting || index === lessons.length - 1} aria-label={`Move ${lesson.title} down`}>Move down</button><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => { setEditingLessonId(lesson.id); setLessonTitle(lesson.title); setLessonInstructions(lesson.instructions || ""); setLessonDuration(lesson.estimatedDurationMinutes ? String(lesson.estimatedDurationMinutes) : ""); }} disabled={submitting}>Edit</button><button type="button" style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }} onClick={() => void handleRemoveLesson(lesson)} disabled={submitting}>Remove</button></div></div>{lesson.instructions ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{lesson.instructions}</p> : null}</article></li>)}</ol> : null}
+                </section> : null}
+              </>
+            ) : null}
+            {message ? <section style={cardStyle}><p style={{ margin: 0, color: "#0f766e" }}>{message}</p></section> : null}
+            {error && view !== "list" ? <section style={cardStyle}><p style={{ margin: 0, color: "#b91c1c" }}>{error}</p></section> : null}
           </>
-        ) : null}
-
-        {message ? (
-          <section style={cardStyle}>
-            <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
-          </section>
-        ) : null}
-
-        {actionError ? (
-          <section style={cardStyle}>
-            <p style={{ margin: 0, color: "#b91c1c" }}>{actionError}</p>
-          </section>
         ) : null}
       </div>
     </div>
   );
-}
-
-export default function CleanProgramsWorkspace() {
-  return <CleanProgramsWorkspaceBody />;
 }

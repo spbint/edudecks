@@ -69,7 +69,15 @@ const calendarNavItem = {
   matches: ["/my-calendar", "/clean-my-calendar", "/calendar", "/my-month", "/planner"],
 } as const satisfies ProductNavItem;
 
-const myPlanNavItems = [dayNavItem, calendarNavItem] as const;
+const programsNavItem = {
+  href: "/my-programs",
+  label: "My Programs",
+  shortLabel: "Programs",
+  icon: "folder",
+  matches: ["/my-programs", "/clean-my-programs"],
+} as const satisfies ProductNavItem;
+
+const myPlanNavItems = [dayNavItem, calendarNavItem, programsNavItem] as const;
 
 const settingsNavItem = {
   href: "/my-settings",
@@ -321,6 +329,9 @@ export function routeCrumbs(pathname: string): BreadcrumbItem[] {
   if (isActive(pathname, calendarNavItem.matches)) {
     return [{ label: "My Plan" }, { label: "My Calendar" }];
   }
+  if (isActive(pathname, programsNavItem.matches)) {
+    return [{ label: "My Plan" }, { label: "My Programs" }];
+  }
   if (pathname.startsWith("/my-profile") || pathname.startsWith("/clean-my-profile")) {
     return [{ label: "My Day", href: "/my-day" }, { label: "My Profile" }];
   }
@@ -486,7 +497,7 @@ function MyPlanNavGroup({ pathname }: { pathname: string }) {
 
 function getActiveMobileSection(pathname: string): MobileNavKey {
   if (isActive(pathname, dayNavItem.matches)) return "day";
-  if (isActive(pathname, settingsNavItem.matches) || pathname.startsWith("/my-profile") || pathname.startsWith("/my-community")) {
+  if (isActive(pathname, programsNavItem.matches) || isActive(pathname, settingsNavItem.matches) || pathname.startsWith("/my-profile") || pathname.startsWith("/my-community")) {
     return "more";
   }
 
@@ -1378,7 +1389,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         >
           <p className="mylearna-v2-mobile-sheet-title">MORE</p>
           <div className="mylearna-v2-mobile-sheet-grid">
-            {[settingsNavItem].map((item) => {
+            {[programsNavItem, settingsNavItem].map((item) => {
               const active = isActive(pathname, item.matches);
               return (
                 <Link
