@@ -12,7 +12,11 @@ import type {
   CleanProgramSegmentUpdate,
   CleanProgramStatus,
   CleanProgramUpdate,
+  CleanProgramLesson,
+  CleanProgramLessonInput,
+  CleanProgramLessonUpdate,
 } from "@/lib/clean/programs/types";
+import { parsePastedProgramLessonTitles } from "@/lib/clean/programs/programLessons";
 
 type ProgramRow = {
   id: string;
@@ -39,6 +43,18 @@ type ProgramSegmentRow = {
   starts_on?: string | null;
   ends_on?: string | null;
   created_by_user_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type ProgramLessonRow = {
+  id: string;
+  family_id: string;
+  program_id: string;
+  position: number;
+  title: string;
+  instructions?: string | null;
+  estimated_duration_minutes?: number | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -106,6 +122,23 @@ function toCleanProgramSegment(row: ProgramSegmentRow): CleanProgramSegment {
   };
 }
 
+function toCleanProgramLesson(row: ProgramLessonRow): CleanProgramLesson {
+  return {
+    id: safe(row.id),
+    familyId: safe(row.family_id),
+    programId: safe(row.program_id),
+    position: normalizeNumber(row.position),
+    title: safe(row.title),
+    instructions: normalizeNullString(row.instructions),
+    estimatedDurationMinutes:
+      row.estimated_duration_minutes === null || row.estimated_duration_minutes === undefined
+        ? null
+        : normalizeNumber(row.estimated_duration_minutes),
+    createdAt: normalizeNullString(row.created_at),
+    updatedAt: normalizeNullString(row.updated_at),
+  };
+}
+
 function sortPrograms(items: CleanProgram[]) {
   return [...items].sort((left, right) => {
     const leftUpdated = Date.parse(left.updatedAt || left.createdAt || "");
@@ -129,6 +162,33 @@ function sortProgramSegments(items: CleanProgramSegment[]) {
 
     return left.title.localeCompare(right.title);
   });
+}
+
+function sortProgramLessons(items: CleanProgramLesson[]) {
+  return [...items].sort((left, right) => {
+    if (left.position !== right.position) return left.position - right.position;
+    return left.id.localeCompare(right.id);
+  });
+}
+
+function normalizePositiveNumberOrNull(value: unknown) {
+  if (value === null || value === undefined || safe(value) === "") return null;
+  const number = normalizeNumber(value);
+  return number > 0 ? number : null;
+}
+
+function sanitizeProgramLessonInput(
+  input: CleanProgramLessonInput | CleanProgramLessonUpdate,
+) {
+  return {
+    title: "title" in input && input.title !== undefined ? safe(input.title) || null : undefined,
+    instructions:
+      "instructions" in input ? normalizeNullString(input.instructions) : undefined,
+    estimated_duration_minutes:
+      "estimatedDurationMinutes" in input
+        ? normalizePositiveNumberOrNull(input.estimatedDurationMinutes)
+        : undefined,
+  };
 }
 
 function sanitizeProgramInput(input: CleanProgramInput | CleanProgramUpdate) {
@@ -441,6 +501,159 @@ export async function deleteCleanProgramSegment(
         response.error,
         "Unable to delete the clean program segment.",
       ),
+    );
+  }
+}
+
+const programLessonSelect =
+  "id,family_id,program_id,position,title,instructions,estimated_duration_minutes,created_at,updated_at";
+
+export async function listCleanProgramLessons(familyId: string, programId: string) {
+  const response = await supabase
+    .from("program_lessons")
+    .select(programLessonSelect)
+    .eq("family_id", familyId)
+    .eq("program_id", programId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not load these lessons just now."),
+    );
+  }
+
+  return sortProgramLessons(
+    (response.data ?? []).map((row) => toCleanProgramLesson(row as ProgramLessonRow)),
+  );
+}
+
+export async function listCleanProgramLessonCounts(familyId: string) {
+  const response = await supabase
+    .from("program_lessons")
+    .select("program_id")
+    .eq("family_id", familyId);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not load program lesson counts just now."),
+    );
+  }
+
+  return (response.data ?? []).reduce<Record<string, number>>((counts, row) => {
+    const programId = safe((row as { program_id?: unknown }).program_id);
+    if (programId) counts[programId] = (counts[programId] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+export function normalizeBulkProgramLessonTitles(value: string) {
+  return parsePastedProgramLessonTitles(value);
+}
+
+export async function addCleanProgramLessons(
+  familyId: string,
+  programId: string,
+  lessons: CleanProgramLessonInput[],
+) {
+  const titles = lessons
+    .map((lesson) => sanitizeProgramLessonInput(lesson))
+    .filter(
+      (
+        lesson,
+      ): lesson is {
+        title: string;
+        instructions: string | null | undefined;
+        estimated_duration_minutes: number | null | undefined;
+      } => Boolean(lesson.title),
+    );
+
+  if (!titles.length) throw new Error("Add at least one lesson title.");
+
+  const response = await supabase.rpc("clean_append_program_lessons", {
+    p_family_id: familyId,
+    p_program_id: programId,
+    p_lessons: titles.map((lesson) => ({
+      title: lesson.title,
+      instructions: lesson.instructions ?? null,
+      estimated_duration_minutes: lesson.estimated_duration_minutes ?? null,
+    })),
+  });
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not add these lessons just now."),
+    );
+  }
+}
+
+export async function updateCleanProgramLesson(
+  familyId: string,
+  lessonId: string,
+  input: CleanProgramLessonUpdate,
+) {
+  const payload = Object.fromEntries(
+    Object.entries(sanitizeProgramLessonInput(input)).filter(([, value]) => value !== undefined),
+  );
+
+  if (payload.title !== undefined && !safe(payload.title)) {
+    throw new Error("Lesson title cannot be blank.");
+  }
+
+  const response = await supabase
+    .from("program_lessons")
+    .update(payload)
+    .eq("family_id", familyId)
+    .eq("id", lessonId)
+    .select(programLessonSelect)
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not update this lesson just now."),
+    );
+  }
+
+  return toCleanProgramLesson(response.data as ProgramLessonRow);
+}
+
+export async function reorderCleanProgramLessons(
+  familyId: string,
+  programId: string,
+  lessonIds: string[],
+) {
+  const uniqueLessonIds = [...new Set(lessonIds.map((id) => safe(id)).filter(Boolean))];
+  if (uniqueLessonIds.length !== lessonIds.length) {
+    throw new Error("Each lesson can appear only once in the order.");
+  }
+
+  const response = await supabase.rpc("clean_reorder_program_lessons", {
+    p_family_id: familyId,
+    p_program_id: programId,
+    p_lesson_ids: uniqueLessonIds,
+  });
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not reorder these lessons just now."),
+    );
+  }
+}
+
+export async function removeCleanProgramLesson(
+  familyId: string,
+  programId: string,
+  lessonId: string,
+) {
+  const response = await supabase.rpc("clean_remove_program_lesson", {
+    p_family_id: familyId,
+    p_program_id: programId,
+    p_lesson_id: lessonId,
+  });
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not remove this lesson just now."),
     );
   }
 }

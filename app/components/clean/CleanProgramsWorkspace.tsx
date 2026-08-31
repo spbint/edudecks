@@ -9,17 +9,25 @@ import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   createCleanProgram,
   createCleanProgramSegment,
-  deleteCleanProgram,
   deleteCleanProgramSegment,
+  addCleanProgramLessons,
   listCleanProgramSegments,
+  listCleanProgramLessons,
+  listCleanProgramLessonCounts,
   listCleanPrograms,
+  normalizeBulkProgramLessonTitles,
+  removeCleanProgramLesson,
+  reorderCleanProgramLessons,
   updateCleanProgram,
+  updateCleanProgramLesson,
   updateCleanProgramSegment,
 } from "@/lib/clean/programs/client";
 import type {
   CleanProgram,
+  CleanProgramLesson,
   CleanProgramSegment,
 } from "@/lib/clean/programs/types";
+import { moveProgramLesson } from "@/lib/clean/programs/programLessons";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -94,9 +102,12 @@ function CleanProgramsWorkspaceBody() {
   const [segments, setSegments] = useState<CleanProgramSegment[]>([]);
   const [segmentsLoading, setSegmentsLoading] = useState(false);
   const [segmentsError, setSegmentsError] = useState<string | null>(null);
+  const [lessons, setLessons] = useState<CleanProgramLesson[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [lessonsError, setLessonsError] = useState<string | null>(null);
+  const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
 
   const [programTitle, setProgramTitle] = useState("");
-  const [programLearnerId, setProgramLearnerId] = useState("");
   const [programLearningArea, setProgramLearningArea] = useState("");
   const [programDescription, setProgramDescription] = useState("");
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
@@ -106,6 +117,11 @@ function CleanProgramsWorkspaceBody() {
   const [segmentOrder, setSegmentOrder] = useState("0");
   const [segmentNotes, setSegmentNotes] = useState("");
   const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
+  const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonInstructions, setLessonInstructions] = useState("");
+  const [lessonDuration, setLessonDuration] = useState("");
+  const [bulkLessonTitles, setBulkLessonTitles] = useState("");
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -130,10 +146,12 @@ function CleanProgramsWorkspaceBody() {
       setProgramsLoading(true);
       setProgramsError(null);
       try {
-        const nextPrograms = await listCleanPrograms(workspace.profile.id, {
-          limit: 50,
-        });
+        const [nextPrograms, nextLessonCounts] = await Promise.all([
+          listCleanPrograms(workspace.profile.id, { limit: 50 }),
+          listCleanProgramLessonCounts(workspace.profile.id),
+        ]);
         setPrograms(nextPrograms);
+        setLessonCounts(nextLessonCounts);
 
         const selectedId = nextSelectedProgramId ?? selectedProgramId;
         const hasSelected = selectedId
@@ -188,10 +206,34 @@ function CleanProgramsWorkspaceBody() {
     [workspace.profile],
   );
 
+  const reloadLessons = useCallback(
+    async (programId: string | null) => {
+      if (!workspace.profile || !programId) {
+        setLessons([]);
+        return;
+      }
+
+      setLessonsLoading(true);
+      setLessonsError(null);
+      try {
+        setLessons(await listCleanProgramLessons(workspace.profile.id, programId));
+      } catch (error) {
+        setLessonsError(
+          normalizeCleanErrorMessage(error, "We could not load these lessons just now."),
+        );
+      } finally {
+        setLessonsLoading(false);
+      }
+    },
+    [workspace.profile],
+  );
+
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setPrograms([]);
       setSegments([]);
+      setLessons([]);
+      setLessonCounts({});
       setSelectedProgramId(null);
       return;
     }
@@ -203,12 +245,22 @@ function CleanProgramsWorkspaceBody() {
     void reloadSegments(selectedProgramId);
   }, [reloadSegments, selectedProgramId]);
 
+  useEffect(() => {
+    void reloadLessons(selectedProgramId);
+  }, [reloadLessons, selectedProgramId]);
+
   function resetProgramForm() {
     setEditingProgramId(null);
     setProgramTitle("");
-    setProgramLearnerId("");
     setProgramLearningArea("");
     setProgramDescription("");
+  }
+
+  function resetLessonForm() {
+    setEditingLessonId(null);
+    setLessonTitle("");
+    setLessonInstructions("");
+    setLessonDuration("");
   }
 
   function resetSegmentForm() {
@@ -230,7 +282,6 @@ function CleanProgramsWorkspaceBody() {
     try {
       const payload = {
         title: programTitle,
-        learnerId: programLearnerId || null,
         learningArea: programLearningArea || null,
         description: programDescription || null,
       };
@@ -265,7 +316,7 @@ function CleanProgramsWorkspaceBody() {
     }
   }
 
-  async function handleDeleteProgram(program: CleanProgram) {
+  async function handleArchiveProgram(program: CleanProgram) {
     if (!workspace.profile) return;
 
     setSubmitting(true);
@@ -273,20 +324,20 @@ function CleanProgramsWorkspaceBody() {
     setActionError(null);
 
     try {
-      await deleteCleanProgram(workspace.profile.id, program.id);
+      await updateCleanProgram(workspace.profile.id, program.id, { status: "archived" });
       if (editingProgramId === program.id) {
         resetProgramForm();
       }
       if (selectedProgramId === program.id) {
         resetSegmentForm();
       }
-      setMessage("Program deleted.");
-      await reloadPrograms(null);
+      setMessage("Program archived. Its existing learning links stay intact.");
+      await reloadPrograms(program.id);
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not delete this program.",
+          "We could not archive this program.",
         ),
       );
     } finally {
@@ -297,12 +348,119 @@ function CleanProgramsWorkspaceBody() {
   function handleEditProgram(program: CleanProgram) {
     setEditingProgramId(program.id);
     setProgramTitle(program.title);
-    setProgramLearnerId(program.learnerId || "");
     setProgramLearningArea(program.learningArea || "");
     setProgramDescription(program.description || "");
     setSelectedProgramId(program.id);
     setMessage(null);
     setActionError(null);
+  }
+
+  async function handleLessonSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!workspace.profile || !selectedProgram) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+    try {
+      const input = {
+        title: lessonTitle,
+        instructions: lessonInstructions || null,
+        estimatedDurationMinutes: lessonDuration ? Number.parseInt(lessonDuration, 10) : null,
+      };
+      if (editingLessonId) {
+        await updateCleanProgramLesson(workspace.profile.id, editingLessonId, input);
+        setMessage("Lesson updated.");
+      } else {
+        await addCleanProgramLessons(workspace.profile.id, selectedProgram.id, [input]);
+        setMessage("Lesson added.");
+      }
+      resetLessonForm();
+      await reloadLessons(selectedProgram.id);
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not save this lesson."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleBulkLessonsSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!workspace.profile || !selectedProgram) return;
+    const titles = normalizeBulkProgramLessonTitles(bulkLessonTitles);
+    if (!titles.length) {
+      setActionError("Paste at least one lesson title.");
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+    try {
+      await addCleanProgramLessons(
+        workspace.profile.id,
+        selectedProgram.id,
+        titles.map((title) => ({ title })),
+      );
+      setBulkLessonTitles("");
+      setMessage(`${titles.length} lessons added.`);
+      await reloadLessons(selectedProgram.id);
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not add these lessons."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleEditLesson(lesson: CleanProgramLesson) {
+    setEditingLessonId(lesson.id);
+    setLessonTitle(lesson.title);
+    setLessonInstructions(lesson.instructions || "");
+    setLessonDuration(lesson.estimatedDurationMinutes ? String(lesson.estimatedDurationMinutes) : "");
+    setMessage(null);
+    setActionError(null);
+  }
+
+  async function handleMoveLesson(lessonId: string, direction: -1 | 1) {
+    if (!workspace.profile || !selectedProgram) return;
+    const currentIndex = lessons.findIndex((lesson) => lesson.id === lessonId);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= lessons.length) return;
+
+    const reordered = moveProgramLesson(lessons, lessonId, direction);
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+    try {
+      await reorderCleanProgramLessons(
+        workspace.profile.id,
+        selectedProgram.id,
+        reordered.map((lesson) => lesson.id),
+      );
+      setMessage("Lesson order updated.");
+      await reloadLessons(selectedProgram.id);
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not reorder these lessons."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRemoveLesson(lesson: CleanProgramLesson) {
+    if (!workspace.profile || !selectedProgram) return;
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+    try {
+      await removeCleanProgramLesson(workspace.profile.id, selectedProgram.id, lesson.id);
+      if (editingLessonId === lesson.id) resetLessonForm();
+      setMessage("Lesson removed.");
+      await reloadLessons(selectedProgram.id);
+    } catch (error) {
+      setActionError(normalizeCleanErrorMessage(error, "We could not remove this lesson."));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleSegmentSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -431,8 +589,8 @@ function CleanProgramsWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Programs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Build longer learning threads here, then place them into Master week or This
-              week when you are ready to plan.
+              Build a reusable program and its ordered lesson list. Scheduling and learner
+              assignment come later.
             </p>
           </div>
         </section>
@@ -525,6 +683,180 @@ function CleanProgramsWorkspaceBody() {
               </div>
             </section>
 
+            <section style={cardStyle} aria-labelledby="program-lessons-heading">
+              <h2 id="program-lessons-heading" style={{ marginTop: 0, color: "#0f172a" }}>
+                Ordered lessons
+              </h2>
+              {!selectedProgram ? (
+                <p style={{ margin: 0, color: "#475569" }}>
+                  Select a program to add its lesson list.
+                </p>
+              ) : (
+                <>
+                  <div style={{ display: "grid", gap: 4, marginBottom: 16 }}>
+                    <strong>{selectedProgram.title}</strong>
+                    <span style={{ color: "#475569" }}>
+                      {lessons.length} {lessons.length === 1 ? "lesson" : "lessons"}
+                      {lessons[0] ? ` · Program starts with: ${lessons[0].title}` : ""}
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleLessonSubmit} style={{ display: "grid", gap: 12 }}>
+                    <h3 style={{ margin: 0, color: "#0f172a", fontSize: 17 }}>
+                      {editingLessonId ? "Edit lesson" : "Add lesson"}
+                    </h3>
+                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                      Lesson title
+                      <input
+                        value={lessonTitle}
+                        onChange={(event) => setLessonTitle(event.target.value)}
+                        placeholder="For example, Comparing simple fractions"
+                        style={inputStyle}
+                        required
+                      />
+                    </label>
+                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                      <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                        Instructions <span style={{ fontWeight: 400 }}>(optional)</span>
+                        <textarea
+                          value={lessonInstructions}
+                          onChange={(event) => setLessonInstructions(event.target.value)}
+                          placeholder="A short parent note"
+                          style={{ ...textAreaStyle, minHeight: 72 }}
+                        />
+                      </label>
+                      <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                        Estimated minutes <span style={{ fontWeight: 400 }}>(optional)</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={lessonDuration}
+                          onChange={(event) => setLessonDuration(event.target.value)}
+                          placeholder="30"
+                          style={inputStyle}
+                        />
+                      </label>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button type="submit" style={buttonStyle} disabled={submitting}>
+                        {submitting ? "Saving..." : editingLessonId ? "Save lesson" : "Add lesson"}
+                      </button>
+                      {editingLessonId ? (
+                        <button
+                          type="button"
+                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                          onClick={resetLessonForm}
+                          disabled={submitting}
+                        >
+                          Cancel edit
+                        </button>
+                      ) : null}
+                    </div>
+                  </form>
+
+                  <form onSubmit={handleBulkLessonsSubmit} style={{ display: "grid", gap: 10, marginTop: 24 }}>
+                    <h3 style={{ margin: 0, color: "#0f172a", fontSize: 17 }}>Paste lesson list</h3>
+                    <p style={{ margin: 0, color: "#475569" }}>
+                      Paste one lesson title per line. Blank lines are ignored.
+                    </p>
+                    <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                      Lesson titles
+                      <textarea
+                        value={bulkLessonTitles}
+                        onChange={(event) => setBulkLessonTitles(event.target.value)}
+                        placeholder={"Introduction\nCounting to 10\nComparing numbers"}
+                        style={textAreaStyle}
+                      />
+                    </label>
+                    <div>
+                      <button type="submit" style={buttonStyle} disabled={submitting}>
+                        {submitting ? "Adding..." : "Add pasted lessons"}
+                      </button>
+                    </div>
+                  </form>
+
+                  {lessonsLoading ? (
+                    <p style={{ margin: "20px 0 0", color: "#475569" }}>Loading lessons...</p>
+                  ) : null}
+                  {lessonsError ? (
+                    <p style={{ margin: "20px 0 0", color: "#b91c1c" }}>{lessonsError}</p>
+                  ) : null}
+                  {!lessonsLoading && !lessonsError && !lessons.length ? (
+                    <p style={{ margin: "20px 0 0", color: "#475569" }}>
+                      No lessons yet. Add one lesson or paste a list to start this program.
+                    </p>
+                  ) : null}
+                  {!lessonsLoading && !lessonsError && lessons.length ? (
+                    <ol style={{ display: "grid", gap: 10, margin: "20px 0 0", paddingLeft: 24 }}>
+                      {lessons.map((lesson, index) => (
+                        <li key={lesson.id} style={{ paddingLeft: 4 }}>
+                          <div
+                            style={{
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 14,
+                              padding: 14,
+                              display: "grid",
+                              gap: 8,
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                              <div>
+                                <strong>{lesson.title}</strong>
+                                {lesson.estimatedDurationMinutes ? (
+                                  <div style={{ color: "#64748b", marginTop: 4 }}>
+                                    About {lesson.estimatedDurationMinutes} minutes
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                  onClick={() => void handleMoveLesson(lesson.id, -1)}
+                                  disabled={submitting || index === 0}
+                                  aria-label={`Move ${lesson.title} up`}
+                                >
+                                  Move up
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                  onClick={() => void handleMoveLesson(lesson.id, 1)}
+                                  disabled={submitting || index === lessons.length - 1}
+                                  aria-label={`Move ${lesson.title} down`}
+                                >
+                                  Move down
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                  onClick={() => handleEditLesson(lesson)}
+                                  disabled={submitting}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
+                                  onClick={() => void handleRemoveLesson(lesson)}
+                                  disabled={submitting}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                            {lesson.instructions ? (
+                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{lesson.instructions}</p>
+                            ) : null}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
+                </>
+              )}
+            </section>
+
             <section style={cardStyle}>
               <div
                 style={{
@@ -553,12 +885,16 @@ function CleanProgramsWorkspaceBody() {
               </div>
 
               <form onSubmit={handleProgramSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                <input
-                  value={programTitle}
-                  onChange={(event) => setProgramTitle(event.target.value)}
-                  placeholder="Program"
-                  style={inputStyle}
-                />
+                <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                  Program name
+                  <input
+                    value={programTitle}
+                    onChange={(event) => setProgramTitle(event.target.value)}
+                    placeholder="For example, Maths Level 3"
+                    style={inputStyle}
+                    required
+                  />
+                </label>
                 <div
                   style={{
                     display: "grid",
@@ -566,31 +902,25 @@ function CleanProgramsWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   }}
                 >
-                  <select
-                    value={programLearnerId}
-                    onChange={(event) => setProgramLearnerId(event.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">Family / all learners</option>
-                    {learnerOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    value={programLearningArea}
-                    onChange={(event) => setProgramLearningArea(event.target.value)}
-                    placeholder="Learning area"
-                    style={inputStyle}
-                  />
+                  <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                    Learning area
+                    <input
+                      value={programLearningArea}
+                      onChange={(event) => setProgramLearningArea(event.target.value)}
+                      placeholder="For example, Mathematics"
+                      style={inputStyle}
+                    />
+                  </label>
                 </div>
-                <textarea
-                  value={programDescription}
-                  onChange={(event) => setProgramDescription(event.target.value)}
-                  placeholder="Planned focus, resources, or the bigger aim for this program"
-                  style={textAreaStyle}
-                />
+                <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
+                  Short description <span style={{ fontWeight: 400 }}>(optional)</span>
+                  <textarea
+                    value={programDescription}
+                    onChange={(event) => setProgramDescription(event.target.value)}
+                    placeholder="A short note about this program"
+                    style={textAreaStyle}
+                  />
+                </label>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button type="submit" style={buttonStyle} disabled={submitting}>
                     {submitting ? "Saving..." : editingProgramId ? "Save program" : "Add program"}
@@ -612,8 +942,8 @@ function CleanProgramsWorkspaceBody() {
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Programs</h2>
               <p style={{ marginTop: 0, color: "#475569" }}>
-                Use programs for the bigger learning thread, then place them into your
-                weekly planning when they are ready.
+                Each program is a reusable ordered lesson list. It is not assigned to a
+                learner or schedule yet.
               </p>
 
               {programsLoading ? <p style={{ margin: 0, color: "#475569" }}>Loading programs...</p> : null}
@@ -628,10 +958,8 @@ function CleanProgramsWorkspaceBody() {
               {!programsLoading && !programsError && programs.length ? (
                 <div style={{ display: "grid", gap: 12 }}>
                   {programs.map((program) => {
-                    const learnerLabel =
-                      learnerOptions.find((option) => option.value === program.learnerId)?.label ||
-                      "Family / all learners";
                     const isSelected = selectedProgramId === program.id;
+                    const lessonCount = lessonCounts[program.id] ?? 0;
 
                     return (
                       <div
@@ -655,8 +983,8 @@ function CleanProgramsWorkspaceBody() {
                           <div>
                             <strong>{program.title}</strong>
                             <div style={{ color: "#64748b", marginTop: 4 }}>
-                              {learnerLabel}
-                              {program.learningArea ? ` - ${program.learningArea}` : ""}
+                              {program.learningArea || "Learning area not set"} · {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
+                              {program.status === "archived" ? " · Archived" : ""}
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -706,10 +1034,10 @@ function CleanProgramsWorkspaceBody() {
                             <button
                               type="button"
                               style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
-                              onClick={() => void handleDeleteProgram(program)}
+                              onClick={() => void handleArchiveProgram(program)}
                               disabled={submitting}
                             >
-                              Delete
+                              Archive
                             </button>
                           </div>
                         </div>

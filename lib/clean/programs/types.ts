@@ -56,3 +56,23 @@ export type CleanProgramSegmentInput = {
 };
 
 export type CleanProgramSegmentUpdate = Partial<CleanProgramSegmentInput>;
+
+export type CleanProgramLesson = {
+  id: string;
+  familyId: string;
+  programId: string;
+  position: number;
+  title: string;
+  instructions: string | null;
+  estimatedDurationMinutes: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type CleanProgramLessonInput = {
+  title: string;
+  instructions?: string | null;
+  estimatedDurationMinutes?: number | null;
+};
+
+export type CleanProgramLessonUpdate = Partial<CleanProgramLessonInput>;
