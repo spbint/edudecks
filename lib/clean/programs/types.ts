@@ -76,3 +76,12 @@ export type CleanProgramLessonInput = {
 };
 
 export type CleanProgramLessonUpdate = Partial<CleanProgramLessonInput>;
+
+export type LearnerProgramAssignment = {
+  id: string;
+  familyId: string;
+  programId: string;
+  learnerId: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};

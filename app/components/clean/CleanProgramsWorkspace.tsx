@@ -5,18 +5,25 @@ import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorks
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   addCleanProgramLessons,
+  assignLearnersToCleanProgram,
   listCleanProgramLessonCounts,
   listCleanProgramLessons,
+  listLearnerProgramAssignments,
   listCleanPrograms,
   normalizeBulkProgramLessonTitles,
   removeCleanProgramLesson,
+  removeLearnerProgramAssignment,
   reorderCleanProgramLessons,
   updateCleanProgram,
   updateCleanProgramLesson,
   createCleanProgram,
 } from "@/lib/clean/programs/client";
 import { moveProgramLesson } from "@/lib/clean/programs/programLessons";
-import type { CleanProgram, CleanProgramLesson } from "@/lib/clean/programs/types";
+import type {
+  CleanProgram,
+  CleanProgramLesson,
+  LearnerProgramAssignment,
+} from "@/lib/clean/programs/types";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -75,6 +82,7 @@ export default function CleanProgramsWorkspace() {
   const workspace = useCleanFamilyWorkspace();
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
+  const [assignments, setAssignments] = useState<LearnerProgramAssignment[]>([]);
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
   const [view, setView] = useState<ProgramView>("list");
   const [lessons, setLessons] = useState<CleanProgramLesson[]>([]);
@@ -92,10 +100,24 @@ export default function CleanProgramsWorkspace() {
   const [lessonDuration, setLessonDuration] = useState("");
   const [bulkLessonTitles, setBulkLessonTitles] = useState("");
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [assignLearnerIds, setAssignLearnerIds] = useState<string[]>([]);
+  const [assignPickerOpen, setAssignPickerOpen] = useState(false);
 
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === selectedProgramId) ?? null,
     [programs, selectedProgramId],
+  );
+  const selectedAssignments = useMemo(
+    () => assignments.filter((assignment) => assignment.programId === selectedProgramId),
+    [assignments, selectedProgramId],
+  );
+  const assignedLearnerIds = useMemo(
+    () => new Set(selectedAssignments.map((assignment) => assignment.learnerId)),
+    [selectedAssignments],
+  );
+  const learnerLabelById = useMemo(
+    () => new Map(workspace.learners.map((learner) => [learner.id, learner.preferredName || learner.firstName])),
+    [workspace.learners],
   );
 
   const ready = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
@@ -105,12 +127,14 @@ export default function CleanProgramsWorkspace() {
     setLoading(true);
     setError(null);
     try {
-      const [nextPrograms, nextCounts] = await Promise.all([
+      const [nextPrograms, nextCounts, nextAssignments] = await Promise.all([
         listCleanPrograms(workspace.profile.id, { limit: 100 }),
         listCleanProgramLessonCounts(workspace.profile.id),
+        listLearnerProgramAssignments(workspace.profile.id),
       ]);
       setPrograms(nextPrograms);
       setLessonCounts(nextCounts);
+      setAssignments(nextAssignments);
     } catch (reason) {
       setError(normalizeCleanErrorMessage(reason, "We could not load your programs just now."));
     } finally {
@@ -136,6 +160,7 @@ export default function CleanProgramsWorkspace() {
       setPrograms([]);
       setLessonCounts({});
       setLessons([]);
+      setAssignments([]);
       return;
     }
     void reloadPrograms();
@@ -182,6 +207,8 @@ export default function CleanProgramsWorkspace() {
     setProgramLearningArea(program.learningArea || "");
     setProgramDescription(program.description || "");
     resetLessonForm();
+    setAssignLearnerIds([]);
+    setAssignPickerOpen(false);
     setView("edit");
     setMessage(null);
     setError(null);
@@ -193,6 +220,8 @@ export default function CleanProgramsWorkspace() {
     setLessons([]);
     resetProgramForm();
     resetLessonForm();
+    setAssignLearnerIds([]);
+    setAssignPickerOpen(false);
     setError(null);
   }
 
@@ -335,6 +364,53 @@ export default function CleanProgramsWorkspace() {
     }
   }
 
+  function toggleLearnerForAssignment(learnerId: string) {
+    setAssignLearnerIds((current) => current.includes(learnerId)
+      ? current.filter((id) => id !== learnerId)
+      : [...current, learnerId]);
+  }
+
+  async function handleAssignLearners() {
+    if (!workspace.profile || !selectedProgram || !assignLearnerIds.length) return;
+    setSubmitting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await assignLearnersToCleanProgram(workspace.profile.id, selectedProgram.id, assignLearnerIds);
+      const assignedNames = assignLearnerIds
+        .map((learnerId) => learnerLabelById.get(learnerId))
+        .filter(Boolean);
+      setAssignments(await listLearnerProgramAssignments(workspace.profile.id));
+      setAssignLearnerIds([]);
+      setAssignPickerOpen(false);
+      setMessage(`${assignedNames.join(", ")} assigned.`);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not assign these learners just now."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRemoveAssignedLearner(assignment: LearnerProgramAssignment) {
+    if (!workspace.profile || !selectedProgram) return;
+    setSubmitting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await removeLearnerProgramAssignment(
+        workspace.profile.id,
+        selectedProgram.id,
+        assignment.learnerId,
+      );
+      setAssignments(await listLearnerProgramAssignments(workspace.profile.id));
+      setMessage(`${learnerLabelById.get(assignment.learnerId) || "Learner"} removed from this Program.`);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not remove this learner just now."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
@@ -356,7 +432,7 @@ export default function CleanProgramsWorkspace() {
             {view === "list" ? (
               <section style={cardStyle} aria-labelledby="existing-programs-heading">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div><h2 id="existing-programs-heading" style={{ margin: 0, color: "#0f172a" }}>Existing Programs</h2><p style={{ margin: "6px 0 0", color: "#475569" }}>Programs are reusable definitions. They are not assigned or scheduled yet.</p></div>
+                  <div><h2 id="existing-programs-heading" style={{ margin: 0, color: "#0f172a" }}>Existing Programs</h2><p style={{ margin: "6px 0 0", color: "#475569" }}>Programs are reusable definitions. Learner assignment does not schedule learning yet.</p></div>
                   <button type="button" style={buttonStyle} onClick={openCreate} disabled={submitting}>Create Program</button>
                 </div>
                 {loading ? <p style={{ color: "#475569" }}>Loading programs...</p> : null}
@@ -383,6 +459,22 @@ export default function CleanProgramsWorkspace() {
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="submit" style={buttonStyle} disabled={submitting}>{submitting ? "Saving..." : view === "create" ? "Create Program" : "Save details"}</button>{view === "edit" ? <button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => void handleArchive()} disabled={submitting}>Archive Program</button> : null}</div>
                   </form>
                 </section>
+
+                {view === "edit" && selectedProgram ? <section style={cardStyle} aria-labelledby="assigned-learners-heading">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <h2 id="assigned-learners-heading" style={{ margin: 0, color: "#0f172a" }}>Assigned learners</h2>
+                      <p style={{ margin: "6px 0 0", color: "#475569" }}>Assignments are separate for each learner. Scheduling and lesson progress come later.</p>
+                    </div>
+                    {selectedProgram.status !== "archived" ? <button type="button" style={buttonStyle} onClick={() => { setAssignPickerOpen(true); setAssignLearnerIds([]); }} disabled={submitting}>Assign learner</button> : null}
+                  </div>
+                  {!selectedAssignments.length ? <p style={{ color: "#475569", margin: "18px 0 0" }}>No learners assigned yet. Assign a learner when you are ready to use this Program with them.</p> : <ul style={{ display: "grid", gap: 10, margin: "18px 0 0", padding: 0, listStyle: "none" }}>{selectedAssignments.map((assignment) => <li key={assignment.id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}><div><strong>{learnerLabelById.get(assignment.learnerId) || "Learner"}</strong><div style={{ color: "#64748b", marginTop: 4 }}>Assigned</div></div><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => void handleRemoveAssignedLearner(assignment)} disabled={submitting}>Remove learner</button></li>)}</ul>}
+                  {assignPickerOpen ? <section style={{ display: "grid", gap: 14, marginTop: 20, paddingTop: 20, borderTop: "1px solid #e2e8f0" }} aria-labelledby="assign-learners-heading">
+                    <h3 id="assign-learners-heading" style={{ margin: 0, fontSize: 17 }}>Assign learner</h3>
+                    {!workspace.learners.length ? <p style={{ margin: 0, color: "#475569" }}>Add a learner in My Profile before assigning this Program.</p> : <fieldset style={{ display: "grid", gap: 10, border: 0, padding: 0, margin: 0 }}><legend style={{ color: "#334155", fontWeight: 700 }}>Choose learners</legend>{workspace.learners.map((learner) => { const assigned = assignedLearnerIds.has(learner.id); return <label key={learner.id} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, color: assigned ? "#64748b" : "#0f172a" }}><input type="checkbox" checked={assigned || assignLearnerIds.includes(learner.id)} disabled={assigned || submitting} onChange={() => toggleLearnerForAssignment(learner.id)} />{learner.preferredName || learner.firstName}{assigned ? " · Already assigned" : ""}</label>; })}</fieldset>}
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="button" style={buttonStyle} onClick={() => void handleAssignLearners()} disabled={submitting || !assignLearnerIds.length}>{submitting ? "Assigning..." : "Assign selected learners"}</button><button type="button" style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }} onClick={() => { setAssignPickerOpen(false); setAssignLearnerIds([]); }} disabled={submitting}>Cancel</button></div>
+                  </section> : null}
+                </section> : null}
 
                 {view === "edit" && selectedProgram ? <section style={cardStyle} aria-labelledby="program-lessons-heading">
                   <h2 id="program-lessons-heading" style={{ marginTop: 0, color: "#0f172a" }}>Lessons</h2>

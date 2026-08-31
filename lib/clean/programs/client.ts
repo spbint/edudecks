@@ -15,6 +15,7 @@ import type {
   CleanProgramLesson,
   CleanProgramLessonInput,
   CleanProgramLessonUpdate,
+  LearnerProgramAssignment,
 } from "@/lib/clean/programs/types";
 import { parsePastedProgramLessonTitles } from "@/lib/clean/programs/programLessons";
 
@@ -55,6 +56,15 @@ type ProgramLessonRow = {
   title: string;
   instructions?: string | null;
   estimated_duration_minutes?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type LearnerProgramAssignmentRow = {
+  id: string;
+  family_id: string;
+  program_id: string;
+  learner_id: string;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -134,6 +144,19 @@ function toCleanProgramLesson(row: ProgramLessonRow): CleanProgramLesson {
       row.estimated_duration_minutes === null || row.estimated_duration_minutes === undefined
         ? null
         : normalizeNumber(row.estimated_duration_minutes),
+    createdAt: normalizeNullString(row.created_at),
+    updatedAt: normalizeNullString(row.updated_at),
+  };
+}
+
+function toLearnerProgramAssignment(
+  row: LearnerProgramAssignmentRow,
+): LearnerProgramAssignment {
+  return {
+    id: safe(row.id),
+    familyId: safe(row.family_id),
+    programId: safe(row.program_id),
+    learnerId: safe(row.learner_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
   };
@@ -507,6 +530,75 @@ export async function deleteCleanProgramSegment(
 
 const programLessonSelect =
   "id,family_id,program_id,position,title,instructions,estimated_duration_minutes,created_at,updated_at";
+const learnerProgramAssignmentSelect =
+  "id,family_id,program_id,learner_id,created_at,updated_at";
+
+export async function listLearnerProgramAssignments(
+  familyId: string,
+  programId?: string,
+) {
+  let query = supabase
+    .from("learner_program_assignments")
+    .select(learnerProgramAssignmentSelect)
+    .eq("family_id", familyId)
+    .order("created_at", { ascending: true });
+
+  if (safe(programId)) {
+    query = query.eq("program_id", safe(programId));
+  }
+
+  const response = await query;
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not load assigned learners just now."),
+    );
+  }
+
+  return (response.data ?? []).map((row) =>
+    toLearnerProgramAssignment(row as LearnerProgramAssignmentRow),
+  );
+}
+
+export async function assignLearnersToCleanProgram(
+  familyId: string,
+  programId: string,
+  learnerIds: string[],
+) {
+  const uniqueLearnerIds = [...new Set(learnerIds.map((id) => safe(id)).filter(Boolean))];
+  if (!uniqueLearnerIds.length) throw new Error("Select at least one learner.");
+
+  const response = await supabase.rpc("clean_assign_program_learners", {
+    p_family_id: familyId,
+    p_program_id: programId,
+    p_learner_ids: uniqueLearnerIds,
+  });
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not assign these learners just now."),
+    );
+  }
+}
+
+export async function removeLearnerProgramAssignment(
+  familyId: string,
+  programId: string,
+  learnerId: string,
+) {
+  const response = await supabase
+    .from("learner_program_assignments")
+    .delete()
+    .eq("family_id", familyId)
+    .eq("program_id", programId)
+    .eq("learner_id", learnerId)
+    .select("id")
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCleanErrorMessage(response.error, "We could not remove this learner just now."),
+    );
+  }
+}
 
 export async function listCleanProgramLessons(familyId: string, programId: string) {
   const response = await supabase
