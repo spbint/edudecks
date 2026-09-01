@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
+  bindCleanProgramOccurrences,
   buildCleanGeneratedOccurrenceKey,
   buildCleanLegacyGeneratedFingerprint,
   deriveCleanReconciliationCandidates,
   filterCleanAutomaticWeekSuggestions,
   hasCleanAppliedGenerationRun,
 } from "./materialize";
+
+const programBlock = {
+  id: "english-block",
+  learnerProgramAssignmentId: "james-english-assignment",
+};
+
+const englishItem = {
+  id: "calendar-english",
+  plannedDate: "2026-09-01",
+  sourceTemplateBlockId: "english-block",
+  completedAt: null,
+};
 
 describe("automatic usual-week materialisation guards", () => {
   it("does not fabricate past days when first materialising the current week", () => {
@@ -110,5 +123,61 @@ describe("automatic usual-week materialisation guards", () => {
         liveItems: [{ ...desired, sourceTemplateBlockId: null, sourceType: "generated" }],
       }),
     ).toEqual([]);
+  });
+
+  it("recovers an existing generated Program item by allocating its exact first lesson without duplicating the Calendar row", async () => {
+    const allocations: Array<[string, string, string]> = [];
+    const removed: string[] = [];
+    await bindCleanProgramOccurrences({
+      familyId: "family-james",
+      items: [englishItem as never],
+      templateBlocks: [programBlock as never],
+      desiredByKey: new Map([["2026-09-01::english-block", {} as never]]),
+      protectedItemIds: new Set(),
+      createdItemIds: new Set(),
+    }, {
+      allocate: async (...args) => {
+        allocations.push(args);
+        return { id: "occurrence-1", calendarItemId: "calendar-english", lessonTitleSnapshot: "Introduction to phonics" };
+      },
+      remove: async (_familyId, itemId) => { removed.push(itemId); },
+    });
+
+    expect(allocations).toEqual([["family-james", "james-english-assignment", "calendar-english"]]);
+    expect(removed).toEqual([]);
+  });
+
+  it("removes an unprotected generic Program item and surfaces allocator failure", async () => {
+    const removed: string[] = [];
+    await expect(bindCleanProgramOccurrences({
+      familyId: "family-james",
+      items: [englishItem as never],
+      templateBlocks: [programBlock as never],
+      desiredByKey: new Map([["2026-09-01::english-block", {} as never]]),
+      protectedItemIds: new Set(),
+      createdItemIds: new Set(),
+    }, {
+      allocate: async () => { throw new Error("allocation unavailable"); },
+      remove: async (_familyId, itemId) => { removed.push(itemId); },
+    })).rejects.toThrow("allocation unavailable");
+
+    expect(removed).toEqual(["calendar-english"]);
+  });
+
+  it("leaves ordinary generated items outside the Program allocator path", async () => {
+    const allocations: string[] = [];
+    const retained = await bindCleanProgramOccurrences({
+      familyId: "family-james",
+      items: [{ ...englishItem, id: "calendar-reading", sourceTemplateBlockId: "reading-block" } as never],
+      templateBlocks: [{ id: "reading-block", learnerProgramAssignmentId: null } as never],
+      desiredByKey: new Map([["2026-09-01::reading-block", {} as never]]),
+      protectedItemIds: new Set(),
+      createdItemIds: new Set(["calendar-reading"]),
+    }, {
+      allocate: async () => { allocations.push("called"); return null; },
+    });
+
+    expect(allocations).toEqual([]);
+    expect(retained).toHaveLength(1);
   });
 });

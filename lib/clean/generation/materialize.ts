@@ -95,6 +95,20 @@ export function hasCleanAppliedGenerationRun(
 
 type ReconciliationSuggestion = CleanGeneratedWeekSuggestion;
 
+type ProgramOccurrenceBindingInput = {
+  familyId: string;
+  items: CleanCalendarItem[];
+  templateBlocks: Awaited<ReturnType<typeof listCleanTemplateBlocks>>;
+  desiredByKey: Map<string | null, ReconciliationSuggestion>;
+  protectedItemIds: Set<string>;
+  createdItemIds: Set<string>;
+};
+
+type ProgramOccurrenceBindingDependencies = {
+  allocate?: typeof allocateCleanProgramOccurrence;
+  remove?: typeof deleteCleanCalendarItem;
+};
+
 function normalizeFingerprintText(value: string | null | undefined) {
   return String(value ?? "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
 }
@@ -150,6 +164,53 @@ export function deriveCleanReconciliationCandidates({
     if (key && previouslyGeneratedKeys.has(key)) return false;
     return true;
   });
+}
+
+/**
+ * Binds every desired Program-backed generated item, including a Calendar row
+ * created by an earlier interrupted apply. A Program slot is never considered
+ * materialised until its exact lesson occurrence exists.
+ */
+export async function bindCleanProgramOccurrences(
+  input: ProgramOccurrenceBindingInput,
+  dependencies: ProgramOccurrenceBindingDependencies = {},
+) {
+  const allocate = dependencies.allocate ?? allocateCleanProgramOccurrence;
+  const remove = dependencies.remove ?? deleteCleanCalendarItem;
+  const blocksById = new Map(input.templateBlocks.map((block) => [block.id, block]));
+  const retainedCreatedItems: CleanCalendarItem[] = [];
+
+  for (const item of input.items) {
+    const key = buildCleanGeneratedOccurrenceKey(item);
+    const block = item.sourceTemplateBlockId ? blocksById.get(item.sourceTemplateBlockId) : null;
+    if (!block?.learnerProgramAssignmentId || !key || !input.desiredByKey.has(key)) {
+      if (input.createdItemIds.has(item.id)) retainedCreatedItems.push(item);
+      continue;
+    }
+
+    try {
+      const occurrence = await allocate(
+        input.familyId,
+        block.learnerProgramAssignmentId,
+        item.id,
+      );
+      if (occurrence) {
+        if (input.createdItemIds.has(item.id)) retainedCreatedItems.push(item);
+        continue;
+      }
+    } catch (error) {
+      if (item.completedAt || input.protectedItemIds.has(item.id)) throw error;
+      await remove(input.familyId, item.id);
+      throw error;
+    }
+
+    if (item.completedAt || input.protectedItemIds.has(item.id)) {
+      throw new Error("A protected Program Calendar item is missing its lesson occurrence.");
+    }
+    await remove(input.familyId, item.id);
+  }
+
+  return retainedCreatedItems;
 }
 
 async function runMaterialization(input: MaterializeInput): Promise<CleanOperationalWeekMaterialization> {
@@ -226,7 +287,9 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     limit: 1000,
   });
   const protectedItemIds = new Set(
-    evidenceEntries.map((entry) => entry.calendarItemId).filter(Boolean),
+    evidenceEntries
+      .map((entry) => entry.calendarItemId)
+      .filter((calendarItemId): calendarItemId is string => Boolean(calendarItemId)),
   );
   const desiredByKey = new Map(
     desiredPreview.map((item) => [buildCleanGeneratedOccurrenceKey(item), item]),
@@ -235,6 +298,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     runs.flatMap((run) => run.previewPayload.map((item) => item.sourceTemplateBlockId)).filter(Boolean),
   );
   templateBlocks.forEach((block) => historicalBlockIds.add(block.id));
+  const templateBlocksById = new Map(templateBlocks.map((block) => [block.id, block]));
   for (const existing of existingItems) {
     if (
       existing.sourceType !== "generated" ||
@@ -249,8 +313,12 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
       await deleteCleanCalendarItem(input.familyId, existing.id);
       continue;
     }
+    const isProgramBlock = Boolean(
+      existing.sourceTemplateBlockId &&
+      templateBlocksById.get(existing.sourceTemplateBlockId)?.learnerProgramAssignmentId,
+    );
     if (
-      existing.title !== desired.title ||
+      (!isProgramBlock && existing.title !== desired.title) ||
       existing.learnerId !== desired.learnerId ||
       existing.learningArea !== desired.learningArea ||
       existing.startsAt !== desired.startsAt ||
@@ -261,7 +329,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
       existing.sessionLabel !== desired.sessionLabel
     ) {
       await updateCleanCalendarItem(input.familyId, existing.id, {
-        title: desired.title,
+        title: isProgramBlock ? existing.title : desired.title,
         learnerId: desired.learnerId,
         learningArea: desired.learningArea,
         startsAt: desired.startsAt,
@@ -278,7 +346,17 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     previouslyGenerated,
     liveItems: existingItems,
   });
+  const bindingInput = {
+    familyId: input.familyId,
+    items: existingItems,
+    templateBlocks,
+    desiredByKey,
+    protectedItemIds,
+    createdItemIds: new Set<string>(),
+  } satisfies ProgramOccurrenceBindingInput;
+
   if (!reconciliationCandidates.length) {
+    await bindCleanProgramOccurrences(bindingInput);
     clearCleanPlanningCacheForFamily(input.familyId);
     return empty(runs.some((run) => run.status === "applied") ? "already-current" : "no-applicable-blocks");
   }
@@ -296,27 +374,12 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     })),
   });
 
-  const blocksById = new Map(templateBlocks.map((block) => [block.id, block]));
-  const retainedItems: CleanCalendarItem[] = [];
   const createdItemIds = new Set(result.createdItems.map((item) => item.id));
-  for (const item of [...existingItems, ...result.createdItems]) {
-    const block = item.sourceTemplateBlockId ? blocksById.get(item.sourceTemplateBlockId) : null;
-    if (!block?.learnerProgramAssignmentId) {
-      if (createdItemIds.has(item.id)) retainedItems.push(item);
-      continue;
-    }
-
-    const occurrence = await allocateCleanProgramOccurrence(
-      input.familyId,
-      block.learnerProgramAssignmentId,
-      item.id,
-    );
-    if (occurrence) {
-      if (createdItemIds.has(item.id)) retainedItems.push(item);
-    } else {
-      await deleteCleanCalendarItem(input.familyId, item.id);
-    }
-  }
+  const retainedItems = await bindCleanProgramOccurrences({
+    ...bindingInput,
+    items: [...existingItems, ...result.createdItems],
+    createdItemIds,
+  });
 
   clearCleanPlanningCacheForFamily(input.familyId);
   return {
