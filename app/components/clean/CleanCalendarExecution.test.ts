@@ -36,6 +36,7 @@ describe("Calendar planning model", () => {
 
   it("preserves planning controls and adds completion/capture actions for live items", () => {
     expect(source).toContain("handleCalendarCompletionToggle");
+    expect(source).toContain("setCleanCalendarItemCompletion");
     expect(source).toContain("Mark complete");
     expect(source).toContain("Capture this moment");
     expect(source).toContain("View capture");

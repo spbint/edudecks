@@ -26,7 +26,7 @@ import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   createCleanCalendarItem,
   listCleanCalendarItems,
-  updateCleanCalendarItem,
+  setCleanCalendarItemCompletion,
 } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
@@ -1035,9 +1035,11 @@ function CleanDayWorkspaceBody() {
     setCompletionError(null);
 
     try {
-      const updatedItem = await updateCleanCalendarItem(workspace.profile.id, item.id, {
-        completedAt: nextCompletedAt,
-      });
+      const updatedItem = await setCleanCalendarItemCompletion(
+        workspace.profile.id,
+        item.id,
+        nextCompletedAt,
+      );
 
       setItems((current) => {
         const nextItems = current.map((currentItem) =>

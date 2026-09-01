@@ -23,6 +23,7 @@ import {
   createCleanCalendarItem,
   deleteCleanCalendarItem,
   listCleanCalendarItems,
+  setCleanCalendarItemCompletion,
   updateCleanCalendarItem,
 } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -3145,9 +3146,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
     setCompletionUpdatingId(item.id);
     try {
-      const updatedItem = await updateCleanCalendarItem(workspace.profile.id, item.id, {
-        completedAt: item.completedAt ? null : new Date().toISOString(),
-      });
+      const updatedItem = await setCleanCalendarItemCompletion(
+        workspace.profile.id,
+        item.id,
+        item.completedAt ? null : new Date().toISOString(),
+      );
       clearCleanPlanningCacheForFamily(workspace.profile.id);
       setItems((current) => current.map((currentItem) => currentItem.id === updatedItem.id ? updatedItem : currentItem));
       trackProductEvent(

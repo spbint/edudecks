@@ -372,6 +372,38 @@ export async function updateCleanCalendarItem(
   return item;
 }
 
+/**
+ * Keeps a Program occurrence's factual completion in lockstep with the
+ * Calendar item that scheduled it. Ordinary Calendar items retain their
+ * existing completion behaviour through the same narrow RPC.
+ */
+export async function setCleanCalendarItemCompletion(
+  familyId: string,
+  calendarItemId: string,
+  completedAt: string | null,
+) {
+  const response = await supabase
+    .rpc("clean_set_calendar_item_completion", {
+      p_family_id: familyId,
+      p_calendar_item_id: calendarItemId,
+      p_completed_at: completedAt,
+    })
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCleanErrorMessage(
+        response.error,
+        "Unable to update this activity's completion status.",
+      ),
+    );
+  }
+
+  const item = toCleanCalendarItem(response.data as CalendarItemRow);
+  requestCoachStateRefresh("weekly-block-updated");
+  return item;
+}
+
 export async function deleteCleanCalendarItem(
   familyId: string,
   calendarItemId: string,
