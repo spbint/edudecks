@@ -63,12 +63,15 @@ import {
   writeCleanPlanningCalendarItems,
 } from "@/lib/clean/planning/cache";
 import {
+  listCleanProgramLessonCounts,
+  listLearnerProgramAssignments,
   listCleanProgramSegments,
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
 import type {
   CleanProgram,
   CleanProgramSegment,
+  LearnerProgramAssignment,
 } from "@/lib/clean/programs/types";
 import {
   createCleanMasterTemplate,
@@ -513,10 +516,12 @@ function CleanRhythmBlockPopover({
   endTime,
   programId,
   programSegmentId,
+  learnerProgramAssignmentId,
   sessionLabel,
   notes,
   learnerOptions,
   programOptions,
+  programAssignmentOptions,
   segmentOptions,
   onChangeTitle,
   onChangeLearningArea,
@@ -527,6 +532,7 @@ function CleanRhythmBlockPopover({
   onChangeEndTime,
   onChangeProgramId,
   onChangeProgramSegmentId,
+  onChangeLearnerProgramAssignmentId,
   onChangeSessionLabel,
   onChangeNotes,
   onClose,
@@ -546,10 +552,12 @@ function CleanRhythmBlockPopover({
   endTime: string;
   programId: string;
   programSegmentId: string;
+  learnerProgramAssignmentId: string;
   sessionLabel: string;
   notes: string;
   learnerOptions: PickerOption[];
   programOptions: PickerOption[];
+  programAssignmentOptions: PickerOption[];
   segmentOptions: PickerOption[];
   onChangeTitle: (value: string) => void;
   onChangeLearningArea: (value: string) => void;
@@ -560,6 +568,7 @@ function CleanRhythmBlockPopover({
   onChangeEndTime: (value: string) => void;
   onChangeProgramId: (value: string) => void;
   onChangeProgramSegmentId: (value: string) => void;
+  onChangeLearnerProgramAssignmentId: (value: string) => void;
   onChangeSessionLabel: (value: string) => void;
   onChangeNotes: (value: string) => void;
   onClose: () => void;
@@ -641,6 +650,25 @@ function CleanRhythmBlockPopover({
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           }}
         >
+          <label
+            style={{ display: "grid", gap: 6, color: "#334155", fontSize: 13, fontWeight: 700 }}
+          >
+            Program slot
+            <select
+              value={learnerProgramAssignmentId}
+              onChange={(event) => onChangeLearnerProgramAssignmentId(event.target.value)}
+              style={inputStyle}
+              disabled={!learnerId}
+            >
+              <option value="">{learnerId ? "None" : "Choose a learner first"}</option>
+              {programAssignmentOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {learnerId && !programAssignmentOptions.length ? (
+              <span style={{ color: "#64748b", fontWeight: 500 }}>No assigned Programs with lessons yet. Add lessons first.</span>
+            ) : null}
+          </label>
           <label
             style={{
               display: "grid",
@@ -928,6 +956,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [templateBlocks, setTemplateBlocks] = useState<CleanTemplateBlock[]>([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
+  const [learnerProgramAssignments, setLearnerProgramAssignments] = useState<LearnerProgramAssignment[]>([]);
+  const [programLessonCounts, setProgramLessonCounts] = useState<Record<string, number>>({});
   const [generationRuns, setGenerationRuns] = useState<CleanGenerationRun[]>([]);
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
   const [evidenceByCalendarItemId, setEvidenceByCalendarItemId] = useState<Map<string, string>>(new Map());
@@ -998,6 +1028,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [blockEndTime, setBlockEndTime] = useState("");
   const [blockProgramId, setBlockProgramId] = useState("");
   const [blockProgramSegmentId, setBlockProgramSegmentId] = useState("");
+  const [blockLearnerProgramAssignmentId, setBlockLearnerProgramAssignmentId] = useState("");
   const [blockSessionLabel, setBlockSessionLabel] = useState("");
   const [blockNotes, setBlockNotes] = useState("");
 
@@ -1061,6 +1092,15 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       })),
     [programs],
   );
+  const blockProgramAssignmentOptions = useMemo(() => {
+    if (!blockLearnerId) return [];
+    const programsById = new Map(programs.map((program) => [program.id, program]));
+    return learnerProgramAssignments
+      .filter((assignment) => assignment.learnerId === blockLearnerId)
+      .map((assignment) => ({ assignment, program: programsById.get(assignment.programId) }))
+      .filter(({ program }) => Boolean(program && program.status !== "archived" && (programLessonCounts[program.id] ?? 0) > 0))
+      .map(({ assignment, program }) => ({ value: assignment.id, label: program!.title }));
+  }, [blockLearnerId, learnerProgramAssignments, programLessonCounts, programs]);
   const learnerLabelById = useMemo(
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
@@ -1559,6 +1599,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         nextBlackoutDays,
         nextMasterTemplates,
         nextPrograms,
+        nextAssignments,
+        nextProgramLessonCounts,
         nextGenerationRuns,
       ] = await Promise.all([
         listCleanAcademicYears(workspace.profile.id, { limit: 20 }),
@@ -1566,6 +1608,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         listCleanBlackoutDays(workspace.profile.id, { limit: 50 }),
         listCleanMasterTemplates(workspace.profile.id, { limit: 20 }),
         listCleanPrograms(workspace.profile.id, { limit: 50 }),
+        listLearnerProgramAssignments(workspace.profile.id),
+        listCleanProgramLessonCounts(workspace.profile.id),
         listCleanGenerationRuns(workspace.profile.id, { limit: 20 }),
       ]);
 
@@ -1585,6 +1629,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setBlackoutDays(nextBlackoutDays);
       setMasterTemplates(nextMasterTemplates);
       setPrograms(nextPrograms);
+      setLearnerProgramAssignments(nextAssignments);
+      setProgramLessonCounts(nextProgramLessonCounts);
       setProgramSegments(segmentGroups.flat());
       setGenerationRuns(nextGenerationRuns);
 
@@ -1735,6 +1781,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setMasterTemplates([]);
       setTemplateBlocks([]);
       setPrograms([]);
+      setLearnerProgramAssignments([]);
+      setProgramLessonCounts({});
       setProgramSegments([]);
       setGenerationRuns([]);
       setItems([]);
@@ -1943,6 +1991,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setBlockEndTime("");
     setBlockProgramId("");
     setBlockProgramSegmentId("");
+    setBlockLearnerProgramAssignmentId("");
     setBlockSessionLabel("");
     setBlockNotes("");
   }
@@ -2101,6 +2150,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setBlockEndTime(block.endsAt ? safeTimeString(block.endsAt) : "");
     setBlockProgramId(block.programId ?? "");
     setBlockProgramSegmentId(block.programSegmentId ?? "");
+    setBlockLearnerProgramAssignmentId(block.learnerProgramAssignmentId ?? "");
     setBlockSessionLabel(block.sessionLabel ?? "");
     setBlockNotes(block.notes ?? "");
     setRhythmPopoverOpen(true);
@@ -2669,6 +2719,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       return;
     }
 
+    const selectedAssignment = blockLearnerProgramAssignmentId
+      ? learnerProgramAssignments.find((assignment) => assignment.id === blockLearnerProgramAssignmentId) ?? null
+      : null;
+    if (blockLearnerProgramAssignmentId && (!selectedAssignment || selectedAssignment.learnerId !== blockLearnerId)) {
+      setActionError("Choose a Program assigned to this learner.");
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
@@ -2684,8 +2742,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         ),
         startsAt: timeResult.startsAt,
         endsAt: timeResult.endsAt,
-        programId: blockProgramId || null,
+        programId: selectedAssignment?.programId ?? (blockProgramId || null),
         programSegmentId: blockProgramSegmentId || null,
+        learnerProgramAssignmentId: selectedAssignment?.id ?? null,
         notes: blockNotes || null,
         sessionLabel: blockSessionLabel || null,
       };
@@ -7111,15 +7170,20 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         endTime={blockEndTime}
         programId={blockProgramId}
         programSegmentId={blockProgramSegmentId}
+        learnerProgramAssignmentId={blockLearnerProgramAssignmentId}
         sessionLabel={blockSessionLabel}
         notes={blockNotes}
         learnerOptions={learnerOptions}
         programOptions={programOptions}
+        programAssignmentOptions={blockProgramAssignmentOptions}
         segmentOptions={visibleBlockSegments}
         onChangeTitle={setBlockTitle}
         onChangeLearningArea={setBlockLearningArea}
         onChangeLearningAreaCustom={setBlockLearningAreaCustom}
-        onChangeLearnerId={setBlockLearnerId}
+        onChangeLearnerId={(learnerId) => {
+          setBlockLearnerId(learnerId);
+          setBlockLearnerProgramAssignmentId("");
+        }}
         onChangeTimeMode={(mode) => {
           setBlockTimeMode(mode);
           if (mode === "untimed") {
@@ -7136,6 +7200,16 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           }
         }}
         onChangeProgramSegmentId={setBlockProgramSegmentId}
+        onChangeLearnerProgramAssignmentId={(assignmentId) => {
+          setBlockLearnerProgramAssignmentId(assignmentId);
+          const assignment = learnerProgramAssignments.find((item) => item.id === assignmentId);
+          setBlockProgramId(assignment?.programId ?? "");
+          setBlockProgramSegmentId("");
+          if (assignment) {
+            const program = programs.find((item) => item.id === assignment.programId);
+            setBlockTitle(program?.title ?? "");
+          }
+        }}
         onChangeSessionLabel={setBlockSessionLabel}
         onChangeNotes={setBlockNotes}
         onClose={closeRhythmPopover}

@@ -6,6 +6,7 @@ import {
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import { clearCleanPlanningCacheForFamily } from "@/lib/clean/planning/cache";
 import { listCleanMasterTemplates, listCleanTemplateBlocks } from "@/lib/clean/templates/client";
+import { allocateCleanProgramOccurrence } from "@/lib/clean/programs/occurrences";
 import { listCleanAcademicYears, listCleanBlackoutDays, listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import { getBreakPeriods, getPeriodForDate, isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -295,10 +296,32 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     })),
   });
 
+  const blocksById = new Map(templateBlocks.map((block) => [block.id, block]));
+  const retainedItems: CleanCalendarItem[] = [];
+  const createdItemIds = new Set(result.createdItems.map((item) => item.id));
+  for (const item of [...existingItems, ...result.createdItems]) {
+    const block = item.sourceTemplateBlockId ? blocksById.get(item.sourceTemplateBlockId) : null;
+    if (!block?.learnerProgramAssignmentId) {
+      if (createdItemIds.has(item.id)) retainedItems.push(item);
+      continue;
+    }
+
+    const occurrence = await allocateCleanProgramOccurrence(
+      input.familyId,
+      block.learnerProgramAssignmentId,
+      item.id,
+    );
+    if (occurrence) {
+      if (createdItemIds.has(item.id)) retainedItems.push(item);
+    } else {
+      await deleteCleanCalendarItem(input.familyId, item.id);
+    }
+  }
+
   clearCleanPlanningCacheForFamily(input.familyId);
   return {
     status: runs.some((run) => run.status === "applied") ? "reconciled" : "created",
-    createdItems: result.createdItems,
+    createdItems: retainedItems,
     generationRun: result.generationRun,
   };
 }

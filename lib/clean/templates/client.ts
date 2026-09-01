@@ -40,6 +40,7 @@ type TemplateBlockRow = {
   ends_at?: string | null;
   program_id?: string | null;
   program_segment_id?: string | null;
+  learner_program_assignment_id?: string | null;
   notes?: string | null;
   session_label?: string | null;
   created_by_user_id: string;
@@ -98,6 +99,7 @@ function toCleanTemplateBlock(row: TemplateBlockRow): CleanTemplateBlock {
     endsAt: normalizeNullString(row.ends_at),
     programId: normalizeNullString(row.program_id),
     programSegmentId: normalizeNullString(row.program_segment_id),
+    learnerProgramAssignmentId: normalizeNullString(row.learner_program_assignment_id),
     notes: normalizeNullString(row.notes),
     sessionLabel: normalizeNullString(row.session_label),
     createdByUserId: safe(row.created_by_user_id),
@@ -160,6 +162,10 @@ function sanitizeTemplateBlockInput(
     program_segment_id:
       "programSegmentId" in input
         ? normalizeNullString(input.programSegmentId)
+        : undefined,
+    learner_program_assignment_id:
+      "learnerProgramAssignmentId" in input
+        ? normalizeNullString(input.learnerProgramAssignmentId)
         : undefined,
     notes: "notes" in input ? normalizeNullString(input.notes) : undefined,
     session_label:
@@ -308,7 +314,7 @@ export async function listCleanTemplateBlocks(
   let query = supabase
     .from("template_blocks")
     .select(
-      "id,family_id,master_template_id,learner_id,weekday,title,learning_area,starts_at,ends_at,program_id,program_segment_id,notes,session_label,created_by_user_id,created_at,updated_at",
+      "id,family_id,master_template_id,learner_id,weekday,title,learning_area,starts_at,ends_at,program_id,program_segment_id,learner_program_assignment_id,notes,session_label,created_by_user_id,created_at,updated_at",
     )
     .eq("family_id", familyId)
     .eq("master_template_id", masterTemplateId)
@@ -367,12 +373,13 @@ export async function createCleanTemplateBlock(
       ends_at: payload.ends_at ?? null,
       program_id: payload.program_id ?? null,
       program_segment_id: payload.program_segment_id ?? null,
+      learner_program_assignment_id: payload.learner_program_assignment_id ?? null,
       notes: payload.notes ?? null,
       session_label: payload.session_label ?? null,
       created_by_user_id: currentUserId,
     })
     .select(
-      "id,family_id,master_template_id,learner_id,weekday,title,learning_area,starts_at,ends_at,program_id,program_segment_id,notes,session_label,created_by_user_id,created_at,updated_at",
+      "id,family_id,master_template_id,learner_id,weekday,title,learning_area,starts_at,ends_at,program_id,program_segment_id,learner_program_assignment_id,notes,session_label,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
@@ -403,7 +410,7 @@ export async function updateCleanTemplateBlock(
     .eq("family_id", familyId)
     .eq("id", templateBlockId)
     .select(
-      "id,family_id,master_template_id,learner_id,weekday,title,learning_area,starts_at,ends_at,program_id,program_segment_id,notes,session_label,created_by_user_id,created_at,updated_at",
+      "id,family_id,master_template_id,learner_id,weekday,title,learning_area,starts_at,ends_at,program_id,program_segment_id,learner_program_assignment_id,notes,session_label,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 

@@ -41,6 +41,7 @@ export type CleanTemplateBlock = {
   endsAt: string | null;
   programId: string | null;
   programSegmentId: string | null;
+  learnerProgramAssignmentId?: string | null;
   notes: string | null;
   sessionLabel: string | null;
   createdByUserId: string;
@@ -57,6 +58,7 @@ export type CleanTemplateBlockInput = {
   endsAt?: string | null;
   programId?: string | null;
   programSegmentId?: string | null;
+  learnerProgramAssignmentId?: string | null;
   notes?: string | null;
   sessionLabel?: string | null;
 };
