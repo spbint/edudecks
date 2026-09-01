@@ -94,6 +94,17 @@ function normalizePeriodType(value: unknown): CleanLearningPeriodType {
   return "term";
 }
 
+function normalizeLearningPeriodIsBreak(
+  periodType: CleanLearningPeriodType | undefined,
+  requested: unknown,
+) {
+  if (periodType === "break") return true;
+  if (periodType === "term" || periodType === "semester" || periodType === "unit") {
+    return false;
+  }
+  return requested === true;
+}
+
 function toCleanAcademicYear(row: AcademicYearRow): CleanAcademicYear {
   return {
     id: safe(row.id),
@@ -191,22 +202,29 @@ function sanitizeAcademicYearInput(
 function sanitizeLearningPeriodInput(
   input: CleanLearningPeriodInput | CleanLearningPeriodUpdate,
 ) {
+  const periodType =
+    "periodType" in input && input.periodType !== undefined
+      ? normalizePeriodType(input.periodType)
+      : undefined;
+  const requestedBreak = "isBreak" in input && input.isBreak !== undefined
+    ? input.isBreak === true
+    : undefined;
+
   return {
     academic_year_id:
       "academicYearId" in input && input.academicYearId !== undefined
         ? normalizeNullString(input.academicYearId)
         : undefined,
     title: "title" in input && input.title !== undefined ? safe(input.title) || null : undefined,
-    period_type:
-      "periodType" in input && input.periodType !== undefined
-        ? normalizePeriodType(input.periodType)
-        : undefined,
+    period_type: periodType,
     starts_on:
       "startsOn" in input && input.startsOn !== undefined ? safe(input.startsOn) || null : undefined,
     ends_on:
       "endsOn" in input && input.endsOn !== undefined ? safe(input.endsOn) || null : undefined,
     is_break:
-      "isBreak" in input && input.isBreak !== undefined ? input.isBreak === true : undefined,
+      periodType !== undefined
+        ? normalizeLearningPeriodIsBreak(periodType, requestedBreak)
+        : requestedBreak,
     notes: "notes" in input ? normalizeNullString(input.notes) : undefined,
   };
 }

@@ -2478,7 +2478,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       await createCleanLearningPeriod(workspace.profile.id, {
         academicYearId: selectedAcademicYearId,
         title: periodTitle,
-        periodType,
+        periodType: periodIsBreak ? "break" : periodType,
         startsOn: periodStartsOn,
         endsOn: periodEndsOn,
         isBreak: periodIsBreak,
