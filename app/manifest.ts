@@ -12,10 +12,14 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f8fafc",
     theme_color: "#1d4ed8",
     icons: [
-      // TODO: replace this placeholder square watermark with dedicated high-resolution app icons.
       {
-        src: "/branding/mylearna-watermark-150.png",
-        sizes: "150x150",
+        src: "/branding/mylearna-app-icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/branding/mylearna-app-icon-512.png",
+        sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },

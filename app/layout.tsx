@@ -44,19 +44,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/branding/mylearna-watermark-150.png",
-        sizes: "150x150",
+        url: "/branding/mylearna-app-icon-192.png",
+        sizes: "192x192",
         type: "image/png",
       },
     ],
     apple: [
       {
-        url: "/branding/mylearna-watermark-150.png",
-        sizes: "150x150",
+        url: "/branding/mylearna-app-icon-192.png",
+        sizes: "192x192",
         type: "image/png",
       },
     ],
-    shortcut: ["/branding/mylearna-watermark-150.png"],
+    shortcut: ["/branding/mylearna-app-icon-192.png"],
   },
   appleWebApp: {
     capable: true,

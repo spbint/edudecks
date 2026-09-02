@@ -8,6 +8,12 @@ const shell = readFileSync(join(process.cwd(), "app/components/clean/design-v2/M
 const quickCapture = readFileSync(join(process.cwd(), "app/components/clean/CleanQuickCaptureWorkspace.tsx"), "utf8");
 const materialize = readFileSync(join(process.cwd(), "lib/clean/generation/materialize.ts"), "utf8");
 
+function readPngDimensions(path: string) {
+  const png = readFileSync(path);
+  expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
 describe("installable MyLearna mobile foundation", () => {
   it("uses one canonical App Router manifest with the intended standalone app contract", () => {
     expect(existsSync(join(process.cwd(), "app/manifest.ts"))).toBe(true);
@@ -18,8 +24,14 @@ describe("installable MyLearna mobile foundation", () => {
     expect(manifest).toContain('background_color: "#f8fafc"');
     expect(manifest).toContain('theme_color: "#1d4ed8"');
     expect(manifest).not.toContain("orientation:");
-    expect(manifest).toContain('src: "/branding/mylearna-watermark-150.png"');
-    expect(existsSync(join(process.cwd(), "public/branding/mylearna-watermark-150.png"))).toBe(true);
+    expect(manifest).toContain('src: "/branding/mylearna-app-icon-192.png"');
+    expect(manifest).toContain('sizes: "192x192"');
+    expect(manifest).toContain('src: "/branding/mylearna-app-icon-512.png"');
+    expect(manifest).toContain('sizes: "512x512"');
+    expect(manifest).not.toContain("mylearna-watermark-150.png");
+    expect(readPngDimensions(join(process.cwd(), "public/branding/mylearna-app-icon-192.png"))).toEqual({ width: 192, height: 192 });
+    expect(readPngDimensions(join(process.cwd(), "public/branding/mylearna-app-icon-512.png"))).toEqual({ width: 512, height: 512 });
+    expect(existsSync(join(process.cwd(), "public/branding/mylearna-app-icon-maskable-512.png"))).toBe(false);
   });
 
   it("keeps root app metadata and existing standalone safe-area protections", () => {
