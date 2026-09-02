@@ -237,10 +237,12 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
   const desiredByKey = new Map(
     desiredPreview.map((item) => [buildCleanGeneratedOccurrenceKey(item), item]),
   );
+  const materializableBlockIds = new Set(materializableTemplateBlocks.map((block) => block.id));
   const historicalBlockIds = new Set(
-    runs.flatMap((run) => run.previewPayload.map((item) => item.sourceTemplateBlockId)).filter(Boolean),
+    runs
+      .flatMap((run) => run.previewPayload.map((item) => item.sourceTemplateBlockId))
+      .filter((blockId): blockId is string => Boolean(blockId) && materializableBlockIds.has(blockId)),
   );
-  materializableTemplateBlocks.forEach((block) => historicalBlockIds.add(block.id));
   for (const existing of existingItems) {
     if (
       existing.sourceType !== "generated" ||
