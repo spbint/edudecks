@@ -39,7 +39,7 @@ const PUBLIC_STRUCTURED_DATA = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(PUBLIC_SITE_URL),
-  applicationName: "MyLearna",
+  applicationName: "MyLearna Homeschool",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

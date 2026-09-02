@@ -2,14 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MyLearna",
+    name: "MyLearna Homeschool",
     short_name: "MyLearna",
     description:
-      "Pathway-led homeschool planning, evidence, assessment, portfolio, reporting, and outputs for families.",
+      "A private homeschool learning space for planning, capturing learning, building portfolios and creating reports.",
     start_url: "/my-day",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
     background_color: "#f8fafc",
     theme_color: "#1d4ed8",
     icons: [
