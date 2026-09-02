@@ -36,13 +36,23 @@ describe("Calendar planning model", () => {
 
   it("preserves planning controls and adds completion/capture actions for live items", () => {
     expect(source).toContain("handleCalendarCompletionToggle");
-    expect(source).toContain("setCleanCalendarItemCompletion");
+    expect(source).toContain("updateCleanCalendarItem");
     expect(source).toContain("Mark complete");
     expect(source).toContain("Capture this moment");
     expect(source).toContain("View capture");
     expect(source).toContain("evidence_entry_id");
     expect(source).toContain("Edit");
     expect(source).toContain("Delete");
+  });
+
+  it("does not materialise or reconcile while a customer only views Calendar", () => {
+    const reloadStart = source.indexOf("const reloadCalendarItems");
+    const reloadEnd = source.indexOf("useEffect(() =>", reloadStart);
+    expect(reloadStart).toBeGreaterThan(-1);
+    expect(reloadEnd).toBeGreaterThan(reloadStart);
+    const reloadBody = source.slice(reloadStart, reloadEnd);
+    expect(reloadBody).not.toContain("materializeMasterWeekRange");
+    expect(reloadBody).not.toMatch(/(?:insert|update|delete)CleanCalendarItem/);
   });
 
   it("carries occurrence context into the existing capture route", () => {

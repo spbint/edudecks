@@ -611,14 +611,6 @@ export default function FamilyPlanWorkspace() {
       state: hasActiveLearner ? planState : "empty",
     },
     {
-      href: "/my-programs",
-      icon: "PG",
-      label: "Open My Programs",
-      note: hasActiveLearner ? `Refine the longer sequence behind ${activeLearnerName}'s week before generating more blocks.` : "Programs become useful after learner setup.",
-      cta: "Open programs",
-      state: hasActiveLearner ? "derived" : "empty",
-    },
-    {
       href: "/capture",
       icon: "CP",
       label: "Capture from the live week",

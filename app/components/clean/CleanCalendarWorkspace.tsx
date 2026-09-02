@@ -23,7 +23,6 @@ import {
   createCleanCalendarItem,
   deleteCleanCalendarItem,
   listCleanCalendarItems,
-  setCleanCalendarItemCompletion,
   updateCleanCalendarItem,
 } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -64,15 +63,12 @@ import {
   writeCleanPlanningCalendarItems,
 } from "@/lib/clean/planning/cache";
 import {
-  listCleanProgramLessonCounts,
-  listLearnerProgramAssignments,
   listCleanProgramSegments,
   listCleanPrograms,
 } from "@/lib/clean/programs/client";
 import type {
   CleanProgram,
   CleanProgramSegment,
-  LearnerProgramAssignment,
 } from "@/lib/clean/programs/types";
 import {
   createCleanMasterTemplate,
@@ -652,7 +648,8 @@ function CleanRhythmBlockPopover({
           }}
         >
           <label
-            style={{ display: "grid", gap: 6, color: "#334155", fontSize: 13, fontWeight: 700 }}
+            style={{ display: "none" }}
+            aria-hidden="true"
           >
             Program slot
             <select
@@ -957,8 +954,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [templateBlocks, setTemplateBlocks] = useState<CleanTemplateBlock[]>([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
-  const [learnerProgramAssignments, setLearnerProgramAssignments] = useState<LearnerProgramAssignment[]>([]);
-  const [programLessonCounts, setProgramLessonCounts] = useState<Record<string, number>>({});
   const [generationRuns, setGenerationRuns] = useState<CleanGenerationRun[]>([]);
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
   const [evidenceByCalendarItemId, setEvidenceByCalendarItemId] = useState<Map<string, string>>(new Map());
@@ -1093,15 +1088,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       })),
     [programs],
   );
-  const blockProgramAssignmentOptions = useMemo(() => {
-    if (!blockLearnerId) return [];
-    const programsById = new Map(programs.map((program) => [program.id, program]));
-    return learnerProgramAssignments
-      .filter((assignment) => assignment.learnerId === blockLearnerId)
-      .map((assignment) => ({ assignment, program: programsById.get(assignment.programId) }))
-      .filter(({ program }) => Boolean(program && program.status !== "archived" && (programLessonCounts[program.id] ?? 0) > 0))
-      .map(({ assignment, program }) => ({ value: assignment.id, label: program!.title }));
-  }, [blockLearnerId, learnerProgramAssignments, programLessonCounts, programs]);
+  const blockProgramAssignmentOptions: PickerOption[] = [];
   const learnerLabelById = useMemo(
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
@@ -1600,8 +1587,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         nextBlackoutDays,
         nextMasterTemplates,
         nextPrograms,
-        nextAssignments,
-        nextProgramLessonCounts,
         nextGenerationRuns,
       ] = await Promise.all([
         listCleanAcademicYears(workspace.profile.id, { limit: 20 }),
@@ -1609,8 +1594,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         listCleanBlackoutDays(workspace.profile.id, { limit: 50 }),
         listCleanMasterTemplates(workspace.profile.id, { limit: 20 }),
         listCleanPrograms(workspace.profile.id, { limit: 50 }),
-        listLearnerProgramAssignments(workspace.profile.id),
-        listCleanProgramLessonCounts(workspace.profile.id),
         listCleanGenerationRuns(workspace.profile.id, { limit: 20 }),
       ]);
 
@@ -1630,8 +1613,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setBlackoutDays(nextBlackoutDays);
       setMasterTemplates(nextMasterTemplates);
       setPrograms(nextPrograms);
-      setLearnerProgramAssignments(nextAssignments);
-      setProgramLessonCounts(nextProgramLessonCounts);
       setProgramSegments(segmentGroups.flat());
       setGenerationRuns(nextGenerationRuns);
 
@@ -1720,16 +1701,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setItemsError(null);
 
     try {
-      if (!planningOnly) {
-        await materializeMasterWeekRange({
-          familyId: workspace.profile.id,
-          startsOn: selectedCalendarStart,
-          endsOn: selectedCalendarEnd,
-          today: getTodayDate(),
-          templateId: selectedTemplateId || null,
-          academicYearId: selectedAcademicYearId || null,
-        });
-      }
       const nextItems = await getOrCreateCleanPlanningCalendarItemsRequest(
         cacheKey,
         () =>
@@ -1763,10 +1734,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     }
   }, [
     calendarBoardView,
-    planningOnly,
     workspace.currentUserId,
-    selectedTemplateId,
-    selectedAcademicYearId,
     selectedCalendarEnd,
     selectedCalendarStart,
     workspace.profile,
@@ -1782,8 +1750,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setMasterTemplates([]);
       setTemplateBlocks([]);
       setPrograms([]);
-      setLearnerProgramAssignments([]);
-      setProgramLessonCounts({});
       setProgramSegments([]);
       setGenerationRuns([]);
       setItems([]);
@@ -2720,14 +2686,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       return;
     }
 
-    const selectedAssignment = blockLearnerProgramAssignmentId
-      ? learnerProgramAssignments.find((assignment) => assignment.id === blockLearnerProgramAssignmentId) ?? null
-      : null;
-    if (blockLearnerProgramAssignmentId && (!selectedAssignment || selectedAssignment.learnerId !== blockLearnerId)) {
-      setActionError("Choose a Program assigned to this learner.");
-      return;
-    }
-
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
@@ -2743,9 +2701,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         ),
         startsAt: timeResult.startsAt,
         endsAt: timeResult.endsAt,
-        programId: selectedAssignment?.programId ?? (blockProgramId || null),
+        programId: blockProgramId || null,
         programSegmentId: blockProgramSegmentId || null,
-        learnerProgramAssignmentId: selectedAssignment?.id ?? null,
+        learnerProgramAssignmentId: editingTemplateBlockId ? blockLearnerProgramAssignmentId || null : null,
         notes: blockNotes || null,
         sessionLabel: blockSessionLabel || null,
       };
@@ -3146,11 +3104,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
     setCompletionUpdatingId(item.id);
     try {
-      const updatedItem = await setCleanCalendarItemCompletion(
-        workspace.profile.id,
-        item.id,
-        item.completedAt ? null : new Date().toISOString(),
-      );
+      const updatedItem = await updateCleanCalendarItem(workspace.profile.id, item.id, {
+        completedAt: item.completedAt ? null : new Date().toISOString(),
+      });
       clearCleanPlanningCacheForFamily(workspace.profile.id);
       setItems((current) => current.map((currentItem) => currentItem.id === updatedItem.id ? updatedItem : currentItem));
       trackProductEvent(
@@ -7205,13 +7161,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         onChangeProgramSegmentId={setBlockProgramSegmentId}
         onChangeLearnerProgramAssignmentId={(assignmentId) => {
           setBlockLearnerProgramAssignmentId(assignmentId);
-          const assignment = learnerProgramAssignments.find((item) => item.id === assignmentId);
-          setBlockProgramId(assignment?.programId ?? "");
-          setBlockProgramSegmentId("");
-          if (assignment) {
-            const program = programs.find((item) => item.id === assignment.programId);
-            setBlockTitle(program?.title ?? "");
-          }
         }}
         onChangeSessionLabel={setBlockSessionLabel}
         onChangeNotes={setBlockNotes}

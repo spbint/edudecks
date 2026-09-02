@@ -235,11 +235,6 @@ export function MyDayQuickLinks() {
       note: "Rhythm",
     },
     {
-      href: "/my-programs",
-      label: "My Programs",
-      note: "Sequence",
-    },
-    {
       href: "/capture",
       label: "Capture",
       note: "Evidence",

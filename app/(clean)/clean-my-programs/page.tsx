@@ -1,5 +1,5 @@
-import CleanProgramsWorkspace from "@/app/components/clean/CleanProgramsWorkspace";
+import { redirect } from "next/navigation";
 
 export default function CleanMyProgramsPage() {
-  return <CleanProgramsWorkspace />;
+  redirect("/my-calendar");
 }

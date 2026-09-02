@@ -76,8 +76,8 @@ describe("Stage 8 mobile web shell", () => {
     expect(shellSource).toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(shellSource).toContain('label: "My Settings"');
     expect(shellSource).toContain("<span>Account</span>");
-    expect(shellSource).toContain('href: "/my-programs"');
-    expect(shellSource).toContain("[programsNavItem, settingsNavItem]");
+    expect(shellSource).not.toContain('href: "/my-programs"');
+    expect(shellSource).not.toContain("programsNavItem");
     expect(shellSource).not.toContain('href: "/my-pathways", icon: "route" as const, label: "My Pathways"');
   });
 

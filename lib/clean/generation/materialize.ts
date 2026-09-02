@@ -6,7 +6,6 @@ import {
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import { clearCleanPlanningCacheForFamily } from "@/lib/clean/planning/cache";
 import { listCleanMasterTemplates, listCleanTemplateBlocks } from "@/lib/clean/templates/client";
-import { allocateCleanProgramOccurrence } from "@/lib/clean/programs/occurrences";
 import { listCleanAcademicYears, listCleanBlackoutDays, listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import { getBreakPeriods, getPeriodForDate, isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -95,20 +94,6 @@ export function hasCleanAppliedGenerationRun(
 
 type ReconciliationSuggestion = CleanGeneratedWeekSuggestion;
 
-type ProgramOccurrenceBindingInput = {
-  familyId: string;
-  items: CleanCalendarItem[];
-  templateBlocks: Awaited<ReturnType<typeof listCleanTemplateBlocks>>;
-  desiredByKey: Map<string | null, ReconciliationSuggestion>;
-  protectedItemIds: Set<string>;
-  createdItemIds: Set<string>;
-};
-
-type ProgramOccurrenceBindingDependencies = {
-  allocate?: typeof allocateCleanProgramOccurrence;
-  remove?: typeof deleteCleanCalendarItem;
-};
-
 function normalizeFingerprintText(value: string | null | undefined) {
   return String(value ?? "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
 }
@@ -166,53 +151,6 @@ export function deriveCleanReconciliationCandidates({
   });
 }
 
-/**
- * Binds every desired Program-backed generated item, including a Calendar row
- * created by an earlier interrupted apply. A Program slot is never considered
- * materialised until its exact lesson occurrence exists.
- */
-export async function bindCleanProgramOccurrences(
-  input: ProgramOccurrenceBindingInput,
-  dependencies: ProgramOccurrenceBindingDependencies = {},
-) {
-  const allocate = dependencies.allocate ?? allocateCleanProgramOccurrence;
-  const remove = dependencies.remove ?? deleteCleanCalendarItem;
-  const blocksById = new Map(input.templateBlocks.map((block) => [block.id, block]));
-  const retainedCreatedItems: CleanCalendarItem[] = [];
-
-  for (const item of input.items) {
-    const key = buildCleanGeneratedOccurrenceKey(item);
-    const block = item.sourceTemplateBlockId ? blocksById.get(item.sourceTemplateBlockId) : null;
-    if (!block?.learnerProgramAssignmentId || !key || !input.desiredByKey.has(key)) {
-      if (input.createdItemIds.has(item.id)) retainedCreatedItems.push(item);
-      continue;
-    }
-
-    try {
-      const occurrence = await allocate(
-        input.familyId,
-        block.learnerProgramAssignmentId,
-        item.id,
-      );
-      if (occurrence) {
-        if (input.createdItemIds.has(item.id)) retainedCreatedItems.push(item);
-        continue;
-      }
-    } catch (error) {
-      if (item.completedAt || input.protectedItemIds.has(item.id)) throw error;
-      await remove(input.familyId, item.id);
-      throw error;
-    }
-
-    if (item.completedAt || input.protectedItemIds.has(item.id)) {
-      throw new Error("A protected Program Calendar item is missing its lesson occurrence.");
-    }
-    await remove(input.familyId, item.id);
-  }
-
-  return retainedCreatedItems;
-}
-
 async function runMaterialization(input: MaterializeInput): Promise<CleanOperationalWeekMaterialization> {
   if (input.weekEndsOn < input.today) return empty("past-week");
 
@@ -243,6 +181,11 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
       limit: 200,
     }),
   ]);
+  // Program-aware blocks are retained in storage but dormant while Programs is
+  // not an active product surface. They never create generic Calendar rows.
+  const materializableTemplateBlocks = templateBlocks.filter(
+    (block) => !block.learnerProgramAssignmentId,
+  );
 
   const anchorDate = input.weekStartsOn > input.today ? input.weekStartsOn : input.today;
   const academicYear = input.academicYearId
@@ -256,7 +199,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
   const preview = buildCleanGeneratedWeekPreview({
     weekStartsOn: input.weekStartsOn,
     weekEndsOn: input.weekEndsOn,
-    templateBlocks,
+    templateBlocks: materializableTemplateBlocks,
     blackoutDays: blackoutDays.map((day) => ({
       startsOn: day.startsOn,
       endsOn: day.endsOn,
@@ -297,8 +240,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
   const historicalBlockIds = new Set(
     runs.flatMap((run) => run.previewPayload.map((item) => item.sourceTemplateBlockId)).filter(Boolean),
   );
-  templateBlocks.forEach((block) => historicalBlockIds.add(block.id));
-  const templateBlocksById = new Map(templateBlocks.map((block) => [block.id, block]));
+  materializableTemplateBlocks.forEach((block) => historicalBlockIds.add(block.id));
   for (const existing of existingItems) {
     if (
       existing.sourceType !== "generated" ||
@@ -313,12 +255,8 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
       await deleteCleanCalendarItem(input.familyId, existing.id);
       continue;
     }
-    const isProgramBlock = Boolean(
-      existing.sourceTemplateBlockId &&
-      templateBlocksById.get(existing.sourceTemplateBlockId)?.learnerProgramAssignmentId,
-    );
     if (
-      (!isProgramBlock && existing.title !== desired.title) ||
+      existing.title !== desired.title ||
       existing.learnerId !== desired.learnerId ||
       existing.learningArea !== desired.learningArea ||
       existing.startsAt !== desired.startsAt ||
@@ -329,7 +267,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
       existing.sessionLabel !== desired.sessionLabel
     ) {
       await updateCleanCalendarItem(input.familyId, existing.id, {
-        title: isProgramBlock ? existing.title : desired.title,
+        title: desired.title,
         learnerId: desired.learnerId,
         learningArea: desired.learningArea,
         startsAt: desired.startsAt,
@@ -346,17 +284,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     previouslyGenerated,
     liveItems: existingItems,
   });
-  const bindingInput = {
-    familyId: input.familyId,
-    items: existingItems,
-    templateBlocks,
-    desiredByKey,
-    protectedItemIds,
-    createdItemIds: new Set<string>(),
-  } satisfies ProgramOccurrenceBindingInput;
-
   if (!reconciliationCandidates.length) {
-    await bindCleanProgramOccurrences(bindingInput);
     clearCleanPlanningCacheForFamily(input.familyId);
     return empty(runs.some((run) => run.status === "applied") ? "already-current" : "no-applicable-blocks");
   }
@@ -374,17 +302,10 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
     })),
   });
 
-  const createdItemIds = new Set(result.createdItems.map((item) => item.id));
-  const retainedItems = await bindCleanProgramOccurrences({
-    ...bindingInput,
-    items: [...existingItems, ...result.createdItems],
-    createdItemIds,
-  });
-
   clearCleanPlanningCacheForFamily(input.familyId);
   return {
     status: runs.some((run) => run.status === "applied") ? "reconciled" : "created",
-    createdItems: retainedItems,
+    createdItems: result.createdItems,
     generationRun: result.generationRun,
   };
 }

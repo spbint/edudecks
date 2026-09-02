@@ -79,7 +79,6 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/my-month") return "/my-calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
-  if (pathname === "/my-programs") return "/my-programs";
   if (pathname === "/my-pathways") return "/my-pathways";
   if (
     pathname === "/my-learna" ||
@@ -99,7 +98,6 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/my-month") return "My Calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture" || pathname === "/my-capture") return "Quick Capture";
-  if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/my-pathways") return "My Pathways";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
   if (
@@ -143,9 +141,6 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   }
   if (pathname === "/my-month") {
     return "See the week clearly before it fills up";
-  }
-  if (pathname === "/my-programs") {
-    return "Shape longer sequences before they land in the live week";
   }
   if (pathname === "/my-pathways") {
     return "Follow the next useful learning step with more confidence";
@@ -194,9 +189,6 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/my-month") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
-  }
-  if (pathname === "/my-programs") {
-    return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";
   }
   if (pathname === "/my-pathways") {
     return "Use guided pathways to see what comes next, what to practise, and how progress can later become evidence and reporting.";

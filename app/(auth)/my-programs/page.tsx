@@ -1,11 +1,5 @@
-import CleanProgramsWorkspace from "@/app/components/clean/CleanProgramsWorkspace";
-import FamilyProgramsWorkspace from "@/app/components/FamilyProgramsWorkspace";
-import { isCleanAppEnabled } from "@/lib/clean/featureFlags";
+import { redirect } from "next/navigation";
 
 export default function MyProgramsPage() {
-  if (isCleanAppEnabled()) {
-    return <CleanProgramsWorkspace />;
-  }
-
-  return <FamilyProgramsWorkspace />;
+  redirect("/my-calendar");
 }
