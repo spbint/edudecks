@@ -241,7 +241,7 @@ async function runMaterialization(input: MaterializeInput): Promise<CleanOperati
   const historicalBlockIds = new Set(
     runs
       .flatMap((run) => run.previewPayload.map((item) => item.sourceTemplateBlockId))
-      .filter((blockId): blockId is string => Boolean(blockId) && materializableBlockIds.has(blockId)),
+      .filter((blockId): blockId is string => typeof blockId === "string" && materializableBlockIds.has(blockId)),
   );
   for (const existing of existingItems) {
     if (
