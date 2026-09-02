@@ -17,6 +17,12 @@ import { useCleanEvidenceAttachments } from "@/lib/clean/evidence/useCleanEviden
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import {
+  clearQuickCaptureSessionDraft,
+  getQuickCaptureSessionDraftKey,
+  readQuickCaptureSessionDraft,
+  writeQuickCaptureSessionDraft,
+} from "@/lib/clean/evidence/quickCaptureSessionDraft";
+import {
   buildQuickCaptureSuccessHandoff,
   safeQuickCaptureReturnPath,
 } from "@/lib/clean/evidence/quickCaptureSuccess";
@@ -121,6 +127,18 @@ export default function CleanQuickCaptureWorkspace() {
   const submissionIdRef = useRef("");
   const openedTrackedRef = useRef(false);
   const firstAttachmentTrackedRef = useRef(false);
+  const restoredDraftKeyRef = useRef<string | null>(null);
+  const [restoredDraftNotice, setRestoredDraftNotice] = useState("");
+
+  const sessionDraftKey = useMemo(() => {
+    if (!workspace.profile || !user?.id) return null;
+    return getQuickCaptureSessionDraftKey({
+      userId: user.id,
+      familyId: workspace.profile.id,
+      calendarItemId: requestedCalendarItemId,
+      programId: requestedProgramId,
+    });
+  }, [requestedCalendarItemId, requestedProgramId, user?.id, workspace.profile]);
 
   const selectedLearner = useMemo(
     () => workspace.learners.find((learner) => learner.id === learnerId) ?? null,
@@ -161,6 +179,30 @@ export default function CleanQuickCaptureWorkspace() {
       setLearnerId(workspace.setupStatus.activeLearnerId || workspace.profile?.defaultLearnerId || workspace.learners[0]?.id || "");
     }
   }, [learnerId, requestedLearnerId, workspace.learners, workspace.profile?.defaultLearnerId, workspace.setupStatus.activeLearnerId]);
+
+  useEffect(() => {
+    if (!sessionDraftKey || !workspace.learners.length || restoredDraftKeyRef.current === sessionDraftKey) return;
+    const draft = readQuickCaptureSessionDraft(sessionDraftKey);
+    restoredDraftKeyRef.current = sessionDraftKey;
+    if (!draft) return;
+    if (workspace.learners.some((learner) => learner.id === draft.learnerId)) setLearnerId(draft.learnerId);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(draft.observedOn)) setObservedOn(draft.observedOn);
+    setCaption(draft.caption);
+    setReflection(draft.reflection);
+    setLearningArea(draft.learningArea);
+    if (draft.caption || draft.reflection || draft.learningArea) {
+      setRestoredDraftNotice("Your notes were restored. Add the photo again if you still want to attach it.");
+    }
+  }, [sessionDraftKey, workspace.learners]);
+
+  useEffect(() => {
+    if (!sessionDraftKey || savedEntry) return;
+    if (!caption && !reflection && !learningArea) return;
+    const timeout = window.setTimeout(() => {
+      writeQuickCaptureSessionDraft(sessionDraftKey, { learnerId, observedOn, caption, reflection, learningArea });
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [caption, learnerId, learningArea, observedOn, reflection, savedEntry, sessionDraftKey]);
 
   useEffect(() => {
     if (openedTrackedRef.current) return;
@@ -204,6 +246,10 @@ export default function CleanQuickCaptureWorkspace() {
       return;
     }
 
+    if (sessionDraftKey) {
+      writeQuickCaptureSessionDraft(sessionDraftKey, { learnerId, observedOn, caption, reflection, learningArea });
+    }
+
     setSubmitting(true);
     setSavePhase("Saving learning");
     setError("");
@@ -241,6 +287,7 @@ export default function CleanQuickCaptureWorkspace() {
         includeInReport: true,
       });
       persistedEntry = result.entry;
+      if (sessionDraftKey) clearQuickCaptureSessionDraft(sessionDraftKey);
 
       trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
       trackCoreJourneyEvent(
@@ -385,6 +432,7 @@ export default function CleanQuickCaptureWorkspace() {
   }
 
   function captureAnother() {
+    if (sessionDraftKey) clearQuickCaptureSessionDraft(sessionDraftKey);
     setSavedEntry(null);
     setSavedPhotoAttached(false);
     setPhotoUploadError("");
@@ -506,6 +554,7 @@ export default function CleanQuickCaptureWorkspace() {
       <CoreJourneyCue stage="capture" />
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
+        {restoredDraftNotice ? <p role="status" style={{ margin: 0, color: "#475569", lineHeight: 1.45 }}>{restoredDraftNotice}</p> : null}
         <form onSubmit={handleSave} style={{ display: "grid", gap: 14 }}>
           <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} compact />
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>

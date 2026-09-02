@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparation";
 import {
@@ -73,6 +73,7 @@ export function assertStoredAttachmentsConfirmed(
 }
 
 export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
+  const preparedImagePromisesRef = useRef(new Map<File, Promise<File>>());
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoName, setPhotoName] = useState("");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
@@ -88,6 +89,14 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
     };
   }, [photoPreviewUrl]);
 
+  const prepareImage = useCallback((file: File) => {
+    const existing = preparedImagePromisesRef.current.get(file);
+    if (existing) return existing;
+    const prepared = compressCleanEvidenceImage(file);
+    preparedImagePromisesRef.current.set(file, prepared);
+    return prepared;
+  }, []);
+
   const hydratePhoto = useCallback((file: File | null) => {
     setPhotoFile(file);
     setPhotoName(file?.name ?? "");
@@ -96,7 +105,10 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
       if (current) URL.revokeObjectURL(current);
       return file ? URL.createObjectURL(file) : "";
     });
-  }, []);
+    if (file?.type.startsWith("image/")) {
+      void Promise.resolve().then(() => prepareImage(file)).catch(() => undefined);
+    }
+  }, [prepareImage]);
 
   const handlePhotoChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -185,7 +197,7 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
     if (!files.length) return [];
 
     const preparedFiles = await Promise.all(
-      files.map((file) => (file.type.startsWith("image/") ? compressCleanEvidenceImage(file) : file)),
+      files.map((file) => (file.type.startsWith("image/") ? prepareImage(file) : file)),
     );
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -224,7 +236,7 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
       }
     }
     throw lastError ?? new Error("Attachment upload failed. Check your connection and try again.");
-  }, [evidenceFile, photoFile, validateSelectedAttachments]);
+  }, [evidenceFile, photoFile, prepareImage, validateSelectedAttachments]);
 
   const selectedFiles = useMemo(
     () => [photoFile, evidenceFile].filter(Boolean) as File[],
