@@ -65,11 +65,6 @@ import {
   type CleanMyDayPresentationState,
 } from "@/lib/clean/setup/setupStatus";
 import { hasAnyPathwayPlacementForLearner } from "@/lib/clean/pathways/pathwayPlacement";
-import {
-  buildCleanDailyPlannerPdfFilename,
-  buildCleanWeeklyPlannerEntriesFromCalendarItems,
-  generateCleanDailyPlannerPdfBytes,
-} from "@/lib/clean/outputs/weeklyPlanner";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import {
@@ -323,7 +318,8 @@ function CleanDayWorkspaceBody() {
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [quickAddError, setQuickAddError] = useState<string | null>(null);
   const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
-  const [completionUpdatingId, setCompletionUpdatingId] = useState<string | null>(null);
+  const [completionUpdatingIds, setCompletionUpdatingIds] = useState<Set<string>>(() => new Set());
+  const completionPendingIdsRef = useRef(new Set<string>());
   const [completionError, setCompletionError] = useState<{
     itemId: string;
     message: string;
@@ -1020,7 +1016,7 @@ function CleanDayWorkspaceBody() {
   }
 
   async function handleCompletionToggle(item: CleanCalendarItem) {
-    if (!workspace.profile || completionUpdatingId) return;
+    if (!workspace.profile || completionPendingIdsRef.current.has(item.id)) return;
 
     const nextCompletedAt = item.completedAt ? null : new Date().toISOString();
     const cacheKey = buildCleanPlanningCacheKey({
@@ -1031,7 +1027,17 @@ function CleanDayWorkspaceBody() {
       toDate: selectedDate,
     });
 
-    setCompletionUpdatingId(item.id);
+    const previousItem = item;
+    const optimisticItem = { ...item, completedAt: nextCompletedAt };
+    setItems((current) => {
+      const nextItems = current.map((currentItem) =>
+        currentItem.id === item.id ? optimisticItem : currentItem,
+      );
+      writeCleanPlanningCalendarItems(cacheKey, nextItems);
+      return nextItems;
+    });
+    completionPendingIdsRef.current.add(item.id);
+    setCompletionUpdatingIds((current) => new Set(current).add(item.id));
     setCompletionError(null);
 
     try {
@@ -1047,6 +1053,13 @@ function CleanDayWorkspaceBody() {
         return nextItems;
       });
     } catch (error) {
+      setItems((current) => {
+        const restoredItems = current.map((currentItem) =>
+          currentItem.id === item.id ? previousItem : currentItem,
+        );
+        writeCleanPlanningCalendarItems(cacheKey, restoredItems);
+        return restoredItems;
+      });
       setCompletionError({
         itemId: item.id,
         message: normalizeCleanErrorMessage(
@@ -1055,7 +1068,12 @@ function CleanDayWorkspaceBody() {
         ),
       });
     } finally {
-      setCompletionUpdatingId(null);
+      completionPendingIdsRef.current.delete(item.id);
+      setCompletionUpdatingIds((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
     }
   }
 
@@ -1146,6 +1164,11 @@ function CleanDayWorkspaceBody() {
     setItemsError(null);
 
     try {
+      const {
+        buildCleanDailyPlannerPdfFilename,
+        buildCleanWeeklyPlannerEntriesFromCalendarItems,
+        generateCleanDailyPlannerPdfBytes,
+      } = await import("@/lib/clean/outputs/weeklyPlanner");
       const entries = buildCleanWeeklyPlannerEntriesFromCalendarItems(sortedVisibleItems, {
         learnerLabelById,
         programLabelById,
@@ -2181,17 +2204,17 @@ function CleanDayWorkspaceBody() {
                               <button
                                 type="button"
                                 onClick={() => void handleCompletionToggle(item)}
-                                disabled={completionUpdatingId === item.id}
+                                disabled={completionUpdatingIds.has(item.id)}
                                 aria-label={`Mark ${item.title} not complete`}
                                 style={{
                                   ...secondaryButtonStyle,
                                   padding: "7px 10px",
                                   color: "#475569",
                                   fontSize: 12,
-                                  opacity: completionUpdatingId === item.id ? 0.6 : 1,
+                                  opacity: completionUpdatingIds.has(item.id) ? 0.6 : 1,
                                 }}
                               >
-                                {completionUpdatingId === item.id
+                                {completionUpdatingIds.has(item.id)
                                   ? "Updating..."
                                   : "Mark not complete"}
                               </button>
@@ -2200,7 +2223,7 @@ function CleanDayWorkspaceBody() {
                             <button
                               type="button"
                               onClick={() => void handleCompletionToggle(item)}
-                              disabled={completionUpdatingId === item.id}
+                              disabled={completionUpdatingIds.has(item.id)}
                               aria-label={`Mark ${item.title} complete`}
                               style={{
                                 ...secondaryButtonStyle,
@@ -2209,10 +2232,10 @@ function CleanDayWorkspaceBody() {
                                 borderColor: "#bbf7d0",
                                 background: "#f0fdf4",
                                 fontSize: 12,
-                                opacity: completionUpdatingId === item.id ? 0.6 : 1,
+                                opacity: completionUpdatingIds.has(item.id) ? 0.6 : 1,
                               }}
                             >
-                              {completionUpdatingId === item.id
+                              {completionUpdatingIds.has(item.id)
                                 ? "Updating..."
                                 : "○ Mark complete"}
                             </button>
