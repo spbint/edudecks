@@ -8,269 +8,113 @@ import PublicSiteShell, {
   publicPill,
 } from "@/app/components/PublicSiteShell";
 
+const INCLUDED_FEATURES = [
+  "Plan learning across the week and use My Day",
+  "Capture learning moments, including photos and notes",
+  "Build a learner Portfolio from saved evidence",
+  "Use My Learna to understand the learning record",
+  "Prepare and create useful learning reports and PDFs",
+] as const;
+
 export default function PricingPage() {
   return (
     <PublicSiteShell
-      eyebrow="Start free, grow when it matters"
-      heroTitle="Start free. Build your homeschool learning record with confidence."
-      heroText="MyLearna helps families plan learning, capture evidence, build portfolios and prepare reports in one connected workflow."
-      heroBadges={["Begin free", "No pressure", "Family-first", "Grow later"]}
-      primaryCta={{ label: "Explore MyLearna", href: "/demo?source=pricing-primary-demo" }}
-      secondaryCta={{ label: "See How It Works", href: "/get-started" }}
-      asideTitle="Why it's free to start"
-      asideText="Families need to build confidence first. MyLearna becomes more valuable over time, not on day one."
+      eyebrow="Free to use"
+      heroTitle="MyLearna Homeschool is free to use."
+      heroText="Plan learning, capture what happens, build portfolios and create reports in one private family space — with no subscription or credit card required."
+      heroBadges={["$0", "No subscription", "No credit card", "Private family space"]}
+      primaryCta={{ label: "Create your free family space", href: "/start-free?source=pricing-primary-family-space" }}
+      secondaryCta={{ label: "See how learning becomes a report", href: "/demo?source=pricing-secondary-demo" }}
+      asideTitle="One simple price"
+      asideText="There are no paid tiers for MyLearna Homeschool. The Homeschool product is currently available at $0."
     >
-      {/* FREE PLAN */}
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 900,
-            color: "#0f172a",
-            marginBottom: 8,
-          }}
-        >
-          Start free
+        <div style={{ marginBottom: 10 }}>
+          <span style={publicPill("#dbeafe", "#1d4ed8")}>Free</span>
         </div>
 
-        <div
-          style={{
-            fontSize: 14,
-            color: "#475569",
-            marginBottom: 18,
-            maxWidth: 720,
-          }}
-        >
-          You can begin building your child’s learning record today — without
-          needing to commit to a full system. Start simple, and grow when it
-          becomes useful.
+        <div style={{ fontSize: 34, fontWeight: 900, color: "#0f172a", marginBottom: 8 }}>
+          $0
         </div>
 
-        <div
-          style={{
-            border: "1px solid #bfdbfe",
-            borderRadius: 18,
-            padding: 18,
-            background: "#eff6ff",
-          }}
-        >
-          <div style={{ marginBottom: 10 }}>
-            <span style={publicPill("#dbeafe", "#1d4ed8")}>Free</span>
-          </div>
+        <h2 style={{ margin: "0 0 10px", fontSize: 24, lineHeight: 1.2, color: "#0f172a" }}>
+          Use MyLearna Homeschool without a paid plan.
+        </h2>
 
-          <div
-            style={{
-              fontSize: 32,
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: 8,
-            }}
-          >
-            $0
-          </div>
+        <p style={{ margin: "0 0 18px", fontSize: 15, lineHeight: 1.6, color: "#475569", maxWidth: 760 }}>
+          Create your family space and use the Homeschool features currently available. There is no subscription to choose and no upgrade tier to unlock.
+        </p>
 
-          <div
-            style={{
-              fontSize: 14,
-              color: "#475569",
-              marginBottom: 16,
-            }}
-          >
-            Everything you need to begin capturing and building your child’s
-            learning story.
-          </div>
-
-          <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
-            {[
-              "Capture learning moments quickly",
-              "Build a simple portfolio over time",
-              "Explore how reports come together",
-              "Understand your child’s learning progress",
-              "Start without pressure or complexity",
-            ].map((feature) => (
-              <div
-                key={feature}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  background: "#ffffff",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                {feature}
-              </div>
-            ))}
-          </div>
-
-          <Link href="/demo?source=pricing-primary-demo" style={publicButtonStyle(true)}>
-            Explore MyLearna
-          </Link>
-        </div>
-      </section>
-
-      {/* VALUE EXPLANATION */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1.1fr) minmax(280px, 0.9fr)",
-          gap: 20,
-          marginBottom: 24,
-        }}
-      >
-        <div style={publicCardStyle()}>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 900,
-              marginBottom: 10,
-              color: "#0f172a",
-            }}
-          >
-            What you’re really building
-          </div>
-
-          <div style={{ fontSize: 14, color: "#475569", marginBottom: 16 }}>
-            MyLearna is not just a tool. It helps you build a clear, calm, and
-            credible record of your child’s learning over time.
-          </div>
-
-          <div style={{ display: "grid", gap: 12 }}>
-            {[
-              "A clear record of real learning",
-              "Confidence in your homeschool approach",
-              "Evidence that grows over time",
-              "Calm, structured reporting when needed",
-              "A system that supports — not pressures",
-            ].map((item) => (
-              <div
-                key={item}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 14,
-                  padding: 14,
-                  background: "#f8fafc",
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={publicCardStyle()}>
-          <div
-            style={{
-              fontSize: 12,
-              textTransform: "uppercase",
-              fontWeight: 800,
-              color: "#64748b",
-              marginBottom: 8,
-            }}
-          >
-            No pressure
-          </div>
-
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 900,
-              marginBottom: 10,
-              color: "#0f172a",
-            }}
-          >
-            You do not need everything in place on day one
-          </div>
-
-          <div style={{ fontSize: 14, color: "#475569", marginBottom: 16 }}>
-            Most families begin with one or two simple records. That is enough to
-            start building clarity and confidence.
-          </div>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            {[
-              "Start small and build steadily",
-              "Capture learning as it happens",
-              "Let the system grow with your child",
-              "Upgrade only when it becomes useful",
-            ].map((item) => (
-              <div
-                key={item}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  background: "#ffffff",
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FUTURE SIGNAL */}
-      <section
-        style={{
-          ...publicCardStyle(),
-          background:
-            "linear-gradient(135deg, rgba(79,124,240,0.06) 0%, rgba(139,124,246,0.06) 100%)",
-          border: "1px solid #bfdbfe",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 900,
-            marginBottom: 10,
-            color: "#0f172a",
-          }}
-        >
-          Keep the learning story together
-        </div>
-
-        <div style={{ fontSize: 14, color: "#334155", marginBottom: 18 }}>
-          MyLearna brings planning, captured evidence, portfolios and learning
-          reports together so your family can build a useful record over time.
-          {/*
-          Future upgrades will support deeper planning, stronger reporting, and
-          advanced tools — but only when they actually help your workflow.
-          */}
-        </div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {[
-            "Plan learning across the week",
-            "Capture learning moments as they happen",
-            "Build a portfolio from selected evidence",
-            "Create useful learning reports",
-          ].map((item) => (
+        <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+          {INCLUDED_FEATURES.map((feature) => (
             <div
-              key={item}
+              key={feature}
               style={{
                 border: "1px solid #e5e7eb",
                 borderRadius: 12,
                 padding: "12px 14px",
                 background: "#ffffff",
+                fontSize: 14,
                 fontWeight: 700,
                 color: "#334155",
               }}
             >
-              {item}
+              {feature}
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 18 }}>
+        <Link href="/start-free?source=pricing-card-family-space" style={publicButtonStyle(true)}>
+          Create your free family space
+        </Link>
+      </section>
+
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+          gap: 18,
+          marginBottom: 24,
+        }}
+      >
+        <div style={publicCardStyle()}>
+          <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10, color: "#0f172a" }}>
+            What free means
+          </div>
+          <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
+            You can build a real homeschool learning record without entering payment details or choosing between product tiers.
+          </p>
+        </div>
+
+        <div style={publicCardStyle()}>
+          <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10, color: "#0f172a" }}>
+            Use it at your pace
+          </div>
+          <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
+            Start with one learner and one learning moment, then keep using the same connected Plan → Capture → Portfolio → Report workflow as your records build.
+          </p>
+        </div>
+      </section>
+
+      <section
+        style={{
+          ...publicCardStyle(),
+          background: "linear-gradient(135deg, rgba(79,124,240,0.06) 0%, rgba(139,124,246,0.06) 100%)",
+          border: "1px solid #bfdbfe",
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>See the learning record come together</h2>
+        <p style={{ margin: 0, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 760 }}>
+          Explore the fictional Carter family to see how a learning moment moves from today into a Portfolio and a report, or create your own private family space now.
+        </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link href="/demo?source=pricing-bottom-demo" style={publicButtonStyle(true)}>
-            Explore MyLearna
+            See how learning becomes a report
+          </Link>
+          <Link href="/start-free?source=pricing-bottom-family-space" style={publicButtonStyle(false)}>
+            Create your free family space
           </Link>
         </div>
       </section>

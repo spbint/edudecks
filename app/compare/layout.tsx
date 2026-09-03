@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Compare Homeschool Planning and Reporting Workflows | MyLearna",
+  title: "MyLearna vs AI Planners, Homeschool Planners & Spreadsheets",
   description:
-    "See how MyLearna compares with spreadsheets, notes apps, and generic tools for homeschool planning, evidence tracking, portfolios, and reports.",
+    "Compare MyLearna with AI planners, homeschool planners, spreadsheets and notes. See how MyLearna connects real learning to evidence, portfolios and reports without replacing the tools your family already uses.",
   path: "/compare",
 });
 

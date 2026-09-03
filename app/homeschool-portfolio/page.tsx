@@ -15,7 +15,10 @@ export default function HomeschoolPortfolioPage() {
       title="Build a Homeschool Portfolio Over Time"
       heroText="MyLearna helps families build a homeschool portfolio gradually from meaningful learning evidence, work samples, reflections and parent notes."
       badges={["Portfolio growth", "Work samples", "Reflections", "Parent notes"]}
-      ctaHref="/start-free?source=seo-homeschool-portfolio"
+      ctaHref="/start-free?source=homeschool-portfolio-family-space"
+      ctaLabel="Create your free family space"
+      demoHref="/demo?source=homeschool-portfolio-demo"
+      demoLabel="See how learning becomes a report"
       sections={[
         {
           title: "Learning evidence",

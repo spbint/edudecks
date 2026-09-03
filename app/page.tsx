@@ -10,7 +10,7 @@ import PublicSiteShell, {
 import useIsMobile from "@/app/components/useIsMobile";
 
 const HERO_PRIMARY_CTA = {
-  label: "Explore MyLearna",
+  label: "See how learning becomes a report",
   href: "/demo?source=home-primary-demo",
 } as const;
 
@@ -25,7 +25,7 @@ const HEADER_PRIMARY_CTA = {
 } as const;
 
 const FINAL_PRIMARY_CTA = {
-  label: "Explore MyLearna",
+  label: "See how learning becomes a report",
   href: "/demo?source=home-final-demo",
 } as const;
 

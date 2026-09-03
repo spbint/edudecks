@@ -56,6 +56,11 @@ export default function DemoReport({
         <div role="note" style={{ border: "1px solid #ddd6fe", borderRadius: 12, background: "#faf5ff", padding: 12, color: "#5b21b6", fontSize: 13, lineHeight: 1.5 }}>
           {model.disclaimer}
         </div>
+        {!state.captureIncludedInPortfolio ? (
+          <div role="note" style={{ border: "1px solid #bfdbfe", borderRadius: 12, background: "#f8fbff", padding: 12, color: "#1e40af", fontSize: 13, lineHeight: 1.5 }}>
+            This is the kind of learning record MyLearna builds from the learning you capture over time.
+          </div>
+        ) : null}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" onClick={download} disabled={downloading} style={{ ...demoButton, opacity: downloading ? 0.65 : 1 }}>
             {downloading ? "Preparing sample report..." : "Download sample report"}
@@ -130,15 +135,28 @@ export default function DemoReport({
         ))}
       </section>
 
-      {state.captureIncludedInPortfolio ? (
-        <section aria-label="Demo completion" style={{ border: "1px solid #bfdbfe", borderRadius: 16, padding: 16, background: "#f8fbff", display: "grid", gap: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 22 }}>You&apos;ve taken one learning moment from today&apos;s plan into a printable family report.</h2>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/start-free?source=demo-complete" style={demoButton}>Use MyLearna with your family</Link>
-            <button type="button" onClick={onKeepExploring} style={demoSecondaryButton}>Keep exploring</button>
-          </div>
-        </section>
-      ) : null}
+      <section aria-label="Demo completion" style={{ border: "1px solid #bfdbfe", borderRadius: 16, padding: 16, background: "#f8fbff", display: "grid", gap: 12 }}>
+        {state.captureIncludedInPortfolio ? (
+          <>
+            <h2 style={{ margin: 0, fontSize: 22 }}>You&apos;ve taken one learning moment from today&apos;s plan into a printable family report.</h2>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/start-free?source=demo-complete" style={demoButton}>Use MyLearna with your family</Link>
+              <button type="button" onClick={onKeepExploring} style={demoSecondaryButton}>Keep exploring</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 style={{ margin: 0, fontSize: 22 }}>Ready to build this with your family?</h2>
+            <p style={{ margin: 0, color: demoColors.slate, lineHeight: 1.6 }}>
+              MyLearna brings the learning you plan and capture into one private record you can keep building over time.
+            </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/start-free?source=demo-report" style={demoButton}>Create your family space</Link>
+              <button type="button" onClick={onKeepExploring} style={demoSecondaryButton}>See the four-step journey</button>
+            </div>
+          </>
+        )}
+      </section>
     </section>
   );
 }
