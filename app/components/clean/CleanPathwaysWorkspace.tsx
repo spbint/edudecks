@@ -4710,25 +4710,6 @@ function DetailedMathematicsStepCard({
               v
             </span>
           </button>
-          {isStepSecure && nextDetailedStepHref ? (
-            <Link
-              href={nextDetailedStepHref}
-              style={{
-                border: "1px solid #bbf7d0",
-                background: "#ffffff",
-                color: "#166534",
-                borderRadius: 999,
-                padding: "4px 7px",
-                fontSize: 12,
-                fontWeight: 700,
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              Next step
-            </Link>
-          ) : null}
         </div>
       </div>
 
@@ -4770,6 +4751,10 @@ function DetailedMathematicsStepCard({
         captureHref={captureHref}
         practiceHref={practiceHref}
         assessmentHref={assessmentHref}
+        nextStepHref={isStepSecure ? nextDetailedStepHref : ""}
+        autoCheckStatus={progressStory.latestCheck?.factualStatus || null}
+        parentProgress={progressStory.currentProgress}
+        emphasizePrimary={stageIndex === currentStageIndex && stepIndex === 0}
         familyId={familyId}
         learnerId={selectedLearnerId}
         subjectKey={selectedSubjectKey}

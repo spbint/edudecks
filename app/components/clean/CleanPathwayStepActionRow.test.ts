@@ -26,30 +26,29 @@ describe("CleanPathwayStepActionRow", () => {
     cleanup();
   });
 
-  it("renders customer-safe worksheet and evidence actions without retired practice or assessment labels", () => {
+  it("makes an available first check the primary action while retaining worksheet and capture tools", () => {
     const { container } = render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
+        assessmentHref: "/assessments/number?learnerId=learner-a",
+        emphasizePrimary: true,
         stepTitle: "Use place value",
         worksheetResource,
         onManualCompletionChange: vi.fn(),
       }),
     );
 
+    expect(screen.getByRole("link", { name: "Check understanding" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Mark complete" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "View worksheet" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Download worksheet" })).toBeTruthy();
 
     const visibleText = container.textContent || "";
-    expect(visibleText).not.toMatch(/Digital Practice/i);
-    expect(visibleText).not.toMatch(/Practice activities/i);
-    expect(visibleText).not.toMatch(/Practise/i);
-    expect(visibleText).not.toMatch(/Assessments ready/i);
-    expect(visibleText).not.toMatch(/Latest assessment/i);
-    expect(visibleText).not.toMatch(/Start assessment/i);
-    expect(visibleText).not.toMatch(/Start practice/i);
-    expect(visibleText).not.toMatch(/Optional digital tools/i);
+    expect(visibleText).toMatch(/Recommended next action/i);
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Check understanding",
+    );
   });
 
   it("keeps Mark complete separate from adding completed work", () => {
@@ -120,5 +119,39 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
+  });
+
+  it("makes practice primary after a developing auto-check while retaining assessment", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        practiceHref: "/practice/number-targeted?learnerId=learner-a",
+        assessmentHref: "/assessments/number?learnerId=learner-a",
+        autoCheckStatus: "Developing",
+        stepTitle: "Compare fractions",
+      }),
+    );
+
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Practise this focus",
+    );
+    expect(screen.getByRole("link", { name: "Check understanding" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+  });
+
+  it("uses the existing next-step href as the secure recommendation", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        nextStepHref: "/my-pathways?strandKey=operations#pathway-step-operations-stage-2",
+        autoCheckStatus: "Secure",
+        stepTitle: "Add and subtract",
+      }),
+    );
+
+    expect(container.querySelector('[data-pathway-primary-action="true"] a')?.getAttribute("href")).toContain(
+      "strandKey=operations",
+    );
+    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
   });
 });
