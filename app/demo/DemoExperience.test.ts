@@ -39,13 +39,18 @@ describe("Carter public demo fidelity", () => {
     expect(matches).toEqual([]);
   });
 
-  it("starts on Today with the fictional banner, Emma and Noah, reset and the four-step ribbon", () => {
+  it("starts on Today with an explicit report-first choice, fictional banner, reset and four-step ribbon", () => {
     expect(initialDemoState.activeView).toBe("today");
     const shell = readFileSync(join(process.cwd(), "components/demo/DemoShell.tsx"), "utf8");
     const today = readFileSync(join(process.cwd(), "components/demo/DemoToday.tsx"), "utf8");
     const guide = readFileSync(join(process.cwd(), "components/demo/DemoGuide.tsx"), "utf8");
     expect(shell).toContain("You&apos;re exploring a fictional family. Changes stay in this browser and are not saved.");
     expect(shell).toContain("Reset demo");
+    expect(shell).toContain("SEE HOW MYLEARNA WORKS");
+    expect(shell).toContain("One learning moment can become part of a useful learning record.");
+    expect(shell).toContain("Start with today");
+    expect(shell).toContain("Skip to Emma&apos;s report");
+    expect(shell).toContain("setShowEntryChoice(true)");
     expect(today).toContain("Emma Carter");
     expect(today).toContain("Noah Carter");
     expect(guide).toContain("Today");
@@ -65,6 +70,23 @@ describe("Carter public demo fidelity", () => {
     expect(report.evidenceEntries.every((entry) => entry.learningArea === "Mathematics")).toBe(true);
     expect(report.evidenceEntries.every((entry) => !entry.title.includes("Noah"))).toBe(true);
     expect(report.disclaimer).toBe("Sample report generated from fictional demo data.");
+  });
+
+  it("supports a truthful direct-report path using the existing Carter report data", () => {
+    const directReportState = demoReducer(initialDemoState, { type: "navigate", view: "report" });
+    expect(directReportState.activeView).toBe("report");
+    expect(directReportState.captureIncludedInPortfolio).toBe(false);
+    const report = buildDemoReportViewModel(directReportState);
+    expect(report.learnerLabel).toBe("Emma Carter");
+    expect(report.evidenceEntries).toHaveLength(8);
+
+    const reportSource = readFileSync(join(process.cwd(), "components/demo/DemoReport.tsx"), "utf8");
+    expect(reportSource).toContain("This is the kind of learning record MyLearna builds from the learning you capture over time.");
+    expect(reportSource).toContain("Ready to build this with your family?");
+    expect(reportSource).toContain("Create your family space");
+    expect(reportSource).toContain("/start-free?source=demo-report");
+    expect(reportSource).toContain("See the four-step journey");
+    expect(reportSource).toContain('trackPublicAcquisitionEvent("public_report_viewed", "/demo")');
   });
 
   it("uses canonical worksheet assets and removes primary placeholder imagery", () => {
@@ -90,7 +112,7 @@ describe("Carter public demo fidelity", () => {
     expect(report.evidenceEntries.find((entry) => entry.id === "demo-evidence-emma-step-4")?.whatHappened).toContain("doubled a recipe");
   });
 
-  it("resets fictional state and keeps completion handoff public", () => {
+  it("resets fictional state and keeps completed-journey handoff public", () => {
     const captured = demoReducer(initialDemoState, { type: "add-learning-moment" });
     expect(demoReducer(captured, { type: "reset" })).toEqual(initialDemoState);
     const reportSource = readFileSync(join(process.cwd(), "components/demo/DemoReport.tsx"), "utf8");
@@ -103,8 +125,10 @@ describe("Carter public demo fidelity", () => {
     expect(reportSource).not.toContain("Buy now");
   });
 
-  it("keeps the sample download demo-only and free of export-history or auth clients", () => {
+  it("keeps Explore more available and the sample download demo-only", () => {
+    const shellSource = readFileSync(join(process.cwd(), "components/demo/DemoShell.tsx"), "utf8");
     const pdfSource = readFileSync(join(process.cwd(), "lib/demo/demoPdf.ts"), "utf8");
+    expect(shellSource).toContain("Explore more of the Carter demo");
     expect(pdfSource).toContain("buildCarterFamilyDemoPdfBytes");
     expect(pdfSource).toContain("mylearna-emma-learning-report-sample.pdf");
     expect(pdfSource).not.toContain("export-history");
