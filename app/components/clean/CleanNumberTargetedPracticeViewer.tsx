@@ -4671,6 +4671,7 @@ export default function CleanNumberTargetedPracticeViewer() {
     useState<NumberStepPracticeDepth>("basic");
   const [stepPracticeIndex, setStepPracticeIndex] = useState(0);
   const [practiceSessionStarted, setPracticeSessionStarted] = useState(false);
+  const [practiceCompleted, setPracticeCompleted] = useState(false);
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const subjectKey = safe(searchParams.get("subjectKey"));
@@ -4870,6 +4871,7 @@ export default function CleanNumberTargetedPracticeViewer() {
           onComplete: () => {
             setPracticeSessionStarted(false);
             setStepPracticeIndex(0);
+            setPracticeCompleted(true);
           },
         }}
         v5Activities={exactStepPracticeV5Activities}
@@ -4895,6 +4897,7 @@ export default function CleanNumberTargetedPracticeViewer() {
           onComplete: () => {
             setPracticeSessionStarted(false);
             setStepPracticeIndex(0);
+            setPracticeCompleted(true);
           },
         }}
         v4Props={{
@@ -4922,6 +4925,7 @@ export default function CleanNumberTargetedPracticeViewer() {
           onComplete: () => {
             setPracticeSessionStarted(false);
             setStepPracticeIndex(0);
+            setPracticeCompleted(true);
           },
         }}
       />
@@ -4983,6 +4987,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                         setStepPracticeDepth(option.key);
                         setStepPracticeIndex(0);
                         setResponses({});
+                        setPracticeCompleted(false);
                         setPracticeSessionStarted(true);
                       }}
                       style={{
@@ -5057,16 +5062,16 @@ export default function CleanNumberTargetedPracticeViewer() {
                   </div>
                   {isLastExactStepPracticeTask ? (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {returnTo ? (
-                        <Link href={returnTo} style={buttonStyle}>
-                          View pathway map
-                        </Link>
-                      ) : null}
-                      {exactStepAssessmentHref ? (
-                        <Link href={exactStepAssessmentHref} style={secondaryButtonStyle}>
-                          Start assessment
-                        </Link>
-                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPracticeSessionStarted(false);
+                          setPracticeCompleted(true);
+                        }}
+                        style={buttonStyle}
+                      >
+                        Finish practice
+                      </button>
                     </div>
                   ) : (
                     <button
@@ -5093,6 +5098,27 @@ export default function CleanNumberTargetedPracticeViewer() {
                 />
               </div>
             </section>
+            ) : null}
+
+            {practiceCompleted ? (
+              <section style={highlightCardStyle} aria-label="Practice complete">
+                <div style={eyebrowStyle}>Practice complete</div>
+                <div style={{ color: "#0f172a", fontWeight: 700, lineHeight: 1.5 }}>
+                  This practice stays on this device. Choose what helps next.
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {returnTo ? (
+                    <Link href={returnTo} style={buttonStyle}>
+                      Return to pathway step
+                    </Link>
+                  ) : null}
+                  {exactStepAssessmentHref ? (
+                    <Link href={exactStepAssessmentHref} style={secondaryButtonStyle}>
+                      Check understanding
+                    </Link>
+                  ) : null}
+                </div>
+              </section>
             ) : null}
           </>
         ) : (

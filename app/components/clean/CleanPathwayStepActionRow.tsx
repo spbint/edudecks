@@ -7,6 +7,8 @@ import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetR
 
 type CleanPathwayStepActionRowProps = {
   captureHref: string;
+  practiceHref?: string;
+  assessmentHref?: string;
   familyId?: string;
   learnerId?: string;
   subjectKey?: string;
@@ -85,6 +87,8 @@ function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefine
 
 export default function CleanPathwayStepActionRow({
   captureHref,
+  practiceHref = "",
+  assessmentHref = "",
   stepTitle = "",
   worksheetResource,
   latestEvidenceEntry = null,
@@ -132,6 +136,16 @@ export default function CleanPathwayStepActionRow({
             </span>
           </div>
           <div className="mylearna-worksheet-action-buttons" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {practiceHref ? (
+              <Link href={practiceHref} style={secondaryButtonStyle}>
+                Practise
+              </Link>
+            ) : null}
+            {assessmentHref ? (
+              <Link href={assessmentHref} style={secondaryButtonStyle}>
+                Check understanding
+              </Link>
+            ) : null}
             {!manualComplete && onManualCompletionChange ? (
               <button
                 type="button"
@@ -187,6 +201,16 @@ export default function CleanPathwayStepActionRow({
             </span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {practiceHref ? (
+              <Link href={practiceHref} style={secondaryButtonStyle}>
+                Practise
+              </Link>
+            ) : null}
+            {assessmentHref ? (
+              <Link href={assessmentHref} style={secondaryButtonStyle}>
+                Check understanding
+              </Link>
+            ) : null}
             {!manualComplete && onManualCompletionChange ? (
               <button
                 type="button"

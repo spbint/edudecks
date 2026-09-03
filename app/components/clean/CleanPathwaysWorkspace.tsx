@@ -12,6 +12,8 @@ import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceTogg
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
+import { getStepAssessmentForPathwayStep } from "@/lib/clean/assessments/stepAssessmentRegistry";
+import { getStepPracticeForPathwayStep } from "@/lib/clean/practice/stepPracticeRegistry";
 import {
   getNumberPathwayRevealGroups,
   type NumberAutoCheckStatus,
@@ -38,6 +40,7 @@ import {
   buildPathwayRegistryStepKey,
   getAllPathwaySteps,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
+import { buildPathwayStepReturnHref } from "@/lib/clean/pathways/pathwayNavigationContext";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
@@ -629,29 +632,6 @@ function getRevealFocusLabel(
   return `Next focus: Step ${getRevealStepDisplayNumber(currentStep)}`;
 }
 
-function buildPathwayStepReturnHref({
-  pathname,
-  subjectKey,
-  strandKey,
-  learnerId,
-  detailPanelId,
-}: {
-  pathname: string;
-  subjectKey: string;
-  strandKey: string;
-  learnerId?: string | null;
-  detailPanelId: string;
-}) {
-  const params = new URLSearchParams();
-  params.set("subjectKey", subjectKey);
-  params.set("strandKey", strandKey);
-  if (learnerId) {
-    params.set("learnerId", learnerId);
-  }
-
-  return `${pathname}?${params.toString()}#${detailPanelId}`;
-}
-
 function appendWorksheetEvidenceCaptureParams(
   href: string,
   worksheetResource: NonNullable<ReturnType<typeof getWorksheetResourceForPathwayStep>>,
@@ -987,7 +967,7 @@ function PathwaysWorkspaceBody() {
     () => persistedUiState.activeStageKeyByStrand || {},
   );
   const [expandedStepId, setExpandedStepId] = useState<string | null>(
-    () => persistedUiState.expandedStepId || null,
+    () => getReturnedPathwayDetailPanelId() || persistedUiState.expandedStepId || null,
   );
   const [worksheetFilter, setWorksheetFilter] = useState<PathwayWorksheetFilter>(
     () => persistedUiState.worksheetFilter || "all",
@@ -1310,6 +1290,7 @@ function PathwaysWorkspaceBody() {
     if (!selectedSubjectWorkspace) return null;
     return selectedSubjectWorkspace.stages[selectedWorkspaceActiveStageIndex] || null;
   }, [selectedSubjectWorkspace, selectedWorkspaceActiveStageIndex]);
+
   const selectedWorkspaceSnapshot = useMemo(() => {
     if (!selectedSubjectWorkspace || !selectedWorkspaceCurrentStage) return null;
 
@@ -1534,6 +1515,9 @@ function PathwaysWorkspaceBody() {
         pathname,
         subjectKey: selectedPlacementStep.subjectKey,
         strandKey: selectedPlacementStep.strandKey,
+        stageKey: selectedPlacementStep.stageKey,
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
         learnerId: selectedLearnerId,
         detailPanelId: `pathway-step-${selectedPlacementStep.strandKey}-${selectedPlacementStep.stageKey}-${selectedPlacementStep.stepKey}`,
       })
@@ -3213,6 +3197,9 @@ function NumberRevealStepCard({
     pathname: returnPath,
     subjectKey: "mathematics",
     strandKey: stepStrandKey,
+    stageKey: step.stageKey,
+    pathwayStepId: step.pathwayStepId,
+    stepKey: step.stepKey,
     learnerId,
     detailPanelId: `pathway-step-${stepStrandKey}-${step.stageKey}-${step.id}`,
   });
@@ -4313,9 +4300,54 @@ function DetailedMathematicsStepCard({
     pathname: returnPath,
     subjectKey: selectedSubjectKey,
     strandKey,
+    stageKey,
+    pathwayStepId: canonicalPathwayStepId,
+    stepKey: canonicalStepKey,
     learnerId: selectedLearnerId,
     detailPanelId,
   });
+  const exactStepAssessment = exactStepContext
+    ? getStepAssessmentForPathwayStep({
+        pathwayStepId: canonicalPathwayStepId,
+        stepKey: canonicalStepKey,
+        strandKey,
+      })
+    : null;
+  const exactStepPractice = exactStepContext
+    ? getStepPracticeForPathwayStep({
+        pathwayStepId: canonicalPathwayStepId,
+        stepKey: canonicalStepKey,
+        strandKey,
+      })
+    : null;
+  const assessmentHref = exactStepAssessment
+    ? `/assessments/number?${new URLSearchParams({
+        source: "my-pathways",
+        stepAssessmentKey: exactStepAssessment.key,
+        subjectKey: exactStepAssessment.subjectKey,
+        strandKey: exactStepAssessment.strandKey,
+        stageKey: exactStepAssessment.stageKey,
+        pathwayStepId: exactStepAssessment.pathwayStepId,
+        stepKey: exactStepAssessment.stepKey,
+        progressionBandKey: exactStepAssessment.progressionBandKey,
+        itemBankKey: exactStepAssessment.parentItemBankKey,
+        learnerId: selectedLearnerId,
+        returnTo: captureReturnTo,
+      }).toString()}`
+    : "";
+  const practiceHref = exactStepPractice
+    ? `/practice/number-targeted?${new URLSearchParams({
+        source: "my-pathways",
+        stepPracticeKey: exactStepPractice.key,
+        subjectKey: exactStepPractice.subjectKey,
+        strandKey: exactStepPractice.strandKey,
+        stageKey: exactStepPractice.stageKey,
+        pathwayStepId: exactStepPractice.pathwayStepId,
+        stepKey: exactStepPractice.stepKey,
+        learnerId: selectedLearnerId,
+        returnTo: captureReturnTo,
+      }).toString()}`
+    : "";
   const captureParams = buildPathwayCaptureSearchParams(
     {
       source: "my-pathways",
@@ -4370,6 +4402,21 @@ function DetailedMathematicsStepCard({
         pathname: returnPath,
         subjectKey: selectedSubjectKey,
         strandKey,
+        stageKey: nextDetailedStep.stage.key,
+        pathwayStepId: resolveCanonicalPathwayStepIdFromParts({
+          subjectKey: selectedSubjectKey,
+          pathwayKey: strandKey,
+          stageKey: nextDetailedStep.stage.key,
+          stepKey: buildPathwayRegistryStepKey(
+            nextDetailedStep.step.title,
+            nextDetailedStep.step.id,
+          ),
+          stepNumber: String(nextDetailedStep.step.id),
+        }),
+        stepKey: buildPathwayRegistryStepKey(
+          nextDetailedStep.step.title,
+          nextDetailedStep.step.id,
+        ),
         learnerId: selectedLearnerId,
         detailPanelId: `pathway-step-${strand.key}-${nextDetailedStep.stage.key}-${nextDetailedStep.step.id}`,
       })
@@ -4721,6 +4768,8 @@ function DetailedMathematicsStepCard({
 
       <CleanPathwayStepActionRow
         captureHref={captureHref}
+        practiceHref={practiceHref}
+        assessmentHref={assessmentHref}
         familyId={familyId}
         learnerId={selectedLearnerId}
         subjectKey={selectedSubjectKey}
@@ -4807,6 +4856,12 @@ function DetailedMathematicsStepCard({
       </div>
     </article>
   );
+}
+
+function getReturnedPathwayDetailPanelId() {
+  if (typeof window === "undefined") return "";
+  const panelId = window.location.hash.replace(/^#/, "");
+  return panelId.startsWith("pathway-step-") ? panelId : "";
 }
 
 function formatProgressStoryDate(value: string | null) {

@@ -69,6 +69,28 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
   });
 
+  it("keeps exact practice and assessment links available without changing evidence actions", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        practiceHref:
+          "/practice/number-targeted?learnerId=learner-a&strandKey=fractions-decimals-percentages",
+        assessmentHref:
+          "/assessments/number?learnerId=learner-a&strandKey=fractions-decimals-percentages",
+        stepTitle: "Compare fractions",
+        worksheetResource,
+      }),
+    );
+
+    expect(screen.getByRole("link", { name: "Practise" }).getAttribute("href")).toContain(
+      "strandKey=fractions-decimals-percentages",
+    );
+    expect(
+      screen.getByRole("link", { name: "Check understanding" }).getAttribute("href"),
+    ).toContain("learnerId=learner-a");
+    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+  });
+
   it("does not show active Mark complete once the step is complete", () => {
     render(
       React.createElement(CleanPathwayStepActionRow, {
