@@ -21,6 +21,8 @@ type PublicSeoLandingPageProps = {
   badges: string[];
   ctaHref: string;
   ctaLabel?: string;
+  demoHref?: string;
+  demoLabel?: string;
   heroText: string;
   relatedLinks: RelatedLink[];
   sections: LandingSection[];
@@ -31,11 +33,20 @@ export default function PublicSeoLandingPage({
   badges,
   ctaHref,
   ctaLabel = "Start with MyLearna",
+  demoHref,
+  demoLabel = "See how learning becomes a report",
   heroText,
   relatedLinks,
   sections,
   title,
 }: PublicSeoLandingPageProps) {
+  const secondaryCta = demoHref
+    ? { label: demoLabel, href: demoHref }
+    : { label: "Read the FAQ", href: "/faq" };
+  const footerSecondaryCta = demoHref
+    ? { label: demoLabel, href: demoHref }
+    : { label: "Explore the demo", href: "/demo" };
+
   return (
     <PublicSiteShell
       title="MyLearna"
@@ -43,11 +54,11 @@ export default function PublicSeoLandingPage({
       heroText={heroText}
       heroBadges={badges}
       primaryCta={{ label: ctaLabel, href: ctaHref }}
-      secondaryCta={{ label: "Read the FAQ", href: "/faq" }}
+      secondaryCta={secondaryCta}
       headerAction={{ label: "Sign in", href: "/login" }}
       headerPrimaryAction={{ label: "Get started", href: "/start-free?source=seo-header" }}
       footerPrimaryCta={{ label: ctaLabel, href: ctaHref }}
-      footerSecondaryCta={{ label: "Explore the demo", href: "/demo" }}
+      footerSecondaryCta={footerSecondaryCta}
       compactHero
     >
       <section
@@ -129,10 +140,15 @@ export default function PublicSeoLandingPage({
           MyLearna is designed to help families begin simply, then connect planning,
           learning evidence, portfolios and reports over time.
         </p>
-        <div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           <Link href={ctaHref} style={publicButtonStyle(true)}>
             {ctaLabel}
           </Link>
+          {demoHref ? (
+            <Link href={demoHref} style={publicButtonStyle(false)}>
+              {demoLabel}
+            </Link>
+          ) : null}
         </div>
       </section>
 
