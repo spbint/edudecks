@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Homeschool Record Keeping Pricing | MyLearna",
+  title: "MyLearna Homeschool Pricing | Free to Use",
   description:
-    "See MyLearna pricing for homeschool record keeping, planning, portfolio building, and reporting. Start free and grow as your family record develops.",
+    "MyLearna Homeschool is free to use for planning, capturing learning, portfolio building, and reporting. No subscription or credit card required.",
   path: "/pricing",
 });
 

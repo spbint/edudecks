@@ -43,7 +43,7 @@ describe("public launch truthfulness", () => {
     expect(homepage).toContain("Build portfolios");
     expect(homepage).toContain("Create reports");
     expect(homepage).toContain("No account needed for the demo. Use a fictional family, try the workflow and see how MyLearna brings learning together.");
-    expect(homepage).toContain('label: "Explore MyLearna"');
+    expect(homepage).toContain('label: "See how learning becomes a report"');
     expect(homepage).toContain('href: "/demo?source=home-primary-demo"');
     expect(homepage).toContain('label: "Create your family space"');
     expect(homepage).toContain('href: "/start-free?source=home-secondary-family-space"');
@@ -155,7 +155,16 @@ describe("public launch truthfulness", () => {
     expect(read("app/about/page.tsx")).not.toMatch(/being designed|being built|stay close to the launch|help shape the workflow/i);
     expect(read("app/contact/page.tsx")).not.toMatch(/stay close to the launch|early feedback helps shape|launch information/i);
     const pricing = read("app/pricing/page.tsx");
-    expect(pricing).toContain('href="/demo?source=pricing-primary-demo"');
+    const pricingLayout = read("app/pricing/layout.tsx");
+    expect(pricing).toContain('heroTitle="MyLearna Homeschool is free to use."');
+    expect(pricing).toContain("There are no paid tiers for MyLearna Homeschool.");
+    expect(pricing).toContain("No subscription");
+    expect(pricing).toContain("No credit card");
+    expect(pricing).toContain('href="/start-free?source=pricing-card-family-space"');
+    expect(pricing).toContain('href="/demo?source=pricing-bottom-demo"');
+    expect(pricing).not.toMatch(/future upgrades|grow later|free to start|premium tier/i);
     expect(pricing).not.toContain('href="/capture"');
+    expect(pricingLayout).toContain("MyLearna Homeschool Pricing | Free to Use");
+    expect(pricingLayout).toContain("No subscription or credit card required.");
   });
 });
