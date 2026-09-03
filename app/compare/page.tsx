@@ -8,326 +8,265 @@ import PublicSiteShell, {
   publicPill,
 } from "@/app/components/PublicSiteShell";
 
-type ComparisonStatus = "yes" | "partial" | "no";
-
-type ComparisonRow = {
-  feature: string;
-  edudecks: ComparisonStatus;
-  spreadsheet: ComparisonStatus;
-  notesApp: ComparisonStatus;
-  genericSchoolTool: ComparisonStatus;
+type Approach = {
+  title: string;
+  bestAt: string;
+  recordGap: string;
+  myLearnaFit: string;
 };
 
-function checkStyle(kind: ComparisonStatus): React.CSSProperties {
-  if (kind === "yes") return publicPill("#ecfdf5", "#166534");
-  if (kind === "partial") return publicPill("#fff7ed", "#9a3412");
-  return publicPill("#f3f4f6", "#374151");
-}
+type ComparisonRow = {
+  capability: string;
+  ai: string;
+  planner: string;
+  manual: string;
+  myLearna: string;
+};
 
-function statusLabel(kind: ComparisonStatus) {
-  if (kind === "yes") return "Yes";
-  if (kind === "partial") return "Partial";
-  return "No";
-}
+const APPROACHES: Approach[] = [
+  {
+    title: "AI planner or lesson generator",
+    bestAt:
+      "Generating ideas, lesson outlines, activities and schedules quickly.",
+    recordGap:
+      "What was actually used, what the child did, work samples, observations and the long-term family record still need somewhere to live.",
+    myLearnaFit:
+      "Keep using the AI tool if it helps. Capture the learning that actually happened in MyLearna.",
+  },
+  {
+    title: "Conventional homeschool planner",
+    bestAt:
+      "Organising lessons, sequences, dates, routines and completion across the homeschool week.",
+    recordGap:
+      "A completed lesson does not automatically become evidence, a curated portfolio or a report-ready learning record.",
+    myLearnaFit:
+      "Use whichever planner suits your family. MyLearna connects the actual learning to evidence, portfolios and reports.",
+  },
+  {
+    title: "Spreadsheet or notes system",
+    bestAt:
+      "Flexible lists, custom logging and storing information exactly the way you choose.",
+    recordGap:
+      "The family usually has to create the structure, link the evidence and rebuild the story manually when reporting time arrives.",
+    myLearnaFit:
+      "MyLearna gives the record a connected structure without taking away the flexibility of the resources you already use.",
+  },
+  {
+    title: "MyLearna",
+    bestAt:
+      "Connecting planning, real learning evidence, Portfolio, learning understanding and Reports in one private family record.",
+    recordGap:
+      "It does not need to replace your curriculum, books, co-op, AI planner or other resources.",
+    myLearnaFit:
+      "Use MyLearna as the family’s system of record for the learning that happens across all of them.",
+  },
+];
 
 const COMPARISON_ROWS: ComparisonRow[] = [
   {
-    feature: "Fast evidence capture",
-    edudecks: "yes",
-    spreadsheet: "partial",
-    notesApp: "partial",
-    genericSchoolTool: "partial",
+    capability: "Generate lesson ideas or activities",
+    ai: "Core strength",
+    planner: "Varies by tool",
+    manual: "Manual",
+    myLearna: "Not the focus",
   },
   {
-    feature: "Homeschool-first workflow",
-    edudecks: "yes",
-    spreadsheet: "no",
-    notesApp: "no",
-    genericSchoolTool: "no",
+    capability: "Organise lessons and schedules",
+    ai: "Often",
+    planner: "Core strength",
+    manual: "Manual",
+    myLearna: "Included",
   },
   {
-    feature: "Portfolio curation guidance",
-    edudecks: "yes",
-    spreadsheet: "no",
-    notesApp: "no",
-    genericSchoolTool: "partial",
+    capability: "Record what actually happened",
+    ai: "Varies by tool",
+    planner: "Varies by tool",
+    manual: "Manual",
+    myLearna: "Core workflow",
   },
   {
-    feature: "Submission preview before reporting",
-    edudecks: "yes",
-    spreadsheet: "no",
-    notesApp: "no",
-    genericSchoolTool: "partial",
+    capability: "Keep work samples and observations together",
+    ai: "Varies by tool",
+    planner: "Varies by tool",
+    manual: "Manual",
+    myLearna: "Core workflow",
   },
   {
-    feature: "Goals + weekly rhythm planning",
-    edudecks: "yes",
-    spreadsheet: "partial",
-    notesApp: "partial",
-    genericSchoolTool: "partial",
+    capability: "Build a Portfolio from saved evidence",
+    ai: "Varies by tool",
+    planner: "Varies by tool",
+    manual: "Manual",
+    myLearna: "Core workflow",
   },
   {
-    feature: "Family-friendly reporting flow",
-    edudecks: "yes",
-    spreadsheet: "no",
-    notesApp: "no",
-    genericSchoolTool: "partial",
+    capability: "Create reports from the accumulated record",
+    ai: "Varies by tool",
+    planner: "Varies by tool",
+    manual: "Manual",
+    myLearna: "Core workflow",
   },
   {
-    feature: "Authority-ready direction",
-    edudecks: "yes",
-    spreadsheet: "partial",
-    notesApp: "no",
-    genericSchoolTool: "partial",
-  },
-  {
-    feature: "Calm B2C design for real homes",
-    edudecks: "yes",
-    spreadsheet: "no",
-    notesApp: "partial",
-    genericSchoolTool: "no",
+    capability: "Work alongside outside curriculum and resources",
+    ai: "Usually",
+    planner: "Usually",
+    manual: "Yes",
+    myLearna: "Yes",
   },
 ];
 
-const SWITCH_REASONS = [
-  {
-    title: "From scattered evidence to one calm record",
-    text:
-      "MyLearna brings capture, portfolio, planning, and reporting into one homeschool-friendly flow so families do not have to stitch the story together later.",
-  },
-  {
-    title: "From reactive reporting to guided readiness",
-    text:
-      "Instead of discovering gaps at the end, families can see coverage, draft reports, and authority direction before submission pressure builds.",
-  },
-  {
-    title: "From generic tools to a homeschool-first system",
-    text:
-      "Most tools can be adapted. MyLearna is designed around what homeschool families actually need: confidence, evidence, and a usable path to reporting.",
-  },
-];
+function comparisonCellStyle(emphasised = false): React.CSSProperties {
+  return {
+    padding: "14px 12px",
+    borderRight: "1px solid #e5e7eb",
+    borderBottom: "1px solid #e5e7eb",
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 1.45,
+    color: emphasised ? "#166534" : "#475569",
+    fontWeight: emphasised ? 800 : 650,
+    background: emphasised ? "#f0fdf4" : "#ffffff",
+  };
+}
 
 export default function ComparePage() {
   return (
     <PublicSiteShell
       title="Compare MyLearna"
-      eyebrow="WHY SWITCH"
-      heroTitle="Compare homeschool planning and reporting workflows"
-      heroText="See how MyLearna compares with spreadsheets, notes apps, and generic tools for capturing learning, shaping evidence, and preparing reports with confidence."
+      eyebrow="WHAT MYLEARNA IS FOR"
+      heroTitle="Use any curriculum or planner. Keep the learning record in MyLearna."
+      heroText="AI planners can generate ideas. Homeschool planners can organise schedules. Spreadsheets and notes can store information. MyLearna connects what actually happened to evidence, portfolios and reports."
       heroBadges={[
-        "Homeschool-first workflow",
-        "Capture → portfolio → reports",
-        "Confidence before submission",
+        "Works with your curriculum",
+        "Capture real learning",
+        "Portfolio → Reports",
       ]}
-      primaryCta={{ label: "Get Started", href: "/get-started" }}
-      secondaryCta={{ label: "View Pricing", href: "/pricing" }}
-      asideTitle="The simplest difference"
-      asideText="Spreadsheets and notes apps can store information. MyLearna helps families turn that information into a usable learning record."
+      primaryCta={{
+        label: "See how learning becomes a report",
+        href: "/demo?source=compare-primary-demo",
+      }}
+      secondaryCta={{
+        label: "Create your free family space",
+        href: "/start-free?source=compare-secondary-family-space",
+      }}
+      asideTitle="MyLearna is the record layer"
+      asideText="You do not have to move every part of your homeschool into one system. Keep using the tools that help; use MyLearna to keep the learning story together."
     >
-      <section style={publicCardStyle()}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
-            alignItems: "end",
-            marginBottom: 16,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: 1,
-                marginBottom: 8,
-              }}
-            >
-              Feature comparison
-            </div>
-            <div
-              style={{
-                fontSize: 24,
-                fontWeight: 900,
-                color: "#0f172a",
-                lineHeight: 1.2,
-              }}
-            >
-              What changes when the workflow is built for families
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/faq" style={publicButtonStyle(false)}>
-              FAQ
-            </Link>
-            <Link href="/get-started" style={publicButtonStyle(true)}>
-              Start with MyLearna
-            </Link>
-          </div>
+      <section style={{ ...publicCardStyle(), marginBottom: 22 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={publicPill("#eff6ff", "#1d4ed8")}>Different tools solve different jobs</div>
+          <h2 style={{ margin: "12px 0 8px", fontSize: 26, lineHeight: 1.18, color: "#0f172a" }}>
+            You may already have a planner, an AI tool, a spreadsheet — or all three.
+          </h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.65, maxWidth: 860 }}>
+            MyLearna is not asking you to throw those tools away. The question is what happens after the lesson, activity, outing or project: where does the learning record live?
+          </p>
         </div>
 
         <div
           style={{
-            overflowX: "auto",
-            border: "1px solid #e5e7eb",
-            borderRadius: 18,
-            background: "#ffffff",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+            gap: 14,
           }}
         >
-          <table
-            style={{
-              width: "100%",
-              minWidth: 860,
-              borderCollapse: "collapse",
-            }}
-          >
+          {APPROACHES.map((approach) => (
+            <article
+              key={approach.title}
+              style={{
+                border: approach.title === "MyLearna" ? "1px solid #bbf7d0" : "1px solid #e5e7eb",
+                borderRadius: 16,
+                padding: 16,
+                background: approach.title === "MyLearna" ? "#f0fdf4" : "#ffffff",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: 18, lineHeight: 1.25, color: "#0f172a" }}>
+                {approach.title}
+              </h3>
+              <div>
+                <strong style={{ color: "#334155", fontSize: 13 }}>Best at</strong>
+                <p style={{ margin: "4px 0 0", color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
+                  {approach.bestAt}
+                </p>
+              </div>
+              <div>
+                <strong style={{ color: "#334155", fontSize: 13 }}>What still needs a home</strong>
+                <p style={{ margin: "4px 0 0", color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
+                  {approach.recordGap}
+                </p>
+              </div>
+              <div>
+                <strong style={{ color: "#166534", fontSize: 13 }}>Where MyLearna fits</strong>
+                <p style={{ margin: "4px 0 0", color: "#334155", lineHeight: 1.55, fontSize: 14 }}>
+                  {approach.myLearnaFit}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section style={{ ...publicCardStyle(), marginBottom: 22 }}>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ color: "#64748b", fontSize: 12, fontWeight: 850, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Typical emphasis
+          </div>
+          <h2 style={{ margin: "6px 0 6px", fontSize: 25, lineHeight: 1.2, color: "#0f172a" }}>
+            The difference is what the tool is designed to hold together
+          </h2>
+          <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.55 }}>
+            Category descriptions are intentionally broad. Features vary by product; this comparison is about the typical job each approach is built to do.
+          </p>
+        </div>
+
+        <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 18 }}>
+          <table style={{ width: "100%", minWidth: 900, borderCollapse: "collapse", background: "#ffffff" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "14px 12px",
-                    borderRight: "1px solid #e5e7eb",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontSize: 13,
-                    color: "#475569",
-                  }}
-                >
-                  Capability
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "14px 12px",
-                    borderRight: "1px solid #e5e7eb",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontSize: 13,
-                    color: "#166534",
-                    background: "#ecfdf5",
-                  }}
-                >
-                  MyLearna
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "14px 12px",
-                    borderRight: "1px solid #e5e7eb",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontSize: 13,
-                    color: "#475569",
-                  }}
-                >
-                  Spreadsheet
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "14px 12px",
-                    borderRight: "1px solid #e5e7eb",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontSize: 13,
-                    color: "#475569",
-                  }}
-                >
-                  Notes app
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "14px 12px",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontSize: 13,
-                    color: "#475569",
-                  }}
-                >
-                  Generic school tool
-                </th>
+                {[
+                  "Capability",
+                  "AI planner",
+                  "Homeschool planner",
+                  "Spreadsheet / notes",
+                  "MyLearna",
+                ].map((label, index) => (
+                  <th
+                    key={label}
+                    style={{
+                      padding: "14px 12px",
+                      borderRight: index === 4 ? undefined : "1px solid #e5e7eb",
+                      borderBottom: "1px solid #e5e7eb",
+                      textAlign: index === 0 ? "left" : "center",
+                      fontSize: 13,
+                      color: index === 4 ? "#166534" : "#475569",
+                      background: index === 4 ? "#ecfdf5" : "#f8fafc",
+                    }}
+                  >
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
-
             <tbody>
               {COMPARISON_ROWS.map((row) => (
-                <tr key={row.feature}>
+                <tr key={row.capability}>
                   <td
                     style={{
                       padding: "14px 12px",
                       borderRight: "1px solid #e5e7eb",
                       borderBottom: "1px solid #e5e7eb",
-                      background: "#ffffff",
                       fontWeight: 800,
                       color: "#0f172a",
+                      minWidth: 220,
                     }}
                   >
-                    {row.feature}
+                    {row.capability}
                   </td>
-
-                  <td
-                    style={{
-                      padding: "14px 12px",
-                      borderRight: "1px solid #e5e7eb",
-                      borderBottom: "1px solid #e5e7eb",
-                      background: "#f0fdf4",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ display: "inline-flex" }}>
-                      <span style={checkStyle(row.edudecks)}>
-                        {statusLabel(row.edudecks)}
-                      </span>
-                    </div>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 12px",
-                      borderRight: "1px solid #e5e7eb",
-                      borderBottom: "1px solid #e5e7eb",
-                      background: "#ffffff",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ display: "inline-flex" }}>
-                      <span style={checkStyle(row.spreadsheet)}>
-                        {statusLabel(row.spreadsheet)}
-                      </span>
-                    </div>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 12px",
-                      borderRight: "1px solid #e5e7eb",
-                      borderBottom: "1px solid #e5e7eb",
-                      background: "#ffffff",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ display: "inline-flex" }}>
-                      <span style={checkStyle(row.notesApp)}>
-                        {statusLabel(row.notesApp)}
-                      </span>
-                    </div>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 12px",
-                      borderBottom: "1px solid #e5e7eb",
-                      background: "#ffffff",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ display: "inline-flex" }}>
-                      <span style={checkStyle(row.genericSchoolTool)}>
-                        {statusLabel(row.genericSchoolTool)}
-                      </span>
-                    </div>
-                  </td>
+                  <td style={comparisonCellStyle()}>{row.ai}</td>
+                  <td style={comparisonCellStyle()}>{row.planner}</td>
+                  <td style={comparisonCellStyle()}>{row.manual}</td>
+                  <td style={{ ...comparisonCellStyle(true), borderRight: undefined }}>{row.myLearna}</td>
                 </tr>
               ))}
             </tbody>
@@ -338,34 +277,30 @@ export default function ComparePage() {
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
           gap: 18,
+          marginBottom: 22,
         }}
       >
-        {SWITCH_REASONS.map((item) => (
-          <div key={item.title} style={publicCardStyle()}>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 900,
-                color: "#0f172a",
-                lineHeight: 1.25,
-                marginBottom: 10,
-              }}
-            >
-              {item.title}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-              }}
-            >
-              {item.text}
-            </div>
-          </div>
-        ))}
+        <div style={publicCardStyle()}>
+          <div style={publicPill("#f5f3ff", "#6d28d9")}>Where MyLearna starts to matter</div>
+          <h2 style={{ margin: "12px 0 8px", color: "#0f172a", fontSize: 24, lineHeight: 1.2 }}>
+            Plan → Capture → Portfolio → Understand → Report
+          </h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.65 }}>
+            Planning is useful, but the stronger MyLearna value appears after learning happens: capture the moment, keep the evidence, build the Portfolio, understand the record and create Reports without rebuilding the story later.
+          </p>
+        </div>
+
+        <div style={publicCardStyle()}>
+          <div style={publicPill("#ecfdf5", "#166534")}>Completion is not the same as learning</div>
+          <h2 style={{ margin: "12px 0 8px", color: "#0f172a", fontSize: 24, lineHeight: 1.2 }}>
+            A ticked lesson can tell you it was done. Evidence tells you what happened.
+          </h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.65 }}>
+            MyLearna keeps the parent’s observations, work samples and learning evidence connected to the child’s longer-term record rather than treating lesson completion as proof of learning.
+          </p>
+        </div>
       </section>
 
       <section
@@ -373,49 +308,29 @@ export default function ComparePage() {
           ...publicCardStyle(),
           background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
           border: "1px solid #bfdbfe",
+          display: "grid",
+          gap: 14,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: "#0f172a",
-                lineHeight: 1.2,
-                marginBottom: 8,
-              }}
-            >
-              The real switch is from storage to structure
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-                maxWidth: 760,
-              }}
-            >
-              Families often already have the raw information. MyLearna helps shape it into a clearer story that can support portfolio decisions, reporting, and authority direction later.
-            </div>
+        <div>
+          <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 850, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Keep what already works
           </div>
+          <h2 style={{ margin: "6px 0 8px", color: "#0f172a", fontSize: 26, lineHeight: 1.2 }}>
+            You do not need to replace the tools that already help your family.
+          </h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.65, maxWidth: 820 }}>
+            Keep your curriculum. Keep the books, worksheets, websites, co-ops, classes, projects and AI tools that suit your homeschool. Use MyLearna to bring the learning from all of them into one private record you can keep, understand and report from.
+          </p>
+        </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/pricing" style={publicButtonStyle(false)}>
-              View Pricing
-            </Link>
-            <Link href="/get-started" style={publicButtonStyle(true)}>
-              Get Started
-            </Link>
-          </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link href="/demo?source=compare-bottom-demo" style={publicButtonStyle(true)}>
+            See how learning becomes a report
+          </Link>
+          <Link href="/start-free?source=compare-bottom-family-space" style={publicButtonStyle(false)}>
+            Create your free family space
+          </Link>
         </div>
       </section>
     </PublicSiteShell>
