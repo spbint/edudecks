@@ -72,6 +72,10 @@ const SAFE_PROPERTY_KEYS = new Set([
   "preparedImageCount",
   "failedImageCount",
   "webpConversionCount",
+  "public_source",
+  "page_path",
+  "resource_id",
+  "resource_asset",
 ]);
 
 const UNSAFE_KEY_PATTERN =
@@ -134,14 +138,22 @@ function getAnonymousDistinctId() {
   return generated;
 }
 
-function posthogCapture(eventName: string, properties: ProductAnalyticsProperties, userId?: string | null) {
+function posthogCapture(
+  eventName: string,
+  properties: ProductAnalyticsProperties,
+  userId?: string | null,
+  trustedProperties: ProductAnalyticsProperties = {},
+) {
   if (!isBrowser() || !isConfigured()) return;
 
   const payload = JSON.stringify({
     api_key: POSTHOG_KEY,
     event: eventName,
     distinct_id: userId || getAnonymousDistinctId(),
-    properties: sanitizeProductAnalyticsProperties(properties),
+    properties: {
+      ...sanitizeProductAnalyticsProperties(properties),
+      ...trustedProperties,
+    },
   });
 
   const url = `${POSTHOG_HOST}/capture/`;
@@ -187,7 +199,12 @@ export function trackCoreJourneyEvent(
 
 export function identifyProductUser(userId: string | null | undefined, safeProperties: ProductAnalyticsProperties = {}) {
   if (!userId) return;
-  posthogCapture("$identify", safeProperties, userId);
+  posthogCapture(
+    "$identify",
+    safeProperties,
+    userId,
+    { $anon_distinct_id: getAnonymousDistinctId() },
+  );
 }
 
 export function trackPageView(route: string, area: string, userId?: string | null) {
