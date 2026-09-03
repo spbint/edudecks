@@ -1,3 +1,5 @@
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+
 export type PublicTrafficSource =
   | "chatgpt"
   | "perplexity"
@@ -145,12 +147,11 @@ export function trackPublicAcquisitionEvent(
     source,
     referrer: document.referrer || null,
   }, window.sessionStorage);
+  const acquisitionParams = buildPublicAcquisitionParams(publicSource, pathname, context);
 
-  if (typeof window.gtag !== "function") return;
+  trackProductEvent(eventName, acquisitionParams);
 
-  window.gtag(
-    "event",
-    eventName,
-    buildPublicAcquisitionParams(publicSource, pathname, context),
-  );
+  if (typeof window.gtag === "function") {
+    window.gtag("event", eventName, acquisitionParams);
+  }
 }
