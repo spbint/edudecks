@@ -33,4 +33,10 @@ describe("My Capture success receipt", () => {
     expect(source).toContain("Retry attachment");
     expect(source).toContain("Retry attachment");
   });
+
+  it("continues to accept only safe internal return paths while general Capture has no return requirement", () => {
+    expect(source).toContain('returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")');
+    expect(source).toContain('const returnToFromQuery = safeQueryValue(searchParams.get("returnTo"));');
+    expect(source).toContain('const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")');
+  });
 });

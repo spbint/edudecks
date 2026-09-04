@@ -121,6 +121,27 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
   });
 
+  it("keeps the canonical Capture return URL for worksheet evidence", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref:
+          "/my-capture?source=my-pathways&returnTo=%2Fmy-pathways%3FsubjectKey%3Dmathematics%26strandKey%3Dfractions-decimals-percentages%26learnerId%3Dlearner-a%23pathway-step-fractions-decimals-percentages-upper-primary-1",
+        stepTitle: "Compare fractions",
+        worksheetResource,
+      }),
+    );
+
+    const href = screen.getByRole("link", { name: "Add completed work" }).getAttribute("href") || "";
+    const url = new URL(href, "https://mylearna.test");
+
+    expect(url.searchParams.get("returnTo")).toBe(
+      "/my-pathways?subjectKey=mathematics&strandKey=fractions-decimals-percentages&learnerId=learner-a#pathway-step-fractions-decimals-percentages-upper-primary-1",
+    );
+    expect(url.searchParams.get("worksheetEvidence")).toBe("1");
+    expect(url.searchParams.get("includeInPortfolio")).toBe("1");
+    expect(url.searchParams.get("includeInReport")).toBe("1");
+  });
+
   it("makes practice primary after a developing auto-check while retaining assessment", () => {
     const { container } = render(
       React.createElement(CleanPathwayStepActionRow, {

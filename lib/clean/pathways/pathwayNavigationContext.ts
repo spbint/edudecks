@@ -29,3 +29,18 @@ export function buildPathwayStepReturnHref({
 
   return `${pathname}?${params.toString()}#${detailPanelId}`;
 }
+
+/**
+ * Adds an already-canonical Pathways return location to a Capture URL.
+ *
+ * Callers must build `returnTo` with `buildPathwayStepReturnHref` so Capture
+ * receives the same learner, pathway identity, and expanded-card hash used by
+ * practice and assessment. Capture remains responsible for accepting only
+ * safe internal return paths when it consumes this value.
+ */
+export function appendPathwayCaptureReturnTo(href: string, returnTo: string) {
+  const [pathname, query = ""] = href.split("?");
+  const params = new URLSearchParams(query);
+  params.set("returnTo", returnTo);
+  return `${pathname}?${params.toString()}`;
+}

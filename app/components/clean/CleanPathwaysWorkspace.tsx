@@ -40,7 +40,10 @@ import {
   buildPathwayRegistryStepKey,
   getAllPathwaySteps,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
-import { buildPathwayStepReturnHref } from "@/lib/clean/pathways/pathwayNavigationContext";
+import {
+  appendPathwayCaptureReturnTo,
+  buildPathwayStepReturnHref,
+} from "@/lib/clean/pathways/pathwayNavigationContext";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
@@ -1585,10 +1588,14 @@ function PathwaysWorkspaceBody() {
       },
     );
 
-    return `${capturePathBase}?${params.toString()}`;
+    return appendPathwayCaptureReturnTo(
+      `${capturePathBase}?${params.toString()}`,
+      selectedPlacementReturnHref,
+    );
   }, [
     capturePathBase,
     selectedLearnerId,
+    selectedPlacementReturnHref,
     selectedPlacementStageTitle,
     selectedPlacementStep,
     selectedSubject.title,
@@ -4430,7 +4437,10 @@ function DetailedMathematicsStepCard({
       learningAreaLabel: selectedSubjectTitle,
     },
   );
-  const captureBaseHref = `${capturePathBase}?${captureParams.toString()}`;
+  const captureBaseHref = appendPathwayCaptureReturnTo(
+    `${capturePathBase}?${captureParams.toString()}`,
+    captureReturnTo,
+  );
   const captureHref = worksheetResource
     ? appendWorksheetEvidenceCaptureParams(captureBaseHref, worksheetResource, captureReturnTo)
     : captureBaseHref;
