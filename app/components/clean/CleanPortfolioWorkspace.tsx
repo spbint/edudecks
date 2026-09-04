@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
@@ -256,6 +256,7 @@ function CleanPortfolioWorkspaceBody() {
   const [selectedPathwayStrandKey, setSelectedPathwayStrandKey] = useState("");
   const [selectedPathwayStageKey, setSelectedPathwayStageKey] = useState("");
   const [expandedEvidenceId, setExpandedEvidenceId] = useState<string | null>(null);
+  const openedEvidenceIdsRef = useRef(new Set<string>());
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const pathwaySteps = useMemo(() => getAllPathwaySteps(), []);
@@ -306,6 +307,9 @@ function CleanPortfolioWorkspaceBody() {
   const latestEvidenceIdFromQuery =
     searchParams.get("latestEvidenceId") || searchParams.get("evidence_entry_id") || "";
   const sourceFromQuery = searchParams.get("source") || "";
+  const captureSourceSurface = ["pathways", "my_day", "calendar", "quick_capture", "general", "other_internal"].includes(searchParams.get("captureSource") || "")
+    ? searchParams.get("captureSource") || "other_internal"
+    : "other_internal";
   const learnerLabelById = useMemo(
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
@@ -318,8 +322,8 @@ function CleanPortfolioWorkspaceBody() {
     ? "/clean-my-reports"
     : "/my-reports";
   const createReportHref = selectedLearnerId
-    ? `${reportsPathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}`
-    : reportsPathBase;
+    ? `${reportsPathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}&source=portfolio`
+    : `${reportsPathBase}?source=portfolio`;
 
   function trackCreateReportSelected(source: "learning_record" | "next_step") {
     trackCoreJourneyEvent(
@@ -330,9 +334,28 @@ function CleanPortfolioWorkspaceBody() {
         source,
         hasLearner: Boolean(selectedLearnerId),
         destination: "reports",
+        sourceSurface: sourceFromQuery === "my-capture" ? captureSourceSurface : "other_internal",
       },
       user?.id,
     );
+  }
+
+  function openEvidence(item: CleanPortfolioItem) {
+    if (expandedEvidenceId !== item.evidence.id && !openedEvidenceIdsRef.current.has(item.evidence.id)) {
+      trackCoreJourneyEvent(
+        "portfolio_evidence_opened",
+        {
+          area: "my_portfolio",
+          route: pathname,
+          sourceSurface: sourceFromQuery === "my-capture" ? captureSourceSurface : "other_internal",
+          hasAttachment: getEvidencePresentationMeta(item).hasAttachment,
+          isJustCaptured: item.evidence.id === latestEvidenceIdFromQuery,
+        },
+        user?.id,
+      );
+      openedEvidenceIdsRef.current.add(item.evidence.id);
+    }
+    setExpandedEvidenceId((current) => current === item.evidence.id ? null : item.evidence.id);
   }
 
   const programLabelById = useMemo(
@@ -1774,13 +1797,13 @@ function CleanPortfolioWorkspaceBody() {
                             type="button"
                             aria-expanded={isExpanded}
                             aria-controls={`portfolio-detail-${item.evidence.id}`}
-                            onClick={() => setExpandedEvidenceId(isExpanded ? null : item.evidence.id)}
+                            onClick={() => openEvidence(item)}
                             style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}
                           >
                             {isExpanded ? "Hide details" : "View"}
                           </button>
                           {!isExpanded ? (
-                            <button type="button" aria-label="More actions" onClick={() => setExpandedEvidenceId(item.evidence.id)} style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
+                            <button type="button" aria-label="More actions" onClick={() => openEvidence(item)} style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
                               More
                             </button>
                           ) : null}

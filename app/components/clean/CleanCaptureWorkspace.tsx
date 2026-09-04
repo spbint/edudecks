@@ -26,6 +26,10 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparation";
 import { useCleanEvidenceAttachments } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
+import {
+  captureAttachmentCategory,
+  resolveCaptureSourceSurface,
+} from "@/lib/clean/evidence/captureAnalytics";
 import { consumeQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import { resolveLearnerContext } from "@/lib/clean/learnerContext";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
@@ -644,7 +648,22 @@ function CleanCaptureWorkspaceBody() {
   const quickDraftAppliedRef = useRef(false);
   const captureOpenedTrackedRef = useRef(false);
   const firstAttachmentTrackedRef = useRef(false);
+  const captureSavedRef = useRef(false);
+  const captureMeaningfulInputRef = useRef(false);
+  const captureAbandonmentTrackedRef = useRef(false);
+  const finalisedAttachmentEvidenceIdsRef = useRef(new Set<string>());
   const successReceiptRef = useRef<HTMLDivElement | null>(null);
+  const captureSourceSurface = resolveCaptureSourceSurface({
+    hasPathwayContext: Boolean(searchParams.get("pathwayStepId") || searchParams.get("stepKey")),
+    hasCalendarItem: Boolean(searchParams.get("calendar_item_id")),
+    returnTo: searchParams.get("returnTo"),
+  });
+  const captureSourceSurfaceRef = useRef(captureSourceSurface);
+  const captureHasAttachmentRef = useRef(attachments.hasSelectedAttachments);
+  const captureIsEditRef = useRef(Boolean(editingEntryId));
+  captureSourceSurfaceRef.current = captureSourceSurface;
+  captureHasAttachmentRef.current = attachments.hasSelectedAttachments;
+  captureIsEditRef.current = Boolean(editingEntryId);
   const captureContextEditsRef = useRef<CaptureContextEditState>({
     key: "",
     learnerId: false,
@@ -671,21 +690,57 @@ function CleanCaptureWorkspaceBody() {
     if (captureOpenedTrackedRef.current) return;
     trackCoreJourneyEvent(
       "capture_opened",
-      { area: "my_capture", route: pathname, hasLearner: Boolean(learnerId) },
+      {
+        area: "my_capture",
+        route: pathname,
+        hasLearner: Boolean(learnerId),
+        sourceSurface: captureSourceSurface,
+        captureMode: safeQueryValue(searchParams.get("evidenceSource")) === "worksheet_evidence" ? "worksheet" : "standard",
+      },
       user?.id,
     );
     captureOpenedTrackedRef.current = true;
-  }, [learnerId, pathname, user?.id]);
+  }, [captureSourceSurface, learnerId, pathname, searchParams, user?.id]);
 
   useEffect(() => {
     if (!attachments.hasSelectedAttachments || firstAttachmentTrackedRef.current) return;
     trackCoreJourneyEvent(
       "capture_first_attachment_selected",
-      { area: "my_capture", route: pathname, hasAttachment: true },
+      {
+        area: "my_capture",
+        route: pathname,
+        hasAttachment: true,
+        sourceSurface: captureSourceSurface,
+        attachmentCategory: captureAttachmentCategory(attachments.selectedFiles),
+      },
       user?.id,
     );
     firstAttachmentTrackedRef.current = true;
-  }, [attachments.hasSelectedAttachments, pathname, user?.id]);
+  }, [attachments.hasSelectedAttachments, attachments.selectedFiles, captureSourceSurface, pathname, user?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        captureAbandonmentTrackedRef.current ||
+        captureSavedRef.current ||
+        !captureMeaningfulInputRef.current
+      ) return;
+      trackCoreJourneyEvent(
+        "capture_abandoned",
+        {
+          area: "my_capture",
+          route: pathname,
+          sourceSurface: captureSourceSurfaceRef.current,
+          captureMode: "standard",
+          hadMeaningfulInput: true,
+          isEdit: captureIsEditRef.current,
+          hasAttachment: captureHasAttachmentRef.current,
+        },
+        user?.id,
+      );
+      captureAbandonmentTrackedRef.current = true;
+    };
+  }, [pathname, user?.id]);
 
   const captureContextKey = searchParams.toString();
   const evidenceEntryIdFromQuery = safeQueryValue(searchParams.get("evidence_entry_id"));
@@ -773,7 +828,7 @@ function CleanCaptureWorkspaceBody() {
     portfolioReturnPath.includes("?") ? "&" : "?"
   }focus=learning-record`;
   const savedEvidencePortfolioPath = lastSavedEvidenceId
-    ? `${portfolioReturnPath}${portfolioReturnPath.includes("?") ? "&" : "?"}latestEvidenceId=${encodeURIComponent(lastSavedEvidenceId)}&source=my-capture`
+    ? `${portfolioReturnPath}${portfolioReturnPath.includes("?") ? "&" : "?"}latestEvidenceId=${encodeURIComponent(lastSavedEvidenceId)}&source=my-capture&captureSource=${captureSourceSurface}`
     : portfolioReturnPath;
   const savedEvidenceLearningRecordPath = lastSavedEvidenceId
     ? `${savedEvidencePortfolioPath}&focus=learning-record`
@@ -789,6 +844,8 @@ function CleanCaptureWorkspaceBody() {
         route: pathname,
         destination: "portfolio",
         returnKind,
+        sourceSurface: captureSourceSurface,
+        hasAttachment: lastSavedPhotoAttached,
       },
       user?.id,
     );
@@ -1831,6 +1888,7 @@ function CleanCaptureWorkspaceBody() {
       );
       const savedEntry: CleanEvidenceEntry = captureResult.entry;
       captureRecordSaved = true;
+      captureSavedRef.current = true;
 
       trackCoreJourneyEvent(
         "capture_save_succeeded",
@@ -1841,6 +1899,9 @@ function CleanCaptureWorkspaceBody() {
           hasAttachment: attachments.hasSelectedAttachments,
           includeInPortfolio: savedEntry.includeInPortfolio,
           includeInReport: savedEntry.includeInReport,
+          isEdit: Boolean(editingEntryId),
+          sourceSurface: captureSourceSurface,
+          captureMode: worksheetEvidenceMode ? "worksheet" : "standard",
           source: learningFromLifeActive
             ? "learning_from_life"
             : worksheetEvidenceMode
@@ -1974,6 +2035,20 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedReportIncluded(savedEntry.includeInReport);
       setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      if (uploadedAttachments.length && !finalisedAttachmentEvidenceIdsRef.current.has(savedEntry.id)) {
+        trackCoreJourneyEvent(
+          "capture_attachment_finalised",
+          {
+            area: "my_capture",
+            route: pathname,
+            sourceSurface: captureSourceSurface,
+            isEdit: Boolean(editingEntryId),
+            attachmentCategory: captureAttachmentCategory(uploadedAttachments),
+          },
+          user?.id,
+        );
+        finalisedAttachmentEvidenceIdsRef.current.add(savedEntry.id);
+      }
       setLastSavedPhotoPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
@@ -2023,6 +2098,9 @@ function CleanCaptureWorkspaceBody() {
           route: pathname,
           hasLearner: Boolean(learnerId),
           hasAttachment: attachments.hasSelectedAttachments,
+          sourceSurface: captureSourceSurface,
+          captureMode: "standard",
+          isEdit: Boolean(editingEntryId),
           failureStage: captureRequestStarted ? "save" : "validation",
           onlineHint: networkHint,
         },
@@ -2060,6 +2138,20 @@ function CleanCaptureWorkspaceBody() {
           : await uploadEvidenceFilesForEvidence(pendingAttachmentEvidenceId, filesToUpload);
       setSavedAttachments(uploadedAttachments);
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      if (!finalisedAttachmentEvidenceIdsRef.current.has(pendingAttachmentEvidenceId)) {
+        trackCoreJourneyEvent(
+          "capture_attachment_finalised",
+          {
+            area: "my_capture",
+            route: pathname,
+            sourceSurface: captureSourceSurface,
+            isEdit: false,
+            attachmentCategory: captureAttachmentCategory(uploadedAttachments),
+          },
+          user?.id,
+        );
+        finalisedAttachmentEvidenceIdsRef.current.add(pendingAttachmentEvidenceId);
+      }
       setLastSavedPhotoPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
@@ -2108,6 +2200,20 @@ function CleanCaptureWorkspaceBody() {
       const uploadedAttachments = pendingUploadedAttachments;
       setSavedAttachments(uploadedAttachments);
       setLastSavedPhotoAttached(Boolean(uploadedAttachments.length));
+      if (!finalisedAttachmentEvidenceIdsRef.current.has(pendingAttachmentEvidenceId)) {
+        trackCoreJourneyEvent(
+          "capture_attachment_finalised",
+          {
+            area: "my_capture",
+            route: pathname,
+            sourceSurface: captureSourceSurface,
+            isEdit: false,
+            attachmentCategory: captureAttachmentCategory(uploadedAttachments),
+          },
+          user?.id,
+        );
+        finalisedAttachmentEvidenceIdsRef.current.add(pendingAttachmentEvidenceId);
+      }
       setLastSavedPhotoPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return photoFile && uploadedAttachments.length ? URL.createObjectURL(photoFile) : "";
@@ -2777,7 +2883,14 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
 
               {!showSavedReceipt ? (
-              <form className="mylearna-capture-form" onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
+              <form
+                className="mylearna-capture-form"
+                onSubmit={handleSubmit}
+                onChange={() => {
+                  captureMeaningfulInputRef.current = true;
+                }}
+                style={{ display: "grid", gap: 12, marginTop: 16 }}
+              >
                 <div
                   className="mylearna-capture-learner-date"
                   style={{

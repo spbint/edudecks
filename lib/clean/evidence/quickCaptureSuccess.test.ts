@@ -17,7 +17,7 @@ describe("Quick Capture success handoffs", () => {
 
     expect(handoff.primaryLabel).toBe("View in Portfolio");
     expect(handoff.primaryHref).toBe(
-      "/my-portfolio?learner_id=learner%201&latestEvidenceId=evidence%201&source=my-capture",
+      "/my-portfolio?learner_id=learner%201&latestEvidenceId=evidence%201&source=my-capture&captureSource=quick_capture",
     );
     expect(handoff.portfolioMessage).toBe("Added to Alex’s Portfolio.");
     expect(handoff.reportMessage).toBe("Included in Reports.");

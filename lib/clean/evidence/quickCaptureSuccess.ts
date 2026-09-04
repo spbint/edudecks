@@ -79,7 +79,7 @@ export function buildQuickCaptureSuccessHandoff({
           ? "Back to My Learna"
           : "Return";
   const portfolioHref = includeInPortfolio
-    ? `${portfolioPathBase}?learner_id=${encodeURIComponent(learnerId)}&latestEvidenceId=${encodeURIComponent(evidenceId)}&source=my-capture`
+    ? `${portfolioPathBase}?learner_id=${encodeURIComponent(learnerId)}&latestEvidenceId=${encodeURIComponent(evidenceId)}&source=my-capture&captureSource=quick_capture`
     : null;
 
   return {

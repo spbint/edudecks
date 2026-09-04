@@ -14,6 +14,7 @@ import CleanEvidenceAttachmentControls from "@/app/components/clean/evidence/Cle
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { useCleanEvidenceAttachments } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
+import { captureAttachmentCategory } from "@/lib/clean/evidence/captureAnalytics";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import {
@@ -127,6 +128,12 @@ export default function CleanQuickCaptureWorkspace() {
   const submissionIdRef = useRef("");
   const openedTrackedRef = useRef(false);
   const firstAttachmentTrackedRef = useRef(false);
+  const captureSavedRef = useRef(false);
+  const captureMeaningfulInputRef = useRef(false);
+  const captureAbandonmentTrackedRef = useRef(false);
+  const attachmentFinalisedRef = useRef(false);
+  const captureHasAttachmentRef = useRef(attachments.hasSelectedAttachments);
+  captureHasAttachmentRef.current = attachments.hasSelectedAttachments;
   const restoredDraftKeyRef = useRef<string | null>(null);
   const [restoredDraftNotice, setRestoredDraftNotice] = useState("");
 
@@ -208,7 +215,13 @@ export default function CleanQuickCaptureWorkspace() {
     if (openedTrackedRef.current) return;
     trackCoreJourneyEvent(
       "quick_capture_opened",
-      { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId) },
+      {
+        area: "quick_capture",
+        route: pathname,
+        hasLearner: Boolean(learnerId),
+        sourceSurface: "quick_capture",
+        captureMode: "quick",
+      },
       user?.id,
     );
     openedTrackedRef.current = true;
@@ -218,11 +231,41 @@ export default function CleanQuickCaptureWorkspace() {
     if (!attachments.hasSelectedAttachments || firstAttachmentTrackedRef.current) return;
     trackCoreJourneyEvent(
       "capture_first_attachment_selected",
-      { area: "quick_capture", route: pathname, hasAttachment: true },
+      {
+        area: "quick_capture",
+        route: pathname,
+        hasAttachment: true,
+        sourceSurface: "quick_capture",
+        attachmentCategory: captureAttachmentCategory(attachments.selectedFiles),
+      },
       user?.id,
     );
     firstAttachmentTrackedRef.current = true;
-  }, [attachments.hasSelectedAttachments, pathname, user?.id]);
+  }, [attachments.hasSelectedAttachments, attachments.selectedFiles, pathname, user?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        captureAbandonmentTrackedRef.current ||
+        captureSavedRef.current ||
+        !captureMeaningfulInputRef.current
+      ) return;
+      trackCoreJourneyEvent(
+        "capture_abandoned",
+        {
+          area: "quick_capture",
+          route: pathname,
+          sourceSurface: "quick_capture",
+          captureMode: "quick",
+          hadMeaningfulInput: true,
+          isEdit: false,
+          hasAttachment: captureHasAttachmentRef.current,
+        },
+        user?.id,
+      );
+      captureAbandonmentTrackedRef.current = true;
+    };
+  }, [pathname, user?.id]);
 
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -287,6 +330,7 @@ export default function CleanQuickCaptureWorkspace() {
         includeInReport: true,
       });
       persistedEntry = result.entry;
+      captureSavedRef.current = true;
       if (sessionDraftKey) clearQuickCaptureSessionDraft(sessionDraftKey);
 
       trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
@@ -299,6 +343,9 @@ export default function CleanQuickCaptureWorkspace() {
           hasAttachment: attachments.hasSelectedAttachments,
           includeInPortfolio: result.entry.includeInPortfolio,
           includeInReport: result.entry.includeInReport,
+          sourceSurface: "quick_capture",
+          captureMode: "quick",
+          isEdit: false,
         },
         user?.id,
       );
@@ -311,6 +358,20 @@ export default function CleanQuickCaptureWorkspace() {
             setPhase: setSavePhase,
           });
           setSavedPhotoAttached(Boolean(uploaded.length));
+          if (uploaded.length && !attachmentFinalisedRef.current) {
+            trackCoreJourneyEvent(
+              "capture_attachment_finalised",
+              {
+                area: "quick_capture",
+                route: pathname,
+                sourceSurface: "quick_capture",
+                attachmentCategory: captureAttachmentCategory(uploaded),
+                isEdit: false,
+              },
+              user?.id,
+            );
+            attachmentFinalisedRef.current = true;
+          }
         } catch (uploadError) {
           setPhotoUploadError(
             `${uploadError instanceof Error ? uploadError.message : "The learning moment was saved, but the attachment needs another try."} ${attachmentRecoveryMessage(networkHint)}`,
@@ -365,6 +426,9 @@ export default function CleanQuickCaptureWorkspace() {
           route: pathname,
           hasLearner: Boolean(learnerId),
           hasAttachment: attachments.hasSelectedAttachments,
+          sourceSurface: "quick_capture",
+          captureMode: "quick",
+          isEdit: false,
           failureStage: "save",
           onlineHint: networkHint,
         },
@@ -397,6 +461,20 @@ export default function CleanQuickCaptureWorkspace() {
         setPhase: setSavePhase,
       });
       setSavedPhotoAttached(Boolean(uploaded.length));
+      if (uploaded.length && !attachmentFinalisedRef.current) {
+        trackCoreJourneyEvent(
+          "capture_attachment_finalised",
+          {
+            area: "quick_capture",
+            route: pathname,
+            sourceSurface: "quick_capture",
+            attachmentCategory: captureAttachmentCategory(uploaded),
+            isEdit: false,
+          },
+          user?.id,
+        );
+        attachmentFinalisedRef.current = true;
+      }
       setSavePhase("Learning saved");
       setStatus("Attachment attached to the saved learning moment.");
     } catch (retryError) {
@@ -418,6 +496,8 @@ export default function CleanQuickCaptureWorkspace() {
         route: pathname,
         destination: "portfolio",
         returnKind: successHandoff.returnKind,
+        sourceSurface: "quick_capture",
+        hasAttachment: savedPhotoAttached,
       },
       user?.id,
     );
@@ -555,7 +635,13 @@ export default function CleanQuickCaptureWorkspace() {
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick Capture</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Quick Capture</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Capture a learning moment now. Add more detail later.</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         {restoredDraftNotice ? <p role="status" style={{ margin: 0, color: "#475569", lineHeight: 1.45 }}>{restoredDraftNotice}</p> : null}
-        <form onSubmit={handleSave} style={{ display: "grid", gap: 14 }}>
+        <form
+          onSubmit={handleSave}
+          onChange={() => {
+            captureMeaningfulInputRef.current = true;
+          }}
+          style={{ display: "grid", gap: 14 }}
+        >
           <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} compact />
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
           <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label>

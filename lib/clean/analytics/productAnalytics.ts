@@ -91,6 +91,13 @@ const SAFE_PROPERTY_KEYS = new Set([
   "assessmentDepth",
   "itemCount",
   "taskCount",
+  "sourceSurface",
+  "captureMode",
+  "isEdit",
+  "hadMeaningfulInput",
+  "attachmentCategory",
+  "isJustCaptured",
+  "reportEntrySource",
 ]);
 
 const UNSAFE_KEY_PATTERN =

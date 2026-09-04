@@ -28,6 +28,12 @@ function getAreaFromRoute(pathname: string) {
   return "authenticated_app";
 }
 
+function readCaptureSourceSurface(value: string | null) {
+  return ["pathways", "my_day", "calendar", "quick_capture", "general", "other_internal"].includes(value ?? "")
+    ? value
+    : "other_internal";
+}
+
 export default function ProductAnalyticsProvider() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -82,7 +88,12 @@ export default function ProductAnalyticsProvider() {
     if (lastCapturePortfolioViewRef.current === viewKey) return;
     trackCoreJourneyEvent(
       "portfolio_viewed_after_capture",
-      { route: pathname, area, source: "quick_capture" },
+      {
+        route: pathname,
+        area,
+        source: "my_capture",
+        sourceSurface: readCaptureSourceSurface(searchParams.get("captureSource")),
+      },
       user.id,
     );
     lastCapturePortfolioViewRef.current = viewKey;
@@ -105,11 +116,19 @@ export default function ProductAnalyticsProvider() {
       trackProductEvent("portfolio_viewed", { route: pathname, area }, user.id);
     }
     if (area === "my_reports") {
-      trackProductEvent("report_previewed", { route: pathname, area }, user.id);
+      trackProductEvent(
+        "report_previewed",
+        {
+          route: pathname,
+          area,
+          reportEntrySource: searchParams.get("source") === "portfolio" ? "portfolio" : "other_internal",
+        },
+        user.id,
+      );
     }
 
     lastPageViewRef.current = pageKey;
-  }, [area, pathname, user?.id]);
+  }, [area, pathname, searchParams, user?.id]);
 
   return null;
 }
