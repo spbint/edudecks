@@ -59,7 +59,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   background: "#ffffff",
   color: "#0f172a",
-  minHeight: 36,
+  minHeight: 40,
   padding: "6px 9px",
   fontSize: 13,
   fontWeight: 600,
@@ -265,11 +265,19 @@ export default function CleanPathwayStepActionRow({
       </div>
 
       {actionPlan.primary ? (
-        <div data-pathway-primary-action="true">{renderAction(actionPlan.primary, true)}</div>
+        <div
+          className="mylearna-pathway-primary-action"
+          data-pathway-primary-action="true"
+        >
+          {renderAction(actionPlan.primary, true)}
+        </div>
       ) : null}
 
       {actionPlan.secondary.length || (!manualComplete && onManualCompletionChange) || worksheetResource ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <div
+          className="mylearna-pathway-secondary-actions"
+          style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
+        >
           {actionPlan.secondary.map((action) => renderAction(action))}
           {!manualComplete && onManualCompletionChange ? (
             <button

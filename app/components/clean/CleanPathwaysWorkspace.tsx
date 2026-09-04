@@ -1836,19 +1836,25 @@ function PathwaysWorkspaceBody() {
             box-shadow: none !important;
           }
 
-          .mylearna-worksheet-action-copy span:last-child {
-            display: none !important;
-          }
-
-          .mylearna-worksheet-action-buttons {
+          .mylearna-pathway-primary-action,
+          .mylearna-pathway-primary-action > a {
             display: grid !important;
-            grid-template-columns: 1fr !important;
+            width: 100% !important;
           }
 
-          .mylearna-worksheet-action-buttons > a,
-          .mylearna-worksheet-action-buttons > button {
+          .mylearna-pathway-primary-action > a {
+            min-height: 48px !important;
+          }
+
+          .mylearna-pathway-secondary-actions {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)) !important;
+          }
+
+          .mylearna-pathway-secondary-actions > a,
+          .mylearna-pathway-secondary-actions > button {
             width: 100% !important;
-            min-height: 46px !important;
+            min-height: 44px !important;
           }
 
           .mylearna-pathway-guidance-desktop {
@@ -1876,6 +1882,36 @@ function PathwaysWorkspaceBody() {
 
           .mylearna-pathways-selected-strand-card {
             padding: 12px !important;
+          }
+
+          .mylearna-pathways-current-focus {
+            padding: 16px !important;
+          }
+
+          .mylearna-pathways-current-step-panel {
+            padding: 14px !important;
+            gap: 10px !important;
+          }
+
+          .mylearna-pathways-current-context {
+            gap: 6px !important;
+          }
+
+          .mylearna-pathways-current-context > span:nth-child(even) {
+            display: none !important;
+          }
+
+          .mylearna-pathways-selected-strand-card strong,
+          .mylearna-pathway-step-title-block strong,
+          .mylearna-pathways-current-step-panel strong,
+          .mylearna-pathway-secondary-actions > a,
+          .mylearna-pathway-primary-action > a {
+            overflow-wrap: anywhere;
+          }
+
+          .mylearna-pathway-strand-option {
+            min-height: 44px !important;
+            width: 100% !important;
           }
 
           .mylearna-pathways-current-actions {
@@ -1940,6 +1976,7 @@ function PathwaysWorkspaceBody() {
 
         <section
           data-guidance-id="pathways-current-step"
+          className="mylearna-pathways-current-focus"
           style={{
             ...cardStyle,
             padding: "clamp(20px, 3vw, 30px)",
@@ -2000,6 +2037,7 @@ function PathwaysWorkspaceBody() {
               </div>
               <div
                 aria-label="Curriculum context"
+                className="mylearna-pathways-current-context"
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
@@ -2024,6 +2062,7 @@ function PathwaysWorkspaceBody() {
                 </span>
               </div>
               <div
+                className="mylearna-pathways-current-step-panel"
                 style={{
                   border: "1px solid #D9D0FF",
                   borderRadius: 22,
@@ -2747,6 +2786,7 @@ function PathwaysWorkspaceBody() {
                           <button
                             key={domain.key}
                             type="button"
+                            className="mylearna-pathway-strand-option"
                             onClick={() => handleSelectSubjectStrand(domain.key)}
                             aria-pressed={selected}
                             style={{

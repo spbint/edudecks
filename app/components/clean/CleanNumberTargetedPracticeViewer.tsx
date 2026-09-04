@@ -321,6 +321,7 @@ const buttonStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  minHeight: 44,
 };
 
 const secondaryButtonStyle: React.CSSProperties = {

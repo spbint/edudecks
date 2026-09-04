@@ -830,6 +830,7 @@ const buttonStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  minHeight: 44,
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
@@ -861,6 +862,7 @@ const optionButtonStyle: React.CSSProperties = {
   fontSize: 14,
   lineHeight: 1.5,
   cursor: "pointer",
+  minHeight: 44,
 };
 
 const launcherShellStyle: React.CSSProperties = {
