@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type React from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
@@ -262,6 +263,7 @@ import {
   NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
   type NumberStepPracticeDepth,
 } from "@/lib/clean/practice/numberStepPracticeTypes";
+import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -4665,6 +4667,7 @@ function MiniCheckSection({
 }
 
 export default function CleanNumberTargetedPracticeViewer() {
+  const { user } = useAuthUser();
   const searchParams = useSearchParams();
   const [responses, setResponses] = useState<LocalPracticeResponseMap>({});
   const [stepPracticeDepth, setStepPracticeDepth] =
@@ -4672,6 +4675,8 @@ export default function CleanNumberTargetedPracticeViewer() {
   const [stepPracticeIndex, setStepPracticeIndex] = useState(0);
   const [practiceSessionStarted, setPracticeSessionStarted] = useState(false);
   const [practiceCompleted, setPracticeCompleted] = useState(false);
+  const practiceStartedTrackedRef = useRef(false);
+  const practiceCompletionTrackedRef = useRef(false);
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const subjectKey = safe(searchParams.get("subjectKey"));
@@ -4679,6 +4684,7 @@ export default function CleanNumberTargetedPracticeViewer() {
   const stageKey = safe(searchParams.get("stageKey"));
   const pathwayStepId = safe(searchParams.get("pathwayStepId"));
   const stepKey = safe(searchParams.get("stepKey"));
+  const source = safe(searchParams.get("source"));
   const learnerId = safe(searchParams.get("learnerId"));
   const sourceAssessmentBand = safe(searchParams.get("sourceAssessmentBand"));
   const sourceProgressionStep = safe(
@@ -4750,6 +4756,23 @@ export default function CleanNumberTargetedPracticeViewer() {
     sourceSubElement,
     returnTo,
   };
+  const pathwayAnalyticsContext = {
+    subjectKey: exactStepPractice?.subjectKey ?? subjectKey,
+    strandKey: exactStepPractice?.strandKey ?? strandKey,
+    stageKey: exactStepPractice?.stageKey ?? stageKey,
+    pathwayStepId: exactStepPractice?.pathwayStepId ?? pathwayStepId,
+    stepKey: exactStepPractice?.stepKey ?? stepKey,
+    taskCount: exactStepPracticeTasks.length,
+  };
+  function completeExactStepPractice() {
+    if (source === "my-pathways" && !practiceCompletionTrackedRef.current) {
+      trackPathwayAnalyticsEvent("pathway_practice_completed", pathwayAnalyticsContext, user?.id);
+      practiceCompletionTrackedRef.current = true;
+    }
+    setPracticeSessionStarted(false);
+    setStepPracticeIndex(0);
+    setPracticeCompleted(true);
+  }
   const practiceModule =
     getTargetedNumberPracticeModuleById(requestedModuleId) ||
     (!requestedModuleId ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE : null);
@@ -4869,9 +4892,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             }));
           },
           onComplete: () => {
-            setPracticeSessionStarted(false);
-            setStepPracticeIndex(0);
-            setPracticeCompleted(true);
+            completeExactStepPractice();
           },
         }}
         v5Activities={exactStepPracticeV5Activities}
@@ -4895,9 +4916,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             }));
           },
           onComplete: () => {
-            setPracticeSessionStarted(false);
-            setStepPracticeIndex(0);
-            setPracticeCompleted(true);
+            completeExactStepPractice();
           },
         }}
         v4Props={{
@@ -4923,9 +4942,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             }));
           },
           onComplete: () => {
-            setPracticeSessionStarted(false);
-            setStepPracticeIndex(0);
-            setPracticeCompleted(true);
+            completeExactStepPractice();
           },
         }}
       />
@@ -4988,6 +5005,21 @@ export default function CleanNumberTargetedPracticeViewer() {
                         setStepPracticeIndex(0);
                         setResponses({});
                         setPracticeCompleted(false);
+                        if (practiceCompleted) {
+                          practiceStartedTrackedRef.current = false;
+                          practiceCompletionTrackedRef.current = false;
+                        }
+                        if (source === "my-pathways" && !practiceStartedTrackedRef.current) {
+                          trackPathwayAnalyticsEvent(
+                            "pathway_practice_started",
+                            {
+                              ...pathwayAnalyticsContext,
+                              taskCount: getStepPracticeTasksForDepth(exactStepPractice, option.key).length,
+                            },
+                            user?.id,
+                          );
+                          practiceStartedTrackedRef.current = true;
+                        }
                         setPracticeSessionStarted(true);
                       }}
                       style={{
@@ -5065,8 +5097,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                       <button
                         type="button"
                         onClick={() => {
-                          setPracticeSessionStarted(false);
-                          setPracticeCompleted(true);
+                          completeExactStepPractice();
                         }}
                         style={buttonStyle}
                       >

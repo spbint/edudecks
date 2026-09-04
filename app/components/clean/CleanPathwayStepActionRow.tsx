@@ -8,6 +8,7 @@ import {
   resolvePathwayNextAction,
   type PathwayNextAction,
 } from "@/lib/clean/pathways/pathwayNextAction";
+import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
 type CleanPathwayStepActionRowProps = {
@@ -122,6 +123,11 @@ export default function CleanPathwayStepActionRow({
   autoCheckStatus = null,
   parentProgress = "Not checked yet",
   emphasizePrimary = false,
+  subjectKey,
+  strandKey,
+  stageKey,
+  pathwayStepId,
+  stepKey,
   worksheetResource,
   latestEvidenceEntry = null,
   manualComplete = false,
@@ -149,6 +155,39 @@ export default function CleanPathwayStepActionRow({
       "capture-evidence": Boolean(captureHref),
     },
   });
+  const actionAnalyticsContext = {
+    subjectKey,
+    strandKey,
+    stageKey,
+    pathwayStepId,
+    stepKey,
+    progressStatus: autoCheckStatus || parentProgress,
+    recommendedAction: undefined,
+  } as const;
+  const trackActionSelection = (action: PathwayNextAction, primary: boolean) => {
+    const recommendedAction = action.replace(/-/g, "_") as
+      | "check_understanding"
+      | "practise"
+      | "next_step"
+      | "worksheet"
+      | "capture_evidence";
+    if (primary) {
+      trackPathwayAnalyticsEvent("pathway_recommended_action_selected", {
+        ...actionAnalyticsContext,
+        recommendedAction,
+      });
+    }
+    if (action === "capture-evidence") {
+      trackPathwayAnalyticsEvent("pathway_capture_selected", {
+        ...actionAnalyticsContext,
+      });
+    }
+    if (action === "next-step") {
+      trackPathwayAnalyticsEvent("pathway_next_step_selected", {
+        ...actionAnalyticsContext,
+      });
+    }
+  };
   const renderAction = (action: PathwayNextAction, primary = false) => {
     const href = actionHref[action];
     const isWorksheet = action === "worksheet";
@@ -161,6 +200,7 @@ export default function CleanPathwayStepActionRow({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackActionSelection(action, primary)}
           style={primary ? buttonStyle : secondaryButtonStyle}
         >
           {label}
@@ -172,6 +212,7 @@ export default function CleanPathwayStepActionRow({
       <Link
         key={action}
         href={href}
+        onClick={() => trackActionSelection(action, primary)}
         style={primary ? buttonStyle : secondaryButtonStyle}
         data-worksheet-evidence-action={
           action === "capture-evidence" ? "add-completed-work" : undefined

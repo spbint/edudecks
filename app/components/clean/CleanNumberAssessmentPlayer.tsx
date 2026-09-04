@@ -208,6 +208,8 @@ import {
   getScoreBand,
   trackProductEvent,
 } from "@/lib/clean/analytics/productAnalytics";
+import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
+import type { ParentProgressStatus } from "@/lib/clean/pathways/parentProgress";
 import {
   NUMBER_ASSESSMENT_BANKS,
   getNumberAssessmentBankByKey,
@@ -256,6 +258,12 @@ import { NUMBER_TERMINATING_RECURRING_RATIONAL_PRACTICE_MODULE } from "@/lib/cle
 import type { Learner } from "@/lib/clean/learners/types";
 
 type LocalAssessmentResult = AssessmentAttemptLocalResult;
+
+function toCanonicalAssessmentProgressStatus(
+  status: ReturnType<typeof getNumberStepAssessmentStatus>,
+): ParentProgressStatus {
+  return status === "Developing / consolidating" ? "Consolidating" : status;
+}
 
 type LocalAssessmentResponse = {
   itemId: string;
@@ -4064,6 +4072,7 @@ function CleanNumberAssessmentPlayerBody() {
     searchParams.get("subjectKey") === "mathematics" &&
     searchParams.get("strandKey") === "number-and-place-value";
   const incomingLearnerId = String(searchParams.get("learnerId") || "").trim();
+  const pathwaySource = searchParams.get("source") === "my-pathways";
   const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
 
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
@@ -4086,6 +4095,8 @@ function CleanNumberAssessmentPlayerBody() {
   const [saveState, setSaveState] = useState<AssessmentAttemptSaveState>("idle");
   const [saveMessage, setSaveMessage] = useState("");
   const exactStepAutoSaveStartedRef = useRef(false);
+  const pathwayAssessmentStartedRef = useRef(false);
+  const pathwayAssessmentCompletedRef = useRef(false);
   const saveAssessmentAttemptRef = useRef<(() => Promise<void>) | null>(null);
   const [responses, setResponses] = useState<
     Record<string, LocalAssessmentResponse>
@@ -4099,18 +4110,21 @@ function CleanNumberAssessmentPlayerBody() {
       getNumberAssessmentBankByKey(selectedBankKey) || NUMBER_ASSESSMENT_BANKS[0],
     [selectedBankKey],
   );
-  const activeAssessmentContext = {
-    subjectKey: incomingStepAssessment?.subjectKey ?? selectedBank.subjectKey,
-    strandKey: incomingStepAssessment?.strandKey ?? selectedBank.strandKey,
-    stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
-    pathwayStepId: incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
-    stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
-    progressionBandKey:
-      incomingStepAssessment?.progressionBandKey ?? selectedBank.progressionBandKey,
-    itemBankKey: incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
-    parentFamilyTitle: incomingStepAssessment?.parentBankTitle ?? selectedBank.title,
-    sourceRoute: incomingStepAssessment?.sourceRoute ?? selectedBank.sourceRoute,
-  };
+  const activeAssessmentContext = useMemo(
+    () => ({
+      subjectKey: incomingStepAssessment?.subjectKey ?? selectedBank.subjectKey,
+      strandKey: incomingStepAssessment?.strandKey ?? selectedBank.strandKey,
+      stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
+      pathwayStepId: incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
+      stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
+      progressionBandKey:
+        incomingStepAssessment?.progressionBandKey ?? selectedBank.progressionBandKey,
+      itemBankKey: incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
+      parentFamilyTitle: incomingStepAssessment?.parentBankTitle ?? selectedBank.title,
+      sourceRoute: incomingStepAssessment?.sourceRoute ?? selectedBank.sourceRoute,
+    }),
+    [incomingStepAssessment, selectedBank],
+  );
 
   const stepAssessmentItems = incomingStepAssessment
     ? getStepAssessmentItemsForDepth(incomingStepAssessment, assessmentDepth)
@@ -4270,6 +4284,8 @@ function CleanNumberAssessmentPlayerBody() {
     setSaveState("idle");
     setSaveMessage("");
     exactStepAutoSaveStartedRef.current = false;
+    pathwayAssessmentStartedRef.current = false;
+    pathwayAssessmentCompletedRef.current = false;
     setResponses({});
     setSessionStartedAtValue(new Date().toISOString());
   }
@@ -4277,6 +4293,22 @@ function CleanNumberAssessmentPlayerBody() {
   function startAssessment(nextBankKey = selectedBankKey) {
     setSelectedBankKey(nextBankKey);
     resetAssessmentState();
+    if (pathwaySource && incomingStepAssessment && !pathwayAssessmentStartedRef.current) {
+      trackPathwayAnalyticsEvent(
+        "pathway_assessment_started",
+        {
+          subjectKey: activeAssessmentContext.subjectKey,
+          strandKey: activeAssessmentContext.strandKey,
+          stageKey: activeAssessmentContext.stageKey,
+          pathwayStepId: activeAssessmentContext.pathwayStepId,
+          stepKey: activeAssessmentContext.stepKey,
+          assessmentDepth,
+          itemCount: totalItems,
+        },
+        user?.id,
+      );
+      pathwayAssessmentStartedRef.current = true;
+    }
     setSessionMode("active");
   }
 
@@ -7353,6 +7385,25 @@ function CleanNumberAssessmentPlayerBody() {
         responses: responseInputs,
       });
 
+      if (pathwaySource && incomingStepAssessment) {
+        trackPathwayAnalyticsEvent(
+          "pathway_assessment_saved",
+          {
+            subjectKey: activeAssessmentContext.subjectKey,
+            strandKey: activeAssessmentContext.strandKey,
+            stageKey: activeAssessmentContext.stageKey,
+            pathwayStepId: activeAssessmentContext.pathwayStepId,
+            stepKey: activeAssessmentContext.stepKey,
+            assessmentDepth,
+            itemCount: totalItems,
+            progressStatus: toCanonicalAssessmentProgressStatus(
+              getNumberStepAssessmentStatus(summary.correctCount, totalItems),
+            ),
+          },
+          user?.id,
+        );
+      }
+
       trackProductEvent(
         "assessment_completed",
         {
@@ -7419,6 +7470,45 @@ function CleanNumberAssessmentPlayerBody() {
     saveState,
     sessionMode,
     showSummary,
+  ]);
+
+  useEffect(() => {
+    if (
+      !pathwaySource ||
+      !incomingStepAssessment ||
+      sessionMode !== "summary" ||
+      !showSummary ||
+      pathwayAssessmentCompletedRef.current
+    ) {
+      return;
+    }
+    trackPathwayAnalyticsEvent(
+      "pathway_assessment_completed",
+      {
+        subjectKey: activeAssessmentContext.subjectKey,
+        strandKey: activeAssessmentContext.strandKey,
+        stageKey: activeAssessmentContext.stageKey,
+        pathwayStepId: activeAssessmentContext.pathwayStepId,
+        stepKey: activeAssessmentContext.stepKey,
+        assessmentDepth,
+        itemCount: totalItems,
+        progressStatus: toCanonicalAssessmentProgressStatus(
+          getNumberStepAssessmentStatus(summary.correctCount, totalItems),
+        ),
+      },
+      user?.id,
+    );
+    pathwayAssessmentCompletedRef.current = true;
+  }, [
+    activeAssessmentContext,
+    assessmentDepth,
+    incomingStepAssessment,
+    pathwaySource,
+    sessionMode,
+    showSummary,
+    summary.correctCount,
+    totalItems,
+    user?.id,
   ]);
 
   if (

@@ -60,6 +60,7 @@ import {
   toParentProgressStatus,
   type ParentProgressStatus,
 } from "@/lib/clean/pathways/parentProgress";
+import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -1726,6 +1727,7 @@ function PathwaysWorkspaceBody() {
     setHasExplicitStrandSelection(Boolean(nextStrandKey));
     setStrandSelectorExpanded(!nextStrandKey);
     replacePathwayViewParams(nextSubjectKey, nextStrandKey);
+    trackPathwayAnalyticsEvent("pathway_subject_selected", { subjectKey: nextSubjectKey });
   }
 
   function handleSelectSubjectStrand(nextStrandKey: string) {
@@ -1736,6 +1738,10 @@ function PathwaysWorkspaceBody() {
     setHasExplicitStrandSelection(true);
     setStrandSelectorExpanded(false);
     replacePathwayViewParams(selectedSubjectKey, nextStrandKey);
+    trackPathwayAnalyticsEvent("pathway_strand_selected", {
+      subjectKey: selectedSubjectKey,
+      strandKey: nextStrandKey,
+    });
 
     const workspaceEl = pathwayDetailWorkspaceRef.current;
     if (!workspaceEl) return;
@@ -2429,7 +2435,10 @@ function PathwaysWorkspaceBody() {
                       </label>
                       <select
                         value={selectedLearnerId}
-                        onChange={(event) => setSelectedLearnerIdOverride(event.target.value)}
+                        onChange={(event) => {
+                          setSelectedLearnerIdOverride(event.target.value);
+                          trackPathwayAnalyticsEvent("pathway_learner_changed");
+                        }}
                         style={inputStyle}
                       >
                         {learnerOptions.map((option) => (
@@ -4431,6 +4440,63 @@ function DetailedMathematicsStepCard({
         detailPanelId: `pathway-step-${strand.key}-${nextDetailedStep.stage.key}-${nextDetailedStep.step.id}`,
       })
     : "";
+  const pathwayAnalyticsContext = {
+    subjectKey: selectedSubjectKey,
+    strandKey,
+    stageKey,
+    pathwayStepId: canonicalPathwayStepId || "",
+    stepKey: canonicalStepKey,
+    progressStatus: displayedProgressStatus || "Not checked yet",
+    isCurrentLearningStep: stageIndex === currentStageIndex && stepIndex === 0,
+    hasPractice: Boolean(exactStepPractice),
+    hasAssessment: Boolean(exactStepAssessment),
+    hasWorksheet: Boolean(worksheetResource),
+    hasNextStep: Boolean(isStepSecure && nextDetailedStepHref),
+  } as const;
+  const readbackEventKeyRef = useRef("");
+  useEffect(() => {
+    const latestCheck = progressStory.latestCheck;
+    if (
+      !isOpen ||
+      getReturnedPathwayDetailPanelId() !== detailPanelId ||
+      !latestCheck
+    ) {
+      return;
+    }
+    const readbackKey = `${detailPanelId}:${latestCheck.id}`;
+    if (readbackEventKeyRef.current === readbackKey) return;
+    trackPathwayAnalyticsEvent("pathway_assessment_readback_shown", {
+      subjectKey: selectedSubjectKey,
+      strandKey,
+      stageKey,
+      pathwayStepId: canonicalPathwayStepId || "",
+      stepKey: canonicalStepKey,
+      isCurrentLearningStep: stageIndex === currentStageIndex && stepIndex === 0,
+      hasPractice: Boolean(exactStepPractice),
+      hasAssessment: Boolean(exactStepAssessment),
+      hasWorksheet: Boolean(worksheetResource),
+      hasNextStep: Boolean(isStepSecure && nextDetailedStepHref),
+      progressStatus: latestCheck.factualStatus,
+    });
+    readbackEventKeyRef.current = readbackKey;
+  }, [
+    canonicalPathwayStepId,
+    canonicalStepKey,
+    currentStageIndex,
+    detailPanelId,
+    exactStepAssessment,
+    exactStepPractice,
+    isOpen,
+    isStepSecure,
+    nextDetailedStepHref,
+    progressStory.latestCheck,
+    selectedSubjectKey,
+    stageIndex,
+    stageKey,
+    stepIndex,
+    strandKey,
+    worksheetResource,
+  ]);
 
   return (
     <article
@@ -4681,7 +4747,12 @@ function DetailedMathematicsStepCard({
 
           <button
             type="button"
-            onClick={onToggle}
+            onClick={() => {
+              if (!isOpen) {
+                trackPathwayAnalyticsEvent("pathway_step_opened", pathwayAnalyticsContext);
+              }
+              onToggle();
+            }}
             aria-expanded={isOpen}
             aria-controls={detailPanelId}
             style={{

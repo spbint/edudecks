@@ -76,6 +76,21 @@ const SAFE_PROPERTY_KEYS = new Set([
   "page_path",
   "resource_id",
   "resource_asset",
+  "subjectKey",
+  "strandKey",
+  "stageKey",
+  "stepKey",
+  "pathwayStepId",
+  "progressStatus",
+  "recommendedAction",
+  "isCurrentLearningStep",
+  "hasPractice",
+  "hasAssessment",
+  "hasWorksheet",
+  "hasNextStep",
+  "assessmentDepth",
+  "itemCount",
+  "taskCount",
 ]);
 
 const UNSAFE_KEY_PATTERN =

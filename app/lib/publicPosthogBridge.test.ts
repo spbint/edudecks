@@ -54,7 +54,7 @@ describe("public acquisition PostHog bridge", () => {
 
   it("merges the pre-signup anonymous PostHog identity into the authenticated product identity", () => {
     expect(productAnalyticsSource).toContain("$anon_distinct_id: getAnonymousDistinctId()");
-    expect(productAnalyticsSource).toContain('posthogCapture(\n    "$identify"');
+    expect(productAnalyticsSource).toMatch(/posthogCapture\(\r?\n\s+"\$identify"/);
     expect(productAnalyticsSource).toContain("trustedProperties: ProductAnalyticsProperties = {}");
   });
 
