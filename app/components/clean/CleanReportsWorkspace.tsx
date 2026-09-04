@@ -62,6 +62,10 @@ import {
 } from "@/lib/clean/outputs/pdf";
 import { createCleanReportExport } from "@/lib/clean/outputs/client";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  resolveReportNextAction,
+  type ReportNextAction,
+} from "@/lib/clean/reports/reportNextAction";
 
 type PendingReportAction =
   | { type: "archive"; report: CleanReport }
@@ -612,6 +616,9 @@ function CleanReportsWorkspaceBody() {
   const reportPreviewRef = useRef<HTMLDivElement>(null);
   const evidenceEntryIdFromQuery = searchParams.get("evidence_entry_id") ?? "";
   const learnerIdFromQuery = searchParams.get("learner_id") ?? "";
+  const reportEntrySource = searchParams.get("source") === "portfolio"
+    ? "portfolio"
+    : "other_internal";
   const portfolioPathBase = pathname.startsWith("/clean-my-reports")
     ? "/clean-my-portfolio"
     : "/my-portfolio";
@@ -804,6 +811,23 @@ function CleanReportsWorkspaceBody() {
   }, [defaultReportingPeriodForReport, reportLearnerId, reports]);
   const reportCanPreview = Boolean(selectedReport && selectedPeriod);
   const reportCanMoveToOutput = Boolean(selectedReport && selectedPeriod);
+  const reportNextAction = resolveReportNextAction({
+    hasLearner: Boolean(activeLearnerId),
+    hasReportingPeriod: Boolean(activePeriod),
+    hasReportEvidence: Boolean(portfolioItems.length),
+    hasSelectedReport: Boolean(selectedReport),
+    reportStatus: selectedReport?.status ?? null,
+  });
+  const reportContextLearnerLabel = selectedReport
+    ? selectedReportLearnerLabel
+    : draftReportLearnerLabel;
+  const reportContextPeriodLabel = activePeriod?.title || "Choose a reporting period";
+  const reportContextPeriodDates = activePeriod
+    ? formatDateRange(activePeriod.startsOn, activePeriod.endsOn)
+    : null;
+  const portfolioReturnHref = activeLearnerId
+    ? `${portfolioPathBase}?learner_id=${encodeURIComponent(activeLearnerId)}`
+    : portfolioPathBase;
   const nextReportGuidance = useMemo(() => {
     if (!selectedReport) {
       return "Choose the learner and report period, then review the evidence for this report.";
@@ -1384,31 +1408,50 @@ function CleanReportsWorkspaceBody() {
     }
   }
 
-  const introPrimaryAction = !selectedReport ? (
-    <button type="button" style={buttonStyle} onClick={openReportBuilder}>
-      Start report
-    </button>
-  ) : selectedReport.status === "ready" || reportCanPreview ? (
-    <button type="button" style={buttonStyle} onClick={openPreview}>
-      Preview learning record
-    </button>
-  ) : selectedReport.status === "archived" ? (
-    <button
-      type="button"
-      style={buttonStyle}
-      onClick={() => void handleUpdateReportStatus(selectedReport, "draft")}
-      disabled={submitting}
-    >
-      Continue report
-    </button>
-  ) : (
-    <button type="button" style={buttonStyle} onClick={openReportBuilder}>
-      Check report details
-    </button>
-  );
+  const reportNextActionControl = (() => {
+    const actionProps = { type: "button" as const, style: buttonStyle, disabled: submitting };
+
+    switch (reportNextAction as ReportNextAction) {
+      case "choose_learner":
+        return <button {...actionProps} onClick={openReportBuilder}>Choose learner</button>;
+      case "choose_reporting_period":
+        return <button {...actionProps} onClick={openReportBuilder}>Choose reporting period</button>;
+      case "review_evidence":
+        return (
+          <Link
+            href={portfolioReturnHref}
+            style={{ ...buttonStyle, display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}
+          >
+            Review evidence
+          </Link>
+        );
+      case "start_report":
+        return <button {...actionProps} onClick={openReportBuilder}>Start report</button>;
+      case "continue_report":
+        return selectedReport ? (
+          <button {...actionProps} onClick={() => void handleUpdateReportStatus(selectedReport, "draft")}>Continue report</button>
+        ) : null;
+      case "download_report":
+        return <button {...actionProps} onClick={() => void handleDownloadReportPdf()}>Download report PDF</button>;
+      case "preview_report":
+        return <button {...actionProps} onClick={openPreview}>Preview report</button>;
+      default:
+        return null;
+    }
+  })();
 
   const step1Tone: CompletionTone =
     selectedReport && selectedPeriod ? "complete" : "incomplete";
+  const reportSetupStepTitle = selectedReport
+    ? "Report details"
+    : reportLearnerId
+      ? "Confirm report details"
+      : "Choose learner";
+  const reportSetupCompletionText = selectedReport && selectedPeriod
+    ? "Step 1 complete - learner and report period linked."
+    : reportLearnerId && activePeriod
+      ? "Learner and reporting period are ready. Start the report when you are happy with the details."
+      : "Step 1 incomplete - choose the learner and report period.";
   const step2Tone: CompletionTone = reportCanPreview ? "complete" : "locked";
   const step2Text = reportCanPreview
     ? "Step 2 complete - preview the prepared learning record."
@@ -1445,6 +1488,10 @@ function CleanReportsWorkspaceBody() {
             .mylearna-reports-setup button,
             .mylearna-reports-setup a {
               min-height: 44px !important;
+            }
+
+            .mylearna-reports-portfolio-context {
+              padding: 14px !important;
             }
           }
         `}</style>
@@ -1570,8 +1617,62 @@ function CleanReportsWorkspaceBody() {
                       ? nextReportGuidance
                       : "Start with one learner and one report period. MyLearna will keep the next useful action in front of you."}
                   </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{introPrimaryAction}</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{reportNextActionControl}</div>
                 </div>
+                {reportEntrySource === "portfolio" ? (
+                  <div
+                    className="mylearna-reports-portfolio-context"
+                    data-testid="reports-portfolio-context"
+                    style={{
+                      ...helperCardStyle,
+                      background: "#ffffff",
+                      borderColor: "#bfdbfe",
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <strong style={{ color: "#0f172a" }}>Continuing from Portfolio</strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        Review the report context already available for this learner, then take the next step below.
+                      </p>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                      }}
+                    >
+                      <div>
+                        <div style={fieldLabelStyle}>Learner</div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {reportContextLearnerLabel || "Choose learner"}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={fieldLabelStyle}>Reporting period</div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>{reportContextPeriodLabel}</div>
+                        {reportContextPeriodDates ? (
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                            {reportContextPeriodDates}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div>
+                        <div style={fieldLabelStyle}>Report-ready records</div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {portfolioLoading
+                            ? "Loading records"
+                            : `${portfolioItems.length} ${portfolioItems.length === 1 ? "record" : "records"}`}
+                        </div>
+                      </div>
+                    </div>
+                    {!portfolioLoading && !portfolioItems.length && activeLearnerId && activePeriod ? (
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        No report evidence is available for this period yet. Portfolio inclusion and report inclusion remain separate.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 <CoreJourneyHelp>
                   <div className="mylearna-reports-helper-detail" style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>How reports are built</strong>
@@ -1590,7 +1691,7 @@ function CleanReportsWorkspaceBody() {
 
             <ReportBuildStepCard
               stepNumber={1}
-              title="Choose learner"
+              title={reportSetupStepTitle}
               helperText={
                 selectedReport
                   ? "This learning record is already linked to a saved report period. You can change the learner, title, or date range here."
@@ -1598,14 +1699,12 @@ function CleanReportsWorkspaceBody() {
               }
               completionTone={step1Tone}
               completionText={
-                selectedReport && selectedPeriod
-                  ? "Step 1 complete - learner and report period linked."
-                  : "Step 1 incomplete - choose the learner and report period."
+                reportSetupCompletionText
               }
               action={
-                <button
+                selectedReport ? <button
                   type="button"
-                  style={selectedReport ? quietButtonStyle : secondaryButtonStyle}
+                  style={quietButtonStyle}
                   onClick={() => {
                     if (showReportBuilder) {
                       setShowReportBuilder(false);
@@ -1615,8 +1714,9 @@ function CleanReportsWorkspaceBody() {
                   }}
                   disabled={submitting}
                 >
-                  {showReportBuilder ? "Hide report details" : selectedReport ? "Check report details" : "Start report"}
+                  {showReportBuilder ? "Hide report details" : "Check report details"}
                 </button>
+                : undefined
               }
             >
               <div data-guidance-id="reports-date-range" ref={reportSetupRef} style={{ display: "grid", gap: 16 }}>
@@ -2551,7 +2651,20 @@ function CleanReportsWorkspaceBody() {
                     </div>
 
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {selectedReport.status === "archived" ? (
+                      {!portfolioItems.length ? (
+                        <Link
+                          href={portfolioReturnHref}
+                          style={{
+                            ...buttonStyle,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          Review evidence
+                        </Link>
+                      ) : selectedReport.status === "archived" ? (
                         <button
                           type="button"
                           style={buttonStyle}
@@ -2560,9 +2673,18 @@ function CleanReportsWorkspaceBody() {
                         >
                           Continue report
                         </button>
-                      ) : reportCanPreview || selectedReport.status === "ready" ? (
+                      ) : selectedReport.status === "ready" ? (
+                        <button
+                          type="button"
+                          style={buttonStyle}
+                          onClick={() => void handleDownloadReportPdf()}
+                          disabled={submitting}
+                        >
+                          {submitting ? "Preparing PDF..." : "Download report PDF"}
+                        </button>
+                      ) : reportCanPreview ? (
                         <button type="button" style={buttonStyle} onClick={openPreview}>
-                          Preview learning record
+                          Preview report
                         </button>
                       ) : (
                         <button type="button" style={buttonStyle} onClick={openReportBuilder}>
@@ -2593,14 +2715,24 @@ function CleanReportsWorkspaceBody() {
                         </Link>
                       ) : null}
 
-                      {selectedPeriod ? (
+                      {selectedPeriod && portfolioItems.length && selectedReport.status !== "ready" ? (
                         <button
                           type="button"
-                          style={successButtonStyle}
+                          style={secondaryButtonStyle}
                           onClick={() => void handleDownloadReportPdf()}
                           disabled={submitting}
                         >
                           {submitting ? "Preparing PDF..." : "Download report PDF"}
+                        </button>
+                      ) : null}
+
+                      {selectedReport.status === "ready" && portfolioItems.length ? (
+                        <button
+                          type="button"
+                          style={secondaryButtonStyle}
+                          onClick={openPreview}
+                        >
+                          Preview report
                         </button>
                       ) : null}
 
