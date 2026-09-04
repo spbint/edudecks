@@ -2310,6 +2310,30 @@ function CleanCaptureWorkspaceBody() {
               gap: 6px !important;
             }
 
+            .mylearna-capture-source-context {
+              margin-top: 12px !important;
+              padding: 12px !important;
+              gap: 4px !important;
+            }
+
+            .mylearna-capture-form {
+              margin-top: 12px !important;
+              padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+            }
+
+            .mylearna-capture-what-happened textarea {
+              min-height: 136px !important;
+            }
+
+            .mylearna-capture-optional-details {
+              gap: 10px !important;
+            }
+
+            .mylearna-capture-inclusion-options {
+              padding: 12px !important;
+              gap: 8px !important;
+            }
+
             .mylearna-capture-photo-section,
             .mylearna-capture-progress-section,
             .mylearna-capture-note-section {
@@ -2351,6 +2375,14 @@ function CleanCaptureWorkspaceBody() {
             .mylearna-capture-save-row {
               display: grid !important;
               grid-template-columns: 1fr !important;
+              position: sticky !important;
+              bottom: calc(var(--mylearna-mobile-bottom-nav-height, 0px) + env(safe-area-inset-bottom, 0px) + 8px) !important;
+              z-index: 4;
+              border: 1px solid #ddd6fe;
+              border-radius: 14px;
+              background: rgba(250, 249, 255, 0.97);
+              padding: 10px;
+              box-shadow: 0 -6px 18px rgba(23, 32, 75, 0.08);
             }
 
             .mylearna-capture-save-row button {
@@ -2505,7 +2537,7 @@ function CleanCaptureWorkspaceBody() {
               </section>
             ) : null}
             <section
-              className={worksheetEvidenceMode ? "mylearna-capture-card" : undefined}
+              className="mylearna-capture-card"
               data-guidance-id="capture-add-evidence"
               data-capture-mode={
                 worksheetEvidenceMode
@@ -2716,6 +2748,7 @@ function CleanCaptureWorkspaceBody() {
 
               {selectedCalendarItem || selectedProgram || selectedProgramSegment ? (
                 <div
+                  className="mylearna-capture-source-context"
                   style={{
                     marginTop: 16,
                     border: "1px solid #bfdbfe",
@@ -2744,12 +2777,9 @@ function CleanCaptureWorkspaceBody() {
               ) : null}
 
               {!showSavedReceipt ? (
-              <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                {!worksheetEvidenceMode && !learningFromLifeActive ? (
-                  <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} title="Optional attachments" />
-                ) : null}
+              <form className="mylearna-capture-form" onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
                 <div
-                  className={worksheetEvidenceMode ? "mylearna-capture-learner-date" : undefined}
+                  className="mylearna-capture-learner-date"
                   style={{
                     display: "grid",
                     gap: 12,
@@ -3343,7 +3373,7 @@ function CleanCaptureWorkspaceBody() {
                 ) : null}
 
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
-                <div data-guidance-id="capture-note-field">
+                <div className="mylearna-capture-what-happened" data-guidance-id="capture-note-field">
                   <textarea
                     value={whatHappened}
                     onChange={(event) => {
@@ -3351,7 +3381,7 @@ function CleanCaptureWorkspaceBody() {
                       setWhatHappened(event.target.value);
                     }}
                     placeholder={curriculumWhatHappenedPlaceholder}
-                    style={textAreaStyle}
+                    style={{ ...textAreaStyle, minHeight: 136 }}
                   />
                 </div>
                 ) : null}
@@ -3362,7 +3392,7 @@ function CleanCaptureWorkspaceBody() {
                 ) : null}
 
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <div className="mylearna-capture-optional-details" style={{ display: "grid", gap: 12 }}>
                     <label style={{ display: "grid", gap: 6 }}>
                       <span style={{ fontWeight: 700, color: "#0f172a" }}>Parent note</span>
                       <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
@@ -3391,6 +3421,15 @@ function CleanCaptureWorkspaceBody() {
                       />
                     </label>
                   </div>
+                ) : null}
+
+                {!worksheetEvidenceMode && !learningFromLifeActive ? (
+                  <CleanEvidenceAttachmentControls
+                    attachments={attachments}
+                    disabled={submitting}
+                    compact
+                    title="Optional attachments"
+                  />
                 ) : null}
 
                 {pathwayObservedStatusFieldVisible ? (
@@ -3442,6 +3481,7 @@ function CleanCaptureWorkspaceBody() {
                 ) : null}
 
                 <div
+                  className="mylearna-capture-inclusion-options"
                   style={{
                     border: "1px solid #E2E8F0",
                     borderRadius: 14,
@@ -3528,7 +3568,7 @@ function CleanCaptureWorkspaceBody() {
                   </p>
                 ) : null}
 
-                <div className={worksheetEvidenceMode ? "mylearna-capture-save-row" : undefined} data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <div className="mylearna-capture-save-row" data-guidance-id="capture-save" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="submit"
                     style={{

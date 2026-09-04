@@ -46,4 +46,15 @@ describe("My Capture success receipt", () => {
     expect(source).toContain("setLifeAddToPortfolio(true);");
     expect(source).toContain("setLifeIncludeInReport(true);");
   });
+
+  it("keeps standard Capture compact and saveable on a phone without changing its form contract", () => {
+    expect(source).toContain('className="mylearna-capture-form"');
+    expect(source).toContain('className="mylearna-capture-source-context"');
+    expect(source).toContain('className="mylearna-capture-what-happened"');
+    expect(source).toContain('className="mylearna-capture-inclusion-options"');
+    expect(source).toContain('className="mylearna-capture-save-row"');
+    expect(source).toContain("position: sticky !important;");
+    expect(source).toContain("bottom: calc(var(--mylearna-mobile-bottom-nav-height");
+    expect(source).toContain("CleanEvidenceAttachmentControls\n                    attachments={attachments}");
+  });
 });
