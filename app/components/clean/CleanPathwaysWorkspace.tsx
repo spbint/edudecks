@@ -56,7 +56,10 @@ import {
   buildExplainableProgressStory,
   type ExplainableProgressNextAction,
 } from "@/lib/clean/pathways/explainableProgressStory";
-import type { ParentProgressStatus } from "@/lib/clean/pathways/parentProgress";
+import {
+  toParentProgressStatus,
+  type ParentProgressStatus,
+} from "@/lib/clean/pathways/parentProgress";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -370,17 +373,14 @@ const statusMeta: Record<
 };
 
 function getCustomerPathwayStatusLabel(status: string) {
-  if (status === "Ready to assess") return "Ready for evidence";
-  if (status === "Practising") return "In progress";
-  return status;
+  return toParentProgressStatus(status) || "Not checked yet";
 }
 
 const worksheetEvidenceProgressMeta: Record<
   string,
-  { label: string; fill: string; border: string; text: string; dot: string; helper: string }
+  { fill: string; border: string; text: string; dot: string; helper: string }
 > = {
   "needs support": {
-    label: "Needs support",
     fill: "#fff1f2",
     border: "#fecdd3",
     text: "#be123c",
@@ -388,7 +388,6 @@ const worksheetEvidenceProgressMeta: Record<
     helper: "Completed worksheet work recorded. This step still needs support.",
   },
   "working towards": {
-    label: "Working towards",
     fill: "#fff7ed",
     border: "#fed7aa",
     text: "#c2410c",
@@ -396,15 +395,20 @@ const worksheetEvidenceProgressMeta: Record<
     helper: "Completed worksheet work recorded. This step is developing.",
   },
   consolidating: {
-    label: "Consolidating",
     fill: "#fffbeb",
     border: "#fde68a",
     text: "#92400e",
     dot: "#f59e0b",
     helper: "Completed worksheet work recorded. This step is close to secure.",
   },
+  developing: {
+    fill: "#fff7ed",
+    border: "#fed7aa",
+    text: "#c2410c",
+    dot: "#fb923c",
+    helper: "Completed worksheet work recorded. This step is developing.",
+  },
   secure: {
-    label: "Secure",
     fill: "#ecfdf5",
     border: "#bbf7d0",
     text: "#166534",
@@ -412,7 +416,6 @@ const worksheetEvidenceProgressMeta: Record<
     helper: "Completed worksheet work recorded. This step is secure.",
   },
   "goal achieved": {
-    label: "Goal achieved",
     fill: "#ecfdf5",
     border: "#bbf7d0",
     text: "#166534",
@@ -420,11 +423,10 @@ const worksheetEvidenceProgressMeta: Record<
     helper: "Completed worksheet work recorded. This step is achieved.",
   },
   "goal achieved + extension": {
-    label: "Goal achieved + extension",
-    fill: "#eef2ff",
-    border: "#c7d2fe",
-    text: "#3730a3",
-    dot: "#6366f1",
+    fill: "#ecfdf5",
+    border: "#bbf7d0",
+    text: "#166534",
+    dot: "#22c55e",
     helper: "Completed worksheet work recorded with extension.",
   },
 };
@@ -470,7 +472,9 @@ function getWorksheetEvidenceProgressLabel(entry: CleanEvidenceEntry | null | un
 function getWorksheetEvidenceProgressMeta(entry: CleanEvidenceEntry | null | undefined) {
   const label = getWorksheetEvidenceProgressLabel(entry);
   if (!label) return null;
-  return worksheetEvidenceProgressMeta[label.toLowerCase()] ?? null;
+  const presentationStatus = toParentProgressStatus(label, "evidence");
+  const meta = worksheetEvidenceProgressMeta[label.toLowerCase()] ?? null;
+  return presentationStatus && meta ? { ...meta, label: presentationStatus } : null;
 }
 
 function getNumberAutoCheckStatusFromEvidence(
@@ -4270,20 +4274,27 @@ function DetailedMathematicsStepCard({
     stepState: stepUnifiedState,
     attempts: assessmentAttempts,
   });
-  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not checked yet";
+  const confidenceStatusLabel = stepUnifiedState?.assessmentConfidence || "Not assessed yet";
+  const confidencePresentationStatus = toParentProgressStatus(
+    confidenceStatusLabel,
+    "assessment-status",
+  );
   const latestEvidenceEntry = stepUnifiedState?.latestEvidenceEntry ?? null;
   const evidenceProgressMeta =
     progressStory.currentProgressSource !== "parent-confirmation" &&
     stepUnifiedState?.latestStatusSource === "evidence"
       ? getWorksheetEvidenceProgressMeta(latestEvidenceEntry)
       : null;
-  const statusChipMeta =
+  const displayedProgressStatus =
     progressStory.currentProgressSource === "parent-confirmation"
-      ? parentProgressChipMeta[progressStory.currentProgress]
-      : evidenceProgressMeta ||
-    (exactStepContext && confidenceStatusLabel === "Not checked yet"
-      ? statusMeta["Not started"]
-      : meta);
+      ? progressStory.currentProgress
+      : evidenceProgressMeta?.label ||
+        (exactStepContext
+          ? confidencePresentationStatus
+          : getCustomerPathwayStatusLabel(status));
+  const statusChipMeta = parentProgressChipMeta[
+    displayedProgressStatus || "Not checked yet"
+  ];
   const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const worksheetResource = getWorksheetResourceForPathwayStep({
     pathwayStepId: canonicalPathwayStepId,
@@ -4382,8 +4393,7 @@ function DetailedMathematicsStepCard({
   const latestEvidenceDate = formatWorksheetEvidenceDate(latestEvidenceEntry);
   const isStepSecure =
     isUnifiedPathwayStepComplete(stepUnifiedState) ||
-    evidenceProgressMeta?.label === "Goal achieved" ||
-    evidenceProgressMeta?.label === "Goal achieved + extension" ||
+    evidenceProgressMeta?.label === "Secure" ||
     status === "Secure";
   const manualComplete = Boolean(manualCompletion?.completed);
   const stepComplete = manualComplete || isStepSecure;
@@ -4567,9 +4577,7 @@ function DetailedMathematicsStepCard({
                   ? progressStory.currentProgress
                   : evidenceProgressMeta
                   ? evidenceProgressMeta.label
-                  : exactStepContext && confidenceStatusLabel !== "Not checked yet"
-                    ? getCustomerPathwayStatusLabel(confidenceStatusLabel)
-                    : getCustomerPathwayStatusLabel(status)}
+                  : displayedProgressStatus || "Not checked yet"}
               </strong>
             </div>
 
@@ -4890,7 +4898,7 @@ function ExplainableProgressStorySection({
   const checkDate = formatProgressStoryDate(story.latestCheck?.completedAt || null);
   const checkSummary = story.latestCheck
     ? story.latestCheck.itemCount > 0
-      ? `${story.latestCheck.correctCount} of ${story.latestCheck.itemCount} correct`
+      ? `${story.latestCheck.factualStatus} · ${story.latestCheck.correctCount} of ${story.latestCheck.itemCount} correct`
       : story.latestCheck.factualStatus
     : null;
 
@@ -4939,7 +4947,7 @@ function ExplainableProgressStorySection({
         {story.completedCheckCount ? (
           <div style={{ color: "#334155", fontSize: 13 }}>
             {story.completedCheckCount} completed {story.completedCheckCount === 1 ? "check" : "checks"}
-            {checkSummary ? ` · Latest: ${checkSummary}` : ""}
+            {checkSummary ? ` · Latest check: ${checkSummary}` : ""}
             {checkDate ? ` · ${checkDate}` : ""}
           </div>
         ) : null}

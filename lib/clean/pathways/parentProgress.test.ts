@@ -6,6 +6,7 @@ import {
   evidenceProgressToParentStatus,
   parentProgressToStoredStatus,
   storedProgressToParentStatus,
+  toParentProgressStatus,
 } from "@/lib/clean/pathways/parentProgress";
 import { buildUnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
 
@@ -61,6 +62,37 @@ describe("parent-confirmed pathway progress", () => {
     expect(evidenceProgressToParentStatus("Developing")).toBe("Developing");
     expect(evidenceProgressToParentStatus("Progress level: Secure")).toBeNull();
     expect(evidenceProgressToParentStatus("Goal achieved")).toBe("Secure");
+  });
+
+  it.each([
+    [null, "Not checked yet"],
+    ["Not started", "Not checked yet"],
+    ["Still developing", "Needs support"],
+    ["Working towards", "Developing"],
+    ["Practising", "Developing"],
+    ["Evidence started", "Developing"],
+    ["Ready to assess", "Consolidating"],
+    ["Strong", "Secure"],
+    ["Goal achieved", "Secure"],
+    ["Goal achieved + extension", "Secure"],
+  ] as const)("maps the raw pathway signal %s to %s for presentation", (raw, parent) => {
+    expect(toParentProgressStatus(raw)).toBe(parent);
+  });
+
+  it("keeps unknown evidence text out of the presentation vocabulary", () => {
+    expect(toParentProgressStatus("Progress level: Secure")).toBeNull();
+  });
+
+  it("keeps legacy pathway wording behind the canonical presentation mapper", () => {
+    const source = readFileSync(
+      join(process.cwd(), "app/components/clean/CleanPathwaysWorkspace.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain('toParentProgressStatus(label, "evidence")');
+    expect(source).toContain("return toParentProgressStatus(status) || \"Not checked yet\"");
+    expect(source).not.toContain('return "Ready for evidence"');
+    expect(source).not.toContain('return "In progress"');
   });
 
   it("leaves the existing manual Pathways selection handlers in place", () => {
