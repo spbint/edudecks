@@ -55,7 +55,7 @@ describe("Homeschool editability and journey handoffs", () => {
     expect(pathways).toContain("Add completed work");
     expect(pathwayActions).toContain("Add completed work");
     expect(capture).toContain("View in My Portfolio");
-    expect(portfolio).toContain("Create Report");
+    expect(portfolio).toContain("Create full report");
     expect(reports).toContain("Open output history");
     expect(profile).toContain("showActivationFork");
     expect(calendar).toContain("canAddBreakOrHoliday");

@@ -200,8 +200,8 @@ describe("Quick Capture doorway", () => {
   });
 
   it("connects Portfolio to the existing learner-aware Reports route", () => {
-    expect(portfolioSource).toContain("Your learning record is building.");
-    expect(portfolioSource).toContain("Create Report");
+    expect(portfolioSource).toContain("Start ${selectedLearnerLabel}'s learning story");
+    expect(portfolioSource).toContain("Create full report");
     expect(portfolioSource).toContain("createReportHref");
     expect(portfolioSource).toContain("learner_id=${encodeURIComponent(selectedLearnerId)}");
     expect(portfolioSource).toContain("mylearna-portfolio-next-report");

@@ -12,7 +12,7 @@ describe("Portfolio density hierarchy", () => {
     expect(source).toContain("const showPortfolioGuidance =");
     expect(source).toContain("showPortfolioGuidance ? (");
     expect(source).toContain('data-testid="portfolio-evidence-card"');
-    expect(source).toContain("Your learning record is building.");
+    expect(source).toContain("Start ${selectedLearnerLabel}'s learning story");
   });
 
   it("uses a compact collapsed card with explicit detail disclosure", () => {

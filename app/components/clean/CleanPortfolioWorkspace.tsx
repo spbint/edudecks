@@ -40,6 +40,7 @@ import {
   getEvidencePreviewImage,
 } from "@/lib/clean/portfolio/evidencePresentation";
 import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
+import { buildPortfolioLearningStory } from "@/lib/clean/portfolio/learningStory";
 import { parseAssessmentEvidenceLinkFromNodeIds } from "@/lib/clean/assessments/client";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
@@ -378,6 +379,17 @@ function CleanPortfolioWorkspaceBody() {
         .sort((left, right) => left.localeCompare(right)),
     [items],
   );
+  const portfolioLearningStory = useMemo(
+    () => buildPortfolioLearningStory(items, selectedLearnerId || null),
+    [items, selectedLearnerId],
+  );
+  const captureLearningHref = selectedLearnerId
+    ? `${capturePathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}`
+    : capturePathBase;
+  const learningStoryHighlights = portfolioLearningStory.highlights.slice(0, 3);
+  const learningStoryRecentItems = portfolioLearningStory.recentItems
+    .filter((item) => !item.isHighlighted)
+    .slice(0, 3);
   const pathwayEvidenceSummary = useMemo(() => {
     const stepByEvidenceId = new Map<string, PathwayStepEvidenceMeta>();
     const stepCounts = new Map<string, { label: string; count: number }>();
@@ -902,8 +914,28 @@ function CleanPortfolioWorkspaceBody() {
     <div style={shellStyle}>
       <style jsx global>{`
         @media (max-width: 720px) {
+          .mylearna-portfolio-learning-story,
           .mylearna-portfolio-learning-record-hub {
             padding: 14px !important;
+          }
+
+          .mylearna-portfolio-story-evidence {
+            padding: 14px !important;
+          }
+
+          .mylearna-portfolio-learning-areas {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .mylearna-portfolio-learning-areas > span,
+          .mylearna-portfolio-story-evidence-button {
+            min-height: 44px !important;
+          }
+
+          .mylearna-portfolio-story-evidence-button {
+            width: 100%;
+            text-align: left;
           }
 
           .mylearna-portfolio-learner-select.is-selected {
@@ -1086,7 +1118,7 @@ function CleanPortfolioWorkspaceBody() {
         {readyForPortfolio && workspace.profile && workspace.learners.length ? (
           <>
             <section
-              className="mylearna-portfolio-learning-record-hub"
+              className="mylearna-portfolio-learning-story"
               style={{
                 ...cardStyle,
                 borderColor: "#dbeafe",
@@ -1111,45 +1143,47 @@ function CleanPortfolioWorkspaceBody() {
                       textTransform: "uppercase",
                     }}
                   >
-                    Learning record
+                    Learning story
                   </div>
                   <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
                     {selectedLearnerLabel
-                      ? `Learning record for ${selectedLearnerLabel}`
-                      : "Download learning record"}
+                      ? `${selectedLearnerLabel}'s recent learning`
+                      : "Your family's recent learning"}
                   </h2>
-                  {!hasPortfolioEvidence ? (
+                  {!portfolioLearningStory.evidenceCount ? (
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Your learning record is building.
+                      {selectedLearnerLabel
+                        ? `Start ${selectedLearnerLabel}'s learning story with a short observation, work sample, or photo.`
+                        : "Choose a learner, then capture a short observation, work sample, or photo to begin their learning story."}
                     </p>
                   ) : null}
-                  {!hasPortfolioEvidence ? (
-                    <CoreJourneyHelp>
-                      <p>
-                        Use captured evidence directly from Portfolio. My Reports is still
-                        available for a fuller edited report.
-                      </p>
-                    </CoreJourneyHelp>
+                  {portfolioLearningStory.evidenceCount ? (
+                    <div
+                      className="mylearna-portfolio-story-metrics"
+                      aria-label="Learning story summary"
+                      style={{
+                        display: "grid",
+                        gap: 10,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                      }}
+                    >
+                      <div><strong style={{ color: "#0f172a", fontSize: 20 }}>{portfolioLearningStory.evidenceCount}</strong><div style={{ color: "#64748b", fontSize: 13 }}>Portfolio learning {portfolioLearningStory.evidenceCount === 1 ? "record" : "records"}</div></div>
+                      <div><strong style={{ color: "#0f172a", fontSize: 20 }}>{portfolioLearningStory.learningAreaCount}</strong><div style={{ color: "#64748b", fontSize: 13 }}>Learning {portfolioLearningStory.learningAreaCount === 1 ? "area" : "areas"} represented</div></div>
+                      <div><strong style={{ color: "#0f172a", fontSize: 15 }}>{portfolioLearningStory.latestObservedOn ? formatDateLabel(portfolioLearningStory.latestObservedOn) : "Not recorded"}</strong><div style={{ color: "#64748b", fontSize: 13 }}>Latest learning</div></div>
+                    </div>
                   ) : null}
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    {selectedLearnerLabel ? (
-                      <>
-                        <strong style={{ color: "#0f172a" }}>
-                          {quickRecordEvidenceItems.length} evidence{" "}
-                          {quickRecordEvidenceItems.length === 1 ? "item" : "items"} ready
-                        </strong>
-                        {" for this learning record"}
-                        {" - "}
-                        {quickRecordEvidenceItems.length} report-included evidence{" "}
-                        {quickRecordEvidenceItems.length === 1 ? "item" : "items"}
-                        {quickRecordAssessmentEvidenceItems.length
-                          ? ` and ${quickRecordAssessmentEvidenceItems.length} pathway checks`
-                          : ""}
-                      </>
-                    ) : (
-                      "Choose one learner to download a learning record."
-                    )}
-                  </div>
+                  {portfolioLearningStory.learningAreas.length ? (
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a", fontSize: 13 }}>Learning areas represented</strong>
+                      <div className="mylearna-portfolio-learning-areas" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {portfolioLearningStory.learningAreas.map((area) => (
+                          <span key={area.learningArea} style={{ borderRadius: 999, padding: "5px 10px", background: "#ffffff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
+                            {area.learningArea} — {area.recordCount} {area.recordCount === 1 ? "record" : "records"}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
@@ -1162,7 +1196,7 @@ function CleanPortfolioWorkspaceBody() {
                       minHeight: 44,
                       background: "#ffffff",
                     }}
-                    aria-label="Choose learner for learning record"
+                    aria-label="Choose learner for learning story"
                   >
                     <option value="">Choose learner</option>
                     {learnerOptions.map((option) => (
@@ -1206,7 +1240,13 @@ function CleanPortfolioWorkspaceBody() {
                       textDecoration: "none",
                     }}
                   >
-                    Create Report
+                    Create full report
+                  </Link>
+                  <Link
+                    href={captureLearningHref}
+                    style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none", minHeight: 44, display: "inline-flex", alignItems: "center" }}
+                  >
+                    Capture learning
                   </Link>
                 </div>
               </div>
@@ -1325,6 +1365,96 @@ function CleanPortfolioWorkspaceBody() {
                     imageStoragePath={justCapturedImage.storagePath}
                     showTrigger
                   />
+                ) : null}
+              </section>
+            ) : null}
+
+            {portfolioLearningStory.evidenceCount ? (
+              <section
+                className="mylearna-portfolio-story-evidence"
+                style={{
+                  ...cardStyle,
+                  display: "grid",
+                  gap: 16,
+                  borderColor: "#e2e8f0",
+                }}
+              >
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div
+                    style={{
+                      color: "#64748b",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Learning story
+                  </div>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
+                    Highlights and recent learning
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
+                    Open a learning record to see its full evidence, context, and actions.
+                  </p>
+                </div>
+
+                {learningStoryHighlights.length ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong style={{ color: "#0f172a" }}>Featured evidence</strong>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {learningStoryHighlights.map((item) => (
+                        <button
+                          key={item.evidence.id}
+                          className="mylearna-portfolio-story-evidence-button"
+                          type="button"
+                          onClick={() => openEvidence(item)}
+                          style={{
+                            ...secondaryButtonStyle,
+                            display: "grid",
+                            gap: 3,
+                            justifyItems: "start",
+                            padding: "10px 12px",
+                          }}
+                        >
+                          <strong>{portfolioCardTitle(item)}</strong>
+                          <span style={{ color: "#64748b", fontSize: 13 }}>
+                            {formatDateLabel(item.evidence.observedOn)}
+                            {item.evidence.learningArea ? ` - ${item.evidence.learningArea}` : ""}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {learningStoryRecentItems.length ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong style={{ color: "#0f172a" }}>Recent learning</strong>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {learningStoryRecentItems.map((item) => (
+                        <button
+                          key={item.evidence.id}
+                          className="mylearna-portfolio-story-evidence-button"
+                          type="button"
+                          onClick={() => openEvidence(item)}
+                          style={{
+                            ...secondaryButtonStyle,
+                            display: "grid",
+                            gap: 3,
+                            justifyItems: "start",
+                            padding: "10px 12px",
+                          }}
+                        >
+                          <strong>{portfolioCardTitle(item)}</strong>
+                          <span style={{ color: "#64748b", fontSize: 13 }}>
+                            {formatDateLabel(item.evidence.observedOn)}
+                            {item.evidence.learningArea ? ` - ${item.evidence.learningArea}` : ""}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ) : null}
               </section>
             ) : null}
