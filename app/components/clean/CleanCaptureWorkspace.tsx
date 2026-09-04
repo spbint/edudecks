@@ -2169,6 +2169,8 @@ function CleanCaptureWorkspaceBody() {
     setReflection(entry.reflection || "");
     setLearnerReflection("");
     setLearningArea(entry.learningArea || "");
+    setLifeAddToPortfolio(entry.includeInPortfolio);
+    setLifeIncludeInReport(entry.includeInReport);
     setProgramId(entry.programId || "");
     setCalendarItemId(entry.calendarItemId || "");
     setFormCurriculumContext(entryCurriculumContext);

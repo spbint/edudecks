@@ -197,6 +197,68 @@ describe("unified learning capture", () => {
     expect(secondResult.duplicate).toBe(true);
   });
 
+  it.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ])("preserves %s / %s inclusion when updating an existing record", async (includeInPortfolio, includeInReport) => {
+    const updateEntry = vi.fn(async (
+      _familyId: string,
+      _entryId: string,
+      input: ReturnType<typeof buildUnifiedCaptureEvidenceInput>,
+    ) => entry("entry-1", input));
+
+    await saveUnifiedLearningCapture(
+      draft({ includeInPortfolio, includeInReport, title: "Edited title" }),
+      { entryId: "entry-1", updateEntry },
+    );
+
+    expect(updateEntry).toHaveBeenCalledWith(
+      "family-1",
+      "entry-1",
+      expect.objectContaining({
+        title: "Edited title",
+        includeInPortfolio,
+        includeInReport,
+      }),
+    );
+  });
+
+  it("keeps Portfolio and Reports inclusion independently editable", async () => {
+    const updateEntry = vi.fn(async (
+      _familyId: string,
+      _entryId: string,
+      input: ReturnType<typeof buildUnifiedCaptureEvidenceInput>,
+    ) => entry("entry-1", input));
+
+    await saveUnifiedLearningCapture(
+      draft({ includeInPortfolio: true, includeInReport: false }),
+      { entryId: "entry-1", updateEntry },
+    );
+
+    expect(updateEntry).toHaveBeenCalledWith(
+      "family-1",
+      "entry-1",
+      expect.objectContaining({ includeInPortfolio: true, includeInReport: false }),
+    );
+  });
+
+  it("does not convert a failed edit into a successful inclusion update", async () => {
+    const updateEntry = vi.fn(async () => {
+      throw new Error("Save failed");
+    });
+
+    await expect(
+      saveUnifiedLearningCapture(
+        draft({ includeInPortfolio: false, includeInReport: false }),
+        { entryId: "entry-1", updateEntry },
+      ),
+    ).rejects.toThrow("Save failed");
+
+    expect(updateEntry).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps Stage 4D progress judgement recognition passing for captured evidence", () => {
     const input = buildUnifiedCaptureEvidenceInput(draft({ progressJudgement: "Consolidating" }));
     const observations = buildRecognizedProgressJudgementObservations({

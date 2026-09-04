@@ -39,4 +39,11 @@ describe("My Capture success receipt", () => {
     expect(source).toContain('const returnToFromQuery = safeQueryValue(searchParams.get("returnTo"));');
     expect(source).toContain('const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")');
   });
+
+  it("hydrates saved inclusion choices for edits and restores true defaults for a new record", () => {
+    expect(source).toContain("setLifeAddToPortfolio(entry.includeInPortfolio);");
+    expect(source).toContain("setLifeIncludeInReport(entry.includeInReport);");
+    expect(source).toContain("setLifeAddToPortfolio(true);");
+    expect(source).toContain("setLifeIncludeInReport(true);");
+  });
 });
