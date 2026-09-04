@@ -6,6 +6,7 @@ import { compressCleanEvidenceImage } from "@/lib/clean/evidence/imagePreparatio
 import {
   CLEAN_CAPTURE_MAX_FILE_BYTES,
   CLEAN_CAPTURE_MAX_IMAGE_BYTES,
+  isSupportedCleanCaptureImage,
   isSupportedCleanCaptureFile,
 } from "@/lib/clean/evidence/attachmentPolicy";
 import {
@@ -113,8 +114,8 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
   const handlePhotoChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setAttachmentError("");
-    if (file && !file.type.startsWith("image/")) {
-      setAttachmentError("Choose an image file for this learning moment.");
+    if (file && !isSupportedCleanCaptureImage(file)) {
+      setAttachmentError("Choose a JPEG, PNG, WebP, or GIF image for this learning moment.");
       event.currentTarget.value = "";
       return;
     }
@@ -131,12 +132,12 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
     const file = event.target.files?.[0] ?? null;
     setAttachmentError("");
     if (file && !isSupportedCleanCaptureFile(file)) {
-      setAttachmentError("Choose a PDF, document, or common image file.");
+      setAttachmentError("Choose a JPEG, PNG, WebP, GIF, PDF, Word, or text file.");
       event.currentTarget.value = "";
       return;
     }
     if (file && file.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
-      setAttachmentError("Choose a file smaller than 25 MB.");
+      setAttachmentError("Choose a file smaller than 10 MB.");
       event.currentTarget.value = "";
       return;
     }
@@ -167,16 +168,16 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
   }, [hydratePhoto]);
 
   const validateSelectedAttachments = useCallback(() => {
-    if (photoFile && (!photoFile.type.startsWith("image/") || photoFile.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES)) {
+    if (photoFile && (!isSupportedCleanCaptureImage(photoFile) || photoFile.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES)) {
       return photoFile.size > CLEAN_CAPTURE_MAX_IMAGE_BYTES
         ? "Choose an image smaller than 10 MB."
-        : "Choose an image file for this learning moment.";
+        : "Choose a JPEG, PNG, WebP, or GIF image for this learning moment.";
     }
     if (evidenceFile && !isSupportedCleanCaptureFile(evidenceFile)) {
-      return "Choose a PDF, document, or common image file.";
+      return "Choose a JPEG, PNG, WebP, GIF, PDF, Word, or text file.";
     }
     if (evidenceFile && evidenceFile.size > CLEAN_CAPTURE_MAX_FILE_BYTES) {
-      return "Choose a file smaller than 25 MB.";
+      return "Choose a file smaller than 10 MB.";
     }
     return null;
   }, [evidenceFile, photoFile]);

@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useRef } from "react";
-import { CLEAN_CAPTURE_FILE_ACCEPT } from "@/lib/clean/evidence/attachmentPolicy";
+import {
+  CLEAN_CAPTURE_FILE_ACCEPT,
+  CLEAN_CAPTURE_IMAGE_ACCEPT,
+} from "@/lib/clean/evidence/attachmentPolicy";
 import type { CleanEvidenceAttachmentState } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
 
 const visuallyHiddenFileInputStyle: React.CSSProperties = {
@@ -102,7 +105,7 @@ export default function CleanEvidenceAttachmentControls({
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept={CLEAN_CAPTURE_IMAGE_ACCEPT}
         capture="environment"
         disabled={disabled}
         onChange={attachments.handlePhotoChange}
@@ -113,7 +116,7 @@ export default function CleanEvidenceAttachmentControls({
       <input
         ref={libraryInputRef}
         type="file"
-        accept="image/*"
+        accept={CLEAN_CAPTURE_IMAGE_ACCEPT}
         disabled={disabled}
         onChange={attachments.handlePhotoChange}
         aria-label="Choose a photo"
