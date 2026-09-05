@@ -9,6 +9,7 @@ import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CoreJourneyCue, {
   CoreJourneyHelp,
 } from "@/app/components/clean/design-v2/CoreJourneyCue";
+import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import CleanMiniCalendarNavigator from "@/app/components/clean/CleanMiniCalendarNavigator";
 import {
   CleanFeedbackPrompt,
@@ -288,8 +289,223 @@ function hasGuidanceContext(profile: {
   return Boolean(jurisdictionCode);
 }
 
+type MobileTodayContentProps = {
+  calendarHref: string;
+  completionError: { itemId: string; message: string } | null;
+  completionUpdatingIds: Set<string>;
+  dateLabel: string;
+  hasLearners: boolean;
+  isViewingToday: boolean;
+  items: CleanCalendarItem[];
+  itemsError: string | null;
+  itemsLoading: boolean;
+  learnerLabelById: Map<string, string>;
+  learnerOptions: Array<{ value: string; label: string }>;
+  myDayPresentationState: CleanMyDayPresentationState | null;
+  onCompletionToggle: (item: CleanCalendarItem) => void;
+  onLearnerChange: (learnerId: string) => void;
+  onMoveDay: (offset: number) => void;
+  onToday: () => void;
+  quickCaptureHref: string;
+  selectedLearnerId: string;
+  selectedLearnerLabel: string | null;
+  setupNextAction: { href: string; label: string } | null;
+  workspaceError: string | null;
+  workspaceLoading: boolean;
+  workspaceNeedsFamily: boolean;
+  workspaceSchemaMissing: boolean;
+  buildItemCaptureHref: (item: CleanCalendarItem) => string;
+};
+
+function MobileTodayContent({
+  calendarHref,
+  completionError,
+  completionUpdatingIds,
+  dateLabel,
+  hasLearners,
+  isViewingToday,
+  items,
+  itemsError,
+  itemsLoading,
+  learnerLabelById,
+  learnerOptions,
+  myDayPresentationState,
+  onCompletionToggle,
+  onLearnerChange,
+  onMoveDay,
+  onToday,
+  quickCaptureHref,
+  selectedLearnerId,
+  selectedLearnerLabel,
+  setupNextAction,
+  workspaceError,
+  workspaceLoading,
+  workspaceNeedsFamily,
+  workspaceSchemaMissing,
+  buildItemCaptureHref,
+}: MobileTodayContentProps) {
+  const hasItems = items.length > 0;
+  const mobileCardStyle: React.CSSProperties = {
+    border: "1px solid #e2e8f0",
+    borderRadius: 16,
+    background: "#ffffff",
+    padding: 14,
+    display: "grid",
+    gap: 12,
+    minWidth: 0,
+  };
+
+  const actionStyle: React.CSSProperties = {
+    minHeight: 44,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 11,
+    padding: "10px 12px",
+    fontSize: 14,
+    fontWeight: 800,
+    textDecoration: "none",
+  };
+
+  return (
+    <main
+      className="mylearna-mobile-today"
+      aria-labelledby="mobile-today-title"
+      style={{ maxWidth: 680, margin: "0 auto", display: "grid", gap: 14, minWidth: 0 }}
+    >
+      <header style={{ display: "grid", gap: 5 }}>
+        <h1 id="mobile-today-title" style={{ margin: 0, color: "#17204b", fontSize: 24, lineHeight: 1.15 }}>
+          Today
+        </h1>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 14, fontWeight: 650 }}>
+          {dateLabel}
+        </p>
+      </header>
+
+      <nav aria-label="Today date navigation" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "center" }}>
+        <button type="button" onClick={() => onMoveDay(-1)} style={{ ...actionStyle, border: "1px solid #cbd5e1", background: "#ffffff", color: "#17204b" }}>
+          Yesterday
+        </button>
+        <button type="button" onClick={onToday} disabled={isViewingToday} style={{ ...actionStyle, border: "1px solid #bfdbfe", background: isViewingToday ? "#eff6ff" : "#ffffff", color: "#1d4ed8", opacity: isViewingToday ? 0.72 : 1 }}>
+          Today
+        </button>
+        <button type="button" onClick={() => onMoveDay(1)} style={{ ...actionStyle, border: "1px solid #cbd5e1", background: "#ffffff", color: "#17204b" }}>
+          Tomorrow
+        </button>
+      </nav>
+
+      {learnerOptions.length > 1 ? (
+        <label style={{ display: "grid", gap: 6, color: "#475569", fontSize: 13, fontWeight: 800 }}>
+          Learner
+          <select
+            aria-label="Choose learner for Today"
+            value={selectedLearnerId}
+            onChange={(event) => onLearnerChange(event.target.value)}
+            style={{ minHeight: 44, border: "1px solid #cbd5e1", borderRadius: 11, background: "#ffffff", padding: "0 12px", color: "#17204b", font: "inherit" }}
+          >
+            <option value="">All learners</option>
+            {learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+      ) : selectedLearnerLabel ? (
+        <p style={{ margin: 0, color: "#475569", fontSize: 14, fontWeight: 700 }}>{selectedLearnerLabel}</p>
+      ) : null}
+
+      {workspaceLoading ? (
+        <section style={mobileCardStyle} aria-live="polite">Loading today&apos;s learning...</section>
+      ) : workspaceSchemaMissing ? (
+        <section style={mobileCardStyle}>My Day is not ready yet. Finish family setup, then return to Today.</section>
+      ) : workspaceError ? (
+        <section style={mobileCardStyle} role="alert">{workspaceError}</section>
+      ) : workspaceNeedsFamily ? (
+        <section style={mobileCardStyle}>Create your family profile first in <Link href="/my-profile">My Profile</Link>.</section>
+      ) : !hasLearners ? (
+        <section style={mobileCardStyle}>Add a learner first in <Link href="/my-profile">My Profile</Link>.</section>
+      ) : (
+        <>
+          {myDayPresentationState === "SETUP_INCOMPLETE" && setupNextAction ? (
+            <section style={mobileCardStyle}>
+              <strong style={{ color: "#17204b" }}>Finish the essential family setup.</strong>
+              <Link href={setupNextAction.href} style={{ ...actionStyle, border: "1px solid #cbd5e1", background: "#ffffff", color: "#17204b" }}>
+                {setupNextAction.label}
+              </Link>
+            </section>
+          ) : null}
+          <section aria-labelledby="mobile-today-learning-title" style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+              <h2 id="mobile-today-learning-title" style={{ margin: 0, color: "#17204b", fontSize: 16, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Today&apos;s learning
+              </h2>
+              {selectedLearnerLabel ? <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>{selectedLearnerLabel}</span> : null}
+            </div>
+
+            {itemsLoading ? <section style={mobileCardStyle} aria-live="polite">Loading today&apos;s learning...</section> : null}
+            {itemsError ? <section style={mobileCardStyle} role="alert">{itemsError}</section> : null}
+
+            {!itemsLoading && !itemsError && hasItems ? items.map((item) => {
+              const learnerLabel = learnerLabelById.get(item.learnerId ?? "") || "Whole family";
+              const completed = Boolean(item.completedAt);
+              const updating = completionUpdatingIds.has(item.id);
+
+              return (
+                <article key={item.id} style={{ ...mobileCardStyle, opacity: completed ? 0.72 : 1 }}>
+                  <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", color: "#64748b", fontSize: 12, fontWeight: 750 }}>
+                      <span>{formatTimeLabel(item.startsAt)}</span>
+                      {item.learnerId || learnerOptions.length > 1 ? <span>{learnerLabel}</span> : null}
+                      {item.learningArea ? <span>{item.learningArea}</span> : null}
+                    </div>
+                    <h3 style={{ margin: 0, color: "#17204b", fontSize: 16, lineHeight: 1.35, overflowWrap: "anywhere" }}>{item.title}</h3>
+                    {completed ? <span role="status" style={{ color: "#166534", fontSize: 13, fontWeight: 800 }}>Done</span> : null}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 8, alignItems: "center" }}>
+                    <Link href={buildItemCaptureHref(item)} style={{ ...actionStyle, minWidth: 0, border: "1px solid #6c4df6", background: "#6c4df6", color: "#ffffff" }}>
+                      Capture learning
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => onCompletionToggle(item)}
+                      disabled={updating}
+                      aria-label={completed ? `Mark ${item.title} not done` : `Mark ${item.title} done`}
+                      style={{ ...actionStyle, border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#166534", whiteSpace: "nowrap", opacity: updating ? 0.6 : 1 }}
+                    >
+                      {updating ? "Saving..." : completed ? "Undo" : "Done"}
+                    </button>
+                  </div>
+                  {completionError?.itemId === item.id ? <span role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{completionError.message}</span> : null}
+                </article>
+              );
+            }) : null}
+          </section>
+
+          {!itemsLoading && !itemsError && !hasItems ? (
+            <section style={mobileCardStyle}>
+              <strong style={{ color: "#17204b" }}>
+                {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? "Nothing planned yet." : "Nothing planned for today."}
+              </strong>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
+                Learning can still happen today. Capture what you do, then return to your calendar when you want to plan.
+              </p>
+            </section>
+          ) : null}
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <Link href={quickCaptureHref} style={{ ...actionStyle, border: "1px solid #6c4df6", background: "#6c4df6", color: "#ffffff" }}>
+              + Capture learning
+            </Link>
+            <Link href={calendarHref} style={{ ...actionStyle, border: "1px solid #cbd5e1", background: "#ffffff", color: "#17204b" }}>
+              View calendar
+            </Link>
+          </div>
+        </>
+      )}
+    </main>
+  );
+}
+
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const mobileCompanion = useMobileCompanion();
   const { user } = useAuthUser();
   const {
     enabled: guidanceEnabled,
@@ -390,6 +606,29 @@ function CleanDayWorkspaceBody() {
       return `${capturePathBase}?${params.toString()}`;
     },
     [buildDayPath, capturePathBase, selectedDate],
+  );
+
+  const mobileDayReturnHref = useMemo(
+    () => buildLearnerContextHref(buildDayPath(selectedDate), selectedLearnerId),
+    [buildDayPath, selectedDate, selectedLearnerId],
+  );
+
+  const buildMobileItemCaptureHref = useMemo(
+    () => (item: CleanCalendarItem) => {
+      const params = new URLSearchParams({
+        mode: "quick",
+        calendar_item_id: item.id,
+        observed_on: item.plannedDate,
+        returnTo: mobileDayReturnHref,
+      });
+
+      if (item.learnerId) params.set("learner_id", item.learnerId);
+      if (item.programId) params.set("program_id", item.programId);
+      if (item.learningArea) params.set("learning_area", item.learningArea);
+
+      return `${capturePathBase}?${params.toString()}`;
+    },
+    [capturePathBase, mobileDayReturnHref],
   );
 
   const handleLearnerChange = useCallback((nextLearnerId: string) => {
@@ -603,6 +842,7 @@ function CleanDayWorkspaceBody() {
   const accountSetup = workspace.setupStatus;
   const quickCaptureLearnerId = selectedLearnerId || accountSetup.activeLearnerId || "";
   const quickCaptureHref = `${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(buildDayPath(selectedDate))}${quickCaptureLearnerId ? `&learner_id=${encodeURIComponent(quickCaptureLearnerId)}` : ""}`;
+  const mobileQuickCaptureHref = `${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(mobileDayReturnHref)}${quickCaptureLearnerId ? `&learner_id=${encodeURIComponent(quickCaptureLearnerId)}` : ""}`;
   const defaultQuickAddLearnerId = useMemo(() => {
     if (selectedLearnerId && workspace.learners.some((learner) => learner.id === selectedLearnerId)) {
       return selectedLearnerId;
@@ -1339,6 +1579,40 @@ function CleanDayWorkspaceBody() {
           <Link href={calendarPathBase} style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>Open My Calendar instead</Link>
         </div>
       </form>
+    );
+  }
+
+  if (mobileCompanion) {
+    return (
+      <div style={shellStyle}>
+        <MobileTodayContent
+          calendarHref={calendarPathBase}
+          completionError={completionError}
+          completionUpdatingIds={completionUpdatingIds}
+          dateLabel={formatTodayHeading(selectedDate)}
+          hasLearners={workspace.learners.length > 0}
+          isViewingToday={isViewingToday}
+          items={sortedVisibleItems}
+          itemsError={itemsError}
+          itemsLoading={itemsLoading}
+          learnerLabelById={learnerLabelById}
+          learnerOptions={learnerOptions}
+          myDayPresentationState={myDayPresentationState}
+          onCompletionToggle={(item) => void handleCompletionToggle(item)}
+          onLearnerChange={handleLearnerChange}
+          onMoveDay={(offset) => router.push(buildDayPath(addDays(selectedDate, offset)))}
+          onToday={() => router.push(buildDayPath(today))}
+          quickCaptureHref={mobileQuickCaptureHref}
+          selectedLearnerId={selectedLearnerId}
+          selectedLearnerLabel={selectedLearnerLabel}
+          setupNextAction={myDayPresentationState === "SETUP_INCOMPLETE" ? accountSetup.nextAction : null}
+          workspaceError={workspace.error}
+          workspaceLoading={workspace.loading && !workspace.profile}
+          workspaceNeedsFamily={workspace.requiresFamilyCreation}
+          workspaceSchemaMissing={workspace.schemaMissing}
+          buildItemCaptureHref={buildMobileItemCaptureHref}
+        />
+      </div>
     );
   }
 

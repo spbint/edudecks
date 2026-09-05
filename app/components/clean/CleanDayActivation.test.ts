@@ -5,10 +5,12 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(join(process.cwd(), "app/components/clean/CleanDayWorkspace.tsx"), "utf8");
 
 describe("My Day activation safeguards", () => {
-  it("uses one responsive first-value presentation rather than viewport-based render logic", () => {
+  it("uses the shared companion breakpoint while preserving the desktop first-value presentation", () => {
     expect(source).toContain("mylearna-day-first-value");
     expect(source).toContain("@media (min-width: 768px)");
     expect(source).toContain("@media (max-width: 767px)");
+    expect(source).toContain("useMobileCompanion");
+    expect(source).toContain("<MobileTodayContent");
     expect(source).not.toMatch(/window\.innerWidth|navigator\.userAgent/);
   });
 
