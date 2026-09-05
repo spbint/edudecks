@@ -13,12 +13,14 @@ describe("fresh-account Guided Start entry protection", () => {
     expect(shellSource).toContain("router.replace(familySetupRedirect)");
   });
 
-  it("does not offer competing My Day guidance without a profile and learner", () => {
+  it("keeps required setup gated while optional My Day guidance stays out of the default view", () => {
     expect(daySource).toContain("const canShowMyDayGuidance");
     expect(daySource).toContain("Boolean(workspace.profile)");
     expect(daySource).toContain("workspace.learners.length > 0");
-    expect(daySource).toContain('config={PAGE_INTRO_VIDEOS.myDay}');
-    expect(daySource).toContain('tourId="my-day"');
-    expect(daySource).toContain("GuidanceGettingStartedCard");
+    expect(daySource).toContain('myDayPresentationState === "SETUP_INCOMPLETE"');
+    expect(daySource).toContain('<CleanFirstRunSetupGate currentStep="day" />');
+    expect(daySource).not.toContain('config={PAGE_INTRO_VIDEOS.myDay}');
+    expect(daySource).not.toContain('tourId="my-day"');
+    expect(daySource).not.toContain("GuidanceGettingStartedCard");
   });
 });

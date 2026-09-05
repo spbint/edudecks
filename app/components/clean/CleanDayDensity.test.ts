@@ -8,9 +8,12 @@ const source = fs.readFileSync(
 );
 
 describe("My Day desktop density safeguards", () => {
-  it("suppresses the mature tutorial stack only for populated desktop days", () => {
+  it("uses a task-first desktop header and removes the legacy overview from the desktop working view", () => {
     expect(source).toContain("@media (min-width: 901px)");
-    expect(source).toContain(".mylearna-day-shell-populated_day .mylearna-day-mature-top");
+    expect(source).toContain("mylearna-day-desktop-task-header");
+    expect(source).toContain("my-day-desktop-task-first");
+    expect(source).toContain(".mylearna-day-overview-card");
+    expect(source).toContain(".mylearna-day-legacy-toolbar");
     expect(source).toContain("display: none !important");
   });
 
@@ -20,7 +23,7 @@ describe("My Day desktop density safeguards", () => {
     expect(source).toContain("mylearna-day-first-value");
   });
 
-  it("does not apply the populated desktop rule at the mobile breakpoint", () => {
+  it("keeps the companion branch separate from desktop density rules", () => {
     expect(source).toContain("@media (max-width: 767px)");
     expect(source).toContain(".mylearna-day-mature-content");
     expect(source).toContain("@media (min-width: 901px)");

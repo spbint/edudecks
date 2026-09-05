@@ -1001,6 +1001,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             height: 38px !important;
           }
 
+          .mylearna-v2-desktop-help {
+            display: none !important;
+          }
+
           .mylearna-v2-content-main {
             padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
           }
@@ -1156,6 +1160,13 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             font-size: 10px !important;
           }
         }
+
+        @media (min-width: 901px) {
+          .mylearna-v2-mobile-header .mylearna-v2-brand-mark,
+          .mylearna-v2-mobile-title {
+            display: none !important;
+          }
+        }
       `}</style>
       <div
         className="mylearna-v2-grid"
@@ -1180,7 +1191,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             gap: 22,
           }}
         >
-          <MyLearnaBrandMark />
+          <MyLearnaBrandMark showBeta={false} />
 
           <nav
             className="mylearna-v2-nav"
@@ -1294,6 +1305,13 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               </div>
             </div>
             <div className="mylearna-v2-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Link
+                href="/my-community"
+                className="mylearna-v2-desktop-help"
+                style={{ color: v2Tokens.navy, fontSize: 14, fontWeight: 750, textDecoration: "none" }}
+              >
+                Help
+              </Link>
               <CleanAccountMenu email={user?.email ?? null} redirectTo="/start-free" />
             </div>
           </header>

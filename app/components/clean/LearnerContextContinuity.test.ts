@@ -17,10 +17,11 @@ describe("ordinary learner-context continuity", () => {
     expect(daySource).toContain('learner.id === learnerIdFromQuery');
   });
 
-  it("carries My Day learner context into ordinary Capture and Portfolio handoffs", () => {
-    expect(daySource).toContain("const contextualPortfolioHref");
-    expect(daySource).toContain("const contextualCaptureHref");
-    expect(daySource).toContain("returnTo: buildDayPath(selectedDate)");
+  it("carries My Day learner context into ordinary Capture handoffs", () => {
+    expect(daySource).toContain("const quickCaptureLearnerId");
+    expect(daySource).toContain("&learner_id=${encodeURIComponent(quickCaptureLearnerId)}");
+    expect(daySource).toContain('params.set("learner_id", item.learnerId)');
+    expect(daySource).toContain('params.set("returnTo", buildDayPath(selectedDate))');
   });
 
   it("keeps Portfolio learner context through both standard and quick capture returns", () => {
@@ -44,7 +45,7 @@ describe("ordinary learner-context continuity", () => {
   });
 
   it("does not alter the specialised Pathways context contract", () => {
-    expect(daySource).toContain('params.set("learnerId", placementPromptLearnerId)');
+    expect(daySource).toContain('`${pathwaysPathBase}?learnerId=${encodeURIComponent(selectedLearnerId)}`');
     expect(learnaSource).toContain("buildActionablePathwayRecommendation");
     expect(captureSource).toContain("appendSavedEvidenceReturnParams");
   });

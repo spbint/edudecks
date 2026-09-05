@@ -31,8 +31,8 @@ describe("Stage 3 core journey orientation", () => {
     },
   );
 
-  it("uses the cue on every approved Core screen with the correct active stage", () => {
-    expect(daySource).toContain('<CoreJourneyCue stage="plan" />');
+  it("keeps the journey cue on supporting screens while My Day opens directly to its task", () => {
+    expect(daySource).not.toContain("CoreJourneyCue");
     expect(calendarSource).toContain('<CoreJourneyCue stage="plan" />');
     expect(captureSource).toContain('<CoreJourneyCue stage="capture" />');
     expect(portfolioSource).toContain('<CoreJourneyCue stage="portfolio" />');

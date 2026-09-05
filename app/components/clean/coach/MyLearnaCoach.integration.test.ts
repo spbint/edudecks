@@ -88,6 +88,7 @@ describe("MyLearna Coach integration", () => {
   });
 
   it("closes automatic guidance without disabling manual Coach help", () => {
+    expect(provider).toContain("const AUTOMATIC_COACH_ENABLED = false;");
     expect(provider).toContain('panelSupportMode !== "automatic"');
     expect(provider).toContain('setPanelOpen(false)');
     expect(provider).toContain('supportMode: "help"');

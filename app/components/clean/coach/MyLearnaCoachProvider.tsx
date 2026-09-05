@@ -31,6 +31,9 @@ import MyLearnaCoachPanel from "./MyLearnaCoachPanel";
 
 export const COACH_OPEN_EVENT = "mylearna:coach-open";
 export const COACH_REFRESH_EVENT = COACH_STATE_REFRESH_EVENT;
+// Coach remains available through explicit Help requests, but should not interrupt an
+// ordinary authenticated workspace before its task is visible.
+const AUTOMATIC_COACH_ENABLED = false;
 
 type CoachContextValue = {
   state: CoachState;
@@ -118,6 +121,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
   const persistenceResolved = storageKey === null || persistenceKey === storageKey;
   const focusedRoute = /\/my-pathways\/activity-player|\/practice\/|\/assessments\//.test(pathname);
   const automaticCardVisible = Boolean(
+      AUTOMATIC_COACH_ENABLED &&
       automaticRecommendation &&
       !mobileCompanion &&
       persistenceResolved &&
@@ -248,6 +252,10 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
   }, [panelSupportMode, pathname]);
 
   useEffect(() => {
+    if (!AUTOMATIC_COACH_ENABLED) {
+      previousRecommendationRef.current = null;
+      return;
+    }
     if (!recommendation) {
       if (previousRecommendationRef.current) {
         trackCoachEvent("coach_no_recommendation", { route: pathname });

@@ -71,7 +71,7 @@ describe("Mobile Today companion experience", () => {
   it("leaves the full desktop My Day workspace after the mobile companion branch", () => {
     const desktopSource = source.slice(source.indexOf("if (mobileCompanion)"));
     expect(desktopSource).toContain("handleDailyPlannerDownload");
-    expect(desktopSource).toContain("CleanGuidanceRibbon");
+    expect(desktopSource).toContain("Plan and organise");
     expect(desktopSource).toContain("Open My Pathways");
     expect(desktopSource).toContain("Print today's plan");
   });

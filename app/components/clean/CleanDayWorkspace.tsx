@@ -6,25 +6,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as Sentry from "@sentry/nextjs";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
-import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
-import CoreJourneyCue, {
-  CoreJourneyHelp,
-} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import CleanMiniCalendarNavigator from "@/app/components/clean/CleanMiniCalendarNavigator";
-import {
-  CleanFeedbackPrompt,
-  CleanContinueWhereYouLeftOffCard,
-} from "@/app/components/clean/CleanPersonalisationCards";
+import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
-import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import {
-  GuidanceGettingStartedCard,
-  GuidancePageAction,
-  GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
-import { useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import {
   createCleanCalendarItem,
   listCleanCalendarItems,
@@ -37,10 +25,6 @@ import {
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
-import { buildCleanGuidanceCards } from "@/lib/clean/guidance/client";
-import type { CleanGuidanceCard } from "@/lib/clean/guidance/types";
-import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
-import { listCleanPortfolioHighlights } from "@/lib/clean/portfolio/client";
 import {
   listCleanProgramSegments,
   listCleanPrograms,
@@ -49,8 +33,6 @@ import type {
   CleanProgram,
   CleanProgramSegment,
 } from "@/lib/clean/programs/types";
-import { listCleanReports } from "@/lib/clean/reports/client";
-import { listCleanMasterTemplates } from "@/lib/clean/templates/client";
 import {
   buildCleanPlanningCacheKey,
   getOrCreateCleanPlanningCalendarItemsRequest,
@@ -58,14 +40,9 @@ import {
   writeCleanPlanningCalendarItems,
 } from "@/lib/clean/planning/cache";
 import {
-  listCleanAcademicYears,
-  listCleanLearningPeriods,
-} from "@/lib/clean/terms/client";
-import {
   deriveCleanMyDayPresentationState,
   type CleanMyDayPresentationState,
 } from "@/lib/clean/setup/setupStatus";
-import { hasAnyPathwayPlacementForLearner } from "@/lib/clean/pathways/pathwayPlacement";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
@@ -265,28 +242,6 @@ function isValidDateValue(value: string | null): value is string {
 
   const date = new Date(`${value}T00:00:00`);
   return !Number.isNaN(date.getTime());
-}
-
-function hasGuidanceContext(profile: {
-  countryCode: string | null;
-  jurisdictionCode: string | null;
-  curriculumFrameworkId: string | null;
-} | null) {
-  if (!profile) return false;
-
-  const countryCode = String(profile.countryCode ?? "").trim();
-  const jurisdictionCode = String(profile.jurisdictionCode ?? "").trim();
-  const curriculumFrameworkId = String(profile.curriculumFrameworkId ?? "").trim();
-
-  if (!countryCode || !curriculumFrameworkId) {
-    return false;
-  }
-
-  if (countryCode === "INTL") {
-    return true;
-  }
-
-  return Boolean(jurisdictionCode);
 }
 
 type MobileTodayContentProps = {
@@ -520,11 +475,6 @@ function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const mobileCompanion = useMobileCompanion();
   const { user } = useAuthUser();
-  const {
-    enabled: guidanceEnabled,
-    setupStatus: guidanceSetupStatus,
-    completeSetupStep,
-  } = useGuidance();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -536,9 +486,6 @@ function CleanDayWorkspaceBody() {
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsResolvedKey, setItemsResolvedKey] = useState<string | null>(null);
   const [itemsError, setItemsError] = useState<string | null>(null);
-  const [guidanceCards, setGuidanceCards] = useState<CleanGuidanceCard[]>([]);
-  const [guidanceLoading, setGuidanceLoading] = useState(false);
-  const [guidanceError, setGuidanceError] = useState<string | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddTitle, setQuickAddTitle] = useState("");
@@ -555,7 +502,6 @@ function CleanDayWorkspaceBody() {
     message: string;
   } | null>(null);
   const [dailyPlannerDownloading, setDailyPlannerDownloading] = useState(false);
-  const [hasPlacementForPromptLearner, setHasPlacementForPromptLearner] = useState(false);
   const [dayReloadNonce, setDayReloadNonce] = useState(0);
   const dayRequestGenerationRef = useRef(0);
   const dayPrimaryMilestoneRef = useRef<string | null>(null);
@@ -574,10 +520,6 @@ function CleanDayWorkspaceBody() {
   const pathwaysPathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-pathways"
     : "/my-pathways";
-  const placementPathBase = `${pathwaysPathBase}/placement`;
-  const portfolioPathBase = pathname.startsWith("/clean-my-day")
-    ? "/clean-my-portfolio"
-    : "/my-portfolio";
   const selectedDate = useMemo(() => {
     const candidate = searchParams.get("date");
     return isValidDateValue(candidate) ? candidate : today;
@@ -691,12 +633,6 @@ function CleanDayWorkspaceBody() {
     [visibleItems],
   );
 
-  const openGuidanceCards = useMemo(() => guidanceCards.slice(0, 3), [guidanceCards]);
-  const hasLateStageGuidance = useMemo(
-    () => openGuidanceCards.some((card) => card.key === "portfolio" || card.key === "reports"),
-    [openGuidanceCards],
-  );
-
   const learnerLabelById = useMemo(
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
@@ -745,11 +681,6 @@ function CleanDayWorkspaceBody() {
     [sortedVisibleItems],
   );
 
-  const wholeFamilyBlocksCount = useMemo(
-    () => sortedVisibleItems.filter((item) => item.learnerId === null).length,
-    [sortedVisibleItems],
-  );
-
   const nextUpcomingItem = useMemo(
     () => {
       if (!sortedVisibleItems.length) return null;
@@ -776,83 +707,23 @@ function CleanDayWorkspaceBody() {
     [learnerOptions, selectedLearnerId],
   );
 
-  const overviewSummary = useMemo(() => {
-    if (!sortedVisibleItems.length) {
-      return isViewingToday ? "Nothing planned for today yet." : "Nothing planned for this day yet.";
-    }
-
-    if (selectedLearnerId && selectedLearnerLabel) {
-      return `${isViewingToday ? "Today" : "This day"} has ${sortedVisibleItems.length} planned block${
-        sortedVisibleItems.length === 1 ? "" : "s"
-      } for ${selectedLearnerLabel}.`;
-    }
-
-    if (learnersInViewCount > 0) {
-      return `${isViewingToday ? "Today" : "This day"} has ${sortedVisibleItems.length} planned block${
-        sortedVisibleItems.length === 1 ? "" : "s"
-      } across ${learnersInViewCount} learner${learnersInViewCount === 1 ? "" : "s"}${
-        wholeFamilyBlocksCount ? ", plus whole-family time." : "."
-      }`;
-    }
-
-    return `${isViewingToday ? "Today" : "This day"} has ${sortedVisibleItems.length} planned block${
-      sortedVisibleItems.length === 1 ? "" : "s"
-    } for the whole family.`;
-  }, [
-    isViewingToday,
-    learnersInViewCount,
-    selectedLearnerId,
-    selectedLearnerLabel,
-    sortedVisibleItems,
-    wholeFamilyBlocksCount,
-  ]);
-
-  const overviewFocusLabel = useMemo(() => {
-    if (selectedLearnerId && selectedLearnerLabel) {
-      return selectedLearnerLabel;
-    }
-
-    if (learnersInViewCount > 0 && wholeFamilyBlocksCount > 0) {
-      return `${learnersInViewCount} learners + family time`;
-    }
-
-    if (learnersInViewCount > 0) {
-      return `${learnersInViewCount} learner${learnersInViewCount === 1 ? "" : "s"}`;
-    }
-
-    return "Whole family";
-  }, [
-    learnersInViewCount,
-    selectedLearnerId,
-    selectedLearnerLabel,
-    wholeFamilyBlocksCount,
-  ]);
-
-  const nextUpSummary = useMemo(() => {
-    if (nextUpcomingItem) {
-      return nextUpcomingItem.startsAt
-        ? `${nextUpcomingItem.title} at ${formatTimeLabel(nextUpcomingItem.startsAt)}`
-        : nextUpcomingItem.title;
-    }
-
-    if (sortedVisibleItems.length) {
-      return isViewingToday ? "The rest of today is open." : "This day is open.";
-    }
-
-    return isViewingToday ? "Nothing planned yet." : "Nothing planned for this day yet.";
-  }, [isViewingToday, nextUpcomingItem, sortedVisibleItems]);
-
+  const overviewSummary = `${sortedVisibleItems.length} learning block${sortedVisibleItems.length === 1 ? "" : "s"}`;
+  const overviewFocusLabel = selectedLearnerLabel || (learnersInViewCount ? `${learnersInViewCount} learners` : "Whole family");
+  const nextUpSummary = nextUpcomingItem
+    ? nextUpcomingItem.startsAt
+      ? `${nextUpcomingItem.title} at ${formatTimeLabel(nextUpcomingItem.startsAt)}`
+      : nextUpcomingItem.title
+    : isViewingToday
+      ? "Nothing planned yet."
+      : "Nothing planned for this day yet.";
   const nextUpLabel = isViewingToday ? "Next up" : "Looking ahead";
+
   const quickAddHeading = isViewingToday
     ? "Add to My Day"
     : "Add to My Day";
   const quickAddLead = isViewingToday
     ? "Add one thing for today. You can plan more whenever you need to."
     : "Add one thing for this day. You can plan more whenever you need to.";
-  const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
-  const familyGreeting = familyDisplayName
-    ? `Welcome back, ${familyDisplayName}.`
-    : "Welcome back.";
   const accountSetup = workspace.setupStatus;
   const quickCaptureLearnerId = selectedLearnerId || accountSetup.activeLearnerId || "";
   const quickCaptureHref = `${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(buildDayPath(selectedDate))}${quickCaptureLearnerId ? `&learner_id=${encodeURIComponent(quickCaptureLearnerId)}` : ""}`;
@@ -871,32 +742,6 @@ function CleanDayWorkspaceBody() {
     !workspace.setupLoading &&
     Boolean(workspace.profile) &&
     workspace.learners.length > 0;
-  const firstSetupMode =
-    canShowMyDayGuidance &&
-    guidanceEnabled &&
-    (guidanceSetupStatus === "not_started" || guidanceSetupStatus === "active") &&
-    !accountSetup.hasEvidence;
-  const placementPromptLearnerId = useMemo(() => {
-    if (selectedLearnerId) return selectedLearnerId;
-    if (workspace.learners.length === 1) return workspace.learners[0]?.id || "";
-    return "";
-  }, [selectedLearnerId, workspace.learners]);
-  const placementPromptHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (placementPromptLearnerId) {
-      params.set("learnerId", placementPromptLearnerId);
-    }
-    const query = params.toString();
-    return query ? `${placementPathBase}?${query}` : placementPathBase;
-  }, [placementPathBase, placementPromptLearnerId]);
-  const manualPlacementPromptHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (placementPromptLearnerId) {
-      params.set("learnerId", placementPromptLearnerId);
-    }
-    params.set("mode", "manual");
-    return `${placementPathBase}?${params.toString()}`;
-  }, [placementPathBase, placementPromptLearnerId]);
   const currentPathwayHref = useMemo(
     () =>
       selectedLearnerId
@@ -904,72 +749,6 @@ function CleanDayWorkspaceBody() {
         : pathwaysPathBase,
     [pathwaysPathBase, selectedLearnerId],
   );
-  const contextualPortfolioHref = useMemo(
-    () => buildLearnerContextHref(portfolioPathBase, selectedLearnerId),
-    [portfolioPathBase, selectedLearnerId],
-  );
-  const contextualCaptureHref = useMemo(
-    () => buildLearnerContextHref(capturePathBase, selectedLearnerId, {
-      returnTo: buildDayPath(selectedDate),
-    }),
-    [buildDayPath, capturePathBase, selectedDate, selectedLearnerId],
-  );
-  const shouldShowPlacementPrompt =
-    PUBLIC_PATHWAYS_ENABLED &&
-    !workspace.setupLoading &&
-    workspace.learners.length > 0 &&
-    !accountSetup.hasPathway &&
-    !hasPlacementForPromptLearner;
-  const continueActions = useMemo(() => {
-    const pathwayLabel = selectedLearnerLabel
-      ? `Open ${selectedLearnerLabel}'s current pathway`
-      : "Open current pathway";
-
-    return [
-      sortedVisibleItems.length || firstSetupMode
-        ? {
-            href: buildDayPath(selectedDate),
-            label: isViewingToday ? "Review today's learning" : "Review this day",
-            tone: "blue" as const,
-          }
-        : {
-            href: calendarPathBase,
-            label: "Plan this week",
-            tone: "blue" as const,
-      },
-      ...(PUBLIC_PATHWAYS_ENABLED
-        ? [{
-            href: currentPathwayHref,
-            label: pathwayLabel,
-            tone: "green" as const,
-          }]
-        : []),
-      evidenceEntries.length
-        ? {
-            href: contextualPortfolioHref,
-            label: "Choose evidence for portfolio",
-            tone: "orange" as const,
-          }
-        : {
-            href: contextualCaptureHref,
-            label: selectedLearnerLabel ? `Capture evidence for ${selectedLearnerLabel}` : "Capture evidence",
-            tone: "orange" as const,
-          },
-    ];
-  }, [
-    buildDayPath,
-    calendarPathBase,
-    currentPathwayHref,
-    evidenceEntries.length,
-    firstSetupMode,
-    isViewingToday,
-    selectedDate,
-    contextualCaptureHref,
-    contextualPortfolioHref,
-    selectedLearnerLabel,
-    sortedVisibleItems.length,
-  ]);
-
   useEffect(() => {
     if (!workspace.learners.length) {
       setSelectedLearnerId("");
@@ -991,17 +770,6 @@ function CleanDayWorkspaceBody() {
   useEffect(() => {
     if (!workspace.setupLoading) setSetupStatusReadyOnce(true);
   }, [workspace.setupLoading]);
-
-  useEffect(() => {
-    if (!placementPromptLearnerId) {
-      setHasPlacementForPromptLearner(false);
-      return;
-    }
-
-    setHasPlacementForPromptLearner(
-      hasAnyPathwayPlacementForLearner(placementPromptLearnerId),
-    );
-  }, [placementPromptLearnerId]);
 
   useEffect(() => {
     setExpandedItemIds([]);
@@ -1184,86 +952,6 @@ function CleanDayWorkspaceBody() {
     });
   }, [reloadEvidence, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
 
-  useEffect(() => {
-    async function loadGuidance() {
-      if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
-        setGuidanceCards([]);
-        return;
-      }
-
-      setGuidanceLoading(true);
-      setGuidanceError(null);
-
-      try {
-        const [
-          academicYears,
-          learningPeriods,
-          masterTemplates,
-          programs,
-          currentWeekItems,
-          todayItems,
-          evidenceEntries,
-          portfolioHighlights,
-          reports,
-        ] = await Promise.all([
-          listCleanAcademicYears(workspace.profile.id, { limit: 1 }),
-          listCleanLearningPeriods(workspace.profile.id, { limit: 1 }),
-          listCleanMasterTemplates(workspace.profile.id, { limit: 1 }),
-          listCleanPrograms(workspace.profile.id, { limit: 1 }),
-          listCleanCalendarItems(workspace.profile.id, {
-            fromDate: weekStart,
-            toDate: weekEnd,
-            limit: 1,
-          }),
-          listCleanCalendarItems(workspace.profile.id, {
-            fromDate: selectedDate,
-            toDate: selectedDate,
-            limit: 1,
-          }),
-          listCleanEvidenceEntries(workspace.profile.id, { limit: 1 }),
-          listCleanPortfolioHighlights(workspace.profile.id, { limit: 1 }),
-          listCleanReports(workspace.profile.id, { limit: 1 }),
-        ]);
-
-        const nextCards = buildCleanGuidanceCards({
-          hasFamilyProfile: Boolean(workspace.profile),
-          learnerCount: workspace.learners.length,
-          hasJurisdictionProfile: hasGuidanceContext(workspace.profile),
-          hasAcademicYear: academicYears.length > 0,
-          hasLearningPeriods: learningPeriods.length > 0,
-          hasMasterTemplate: masterTemplates.length > 0,
-          hasPrograms: programs.length > 0,
-          hasCurrentWeekItems: currentWeekItems.length > 0,
-          hasTodayItems: todayItems.length > 0,
-          hasEvidence: evidenceEntries.length > 0,
-          hasPortfolioHighlights: portfolioHighlights.length > 0,
-          hasReports: reports.length > 0,
-        });
-
-        setGuidanceCards(nextCards);
-      } catch (error) {
-        setGuidanceError(
-          normalizeCleanErrorMessage(
-            error,
-            "We could not load your next steps just now.",
-          ),
-        );
-      } finally {
-        setGuidanceLoading(false);
-      }
-    }
-
-    void loadGuidance();
-  }, [
-    selectedDate,
-    weekEnd,
-    weekStart,
-    workspace.learners.length,
-    workspace.profile,
-    workspace.requiresFamilyCreation,
-    workspace.schemaMissing,
-  ]);
-
   function toggleExpanded(itemId: string) {
     setExpandedItemIds((current) =>
       current.includes(itemId)
@@ -1348,13 +1036,6 @@ function CleanDayWorkspaceBody() {
     setQuickAddTime("");
     setQuickAddLearningArea("");
     setQuickAddError(null);
-  }
-
-  function skipPlacementCheckForNow() {
-    if (guidanceSetupStatus === "active") {
-      completeSetupStep("day");
-    }
-    router.push(pathwaysPathBase);
   }
 
   async function handleQuickAddSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -1516,7 +1197,7 @@ function CleanDayWorkspaceBody() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user?.id || !dayPrimaryKey || itemsLoading || guidanceLoading) return;
+    if (!user?.id || !dayPrimaryKey || itemsLoading) return;
     if (daySettledMilestoneRef.current === dayPrimaryKey) return;
     daySettledMilestoneRef.current = dayPrimaryKey;
     recordCleanPlanningMilestone({
@@ -1524,7 +1205,7 @@ function CleanDayWorkspaceBody() {
       criticality: "page-primary",
       gatesPage: false,
     });
-  }, [dayPrimaryKey, guidanceLoading, itemsLoading, user?.id]);
+  }, [dayPrimaryKey, itemsLoading, user?.id]);
 
   function renderQuickAddForm() {
     if (!quickAddOpen) return null;
@@ -1706,8 +1387,8 @@ function CleanDayWorkspaceBody() {
           }
 
           @media (min-width: 901px) {
-            /* Established desktop users should reach today's learning before tutorial chrome. */
-            .mylearna-day-shell-populated_day .mylearna-day-mature-top {
+            .mylearna-day-overview-card,
+            .mylearna-day-legacy-toolbar {
               display: none !important;
             }
           }
@@ -1768,133 +1449,9 @@ function CleanDayWorkspaceBody() {
             </button>
           </nav>
         ) : null}
-        <div className="mylearna-day-mature-top">
-        <CoreJourneyCue stage="plan" />
-        {canShowMyDayGuidance ? <CleanFirstRunSetupGate currentStep="day" /> : null}
-        {canShowMyDayGuidance ? (
-          <GuidanceSetupProgress
-            stepId="day"
-            title="Review today."
-            body="Use My Day to see what is planned now and what may need attention."
-          />
+        {canShowMyDayGuidance && myDayPresentationState === "SETUP_INCOMPLETE" ? (
+          <CleanFirstRunSetupGate currentStep="day" />
         ) : null}
-
-        {canShowMyDayGuidance ? (
-          <CleanPageIntroVideo
-            config={PAGE_INTRO_VIDEOS.myDay}
-            promptTitle="New to My Day?"
-            promptDescription="See how to choose today's next useful step."
-          />
-        ) : null}
-
-        {shouldShowPlacementPrompt ? (
-          <section style={cardStyle}>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div>
-                <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                  Start a learning pathway
-                </h2>
-                <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.7 }}>
-                  Choose a learner and let MyLearna suggest a calm starting step.
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link href={placementPromptHref} style={primaryButtonStyle}>
-                  Start a pathway
-                </Link>
-                <Link href={manualPlacementPromptHref} style={secondaryButtonStyle}>
-                  Choose manually
-                </Link>
-                {firstSetupMode ? (
-                  <button
-                    type="button"
-                    style={secondaryButtonStyle}
-                    onClick={skipPlacementCheckForNow}
-                  >
-                    Skip for now
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mylearna-day-header" data-guidance-id="my-day-header" style={cardStyle}>
-          <div style={{ display: "grid", gap: 10 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: "0.04em",
-                color: "#64748b",
-              }}
-            >
-              Home base
-            </div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 28,
-                lineHeight: 1.12,
-                color: "#17204B",
-                fontWeight: 650,
-              }}
-            >
-              My Day
-            </h1>
-            <p
-              style={{
-                margin: 0,
-                color: "#0f172a",
-                fontSize: 18,
-                fontWeight: 600,
-                lineHeight: 1.35,
-              }}
-            >
-              {formatTodayHeading(selectedDate)}
-            </p>
-            <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
-              <span className="mylearna-day-intro-short">Plan one useful next step.</span>
-              <span className="mylearna-day-intro-full">
-                {familyGreeting} Start with one simple next step.
-              </span>
-            </p>
-            {canShowMyDayGuidance ? (
-              <div>
-                <GuidancePageAction tourId="my-day" />
-              </div>
-            ) : null}
-            <Link
-              className="mylearna-day-header-capture"
-              href={quickCaptureHref}
-              style={{
-                width: "fit-content",
-                minHeight: 46,
-                display: "inline-flex",
-                alignItems: "center",
-                borderRadius: 12,
-                padding: "10px 15px",
-                background: "#6c4df6",
-                color: "#ffffff",
-                textDecoration: "none",
-                fontWeight: 850,
-              }}
-            >
-              Quick Capture
-            </Link>
-          </div>
-        </section>
-
-        {canShowMyDayGuidance ? (
-          <div className="mylearna-day-getting-started">
-            <GuidanceGettingStartedCard />
-          </div>
-        ) : null}
-
-        <div className="mylearna-day-continue-card" data-guidance-id="my-day-next-steps">
-          <CleanContinueWhereYouLeftOffCard actions={continueActions} />
-        </div>
-        </div>
 
         {workspace.loading && !workspace.profile && user?.id ? (
           <section
@@ -2021,26 +1578,6 @@ function CleanDayWorkspaceBody() {
               {quickAddMessage ? <div role="status" style={{ color: "#166534", fontSize: 13, fontWeight: 700 }}>{quickAddMessage}</div> : null}
             </section> : null}
             {workspace.learners.length ? <div className={`mylearna-day-mature-content mylearna-day-mature-content-${myDayPresentationState.toLowerCase()}${quickAddOpen ? " mylearna-day-quick-add-open" : ""}`}>
-            {guidanceLoading ? (
-              <section style={cardStyle}>
-                <p style={{ margin: 0, color: "#475569" }}>Loading your next steps...</p>
-              </section>
-            ) : null}
-
-            {!guidanceLoading && guidanceError ? (
-              <section style={cardStyle}>
-                <p style={{ margin: 0, color: "#b91c1c" }}>{guidanceError}</p>
-              </section>
-            ) : null}
-
-            {!guidanceLoading &&
-            !guidanceError &&
-            !hasPlannedItemsForSelectedDate &&
-            !hasLateStageGuidance &&
-            openGuidanceCards.length ? (
-              <CleanGuidanceRibbon cards={openGuidanceCards} />
-            ) : null}
-
             <section
               className="mylearna-day-plan-card"
               data-guidance-id="my-day-today-plan"
@@ -2055,6 +1592,51 @@ function CleanDayWorkspaceBody() {
                   gap: 16,
                 }}
               >
+                <header
+                  className="mylearna-day-desktop-task-header"
+                  data-testid="my-day-desktop-task-first"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "end",
+                    gap: 18,
+                    flexWrap: "wrap",
+                    paddingBottom: 2,
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
+                    <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      My Day
+                    </p>
+                    <h1 style={{ margin: 0, color: "#17204b", fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.02em" }}>
+                      {isViewingToday ? "Today’s learning" : "Learning for this day"}
+                    </h1>
+                    <p style={{ margin: 0, color: "#475569", fontWeight: 650 }}>
+                      {formatTodayHeading(selectedDate)}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "end", gap: 10, flexWrap: "wrap" }}>
+                    <label style={{ display: "grid", gap: 5, color: "#64748b", fontSize: 12, fontWeight: 800 }}>
+                      Viewing
+                      <select
+                        aria-label="Learner or family view"
+                        value={selectedLearnerId}
+                        onChange={(event) => handleLearnerChange(event.target.value)}
+                        style={compactInputStyle}
+                      >
+                        <option value="" style={{ background: "#ffffff", color: "#0f172a" }}>All family</option>
+                        {learnerOptions.map((option) => (
+                          <option key={option.value} value={option.value} style={{ background: "#ffffff", color: "#0f172a" }}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <Link href={quickCaptureHref} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
+                      Capture learning
+                    </Link>
+                  </div>
+                </header>
                 <div
                   className="mylearna-day-overview-card"
                   style={{
@@ -2237,18 +1819,11 @@ function CleanDayWorkspaceBody() {
                     <div style={{ color: "#334155", fontWeight: 700, lineHeight: 1.55 }}>
                       Add a learning block, then capture what happens.
                     </div>
-                    <CoreJourneyHelp>
-                      <p>
-                        Use My Day for today&apos;s learning. Add a quick block, open My
-                        Calendar for fuller planning, then capture evidence when something
-                        useful happens. Learning blocks stay compact until you open their
-                        details.
-                      </p>
-                    </CoreJourneyHelp>
                   </div>
                 </div>
 
                 <div
+                  className="mylearna-day-legacy-toolbar"
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -2606,6 +2181,27 @@ function CleanDayWorkspaceBody() {
                   })}
                 </div>
               ) : null}
+                <details className="mylearna-day-secondary-actions" style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
+                  <summary style={{ width: "fit-content", minHeight: 40, display: "flex", alignItems: "center", color: "#334155", cursor: "pointer", fontSize: 14, fontWeight: 800 }}>
+                    Plan and organise
+                  </summary>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 10 }}>
+                    <button type="button" onClick={openQuickAdd} style={secondaryButtonStyle}>
+                      Add a quick block
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDailyPlannerDownload()}
+                      style={secondaryButtonStyle}
+                      disabled={dailyPlannerDownloading}
+                    >
+                      {dailyPlannerDownloading ? "Preparing..." : "Print today's plan"}
+                    </button>
+                    <Link href={calendarPathBase} style={{ ...secondaryButtonStyle, textDecoration: "none" }}>
+                      Open My Calendar
+                    </Link>
+                  </div>
+                </details>
                 <datalist id="clean-my-day-learning-areas">
                   {COMMON_LEARNING_AREAS.map((area) => (
                     <option key={area} value={area} />
@@ -2613,13 +2209,6 @@ function CleanDayWorkspaceBody() {
                 </datalist>
               </div>
             </section>
-
-            {!guidanceLoading &&
-            !guidanceError &&
-            (hasPlannedItemsForSelectedDate || hasLateStageGuidance) &&
-            openGuidanceCards.length ? (
-              <CleanGuidanceRibbon cards={openGuidanceCards} compact />
-            ) : null}
 
             {PUBLIC_PATHWAYS_ENABLED ? <section data-guidance-id="my-day-next-pathways" style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
