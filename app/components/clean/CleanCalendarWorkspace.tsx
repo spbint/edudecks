@@ -13,6 +13,7 @@ import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import CoreJourneyCue, {
   CoreJourneyHelp,
 } from "@/app/components/clean/design-v2/CoreJourneyCue";
+import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import {
   GuidancePageAction,
   GuidanceSetupProgress,
@@ -293,6 +294,7 @@ type CalendarBoardView = "week" | "month";
 type MasterWeekView = "school" | "full";
 type LiveWeekView = "school" | "full";
 type LearningPeriodComposerMode = "term" | "break";
+type MobileCalendarView = "today" | "tomorrow" | "week";
 
 function getTodayDate() {
   const now = new Date();
@@ -936,8 +938,198 @@ function CleanRhythmBlockPopover({
   );
 }
 
+type MobileCalendarContentProps = {
+  activeView: MobileCalendarView;
+  buildItemCaptureHref: (item: CleanCalendarItem) => string;
+  captureHref: string;
+  items: CleanCalendarItem[];
+  itemsError: string | null;
+  itemsLoading: boolean;
+  learnerOptions: PickerOption[];
+  onLearnerChange: (learnerId: string) => void;
+  onRetry: () => void;
+  onViewChange: (view: MobileCalendarView) => void;
+  selectedLearnerId: string;
+  todayHref: string;
+  workspaceError: string | null;
+  workspaceLoading: boolean;
+  workspaceNeedsFamily: boolean;
+  workspaceSchemaMissing: boolean;
+};
+
+function MobileCalendarContent({
+  activeView,
+  buildItemCaptureHref,
+  captureHref,
+  items,
+  itemsError,
+  itemsLoading,
+  learnerOptions,
+  onLearnerChange,
+  onRetry,
+  onViewChange,
+  selectedLearnerId,
+  todayHref,
+  workspaceError,
+  workspaceLoading,
+  workspaceNeedsFamily,
+  workspaceSchemaMissing,
+}: MobileCalendarContentProps) {
+  const today = getTodayDate();
+  const visibleDates = activeView === "week"
+    ? getWeekDates(getWeekStart(today))
+    : [activeView === "tomorrow" ? addDays(today, 1) : today];
+  const visibleItems = useMemo(
+    () => selectedLearnerId
+      ? items.filter((item) => item.learnerId === selectedLearnerId)
+      : items,
+    [items, selectedLearnerId],
+  );
+  const itemsByDate = useMemo(() => {
+    const grouped = new Map<string, CleanCalendarItem[]>();
+    for (const item of visibleItems) {
+      const dayItems = grouped.get(item.plannedDate) ?? [];
+      dayItems.push(item);
+      grouped.set(item.plannedDate, dayItems);
+    }
+    return grouped;
+  }, [visibleItems]);
+  const datesWithItems = visibleDates.filter((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0);
+  const showEmptyWeek = activeView === "week" && !datesWithItems.length;
+  const datesToRender = activeView === "week" ? datesWithItems : visibleDates;
+
+  return (
+    <main
+      className="mylearna-mobile-calendar"
+      aria-labelledby="mobile-calendar-title"
+      style={{ maxWidth: 680, margin: "0 auto", display: "grid", gap: 14, minWidth: 0 }}
+    >
+      <header style={{ display: "grid", gap: 5 }}>
+        <h1 id="mobile-calendar-title" style={{ margin: 0, color: "#17204b", fontSize: 24, lineHeight: 1.15 }}>
+          Calendar
+        </h1>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.45 }}>
+          A quick look at what&apos;s coming up.
+        </p>
+      </header>
+
+      <nav aria-label="Calendar view" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+        {(["today", "tomorrow", "week"] as const).map((view) => (
+          <button
+            key={view}
+            type="button"
+            aria-pressed={activeView === view}
+            onClick={() => onViewChange(view)}
+            style={{
+              ...buttonStyle,
+              minHeight: 44,
+              padding: "10px 8px",
+              background: activeView === view ? "#17204b" : "#ffffff",
+              borderColor: activeView === view ? "#17204b" : "#cbd5e1",
+              color: activeView === view ? "#ffffff" : "#17204b",
+            }}
+          >
+            {view === "today" ? "Today" : view === "tomorrow" ? "Tomorrow" : "Week"}
+          </button>
+        ))}
+      </nav>
+
+      {learnerOptions.length > 1 ? (
+        <label style={{ display: "grid", gap: 6, color: "#475569", fontSize: 13, fontWeight: 800 }}>
+          Learner
+          <select
+            aria-label="Choose learner for calendar"
+            value={selectedLearnerId}
+            onChange={(event) => onLearnerChange(event.target.value)}
+            style={{ minHeight: 44, border: "1px solid #cbd5e1", borderRadius: 11, background: "#ffffff", padding: "0 12px", color: "#17204b", font: "inherit" }}
+          >
+            <option value="">All learners</option>
+            {learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+      ) : null}
+
+      {workspaceLoading ? <section aria-live="polite" style={cardStyle}>Loading your calendar...</section> : null}
+      {workspaceSchemaMissing ? <section style={cardStyle}>Calendar is not ready yet. Finish family setup, then return to Calendar.</section> : null}
+      {workspaceError ? <section role="alert" style={cardStyle}>{workspaceError}</section> : null}
+      {workspaceNeedsFamily ? <section style={cardStyle}>Create your family profile first in <Link href="/my-profile">My Profile</Link>.</section> : null}
+      {!workspaceLoading && !workspaceSchemaMissing && !workspaceError && !workspaceNeedsFamily && itemsLoading ? <section aria-live="polite" style={cardStyle}>Loading your calendar...</section> : null}
+      {!workspaceLoading && !workspaceSchemaMissing && !workspaceError && !workspaceNeedsFamily && itemsError ? (
+        <section role="alert" style={{ ...cardStyle, display: "grid", gap: 10 }}>
+          <span>We couldn&apos;t load your calendar.</span>
+          <button type="button" onClick={onRetry} style={{ ...mutedButtonStyle, minHeight: 44, justifySelf: "start" }}>
+            Try again
+          </button>
+        </section>
+      ) : null}
+
+      {!workspaceLoading && !workspaceSchemaMissing && !workspaceError && !workspaceNeedsFamily && !itemsLoading && !itemsError ? (
+        <>
+          {showEmptyWeek ? (
+            <section style={cardStyle}>
+              <strong style={{ color: "#17204b" }}>Nothing planned this week.</strong>
+            </section>
+          ) : null}
+          {datesToRender.map((dateValue) => {
+            const dayItems = itemsByDate.get(dateValue) ?? [];
+            return (
+              <section key={dateValue} aria-labelledby={`mobile-calendar-date-${dateValue}`} style={{ display: "grid", gap: 9 }}>
+                <h2 id={`mobile-calendar-date-${dateValue}`} style={{ margin: 0, color: "#17204b", fontSize: 16, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  {formatLongDateLabel(dateValue)}
+                </h2>
+                {!dayItems.length ? (
+                  <section style={cardStyle}>
+                    <span style={{ color: "#475569" }}>Nothing planned for {activeView === "tomorrow" ? "tomorrow" : "today"}.</span>
+                  </section>
+                ) : dayItems.map((item) => {
+                  const learnerLabel = item.learnerId
+                    ? learnerOptions.find((option) => option.value === item.learnerId)?.label ?? "Learner"
+                    : "Whole family";
+                  return (
+                    <article key={item.id} style={{ ...cardStyle, padding: 14, display: "grid", gap: 9, minWidth: 0, opacity: item.completedAt ? 0.72 : 1 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", color: "#64748b", fontSize: 12, fontWeight: 750 }}>
+                        <span>{formatCalendarTimeRange(item.startsAt, item.endsAt)}</span>
+                        {item.learnerId || learnerOptions.length > 1 ? <span>{learnerLabel}</span> : null}
+                        {item.learningArea ? <span>{item.learningArea}</span> : null}
+                      </div>
+                      <h3 style={{ margin: 0, color: "#17204b", fontSize: 16, lineHeight: 1.35, overflowWrap: "anywhere" }}>{item.title}</h3>
+                      {item.completedAt ? <span role="status" style={{ color: "#166534", fontSize: 13, fontWeight: 800 }}>Done</span> : null}
+                      <details>
+                        <summary style={{ minHeight: 44, display: "flex", alignItems: "center", color: "#1d4ed8", cursor: "pointer", fontWeight: 800 }}>
+                          View actions
+                        </summary>
+                        <div style={{ display: "grid", gap: 8, paddingTop: 8 }}>
+                          <Link
+                            href={buildItemCaptureHref(item)}
+                            style={{ ...mutedButtonStyle, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}
+                          >
+                            Capture learning
+                          </Link>
+                        </div>
+                      </details>
+                    </article>
+                  );
+                })}
+              </section>
+            );
+          })}
+          <div style={{ display: "grid", gap: 8 }}>
+            <Link href={captureHref} style={{ ...buttonStyle, minHeight: 48, display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+              + Capture learning
+            </Link>
+            <Link href={todayHref} style={{ ...mutedButtonStyle, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+              Back to Today
+            </Link>
+          </div>
+        </>
+      ) : null}
+    </main>
+  );
+}
+
 function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: boolean }) {
   const workspace = useCleanFamilyWorkspace();
+  const mobileCompanion = useMobileCompanion();
   const { user } = useAuthUser();
   const { enabled: guidanceEnabled, setupStatus, completeSetupStep } = useGuidance();
   const pathname = usePathname();
@@ -976,6 +1168,10 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [selectedLearningPeriodId, setSelectedLearningPeriodId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [selectedWeekStart, setSelectedWeekStart] = useState(getWeekStart());
+  const [mobileCalendarView, setMobileCalendarView] = useState<MobileCalendarView>("today");
+  const [mobileSelectedLearnerId, setMobileSelectedLearnerId] = useState(
+    () => searchParams.get("learner_id") || searchParams.get("learnerId") || "",
+  );
 
   const [yearTitle, setYearTitle] = useState("");
   const [yearStartsOn, setYearStartsOn] = useState(getWeekStart());
@@ -1070,6 +1266,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const handoffView = searchParams.get("view");
   const handoffProgramId = searchParams.get("programId");
   const handoffSegmentId = searchParams.get("segmentId");
+  const learnerIdFromQuery = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
+  const mobileCalendarCompanion = mobileCompanion && !planningOnly;
 
   const learnerOptions = useMemo(
     () =>
@@ -1093,6 +1291,35 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
   );
+  const selectedMobileLearnerId =
+    mobileCalendarCompanion && learnerOptions.some((option) => option.value === mobileSelectedLearnerId)
+      ? mobileSelectedLearnerId
+      : "";
+
+  useEffect(() => {
+    if (!mobileCalendarCompanion) return;
+    if (!learnerIdFromQuery) {
+      setMobileSelectedLearnerId("");
+      return;
+    }
+    if (learnerOptions.some((option) => option.value === learnerIdFromQuery)) {
+      setMobileSelectedLearnerId(learnerIdFromQuery);
+      return;
+    }
+    if (learnerOptions.length) setMobileSelectedLearnerId("");
+  }, [learnerIdFromQuery, learnerOptions, mobileCalendarCompanion]);
+
+  const handleMobileLearnerChange = useCallback((nextLearnerId: string) => {
+    setMobileSelectedLearnerId(nextLearnerId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextLearnerId) {
+      params.set("learner_id", nextLearnerId);
+    } else {
+      params.delete("learner_id");
+    }
+    params.delete("learnerId");
+    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+  }, [pathname, router, searchParams]);
   const programLabelById = useMemo(
     () => new Map(programOptions.map((option) => [option.value, option.label])),
     [programOptions],
@@ -1142,9 +1369,22 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     () => getMonthGridDates(selectedMonthStart),
     [selectedMonthStart],
   );
-  const selectedCalendarStart = calendarBoardView === "month" ? monthGridDates[0] : selectedWeekStart;
-  const selectedCalendarEnd =
-    calendarBoardView === "month" ? monthGridDates[monthGridDates.length - 1] : selectedWeekEnd;
+  const mobileToday = getTodayDate();
+  const mobileCalendarStart = mobileCalendarView === "today"
+    ? mobileToday
+    : mobileCalendarView === "tomorrow"
+      ? addDays(mobileToday, 1)
+      : getWeekStart(mobileToday);
+  const mobileCalendarEnd = mobileCalendarView === "week"
+    ? addDays(mobileCalendarStart, 6)
+    : mobileCalendarStart;
+  const selectedCalendarStart = mobileCalendarCompanion
+    ? mobileCalendarStart
+    : calendarBoardView === "month" ? monthGridDates[0] : selectedWeekStart;
+  const selectedCalendarEnd = mobileCalendarCompanion
+    ? mobileCalendarEnd
+    : calendarBoardView === "month" ? monthGridDates[monthGridDates.length - 1] : selectedWeekEnd;
+  const calendarQueryView = mobileCalendarCompanion ? `mobile-${mobileCalendarView}` : calendarBoardView;
   const selectedBreakOverlapsWeek = useMemo(
     () =>
       !!selectedLearningPeriod &&
@@ -1685,9 +1925,10 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       userId: workspace.currentUserId,
       familyId: workspace.profile.id,
       route: "calendar",
+      learnerId: selectedMobileLearnerId || null,
       fromDate: selectedCalendarStart,
       toDate: selectedCalendarEnd,
-      view: calendarBoardView,
+      view: calendarQueryView,
     });
     const cachedItems = readCleanPlanningCalendarItems(cacheKey);
     const itemsTiming = beginCleanPlanningTiming({
@@ -1707,7 +1948,10 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           listCleanCalendarItems(workspace.profile!.id, {
             fromDate: selectedCalendarStart,
             toDate: selectedCalendarEnd,
-            limit: calendarBoardView === "month" ? 240 : 100,
+            learnerId: selectedMobileLearnerId || null,
+            limit: mobileCalendarCompanion
+              ? mobileCalendarView === "week" ? 100 : 50
+              : calendarBoardView === "month" ? 240 : 100,
           }),
       );
       if (requestGeneration !== calendarItemsRequestGenerationRef.current) {
@@ -1734,6 +1978,10 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     }
   }, [
     calendarBoardView,
+    calendarQueryView,
+    mobileCalendarCompanion,
+    mobileCalendarView,
+    selectedMobileLearnerId,
     workspace.currentUserId,
     selectedCalendarEnd,
     selectedCalendarStart,
@@ -1741,6 +1989,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   ]);
 
   useEffect(() => {
+    if (mobileCalendarCompanion) {
+      setSetupLoading(false);
+      setSetupError(null);
+      return;
+    }
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       calendarItemsRequestGenerationRef.current += 1;
       setupRequestGenerationRef.current += 1;
@@ -1761,6 +2014,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
     void reloadSetupData();
   }, [
+    mobileCalendarCompanion,
     reloadSetupData,
     workspace.profile,
     workspace.requiresFamilyCreation,
@@ -1839,8 +2093,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   ]);
 
   useEffect(() => {
+    if (mobileCalendarCompanion) return;
     void reloadTemplateBlocks();
-  }, [reloadTemplateBlocks]);
+  }, [mobileCalendarCompanion, reloadTemplateBlocks]);
 
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
@@ -1857,6 +2112,10 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   ]);
 
   useEffect(() => {
+    if (mobileCalendarCompanion) {
+      setEvidenceByCalendarItemId(new Map());
+      return;
+    }
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setEvidenceByCalendarItemId(new Map());
       return;
@@ -1883,7 +2142,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     return () => {
       active = false;
     };
-  }, [selectedCalendarEnd, selectedCalendarStart, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+  }, [mobileCalendarCompanion, selectedCalendarEnd, selectedCalendarStart, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
 
   useEffect(() => {
     if (
@@ -3122,16 +3381,31 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   }
 
   function buildCalendarCaptureHref(item: CleanCalendarItem) {
+    const calendarPathBase = pathname.startsWith("/clean-my-calendar") ? "/clean-my-calendar" : "/my-calendar";
+    const returnTo = selectedMobileLearnerId
+      ? `${calendarPathBase}?learner_id=${encodeURIComponent(selectedMobileLearnerId)}`
+      : calendarPathBase;
     const params = new URLSearchParams({
       mode: "quick",
       calendar_item_id: item.id,
       observed_on: item.plannedDate,
-      returnTo: pathname.startsWith("/clean-my-calendar") ? "/clean-my-calendar" : "/my-calendar",
+      activity_title: item.title,
+      returnTo,
     });
     if (item.learnerId) params.set("learner_id", item.learnerId);
     if (item.programId) params.set("program_id", item.programId);
     if (item.programSegmentId) params.set("program_segment_id", item.programSegmentId);
     if (item.learningArea) params.set("learning_area", item.learningArea);
+    return `${capturePathBase}?${params.toString()}`;
+  }
+
+  function buildMobileCalendarQuickCaptureHref() {
+    const calendarPathBase = pathname.startsWith("/clean-my-calendar") ? "/clean-my-calendar" : "/my-calendar";
+    const returnTo = selectedMobileLearnerId
+      ? `${calendarPathBase}?learner_id=${encodeURIComponent(selectedMobileLearnerId)}`
+      : calendarPathBase;
+    const params = new URLSearchParams({ mode: "quick", returnTo });
+    if (selectedMobileLearnerId) params.set("learner_id", selectedMobileLearnerId);
     return `${capturePathBase}?${params.toString()}`;
   }
 
@@ -3339,6 +3613,36 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const shouldShowTermSetup = planningOnly || !firstSetupMode || academicYears.length > 0;
   const shouldShowWeeklyPlanner = true;
   const shouldShowCalendarNextStep = !firstSetupMode || calendarSetupReady;
+
+  if (mobileCalendarCompanion) {
+    const todayPathBase = pathname.startsWith("/clean-my-calendar") ? "/clean-my-day" : "/my-day";
+    const todayHref = selectedMobileLearnerId
+      ? `${todayPathBase}?learner_id=${encodeURIComponent(selectedMobileLearnerId)}`
+      : todayPathBase;
+
+    return (
+      <div style={shellStyle}>
+        <MobileCalendarContent
+          activeView={mobileCalendarView}
+          buildItemCaptureHref={buildCalendarCaptureHref}
+          captureHref={buildMobileCalendarQuickCaptureHref()}
+          items={items}
+          itemsError={itemsError}
+          itemsLoading={itemsLoading}
+          learnerOptions={learnerOptions}
+          onLearnerChange={handleMobileLearnerChange}
+          onRetry={() => void reloadCalendarItems()}
+          onViewChange={setMobileCalendarView}
+          selectedLearnerId={selectedMobileLearnerId}
+          todayHref={todayHref}
+          workspaceError={workspace.error}
+          workspaceLoading={workspace.loading && !workspace.profile}
+          workspaceNeedsFamily={workspace.requiresFamilyCreation}
+          workspaceSchemaMissing={workspace.schemaMissing}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`mylearna-calendar-shell${planningOnly ? " mylearna-calendar-shell-planning-setup" : " mylearna-calendar-shell-operational"}`} style={shellStyle}>
