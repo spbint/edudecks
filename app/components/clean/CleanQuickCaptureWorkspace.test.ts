@@ -91,7 +91,7 @@ describe("Quick Capture doorway", () => {
 
   it("keeps quick capture visually anchored and camera-first", () => {
     expect(source).toContain("window.scrollTo({ top: 0");
-    expect(source).toContain(">Quick Capture</h1>");
+    expect(source).toContain('mobileCompanion ? "Capture learning" : "Quick Capture"');
     expect(source).toContain("Capture a learning moment now. Start a new detailed capture later.");
     expect(source).not.toContain("Add it to the portfolio later.");
     expect(source).toContain("CleanEvidenceAttachmentControls");

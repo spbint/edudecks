@@ -15,6 +15,7 @@ import {
   isFamilyProfileRoute,
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
+import { MOBILE_COMPANION_CAPTURE_EDITING_EVENT } from "./useMobileCompanion";
 
 export const v2Tokens = {
   page: "#F7F9FC",
@@ -629,6 +630,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const { user } = useAuthUser();
   const workspace = useCleanFamilyWorkspace();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
+  const [mobileCaptureEditing, setMobileCaptureEditing] = React.useState(false);
   const moreTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const moreDialogRef = React.useRef<HTMLDivElement | null>(null);
   const moreCloseRef = React.useRef<HTMLButtonElement | null>(null);
@@ -659,6 +661,19 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
     if (!familySetupRedirect) return;
     router.replace(familySetupRedirect);
   }, [familySetupRedirect, router]);
+
+  React.useEffect(() => {
+    function handleMobileCaptureEditing(event: Event) {
+      setMobileCaptureEditing(Boolean((event as CustomEvent<boolean>).detail));
+    }
+
+    window.addEventListener(MOBILE_COMPANION_CAPTURE_EDITING_EVENT, handleMobileCaptureEditing);
+    return () => window.removeEventListener(MOBILE_COMPANION_CAPTURE_EDITING_EVENT, handleMobileCaptureEditing);
+  }, []);
+
+  React.useEffect(() => {
+    setMobileCaptureEditing(false);
+  }, [pathname]);
 
   const closeMobileMore = React.useCallback((restoreFocus = true) => {
     restoreMoreTriggerFocusRef.current = restoreFocus;
@@ -904,8 +919,18 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
     );
   }
 
+  const hideMobileBottomNavForCapture = quickCaptureRoute && mobileCaptureEditing;
+
   return (
-    <div className="mylearna-v2-shell" style={{ minHeight: "100vh", background: v2Tokens.page, color: v2Tokens.navy }}>
+    <div
+      className="mylearna-v2-shell"
+      style={{
+        minHeight: "100vh",
+        background: v2Tokens.page,
+        color: v2Tokens.navy,
+        "--mylearna-mobile-bottom-nav-height": hideMobileBottomNavForCapture ? "0px" : "62px",
+      } as React.CSSProperties}
+    >
       <ProductAnalyticsProvider />
       <style jsx global>{`
         .mylearna-v2-shell {
@@ -1064,6 +1089,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             background: rgba(255, 255, 255, 0.96) !important;
             box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.11) !important;
             backdrop-filter: blur(16px) !important;
+          }
+
+          .mylearna-v2-mobile-bottom-nav-capture-editing {
+            display: none !important;
           }
 
           .mylearna-v2-mobile-nav-sheet {
@@ -1358,7 +1387,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         </div>
       ) : null}
 
-      <nav className="mylearna-v2-mobile-bottom-nav" aria-label="Mobile primary navigation">
+      <nav
+        className={`mylearna-v2-mobile-bottom-nav${hideMobileBottomNavForCapture ? " mylearna-v2-mobile-bottom-nav-capture-editing" : ""}`}
+        aria-label="Mobile primary navigation"
+        aria-hidden={hideMobileBottomNavForCapture || undefined}
+      >
         <Link
           href={dayNavItem.href}
           aria-label="Today"

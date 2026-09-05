@@ -638,6 +638,7 @@ function CleanDayWorkspaceBody() {
       if (item.learnerId) params.set("learner_id", item.learnerId);
       if (item.programId) params.set("program_id", item.programId);
       if (item.learningArea) params.set("learning_area", item.learningArea);
+      if (item.title) params.set("activity_title", item.title);
 
       return `${capturePathBase}?${params.toString()}`;
     },

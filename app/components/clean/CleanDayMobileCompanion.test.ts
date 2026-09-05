@@ -32,6 +32,7 @@ describe("Mobile Today companion experience", () => {
     expect(source).toContain('mode: "quick"');
     expect(source).toContain("calendar_item_id: item.id");
     expect(source).toContain("observed_on: item.plannedDate");
+    expect(source).toContain('activity_title", item.title');
     expect(source).toContain("returnTo: mobileDayReturnHref");
     expect(source).toContain("const mobileQuickCaptureHref");
     expect(mobileTodaySource).toContain("buildItemCaptureHref(item)");

@@ -35,6 +35,7 @@ const tertiaryButtonStyle: React.CSSProperties = {
 type Props = {
   attachments: CleanEvidenceAttachmentState;
   disabled?: boolean;
+  cameraFirst?: boolean;
   compact?: boolean;
   title?: string;
 };
@@ -42,6 +43,7 @@ type Props = {
 export default function CleanEvidenceAttachmentControls({
   attachments,
   disabled = false,
+  cameraFirst = false,
   compact = false,
   title = "Add evidence",
 }: Props) {
@@ -74,7 +76,7 @@ export default function CleanEvidenceAttachmentControls({
           type="button"
           onClick={() => cameraInputRef.current?.click()}
           disabled={disabled}
-          style={{ minHeight: compact ? 56 : 64, border: "1px solid #c4b5fd", borderRadius: 12, background: "#faf9ff", color: "#17204b", fontWeight: 800, cursor: disabled ? "default" : "pointer" }}
+          style={{ minHeight: compact ? 56 : 64, border: `1px solid ${cameraFirst ? "#6c4df6" : "#c4b5fd"}`, borderRadius: 12, background: cameraFirst ? "#6c4df6" : "#faf9ff", color: cameraFirst ? "#ffffff" : "#17204b", fontWeight: 800, cursor: disabled ? "default" : "pointer", ...(cameraFirst ? { gridColumn: "1 / -1" } : {}) }}
         >
           Take photo
         </button>
