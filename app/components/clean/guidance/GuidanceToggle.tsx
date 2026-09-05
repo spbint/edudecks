@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useGuidance, type GuidanceTourId } from "@/app/components/clean/guidance/GuidanceProvider";
 import { COACH_OPEN_EVENT } from "@/app/components/clean/coach/MyLearnaCoachProvider";
+import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import { useDriverTour } from "@/app/components/clean/guidance/useDriverTour";
 import {
   BLOCKED_SETUP_ROUTE_KEY,
@@ -203,8 +204,9 @@ export function GuidanceSettingsCard() {
 export function GuidancePageAction({ tourId }: { tourId: GuidanceTourId }) {
   const { enabled, guidedStartActive, hydrated, isGuidanceRoute, setupStatus } = useGuidance();
   const startTour = useDriverTour();
+  const mobileCompanion = useMobileCompanion();
 
-  if (!hydrated || !enabled || guidedStartActive || !isGuidanceRoute || setupStatus === "active") return null;
+  if (mobileCompanion || !hydrated || !enabled || guidedStartActive || !isGuidanceRoute || setupStatus === "active") return null;
 
   return (
     <button

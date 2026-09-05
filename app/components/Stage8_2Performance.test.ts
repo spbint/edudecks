@@ -18,17 +18,16 @@ const shellSource = readFileSync(
 );
 
 describe("Stage 8.2 loading and navigation fluidity", () => {
-  it("prefetches only predictable lightweight destinations by pillar", () => {
-    expect(getMobilePrefetchDestinations("PLAN")).toEqual([
+  it("prefetches only predictable mobile companion destinations", () => {
+    expect(getMobilePrefetchDestinations()).toEqual([
       "/my-day",
-      "/my-settings",
       "/my-capture?mode=quick",
+      "/my-portfolio",
       "/my-calendar",
-      "/my-pathways",
+      "/my-settings",
     ]);
-    expect(getMobilePrefetchDestinations("CAPTURE")).toContain("/my-portfolio");
-    expect(getMobilePrefetchDestinations("GROW")).toContain("/my-reports");
-    expect(getMobilePrefetchDestinations("day")).not.toContain("/my-reports");
+    expect(getMobilePrefetchDestinations()).not.toContain("/my-pathways");
+    expect(getMobilePrefetchDestinations()).not.toContain("/my-reports");
     expect(shellSource).toContain("requestIdleCallback");
     expect(shellSource).toContain("connection?.saveData");
   });

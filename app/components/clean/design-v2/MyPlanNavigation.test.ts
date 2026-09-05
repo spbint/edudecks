@@ -71,10 +71,11 @@ describe("My Plan navigation hierarchy", () => {
     ]);
   });
 
-  it("keeps mobile destinations compact but uses the same customer-facing names", () => {
-    expect(shell).toContain('aria-label="My Day"');
-    expect(shell).toContain("<span>My Day</span>");
-    expect(shell).toContain('label: "My Calendar", section: "PLAN"');
+  it("keeps planning secondary in the mobile companion while preserving desktop planning", () => {
+    expect(shell).toContain('aria-label="Today"');
+    expect(shell).toContain("<span>Today</span>");
+    expect(shell).toContain('href="/my-calendar"');
+    expect(shell).not.toContain('label: "My Calendar", section: "PLAN"');
     expect(shell).toContain("mylearna-v2-mobile-bottom-nav");
     expect(shell).not.toContain("programsNavItem");
   });

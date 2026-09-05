@@ -7,7 +7,6 @@ import React from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import ProductAnalyticsProvider from "@/app/components/clean/analytics/ProductAnalyticsProvider";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
-import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 import ReportProblemButton from "@/app/components/clean/ReportProblemButton";
 import GuidedStartFamilySetup from "@/app/components/clean/guidance/GuidedStartFamilySetup";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -16,7 +15,6 @@ import {
   isFamilyProfileRoute,
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
-import { MobileSelectionLink } from "./MobileResponsivePrimitives";
 
 export const v2Tokens = {
   page: "#F7F9FC",
@@ -50,7 +48,7 @@ type ProductNavSection = {
   items: readonly ProductNavItem[];
 };
 
-type MobileNavKey = "day" | "PLAN" | "CAPTURE" | "GROW" | "more";
+type MobileNavKey = "today" | "capture" | "portfolio" | "more";
 
 const MOBILE_MORE_FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
@@ -242,7 +240,7 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
   );
 }
 
-function MyLearnaBrandMark({ compact = false }: { compact?: boolean }) {
+function MyLearnaBrandMark({ compact = false, showBeta = true }: { compact?: boolean; showBeta?: boolean }) {
   return (
     <div
       className={`mylearna-v2-brand-mark${compact ? " mylearna-v2-mobile-brand" : ""}`}
@@ -274,25 +272,27 @@ function MyLearnaBrandMark({ compact = false }: { compact?: boolean }) {
           }}
         />
       </Link>
-      <span
-        className="mylearna-v2-beta-badge"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          border: `1px solid ${v2Tokens.border}`,
-          borderRadius: 999,
-          background: v2Tokens.lavender,
-          color: v2Tokens.navy,
-          padding: compact ? "3px 5px" : "4px 7px",
-          fontSize: compact ? 9 : 10,
-          fontWeight: 800,
-          lineHeight: 1,
-          letterSpacing: "0.02em",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Beta v1
-      </span>
+      {showBeta ? (
+        <span
+          className="mylearna-v2-beta-badge"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            border: `1px solid ${v2Tokens.border}`,
+            borderRadius: 999,
+            background: v2Tokens.lavender,
+            color: v2Tokens.navy,
+            padding: compact ? "3px 5px" : "4px 7px",
+            fontSize: compact ? 9 : 10,
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Beta v1
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -497,60 +497,14 @@ function MyPlanNavGroup({ pathname }: { pathname: string }) {
 }
 
 function getActiveMobileSection(pathname: string): MobileNavKey {
-  if (isActive(pathname, dayNavItem.matches)) return "day";
-  if (isActive(pathname, settingsNavItem.matches) || pathname.startsWith("/my-profile") || pathname.startsWith("/my-community")) {
-    return "more";
-  }
-
-  const section = finalProductNavSections.find((candidate) =>
-    candidate.items.some((item) => isActive(pathname, item.matches)),
-  );
-
-  return section?.label ?? "day";
+  if (isActive(pathname, dayNavItem.matches)) return "today";
+  if (pathname.startsWith("/my-capture") || pathname.startsWith("/capture")) return "capture";
+  if (pathname.startsWith("/my-portfolio") || pathname.startsWith("/portfolio")) return "portfolio";
+  return "more";
 }
 
-export function getMobilePrefetchDestinations(activeSection: MobileNavKey): string[] {
-  const destinations = new Set(["/my-day", "/my-settings", "/my-capture?mode=quick"]);
-  if (activeSection === "PLAN") {
-    destinations.add("/my-calendar");
-    destinations.add("/my-pathways");
-  } else if (activeSection === "CAPTURE") {
-    destinations.add("/my-capture");
-    destinations.add("/my-portfolio");
-  } else if (activeSection === "GROW") {
-    destinations.add("/my-learna");
-    destinations.add("/my-reports");
-  } else {
-    destinations.add("/my-calendar");
-    destinations.add("/my-capture");
-    destinations.add("/my-learna");
-  }
-  return [...destinations];
-}
-
-function MobilePillarSwitcher({ pathname }: { pathname: string }) {
-  const section = finalProductNavSections.find((candidate) =>
-    candidate.items.some((item) => isActive(pathname, item.matches)),
-  );
-
-  if (!section) return null;
-
-  return (
-    <nav
-      className="mylearna-mobile-pillar-switcher"
-      aria-label={`${section.label.toLowerCase()} destinations`}
-      role="tablist"
-    >
-      {section.items.map((item) => (
-        <MobileSelectionLink
-          key={item.href}
-          href={item.href}
-          label={item.shortLabel}
-          active={isActive(pathname, item.matches)}
-        />
-      ))}
-    </nav>
-  );
+export function getMobilePrefetchDestinations(): string[] {
+  return ["/my-day", "/my-capture?mode=quick", "/my-portfolio", "/my-calendar", "/my-settings"];
 }
 
 const MobileBottomNavButton = React.forwardRef<HTMLButtonElement, {
@@ -758,7 +712,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
     ).connection;
     if (connection?.saveData || connection?.effectiveType === "slow-2g") return;
 
-    const destinations = getMobilePrefetchDestinations(activeMobileSection);
+    const destinations = getMobilePrefetchDestinations();
 
     const prefetch = () => {
       destinations.forEach((destination) => {
@@ -782,7 +736,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       if (idleId !== undefined) idleWindow.cancelIdleCallback?.(idleId);
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
-  }, [activeMobileSection, router]);
+  }, [router]);
 
   if (familySetupPending && !isFamilyProfileRoute(pathname)) {
     return (
@@ -964,42 +918,9 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           display: none;
         }
 
-        .mylearna-mobile-pillar-switcher {
-          display: none;
-        }
-
         .mylearna-mobile-action-bar {
             display: none;
           }
-
-        .mylearna-v2-quick-capture-link {
-          min-height: 40px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          border: 1px solid ${v2Tokens.purple};
-          border-radius: 999px;
-          background: ${v2Tokens.lavender};
-          color: ${v2Tokens.purple};
-          padding: 0 13px;
-          box-shadow: 0 8px 20px rgba(108, 77, 246, 0.12);
-          font-size: 13px;
-          font-weight: 800;
-          text-decoration: none;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-
-        .mylearna-v2-quick-capture-link:hover {
-          background: ${v2Tokens.purple};
-          color: #ffffff;
-        }
-
-        .mylearna-v2-quick-capture-link:focus-visible {
-          outline: 3px solid ${v2Tokens.purple};
-          outline-offset: 3px;
-        }
 
         @media (max-width: 900px) {
           html {
@@ -1029,11 +950,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             width: 62px !important;
           }
 
-          .mylearna-v2-mobile-brand .mylearna-v2-beta-badge {
-            padding: 3px 5px !important;
-            font-size: 9px !important;
-          }
-
           .mylearna-v2-shell {
             min-height: 100dvh;
           }
@@ -1059,19 +975,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             height: 38px !important;
           }
 
-          .mylearna-v2-quick-capture-link {
-            width: 44px !important;
-            min-width: 44px !important;
-            height: 44px !important;
-            min-height: 44px !important;
-            padding: 0 !important;
-            border-radius: 12px !important;
-          }
-
-          .mylearna-v2-quick-capture-label {
-            display: none !important;
-          }
-
           .mylearna-v2-content-main {
             padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
           }
@@ -1082,28 +985,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
           .mylearna-v2-content-inner {
             gap: 12px !important;
-          }
-
-          .mylearna-mobile-pillar-switcher {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 6px;
-            margin: -2px 0 0;
-            padding: 4px;
-            border: 1px solid ${v2Tokens.border};
-            border-radius: 14px;
-            background: rgba(255,255,255,0.78);
-          }
-
-          .mylearna-mobile-pillar-tab {
-            min-height: 42px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 750;
-            text-decoration: none;
           }
 
           .mylearna-mobile-action-bar {
@@ -1176,7 +1057,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             bottom: 0 !important;
             z-index: 60 !important;
             display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
             gap: 4px !important;
             padding: 7px max(8px, env(safe-area-inset-left, 0px)) calc(7px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-right, 0px)) !important;
             border-top: 1px solid ${v2Tokens.border} !important;
@@ -1327,7 +1208,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               className="mylearna-v2-mobile-header-leading"
               style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}
             >
-              <MyLearnaBrandMark compact />
+              <MyLearnaBrandMark compact showBeta={false} />
               <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
               <nav
                 className="mylearna-v2-breadcrumb"
@@ -1383,37 +1264,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               </div>
             </div>
             <div className="mylearna-v2-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Link
-                href="/my-community"
-                aria-label="Open help and community"
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 999,
-                  border: `1px solid ${v2Tokens.border}`,
-                  background: "#FFFFFF",
-                  color: v2Tokens.slate,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                }}
-              >
-                <ShellIcon name="help" size={18} />
-              </Link>
-              <CleanCommunityNotificationsMenu />
-              {!quickCaptureRoute ? (
-                <Link className="mylearna-v2-quick-capture-link" href={quickCaptureHref} aria-label="Quick Capture">
-                  <ShellIcon name="camera" size={18} />
-                  <span className="mylearna-v2-quick-capture-label">Quick Capture</span>
-                </Link>
-              ) : null}
               <CleanAccountMenu email={user?.email ?? null} redirectTo="/start-free" />
             </div>
           </header>
 
           <main className={`mylearna-v2-content-main${quickCaptureRoute ? " mylearna-v2-quick-capture-content" : ""}`} style={{ padding: "clamp(16px, 3vw, 28px)" }}>
-            <MobilePillarSwitcher pathname={pathname} />
             <div className="mylearna-v2-content-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
               {children}
               <div
@@ -1453,6 +1308,15 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </button>
           </div>
           <div className="mylearna-v2-mobile-sheet-grid">
+            <Link
+              href="/my-calendar"
+              onClick={() => closeMobileMore(false)}
+              className="mylearna-v2-mobile-sheet-link"
+              style={{ background: isActive(pathname, calendarNavItem.matches) ? v2Tokens.lavender : "#ffffff", color: isActive(pathname, calendarNavItem.matches) ? v2Tokens.purple : v2Tokens.navy }}
+            >
+              <ShellIcon name="calendar" size={19} />
+              <span>My Calendar</span>
+            </Link>
             {[settingsNavItem].map((item) => {
               const active = isActive(pathname, item.matches);
               return (
@@ -1497,15 +1361,15 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
       <nav className="mylearna-v2-mobile-bottom-nav" aria-label="Mobile primary navigation">
         <Link
           href={dayNavItem.href}
-          aria-label="My Day"
-          aria-current={activeMobileSection === "day" ? "page" : undefined}
+          aria-label="Today"
+          aria-current={activeMobileSection === "today" ? "page" : undefined}
           className="mylearna-v2-mobile-nav-button"
           style={{
             minHeight: 48,
             minWidth: 54,
             borderRadius: 14,
-            background: activeMobileSection === "day" ? v2Tokens.lavender : "transparent",
-            color: activeMobileSection === "day" ? v2Tokens.purple : v2Tokens.slate,
+            background: activeMobileSection === "today" ? v2Tokens.lavender : "transparent",
+            color: activeMobileSection === "today" ? v2Tokens.purple : v2Tokens.slate,
             display: "grid",
             justifyItems: "center",
             alignContent: "center",
@@ -1516,12 +1380,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           }}
         >
           <ShellIcon name="sun" size={19} />
-          <span>My Day</span>
+          <span>Today</span>
         </Link>
         {[
-          { href: "/my-calendar", icon: "calendar" as const, label: "My Calendar", section: "PLAN" as const },
-          { href: "/my-capture", icon: "camera" as const, label: "Capture", section: "CAPTURE" as const },
-          { href: "/my-learna", icon: "learner" as const, label: "My Learna", section: "GROW" as const },
+          { href: quickCaptureHref, icon: "camera" as const, label: "Capture", section: "capture" as const },
+          { href: "/my-portfolio", icon: "folder" as const, label: "Portfolio", section: "portfolio" as const },
         ].map((item) => (
           <Link
             key={item.label}

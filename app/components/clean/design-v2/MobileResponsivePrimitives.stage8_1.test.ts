@@ -20,10 +20,11 @@ describe("Stage 8.1 responsive primitives", () => {
     expect(source).toContain("primaryBusy");
   });
 
-  it("uses accessible selected state for pillar tabs", () => {
+  it("keeps the legacy typed tab primitive available without rendering it in companion navigation", () => {
     expect(source).toContain('role="tab"');
     expect(source).toContain("aria-selected={active}");
-    expect(shellSource).toContain("aria-label={`${section.label.toLowerCase()} destinations`}");
+    expect(shellSource).not.toContain("aria-label={`${section.label.toLowerCase()} destinations`}");
+    expect(shellSource).not.toContain("mylearna-mobile-pillar-switcher");
   });
 
   it("keeps mobile actions and content clear of the home indicator", () => {

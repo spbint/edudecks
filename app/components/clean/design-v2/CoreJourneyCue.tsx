@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useMobileCompanion } from "./useMobileCompanion";
 
 export type CoreJourneyStage = "plan" | "capture" | "portfolio" | "report";
 
@@ -13,7 +16,10 @@ const JOURNEY_STAGES: ReadonlyArray<{
 ];
 
 export default function CoreJourneyCue({ stage }: { stage: CoreJourneyStage }) {
+  const mobileCompanion = useMobileCompanion();
   const currentLabel = JOURNEY_STAGES.find((item) => item.id === stage)?.label ?? "Plan";
+
+  if (mobileCompanion) return null;
 
   return (
     <div
@@ -202,6 +208,10 @@ export default function CoreJourneyCue({ stage }: { stage: CoreJourneyStage }) {
 }
 
 export function CoreJourneyHelp({ children }: { children: ReactNode }) {
+  const mobileCompanion = useMobileCompanion();
+
+  if (mobileCompanion) return null;
+
   return (
     <div className="mylearna-core-help">
       <div className="mylearna-core-help-desktop">{children}</div>

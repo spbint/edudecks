@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import { GUIDANCE_DISABLED_EVENT, useGuidance } from "@/app/components/clean/guidance/GuidanceProvider";
 import { GUIDANCE_SURFACE_EVENT } from "@/app/components/clean/guidance/guidanceRuntime";
 import { trackCoachEvent } from "@/lib/clean/coach/coachAnalytics";
@@ -84,6 +85,7 @@ function buildCoachState(
 
 export function MyLearnaCoachProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
+  const mobileCompanion = useMobileCompanion();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
   const workspace = useCleanFamilyWorkspace();
@@ -117,6 +119,7 @@ export function MyLearnaCoachProvider({ children }: { children: React.ReactNode 
   const focusedRoute = /\/my-pathways\/activity-player|\/practice\/|\/assessments\//.test(pathname);
   const automaticCardVisible = Boolean(
       automaticRecommendation &&
+      !mobileCompanion &&
       persistenceResolved &&
       !panelOpen &&
       !staticTourActive &&
