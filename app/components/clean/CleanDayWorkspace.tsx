@@ -67,6 +67,7 @@ import {
 import { hasAnyPathwayPlacementForLearner } from "@/lib/clean/pathways/pathwayPlacement";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
+import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
   beginCleanPlanningTiming,
   recordCleanPlanningMilestone,
@@ -352,6 +353,7 @@ function CleanDayWorkspaceBody() {
     const candidate = searchParams.get("date");
     return isValidDateValue(candidate) ? candidate : today;
   }, [searchParams, today]);
+  const learnerIdFromQuery = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
   const isViewingToday = selectedDate === today;
   const weekStart = getWeekStart(selectedDate);
   const weekEnd = addDays(weekStart, 6);
@@ -389,6 +391,18 @@ function CleanDayWorkspaceBody() {
     },
     [buildDayPath, capturePathBase, selectedDate],
   );
+
+  const handleLearnerChange = useCallback((nextLearnerId: string) => {
+    setSelectedLearnerId(nextLearnerId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextLearnerId) {
+      params.set("learner_id", nextLearnerId);
+    } else {
+      params.delete("learner_id");
+    }
+    params.delete("learnerId");
+    router.replace(`${dayPathBase}${params.toString() ? `?${params.toString()}` : ""}`);
+  }, [dayPathBase, router, searchParams]);
 
   const learnerOptions = useMemo(
     () =>
@@ -636,6 +650,16 @@ function CleanDayWorkspaceBody() {
         : pathwaysPathBase,
     [pathwaysPathBase, selectedLearnerId],
   );
+  const contextualPortfolioHref = useMemo(
+    () => buildLearnerContextHref(portfolioPathBase, selectedLearnerId),
+    [portfolioPathBase, selectedLearnerId],
+  );
+  const contextualCaptureHref = useMemo(
+    () => buildLearnerContextHref(capturePathBase, selectedLearnerId, {
+      returnTo: buildDayPath(selectedDate),
+    }),
+    [buildDayPath, capturePathBase, selectedDate, selectedLearnerId],
+  );
   const shouldShowPlacementPrompt =
     PUBLIC_PATHWAYS_ENABLED &&
     !workspace.setupLoading &&
@@ -668,12 +692,12 @@ function CleanDayWorkspaceBody() {
         : []),
       evidenceEntries.length
         ? {
-            href: portfolioPathBase,
+            href: contextualPortfolioHref,
             label: "Choose evidence for portfolio",
             tone: "orange" as const,
           }
         : {
-            href: capturePathBase,
+            href: contextualCaptureHref,
             label: selectedLearnerLabel ? `Capture evidence for ${selectedLearnerLabel}` : "Capture evidence",
             tone: "orange" as const,
           },
@@ -681,13 +705,13 @@ function CleanDayWorkspaceBody() {
   }, [
     buildDayPath,
     calendarPathBase,
-    capturePathBase,
     currentPathwayHref,
     evidenceEntries.length,
     firstSetupMode,
     isViewingToday,
-    portfolioPathBase,
     selectedDate,
+    contextualCaptureHref,
+    contextualPortfolioHref,
     selectedLearnerLabel,
     sortedVisibleItems.length,
   ]);
@@ -699,13 +723,16 @@ function CleanDayWorkspaceBody() {
     }
 
     setSelectedLearnerId((current) => {
+      if (learnerIdFromQuery && workspace.learners.some((learner) => learner.id === learnerIdFromQuery)) {
+        return learnerIdFromQuery;
+      }
       if (current && workspace.learners.some((learner) => learner.id === current)) {
         return current;
       }
 
       return "";
     });
-  }, [workspace.learners]);
+  }, [learnerIdFromQuery, workspace.learners]);
 
   useEffect(() => {
     if (!workspace.setupLoading) setSetupStatusReadyOnce(true);
@@ -1881,7 +1908,7 @@ function CleanDayWorkspaceBody() {
                       </label>
                       <select
                         value={selectedLearnerId}
-                        onChange={(event) => setSelectedLearnerId(event.target.value)}
+                        onChange={(event) => handleLearnerChange(event.target.value)}
                         style={compactInputStyle}
                       >
                         <option value="" style={{ background: "#ffffff", color: "#0f172a" }}>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -47,6 +47,7 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
+import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
   buildPathwayCaptureContext,
   parsePathwayContextFromNodeIds,
@@ -230,6 +231,7 @@ function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -325,6 +327,22 @@ function CleanPortfolioWorkspaceBody() {
   const createReportHref = selectedLearnerId
     ? `${reportsPathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}&source=portfolio`
     : `${reportsPathBase}?source=portfolio`;
+  const portfolioReturnHref = buildLearnerContextHref(pathname, selectedLearnerId);
+  const captureLearningHref = buildLearnerContextHref(capturePathBase, selectedLearnerId, {
+    returnTo: portfolioReturnHref,
+  });
+
+  const handleLearnerChange = useCallback((nextLearnerId: string) => {
+    setSelectedLearnerId(nextLearnerId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextLearnerId) {
+      params.set("learner_id", nextLearnerId);
+    } else {
+      params.delete("learner_id");
+    }
+    params.delete("learnerId");
+    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+  }, [pathname, router, searchParams]);
 
   function trackCreateReportSelected(source: "learning_record" | "next_step") {
     trackCoreJourneyEvent(
@@ -383,9 +401,6 @@ function CleanPortfolioWorkspaceBody() {
     () => buildPortfolioLearningStory(items, selectedLearnerId || null),
     [items, selectedLearnerId],
   );
-  const captureLearningHref = selectedLearnerId
-    ? `${capturePathBase}?learner_id=${encodeURIComponent(selectedLearnerId)}`
-    : capturePathBase;
   const learningStoryHighlights = portfolioLearningStory.highlights.slice(0, 3);
   const learningStoryRecentItems = portfolioLearningStory.recentItems
     .filter((item) => !item.isHighlighted)
@@ -1046,7 +1061,9 @@ function CleanPortfolioWorkspaceBody() {
             ) : null}
             <Link
               className="mylearna-portfolio-secondary-action"
-              href={`${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(pathname)}${selectedLearnerId ? `&learner_id=${encodeURIComponent(selectedLearnerId)}` : ""}`}
+              href={buildLearnerContextHref(`${capturePathBase}?mode=quick`, selectedLearnerId, {
+                returnTo: portfolioReturnHref,
+              })}
               style={{ ...buttonStyle, width: "fit-content", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
             >
               Add a learning moment
@@ -1190,7 +1207,7 @@ function CleanPortfolioWorkspaceBody() {
                   <select
                     className={selectedLearnerId ? "mylearna-portfolio-learner-select is-selected" : "mylearna-portfolio-learner-select"}
                     value={selectedLearnerId}
-                    onChange={(event) => setSelectedLearnerId(event.target.value)}
+                    onChange={(event) => handleLearnerChange(event.target.value)}
                     style={{
                       ...inputStyle,
                       minHeight: 44,
@@ -1535,7 +1552,7 @@ function CleanPortfolioWorkspaceBody() {
                   />
                   <select
                     value={selectedLearnerId}
-                    onChange={(event) => setSelectedLearnerId(event.target.value)}
+                    onChange={(event) => handleLearnerChange(event.target.value)}
                     style={inputStyle}
                   >
                     <option value="">All family</option>

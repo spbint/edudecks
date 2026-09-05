@@ -43,6 +43,7 @@ import {
   generateCurriculumCoveragePdfBytes,
 } from "@/lib/clean/outputs/curriculumCoveragePdf";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
+import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e7eaf2",
@@ -110,8 +111,7 @@ function isRecent(value: string | null | undefined) {
 }
 
 function learnerPath(path: string, learnerId: string) {
-  if (!learnerId) return path;
-  return `${path}?${new URLSearchParams({ learner_id: learnerId }).toString()}`;
+  return buildLearnerContextHref(path, learnerId);
 }
 
 type NextStep = ReturnType<typeof buildLearningIntelligenceSummary>["nextLearningSteps"][number];
@@ -583,7 +583,9 @@ export default function CleanMyLearnaWorkspace() {
     attempts: visibleAssessmentAttempts,
     fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
   }).map(candidateToNextStep);
-  const quickCaptureHref = `/my-capture?mode=quick&learner_id=${encodeURIComponent(selectedLearnerId)}&returnTo=${encodeURIComponent("/my-learna")}`;
+  const quickCaptureHref = buildLearnerContextHref("/my-capture?mode=quick", selectedLearnerId, {
+    returnTo: learnerPath("/my-learna", selectedLearnerId),
+  });
   const activeAreas = summary.allSubjectRows.filter((row) => row.isActiveLearningArea);
   const quietAreas = summary.allSubjectRows.filter((row) => !row.isActiveLearningArea);
   const reportReadyCount = visibleEntries.filter((entry) => entry.includeInReport).length;
