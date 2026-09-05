@@ -46,7 +46,7 @@ function toCleanReportExport(row: ReportExportRow): CleanReportExport {
   };
 }
 
-function sortExports(items: CleanReportExport[]) {
+export function sortCleanReportExports(items: CleanReportExport[]) {
   return [...items].sort((left, right) => {
     const leftCreated = Date.parse(left.createdAt || "");
     const rightCreated = Date.parse(right.createdAt || "");
@@ -84,7 +84,40 @@ export async function listCleanReportExports(familyId: string, reportId: string)
     );
   }
 
-  return sortExports(
+  return sortCleanReportExports(
+    (response.data ?? []).map((row) => toCleanReportExport(row as ReportExportRow)),
+  );
+}
+
+/**
+ * Returns the family-owned formal-report PDF download records recorded by the
+ * existing export flow. These records are history metadata only; they do not
+ * store the browser-downloaded file itself.
+ */
+export async function listCleanReportExportsForFamily(
+  familyId: string,
+  options: { limit?: number } = {},
+) {
+  const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
+  const response = await supabase
+    .from("report_exports")
+    .select(
+      "id,report_id,family_id,learner_id,export_format,exported_by_user_id,created_at",
+    )
+    .eq("family_id", familyId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(
+        response.error,
+        "We could not load clean report exports just now.",
+      ),
+    );
+  }
+
+  return sortCleanReportExports(
     (response.data ?? []).map((row) => toCleanReportExport(row as ReportExportRow)),
   );
 }

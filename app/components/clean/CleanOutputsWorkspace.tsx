@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
@@ -31,6 +32,7 @@ import {
 import {
   createCleanReportExport,
   listCleanReportExports,
+  listCleanReportExportsForFamily,
 } from "@/lib/clean/outputs/client";
 import type { CleanReportExport } from "@/lib/clean/outputs/types";
 import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
@@ -239,6 +241,7 @@ function CleanOutputsWorkspaceBody() {
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [exportsHistory, setExportsHistory] = useState<CleanReportExport[]>([]);
+  const [recentExports, setRecentExports] = useState<CleanReportExport[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
   const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
     LearningEvidenceEvent[]
@@ -249,6 +252,7 @@ function CleanOutputsWorkspaceBody() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [exportsLoading, setExportsLoading] = useState(false);
+  const [recentExportsLoading, setRecentExportsLoading] = useState(false);
   const [reportContextLoading, setReportContextLoading] = useState(false);
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
@@ -376,6 +380,23 @@ function CleanOutputsWorkspaceBody() {
     ],
   );
   const latestExport = exportsHistory[0] ?? null;
+  const recentOutputHistory = useMemo(
+    () =>
+      recentExports.map((entry) => {
+        const report = reports.find((item) => item.id === entry.reportId) ?? null;
+        const period = report
+          ? periods.find((item) => item.id === report.reportingPeriodId) ?? null
+          : null;
+
+        return {
+          entry,
+          learnerLabel: learnerLabelById.get(entry.learnerId) ?? "Unknown learner",
+          reportTitle: report?.title || "Formal report",
+          periodLabel: period?.title || null,
+        };
+      }),
+    [learnerLabelById, periods, recentExports, reports],
+  );
   const outputsNextGuidance = !readyReports.length
     ? draftReports.length
       ? "Finish a draft in My Reports, then mark it ready so it appears here."
@@ -463,6 +484,28 @@ function CleanOutputsWorkspaceBody() {
     }
   }, [selectedReportId, workspace.profile]);
 
+  const reloadRecentExports = useCallback(async () => {
+    if (!workspace.profile) {
+      setRecentExports([]);
+      return;
+    }
+
+    setRecentExportsLoading(true);
+    setDataError(null);
+    try {
+      setRecentExports(await listCleanReportExportsForFamily(workspace.profile.id));
+    } catch (error) {
+      setDataError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not load recent output history just now.",
+        ),
+      );
+    } finally {
+      setRecentExportsLoading(false);
+    }
+  }, [workspace.profile]);
+
   const reloadReportContext = useCallback(async () => {
     if (!workspace.profile || !selectedReport) {
       setPortfolioItems([]);
@@ -538,6 +581,7 @@ function CleanOutputsWorkspaceBody() {
       setReports([]);
       setSections([]);
       setExportsHistory([]);
+      setRecentExports([]);
       setPortfolioItems([]);
       setAssessmentEvidenceEvents([]);
       setPrograms([]);
@@ -549,8 +593,10 @@ function CleanOutputsWorkspaceBody() {
     }
 
     void reloadCatalog();
+    void reloadRecentExports();
   }, [
     reloadCatalog,
+    reloadRecentExports,
     workspace.profile,
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
@@ -695,6 +741,7 @@ function CleanOutputsWorkspaceBody() {
         });
         setMessage("PDF downloaded. Output history has been updated for this report.");
         await reloadExports();
+        await reloadRecentExports();
       } catch (historyError) {
         setMessage("PDF downloaded. We could not update output history this time.");
         setActionError(
@@ -1011,6 +1058,22 @@ function CleanOutputsWorkspaceBody() {
               display: none !important;
             }
 
+            .mylearna-outputs-history-meta {
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-outputs-history-actions {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+
+            .mylearna-outputs-history-actions a {
+              min-height: 44px !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+            }
+
             .mylearna-outputs-actions {
               display: grid !important;
               grid-template-columns: 1fr !important;
@@ -1050,7 +1113,7 @@ function CleanOutputsWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Outputs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Download history and advanced exports live here. Most learning records can now be downloaded from Portfolio or Reports.
+              Find formal report download history here, along with advanced export tools. Download learning records from Portfolio and formal reports from My Reports.
             </p>
             <div>
               <GuidancePageAction tourId="my-outputs" />
@@ -1094,6 +1157,124 @@ function CleanOutputsWorkspaceBody() {
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
               Outputs are stored at the family level. Create the family profile first on My Profile.
+            </p>
+          </section>
+        ) : null}
+
+        {readyForOutputs && workspace.profile ? (
+          <section data-testid="outputs-history" style={cardStyle}>
+            <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  color: "#64748b",
+                  textTransform: "uppercase",
+                }}
+              >
+                Recent outputs
+              </div>
+              <h2 style={{ margin: 0, color: "#0f172a" }}>Formal report download history</h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                This records formal report PDFs generated from My Reports. Your downloaded files stay in your browser&apos;s downloads.
+              </p>
+            </div>
+
+            {recentExportsLoading ? (
+              <p style={{ margin: 0, color: "#475569" }}>Loading recent outputs...</p>
+            ) : recentOutputHistory.length ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                {recentOutputHistory.map(({ entry, learnerLabel, reportTitle, periodLabel }) => (
+                  <div
+                    key={entry.id}
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: 14,
+                      display: "grid",
+                      gap: 12,
+                    }}
+                  >
+                    <div
+                      className="mylearna-outputs-history-meta"
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        gridTemplateColumns: "minmax(0, 1fr) auto",
+                        alignItems: "start",
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+                        <strong style={{ color: "#0f172a" }}>Formal Report</strong>
+                        <span style={{ color: "#475569", overflowWrap: "anywhere" }}>
+                          {learnerLabel} · {periodLabel || reportTitle}
+                        </span>
+                        <span style={{ color: "#64748b", fontSize: 13 }}>
+                          Generated {formatTimestamp(entry.createdAt)}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          border: "1px solid #dbeafe",
+                          borderRadius: 999,
+                          padding: "5px 9px",
+                          color: "#1d4ed8",
+                          background: "#eff6ff",
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
+                        PDF record
+                      </span>
+                    </div>
+                    <div className="mylearna-outputs-history-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <Link
+                        href={`/my-reports?learner_id=${encodeURIComponent(entry.learnerId)}&source=outputs`}
+                        style={{
+                          ...buttonStyle,
+                          width: "fit-content",
+                          textDecoration: "none",
+                        }}
+                      >
+                        Open in My Reports
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  No saved outputs yet. Create a learning record from My Portfolio or a formal report from My Reports when you are ready.
+                </p>
+                <div className="mylearna-outputs-history-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <Link href="/my-portfolio" style={{ ...buttonStyle, width: "fit-content", textDecoration: "none" }}>
+                    Go to My Portfolio
+                  </Link>
+                  <Link
+                    href="/my-reports"
+                    style={{
+                      ...buttonStyle,
+                      width: "fit-content",
+                      textDecoration: "none",
+                      background: "#ffffff",
+                      color: "#0f172a",
+                    }}
+                  >
+                    Go to My Reports
+                  </Link>
+                </div>
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {readyForOutputs && workspace.profile ? (
+          <section aria-label="Advanced export tools" style={{ display: "grid", gap: 4, padding: "0 2px" }}>
+            <h2 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>Advanced export tools</h2>
+            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+              Additional specialist records remain available when you need them.
             </p>
           </section>
         ) : null}
@@ -1351,9 +1532,9 @@ function CleanOutputsWorkspaceBody() {
 
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
-                <h2 style={{ margin: 0, color: "#0f172a" }}>Choose a ready report</h2>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>Formal report fallback</h2>
                 <p className="mylearna-outputs-report-picker-copy" style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  Only reports marked ready appear as output candidates. Draft and archived reports stay visible below so you know what still needs attention.
+                  Formal reports are normally previewed and downloaded in My Reports. Use this fallback to revisit a ready report or generate a current PDF.
                 </p>
               </div>
 
@@ -1519,17 +1700,19 @@ function CleanOutputsWorkspaceBody() {
                     void reloadCatalog();
                     void reloadSections();
                     void reloadExports();
+                    void reloadRecentExports();
                     void reloadReportContext();
                   }}
                   disabled={
                     catalogLoading ||
                     sectionsLoading ||
                     exportsLoading ||
+                    recentExportsLoading ||
                     reportContextLoading ||
                     submitting
                   }
                 >
-                  {catalogLoading || sectionsLoading || exportsLoading || reportContextLoading
+                  {catalogLoading || sectionsLoading || exportsLoading || recentExportsLoading || reportContextLoading
                     ? "Refreshing..."
                     : "Refresh"}
                 </button>
