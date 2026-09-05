@@ -47,7 +47,7 @@ describe("My Plan navigation hierarchy", () => {
     expect(day).not.toContain("MyPlanHeader");
     expect(calendar).not.toContain("MyPlanHeader");
     expect(day).toContain("My Day");
-    expect(calendar).toContain("My Calendar");
+    expect(calendar).toContain("Current Calendar");
   });
 
   it("uses My Plan as the non-navigating breadcrumb parent for planning routes", () => {

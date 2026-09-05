@@ -35,7 +35,8 @@ describe("Planning Setup extraction", () => {
     expect(calendar).toContain("handleCalendarCompletionToggle");
     expect(calendar).toContain("Capture this moment");
     expect(calendar).toContain("View capture");
-    expect(calendar).toContain("setPlanningView(\"week\")");
+    expect(calendar).toContain('calendarSettingsOpen && shouldShowWeeklyPlanner && planningView === "master"');
+    expect(calendar).toContain('{!planningOnly ? (');
   });
 
   it("routes first-value planning to Calendar while preserving structural settings guidance", () => {

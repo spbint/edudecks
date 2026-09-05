@@ -31,9 +31,10 @@ describe("Stage 3 core journey orientation", () => {
     },
   );
 
-  it("keeps the journey cue on supporting screens while My Day opens directly to its task", () => {
+  it("keeps task-first planning screens free of journey cues while supporting screens retain them", () => {
     expect(daySource).not.toContain("CoreJourneyCue");
-    expect(calendarSource).toContain('<CoreJourneyCue stage="plan" />');
+    expect(calendarSource).not.toContain("CoreJourneyCue");
+    expect(calendarSource).toContain('data-testid="desktop-calendar-task-first"');
     expect(captureSource).toContain('<CoreJourneyCue stage="capture" />');
     expect(portfolioSource).toContain('<CoreJourneyCue stage="portfolio" />');
     expect(reportsSource).toContain('<CoreJourneyCue stage="report" />');

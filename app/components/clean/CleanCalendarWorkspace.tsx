@@ -6,16 +6,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
 import CleanMiniCalendarNavigator from "@/app/components/clean/CleanMiniCalendarNavigator";
-import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
-import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
-import CoreJourneyCue, {
-  CoreJourneyHelp,
-} from "@/app/components/clean/design-v2/CoreJourneyCue";
 import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import {
-  GuidancePageAction,
   GuidanceSetupProgress,
   GuidanceSetupNextAction,
 } from "@/app/components/clean/guidance/GuidanceToggle";
@@ -53,7 +47,6 @@ import type {
   CleanGeneratedWeekSuggestion,
   CleanGenerationRun,
 } from "@/lib/clean/generation/types";
-import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
@@ -1450,7 +1443,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const shouldShowLearningPeriodsManagement = learningPeriodsOpen;
 
   useEffect(() => {
-    if (planningOnly || setupLoading || !masterWeekBlocksResolved || calendarModelDefaultedRef.current) return;
+    if (!planningOnly || setupLoading || !masterWeekBlocksResolved || calendarModelDefaultedRef.current) return;
     calendarModelDefaultedRef.current = true;
     if (!hasMasterWeekBlock) setPlanningView("master");
   }, [hasMasterWeekBlock, masterWeekBlocksResolved, planningOnly, setupLoading]);
@@ -2425,6 +2418,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   }
 
   function focusMasterWeekTemplate() {
+    setCalendarSettingsOpen(true);
     setPlanningView("master");
     setShowTemplateComposer(true);
     setShowMasterBlockHandoff(false);
@@ -2441,6 +2435,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   }
 
   function addAnotherMasterBlock() {
+    setCalendarSettingsOpen(true);
     setPlanningView("master");
     setShowMasterBlockHandoff(false);
     scrollToCalendarSection("master-week-template");
@@ -3602,10 +3597,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setPlannerDownloading(false);
     }
   }
-  const familyDisplayName = String(workspace.profile?.displayName ?? "").trim();
-  const calendarHeading = familyDisplayName
-    ? `${familyDisplayName} learning week`
-    : "My Calendar";
   const firstSetupMode =
     guidanceEnabled &&
     (setupStatus === "not_started" || setupStatus === "active") &&
@@ -3759,10 +3750,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
             padding: 14px 4px 4px 0;
           }
 
-          .mylearna-calendar-shell-operational .mylearna-calendar-structural-setup {
-            display: none !important;
-          }
-
           @media (max-width: 720px) {
             .mylearna-calendar-planner-content {
               gap: 0;
@@ -3779,8 +3766,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
             }
           }
         `}</style>
-        {!planningOnly ? <CoreJourneyCue stage="plan" /> : null}
-        {!planningOnly && !firstSetupMode ? <CleanWorkflowRibbon /> : null}
         {!planningOnly && setupStatus !== "active" ? <CleanFirstRunSetupGate currentStep="calendar" /> : null}
         {!planningOnly && setupStatus !== "active" ? (
           <GuidanceSetupProgress
@@ -3789,18 +3774,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
             body="Choose the date range MyLearna should plan inside. You can adjust this later."
             task={calendarSetupTask}
           />
-        ) : null}
-
-        {!planningOnly && !firstSetupMode ? (
-        <CleanPageIntroVideo
-          configs={[
-            PAGE_INTRO_VIDEOS.myCalendarWeeklyPlanner,
-            PAGE_INTRO_VIDEOS.myCalendarTermTimes,
-          ]}
-          promptKey="my-calendar"
-          promptTitle="New to My Calendar?"
-          promptDescription="Watch a quick guide to plan your week or set term times."
-        />
         ) : null}
 
         {planningOnly ? (
@@ -3813,40 +3786,52 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           </section>
         ) : null}
         {!planningOnly ? <section className="mylearna-calendar-intro" data-guidance-id="calendar-week-view" style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#64748b",
-                textTransform: "uppercase",
-              }}
-            >
-              MyLearna planning
+          <div
+            className="mylearna-calendar-desktop-task-header"
+            data-testid="desktop-calendar-task-first"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: "flex-end",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  color: "#64748b",
+                  textTransform: "uppercase",
+                }}
+              >
+                Calendar
+              </div>
+              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>Current Calendar</h1>
+              <p style={{ ...secondaryTextStyle, margin: 0, fontWeight: 700 }}>
+                {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
+              </p>
+              <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                See and adjust what is actually planned on real dates.
+              </p>
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{calendarHeading}</h1>
-            <div
-              role="group"
-              aria-label="Calendar planning mode"
-              style={{ display: "inline-flex", width: "fit-content", maxWidth: "100%", border: "1px solid #cbd5e1", borderRadius: 14, padding: 4, background: "#f8fafc", gap: 4 }}
-            >
-              <button type="button" aria-pressed={planningView === "master"} onClick={() => setPlanningView("master")} style={{ ...buttonStyle, minHeight: 44, padding: "10px 16px", background: planningView === "master" ? "#0f172a" : "#ffffff", color: planningView === "master" ? "#ffffff" : "#0f172a", borderColor: planningView === "master" ? "#0f172a" : "#ffffff" }}>
-                Master Week
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button type="button" onClick={() => openCreatePopover(getTodayDate())} style={buttonStyle}>
+                Add learning block
               </button>
-              <button type="button" aria-pressed={planningView === "week"} onClick={() => setPlanningView("week")} style={{ ...buttonStyle, minHeight: 44, padding: "10px 16px", background: planningView === "week" ? "#0f172a" : "#ffffff", color: planningView === "week" ? "#ffffff" : "#0f172a", borderColor: planningView === "week" ? "#0f172a" : "#ffffff" }}>
-                Current Calendar
+              <button
+                type="button"
+                onClick={() => {
+                  setCalendarSettingsOpen((current) => !current);
+                  setPlanningView("master");
+                }}
+                aria-expanded={calendarSettingsOpen}
+                style={mutedButtonStyle}
+              >
+                {calendarSettingsOpen ? "Hide planning tools" : "Planning tools"}
               </button>
-            </div>
-            <p style={{ ...secondaryTextStyle, margin: 0, fontWeight: 700 }}>
-              {planningView === "master" ? "Set the weekly pattern your family normally follows." : "See and adjust what is actually planned on real dates."}
-            </p>
-            {planningView === "master" ? <p style={{ ...secondaryTextStyle, margin: 0 }}>Changes here shape future planning. You can still change individual days later.</p> : null}
-            <button type="button" onClick={() => setCalendarSettingsOpen((current) => !current)} aria-expanded={calendarSettingsOpen} style={{ ...mutedButtonStyle, width: "fit-content" }}>
-              {calendarSettingsOpen ? "Hide Calendar settings" : "Calendar settings"}
-            </button>
-            <div>
-              {!firstSetupMode ? <GuidancePageAction tourId="my-calendar" /> : null}
             </div>
           </div>
         </section> : null}
@@ -4056,7 +4041,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
               </section>
             ) : null}
 
-            {!planningOnly && planningView === "week" ? (
+            {!planningOnly ? (
             <section
               className="mylearna-calendar-board mylearna-calendar-planner-shell mylearna-calendar-operational-board"
               style={cardStyle}
@@ -4087,11 +4072,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       Current Calendar
                     </div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>Current Calendar</h2>
-                    <CoreJourneyHelp>
-                      <p>
-                        Plan learning blocks here. Today&apos;s blocks flow through to My Day.
-                      </p>
-                    </CoreJourneyHelp>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      Real planned learning, by date. Today&apos;s blocks flow through to My Day.
+                    </p>
                   </div>
 
                   <div
@@ -4454,20 +4437,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                 </span>
                               ) : null}
                             </div>
-                            <button
-                              type="button"
-                              style={{
-                                ...mutedButtonStyle,
-                                padding: calendarBoardView === "month" ? "6px 8px" : "8px 10px",
-                                fontSize: 12,
-                              }}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openCreatePopover(dateValue);
-                              }}
-                            >
-                              Add block
-                            </button>
                           </div>
 
                           {dayItems.length ? (
@@ -4478,13 +4447,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                   const learnerLabel =
                                     learnerOptions.find((option) => option.value === item.learnerId)
                                       ?.label || "Whole family";
-                                  const programLabel =
-                                    programOptions.find((option) => option.value === item.programId)
-                                      ?.label ?? null;
-                                  const segmentLabel =
-                                    programSegments.find(
-                                      (segment) => segment.id === item.programSegmentId,
-                                    )?.title ?? null;
                                   const blockSurfaceId = `calendar-board-block-${item.id}`;
 
                                   return (
@@ -4530,7 +4492,17 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                         <strong style={{ color: "#0f172a", fontSize: 14 }}>
                                           {item.title}
                                         </strong>
-                                        {calendarBoardView === "week" ? (
+                                        {item.completedAt ? (
+                                          <span
+                                            style={{
+                                              fontSize: 12,
+                                              color: "#166534",
+                                              fontWeight: 800,
+                                            }}
+                                          >
+                                            Done
+                                          </span>
+                                        ) : calendarBoardView === "week" ? (
                                           <span
                                             style={{
                                               fontSize: 12,
@@ -4552,65 +4524,51 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                         {learnerLabel}
                                         {item.learningArea ? ` - ${item.learningArea}` : ""}
                                       </div>
-                                      {calendarBoardView === "week" &&
-                                      (programLabel || segmentLabel) ? (
-                                        <div style={{ color: "#64748b", fontSize: 13 }}>
-                                          {programLabel ? `Program: ${programLabel}` : ""}
-                                          {programLabel && segmentLabel ? " - " : ""}
-                                          {segmentLabel ? `Week / segment: ${segmentLabel}` : ""}
-                                        </div>
-                                      ) : null}
                                       {calendarBoardView === "week" ? (
-                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                          <button
-                                            type="button"
-                                            style={mutedButtonStyle}
-                                            onClick={(event) => {
-                                              event.stopPropagation();
-                                              openEditPopover(item);
-                                            }}
-                                          >
-                                            Edit
-                                          </button>
-                                          <button
-                                            type="button"
-                                            style={dangerButtonStyle}
-                                            onClick={(event) => {
-                                              event.stopPropagation();
-                                              setPendingDelete({ type: "calendar-item", item });
-                                            }}
-                                          >
-                                            Delete
-                                          </button>
-                                          <button
-                                            type="button"
-                                            style={mutedButtonStyle}
-                                            onClick={(event) => {
-                                              event.stopPropagation();
-                                              void handleCalendarCompletionToggle(item);
-                                            }}
-                                            disabled={completionUpdatingId === item.id}
-                                          >
-                                            {item.completedAt ? "Mark not complete" : "Mark complete"}
-                                          </button>
-                                          {evidenceByCalendarItemId.has(item.id) ? (
-                                            <Link
-                                              href={`${buildCalendarCaptureHref(item)}&evidence_entry_id=${encodeURIComponent(evidenceByCalendarItemId.get(item.id) ?? "")}`}
-                                              onClick={(event) => event.stopPropagation()}
-                                              style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 13, alignSelf: "center" }}
+                                        <details onClick={(event) => event.stopPropagation()}>
+                                          <summary style={{ minHeight: 40, display: "flex", alignItems: "center", color: "#1d4ed8", cursor: "pointer", fontSize: 13, fontWeight: 800 }}>
+                                            Actions
+                                          </summary>
+                                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 8 }}>
+                                            {evidenceByCalendarItemId.has(item.id) ? (
+                                              <Link
+                                                href={`${buildCalendarCaptureHref(item)}&evidence_entry_id=${encodeURIComponent(evidenceByCalendarItemId.get(item.id) ?? "")}`}
+                                                style={{ ...mutedButtonStyle, textDecoration: "none" }}
+                                              >
+                                                View capture
+                                              </Link>
+                                            ) : (
+                                              <Link
+                                                href={buildCalendarCaptureHref(item)}
+                                                style={{ ...mutedButtonStyle, textDecoration: "none" }}
+                                              >
+                                                Capture this moment
+                                              </Link>
+                                            )}
+                                            <button
+                                              type="button"
+                                              style={mutedButtonStyle}
+                                              onClick={() => openEditPopover(item)}
                                             >
-                                              View capture
-                                            </Link>
-                                          ) : (
-                                            <Link
-                                              href={buildCalendarCaptureHref(item)}
-                                              onClick={(event) => event.stopPropagation()}
-                                              style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 13, alignSelf: "center" }}
+                                              Edit
+                                            </button>
+                                            <button
+                                              type="button"
+                                              style={mutedButtonStyle}
+                                              onClick={() => void handleCalendarCompletionToggle(item)}
+                                              disabled={completionUpdatingId === item.id}
                                             >
-                                              Capture this moment
-                                            </Link>
-                                          )}
-                                        </div>
+                                              {item.completedAt ? "Mark not complete" : "Mark complete"}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              style={dangerButtonStyle}
+                                              onClick={() => setPendingDelete({ type: "calendar-item", item })}
+                                            >
+                                              Delete
+                                            </button>
+                                          </div>
+                                        </details>
                                       ) : null}
                                     </div>
                                   );
@@ -4640,8 +4598,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               ) : null}
                             </div>
                           ) : (
-                            <button
-                              type="button"
+                            <div
                               className={
                                 calendarBoardView === "week"
                                   ? "mylearna-calendar-day-empty-action"
@@ -4651,32 +4608,20 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                 ...getInteractiveZoneStyle(
                                   activeSurfaceId === emptyZoneSurfaceId,
                                 ),
+                                cursor: "default",
                                 padding: calendarBoardView === "month" ? "12px 10px" : "16px 14px",
                               }}
-                              onMouseEnter={() => setActiveSurfaceId(emptyZoneSurfaceId)}
-                              onMouseLeave={() =>
-                                setActiveSurfaceId((current) =>
-                                  current === emptyZoneSurfaceId ? null : current,
-                                )
-                              }
-                              onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
-                              onBlur={() =>
-                                setActiveSurfaceId((current) =>
-                                  current === emptyZoneSurfaceId ? null : current,
-                                )
-                              }
-                              onClick={() => openCreatePopover(dateValue)}
                             >
-                              <strong style={{ color: "#0f172a", fontSize: 14 }}>Add block</strong>
+                              <strong style={{ color: "#0f172a", fontSize: 14 }}>Nothing planned</strong>
                               {calendarBoardView === "week" ? (
                                 <span
                                   className="mylearna-calendar-empty-repeated-copy"
                                   style={{ color: "#475569", lineHeight: 1.5 }}
                                 >
-                                  No learning blocks planned yet.
+                                  Use Add learning block when you want to plan this date.
                                 </span>
                               ) : null}
-                            </button>
+                            </div>
                           )}
                         </div>
                       );
@@ -5884,7 +5829,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
               </section>
             ) : null}
 
-            {shouldShowWeeklyPlanner && planningView === "master" ? (
+            {calendarSettingsOpen && shouldShowWeeklyPlanner && planningView === "master" ? (
             <section className="mylearna-calendar-usual-week-setup" style={cardStyle}>
               <div style={{ display: "grid", gap: 18 }}>
                 <div
