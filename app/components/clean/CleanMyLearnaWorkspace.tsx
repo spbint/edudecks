@@ -282,6 +282,8 @@ export function CurrentLearningCard({
         parentProgress: story.currentProgress,
       })
     : null;
+  const latestCheckStatus = story.latestCheck?.factualStatus || "Not checked yet";
+  const hasParentConfirmation = story.currentProgressSource === "parent-confirmation";
   const whyId = `why-this-is-shown-${step.pathwayStepId.replace(/[^a-z0-9]+/gi, "-")}`;
 
   return <article style={{ ...cardStyle, display: "grid", gap: 14 }} data-current-learning-card={step.pathwayStepId}>
@@ -289,11 +291,21 @@ export function CurrentLearningCard({
       <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{step.subjectTitle}{step.strandTitle ? ` · ${step.strandTitle}` : ""}</p>
       <h3 style={{ margin: 0, color: "#17204b", fontSize: 20 }}>{step.stepTitle}</h3>
     </div>
-    <div style={{ display: "grid", gap: 4 }}>
-      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Current progress</span>
-      <strong style={{ color: "#17204b", fontSize: 19 }}>{story.currentProgress}</strong>
-      {story.currentProgressSource === "parent-confirmation" ? <span style={{ ...quietTextStyle, fontSize: 13 }}>Confirmed by you · {dateLabel(story.currentProgressConfirmedAt)}</span> : <span style={{ ...quietTextStyle, fontSize: 13 }}>No progress confirmation has been saved yet.</span>}
-    </div>
+    <section
+      aria-label="Current learning signals"
+      style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}
+    >
+      <div role="group" aria-label="Latest check" style={{ display: "grid", gap: 4, border: "1px solid #dbe4f0", borderRadius: 14, padding: 12, background: "#f8fafc" }}>
+        <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Latest check</span>
+        <strong style={{ color: "#17204b", fontSize: 18 }}>{latestCheckStatus}</strong>
+        {story.latestCheck?.completedAt ? <span style={{ ...quietTextStyle, fontSize: 13 }}>Checked {dateLabel(story.latestCheck.completedAt)}</span> : <span style={{ ...quietTextStyle, fontSize: 13 }}>Not checked yet</span>}
+      </div>
+      <div role="group" aria-label="Your confirmation" style={{ display: "grid", gap: 4, border: "1px solid #dbe4f0", borderRadius: 14, padding: 12, background: "#f8fafc" }}>
+        <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Your confirmation</span>
+        <strong style={{ color: "#17204b", fontSize: 18 }}>{hasParentConfirmation ? story.currentProgress : "Not confirmed yet"}</strong>
+        {hasParentConfirmation ? <span style={{ ...quietTextStyle, fontSize: 13 }}>Confirmed {dateLabel(story.currentProgressConfirmedAt)}</span> : <span style={{ ...quietTextStyle, fontSize: 13 }}>No parent confirmation saved</span>}
+      </div>
+    </section>
     <p style={{ ...quietTextStyle, margin: 0, fontSize: 14 }}>{story.supportingEvidenceCount} {story.supportingEvidenceCount === 1 ? "supporting learning record" : "supporting learning records"}{story.completedCheckCount ? ` · ${story.completedCheckCount} completed ${story.completedCheckCount === 1 ? "check" : "checks"}` : ""}</p>
     {story.hasSignalConflict ? <p role="status" style={{ margin: 0, color: "#7c2d12", fontSize: 13 }}>{story.conflictExplanation}</p> : null}
     <div style={{ display: "grid", gap: 8 }}>
