@@ -52,6 +52,21 @@ type ProductNavSection = {
 
 type MobileNavKey = "day" | "PLAN" | "CAPTURE" | "GROW" | "more";
 
+const MOBILE_MORE_FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function getMobileMoreFocusableElements(container: HTMLElement) {
+  return Array.from(container.querySelectorAll<HTMLElement>(MOBILE_MORE_FOCUSABLE_SELECTOR)).filter(
+    (element) => element.getAttribute("aria-hidden") !== "true" && element.tabIndex >= 0,
+  );
+}
+
 const dayNavItem = {
   href: "/my-day",
   label: "My Day",
@@ -538,23 +553,30 @@ function MobilePillarSwitcher({ pathname }: { pathname: string }) {
   );
 }
 
-function MobileBottomNavButton({
-  active,
-  children,
-  icon,
-  label,
-  onClick,
-}: {
+const MobileBottomNavButton = React.forwardRef<HTMLButtonElement, {
   active: boolean;
+  controls?: string;
   children: React.ReactNode;
+  expanded?: boolean;
   icon: ShellIconName;
   label: string;
   onClick: () => void;
-}) {
+}>(function MobileBottomNavButton({
+  active,
+  controls,
+  children,
+  expanded,
+  icon,
+  label,
+  onClick,
+}, ref) {
   return (
     <button
+      ref={ref}
       type="button"
       aria-label={label}
+      aria-controls={controls}
+      aria-expanded={expanded}
       aria-current={active ? "page" : undefined}
       onClick={onClick}
       className="mylearna-v2-mobile-nav-button"
@@ -578,7 +600,7 @@ function MobileBottomNavButton({
       <span>{children}</span>
     </button>
   );
-}
+});
 
 export function V2Card({
   children,
@@ -653,6 +675,10 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const { user } = useAuthUser();
   const workspace = useCleanFamilyWorkspace();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
+  const moreTriggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const moreDialogRef = React.useRef<HTMLDivElement | null>(null);
+  const moreCloseRef = React.useRef<HTMLButtonElement | null>(null);
+  const restoreMoreTriggerFocusRef = React.useRef(false);
   const activityMode = getActivityMode(pathname);
   const activeMobileSection = getActiveMobileSection(pathname);
   const quickCaptureReturnPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
@@ -680,9 +706,49 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
     router.replace(familySetupRedirect);
   }, [familySetupRedirect, router]);
 
-  React.useEffect(() => {
+  const closeMobileMore = React.useCallback((restoreFocus = true) => {
+    restoreMoreTriggerFocusRef.current = restoreFocus;
     setOpenMobileNav(null);
-  }, [pathname]);
+  }, []);
+
+  React.useEffect(() => {
+    if (openMobileNav !== "more") return;
+
+    moreCloseRef.current?.focus();
+
+    function handleDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMobileMore();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const dialog = moreDialogRef.current;
+      if (!dialog) return;
+      const focusable = getMobileMoreFocusableElements(dialog);
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleDialogKeyDown);
+    return () => document.removeEventListener("keydown", handleDialogKeyDown);
+  }, [closeMobileMore, openMobileNav]);
+
+  React.useEffect(() => {
+    if (openMobileNav !== null || !restoreMoreTriggerFocusRef.current) return;
+    restoreMoreTriggerFocusRef.current = false;
+    moreTriggerRef.current?.focus();
+  }, [openMobileNav]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1368,12 +1434,24 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
 
       {openMobileNav === "more" ? (
         <div
+          ref={moreDialogRef}
           className="mylearna-v2-mobile-nav-sheet"
+          id="mylearna-mobile-more-navigation"
           role="dialog"
           aria-modal="true"
-          aria-label="More navigation"
+          aria-labelledby="mylearna-mobile-more-title"
         >
-          <p className="mylearna-v2-mobile-sheet-title">MORE</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <p id="mylearna-mobile-more-title" className="mylearna-v2-mobile-sheet-title">MORE</p>
+            <button
+              ref={moreCloseRef}
+              type="button"
+              onClick={() => closeMobileMore()}
+              style={{ minHeight: 44, minWidth: 44, border: `1px solid ${v2Tokens.border}`, borderRadius: 12, background: "#ffffff", color: v2Tokens.navy, padding: "8px 12px", fontWeight: 750, cursor: "pointer" }}
+            >
+              Close
+            </button>
+          </div>
           <div className="mylearna-v2-mobile-sheet-grid">
             {[settingsNavItem].map((item) => {
               const active = isActive(pathname, item.matches);
@@ -1382,6 +1460,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
+                  onClick={() => closeMobileMore(false)}
                   className="mylearna-v2-mobile-sheet-link"
                   style={{
                     background: active ? v2Tokens.lavender : "#ffffff",
@@ -1395,6 +1474,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             })}
             <Link
               href="/my-profile"
+              onClick={() => closeMobileMore(false)}
               className="mylearna-v2-mobile-sheet-link"
               style={{ background: "#ffffff", color: v2Tokens.navy }}
             >
@@ -1403,6 +1483,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </Link>
             <Link
               href="/my-community"
+              onClick={() => closeMobileMore(false)}
               className="mylearna-v2-mobile-sheet-link"
               style={{ background: "#ffffff", color: v2Tokens.navy }}
             >
@@ -1468,10 +1549,16 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </Link>
         ))}
         <MobileBottomNavButton
+          ref={moreTriggerRef}
           label="Open More navigation"
+          controls="mylearna-mobile-more-navigation"
+          expanded={openMobileNav === "more"}
           icon="gear"
           active={activeMobileSection === "more" || openMobileNav === "more"}
-          onClick={() => setOpenMobileNav((current) => (current === "more" ? null : "more"))}
+          onClick={() => {
+            if (openMobileNav === "more") closeMobileMore();
+            else setOpenMobileNav("more");
+          }}
         >
           More
         </MobileBottomNavButton>
