@@ -20,6 +20,7 @@ import {
   listCleanCalendarItems,
   updateCleanCalendarItem,
 } from "@/lib/clean/calendar/client";
+import { resolveCalendarPageLevelCreateDate } from "@/lib/clean/calendar/dateContext";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
   CONTROLLED_LEARNING_AREAS,
@@ -1378,6 +1379,16 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     ? mobileCalendarEnd
     : calendarBoardView === "month" ? monthGridDates[monthGridDates.length - 1] : selectedWeekEnd;
   const calendarQueryView = mobileCalendarCompanion ? `mobile-${mobileCalendarView}` : calendarBoardView;
+  const pageLevelCreateDate = useMemo(() => {
+    return resolveCalendarPageLevelCreateDate({
+      boardView: calendarBoardView,
+      focusedDate: selectedWeekStart,
+      selectedMonthStart,
+      selectedWeekEnd,
+      selectedWeekStart,
+      today: getTodayDate(),
+    });
+  }, [calendarBoardView, selectedMonthStart, selectedWeekEnd, selectedWeekStart]);
   const selectedBreakOverlapsWeek = useMemo(
     () =>
       !!selectedLearningPeriod &&
@@ -3818,7 +3829,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
               </p>
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => openCreatePopover(getTodayDate())} style={buttonStyle}>
+              <button type="button" onClick={() => openCreatePopover(pageLevelCreateDate)} style={buttonStyle}>
                 Add learning block
               </button>
               <button
@@ -4012,9 +4023,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     <button
                       type="button"
                       style={{ ...buttonStyle, background: "#0f172a", color: "#ffffff" }}
-                      onClick={() => openCreatePopover(getTodayDate())}
+                      onClick={() => openCreatePopover(pageLevelCreateDate)}
                     >
-                      Add block
+                      Add learning block
                     </button>
                   </div>
                 </div>
@@ -4342,7 +4353,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                       <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
                         No learning blocks planned yet.
                       </strong>
-                      <span>Use a day below to add the first block for that date.</span>
+                      <span>Use Add learning block to create the first block for this view.</span>
                     </div>
                   ) : null}
 
@@ -4502,19 +4513,6 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                           >
                                             Done
                                           </span>
-                                        ) : calendarBoardView === "week" ? (
-                                          <span
-                                            style={{
-                                              fontSize: 12,
-                                              color:
-                                                item.sourceType === "manual"
-                                                  ? "#64748b"
-                                                  : "#1d4ed8",
-                                              fontWeight: 700,
-                                            }}
-                                          >
-                                            {getSourceLabel(item.sourceType)}
-                                          </span>
                                         ) : null}
                                       </div>
                                       <div style={{ color: "#475569", fontSize: 13 }}>
@@ -4530,6 +4528,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                             Actions
                                           </summary>
                                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 8 }}>
+                                            {item.sourceType && item.sourceType !== "manual" ? (
+                                              <span style={{ color: "#64748b", fontSize: 13, alignSelf: "center" }}>
+                                                Source: {getSourceLabel(item.sourceType)}
+                                              </span>
+                                            ) : null}
                                             {evidenceByCalendarItemId.has(item.id) ? (
                                               <Link
                                                 href={`${buildCalendarCaptureHref(item)}&evidence_entry_id=${encodeURIComponent(evidenceByCalendarItemId.get(item.id) ?? "")}`}
