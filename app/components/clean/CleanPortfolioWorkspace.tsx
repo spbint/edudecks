@@ -11,6 +11,7 @@ import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import CoreJourneyCue, {
   CoreJourneyHelp,
 } from "@/app/components/clean/design-v2/CoreJourneyCue";
+import { useMobileCompanion } from "@/app/components/clean/design-v2/useMobileCompanion";
 import EvidenceThumbnail from "@/app/components/clean/evidence/EvidenceThumbnail";
 import CleanLearningMomentShareCard from "@/app/components/clean/CleanLearningMomentShareCard";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
@@ -227,8 +228,295 @@ function getPathwayStepEvidenceMeta(item: CleanPortfolioItem): PathwayStepEviden
   };
 }
 
+const MOBILE_RECENT_EVIDENCE_LIMIT = 6;
+
+type MobilePortfolioEvidenceCardProps = {
+  capturePathBase: string;
+  item: CleanPortfolioItem;
+  learnerLabel: string | null;
+  onDelete: (item: CleanPortfolioItem) => void;
+  onOpen: (item: CleanPortfolioItem) => void;
+  onToggleHighlight: (item: CleanPortfolioItem) => void;
+  expanded: boolean;
+  justCaptured?: boolean;
+  submitting: boolean;
+};
+
+function MobilePortfolioEvidenceCard({
+  capturePathBase,
+  item,
+  learnerLabel,
+  onDelete,
+  onOpen,
+  onToggleHighlight,
+  expanded,
+  justCaptured = false,
+  submitting,
+}: MobilePortfolioEvidenceCardProps) {
+  const previewImage = getEvidencePreviewImage(item.evidence);
+  const summary = getParentFacingEvidenceSummary(item);
+  const detailId = `mobile-portfolio-detail-${item.evidence.id}`;
+
+  return (
+    <article
+      data-testid="mobile-portfolio-evidence-card"
+      style={{
+        border: justCaptured ? "1px solid #99f6e4" : "1px solid #e2e8f0",
+        borderRadius: 16,
+        background: justCaptured ? "#f0fdfa" : "#ffffff",
+        padding: 14,
+        display: "grid",
+        gap: 12,
+        minWidth: 0,
+      }}
+    >
+      {justCaptured ? (
+        <div style={{ display: "grid", gap: 3 }}>
+          <span role="status" style={{ color: "#0f766e", fontSize: 13, fontWeight: 800 }}>
+            Learning saved
+          </span>
+          <span style={{ color: "#0f766e", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            Just captured
+          </span>
+        </div>
+      ) : null}
+      <div style={{ display: "grid", gridTemplateColumns: previewImage ? "minmax(0, 1fr) auto" : "minmax(0, 1fr)", gap: 12, alignItems: "start", minWidth: 0 }}>
+        <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
+          <h3 style={{ margin: 0, color: "#17204b", fontSize: 17, lineHeight: 1.35, overflowWrap: "anywhere" }}>
+            {portfolioCardTitle(item)}
+          </h3>
+          <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+            {formatDateLabel(item.evidence.observedOn)}
+            {item.evidence.learningArea ? ` · ${item.evidence.learningArea}` : ""}
+            {learnerLabel ? ` · ${learnerLabel}` : ""}
+          </p>
+          <p style={{ margin: 0, color: "#334155", lineHeight: 1.5, overflowWrap: "anywhere" }}>
+            {summary}
+          </p>
+          {item.isHighlighted ? (
+            <span style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 800 }}>
+              Featured
+            </span>
+          ) : null}
+        </div>
+        {previewImage ? (
+          <EvidenceThumbnail image={previewImage} width={88} height={72} title="Evidence photo" />
+        ) : null}
+      </div>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={detailId}
+        onClick={() => onOpen(item)}
+        style={{ ...secondaryButtonStyle, minHeight: 44, justifySelf: "start" }}
+      >
+        {expanded ? "Hide details" : "View details"}
+      </button>
+      {expanded ? (
+        <div id={detailId} style={{ display: "grid", gap: 10, borderTop: "1px solid #dbe4ef", paddingTop: 12 }}>
+          {item.evidence.reflection ? (
+            <div style={{ display: "grid", gap: 3, color: "#475569", lineHeight: 1.5 }}>
+              <strong style={{ color: "#17204b", fontSize: 13 }}>Reflection</strong>
+              <span>{item.evidence.reflection}</span>
+            </div>
+          ) : null}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link
+              href={`${capturePathBase}?evidence_entry_id=${item.evidence.id}`}
+              style={{ ...secondaryButtonStyle, minHeight: 44, display: "inline-flex", alignItems: "center", textDecoration: "none" }}
+            >
+              Edit learning
+            </Link>
+            <button
+              type="button"
+              onClick={() => onToggleHighlight(item)}
+              disabled={submitting}
+              style={{ ...secondaryButtonStyle, minHeight: 44 }}
+            >
+              {item.isHighlighted ? "Remove feature" : "Feature"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(item)}
+              disabled={submitting}
+              style={{ ...secondaryButtonStyle, minHeight: 44, borderColor: "#fecaca", color: "#b91c1c" }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+type MobilePortfolioContentProps = {
+  captureHref: string;
+  capturePathBase: string;
+  expandedEvidenceId: string | null;
+  items: CleanPortfolioItem[];
+  itemsError: string | null;
+  itemsLoading: boolean;
+  justCapturedItem: CleanPortfolioItem | null;
+  learnerOptions: Array<{ value: string; label: string }>;
+  onDelete: (item: CleanPortfolioItem) => void;
+  onLearnerChange: (learnerId: string) => void;
+  onOpenEvidence: (item: CleanPortfolioItem) => void;
+  onToggleHighlight: (item: CleanPortfolioItem) => void;
+  selectedLearnerId: string;
+  submitting: boolean;
+  workspaceError: string | null;
+  workspaceLoading: boolean;
+  workspaceNeedsFamily: boolean;
+  workspaceSchemaMissing: boolean;
+};
+
+function MobilePortfolioContent({
+  captureHref,
+  capturePathBase,
+  expandedEvidenceId,
+  items,
+  itemsError,
+  itemsLoading,
+  justCapturedItem,
+  learnerOptions,
+  onDelete,
+  onLearnerChange,
+  onOpenEvidence,
+  onToggleHighlight,
+  selectedLearnerId,
+  submitting,
+  workspaceError,
+  workspaceLoading,
+  workspaceNeedsFamily,
+  workspaceSchemaMissing,
+}: MobilePortfolioContentProps) {
+  const [showOlderLearning, setShowOlderLearning] = useState(false);
+  const recentItems = useMemo(
+    () => sortPortfolioItems(
+      selectedLearnerId
+        ? items.filter((item) => item.evidence.learnerId === selectedLearnerId)
+        : items,
+    ),
+    [items, selectedLearnerId],
+  );
+  const visibleJustCapturedItem =
+    justCapturedItem &&
+    (!selectedLearnerId || justCapturedItem.evidence.learnerId === selectedLearnerId)
+      ? justCapturedItem
+      : null;
+  const displayedRecentItems = recentItems
+    .filter((item) => item.evidence.id !== visibleJustCapturedItem?.evidence.id)
+    .slice(0, showOlderLearning ? recentItems.length : MOBILE_RECENT_EVIDENCE_LIMIT);
+  const hasOlderLearning = recentItems.filter(
+    (item) => item.evidence.id !== visibleJustCapturedItem?.evidence.id,
+  ).length > MOBILE_RECENT_EVIDENCE_LIMIT;
+  return (
+    <main
+      className="mylearna-mobile-portfolio"
+      aria-labelledby="mobile-portfolio-title"
+      style={{ maxWidth: 680, margin: "0 auto", display: "grid", gap: 14, minWidth: 0 }}
+    >
+      <header style={{ display: "grid", gap: 5 }}>
+        <h1 id="mobile-portfolio-title" style={{ margin: 0, color: "#17204b", fontSize: 24, lineHeight: 1.15 }}>
+          Recent learning
+        </h1>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.45 }}>
+          Your saved learning records, newest first.
+        </p>
+      </header>
+
+      {learnerOptions.length ? (
+        <label style={{ display: "grid", gap: 6, color: "#475569", fontSize: 13, fontWeight: 800 }}>
+          Learner
+          <select
+            aria-label="Choose learner for recent learning"
+            value={selectedLearnerId}
+            onChange={(event) => {
+              setShowOlderLearning(false);
+              onLearnerChange(event.target.value);
+            }}
+            style={{ minHeight: 44, border: "1px solid #cbd5e1", borderRadius: 11, background: "#ffffff", padding: "0 12px", color: "#17204b", font: "inherit" }}
+          >
+            <option value="">All learners</option>
+            {learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+      ) : null}
+
+      {workspaceLoading ? <section aria-live="polite" style={cardStyle}>Loading recent learning...</section> : null}
+      {workspaceSchemaMissing ? <section style={cardStyle}>Portfolio is not ready yet. Finish family setup, then return to Recent learning.</section> : null}
+      {workspaceError ? <section role="alert" style={cardStyle}>{workspaceError}</section> : null}
+      {workspaceNeedsFamily ? <section style={cardStyle}>Create your family profile first in <Link href="/my-profile">My Profile</Link>.</section> : null}
+
+      {!workspaceLoading && !workspaceSchemaMissing && !workspaceError && !workspaceNeedsFamily ? (
+        <>
+          {itemsLoading ? <section aria-live="polite" style={cardStyle}>Loading recent learning...</section> : null}
+          {itemsError ? <section role="alert" style={cardStyle}>{itemsError}</section> : null}
+          {!itemsLoading && !itemsError && visibleJustCapturedItem ? (
+            <MobilePortfolioEvidenceCard
+              capturePathBase={capturePathBase}
+              item={visibleJustCapturedItem}
+              learnerLabel={learnerOptions.find((option) => option.value === visibleJustCapturedItem.evidence.learnerId)?.label ?? null}
+              onDelete={onDelete}
+              onOpen={onOpenEvidence}
+              onToggleHighlight={onToggleHighlight}
+              expanded={expandedEvidenceId === visibleJustCapturedItem.evidence.id}
+              justCaptured
+              submitting={submitting}
+            />
+          ) : null}
+          {!itemsLoading && !itemsError && !recentItems.length ? (
+            <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
+              <strong style={{ color: "#17204b" }}>No learning captured yet.</strong>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>What you capture will appear here.</p>
+            </section>
+          ) : null}
+          {!itemsLoading && !itemsError && displayedRecentItems.length ? (
+            <section aria-labelledby="mobile-recent-learning-list-title" style={{ display: "grid", gap: 10 }}>
+              <h2 id="mobile-recent-learning-list-title" style={{ margin: 0, color: "#17204b", fontSize: 16, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Recent learning
+              </h2>
+              {displayedRecentItems.map((item) => (
+                <MobilePortfolioEvidenceCard
+                  key={item.evidence.id}
+                  capturePathBase={capturePathBase}
+                  item={item}
+                  learnerLabel={selectedLearnerId ? null : learnerOptions.find((option) => option.value === item.evidence.learnerId)?.label ?? null}
+                  onDelete={onDelete}
+                  onOpen={onOpenEvidence}
+                  onToggleHighlight={onToggleHighlight}
+                  expanded={expandedEvidenceId === item.evidence.id}
+                  submitting={submitting}
+                />
+              ))}
+              {hasOlderLearning ? (
+                <button
+                  type="button"
+                  aria-expanded={showOlderLearning}
+                  onClick={() => setShowOlderLearning((current) => !current)}
+                  style={{ ...secondaryButtonStyle, minHeight: 44 }}
+                >
+                  {showOlderLearning ? "Show fewer records" : "Show older learning"}
+                </button>
+              ) : null}
+            </section>
+          ) : null}
+          <Link
+            href={captureHref}
+            style={{ ...buttonStyle, minHeight: 48, display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}
+          >
+            + Capture learning
+          </Link>
+        </>
+      ) : null}
+    </main>
+  );
+}
+
 function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const mobileCompanion = useMobileCompanion();
   const { user } = useAuthUser();
   const pathname = usePathname();
   const router = useRouter();
@@ -923,6 +1211,35 @@ function CleanPortfolioWorkspaceBody() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (mobileCompanion) {
+    return (
+      <div style={shellStyle}>
+        <MobilePortfolioContent
+          captureHref={buildLearnerContextHref(`${capturePathBase}?mode=quick`, selectedLearnerId, {
+            returnTo: portfolioReturnHref,
+          })}
+          capturePathBase={capturePathBase}
+          expandedEvidenceId={expandedEvidenceId}
+          items={items}
+          itemsError={itemsError}
+          itemsLoading={itemsLoading}
+          justCapturedItem={justCapturedItem}
+          learnerOptions={learnerOptions}
+          onDelete={setPendingDeleteItem}
+          onLearnerChange={handleLearnerChange}
+          onOpenEvidence={openEvidence}
+          onToggleHighlight={(item) => void handleToggleHighlight(item)}
+          selectedLearnerId={selectedLearnerId}
+          submitting={submitting}
+          workspaceError={workspace.error}
+          workspaceLoading={workspace.loading && !workspace.profile}
+          workspaceNeedsFamily={workspace.requiresFamilyCreation}
+          workspaceSchemaMissing={workspace.schemaMissing}
+        />
+      </div>
+    );
   }
 
   return (
