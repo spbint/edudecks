@@ -28,6 +28,11 @@ import {
 import { buildLearningIntelligenceSummary } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import { buildExplainableProgressStory } from "@/lib/clean/pathways/explainableProgressStory";
 import { selectCurrentLearningCandidates } from "@/lib/clean/pathways/currentLearningCandidates";
+import {
+  buildActionablePathwayRecommendation,
+  pathwayRecommendationLabel,
+} from "@/lib/clean/pathways/pathwayRecommendationNavigation";
+import { getAllPathwaySteps } from "@/lib/clean/pathways/pathwayStepRegistry";
 import type { PathwayStageKey } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import { buildUnifiedPathwayStepStateIndex, type UnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
 import {
@@ -268,15 +273,16 @@ export function CurrentLearningCard({
     stepState: stepIndex.get(step.pathwayStepId),
     attempts,
   });
+  const registryStep = getAllPathwaySteps().find((candidate) => candidate.id === step.pathwayStepId);
+  const recommendation = registryStep
+    ? buildActionablePathwayRecommendation({
+        learnerId,
+        step: registryStep,
+        autoCheckStatus: story.latestCheck?.factualStatus || null,
+        parentProgress: story.currentProgress,
+      })
+    : null;
   const whyId = `why-this-is-shown-${step.pathwayStepId.replace(/[^a-z0-9]+/gi, "-")}`;
-  const nextCopy: Record<typeof story.nextAction, string> = {
-    "add-completed-work": "Add supporting learning",
-    "confirm-progress": "Confirm progress",
-    "more-support": "Continue practising",
-    "check-understanding": "Review this step",
-    "next-step": "Continue to the next step",
-    "review-this-step": "Review this step",
-  };
 
   return <article style={{ ...cardStyle, display: "grid", gap: 14 }} data-current-learning-card={step.pathwayStepId}>
     <div style={{ display: "grid", gap: 5 }}>
@@ -290,9 +296,19 @@ export function CurrentLearningCard({
     </div>
     <p style={{ ...quietTextStyle, margin: 0, fontSize: 14 }}>{story.supportingEvidenceCount} {story.supportingEvidenceCount === 1 ? "supporting learning record" : "supporting learning records"}{story.completedCheckCount ? ` · ${story.completedCheckCount} completed ${story.completedCheckCount === 1 ? "check" : "checks"}` : ""}</p>
     {story.hasSignalConflict ? <p role="status" style={{ margin: 0, color: "#7c2d12", fontSize: 13 }}>{story.conflictExplanation}</p> : null}
-    <div style={{ display: "grid", gap: 4 }}><span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Suggested next</span><strong style={{ color: "#17204b" }}>{nextCopy[story.nextAction]}</strong></div>
+    <div style={{ display: "grid", gap: 8 }}>
+      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recommended next action</span>
+      <strong style={{ color: "#17204b" }}>{pathwayRecommendationLabel(recommendation?.action || null)}</strong>
+      <Link
+        href={recommendation?.href || pathwayPath(learnerId, step)}
+        style={{ ...primaryActionStyle, width: "100%" }}
+        data-pathways-recommendation-action={recommendation?.action || "open-pathways"}
+      >
+        {pathwayRecommendationLabel(recommendation?.action || null)}
+      </Link>
+    </div>
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      <Link href={pathwayCapturePath(learnerId, step)} style={primaryActionStyle}>Add learning</Link>
+      <Link href={pathwayCapturePath(learnerId, step)} style={secondaryActionStyle}>Add learning</Link>
       <button type="button" onClick={() => setWhyOpen((open) => !open)} aria-expanded={whyOpen} aria-controls={whyId} style={{ ...secondaryActionStyle, cursor: "pointer" }}>Why this is shown</button>
       <Link href={pathwayEvidencePath(learnerId)} style={{ ...secondaryActionStyle, minHeight: 44 }}>View evidence</Link>
     </div>

@@ -67,6 +67,12 @@ describe("My Learna current learning live-data wiring", () => {
     expect(screen.getByText("Estimate and check reasonableness")).toBeTruthy();
     expect(screen.getByText("Developing")).toBeTruthy();
     expect(screen.getByText(/Confirmed by you/)).toBeTruthy();
+    const recommendation = screen.getByRole("link", { name: "Practise this focus" });
+    const destination = new URL(recommendation.getAttribute("href") || "", "https://mylearna.test");
+    expect(destination.searchParams.get("learnerId")).toBe("learner-james");
+    expect(destination.searchParams.get("pathwayStepId")).toBe(pathwayStepId);
+    expect(destination.searchParams.get("stepKey")).toBe("estimate-and-check-reasonableness");
+    expect(destination.hash).toBe("#pathway-step-number-and-place-value-middle-primary-28");
     expect(screen.queryByText("Start building James's learning story")).toBeNull();
   });
 
