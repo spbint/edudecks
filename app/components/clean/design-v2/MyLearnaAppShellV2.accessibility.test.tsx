@@ -5,6 +5,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = { prefetch: vi.fn(), replace: vi.fn() };
+const mobileMediaQuery = {
+  matches: true,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+};
 
 vi.mock("next/image", () => ({
   default: () => <div />,
@@ -63,6 +68,10 @@ describe("MyLearna mobile More navigation accessibility", () => {
   beforeEach(() => {
     router.prefetch.mockReset();
     router.replace.mockReset();
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue(mobileMediaQuery),
+    });
   });
 
   it("opens an accessible modal and moves focus to its Close control", async () => {
@@ -111,9 +120,11 @@ describe("MyLearna mobile More navigation accessibility", () => {
     fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(lastLink);
 
-    const settings = within(screen.getByRole("dialog", { hidden: true })).getByRole("link", { name: "My Settings", hidden: true });
-    expect(settings.getAttribute("href")).toBe("/my-settings");
-    fireEvent.click(settings);
+    const dialog = within(screen.getByRole("dialog", { hidden: true }));
+    expect(dialog.queryByRole("link", { name: "My Settings", hidden: true })).toBeNull();
+    const account = dialog.getByRole("link", { name: "Account", hidden: true });
+    expect(account.getAttribute("href")).toBe("/my-profile");
+    fireEvent.click(account);
     await waitFor(() => expect(screen.queryByRole("dialog", { hidden: true })).toBeNull());
   });
 });

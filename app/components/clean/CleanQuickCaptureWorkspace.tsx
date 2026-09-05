@@ -643,15 +643,24 @@ export default function CleanQuickCaptureWorkspace() {
           {photoUploadError ? <div role="alert" style={{ color: "#92400e", lineHeight: 1.5 }}>{photoUploadError} <button type="button" onClick={() => void retryPhotoUpload()} disabled={submitting} style={{ ...secondaryButtonStyle, minHeight: 44, marginTop: 8 }}>{submitting ? savePhase || "Uploading evidence" : "Retry attachment"}</button></div> : null}
           <div style={{ display: "grid", gap: 12 }}>
             <div className="mylearna-quick-capture-receipt-primary-actions">
+              {mobileCompanion && successHandoff?.portfolioHref ? (
+                <Link
+                  href={successHandoff.portfolioHref}
+                  style={buttonStyle}
+                  onClick={trackPrimaryHandoff}
+                >
+                  View in Portfolio
+                </Link>
+              ) : null}
               {successHandoff?.returnKind !== "other" ? (
                 <Link href={successHandoff?.returnHref ?? returnPath} style={mobileCompanion ? secondaryButtonStyle : buttonStyle}>
                   {successHandoff?.returnLabel ?? "Return"}
                 </Link>
               ) : null}
-              {successHandoff?.portfolioHref ? (
+              {!mobileCompanion && successHandoff?.portfolioHref ? (
                 <Link
                   href={successHandoff.portfolioHref}
-                  style={mobileCompanion || successHandoff.returnKind === "other" ? buttonStyle : secondaryButtonStyle}
+                  style={successHandoff.returnKind === "other" ? buttonStyle : secondaryButtonStyle}
                   onClick={trackPrimaryHandoff}
                 >
                   View in Portfolio
@@ -660,10 +669,9 @@ export default function CleanQuickCaptureWorkspace() {
               {!mobileCompanion ? <button type="button" onClick={() => setSharingOpen(true)} style={secondaryButtonStyle}>Create a share card</button> : null}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
-              {mobileCompanion ? <button type="button" onClick={() => setSharingOpen(true)} style={tertiaryButtonStyle}>Create a share card</button> : null}
-              <button type="button" onClick={addMoreDetail} style={tertiaryButtonStyle}>New detailed capture</button>
-              {successHandoff?.showCaptureAnother ? <button type="button" onClick={captureAnother} style={tertiaryButtonStyle}>Capture another</button> : null}
-              {successHandoff?.returnKind === "other" ? <Link href={successHandoff.returnHref} style={tertiaryButtonStyle}>{successHandoff.returnLabel}</Link> : null}
+              {!mobileCompanion ? <button type="button" onClick={addMoreDetail} style={tertiaryButtonStyle}>New detailed capture</button> : null}
+              {successHandoff?.showCaptureAnother ? <button type="button" onClick={captureAnother} style={mobileCompanion ? secondaryButtonStyle : tertiaryButtonStyle}>Capture another</button> : null}
+              {successHandoff?.returnKind === "other" ? <Link href={successHandoff.returnHref} style={mobileCompanion ? secondaryButtonStyle : tertiaryButtonStyle}>{successHandoff.returnLabel}</Link> : null}
             </div>
           </div>
         </section>

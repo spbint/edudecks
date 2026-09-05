@@ -15,7 +15,7 @@ import {
   isFamilyProfileRoute,
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
-import { MOBILE_COMPANION_CAPTURE_EDITING_EVENT } from "./useMobileCompanion";
+import { MOBILE_COMPANION_CAPTURE_EDITING_EVENT, useMobileCompanion } from "./useMobileCompanion";
 
 export const v2Tokens = {
   page: "#F7F9FC",
@@ -629,6 +629,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const searchParams = useSearchParams();
   const { user } = useAuthUser();
   const workspace = useCleanFamilyWorkspace();
+  const mobileCompanion = useMobileCompanion();
   const [openMobileNav, setOpenMobileNav] = React.useState<MobileNavKey | null>(null);
   const [mobileCaptureEditing, setMobileCaptureEditing] = React.useState(false);
   const moreTriggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -1300,15 +1301,17 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           <main className={`mylearna-v2-content-main${quickCaptureRoute ? " mylearna-v2-quick-capture-content" : ""}`} style={{ padding: "clamp(16px, 3vw, 28px)" }}>
             <div className="mylearna-v2-content-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
               {children}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  paddingTop: 4,
-                }}
-              >
-                <ReportProblemButton pageTitle={title} />
-              </div>
+              {!mobileCompanion ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    paddingTop: 4,
+                  }}
+                >
+                  <ReportProblemButton pageTitle={title} />
+                </div>
+              ) : null}
             </div>
           </main>
         </div>
@@ -1346,25 +1349,6 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               <ShellIcon name="calendar" size={19} />
               <span>My Calendar</span>
             </Link>
-            {[settingsNavItem].map((item) => {
-              const active = isActive(pathname, item.matches);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => closeMobileMore(false)}
-                  className="mylearna-v2-mobile-sheet-link"
-                  style={{
-                    background: active ? v2Tokens.lavender : "#ffffff",
-                    color: active ? v2Tokens.purple : v2Tokens.navy,
-                  }}
-                >
-                  <ShellIcon name={item.icon} size={19} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
             <Link
               href="/my-profile"
               onClick={() => closeMobileMore(false)}

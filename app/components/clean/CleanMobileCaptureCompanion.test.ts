@@ -49,11 +49,29 @@ describe("mobile Capture companion", () => {
     expect(shell).toContain('"--mylearna-mobile-bottom-nav-height": hideMobileBottomNavForCapture ? "0px" : "62px"');
   });
 
-  it("keeps receipt actions truthful and persistence separate from navigation", () => {
+  it("keeps companion utilities focused while leaving Settings directly available", () => {
+    const moreStart = shell.indexOf('id="mylearna-mobile-more-navigation"');
+    const moreEnd = shell.indexOf('<nav', moreStart);
+    const more = shell.slice(moreStart, moreEnd);
+
+    expect(shell).toContain("const mobileCompanion = useMobileCompanion();");
+    expect(shell).toContain("{!mobileCompanion ? (");
+    expect(shell).toContain("<ReportProblemButton pageTitle={title} />");
+    expect(more).toContain('href="/my-calendar"');
+    expect(more).toContain('href="/my-profile"');
+    expect(more).toContain('href="/my-community"');
+    expect(more).not.toContain('href={item.href}');
+    expect(shell).toContain('href: "/my-settings"');
+  });
+
+  it("keeps the companion receipt focused on Portfolio, return, and another capture", () => {
     expect(capture).toContain("View in Portfolio");
-    expect(capture).toContain("New detailed capture");
     expect(capture).toContain("Capture another");
     expect(capture).toContain("successHandoff?.returnHref");
+    expect(capture).toContain("mobileCompanion && successHandoff?.portfolioHref");
+    expect(capture).toContain("!mobileCompanion && successHandoff?.portfolioHref");
+    expect(capture).toContain("!mobileCompanion ? <button type=\"button\" onClick={addMoreDetail}");
+    expect(capture).toContain("!mobileCompanion ? <button type=\"button\" onClick={() => setSharingOpen(true)}");
     expect(success).toContain("latestEvidenceId");
     expect(capture).toContain("buildQuickCaptureSuccessHandoff");
   });
