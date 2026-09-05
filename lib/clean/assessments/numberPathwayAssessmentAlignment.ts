@@ -464,13 +464,27 @@ function getWeakestStatus(statuses: NumberAutoCheckStatus[]) {
   }, null);
 }
 
-function getBankLevelStatus(attempt: CleanAssessmentAttempt): NumberAutoCheckStatus {
+export function getFactualAutoCheckStatusForAttempt(
+  attempt: CleanAssessmentAttempt,
+): NumberAutoCheckStatus {
   const prototypeMetadata = getPrototypeMetadata(attempt);
   const autoCheckStatus = safe(prototypeMetadata?.autoCheckStatus);
   if (autoCheckStatus in AUTO_CHECK_STATUS_RANK) {
     return autoCheckStatus as NumberAutoCheckStatus;
   }
 
+  if (!attempt.itemCount) return "Not checked yet";
+
+  const ratio = attempt.autoCorrectCount / attempt.itemCount;
+  if (ratio >= 1) return "Secure";
+  if (ratio >= 2 / 3) return "Consolidating";
+  if (ratio >= 1 / 3) return "Developing";
+  return "Needs support";
+}
+
+export function getFallbackAutoCheckStatusForAttempt(
+  attempt: CleanAssessmentAttempt,
+): NumberAutoCheckStatus {
   if (!attempt.itemCount) return "Not checked yet";
 
   const ratio = attempt.autoCorrectCount / attempt.itemCount;
@@ -533,7 +547,7 @@ export function getExactStepAutoCheckStatusForPathwayStep(
   }
 
   return {
-    status: getBankLevelStatus(attempt),
+    status: getFactualAutoCheckStatusForAttempt(attempt),
     attempt,
     scope: "bank" as const,
   };
@@ -569,7 +583,7 @@ export function getAutoCheckStatusForPathwayStep(
   }
 
   return {
-    status: getBankLevelStatus(attempt),
+    status: getFactualAutoCheckStatusForAttempt(attempt),
     attempt,
     scope: "bank" as const,
   };

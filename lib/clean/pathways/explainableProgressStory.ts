@@ -1,6 +1,7 @@
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import {
   getExactStepAutoCheckStatusForPathwayStep,
+  getFallbackAutoCheckStatusForAttempt,
   type NumberAutoCheckStatus,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
 import { getStepAssessmentForPathwayStep } from "@/lib/clean/assessments/stepAssessmentRegistry";
@@ -69,16 +70,6 @@ function statusRank(status: ParentProgressStatus) {
 
 function autoCheckToParentStatus(status: NumberAutoCheckStatus): ParentProgressStatus {
   return status;
-}
-
-function fallbackFactualCheckStatus(attempt: CleanAssessmentAttempt): NumberAutoCheckStatus {
-  if (!attempt.itemCount) return "Not checked yet";
-
-  const ratio = attempt.autoCorrectCount / attempt.itemCount;
-  if (ratio >= 1) return "Secure";
-  if (ratio >= 2 / 3) return "Consolidating";
-  if (ratio >= 1 / 3) return "Developing";
-  return "Needs support";
 }
 
 function getCompletedAttemptsForStep(
@@ -169,7 +160,7 @@ export function buildExplainableProgressStory(input: {
   const latestCheckStatus = latestAttempt
     ? exactCheck?.attempt
       ? exactCheck.status
-      : fallbackFactualCheckStatus(latestAttempt)
+      : getFallbackAutoCheckStatusForAttempt(latestAttempt)
     : "Not checked yet";
   const latestCheckAt = latestAttempt
     ? dateValue(latestAttempt.completedAt, latestAttempt.updatedAt, latestAttempt.createdAt)

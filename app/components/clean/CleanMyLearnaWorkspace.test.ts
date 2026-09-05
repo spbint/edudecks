@@ -38,6 +38,17 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).not.toContain("PUBLIC_PATHWAYS_ENABLED && currentLearningSteps.length");
   });
 
+  it("shows only factual, bounded check chronology without deriving growth", () => {
+    expect(source).toContain("listComparableLearningObservations");
+    expect(source).toContain('aria-label="Recent checks"');
+    expect(source).toContain("Show earlier checks");
+    expect(source).toContain("MyLearna check");
+    expect(source).not.toContain("Mastery percentage");
+    expect(source).not.toContain("Progress percentage");
+    expect(source).not.toContain("Improving");
+    expect(source).not.toContain("Declining");
+  });
+
   it("provides accessible progressive disclosure and preserves deeper links", () => {
     expect(source).toContain("Progress and judgements");
     expect(source).toContain("Recent records");

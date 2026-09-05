@@ -28,6 +28,7 @@ import {
 import { buildLearningIntelligenceSummary } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import { buildExplainableProgressStory } from "@/lib/clean/pathways/explainableProgressStory";
 import { selectCurrentLearningCandidates } from "@/lib/clean/pathways/currentLearningCandidates";
+import { listComparableLearningObservations } from "@/lib/clean/pathways/learningObservationHistory";
 import {
   buildActionablePathwayRecommendation,
   pathwayRecommendationLabel,
@@ -268,6 +269,7 @@ export function CurrentLearningCard({
   onProgressSaved: () => void;
 }) {
   const [whyOpen, setWhyOpen] = useState(false);
+  const [checkHistoryOpen, setCheckHistoryOpen] = useState(false);
   const story = buildExplainableProgressStory({
     pathwayStepId: step.pathwayStepId,
     stepState: stepIndex.get(step.pathwayStepId),
@@ -284,6 +286,16 @@ export function CurrentLearningCard({
     : null;
   const latestCheckStatus = story.latestCheck?.factualStatus || "Not checked yet";
   const hasParentConfirmation = story.currentProgressSource === "parent-confirmation";
+  const comparableObservations = listComparableLearningObservations({
+    attempts,
+    learnerId,
+    subjectKey: step.subjectKey,
+    strandKey: step.strandKey,
+    stageKey: step.stageKey,
+    pathwayStepId: step.pathwayStepId,
+    stepKey: step.pathwayStepId.split("::").at(-1) || step.pathwayStepId,
+  });
+  const visibleObservations = comparableObservations.slice(0, checkHistoryOpen ? 12 : 3);
   const whyId = `why-this-is-shown-${step.pathwayStepId.replace(/[^a-z0-9]+/gi, "-")}`;
 
   return <article style={{ ...cardStyle, display: "grid", gap: 14 }} data-current-learning-card={step.pathwayStepId}>
@@ -308,6 +320,16 @@ export function CurrentLearningCard({
     </section>
     <p style={{ ...quietTextStyle, margin: 0, fontSize: 14 }}>{story.supportingEvidenceCount} {story.supportingEvidenceCount === 1 ? "supporting learning record" : "supporting learning records"}{story.completedCheckCount ? ` · ${story.completedCheckCount} completed ${story.completedCheckCount === 1 ? "check" : "checks"}` : ""}</p>
     {story.hasSignalConflict ? <p role="status" style={{ margin: 0, color: "#7c2d12", fontSize: 13 }}>{story.conflictExplanation}</p> : null}
+    {comparableObservations.length > 1 ? <section aria-label="Recent checks" style={{ display: "grid", gap: 8, borderTop: "1px solid #e7eaf2", paddingTop: 12 }}>
+      <strong style={{ color: "#17204b", fontSize: 15 }}>Recent checks</strong>
+      <div style={{ display: "grid", gap: 7 }}>
+        {visibleObservations.map((observation) => <div key={observation.attemptId} style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", color: "#5b6478", fontSize: 14 }}>
+          <span>{dateLabel(observation.observedAt)} · MyLearna check</span>
+          <strong style={{ color: "#17204b" }}>{observation.status}</strong>
+        </div>)}
+      </div>
+      {comparableObservations.length > 3 ? <button type="button" onClick={() => setCheckHistoryOpen((open) => !open)} aria-expanded={checkHistoryOpen} style={{ ...secondaryActionStyle, width: "fit-content", cursor: "pointer" }}>{checkHistoryOpen ? "Show fewer checks" : "Show earlier checks"}</button> : null}
+    </section> : null}
     <div style={{ display: "grid", gap: 8 }}>
       <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recommended next action</span>
       <strong style={{ color: "#17204b" }}>{pathwayRecommendationLabel(recommendation?.action || null)}</strong>
