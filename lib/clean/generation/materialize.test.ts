@@ -8,6 +8,17 @@ import {
 } from "./materialize";
 
 describe("automatic usual-week materialisation guards", () => {
+  it("cleans up a rejected in-flight request without creating a second unhandled rejection", async () => {
+    const source = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(new URL("./materialize.ts", import.meta.url), "utf8"),
+    );
+
+    expect(source).toContain("const trackedRequest = request.then(");
+    expect(source).toContain("(error: unknown) => {");
+    expect(source).toContain("throw error;");
+    expect(source).not.toContain("void request.finally(");
+  });
+
   it("does not fabricate past days when first materialising the current week", () => {
     expect(
       filterCleanAutomaticWeekSuggestions(

@@ -49,6 +49,15 @@ describe("Mobile Today companion experience", () => {
     expect(mobileTodaySource).toContain("Finish the essential family setup.");
   });
 
+  it("keeps a My Day read timeout local, recoverable and free of calendar materialisation", () => {
+    expect(mobileTodaySource).toContain("onRetry");
+    expect(mobileTodaySource).toContain("Try again");
+    expect(source).toContain('Sentry.captureException(error, {');
+    expect(source).toContain('operation: "my-day-visible-activities"');
+    expect(source).toContain('setItemsError("We couldn\'t load today\'s learning. Try again.")');
+    expect(source).not.toContain("ensureCleanOperationalWeekFromUsualWeek");
+  });
+
   it("does not reintroduce mobile guidance, analytics, Pathways or report administration", () => {
     expect(mobileTodaySource).not.toContain("CoreJourneyCue");
     expect(mobileTodaySource).not.toContain("CleanPageIntroVideo");

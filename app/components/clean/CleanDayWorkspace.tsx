@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
@@ -50,7 +51,6 @@ import type {
 } from "@/lib/clean/programs/types";
 import { listCleanReports } from "@/lib/clean/reports/client";
 import { listCleanMasterTemplates } from "@/lib/clean/templates/client";
-import { ensureCleanOperationalWeekFromUsualWeek } from "@/lib/clean/generation/materialize";
 import {
   buildCleanPlanningCacheKey,
   getOrCreateCleanPlanningCalendarItemsRequest,
@@ -305,6 +305,7 @@ type MobileTodayContentProps = {
   onCompletionToggle: (item: CleanCalendarItem) => void;
   onLearnerChange: (learnerId: string) => void;
   onMoveDay: (offset: number) => void;
+  onRetry: () => void;
   onToday: () => void;
   quickCaptureHref: string;
   selectedLearnerId: string;
@@ -333,6 +334,7 @@ function MobileTodayContent({
   onCompletionToggle,
   onLearnerChange,
   onMoveDay,
+  onRetry,
   onToday,
   quickCaptureHref,
   selectedLearnerId,
@@ -440,7 +442,18 @@ function MobileTodayContent({
             </div>
 
             {itemsLoading ? <section style={mobileCardStyle} aria-live="polite">Loading today&apos;s learning...</section> : null}
-            {itemsError ? <section style={mobileCardStyle} role="alert">{itemsError}</section> : null}
+            {itemsError ? (
+              <section style={mobileCardStyle} role="alert">
+                <span>{itemsError}</span>
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  style={{ ...actionStyle, border: "1px solid #cbd5e1", background: "#ffffff", color: "#17204b" }}
+                >
+                  Try again
+                </button>
+              </section>
+            ) : null}
 
             {!itemsLoading && !itemsError && hasItems ? items.map((item) => {
               const learnerLabel = learnerLabelById.get(item.learnerId ?? "") || "Whole family";
@@ -1030,31 +1043,8 @@ function CleanDayWorkspaceBody() {
       setItems(cachedItems ?? []);
       setItemsResolvedKey(cachedItems ? selectedDayDataKey : null);
       setEvidenceEntries([]);
-      // An empty cache is not evidence that this day is empty: the usual-week
-      // materialisation check must settle before My Day derives its state.
       setItemsLoading(!cachedItems || cachedItems.length === 0);
       setItemsError(null);
-
-      try {
-        await ensureCleanOperationalWeekFromUsualWeek({
-          familyId: workspace.profile.id,
-          weekStartsOn: weekStart,
-          weekEndsOn: weekEnd,
-          today,
-        });
-      } catch (error) {
-        if (requestGeneration === dayRequestGenerationRef.current) {
-          setItemsError(
-            normalizeCleanErrorMessage(
-              error,
-              "We couldn't prepare this week's planned items yet.",
-            ),
-          );
-          setItemsResolvedKey(null);
-          setItemsLoading(false);
-        }
-        return;
-      }
 
       const itemsPromise = getOrCreateCleanPlanningCalendarItemsRequest(
         cacheKey,
@@ -1103,12 +1093,11 @@ function CleanDayWorkspaceBody() {
       } catch (error) {
         itemsTiming("error");
         if (requestGeneration === dayRequestGenerationRef.current) {
-          setItemsError(
-            normalizeCleanErrorMessage(
-              error,
-              "We could not load this day's learning blocks.",
-            ),
-          );
+          Sentry.captureException(error, {
+            level: "warning",
+            tags: { operation: "my-day-visible-activities", surface: "my-day" },
+          });
+          setItemsError("We couldn't load today's learning. Try again.");
           setItemsResolvedKey(null);
           setItemsLoading(false);
         }
@@ -1601,6 +1590,7 @@ function CleanDayWorkspaceBody() {
           onCompletionToggle={(item) => void handleCompletionToggle(item)}
           onLearnerChange={handleLearnerChange}
           onMoveDay={(offset) => router.push(buildDayPath(addDays(selectedDate, offset)))}
+          onRetry={() => setDayReloadNonce((current) => current + 1)}
           onToday={() => router.push(buildDayPath(today))}
           quickCaptureHref={mobileQuickCaptureHref}
           selectedLearnerId={selectedLearnerId}

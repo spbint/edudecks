@@ -317,11 +317,18 @@ export function ensureCleanOperationalWeekFromUsualWeek(input: MaterializeInput)
   const existing = inFlight.get(requestKey);
   if (existing) return existing;
   const request = runMaterialization(input);
-  inFlight.set(requestKey, request);
-  void request.finally(() => {
-    if (inFlight.get(requestKey) === request) inFlight.delete(requestKey);
-  });
-  return request;
+  const trackedRequest = request.then(
+    (result) => {
+      if (inFlight.get(requestKey) === trackedRequest) inFlight.delete(requestKey);
+      return result;
+    },
+    (error: unknown) => {
+      if (inFlight.get(requestKey) === trackedRequest) inFlight.delete(requestKey);
+      throw error;
+    },
+  );
+  inFlight.set(requestKey, trackedRequest);
+  return trackedRequest;
 }
 
 export async function materializeMasterWeekRange(input: Omit<MaterializeInput, "weekStartsOn" | "weekEndsOn"> & {
