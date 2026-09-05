@@ -38,9 +38,9 @@ describe("Stage 8 mobile web shell", () => {
     ]);
   });
 
-  it("exposes contextual pillar destinations without a second route grid", () => {
+  it("exposes contextual pillar destinations, including authenticated My Pathways, without a second route grid", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
-      ["My Calendar"],
+      ["My Calendar", "My Pathways"],
       ["Quick Capture", "My Portfolio"],
       ["My Learna", "My Reports"],
     ]);
@@ -72,8 +72,10 @@ describe("Stage 8 mobile web shell", () => {
     expect(shellSource).toContain('href: "/my-learna"');
   });
 
-  it("keeps My Pathways out of the visible mobile navigation and More focused on secondary controls", () => {
-    expect(shellSource).toContain("PUBLIC_PATHWAYS_ENABLED");
+  it("keeps My Pathways in authenticated Plan navigation and More focused on secondary controls", () => {
+    expect(shellSource).not.toContain("PUBLIC_PATHWAYS_ENABLED");
+    expect(shellSource).toContain('label: "My Pathways"');
+    expect(shellSource).toContain('href: "/my-pathways"');
     expect(shellSource).toContain('label: "My Settings"');
     expect(shellSource).toContain("<span>Account</span>");
     expect(shellSource).not.toContain('href: "/my-programs"');

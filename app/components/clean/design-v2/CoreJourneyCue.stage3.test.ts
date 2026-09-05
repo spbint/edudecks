@@ -69,9 +69,10 @@ describe("Stage 3 core journey orientation", () => {
     expect(captureSource).toContain("minHeight: 48");
   });
 
-  it("preserves public navigation visibility contracts", () => {
+  it("keeps authenticated navigation separate from public visibility contracts", () => {
     expect(shellSource).toContain('{ href: "/my-learna", label: "My Learna"');
-    expect(shellSource).toContain("...(PUBLIC_PATHWAYS_ENABLED");
+    expect(shellSource).toContain('label: "My Pathways"');
+    expect(shellSource).not.toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(visibilitySource).toContain("export const PUBLIC_PATHWAYS_ENABLED = false;");
   });
 });

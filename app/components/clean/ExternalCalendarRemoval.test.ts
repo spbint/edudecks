@@ -63,7 +63,7 @@ describe("external calendar removal", () => {
 
   it("preserves the Core journey and current product visibility", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
-      ["My Calendar"],
+      ["My Calendar", "My Pathways"],
       ["Quick Capture", "My Portfolio"],
       ["My Learna", "My Reports"],
     ]);

@@ -62,7 +62,9 @@ describe("My Plan navigation hierarchy", () => {
     const planSection = finalProductNavSections.find((section) => section.label === "PLAN");
     const captureSection = finalProductNavSections.find((section) => section.label === "CAPTURE");
 
-    expect(getVisibleDesktopSectionItems(planSection?.items ?? [])).toEqual([]);
+    expect(getVisibleDesktopSectionItems(planSection?.items ?? []).map((item) => item.label)).toEqual([
+      "My Pathways",
+    ]);
     expect(getVisibleDesktopSectionItems(captureSection?.items ?? []).map((item) => item.label)).toEqual([
       "Quick Capture",
       "My Portfolio",

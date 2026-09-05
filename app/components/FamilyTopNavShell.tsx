@@ -8,7 +8,6 @@ import PreviewBadge from "@/app/components/PreviewBadge";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import FamilyProfileMenu from "@/app/components/FamilyProfileMenu";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
-import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 type FamilyTopNavShellProps = {
   children: React.ReactNode;
@@ -52,7 +51,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
-  ...(PUBLIC_PATHWAYS_ENABLED ? [{ href: "/my-pathways", label: "My Pathways" }] : []),
+  { href: "/my-pathways", label: "My Pathways" },
 ] as const;
 
 const SECONDARY_NAV = [

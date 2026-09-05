@@ -17,7 +17,6 @@ import {
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
 import { MobileSelectionLink } from "./MobileResponsivePrimitives";
-import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 
 export const v2Tokens = {
   page: "#F7F9FC",
@@ -84,9 +83,7 @@ export const finalProductNavSections = [
     label: "PLAN",
     items: [
       calendarNavItem,
-      ...(PUBLIC_PATHWAYS_ENABLED
-        ? [{ href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route" as const, matches: ["/my-pathways"] }]
-        : []),
+      { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways", "/clean-my-pathways"] },
     ],
   },
   {
@@ -501,7 +498,7 @@ export function getMobilePrefetchDestinations(activeSection: MobileNavKey): stri
   const destinations = new Set(["/my-day", "/my-settings", "/my-capture?mode=quick"]);
   if (activeSection === "PLAN") {
     destinations.add("/my-calendar");
-    if (PUBLIC_PATHWAYS_ENABLED) destinations.add("/my-pathways");
+    destinations.add("/my-pathways");
   } else if (activeSection === "CAPTURE") {
     destinations.add("/my-capture");
     destinations.add("/my-portfolio");

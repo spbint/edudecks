@@ -10,11 +10,12 @@ import {
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("public product visibility", () => {
-  it("keeps Pathways and Assessments private while retaining the Core navigation", () => {
+  it("keeps public Pathways and Assessments private while retaining authenticated Pathways navigation", () => {
     expect(PUBLIC_PATHWAYS_ENABLED).toBe(false);
     expect(PUBLIC_ASSESSMENTS_ENABLED).toBe(false);
     expect(finalProductNavSections.flatMap((section) => section.items.map((item) => item.label))).toEqual([
       "My Calendar",
+      "My Pathways",
       "Quick Capture",
       "My Portfolio",
       "My Learna",
@@ -22,13 +23,17 @@ describe("public product visibility", () => {
     ]);
   });
 
-  it("retains private route implementations and hides normal Pathways handoffs", () => {
+  it("retains private public-discovery controls without hiding authenticated Pathways navigation", () => {
     const shell = read("app/components/clean/design-v2/MyLearnaAppShellV2.tsx");
+    const legacyAuthenticatedShell = read("app/components/FamilyTopNavShell.tsx");
     const day = read("app/components/clean/CleanDayWorkspace.tsx");
     const setup = read("lib/clean/setup/setupStatus.ts");
 
     expect(shell).toContain('href: "/my-pathways"');
+    expect(shell).not.toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(shell).toContain('pathname === "/my-pathways"');
+    expect(legacyAuthenticatedShell).toContain('{ href: "/my-pathways", label: "My Pathways" }');
+    expect(legacyAuthenticatedShell).not.toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(day).toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(setup).toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(setup).toContain('type: "capture-evidence"');
