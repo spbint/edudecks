@@ -103,7 +103,7 @@ describe("Quick Capture doorway", () => {
   it("keeps quick capture visually anchored and camera-first", () => {
     expect(source).toContain("window.scrollTo({ top: 0");
     expect(source).toContain(">Quick Capture</h1>");
-    expect(source).toContain("Capture a learning moment now. Add more detail later.");
+    expect(source).toContain("Capture a learning moment now. Start a new detailed capture later.");
     expect(source).not.toContain("Add it to the portfolio later.");
     expect(source).toContain("CleanEvidenceAttachmentControls");
     expect(attachmentControlsSource).toContain('aria-label="Take a photo"');
@@ -138,6 +138,19 @@ describe("Quick Capture doorway", () => {
     expect(source).not.toContain("Close share card");
     expect(source).not.toContain('setStatus("Learning moment saved.")');
     expect(source).toContain("style={tertiaryButtonStyle}");
+  });
+
+  it("labels the existing full-Capture draft handoff as a new detailed capture", () => {
+    const handoffStart = source.indexOf("function addMoreDetail()");
+    const handoffEnd = source.indexOf("function captureAnother()", handoffStart);
+    const handoff = source.slice(handoffStart, handoffEnd);
+
+    expect(source).toContain(">New detailed capture</button>");
+    expect(handoff).toContain("setQuickCaptureDraft");
+    expect(handoff).toContain('quickDraft: "1"');
+    expect(handoff).toContain('params = new URLSearchParams({ learner_id: savedEntry.learnerId, observed_on: savedEntry.observedOn, quickDraft: "1", returnTo: returnPath })');
+    expect(handoff).toContain("router.push");
+    expect(handoff).not.toContain("saveUnifiedLearningCapture");
   });
 
   it("guides a successful save to Portfolio without changing persistence", () => {
