@@ -534,25 +534,6 @@ function getPathwayInteractionKey(
   return [learnerId, subjectKey, strandKey].map((value) => String(value ?? "").trim()).join("::");
 }
 
-function readPathwayInteractionStarted(
-  learnerId: string,
-  subjectKey: PathwaySubjectKey,
-  strandKey: string,
-) {
-  if (typeof window === "undefined") return false;
-  const key = getPathwayInteractionKey(learnerId, subjectKey, strandKey);
-  if (!key.replace(/:/g, "")) return false;
-
-  try {
-    const parsed = JSON.parse(
-      window.localStorage.getItem(PATHWAYS_INTERACTION_STORAGE_KEY) || "{}",
-    );
-    return Boolean(parsed && typeof parsed === "object" && parsed[key]);
-  } catch {
-    return false;
-  }
-}
-
 function writePathwayInteractionStarted(
   learnerId: string,
   subjectKey: PathwaySubjectKey,
@@ -982,7 +963,7 @@ function PathwaysWorkspaceBody() {
   const [densityMode, setDensityMode] = useState<PathwayDensityMode>(
     () => persistedUiState.densityMode || "compact",
   );
-  const [pathwayInteractionVersion, setPathwayInteractionVersion] = useState(0);
+  const [, setPathwayInteractionVersion] = useState(0);
   const [worksheetOpenedForStepId, setWorksheetOpenedForStepId] = useState("");
   const [manualCompletions, setManualCompletions] = useState<ManualPathwayCompletionMap>(
     () => readManualPathwayCompletions(),
@@ -1685,14 +1666,6 @@ function PathwaysWorkspaceBody() {
     isUnifiedPathwayStepComplete(selectedPlacementUnifiedState) ||
     selectedPlacementEvidenceProgressMeta?.label === "Secure" ||
     selectedPlacementProgressStory?.currentProgress === "Secure";
-  const selectedPlacementHasInteraction =
-    selectedPlacementStep && selectedLearner
-      ? readPathwayInteractionStarted(
-          selectedLearner.id,
-          selectedPlacementStep.subjectKey,
-          selectedPlacementStep.strandKey,
-        ) || pathwayInteractionVersion > 0
-      : false;
   function updateCurrentPathwayStep(
     nextStep: typeof selectedPlacementStep,
     method: PathwayPlacementMethod,
@@ -1720,24 +1693,6 @@ function PathwaysWorkspaceBody() {
     params.set("pathwayStepId", nextStep.id);
     params.set("placement", "1");
     router.push(`${pathname}?${params.toString()}`);
-  }
-
-  function scrollToCurrentStepPanel() {
-    if (selectedPlacementStep && selectedLearner) {
-      writePathwayInteractionStarted(
-        selectedLearner.id,
-        selectedPlacementStep.subjectKey,
-        selectedPlacementStep.strandKey,
-      );
-      setPathwayInteractionVersion((current) => current + 1);
-    }
-    setPathwayExplorerOpen(true);
-    const workspaceEl = pathwayDetailWorkspaceRef.current;
-    if (!workspaceEl) return;
-    window.requestAnimationFrame(() => {
-      workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      workspaceEl.focus({ preventScroll: true });
-    });
   }
 
   function markSelectedPathwayInteraction() {
@@ -1967,17 +1922,6 @@ function PathwaysWorkspaceBody() {
             width: 100% !important;
           }
 
-          .mylearna-pathways-current-actions {
-            display: grid !important;
-            grid-template-columns: 1fr !important;
-          }
-
-          .mylearna-pathways-current-actions > * {
-            width: 100% !important;
-            min-height: 46px !important;
-            justify-content: center !important;
-          }
-
           .mylearna-pathway-stage-summary {
             grid-template-columns: 1fr !important;
           }
@@ -2137,78 +2081,6 @@ function PathwaysWorkspaceBody() {
                   <span style={{ ...curriculumChipStyle, color: "#5B6478" }}>
                     {selectedPlacementProgressStory?.currentProgress || "Not checked yet"}
                   </span>
-                  {selectedPlacementEvidenceProgressMeta ? (
-                    <span
-                      style={{
-                        ...curriculumChipStyle,
-                        borderColor: selectedPlacementEvidenceProgressMeta.border,
-                        background: "#ffffff",
-                        color: selectedPlacementEvidenceProgressMeta.text,
-                      }}
-                    >
-                      {selectedPlacementEvidenceProgressMeta.label}
-                    </span>
-                  ) : null}
-                  {selectedPlacementUnifiedState?.linkedEvidenceCount ? (
-                    <span
-                      style={{
-                        ...curriculumChipStyle,
-                        borderColor: selectedPlacementEvidenceProgressMeta?.border || "#bfdbfe",
-                        background: "#ffffff",
-                        color: selectedPlacementEvidenceProgressMeta?.text || "#1d4ed8",
-                      }}
-                    >
-                      Evidence attached
-                    </span>
-                  ) : null}
-                  {selectedPlacementEvidenceDate ? (
-                    <span
-                      style={{
-                        ...curriculumChipStyle,
-                        borderColor: "#e2e8f0",
-                        background: "#ffffff",
-                        color: "#475569",
-                      }}
-                    >
-                      Saved {selectedPlacementEvidenceDate}
-                    </span>
-                  ) : null}
-                  {selectedPlacementHasEvidenceAttachment ? (
-                    <span
-                      style={{
-                        ...curriculumChipStyle,
-                        borderColor: "#ccfbf1",
-                        background: "#f0fdfa",
-                        color: "#0f766e",
-                      }}
-                    >
-                      Photo attached
-                    </span>
-                  ) : null}
-                  {selectedPlacementLatestEvidenceEntry?.includeInPortfolio ? (
-                    <span
-                      style={{
-                        ...curriculumChipStyle,
-                        borderColor: "#dbeafe",
-                        background: "#eff6ff",
-                        color: "#1d4ed8",
-                      }}
-                    >
-                      Portfolio
-                    </span>
-                  ) : null}
-                  {selectedPlacementLatestEvidenceEntry?.includeInReport ? (
-                    <span
-                      style={{
-                        ...curriculumChipStyle,
-                        borderColor: "#ddd6fe",
-                        background: "#f5f3ff",
-                        color: "#6d28d9",
-                      }}
-                    >
-                      Reports
-                    </span>
-                  ) : null}
                 </div>
                 <strong style={{ color: "#17204B", fontSize: "clamp(22px, 3vw, 28px)", lineHeight: 1.15, fontWeight: 650 }}>
                   {selectedPlacementStep.stepTitle}
@@ -2253,15 +2125,100 @@ function PathwaysWorkspaceBody() {
                     markSelectedPathwayInteraction();
                   }}
                 />
-                <div className="mylearna-pathways-current-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    onClick={scrollToCurrentStepPanel}
-                    style={secondaryButtonStyle}
+                {selectedPlacementEvidenceProgressMeta ||
+                selectedPlacementUnifiedState?.linkedEvidenceCount ||
+                selectedPlacementEvidenceDate ||
+                selectedPlacementHasEvidenceAttachment ||
+                selectedPlacementLatestEvidenceEntry?.includeInPortfolio ||
+                selectedPlacementLatestEvidenceEntry?.includeInReport ? (
+                  <details
+                    className="mylearna-pathways-current-evidence-detail"
+                    style={{
+                      border: "1px solid #E7EAF2",
+                      borderRadius: 14,
+                      background: "#ffffff",
+                      padding: "8px 10px",
+                    }}
                   >
-                    Explore pathway
-                  </button>
-                </div>
+                    <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
+                      Evidence and record details
+                    </summary>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                      {selectedPlacementEvidenceProgressMeta ? (
+                        <span
+                          style={{
+                            ...curriculumChipStyle,
+                            borderColor: selectedPlacementEvidenceProgressMeta.border,
+                            background: "#ffffff",
+                            color: selectedPlacementEvidenceProgressMeta.text,
+                          }}
+                        >
+                          Evidence status: {selectedPlacementEvidenceProgressMeta.label}
+                        </span>
+                      ) : null}
+                      {selectedPlacementUnifiedState?.linkedEvidenceCount ? (
+                        <span
+                          style={{
+                            ...curriculumChipStyle,
+                            borderColor: selectedPlacementEvidenceProgressMeta?.border || "#bfdbfe",
+                            background: "#ffffff",
+                            color: selectedPlacementEvidenceProgressMeta?.text || "#1d4ed8",
+                          }}
+                        >
+                          Evidence attached
+                        </span>
+                      ) : null}
+                      {selectedPlacementEvidenceDate ? (
+                        <span
+                          style={{
+                            ...curriculumChipStyle,
+                            borderColor: "#e2e8f0",
+                            background: "#ffffff",
+                            color: "#475569",
+                          }}
+                        >
+                          Saved {selectedPlacementEvidenceDate}
+                        </span>
+                      ) : null}
+                      {selectedPlacementHasEvidenceAttachment ? (
+                        <span
+                          style={{
+                            ...curriculumChipStyle,
+                            borderColor: "#ccfbf1",
+                            background: "#f0fdfa",
+                            color: "#0f766e",
+                          }}
+                        >
+                          Photo attached
+                        </span>
+                      ) : null}
+                      {selectedPlacementLatestEvidenceEntry?.includeInPortfolio ? (
+                        <span
+                          style={{
+                            ...curriculumChipStyle,
+                            borderColor: "#dbeafe",
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
+                          }}
+                        >
+                          Portfolio
+                        </span>
+                      ) : null}
+                      {selectedPlacementLatestEvidenceEntry?.includeInReport ? (
+                        <span
+                          style={{
+                            ...curriculumChipStyle,
+                            borderColor: "#ddd6fe",
+                            background: "#f5f3ff",
+                            color: "#6d28d9",
+                          }}
+                        >
+                          Reports
+                        </span>
+                      ) : null}
+                    </div>
+                  </details>
+                ) : null}
                 {selectedPlacementWorksheet &&
                 worksheetOpenedForStepId ===
                   (selectedPlacementStep.stepKey ||
@@ -2330,32 +2287,6 @@ function PathwaysWorkspaceBody() {
                 <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
                   This is the first step in this strand.
                 </p>
-              ) : null}
-              {selectedPlacementHasInteraction ? (
-                <div
-                  style={{
-                    border: "1px solid #bbf7d0",
-                    borderRadius: 14,
-                    background: "#f0fdf4",
-                    padding: 14,
-                    display: "grid",
-                    gap: 10,
-                  }}
-                >
-                  <strong style={{ color: "#166534" }}>Pathway started</strong>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Ready to keep going. Open the current step to add worksheet evidence directly.
-                  </p>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={scrollToCurrentStepPanel}
-                      style={buttonStyle}
-                    >
-                      Open current step
-                    </button>
-                  </div>
-                </div>
               ) : null}
             </div>
           ) : (
@@ -3370,7 +3301,7 @@ function NumberRevealStepCard({
           {step.alignment ? ` · ${step.alignment.bank.shortTitle}` : ""}
         </div>
       </div>
-      {worksheetResource ? (
+      {worksheetResource && primary ? (
         <div
           style={{
             display: "flex",
@@ -3409,6 +3340,23 @@ function NumberRevealStepCard({
           >
             Add completed work
           </Link>
+        </div>
+      ) : worksheetResource ? (
+        <div
+          style={{
+            justifySelf: primary ? "start" : "end",
+            border: "1px solid #bbf7d0",
+            borderRadius: 999,
+            background: "#f0fdf4",
+            color: "#166534",
+            padding: "5px 8px",
+            fontSize: 12,
+            fontWeight: 750,
+            lineHeight: 1.2,
+          }}
+          title={worksheetResource.fileName}
+        >
+          Worksheet ready
         </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
@@ -4363,7 +4311,6 @@ function DetailedMathematicsStepCard({
   const statusChipMeta = parentProgressChipMeta[
     displayedProgressStatus || "Not checked yet"
   ];
-  const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const worksheetResource = getWorksheetResourceForPathwayStep({
     pathwayStepId: canonicalPathwayStepId,
     stepKey: canonicalStepKey,
@@ -4458,16 +4405,14 @@ function DetailedMathematicsStepCard({
     : captureBaseHref;
   const worksheetStatus = worksheetResource ? "Worksheet ready" : "No worksheet";
   const worksheetFileName = worksheetResource?.fileName || "";
-  const hasEvidenceAttachment =
-    Boolean(latestEvidenceEntry?.imageUrl) ||
-    Boolean(latestEvidenceEntry?.attachmentUrls.length);
-  const latestEvidenceDate = formatWorksheetEvidenceDate(latestEvidenceEntry);
   const isStepSecure =
     isUnifiedPathwayStepComplete(stepUnifiedState) ||
     evidenceProgressMeta?.label === "Secure" ||
     status === "Secure";
   const manualComplete = Boolean(manualCompletion?.completed);
   const stepComplete = manualComplete || isStepSecure;
+  const isCurrentLearningStep = stageIndex === currentStageIndex && stepIndex === 0;
+  const showStepActions = isOpen || isCurrentLearningStep;
   const nextDetailedStep = (() => {
     const currentStageStep = stage.steps[stepIndex + 1] || null;
     if (currentStageStep) {
@@ -4509,7 +4454,7 @@ function DetailedMathematicsStepCard({
     pathwayStepId: canonicalPathwayStepId || "",
     stepKey: canonicalStepKey,
     progressStatus: displayedProgressStatus || "Not checked yet",
-    isCurrentLearningStep: stageIndex === currentStageIndex && stepIndex === 0,
+    isCurrentLearningStep,
     hasPractice: Boolean(exactStepPractice),
     hasAssessment: Boolean(exactStepAssessment),
     hasWorksheet: Boolean(worksheetResource),
@@ -4533,7 +4478,7 @@ function DetailedMathematicsStepCard({
       stageKey,
       pathwayStepId: canonicalPathwayStepId || "",
       stepKey: canonicalStepKey,
-      isCurrentLearningStep: stageIndex === currentStageIndex && stepIndex === 0,
+      isCurrentLearningStep,
       hasPractice: Boolean(exactStepPractice),
       hasAssessment: Boolean(exactStepAssessment),
       hasWorksheet: Boolean(worksheetResource),
@@ -4548,6 +4493,7 @@ function DetailedMathematicsStepCard({
     detailPanelId,
     exactStepAssessment,
     exactStepPractice,
+    isCurrentLearningStep,
     isOpen,
     isStepSecure,
     nextDetailedStepHref,
@@ -4725,88 +4671,6 @@ function DetailedMathematicsStepCard({
               {worksheetStatus}
             </div>
 
-          {evidenceLinkedCount > 0 ? (
-            <span
-              style={{
-                border: evidenceProgressMeta
-                  ? `1px solid ${evidenceProgressMeta.border}`
-                  : "1px solid #bfdbfe",
-                borderRadius: 999,
-                background: "#ffffff",
-                color: evidenceProgressMeta?.text || "#1d4ed8",
-                padding: "4px 7px",
-                fontSize: 12,
-                fontWeight: 650,
-              }}
-            >
-              Evidence attached
-            </span>
-          ) : null}
-
-          {latestEvidenceDate ? (
-            <span
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 999,
-                background: "#ffffff",
-                color: "#475569",
-                padding: "4px 7px",
-                fontSize: 12,
-                fontWeight: 650,
-              }}
-            >
-              Saved {latestEvidenceDate}
-            </span>
-          ) : null}
-
-          {hasEvidenceAttachment ? (
-            <span
-              style={{
-                border: "1px solid #ccfbf1",
-                borderRadius: 999,
-                background: "#f0fdfa",
-                color: "#0f766e",
-                padding: "4px 7px",
-                fontSize: 12,
-                fontWeight: 650,
-              }}
-            >
-              Photo attached
-            </span>
-          ) : null}
-
-          {latestEvidenceEntry?.includeInPortfolio ? (
-            <span
-              style={{
-                border: "1px solid #dbeafe",
-                borderRadius: 999,
-                background: "#eff6ff",
-                color: "#1d4ed8",
-                padding: "4px 7px",
-                fontSize: 12,
-                fontWeight: 650,
-              }}
-            >
-              Portfolio
-            </span>
-          ) : null}
-
-          {latestEvidenceEntry?.includeInReport ? (
-            <span
-              style={{
-                border: "1px solid #ddd6fe",
-                borderRadius: 999,
-                background: "#f5f3ff",
-                color: "#6d28d9",
-                padding: "4px 7px",
-                fontSize: 12,
-                fontWeight: 650,
-              }}
-            >
-              Reports
-            </span>
-          ) : null}
-
           <button
             type="button"
             onClick={() => {
@@ -4888,36 +4752,38 @@ function DetailedMathematicsStepCard({
         </figure>
       ) : null}
 
-      <CleanPathwayStepActionRow
-        captureHref={captureHref}
-        practiceHref={practiceHref}
-        assessmentHref={assessmentHref}
-        nextStepHref={isStepSecure ? nextDetailedStepHref : ""}
-        autoCheckStatus={progressStory.latestCheck?.factualStatus || null}
-        parentProgress={progressStory.currentProgress}
-        emphasizePrimary={stageIndex === currentStageIndex && stepIndex === 0}
-        familyId={familyId}
-        learnerId={selectedLearnerId}
-        subjectKey={selectedSubjectKey}
-        subjectTitle={selectedSubjectTitle}
-        strandKey={strand.key}
-        strandTitle={strand.title}
-        stageKey={stage.key}
-        stageTitle={displayedStageTitle}
-        pathwayStepId={canonicalPathwayStepId || ""}
-        stepKey={canonicalStepKey}
-        stepTitle={step.title}
-        confidenceStatusLabel={confidenceStatusLabel}
-        isExactStepContext={exactStepContext}
-        worksheetResource={worksheetResource}
-        latestEvidenceEntry={stepUnifiedState?.latestEvidenceEntry ?? null}
-        manualComplete={stepComplete}
-        onManualCompletionChange={
-          canonicalPathwayStepId
-            ? (completed) => onManualCompletionChange(canonicalPathwayStepId, completed)
-            : undefined
-        }
-      />
+      {showStepActions ? (
+        <CleanPathwayStepActionRow
+          captureHref={captureHref}
+          practiceHref={practiceHref}
+          assessmentHref={assessmentHref}
+          nextStepHref={isStepSecure ? nextDetailedStepHref : ""}
+          autoCheckStatus={progressStory.latestCheck?.factualStatus || null}
+          parentProgress={progressStory.currentProgress}
+          emphasizePrimary={isCurrentLearningStep}
+          familyId={familyId}
+          learnerId={selectedLearnerId}
+          subjectKey={selectedSubjectKey}
+          subjectTitle={selectedSubjectTitle}
+          strandKey={strand.key}
+          strandTitle={strand.title}
+          stageKey={stage.key}
+          stageTitle={displayedStageTitle}
+          pathwayStepId={canonicalPathwayStepId || ""}
+          stepKey={canonicalStepKey}
+          stepTitle={step.title}
+          confidenceStatusLabel={confidenceStatusLabel}
+          isExactStepContext={exactStepContext}
+          worksheetResource={worksheetResource}
+          latestEvidenceEntry={stepUnifiedState?.latestEvidenceEntry ?? null}
+          manualComplete={stepComplete}
+          onManualCompletionChange={
+            canonicalPathwayStepId
+              ? (completed) => onManualCompletionChange(canonicalPathwayStepId, completed)
+              : undefined
+          }
+        />
+      ) : null}
 
       {isOpen && registryStep ? (
         <CleanPathwayProgressConfirmation

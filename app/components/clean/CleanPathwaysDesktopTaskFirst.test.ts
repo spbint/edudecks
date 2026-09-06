@@ -55,6 +55,49 @@ describe("desktop Pathways task-first hierarchy", () => {
     expect(workspaceSource).toContain("onActiveStageChange={handleSelectWorkspaceStage}");
   });
 
+  it("renders one pathway exploration entry and avoids a permanent start receipt", () => {
+    expect(workspaceSource.match(/Explore pathway/g) || []).toHaveLength(1);
+    expect(workspaceSource).not.toContain("Pathway started");
+    expect(workspaceSource).not.toContain("Ready to keep going. Open the current step");
+  });
+
+  it("keeps non-current pathway steps compact until deliberately opened", () => {
+    const detailedCard = workspaceSource.slice(
+      workspaceSource.indexOf("function DetailedMathematicsStepCard"),
+      workspaceSource.indexOf("function getReturnedPathwayDetailPanelId"),
+    );
+    const revealCard = workspaceSource.slice(
+      workspaceSource.indexOf("function NumberRevealStepCard"),
+      workspaceSource.indexOf("function NumberPathwayRevealPanel"),
+    );
+
+    expect(detailedCard).toContain("const isCurrentLearningStep = stageIndex === currentStageIndex && stepIndex === 0");
+    expect(detailedCard).toContain("const showStepActions = isOpen || isCurrentLearningStep");
+    expect(detailedCard).toContain("{showStepActions ? (");
+    expect(detailedCard).toContain("emphasizePrimary={isCurrentLearningStep}");
+    expect(revealCard).toContain("worksheetResource && primary");
+    expect(revealCard).toContain("Worksheet ready");
+  });
+
+  it("de-emphasises evidence metadata outside the primary current-learning chip row", () => {
+    const currentPanelStart = workspaceSource.indexOf(
+      'className="mylearna-pathways-current-step-panel"',
+    );
+    const primaryStatusRow = workspaceSource.slice(
+      currentPanelStart,
+      workspaceSource.indexOf("<strong style={{ color: \"#17204B\"", currentPanelStart),
+    );
+
+    expect(primaryStatusRow).toContain("Current step");
+    expect(primaryStatusRow).toContain("selectedPlacementProgressStory?.currentProgress");
+    expect(primaryStatusRow).not.toContain("Evidence attached");
+    expect(primaryStatusRow).not.toContain("Photo attached");
+    expect(primaryStatusRow).not.toContain("Portfolio");
+    expect(primaryStatusRow).not.toContain("Reports");
+    expect(workspaceSource).toContain('className="mylearna-pathways-current-evidence-detail"');
+    expect(workspaceSource).toContain("Evidence and record details");
+  });
+
   it("does not put optional product guidance ahead of the Pathways task", () => {
     expect(workspaceSource).not.toContain("GuidancePageAction");
     expect(workspaceSource).not.toContain("CoreJourneyCue");

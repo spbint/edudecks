@@ -61,36 +61,18 @@ function AccessDeniedPanel({ mode }: { mode: "lab" | "legacy" }) {
           Staff only
         </span>
         <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 36px)" }}>
-          {mode === "lab" ? "Assessment Lab is internal only" : "Digital assessment is being rebuilt"}
+          {mode === "lab" ? "Staff assessment workspace" : "Assessment unavailable"}
         </h1>
         <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
           {mode === "lab"
-            ? "This internal workspace is hidden from customers while MyLearna Assess is rebuilt."
-            : "This legacy assessment experience is no longer available in the customer pathway experience."}
+            ? "This workspace is available only to authorised MyLearna staff."
+            : "This assessment entry is not available from the current learning pathway."}
         </p>
         <Link href="/my-pathways" style={buttonStyle}>
           Return to My Pathways
         </Link>
       </section>
     </main>
-  );
-}
-
-function LegacyWarning() {
-  return (
-    <div
-      role="status"
-      style={{
-        border: "1px solid #f59e0b",
-        background: "#fffbeb",
-        color: "#92400e",
-        padding: "10px 14px",
-        fontSize: 13,
-        fontWeight: 800,
-      }}
-    >
-      This legacy assessment experience is deprecated and hidden from customers.
-    </div>
   );
 }
 
@@ -118,10 +100,5 @@ export default function AssessmentAccessGate({ mode, children }: AssessmentAcces
 
   if (!allowed) return <AccessDeniedPanel mode={mode} />;
 
-  return (
-    <>
-      {mode === "legacy" ? <LegacyWarning /> : null}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }
