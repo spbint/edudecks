@@ -68,6 +68,28 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
   });
 
+  it("reports selected actions without changing canonical recommendation rendering", () => {
+    const onActionSelected = vi.fn();
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        assessmentHref: "/assessments/number?learnerId=learner-a",
+        stepTitle: "Use place value",
+        worksheetResource,
+        onActionSelected,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "Check understanding" }));
+    fireEvent.click(screen.getByRole("link", { name: "View worksheet" }));
+
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Check understanding",
+    );
+    expect(onActionSelected).toHaveBeenNthCalledWith(1, "check-understanding", true);
+    expect(onActionSelected).toHaveBeenNthCalledWith(2, "worksheet", false);
+  });
+
   it("keeps exact practice and assessment links available without changing evidence actions", () => {
     render(
       React.createElement(CleanPathwayStepActionRow, {

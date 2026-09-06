@@ -36,6 +36,7 @@ type CleanPathwayStepActionRowProps = {
   latestEvidenceEntry?: CleanEvidenceEntry | null;
   manualComplete?: boolean;
   onManualCompletionChange?: (completed: boolean) => void;
+  onActionSelected?: (action: PathwayNextAction, primary: boolean) => void;
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -132,6 +133,7 @@ export default function CleanPathwayStepActionRow({
   latestEvidenceEntry = null,
   manualComplete = false,
   onManualCompletionChange,
+  onActionSelected,
 }: CleanPathwayStepActionRowProps) {
   const worksheetEvidenceCaptureHref =
     worksheetResource && captureHref
@@ -187,6 +189,7 @@ export default function CleanPathwayStepActionRow({
         ...actionAnalyticsContext,
       });
     }
+    onActionSelected?.(action, primary);
   };
   const renderAction = (action: PathwayNextAction, primary = false) => {
     const href = actionHref[action];

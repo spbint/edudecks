@@ -8,7 +8,6 @@ import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSe
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanPathwayProgressConfirmation from "@/app/components/clean/CleanPathwayProgressConfirmation";
-import { GuidancePageAction } from "@/app/components/clean/guidance/GuidanceToggle";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
@@ -1432,6 +1431,12 @@ function PathwaysWorkspaceBody() {
     : "/my-pathways";
   const placementPathBase = `${pathwaysPathBase}/placement`;
   const requestedPathwayStepId = searchParams.get("pathwayStepId") || "";
+  const pathwayExplorerForcedOpen = Boolean(
+    requestedPathwayStepId || getReturnedPathwayDetailPanelId(),
+  );
+  const [pathwayExplorerOpen, setPathwayExplorerOpen] = useState(
+    () => pathwayExplorerForcedOpen,
+  );
   const selectedPlacement = useMemo(() => {
     if (!selectedLearner || !selectedStrandKey) return null;
     return readPathwayPlacement(
@@ -1601,47 +1606,85 @@ function PathwaysWorkspaceBody() {
     selectedSubject.title,
     selectedSubjectWorkspace?.title,
   ]);
-  const selectedPlacementWorksheetEvidenceHref = useMemo(() => {
-    if (!selectedPlacementStep || !selectedPlacementWorksheet) return "";
-
-    const params = buildPathwayCaptureSearchParams(
-      {
-        source: "my-pathways",
-        subjectKey: selectedPlacementStep.subjectKey,
-        subjectLabel: selectedSubject.title,
-        pathwayKey: selectedPlacementStep.strandKey,
-        pathwayLabel: selectedSubjectWorkspace?.title || selectedPlacementStep.strandKey,
-        stageKey: selectedPlacementStep.stageKey,
-        stageLabel: selectedPlacementStageTitle,
+  const selectedPlacementProgressStory = selectedPlacementStep
+    ? buildExplainableProgressStory({
+        pathwayStepId: selectedPlacementStep.id,
+        stepState: selectedPlacementUnifiedState,
+        attempts: assessmentAttempts,
+      })
+    : null;
+  const selectedPlacementExactStepContext = selectedPlacementStep
+    ? supportsExactStepPathwayContext(
+        selectedPlacementStep.subjectKey,
+        selectedPlacementStep.strandKey,
+      )
+    : false;
+  const selectedPlacementAssessment = selectedPlacementExactStepContext && selectedPlacementStep
+    ? getStepAssessmentForPathwayStep({
         pathwayStepId: selectedPlacementStep.id,
         stepKey: selectedPlacementStep.stepKey,
-        stepNumber: String(selectedPlacementStep.legacyStepNumber || selectedPlacementStep.stepOrder || selectedPlacementStep.stepKey),
-        stepTitle: selectedPlacementStep.stepTitle,
-        stepMeaning: selectedPlacementStep.stepDescription,
-        skillFocus: selectedPlacementStep.stepTitle,
-      },
-      {
-        learnerId: selectedLearnerId || null,
-        learningAreaKey: selectedPlacementStep.subjectKey,
-        learningAreaLabel: selectedSubject.title,
-      },
-    );
-
-    return appendWorksheetEvidenceCaptureParams(
-      `${capturePathBase}?${params.toString()}`,
-      selectedPlacementWorksheet,
-      selectedPlacementReturnHref,
-    );
-  }, [
-    capturePathBase,
-    selectedLearnerId,
-    selectedPlacementReturnHref,
-    selectedPlacementStep,
-    selectedPlacementStageTitle,
-    selectedPlacementWorksheet,
-    selectedSubject.title,
-    selectedSubjectWorkspace?.title,
-  ]);
+        strandKey: selectedPlacementStep.strandKey,
+      })
+    : null;
+  const selectedPlacementPractice = selectedPlacementExactStepContext && selectedPlacementStep
+    ? getStepPracticeForPathwayStep({
+        pathwayStepId: selectedPlacementStep.id,
+        stepKey: selectedPlacementStep.stepKey,
+        strandKey: selectedPlacementStep.strandKey,
+      })
+    : null;
+  const selectedPlacementAssessmentHref = selectedPlacementAssessment
+    ? `/assessments/number?${new URLSearchParams({
+        source: "my-pathways",
+        stepAssessmentKey: selectedPlacementAssessment.key,
+        subjectKey: selectedPlacementAssessment.subjectKey,
+        strandKey: selectedPlacementAssessment.strandKey,
+        stageKey: selectedPlacementAssessment.stageKey,
+        pathwayStepId: selectedPlacementAssessment.pathwayStepId,
+        stepKey: selectedPlacementAssessment.stepKey,
+        progressionBandKey: selectedPlacementAssessment.progressionBandKey,
+        itemBankKey: selectedPlacementAssessment.parentItemBankKey,
+        learnerId: selectedLearnerId,
+        returnTo: selectedPlacementReturnHref,
+      }).toString()}`
+    : "";
+  const selectedPlacementPracticeHref = selectedPlacementPractice
+    ? `/practice/number-targeted?${new URLSearchParams({
+        source: "my-pathways",
+        stepPracticeKey: selectedPlacementPractice.key,
+        subjectKey: selectedPlacementPractice.subjectKey,
+        strandKey: selectedPlacementPractice.strandKey,
+        stageKey: selectedPlacementPractice.stageKey,
+        pathwayStepId: selectedPlacementPractice.pathwayStepId,
+        stepKey: selectedPlacementPractice.stepKey,
+        learnerId: selectedLearnerId,
+        returnTo: selectedPlacementReturnHref,
+      }).toString()}`
+    : "";
+  const selectedPlacementNextStepHref = nextPlacementStep
+    ? buildPathwayStepReturnHref({
+        pathname,
+        subjectKey: nextPlacementStep.subjectKey,
+        strandKey: nextPlacementStep.strandKey,
+        stageKey: nextPlacementStep.stageKey,
+        pathwayStepId: nextPlacementStep.id,
+        stepKey: nextPlacementStep.stepKey,
+        learnerId: selectedLearnerId,
+        detailPanelId: `pathway-step-${nextPlacementStep.strandKey}-${nextPlacementStep.stageKey}-${nextPlacementStep.stepKey}`,
+      })
+    : "";
+  const selectedPlacementManualComplete = selectedPlacementStep
+    ? Boolean(
+        manualCompletions[
+          buildManualPathwayCompletionKey(selectedLearnerId, selectedPlacementStep.id)
+        ]?.completed,
+      )
+    : false;
+  const selectedPlacementComplete =
+    selectedPlacementManualComplete ||
+    isUnifiedPathwayStepComplete(selectedPlacementUnifiedState) ||
+    selectedPlacementEvidenceProgressMeta?.label === "Secure" ||
+    selectedPlacementProgressStory?.currentProgress === "Secure";
   const selectedPlacementHasInteraction =
     selectedPlacementStep && selectedLearner
       ? readPathwayInteractionStarted(
@@ -1688,10 +1731,13 @@ function PathwaysWorkspaceBody() {
       );
       setPathwayInteractionVersion((current) => current + 1);
     }
+    setPathwayExplorerOpen(true);
     const workspaceEl = pathwayDetailWorkspaceRef.current;
     if (!workspaceEl) return;
-    workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    workspaceEl.focus({ preventScroll: true });
+    window.requestAnimationFrame(() => {
+      workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      workspaceEl.focus({ preventScroll: true });
+    });
   }
 
   function markSelectedPathwayInteraction() {
@@ -2033,13 +2079,13 @@ function PathwaysWorkspaceBody() {
             <div style={{ display: "grid", gap: 16 }}>
               <div style={{ display: "grid", gap: 6 }}>
                 <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                  What should we do next?
+                  Current learning
                 </div>
                 <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 32px)", lineHeight: 1.1, fontWeight: 650 }}>
                   My Pathways
                 </h1>
                 <p className="mylearna-pathways-hero-copy" style={{ margin: 0, color: "#5B6478", lineHeight: 1.5, maxWidth: 760 }}>
-                  Choose one useful step, complete the worksheet, then add completed work.
+                  See the current focus first, then use the recommended next action.
                 </p>
               </div>
               <div
@@ -2052,6 +2098,10 @@ function PathwaysWorkspaceBody() {
                   gap: 8,
                 }}
               >
+                <span style={{ ...curriculumChipStyle, color: "#17204B", background: "#ffffff", borderColor: "#E7EAF2" }}>
+                  {selectedLearnerLabel}
+                </span>
+                <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
                 <span style={{ ...curriculumChipStyle, color: "#6C4DF6", background: "#F2EDFF", borderColor: "#D9D0FF" }}>
                   {selectedPlacementStep.subjectTitle || selectedSubject.title}
                 </span>
@@ -2085,7 +2135,7 @@ function PathwaysWorkspaceBody() {
                     Current step
                   </span>
                   <span style={{ ...curriculumChipStyle, color: "#5B6478" }}>
-                    {topSnapshotNextAction}
+                    {selectedPlacementProgressStory?.currentProgress || "Not checked yet"}
                   </span>
                   {selectedPlacementEvidenceProgressMeta ? (
                     <span
@@ -2166,38 +2216,50 @@ function PathwaysWorkspaceBody() {
                 <p className="mylearna-pathways-hero-copy" style={{ margin: 0, color: "#5B6478", lineHeight: 1.55, maxWidth: 860 }}>
                   {selectedPlacementStep.stepDescription}
                 </p>
+                <CleanPathwayStepActionRow
+                  captureHref={selectedPlacementCaptureHref}
+                  practiceHref={selectedPlacementPracticeHref}
+                  assessmentHref={selectedPlacementAssessmentHref}
+                  nextStepHref={selectedPlacementComplete ? selectedPlacementNextStepHref : ""}
+                  autoCheckStatus={selectedPlacementProgressStory?.latestCheck?.factualStatus || null}
+                  parentProgress={selectedPlacementProgressStory?.currentProgress || "Not checked yet"}
+                  emphasizePrimary
+                  familyId={workspace.profile?.id || ""}
+                  learnerId={selectedLearnerId}
+                  subjectKey={selectedPlacementStep.subjectKey}
+                  subjectTitle={selectedPlacementStep.subjectTitle || selectedSubject.title}
+                  strandKey={selectedPlacementStep.strandKey}
+                  strandTitle={selectedPlacementStep.strandTitle || selectedSubjectWorkspace?.title}
+                  stageKey={selectedPlacementStep.stageKey}
+                  stageTitle={selectedPlacementStageTitle || undefined}
+                  pathwayStepId={selectedPlacementStep.id}
+                  stepKey={selectedPlacementStep.stepKey}
+                  stepTitle={selectedPlacementStep.stepTitle}
+                  confidenceStatusLabel={
+                    selectedPlacementUnifiedState?.assessmentConfidence || "Not assessed yet"
+                  }
+                  isExactStepContext={selectedPlacementExactStepContext}
+                  worksheetResource={selectedPlacementWorksheet}
+                  latestEvidenceEntry={selectedPlacementLatestEvidenceEntry}
+                  manualComplete={selectedPlacementComplete}
+                  onManualCompletionChange={(completed) =>
+                    handleManualCompletionChange(selectedPlacementStep.id, completed)
+                  }
+                  onActionSelected={(action) => {
+                    if (action === "worksheet") {
+                      markSelectedWorksheetOpened();
+                      return;
+                    }
+                    markSelectedPathwayInteraction();
+                  }}
+                />
                 <div className="mylearna-pathways-current-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {selectedPlacementWorksheet ? (
-                    <>
-                      <Link
-                        href={selectedPlacementWorksheet.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={markSelectedWorksheetOpened}
-                        style={buttonStyle}
-                      >
-                        Open worksheet
-                      </Link>
-                      <Link
-                        href={selectedPlacementWorksheetEvidenceHref}
-                        onClick={markSelectedPathwayInteraction}
-                        style={buttonStyle}
-                        data-worksheet-evidence-action="add-completed-work"
-                      >
-                        Add completed work
-                      </Link>
-                    </>
-                  ) : (
-                    <button type="button" onClick={scrollToCurrentStepPanel} style={buttonStyle}>
-                      Start learning
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={scrollToCurrentStepPanel}
                     style={secondaryButtonStyle}
                   >
-                    View pathway map
+                    Explore pathway
                   </button>
                 </div>
                 {selectedPlacementWorksheet &&
@@ -2221,93 +2283,7 @@ function PathwaysWorkspaceBody() {
                   </div>
                 ) : null}
               </div>
-              <div style={{ display: "grid", gap: 10 }} aria-label="Learning package actions">
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <div style={{ ...eyebrowStyle, textTransform: "none", letterSpacing: 0 }}>
-                    {selectedPlacementWorksheet ? "Worksheet evidence" : "Evidence and next step"}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-                  }}
-                >
-                  {selectedPlacementWorksheet ? (
-                    <>
-                      <Link
-                        href={selectedPlacementWorksheet.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={markSelectedWorksheetOpened}
-                        style={{
-                          ...summaryCardStyle,
-                          minHeight: 78,
-                          borderColor: "#D9D0FF",
-                          background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)",
-                          textDecoration: "none",
-                          padding: 12,
-                        }}
-                        aria-label={`Open worksheet for ${selectedPlacementWorksheet.title}`}
-                      >
-                        <span style={eyebrowStyle}>Worksheet</span>
-                        <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                          Complete this step on paper.
-                        </strong>
-                        <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                          Open worksheet
-                        </span>
-                      </Link>
-                      <Link
-                        href={selectedPlacementWorksheetEvidenceHref}
-                        onClick={markSelectedPathwayInteraction}
-                        style={{
-                          ...summaryCardStyle,
-                          minHeight: 78,
-                          borderColor: "#D9D0FF",
-                          background: "#FFFFFF",
-                          textAlign: "left",
-                          padding: 12,
-                          cursor: "pointer",
-                          textDecoration: "none",
-                        }}
-                        data-worksheet-evidence-action="add-completed-work"
-                      >
-                        <span style={eyebrowStyle}>Evidence</span>
-                        <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                          Add completed work.
-                        </strong>
-                        <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                          Take or upload a photo
-                        </span>
-                      </Link>
-                    </>
-                  ) : !selectedPlacementWorksheet ? (
-                    <Link
-                      href={selectedPlacementCaptureHref}
-                      onClick={markSelectedPathwayInteraction}
-                      style={{
-                        ...summaryCardStyle,
-                        minHeight: 78,
-                        borderColor: "#D9D0FF",
-                        background: "#FFFFFF",
-                        textAlign: "left",
-                        padding: 12,
-                        cursor: "pointer",
-                        textDecoration: "none",
-                      }}
-                    >
-                      <span style={eyebrowStyle}>Evidence</span>
-                      <strong style={{ color: "#17204B", fontSize: 15, fontWeight: 650 }}>
-                        Capture this step.
-                      </strong>
-                      <span style={{ color: "#5B6478", lineHeight: 1.4, fontSize: 13 }}>
-                        Add a note or photo
-                      </span>
-                    </Link>
-                  ) : null}
-                </div>
+              <div style={{ display: "grid", gap: 10 }} aria-label="Step adjustment actions">
                 <details style={{ border: "1px solid #E7EAF2", borderRadius: 14, background: "#ffffff", padding: "8px 10px" }}>
                   <summary style={{ cursor: "pointer", color: "#5B6478", fontSize: 13, fontWeight: 600 }}>
                     Adjust this step
@@ -2405,16 +2381,51 @@ function PathwaysWorkspaceBody() {
 
         <CleanFirstRunSetupGate currentStep="pathways" />
 
-        <section
+        <details
           id="pathways-map"
-          data-guidance-id="pathways-context-summary"
+          className="mylearna-pathways-explorer"
+          open={pathwayExplorerForcedOpen || pathwayExplorerOpen}
+          onToggle={(event) => setPathwayExplorerOpen(event.currentTarget.open)}
           style={{
             ...cardStyle,
-            padding: 10,
+            padding: 16,
             background:
               "linear-gradient(180deg, rgba(248,251,255,1) 0%, rgba(255,255,255,1) 100%)",
           }}
         >
+          <summary
+            style={{
+              cursor: "pointer",
+              color: "#0f172a",
+              fontSize: 17,
+              fontWeight: 800,
+              lineHeight: 1.4,
+            }}
+          >
+            Explore pathway
+            <span
+              style={{
+                display: "block",
+                color: "#64748b",
+                fontSize: 13,
+                fontWeight: 600,
+                marginTop: 3,
+              }}
+            >
+              Browse subjects, strands, stages and all learning steps.
+            </span>
+          </summary>
+
+          <div style={{ display: "grid", gap: 16, marginTop: 12 }}>
+          <div
+            data-guidance-id="pathways-context-summary"
+            style={{
+              border: "1px solid #E7EAF2",
+              borderRadius: 16,
+              background: "#ffffff",
+              padding: 10,
+            }}
+          >
           <div style={{ display: "grid", gap: 8 }}>
             <div
               style={{
@@ -2448,7 +2459,6 @@ function PathwaysWorkspaceBody() {
                 <Link href="/my-settings" style={{ ...secondaryButtonStyle, padding: "7px 10px", fontSize: 12 }}>
                   My Settings
                 </Link>
-                <GuidancePageAction tourId="my-pathways" />
               </div>
             </div>
 
@@ -2588,7 +2598,7 @@ function PathwaysWorkspaceBody() {
               </div>
             </div>
           </div>
-        </section>
+          </div>
 
         <details
           style={{
@@ -2978,6 +2988,8 @@ function PathwaysWorkspaceBody() {
               ? "Later, MyLearna will help turn selected pathway steps into a simple learning plan that can be placed into My Calendar and My Day."
               : `${selectedSubject.title} pathways will later use the same subject -> strand -> stage -> step structure to support planning in My Calendar and My Day.`}
           </p>
+        </details>
+          </div>
         </details>
       </div>
     </div>
