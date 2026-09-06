@@ -10,6 +10,10 @@ const actionRowSource = readFileSync(
   join(process.cwd(), "app/components/clean/CleanPathwayStepActionRow.tsx"),
   "utf8",
 );
+const customerActionAvailabilitySource = readFileSync(
+  join(process.cwd(), "lib/clean/pathways/pathwayCustomerActionAvailability.ts"),
+  "utf8",
+);
 
 describe("desktop Pathways task-first hierarchy", () => {
   it("leads with current learning before the full pathway explorer", () => {
@@ -112,5 +116,16 @@ describe("desktop Pathways task-first hierarchy", () => {
     expect(workspaceSource).toContain("stepKey: selectedPlacementStep.stepKey");
     expect(workspaceSource).toContain("detailPanelId: `pathway-step-${selectedPlacementStep.strandKey}");
     expect(workspaceSource).not.toContain("ensureCleanOperationalWeekFromUsualWeek");
+  });
+
+  it("keeps customer Pathways actions focused on approved surfaces", () => {
+    expect(customerActionAvailabilitySource).toContain("CUSTOMER_PATHWAY_PRACTICE_AVAILABLE = false");
+    expect(customerActionAvailabilitySource).toContain("CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE = false");
+    expect(actionRowSource).toContain("practise: Boolean(customerPracticeHref)");
+    expect(actionRowSource).toContain("worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource)");
+    expect(actionRowSource).toContain('return "Add to Portfolio"');
+    expect(actionRowSource).not.toContain("View worksheet");
+    expect(workspaceSource).not.toContain(">Open worksheet<");
+    expect(workspaceSource).not.toContain(">Add completed work<");
   });
 });

@@ -1375,7 +1375,7 @@ function PathwaysWorkspaceBody() {
     "Choose a strand below";
   const currentStageEvidenceCount = selectedWorkspaceSnapshot?.evidenceLinked || 0;
   const nextActionLabel = currentStageEvidenceCount
-    ? "Add completed work"
+    ? "Add to Portfolio"
     : "Open current step";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
     ? selectedSubjectWorkspace?.title ||
@@ -3312,21 +3312,6 @@ function NumberRevealStepCard({
           }}
         >
           <Link
-            href={worksheetResource.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              ...secondaryButtonStyle,
-              width: "fit-content",
-              minHeight: 34,
-              padding: "7px 10px",
-              fontSize: 13,
-            }}
-            aria-label={`Open worksheet for ${worksheetResource.title}`}
-          >
-            Open worksheet
-          </Link>
-          <Link
             href={worksheetEvidenceHref}
             style={{
               ...secondaryButtonStyle,
@@ -3338,7 +3323,7 @@ function NumberRevealStepCard({
             }}
             data-worksheet-evidence-action="add-completed-work"
           >
-            Add completed work
+            Add to Portfolio
           </Link>
         </div>
       ) : worksheetResource ? (
@@ -4882,7 +4867,7 @@ function nextActionCopy(action: ExplainableProgressNextAction) {
       return "Review this step and update progress";
     case "add-completed-work":
     default:
-      return "Add completed work";
+      return "Add to Portfolio";
   }
 }
 

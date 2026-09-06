@@ -320,7 +320,7 @@ describe("unified capture active entry points", () => {
     expect(captureSource).toContain("disabled={submitting");
     expect(worksheetSource).toContain("Record completed work");
     expect(pathwayActionSource).toContain("Mark complete");
-    expect(pathwayActionSource).toContain("Add completed work");
+    expect(pathwayActionSource).toContain("Add to Portfolio");
     expect(worksheetSource).not.toContain("Stored in Supabase Storage");
     expect(captureSource).not.toContain(">Add evidence<");
     expect(captureSource).not.toContain("Add learning from life");

@@ -8,6 +8,10 @@ import {
   resolvePathwayNextAction,
   type PathwayNextAction,
 } from "@/lib/clean/pathways/pathwayNextAction";
+import {
+  CUSTOMER_PATHWAY_PRACTICE_AVAILABLE,
+  CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
+} from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
 
@@ -110,9 +114,9 @@ function actionLabel(action: PathwayNextAction, primary: boolean) {
     case "next-step":
       return "Next step";
     case "worksheet":
-      return primary ? "Open worksheet" : "View worksheet";
+      return "Download worksheet";
     case "capture-evidence":
-      return "Add completed work";
+      return "Add to Portfolio";
   }
 }
 
@@ -139,9 +143,10 @@ export default function CleanPathwayStepActionRow({
     worksheetResource && captureHref
       ? appendWorksheetEvidenceParams(captureHref, worksheetResource)
       : captureHref;
+  const customerPracticeHref = CUSTOMER_PATHWAY_PRACTICE_AVAILABLE ? practiceHref : "";
   const actionHref: Record<PathwayNextAction, string> = {
     "check-understanding": assessmentHref,
-    practise: practiceHref,
+    practise: customerPracticeHref,
     "next-step": nextStepHref,
     worksheet: worksheetResource?.href || "",
     "capture-evidence": worksheetResource ? worksheetEvidenceCaptureHref : captureHref,
@@ -151,9 +156,9 @@ export default function CleanPathwayStepActionRow({
     parentProgress,
     availability: {
       "check-understanding": Boolean(assessmentHref),
-      practise: Boolean(practiceHref),
+      practise: Boolean(customerPracticeHref),
       "next-step": Boolean(nextStepHref),
-      worksheet: Boolean(worksheetResource),
+      worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource),
       "capture-evidence": Boolean(captureHref),
     },
   });

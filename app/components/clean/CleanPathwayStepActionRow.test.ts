@@ -40,8 +40,8 @@ describe("CleanPathwayStepActionRow", () => {
 
     expect(screen.getByRole("link", { name: "Check understanding" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Mark complete" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View worksheet" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Download worksheet" })).toBeTruthy();
 
     const visibleText = container.textContent || "";
@@ -51,7 +51,7 @@ describe("CleanPathwayStepActionRow", () => {
     );
   });
 
-  it("keeps Mark complete separate from adding completed work", () => {
+  it("keeps Mark complete separate from adding to Portfolio", () => {
     const onManualCompletionChange = vi.fn();
     render(
       React.createElement(CleanPathwayStepActionRow, {
@@ -65,7 +65,7 @@ describe("CleanPathwayStepActionRow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mark complete" }));
 
     expect(onManualCompletionChange).toHaveBeenCalledWith(true);
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
   it("reports selected actions without changing canonical recommendation rendering", () => {
@@ -81,16 +81,16 @@ describe("CleanPathwayStepActionRow", () => {
     );
 
     fireEvent.click(screen.getByRole("link", { name: "Check understanding" }));
-    fireEvent.click(screen.getByRole("link", { name: "View worksheet" }));
 
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
       "Check understanding",
     );
     expect(onActionSelected).toHaveBeenNthCalledWith(1, "check-understanding", true);
-    expect(onActionSelected).toHaveBeenNthCalledWith(2, "worksheet", false);
+    expect(onActionSelected).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
   });
 
-  it("keeps exact practice and assessment links available without changing evidence actions", () => {
+  it("keeps exact assessment links available while hiding customer Practice access", () => {
     render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
@@ -103,13 +103,11 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    expect(screen.getByRole("link", { name: "Practise" }).getAttribute("href")).toContain(
-      "strandKey=fractions-decimals-percentages",
-    );
+    expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
     expect(
       screen.getByRole("link", { name: "Check understanding" }).getAttribute("href"),
     ).toContain("learnerId=learner-a");
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
   it("does not show active Mark complete once the step is complete", () => {
@@ -124,7 +122,7 @@ describe("CleanPathwayStepActionRow", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Mark complete" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
   it("uses the same action renderer for non-worksheet steps without worksheet actions", () => {
@@ -138,7 +136,7 @@ describe("CleanPathwayStepActionRow", () => {
     );
 
     expect(screen.getByRole("button", { name: "Mark complete" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
   });
@@ -153,7 +151,7 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    const href = screen.getByRole("link", { name: "Add completed work" }).getAttribute("href") || "";
+    const href = screen.getByRole("link", { name: "Add to Portfolio" }).getAttribute("href") || "";
     const url = new URL(href, "https://mylearna.test");
 
     expect(url.searchParams.get("returnTo")).toBe(
@@ -164,7 +162,7 @@ describe("CleanPathwayStepActionRow", () => {
     expect(url.searchParams.get("includeInReport")).toBe("1");
   });
 
-  it("makes practice primary after a developing auto-check while retaining assessment", () => {
+  it("falls back through the canonical resolver when customer Practice is unavailable", () => {
     const { container } = render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
@@ -176,10 +174,11 @@ describe("CleanPathwayStepActionRow", () => {
     );
 
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
-      "Practise this focus",
+      "Check understanding",
     );
+    expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
     expect(screen.getByRole("link", { name: "Check understanding" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
   it("uses the existing next-step href as the secure recommendation", () => {
@@ -195,6 +194,6 @@ describe("CleanPathwayStepActionRow", () => {
     expect(container.querySelector('[data-pathway-primary-action="true"] a')?.getAttribute("href")).toContain(
       "strandKey=operations",
     );
-    expect(screen.getByRole("link", { name: "Add completed work" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 });

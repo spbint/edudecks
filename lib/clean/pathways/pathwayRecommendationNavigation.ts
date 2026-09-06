@@ -5,6 +5,10 @@ import {
   resolvePathwayNextAction,
   type PathwayNextAction,
 } from "@/lib/clean/pathways/pathwayNextAction";
+import {
+  CUSTOMER_PATHWAY_PRACTICE_AVAILABLE,
+  CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
+} from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { buildPathwayStepReturnHref } from "@/lib/clean/pathways/pathwayNavigationContext";
 import {
   getAllPathwaySteps,
@@ -68,6 +72,9 @@ export function buildActionablePathwayRecommendation(input: {
     stepKey: step.stepKey,
     strandKey: step.strandKey,
   });
+  const customerPracticeAvailable = CUSTOMER_PATHWAY_PRACTICE_AVAILABLE
+    ? Boolean(practice)
+    : false;
   const worksheet = getWorksheetResourceForPathwayStep({
     pathwayStepId: step.id,
     stepKey: step.stepKey,
@@ -81,9 +88,9 @@ export function buildActionablePathwayRecommendation(input: {
     parentProgress: input.parentProgress,
     availability: {
       "check-understanding": Boolean(assessment),
-      practise: Boolean(practice),
+      practise: customerPracticeAvailable,
       "next-step": effectiveStatus === "Secure" && Boolean(nextStep),
-      worksheet: Boolean(worksheet),
+      worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheet),
       "capture-evidence": true,
     },
   });
@@ -107,7 +114,7 @@ export function pathwayRecommendationLabel(action: PathwayNextAction | null) {
     case "worksheet":
       return "Open worksheet";
     case "capture-evidence":
-      return "Add completed work";
+      return "Add to Portfolio";
     default:
       return "Open My Pathways";
   }

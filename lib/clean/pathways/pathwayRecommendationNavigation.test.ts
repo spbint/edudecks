@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildActionablePathwayRecommendation } from "@/lib/clean/pathways/pathwayRecommendationNavigation";
+import { resolvePathwayNextAction } from "@/lib/clean/pathways/pathwayNextAction";
 import { getAllPathwaySteps, getPathwayStepById } from "@/lib/clean/pathways/pathwayStepRegistry";
 
 const learnerId = "learner-a";
@@ -39,8 +40,8 @@ describe("My Learna actionable Pathways recommendation", () => {
 
   it.each([
     ["Not checked yet", "check-understanding"],
-    ["Needs support", "practise"],
-    ["Developing", "practise"],
+    ["Needs support", "check-understanding"],
+    ["Developing", "check-understanding"],
     ["Consolidating", "check-understanding"],
     ["Secure", "next-step"],
   ] as const)("matches Pathways for %s", (status, expectedAction) => {
@@ -48,6 +49,24 @@ describe("My Learna actionable Pathways recommendation", () => {
 
     expect(recommendation.action).toBe(expectedAction);
     expect(recommendation.href).toContain("/my-pathways?");
+  });
+
+  it("uses the canonical resolver fallback instead of recommending unavailable Practice", () => {
+    const recommendation = recommendationFor("Developing");
+    const canonicalFallback = resolvePathwayNextAction({
+      autoCheckStatus: null,
+      parentProgress: "Developing",
+      availability: {
+        "check-understanding": true,
+        practise: false,
+        "next-step": false,
+        worksheet: false,
+        "capture-evidence": true,
+      },
+    });
+
+    expect(canonicalFallback.primary).toBe("check-understanding");
+    expect(recommendation.action).toBe(canonicalFallback.primary);
   });
 
   it("preserves the complete exact current-step context and expanded card hash", () => {
