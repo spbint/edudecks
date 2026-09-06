@@ -14,6 +14,10 @@ const customerActionAvailabilitySource = readFileSync(
   join(process.cwd(), "lib/clean/pathways/pathwayCustomerActionAvailability.ts"),
   "utf8",
 );
+const setupGuidanceVisibilitySource = readFileSync(
+  join(process.cwd(), "lib/clean/pathways/pathwaySetupGuidanceVisibility.ts"),
+  "utf8",
+);
 
 describe("desktop Pathways task-first hierarchy", () => {
   it("leads with current learning before the full pathway explorer", () => {
@@ -127,5 +131,19 @@ describe("desktop Pathways task-first hierarchy", () => {
     expect(actionRowSource).not.toContain("View worksheet");
     expect(workspaceSource).not.toContain(">Open worksheet<");
     expect(workspaceSource).not.toContain(">Add completed work<");
+  });
+
+  it("suppresses stale setup guidance when Pathways already has a valid working state", () => {
+    expect(workspaceSource).toContain("shouldShowPathwaysSetupGuidance");
+    expect(workspaceSource).toContain("hasValidSelectedLearner: Boolean(selectedLearner)");
+    expect(workspaceSource).toContain("hasUsablePathwaysWorkingState");
+    expect(workspaceSource).toContain("selectedPlacementStep");
+    expect(workspaceSource).toContain("selectedPlacementProgressStory");
+    expect(setupGuidanceVisibilitySource).toContain("if (missingLearnerSetup) return true");
+    expect(setupGuidanceVisibilitySource).toContain("hasValidSelectedLearner && hasUsablePathwaysWorkingState");
+    expect(setupGuidanceVisibilitySource).not.toContain("supabase");
+    expect(setupGuidanceVisibilitySource).not.toContain(".insert(");
+    expect(setupGuidanceVisibilitySource).not.toContain(".update(");
+    expect(setupGuidanceVisibilitySource).not.toContain(".upsert(");
   });
 });

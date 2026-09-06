@@ -43,6 +43,7 @@ import {
   appendPathwayCaptureReturnTo,
   buildPathwayStepReturnHref,
 } from "@/lib/clean/pathways/pathwayNavigationContext";
+import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
@@ -1068,7 +1069,6 @@ function PathwaysWorkspaceBody() {
     missingLearningPeriodSetup ? "your first learning period" : null,
   ].filter(Boolean) as string[];
   const missingSetupSummary = formatMissingSetupItems(missingSetupItems);
-  const showPathwaysSetupBanner = missingSetupItems.length > 0;
   const currentLearnerFocusStageKey = useMemo(
     () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
@@ -1666,6 +1666,17 @@ function PathwaysWorkspaceBody() {
     isUnifiedPathwayStepComplete(selectedPlacementUnifiedState) ||
     selectedPlacementEvidenceProgressMeta?.label === "Secure" ||
     selectedPlacementProgressStory?.currentProgress === "Secure";
+  const hasUsablePathwaysWorkingState = Boolean(
+    selectedLearner &&
+      selectedPlacementStep &&
+      selectedPlacementProgressStory,
+  );
+  const showPathwaysSetupBanner = shouldShowPathwaysSetupGuidance({
+    missingSetupItems,
+    missingLearnerSetup,
+    hasValidSelectedLearner: Boolean(selectedLearner),
+    hasUsablePathwaysWorkingState,
+  });
   function updateCurrentPathwayStep(
     nextStep: typeof selectedPlacementStep,
     method: PathwayPlacementMethod,
