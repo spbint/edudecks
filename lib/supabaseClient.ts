@@ -22,6 +22,15 @@ export function requireSupabasePublicEnv() {
   };
 }
 
+function extractSupabaseProjectRef(url: string) {
+  const match = url.match(/^https:\/\/([a-z0-9-]+)\.supabase\.co/i);
+  return match?.[1] ?? null;
+}
+
+export function getSupabaseProjectRef() {
+  return extractSupabaseProjectRef(supabaseUrl);
+}
+
 async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const requestUrl =
