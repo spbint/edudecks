@@ -202,6 +202,25 @@ const mutedButtonStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
+const myDayButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 44,
+  width: "fit-content",
+  lineHeight: 1.2,
+  letterSpacing: "normal",
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+};
+
+const mutedMyDayButtonStyle: React.CSSProperties = {
+  ...myDayButtonStyle,
+  background: "#ffffff",
+  color: "#0f172a",
+};
+
 const dangerButtonStyle: React.CSSProperties = {
   ...buttonStyle,
   background: "#fff5f5",
@@ -1247,6 +1266,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
   const [learningPeriodsOpen, setLearningPeriodsOpen] = useState(false);
   const [calendarSettingsOpen, setCalendarSettingsOpen] = useState(false);
+  const [masterWeekPlanningOpen, setMasterWeekPlanningOpen] = useState(false);
   const [calendarViewStateHydrated, setCalendarViewStateHydrated] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
@@ -2430,6 +2450,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
   function focusMasterWeekTemplate() {
     setCalendarSettingsOpen(true);
+    setMasterWeekPlanningOpen(true);
     setPlanningView("master");
     setShowTemplateComposer(true);
     setShowMasterBlockHandoff(false);
@@ -2447,6 +2468,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
   function addAnotherMasterBlock() {
     setCalendarSettingsOpen(true);
+    setMasterWeekPlanningOpen(true);
     setPlanningView("master");
     setShowMasterBlockHandoff(false);
     scrollToCalendarSection("master-week-template");
@@ -3615,6 +3637,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const shouldShowTermSetup = planningOnly || !firstSetupMode || academicYears.length > 0;
   const shouldShowWeeklyPlanner = true;
   const shouldShowCalendarNextStep = !firstSetupMode || calendarSetupReady;
+  const shouldShowExpandedMasterWeekPlanning = planningOnly || firstSetupMode || masterWeekPlanningOpen;
 
   if (mobileCalendarCompanion) {
     const todayPathBase = pathname.startsWith("/clean-my-calendar") ? "/clean-my-day" : "/my-day";
@@ -5834,7 +5857,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
             {calendarSettingsOpen && shouldShowWeeklyPlanner && planningView === "master" ? (
             <section className="mylearna-calendar-usual-week-setup" style={cardStyle}>
-              <div style={{ display: "grid", gap: 18 }}>
+              <div style={{ display: "grid", gap: shouldShowExpandedMasterWeekPlanning ? 18 : 0 }}>
                 <div
                   style={{
                     display: "flex",
@@ -5844,11 +5867,28 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     flexWrap: "wrap",
                   }}
                 >
-                  <div>
+                  <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>Master Week</h2>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      Set up the week you normally follow. Current Calendar remains the real dated plan.
+                    </p>
+                    <span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+                      {hasMasterWeekBlock ? "Master Week exists" : "No Master Week blocks yet"}
+                    </span>
                   </div>
+                  <button
+                    type="button"
+                    aria-expanded={shouldShowExpandedMasterWeekPlanning}
+                    aria-controls="calendar-master-week-planning-panel"
+                    style={mutedButtonStyle}
+                    onClick={() => setMasterWeekPlanningOpen((current) => !current)}
+                  >
+                    {shouldShowExpandedMasterWeekPlanning ? "Collapse Master Week" : "Open Master Week"}
+                  </button>
                 </div>
 
+                {shouldShowExpandedMasterWeekPlanning ? (
+                <div id="calendar-master-week-planning-panel" style={{ display: "grid", gap: 18 }}>
                 {planningView === "master" ? (
                   <div style={{ display: "grid", gap: 16 }}>
                     <div id="master-week-template" style={subCardStyle}>
@@ -6062,7 +6102,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                           </button>
                           <button
                             type="button"
-                            style={mutedButtonStyle}
+                            style={mutedMyDayButtonStyle}
                             onClick={continueToMyDayFromCalendar}
                           >
                             Open My Day
@@ -7185,6 +7225,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     </div>
                   </div>
                 )}
+                </div>
+                ) : null}
               </div>
             </section>
             ) : null}
@@ -7203,7 +7245,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                   helperText="Your learning year and first term are ready enough to continue."
                 />
               ) : (
-                <Link href="/my-day" style={buttonStyle}>
+                <Link href="/my-day" style={myDayButtonStyle}>
                   Open My Day
                 </Link>
               )}
@@ -7216,7 +7258,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
             {showFirstValueHandoff ? (
-              <Link href="/my-day" style={buttonStyle}>
+              <Link href="/my-day" style={myDayButtonStyle}>
                 Open My Day
               </Link>
             ) : null}

@@ -42,6 +42,43 @@ describe("Desktop Calendar task-first presentation", () => {
     expect(source).toContain("Master Week");
   });
 
+  it("renders Master Week as an accessible disclosure collapsed by default for established Calendar", () => {
+    expect(source).toContain("const [masterWeekPlanningOpen, setMasterWeekPlanningOpen] = useState(false)");
+    expect(source).toContain("const shouldShowExpandedMasterWeekPlanning = planningOnly || firstSetupMode || masterWeekPlanningOpen");
+    expect(source).toContain('aria-expanded={shouldShowExpandedMasterWeekPlanning}');
+    expect(source).toContain('aria-controls="calendar-master-week-planning-panel"');
+    expect(source).toContain("setMasterWeekPlanningOpen((current) => !current)");
+    expect(source).toContain('{shouldShowExpandedMasterWeekPlanning ? (');
+    expect(source).toContain('id="calendar-master-week-planning-panel"');
+    expect(source).toContain("Open Master Week");
+    expect(source).toContain("Collapse Master Week");
+  });
+
+  it("keeps Master Week disclosure interaction read-only while required setup can still expand it", () => {
+    const disclosureStart = source.indexOf('aria-controls="calendar-master-week-planning-panel"');
+    const disclosureEnd = source.indexOf("{shouldShowExpandedMasterWeekPlanning ? (", disclosureStart);
+    const disclosureBody = source.slice(disclosureStart, disclosureEnd);
+    const focusMasterStart = source.indexOf("function focusMasterWeekTemplate()");
+    const focusMasterEnd = source.indexOf("function focusBreakSetup", focusMasterStart);
+    const focusMasterBody = source.slice(focusMasterStart, focusMasterEnd);
+    const applyStart = source.indexOf("async function handleApplyGeneratedWeek()");
+    const applyEnd = source.indexOf("async function handleCalendarCompletionToggle", applyStart);
+    const applyBody = source.slice(applyStart, applyEnd);
+
+    expect(disclosureBody).not.toContain("materializeMasterWeekRange");
+    expect(disclosureBody).not.toMatch(/(?:create|update|delete)CleanCalendarItem/);
+    expect(focusMasterBody).toContain("setMasterWeekPlanningOpen(true)");
+    expect(applyBody).toContain("await applyCleanGeneratedWeek");
+  });
+
+  it("uses normal MyLearna button spacing for Open My Day without changing destination", () => {
+    expect(source).toContain("const myDayButtonStyle: React.CSSProperties");
+    expect(source).toContain('letterSpacing: "normal"');
+    expect(source).toContain("lineHeight: 1.2");
+    expect(source).toContain('href="/my-day" style={myDayButtonStyle}');
+    expect(source).toContain("style={mutedMyDayButtonStyle}");
+  });
+
   it("keeps print and download available from the Current Calendar toolbar", () => {
     const currentBoardStart = source.indexOf("mylearna-calendar-operational-board");
     const currentBoardEnd = source.indexOf("mylearna-calendar-structural-setup", currentBoardStart);
