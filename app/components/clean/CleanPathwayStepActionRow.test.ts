@@ -26,7 +26,7 @@ describe("CleanPathwayStepActionRow", () => {
     cleanup();
   });
 
-  it("makes an available first check the primary action while retaining worksheet and capture tools", () => {
+  it("hides unavailable assessment and practice actions while retaining portfolio and worksheet tools", () => {
     const { container } = render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
@@ -38,7 +38,8 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    expect(screen.getByRole("link", { name: "Check understanding" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
     expect(screen.getByRole("button", { name: "Mark complete" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
     expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
@@ -47,7 +48,7 @@ describe("CleanPathwayStepActionRow", () => {
     const visibleText = container.textContent || "";
     expect(visibleText).toMatch(/Recommended next action/i);
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
-      "Check understanding",
+      "Add to Portfolio",
     );
   });
 
@@ -68,7 +69,7 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
-  it("reports selected actions without changing canonical recommendation rendering", () => {
+  it("reports selected portfolio actions without exposing unavailable checks", () => {
     const onActionSelected = vi.fn();
     const { container } = render(
       React.createElement(CleanPathwayStepActionRow, {
@@ -80,17 +81,18 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole("link", { name: "Check understanding" }));
+    fireEvent.click(screen.getByRole("link", { name: "Add to Portfolio" }));
 
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
-      "Check understanding",
+      "Add to Portfolio",
     );
-    expect(onActionSelected).toHaveBeenNthCalledWith(1, "check-understanding", true);
+    expect(onActionSelected).toHaveBeenNthCalledWith(1, "capture-evidence", true);
     expect(onActionSelected).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
     expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
   });
 
-  it("keeps exact assessment links available while hiding customer Practice access", () => {
+  it("keeps underlying assessment and practice href props available while hiding customer access", () => {
     render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
@@ -104,9 +106,7 @@ describe("CleanPathwayStepActionRow", () => {
     );
 
     expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
-    expect(
-      screen.getByRole("link", { name: "Check understanding" }).getAttribute("href"),
-    ).toContain("learnerId=learner-a");
+    expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
     expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
@@ -162,7 +162,7 @@ describe("CleanPathwayStepActionRow", () => {
     expect(url.searchParams.get("includeInReport")).toBe("1");
   });
 
-  it("falls back through the canonical resolver when customer Practice is unavailable", () => {
+  it("falls back through the canonical resolver when customer Practice and assessments are unavailable", () => {
     const { container } = render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
@@ -174,10 +174,10 @@ describe("CleanPathwayStepActionRow", () => {
     );
 
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
-      "Check understanding",
+      "Add to Portfolio",
     );
     expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
-    expect(screen.getByRole("link", { name: "Check understanding" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
     expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
   });
 
@@ -195,5 +195,22 @@ describe("CleanPathwayStepActionRow", () => {
       "strandKey=operations",
     );
     expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
+  });
+
+  it("does not render a dead primary recommendation when no customer-ready action is available", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "",
+        practiceHref: "/practice/number-targeted?learnerId=learner-a",
+        assessmentHref: "/assessments/number?learnerId=learner-a",
+        autoCheckStatus: "Developing",
+        stepTitle: "Compare fractions",
+      }),
+    );
+
+    expect(container.querySelector('[data-pathway-primary-action="true"]')).toBeNull();
+    expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Add to Portfolio" })).toBeNull();
   });
 });

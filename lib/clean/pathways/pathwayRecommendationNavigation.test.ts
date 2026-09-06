@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildActionablePathwayRecommendation } from "@/lib/clean/pathways/pathwayRecommendationNavigation";
+import {
+  buildActionablePathwayRecommendation,
+  pathwayRecommendationLabel,
+} from "@/lib/clean/pathways/pathwayRecommendationNavigation";
 import { resolvePathwayNextAction } from "@/lib/clean/pathways/pathwayNextAction";
 import { getAllPathwaySteps, getPathwayStepById } from "@/lib/clean/pathways/pathwayStepRegistry";
 
@@ -39,10 +42,10 @@ describe("My Learna actionable Pathways recommendation", () => {
   });
 
   it.each([
-    ["Not checked yet", "check-understanding"],
-    ["Needs support", "check-understanding"],
-    ["Developing", "check-understanding"],
-    ["Consolidating", "check-understanding"],
+    ["Not checked yet", "capture-evidence"],
+    ["Needs support", "capture-evidence"],
+    ["Developing", "capture-evidence"],
+    ["Consolidating", "capture-evidence"],
     ["Secure", "next-step"],
   ] as const)("matches Pathways for %s", (status, expectedAction) => {
     const recommendation = recommendationFor(status);
@@ -51,13 +54,13 @@ describe("My Learna actionable Pathways recommendation", () => {
     expect(recommendation.href).toContain("/my-pathways?");
   });
 
-  it("uses the canonical resolver fallback instead of recommending unavailable Practice", () => {
+  it("uses the canonical resolver fallback instead of recommending unavailable Practice or assessment", () => {
     const recommendation = recommendationFor("Developing");
     const canonicalFallback = resolvePathwayNextAction({
       autoCheckStatus: null,
       parentProgress: "Developing",
       availability: {
-        "check-understanding": true,
+        "check-understanding": false,
         practise: false,
         "next-step": false,
         worksheet: false,
@@ -65,8 +68,32 @@ describe("My Learna actionable Pathways recommendation", () => {
       },
     });
 
-    expect(canonicalFallback.primary).toBe("check-understanding");
+    expect(canonicalFallback.primary).toBe("capture-evidence");
     expect(recommendation.action).toBe(canonicalFallback.primary);
+  });
+
+  it("does not fabricate a recommendation when no customer-ready action is available", () => {
+    const noAction = resolvePathwayNextAction({
+      autoCheckStatus: null,
+      parentProgress: "Developing",
+      availability: {
+        "check-understanding": false,
+        practise: false,
+        "next-step": false,
+        worksheet: false,
+        "capture-evidence": false,
+      },
+    });
+
+    expect(noAction.primary).toBeNull();
+    expect(noAction.secondary).toEqual([]);
+  });
+
+  it("does not expose unavailable customer action labels from the recommendation label helper", () => {
+    expect(pathwayRecommendationLabel("check-understanding")).toBe("Open My Pathways");
+    expect(pathwayRecommendationLabel("practise")).toBe("Open My Pathways");
+    expect(pathwayRecommendationLabel("worksheet")).toBe("Open My Pathways");
+    expect(pathwayRecommendationLabel(null)).toBe("Open My Pathways");
   });
 
   it("preserves the complete exact current-step context and expanded card hash", () => {

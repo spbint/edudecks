@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -124,13 +124,24 @@ describe("desktop Pathways task-first hierarchy", () => {
 
   it("keeps customer Pathways actions focused on approved surfaces", () => {
     expect(customerActionAvailabilitySource).toContain("CUSTOMER_PATHWAY_PRACTICE_AVAILABLE = false");
+    expect(customerActionAvailabilitySource).toContain("CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE = false");
     expect(customerActionAvailabilitySource).toContain("CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE = false");
+    expect(actionRowSource).toContain("\"check-understanding\": Boolean(customerAssessmentHref)");
     expect(actionRowSource).toContain("practise: Boolean(customerPracticeHref)");
     expect(actionRowSource).toContain("worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource)");
     expect(actionRowSource).toContain('return "Add to Portfolio"');
     expect(actionRowSource).not.toContain("View worksheet");
     expect(workspaceSource).not.toContain(">Open worksheet<");
     expect(workspaceSource).not.toContain(">Add completed work<");
+  });
+
+  it("keeps underlying assessment implementation and route files available", () => {
+    expect(
+      existsSync(join(process.cwd(), "app/components/clean/CleanNumberAssessmentPlayer.tsx")),
+    ).toBe(true);
+    expect(
+      existsSync(join(process.cwd(), "app/(auth)/assessments/number/page.tsx")),
+    ).toBe(true);
   });
 
   it("suppresses stale setup guidance when Pathways already has a valid working state", () => {

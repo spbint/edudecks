@@ -6,6 +6,7 @@ import {
   type PathwayNextAction,
 } from "@/lib/clean/pathways/pathwayNextAction";
 import {
+  CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE,
   CUSTOMER_PATHWAY_PRACTICE_AVAILABLE,
   CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
 } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
@@ -67,6 +68,9 @@ export function buildActionablePathwayRecommendation(input: {
     stepKey: step.stepKey,
     strandKey: step.strandKey,
   });
+  const customerAssessmentAvailable = CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE
+    ? Boolean(assessment)
+    : false;
   const practice = getStepPracticeForPathwayStep({
     pathwayStepId: step.id,
     stepKey: step.stepKey,
@@ -87,7 +91,7 @@ export function buildActionablePathwayRecommendation(input: {
     autoCheckStatus: input.autoCheckStatus,
     parentProgress: input.parentProgress,
     availability: {
-      "check-understanding": Boolean(assessment),
+      "check-understanding": customerAssessmentAvailable,
       practise: customerPracticeAvailable,
       "next-step": effectiveStatus === "Secure" && Boolean(nextStep),
       worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheet),
@@ -106,13 +110,13 @@ export function buildActionablePathwayRecommendation(input: {
 export function pathwayRecommendationLabel(action: PathwayNextAction | null) {
   switch (action) {
     case "check-understanding":
-      return "Check understanding";
+      return CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE ? "Check understanding" : "Open My Pathways";
     case "practise":
-      return "Practise this focus";
+      return CUSTOMER_PATHWAY_PRACTICE_AVAILABLE ? "Practise this focus" : "Open My Pathways";
     case "next-step":
       return "Next step";
     case "worksheet":
-      return "Open worksheet";
+      return CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE ? "Open worksheet" : "Open My Pathways";
     case "capture-evidence":
       return "Add to Portfolio";
     default:

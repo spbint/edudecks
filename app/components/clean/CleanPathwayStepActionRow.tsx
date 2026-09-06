@@ -9,6 +9,7 @@ import {
   type PathwayNextAction,
 } from "@/lib/clean/pathways/pathwayNextAction";
 import {
+  CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE,
   CUSTOMER_PATHWAY_PRACTICE_AVAILABLE,
   CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
 } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
@@ -143,9 +144,10 @@ export default function CleanPathwayStepActionRow({
     worksheetResource && captureHref
       ? appendWorksheetEvidenceParams(captureHref, worksheetResource)
       : captureHref;
+  const customerAssessmentHref = CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE ? assessmentHref : "";
   const customerPracticeHref = CUSTOMER_PATHWAY_PRACTICE_AVAILABLE ? practiceHref : "";
   const actionHref: Record<PathwayNextAction, string> = {
-    "check-understanding": assessmentHref,
+    "check-understanding": customerAssessmentHref,
     practise: customerPracticeHref,
     "next-step": nextStepHref,
     worksheet: worksheetResource?.href || "",
@@ -155,7 +157,7 @@ export default function CleanPathwayStepActionRow({
     autoCheckStatus,
     parentProgress,
     availability: {
-      "check-understanding": Boolean(assessmentHref),
+      "check-understanding": Boolean(customerAssessmentHref),
       practise: Boolean(customerPracticeHref),
       "next-step": Boolean(nextStepHref),
       worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource),

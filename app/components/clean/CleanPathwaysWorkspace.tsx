@@ -43,6 +43,7 @@ import {
   appendPathwayCaptureReturnTo,
   buildPathwayStepReturnHref,
 } from "@/lib/clean/pathways/pathwayNavigationContext";
+import { CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import { supabase } from "@/lib/supabaseClient";
@@ -4871,7 +4872,7 @@ function nextActionCopy(action: ExplainableProgressNextAction) {
     case "more-support":
       return "Use the support activity";
     case "check-understanding":
-      return "Check understanding";
+      return CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE ? "Check understanding" : null;
     case "next-step":
       return "Continue to the next step";
     case "review-this-step":
@@ -4896,6 +4897,7 @@ function ExplainableProgressStorySection({
       ? `${story.latestCheck.factualStatus} · ${story.latestCheck.correctCount} of ${story.latestCheck.itemCount} correct`
       : story.latestCheck.factualStatus
     : null;
+  const visibleNextActionCopy = nextActionCopy(story.nextAction);
 
   return (
     <section
@@ -4968,10 +4970,12 @@ function ExplainableProgressStorySection({
         </p>
       ) : null}
 
-      <div style={{ display: "grid", gap: 3 }}>
-        <div style={eyebrowStyle}>Next</div>
-        <strong style={{ color: "#17204B", fontSize: 14 }}>{nextActionCopy(story.nextAction)}</strong>
-      </div>
+      {visibleNextActionCopy ? (
+        <div style={{ display: "grid", gap: 3 }}>
+          <div style={eyebrowStyle}>Next</div>
+          <strong style={{ color: "#17204B", fontSize: 14 }}>{visibleNextActionCopy}</strong>
+        </div>
+      ) : null}
     </section>
   );
 }
