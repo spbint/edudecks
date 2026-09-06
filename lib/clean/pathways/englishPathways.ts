@@ -6,6 +6,7 @@ import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes
 
 type EnglishStepInput = {
   id: number;
+  stepKey?: string;
   title: string;
   meaning: string;
   skillFocus: string;
@@ -21,7 +22,7 @@ type EnglishStepInput = {
 type EnglishStageInput = {
   key: PathwayStageKey;
   helper: string;
-  steps: [EnglishStepInput, EnglishStepInput];
+  steps: EnglishStepInput[];
 };
 
 type EnglishStrandConfig = {
@@ -49,6 +50,7 @@ const STAGE_TITLES: Record<PathwayStageKey, string> = {
 function buildEnglishStep(step: EnglishStepInput) {
   return {
     id: step.id,
+    stepKey: step.stepKey,
     title: step.title,
     meaning: step.meaning,
     skillFocus: step.skillFocus,
@@ -94,7 +96,7 @@ function buildEnglishWorkspace(
   };
 }
 
-export const DEFAULT_ENGLISH_STRAND_KEY = "reading-and-comprehension";
+export const DEFAULT_ENGLISH_STRAND_KEY = "morphology-and-spelling";
 
 export const ENGLISH_SUBJECT_OVERVIEW = {
   eyebrow: "English F-10 / K-10 strand map",
@@ -107,12 +109,21 @@ export const ENGLISH_SUBJECT_OVERVIEW = {
 
 export const ENGLISH_DOMAIN_CARDS: SubjectStrandCard[] = [
   {
+    key: "morphology-and-spelling",
+    title: "Morphology & Spelling",
+    description:
+      "Build word knowledge through meaningful prefixes, suffixes, base words, spelling patterns, and vocabulary connections.",
+    whyItMatters:
+      "Morphology helps learners see how words are built, which supports spelling, reading, vocabulary, and stronger writing.",
+    status: "first-detailed",
+  },
+  {
     key: "reading-and-comprehension",
     title: "Reading and comprehension",
     description: "Build decoding, fluency, understanding, inference, text comparison, and independent reading confidence.",
     whyItMatters:
       "Reading builds the foundation for learning across every subject and supports discussion, writing, research, and interpretation.",
-    status: "first-detailed",
+    status: "detailed",
   },
   {
     key: "writing-and-composition",
@@ -171,6 +182,61 @@ export const ENGLISH_DOMAIN_CARDS: SubjectStrandCard[] = [
     status: "detailed",
   },
 ];
+
+const MORPHOLOGY_AND_SPELLING: EnglishStrandConfig = {
+  key: "morphology-and-spelling",
+  title: "Morphology & Spelling",
+  subtitle:
+    "Morphology & Spelling helps learners understand how meaningful word parts shape spelling, vocabulary, reading, and writing. This first pathway unit begins with the prefix re-.",
+  relationshipTitle: "What this pathway builds on",
+  relationshipCopy:
+    "This pathway builds on sound-letter knowledge, spelling patterns, reading, and oral vocabulary. It connects spelling choices to word meaning so learners can use word parts deliberately.",
+  stages: [
+    {
+      key: "middle-primary",
+      helper:
+        "Upper Elementary morphology work focuses on meaningful word parts such as prefixes, suffixes, and base words, and how these parts help learners spell, read, and use vocabulary more confidently.",
+      steps: [
+        {
+          id: 1,
+          stepKey: "u001-prefix-re",
+          title: "Prefix re-",
+          meaning:
+            "Understand that the prefix re- usually means again.",
+          skillFocus: "using the prefix re- to build and understand words",
+          learningIntention:
+            "Today I am learning that the prefix re- usually means again.",
+          successCriteria: [
+            "The learner can explain that re- usually means again.",
+            "The learner can build and read re- words.",
+            "The learner can use a re- word meaningfully in writing or discussion.",
+          ],
+          practiceActivity:
+            "Use the Prefix re- worksheet sections: Learn the Meaning, Build the Word, Read and Notice, Word Detective, Sort the Words, Use It in Writing, Parent check, and Capture idea.",
+          evidenceExamples: [
+            "a completed Prefix re- worksheet",
+            "a learner explanation of a re- word found in a book or around the home",
+            "a sentence or short writing sample using a re- word correctly",
+          ],
+          assessmentCheck:
+            "Use the worksheet's Parent check section to discuss whether the learner can explain and use re- words meaningfully.",
+          nextStep:
+            "Later morphology units can build from re- into other prefixes, suffixes, and base-word patterns.",
+          reportLanguage:
+            "The learner is beginning to use morphology to understand that the prefix re- usually means again and can connect this word part to spelling, vocabulary, reading, and writing.",
+        },
+      ],
+    },
+  ],
+  portfolioSupport: [
+    "Add the completed Prefix re- worksheet or a short learner explanation to Portfolio so the morphology work is visible as English learning evidence.",
+    "A photo, sentence sample, or parent note about a re- word found in reading can show how the learner transferred the word part into real use.",
+  ],
+  reportingSupport: [
+    "Reporting can note that the learner is building morphology and spelling awareness by using the prefix re- to understand and create words.",
+    "Evidence is strongest when it shows both word-building and meaningful use in reading, speech, or writing.",
+  ],
+};
 
 const READING_AND_COMPREHENSION: EnglishStrandConfig = {
   key: "reading-and-comprehension",
@@ -2413,6 +2479,8 @@ const RESEARCH_MEDIA_AND_DIGITAL_TEXTS: EnglishStrandConfig = {
 };
 
 export const ENGLISH_STRAND_WORKSPACE_BUILDERS: Record<string, StrandBuilder> = {
+  "morphology-and-spelling": (currentFocusStageKey) =>
+    buildEnglishWorkspace(currentFocusStageKey, MORPHOLOGY_AND_SPELLING),
   "reading-and-comprehension": (currentFocusStageKey) =>
     buildEnglishWorkspace(currentFocusStageKey, READING_AND_COMPREHENSION),
   "writing-and-composition": (currentFocusStageKey) =>

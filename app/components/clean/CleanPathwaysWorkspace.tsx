@@ -105,15 +105,6 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(23,32,75,0.06)",
 };
 
-const compactCardStyle: React.CSSProperties = {
-  border: "1px solid #E7EAF2",
-  borderRadius: 16,
-  background: "#ffffff",
-  padding: 14,
-  display: "grid",
-  gap: 8,
-};
-
 const helperCardStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
   borderRadius: 16,
@@ -153,6 +144,14 @@ const EMPTY_STRAND_CARD: SubjectStrandCard = {
   whyItMatters: "Detailed strand guidance will appear here when a populated strand is selected.",
   status: "coming-later",
 };
+
+const LIVE_PATHWAY_SUBJECTS = PATHWAY_SUBJECTS.filter((subject) => {
+  const config = DETAILED_SUBJECT_CONFIGS[subject.key];
+  return Boolean(
+    subject.status === "detailed" &&
+      config?.domainCards.some((domain) => Boolean(config.workspaceBuilders[domain.key])),
+  );
+});
 
 const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
 const PATHWAYS_INTERACTION_STORAGE_KEY = "mylearna:clean-pathways-interaction:v1";
@@ -875,8 +874,8 @@ function PathwaysWorkspaceBody() {
   const initialSubjectKey = useMemo(() => {
     const subjectParam = searchParams.get("subjectKey");
     return (
-      PATHWAY_SUBJECTS.find((subject) => subject.key === subjectParam)?.key ||
-      PATHWAY_SUBJECTS.find((subject) => subject.key === persistedUiState.selectedSubjectKey)
+      LIVE_PATHWAY_SUBJECTS.find((subject) => subject.key === subjectParam)?.key ||
+      LIVE_PATHWAY_SUBJECTS.find((subject) => subject.key === persistedUiState.selectedSubjectKey)
         ?.key ||
       DEFAULT_PATHWAY_SUBJECT_KEY
     );
@@ -1076,7 +1075,9 @@ function PathwaysWorkspaceBody() {
   );
 
   const selectedSubject =
-    PATHWAY_SUBJECTS.find((subject) => subject.key === selectedSubjectKey) || PATHWAY_SUBJECTS[0];
+    LIVE_PATHWAY_SUBJECTS.find((subject) => subject.key === selectedSubjectKey) ||
+    LIVE_PATHWAY_SUBJECTS[0] ||
+    PATHWAY_SUBJECTS[0];
   const selectedDetailedSubjectConfig = DETAILED_SUBJECT_CONFIGS[selectedSubjectKey] || null;
   const selectedSubjectSupportsDetailedPathways = Boolean(selectedDetailedSubjectConfig);
   const selectedStrandKey = selectedDetailedSubjectConfig
@@ -1363,6 +1364,29 @@ function PathwaysWorkspaceBody() {
   ]);
   const currentLearningZoneStartStep =
     numberPathwayRevealGroups?.currentLearningZone[0] || null;
+  const selectedSubjectDefaultPathwayStepId = useMemo(() => {
+    if (!selectedSubjectWorkspace) return "";
+    const defaultStage =
+      selectedWorkspaceCurrentStage ||
+      selectedSubjectWorkspace.stages[0] ||
+      null;
+    const defaultStep = defaultStage?.steps[0] || null;
+    if (!defaultStage || !defaultStep) return "";
+    const stepKey = buildPathwayRegistryStepKey(defaultStep.title, defaultStep.id);
+    return (
+      resolveCanonicalPathwayStepIdFromParts({
+        subjectKey: selectedSubjectKey,
+        pathwayKey: selectedSubjectWorkspace.key,
+        stageKey: defaultStage.key,
+        stepKey,
+        stepNumber: String(defaultStep.id),
+      }) || ""
+    );
+  }, [
+    selectedSubjectKey,
+    selectedSubjectWorkspace,
+    selectedWorkspaceCurrentStage,
+  ]);
   const selectedWorkspaceCurrentStageTitle = selectedWorkspaceCurrentStage
     ? getRegionalStageLabel(
         selectedWorkspaceCurrentStage.key,
@@ -1428,16 +1452,19 @@ function PathwaysWorkspaceBody() {
     );
   }, [selectedLearner, selectedStrandKey, selectedSubjectKey]);
   const selectedPlacementStep = useMemo(() => {
+    const fallbackFocusStepId =
+      currentLearningZoneStartStep?.pathwayStepId ||
+      selectedSubjectDefaultPathwayStepId ||
+      "";
     let focusStepId =
       requestedPathwayStepId ||
       selectedPlacement?.pathwayStepId ||
-      currentLearningZoneStartStep?.pathwayStepId ||
-      "";
+      fallbackFocusStepId;
     if (
       !requestedPathwayStepId &&
       selectedPlacement?.pathwayStepId &&
-      currentLearningZoneStartStep?.pathwayStepId &&
-      selectedPlacement.pathwayStepId !== currentLearningZoneStartStep.pathwayStepId
+      fallbackFocusStepId &&
+      selectedPlacement.pathwayStepId !== fallbackFocusStepId
     ) {
       const placedStepState = getUnifiedPathwayStepState(
         unifiedPathwayStepStateIndex,
@@ -1448,15 +1475,28 @@ function PathwaysWorkspaceBody() {
         placedStepState?.latestEvidenceProgressLevel,
       );
       if (placedEvidenceStatus === "Secure") {
-        focusStepId = currentLearningZoneStartStep.pathwayStepId;
+        focusStepId = fallbackFocusStepId;
       }
     }
     if (!focusStepId) return null;
-    return getAllPathwaySteps().find((step) => step.id === focusStepId) || null;
+    const focusStep = getAllPathwaySteps().find((step) => step.id === focusStepId) || null;
+    if (
+      focusStep &&
+      focusStep.subjectKey === selectedSubjectKey &&
+      focusStep.strandKey === selectedStrandKey
+    ) {
+      return focusStep;
+    }
+    return (
+      getAllPathwaySteps().find((step) => step.id === fallbackFocusStepId) || null
+    );
   }, [
     currentLearningZoneStartStep,
     requestedPathwayStepId,
     selectedPlacement,
+    selectedStrandKey,
+    selectedSubjectDefaultPathwayStepId,
+    selectedSubjectKey,
     unifiedPathwayStepStateIndex,
   ]);
   const selectedPlacementStrandSteps = useMemo(
@@ -1732,6 +1772,11 @@ function PathwaysWorkspaceBody() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("subjectKey", nextSubjectKey);
     params.set("strandKey", nextStrandKey);
+    params.delete("stageKey");
+    params.delete("pathwayStepId");
+    params.delete("stepKey");
+    params.delete("latestEvidenceId");
+    params.delete("source");
     if (selectedLearnerId) {
       params.set("learnerId", selectedLearnerId);
     }
@@ -1740,12 +1785,17 @@ function PathwaysWorkspaceBody() {
 
   function handleSelectSubject(nextSubjectKey: PathwaySubjectKey) {
     const nextStrandKey =
-      selectedStrandKeyBySubject[nextSubjectKey] ||
       DETAILED_SUBJECT_CONFIGS[nextSubjectKey]?.defaultStrandKey ||
+      selectedStrandKeyBySubject[nextSubjectKey] ||
       "";
     setSelectedSubjectKey(nextSubjectKey);
+    setSelectedStrandKeyBySubject((current) => ({
+      ...current,
+      [nextSubjectKey]: nextStrandKey,
+    }));
     setHasExplicitStrandSelection(Boolean(nextStrandKey));
     setStrandSelectorExpanded(!nextStrandKey);
+    setExpandedStepId(null);
     replacePathwayViewParams(nextSubjectKey, nextStrandKey);
     trackPathwayAnalyticsEvent("pathway_subject_selected", { subjectKey: nextSubjectKey });
   }
@@ -1757,6 +1807,7 @@ function PathwaysWorkspaceBody() {
     }));
     setHasExplicitStrandSelection(true);
     setStrandSelectorExpanded(false);
+    setExpandedStepId(null);
     replacePathwayViewParams(selectedSubjectKey, nextStrandKey);
     trackPathwayAnalyticsEvent("pathway_strand_selected", {
       subjectKey: selectedSubjectKey,
@@ -2058,9 +2109,42 @@ function PathwaysWorkspaceBody() {
                   {selectedLearnerLabel}
                 </span>
                 <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
-                <span style={{ ...curriculumChipStyle, color: "#6C4DF6", background: "#F2EDFF", borderColor: "#D9D0FF" }}>
-                  {selectedPlacementStep.subjectTitle || selectedSubject.title}
-                </span>
+                <label
+                  htmlFor="pathways-current-subject-selector"
+                  style={{
+                    ...curriculumChipStyle,
+                    color: "#6C4DF6",
+                    background: "#F2EDFF",
+                    borderColor: "#D9D0FF",
+                    padding: "5px 8px",
+                  }}
+                >
+                  <span style={{ color: "#5B6478", fontSize: 12 }}>Subject</span>
+                  <select
+                    id="pathways-current-subject-selector"
+                    aria-label="Pathways subject"
+                    value={selectedSubjectKey}
+                    onChange={(event) =>
+                      handleSelectSubject(event.target.value as PathwaySubjectKey)
+                    }
+                    style={{
+                      border: 0,
+                      background: "transparent",
+                      color: "#6C4DF6",
+                      fontSize: 13,
+                      fontWeight: 750,
+                      padding: "2px 18px 2px 2px",
+                      minHeight: 32,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {LIVE_PATHWAY_SUBJECTS.map((subject) => (
+                      <option key={subject.key} value={subject.key}>
+                        {subject.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
                 <span style={curriculumChipStyle}>
                   {selectedPlacementStep.strandTitle || selectedSubjectWorkspace?.title || "Selected strand"}
@@ -2597,79 +2681,6 @@ function PathwaysWorkspaceBody() {
             </button>
           </section>
         ) : null}
-
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-              <div style={eyebrowStyle}>Choose a subject</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22, fontWeight: 650 }}>Pathway map</h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Choose a pathway focus.
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              }}
-            >
-              <div style={compactCardStyle}>
-                <label htmlFor="pathway-subject-selector" style={{ color: "#334155", fontWeight: 700 }}>
-                  Viewing pathways for
-                </label>
-                <select
-                  id="pathway-subject-selector"
-                  value={selectedSubjectKey}
-                  onChange={(event) =>
-                    handleSelectSubject(event.target.value as PathwaySubjectKey)
-                  }
-                  style={inputStyle}
-                >
-                  {PATHWAY_SUBJECTS.map((subject) => (
-                    <option key={subject.key} value={subject.key}>
-                      {subject.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={helperCardStyle}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 10,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={eyebrowStyle}>Selected subject</div>
-                  <span
-                    style={{
-                      border: selectedSubject.status === "detailed"
-                        ? "1px solid #bfdbfe"
-                        : "1px solid #e2e8f0",
-                      background: selectedSubject.status === "detailed" ? "#eff6ff" : "#f8fafc",
-                      color: selectedSubject.status === "detailed" ? "#1d4ed8" : "#64748b",
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      fontSize: 12,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {selectedSubjectStatusLabel}
-                  </span>
-                </div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>{selectedSubject.title}</strong>
-                <div className="mylearna-pathways-subject-description" style={{ color: "#475569", lineHeight: 1.5 }}>
-                  {selectedSubject.description}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {selectedSubjectSupportsDetailedPathways ? (
           <>

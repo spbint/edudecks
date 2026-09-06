@@ -213,4 +213,31 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
     expect(screen.queryByRole("link", { name: "Add to Portfolio" })).toBeNull();
   });
+
+  it("keeps English Morphology actions customer-ready without dormant practice, assessment, or fake worksheet links", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref:
+          "/my-capture?source=my-pathways&learnerId=learner-a&subjectKey=english&pathwayKey=morphology-and-spelling&stageKey=middle-primary&pathwayStepId=english%3A%3Amorphology-and-spelling%3A%3Amiddle-primary%3A%3Au001-prefix-re&stepKey=u001-prefix-re&returnTo=%2Fmy-pathways%3FsubjectKey%3Denglish%26strandKey%3Dmorphology-and-spelling%26learnerId%3Dlearner-a%23pathway-step-morphology-and-spelling-middle-primary-u001-prefix-re",
+        practiceHref: "/practice/number-targeted?learnerId=learner-a",
+        assessmentHref: "/assessments/number?learnerId=learner-a",
+        stepTitle: "Prefix re-",
+        subjectKey: "english",
+        strandKey: "morphology-and-spelling",
+        stageKey: "middle-primary",
+        pathwayStepId: "english::morphology-and-spelling::middle-primary::u001-prefix-re",
+        stepKey: "u001-prefix-re",
+        worksheetResource: null,
+      }),
+    );
+
+    expect(screen.queryByRole("link", { name: /Practise/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Add to Portfolio" })).toBeTruthy();
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Add to Portfolio",
+    );
+  });
 });
