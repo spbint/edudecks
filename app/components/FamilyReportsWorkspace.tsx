@@ -34,16 +34,36 @@ function statusTone(status: ArtifactStatus) {
 
 function stateFromModel(input: {
   workspaceLoading: boolean;
+  modelLoading: boolean;
   hasLearners: boolean;
   activeLearnerId: string;
   model: ReportsBuilderModel | null;
 }): HomeSurfaceState {
-  if (input.workspaceLoading || !input.model) return "loading";
+  if (input.workspaceLoading || input.modelLoading) return "loading";
   if (!input.hasLearners || !input.activeLearnerId) return "empty";
+  if (!input.model) return "placeholder";
   if (input.model.registrationCycle || input.model.requiredArtifacts.length || input.model.reportDocument) {
     return "live";
   }
   return "placeholder";
+}
+
+function hasMeaningfulReportData(model: ReportsBuilderModel | null) {
+  if (!model) return false;
+
+  return Boolean(
+    model.registrationCycle ||
+      model.reportingPeriod ||
+      model.reportDocument ||
+      model.requiredArtifacts.length ||
+      model.planCount > 0 ||
+      model.evidenceCount > 0 ||
+      model.subjectLogCount > 0 ||
+      model.notificationSummary.total > 0 ||
+      model.attendanceSummary.records > 0 ||
+      model.attendanceSummary.days > 0 ||
+      model.attendanceSummary.hours > 0,
+  );
 }
 
 function SummaryCard({
@@ -196,6 +216,7 @@ export default function FamilyReportsWorkspace({
   const [intentMessage, setIntentMessage] = useState("");
   const [intentError, setIntentError] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [modelLoading, setModelLoading] = useState(true);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -207,6 +228,7 @@ export default function FamilyReportsWorkspace({
     let mounted = true;
 
     async function hydrate() {
+      setModelLoading(true);
       try {
         const next = await loadReportsBuilderModel({
           profile: workspace.profile,
@@ -228,6 +250,10 @@ export default function FamilyReportsWorkspace({
               : "The reports workspace could not be loaded right now.",
           );
         }
+      } finally {
+        if (mounted) {
+          setModelLoading(false);
+        }
       }
     }
 
@@ -240,6 +266,7 @@ export default function FamilyReportsWorkspace({
 
   const surfaceState = stateFromModel({
     workspaceLoading,
+    modelLoading,
     hasLearners: workspace.learners.length > 0,
     activeLearnerId,
     model,
@@ -376,13 +403,17 @@ export default function FamilyReportsWorkspace({
         />
 
         {surfaceState === "loading" ? (
-          <div className="grid gap-5">
-            <div className="h-48 animate-pulse rounded-[26px] bg-slate-100" />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="h-52 animate-pulse rounded-[24px] bg-slate-100" />
-              <div className="h-52 animate-pulse rounded-[24px] bg-slate-100" />
+          <DetailCard eyebrow="Reports workspace" title="Preparing your report…">
+            <div className="grid gap-4">
+              <p className="text-sm leading-7 text-slate-600">
+                We are organizing this learner&apos;s reporting details now.
+              </p>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="h-32 animate-pulse rounded-[20px] bg-slate-100" />
+                <div className="h-32 animate-pulse rounded-[20px] bg-slate-100" />
+              </div>
             </div>
-          </div>
+          </DetailCard>
         ) : !activeLearner ? (
           <DetailCard eyebrow="Reports workspace" title="Choose a learner to begin">
             <p className="text-sm leading-7 text-slate-600">
@@ -397,17 +428,37 @@ export default function FamilyReportsWorkspace({
               </Link>
             </div>
           </DetailCard>
+        ) : loadError ? (
+          <DetailCard eyebrow="Reports workspace" title="Something didn’t load. Try again.">
+            <p className="text-sm leading-7 text-slate-600">
+              We couldn&apos;t load this report panel right now. Please refresh and try again.
+            </p>
+          </DetailCard>
+        ) : !hasMeaningfulReportData(model) ? (
+          <DetailCard eyebrow="Reports workspace" title="No report data yet. Start capturing learning to build your report.">
+            <p className="text-sm leading-7 text-slate-600">
+              Add evidence or continue your plan to start filling this reporting workspace.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/capture"
+                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+              >
+                Capture Evidence
+              </Link>
+              <Link
+                href="/my-plan"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Open My Plan
+              </Link>
+            </div>
+          </DetailCard>
         ) : (
           <>
             {model?.softWarning ? (
               <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-800">
                 {model.softWarning}
-              </div>
-            ) : null}
-
-            {loadError ? (
-              <div className="rounded-[20px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-7 text-rose-800">
-                {loadError}
               </div>
             ) : null}
 
