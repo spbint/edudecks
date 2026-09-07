@@ -9,8 +9,8 @@ import type {
   UpdateCleanLearnerInput,
 } from "@/lib/clean/learners/types";
 import {
-  FREE_FAMILY_LEARNER_LIMIT_MESSAGE,
-  getFreeLearnerLimitState,
+  LEARNER_ABUSE_CEILING_MESSAGE,
+  getLearnerAbuseCeilingState,
 } from "@/lib/clean/entitlements/freeGuardrails";
 
 type LearnerRow = {
@@ -115,8 +115,8 @@ export async function createCleanLearner(
     throw existingLearners.error;
   }
 
-  if (!getFreeLearnerLimitState(existingLearners.count ?? 0).canAddLearner) {
-    throw new Error(FREE_FAMILY_LEARNER_LIMIT_MESSAGE);
+  if (!getLearnerAbuseCeilingState(existingLearners.count ?? 0).canAddLearner) {
+    throw new Error(LEARNER_ABUSE_CEILING_MESSAGE);
   }
 
   const response = await supabase

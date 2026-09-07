@@ -379,9 +379,6 @@ function logFamilyEvidenceAttachmentDiagnostic(
 function normalizeAttachmentUploadErrorMessage(error: unknown, fallback: string) {
   const row = asObject(error);
   const message = safe(row?.message) || fallback;
-  if (/up to 3 learners per family/i.test(message)) {
-    return "MyLearna Free supports up to 3 learners per family.";
-  }
   if (/portfolio storage is full|storage allowance|exceed/i.test(message)) {
     return FREE_PORTFOLIO_STORAGE_FULL_MESSAGE;
   }

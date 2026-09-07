@@ -1,12 +1,13 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const readSource = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+const migration = readSource("supabase/migrations/20260907072856_free_v1_usage_guardrails.sql");
+const learnerMigration = readdirSync(join(process.cwd(), "supabase/migrations"))
+  .map((name) => readSource(`supabase/migrations/${name}`))
+  .find((source) => source.includes("mylearna_enforce_learner_abuse_ceiling")) || "";
 
-const migration = readSource(
-  "supabase/migrations/20260907072856_free_v1_usage_guardrails.sql",
-);
 const learnerClient = readSource("lib/clean/learners/client.ts");
 const profileWorkspace = readSource("app/components/clean/CleanProfileWorkspace.tsx");
 const familyEvidence = readSource("lib/familyEvidence.ts");
@@ -22,21 +23,33 @@ const reportPdfSource = readSource("lib/clean/outputs/pdf.ts");
 const worksheetResourcesSource = readSource("lib/clean/resources/mathWorksheetResources.ts");
 
 describe("MyLearna Free V1 learner guardrails", () => {
-  it("enforces the 3 learner family limit in both UI and authoritative write paths", () => {
-    expect(learnerClient).toContain("getFreeLearnerLimitState");
+  it("enforces an abuse-only 20 learner ceiling in both UI and authoritative write paths", () => {
+    expect(learnerClient).toContain("getLearnerAbuseCeilingState");
     expect(learnerClient).toContain('select("id", { count: "exact", head: true })');
-    expect(learnerClient).toContain("FREE_FAMILY_LEARNER_LIMIT_MESSAGE");
-    expect(profileWorkspace).toContain("learnerLimitState.canAddLearner");
-    expect(profileWorkspace).toContain("learnerLimitState.message");
-    expect(migration).toContain("mylearna_enforce_free_learner_limit");
-    expect(migration).toContain("for update;");
-    expect(migration).toContain("existing_learner_count >= 3");
-    expect(migration).toContain("before insert on public.learners");
+    expect(learnerClient).toContain("LEARNER_ABUSE_CEILING_MESSAGE");
+    expect(profileWorkspace).toContain("learnerAbuseCeilingState.canAddLearner");
+    expect(profileWorkspace).toContain("learnerAbuseCeilingState.message");
+    expect(profileWorkspace).toContain("Need support to add learners");
+    expect(learnerMigration).toContain("mylearna_learner_abuse_ceiling_before_insert");
+    expect(learnerMigration).toContain("mylearna_enforce_learner_abuse_ceiling");
+    expect(learnerMigration).toContain("existing_learner_count >= 20");
+    expect(learnerMigration).toContain("for update;");
+    expect(learnerMigration).toContain("before insert on public.learners");
+    expect(learnerMigration).toContain(
+      "We couldn't add another learner to this family. Please contact MyLearna support if you need help.",
+    );
+  });
+
+  it("removes legacy customer-facing 3-learner Free copy", () => {
+    expect(learnerClient).not.toContain("MyLearna Free supports up to 3 learners per family.");
+    expect(profileWorkspace).not.toContain("MyLearna Free supports up to 3 learners per family.");
+    expect(familyEvidence).not.toContain("MyLearna Free supports up to 3 learners per family");
   });
 
   it("does not delete, hide, or disable existing learner rows above the limit", () => {
-    expect(migration).not.toMatch(/delete\s+from\s+public\.learners/i);
-    expect(migration).not.toMatch(/update\s+public\.learners\s+set/i);
+    expect(learnerMigration).not.toContain("MyLearna Free supports up to 3 learners per family");
+    expect(learnerMigration).not.toMatch(/delete\s+from\s+public\.learners/i);
+    expect(learnerMigration).not.toMatch(/update\s+public\.learners\s+set/i);
     expect(profileWorkspace).toContain("workspace.learners.map");
   });
 });
@@ -77,7 +90,9 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
   });
 
   it("handles exact allowance, overage, combined attachments, concurrency, and year separation server-side", () => {
-    expect(migration).toContain("p_byte_size > greatest(0, usage_row.allowance_bytes - usage_row.used_bytes - usage_row.reserved_bytes)");
+    expect(migration).toContain(
+      "p_byte_size > greatest(0, usage_row.allowance_bytes - usage_row.used_bytes - usage_row.reserved_bytes)",
+    );
     expect(migration).toContain("reserved_bytes = reserved_bytes + p_byte_size");
     expect(migration).toContain("for update");
     expect(migration).toContain("byte_size <= 10485760");
@@ -113,8 +128,8 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
     expect(captureWorkspace).toContain("portfolioStoragePresentation.message");
     expect(quickCaptureWorkspace).toContain("portfolioStoragePresentation.message");
     expect(portfolioWorkspace).toContain("portfolioStoragePresentation.message");
-    expect(`${familyEvidence}\n${captureWorkspace}\n${quickCaptureWorkspace}\n${portfolioWorkspace}`).not.toMatch(
-      /Upgrade now|Stripe|checkout|paid storage/i,
-    );
+    expect(
+      `${familyEvidence}\n${captureWorkspace}\n${quickCaptureWorkspace}\n${portfolioWorkspace}`,
+    ).not.toMatch(/Upgrade now|Stripe|checkout|paid storage/i);
   });
 });

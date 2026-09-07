@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  FREE_FAMILY_LEARNER_LIMIT,
-  FREE_FAMILY_LEARNER_LIMIT_MESSAGE,
+  LEARNER_ABUSE_CEILING_LIMIT,
+  LEARNER_ABUSE_CEILING_MESSAGE,
   FREE_FAMILY_PORTFOLIO_STORAGE_BYTES,
   FREE_PORTFOLIO_STORAGE_FULL_MESSAGE,
   FREE_PORTFOLIO_STORAGE_NEAR_LIMIT_MESSAGE,
-  getFreeLearnerLimitState,
+  getLearnerAbuseCeilingState,
   getFreePortfolioStoragePresentation,
   wouldExceedFreePortfolioStorageAllowance,
   type FreePortfolioStorageUsage,
@@ -28,23 +28,27 @@ describe("MyLearna Free V1 guardrails", () => {
     [0, true],
     [1, true],
     [2, true],
+    [19, true],
+    [20, false],
   ])("allows adding a learner when the family has %i learners", (learnerCount, expected) => {
-    expect(getFreeLearnerLimitState(learnerCount).canAddLearner).toBe(expected);
+    expect(getLearnerAbuseCeilingState(learnerCount).canAddLearner).toBe(expected);
   });
 
-  it("blocks a fourth learner while preserving existing learner counts", () => {
-    expect(getFreeLearnerLimitState(3)).toEqual({
-      learnerCount: 3,
-      limit: FREE_FAMILY_LEARNER_LIMIT,
+  it("blocks an additional learner when the family already has 20 learners", () => {
+    expect(getLearnerAbuseCeilingState(20)).toEqual({
+      learnerCount: 20,
+      limit: LEARNER_ABUSE_CEILING_LIMIT,
       canAddLearner: false,
-      message: FREE_FAMILY_LEARNER_LIMIT_MESSAGE,
+      message: LEARNER_ABUSE_CEILING_MESSAGE,
     });
+  });
 
-    expect(getFreeLearnerLimitState(5)).toMatchObject({
-      learnerCount: 5,
-      canAddLearner: false,
-      message: FREE_FAMILY_LEARNER_LIMIT_MESSAGE,
-    });
+  it("does not include a legacy 3-learner free-facing message", () => {
+    expect(LEARNER_ABUSE_CEILING_MESSAGE).not.toContain("MyLearna Free supports up to 3 learners per family.");
+  });
+
+  it("keeps the family storage allowance fixed at 250 MB", () => {
+    expect(FREE_FAMILY_PORTFOLIO_STORAGE_BYTES).toBe(262144000);
   });
 
   it("stays quiet below 70 percent storage usage", () => {

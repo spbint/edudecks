@@ -1,13 +1,13 @@
-export const FREE_FAMILY_LEARNER_LIMIT = 3;
+export const LEARNER_ABUSE_CEILING_LIMIT = 20;
+export const LEARNER_ABUSE_CEILING_MESSAGE =
+  "We couldn't add another learner to this family. Please contact MyLearna support if you need help.";
 export const FREE_FAMILY_PORTFOLIO_STORAGE_BYTES = 250 * 1024 * 1024;
-export const FREE_FAMILY_LEARNER_LIMIT_MESSAGE =
-  "MyLearna Free supports up to 3 learners per family.";
 export const FREE_PORTFOLIO_STORAGE_FULL_MESSAGE =
   "Your Portfolio storage is full for this learning year. Everything you've already captured is safe. You can continue using MyLearna and adding text learning records.";
 export const FREE_PORTFOLIO_STORAGE_NEAR_LIMIT_MESSAGE =
   "Your Portfolio is nearly at this year's storage allowance.";
 
-export type FreeLearnerLimitState = {
+export type LearnerAbuseCeilingState = {
   learnerCount: number;
   limit: number;
   canAddLearner: boolean;
@@ -28,15 +28,15 @@ export type FreePortfolioStoragePresentation = {
   message: string | null;
 };
 
-export function getFreeLearnerLimitState(learnerCount: number): FreeLearnerLimitState {
+export function getLearnerAbuseCeilingState(learnerCount: number): LearnerAbuseCeilingState {
   const normalizedCount = Math.max(0, Math.floor(Number(learnerCount) || 0));
-  const canAddLearner = normalizedCount < FREE_FAMILY_LEARNER_LIMIT;
+  const canAddLearner = normalizedCount < LEARNER_ABUSE_CEILING_LIMIT;
 
   return {
     learnerCount: normalizedCount,
-    limit: FREE_FAMILY_LEARNER_LIMIT,
+    limit: LEARNER_ABUSE_CEILING_LIMIT,
     canAddLearner,
-    message: canAddLearner ? null : FREE_FAMILY_LEARNER_LIMIT_MESSAGE,
+    message: canAddLearner ? null : LEARNER_ABUSE_CEILING_MESSAGE,
   };
 }
 

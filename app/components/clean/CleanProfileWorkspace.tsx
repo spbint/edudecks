@@ -39,7 +39,7 @@ import {
   readGuidedStartState,
   writeGuidedStartState,
 } from "@/app/components/clean/guidance/guidedMissions";
-import { getFreeLearnerLimitState } from "@/lib/clean/entitlements/freeGuardrails";
+import { getLearnerAbuseCeilingState } from "@/lib/clean/entitlements/freeGuardrails";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -251,9 +251,11 @@ function CleanProfileWorkspaceBody() {
   const learnerTargetMet = Boolean(
     expectedLearnerCount && workspace.learners.length >= expectedLearnerCount,
   );
-  const learnerLimitState = getFreeLearnerLimitState(workspace.learners.length);
+  const learnerAbuseCeilingState = getLearnerAbuseCeilingState(
+    workspace.learners.length,
+  );
   const shouldShowAddLearnerForm =
-    learnerLimitState.canAddLearner && (!learnerTargetMet || showExtraLearnerForm);
+    learnerAbuseCeilingState.canAddLearner && (!learnerTargetMet || showExtraLearnerForm);
   const suggestedDefaultLearner =
     workspace.learners.length && !workspace.profile?.defaultLearnerId
       ? workspace.learners[0]
@@ -371,8 +373,8 @@ function CleanProfileWorkspaceBody() {
     event.preventDefault();
 
     if (!workspace.profile) return;
-    if (!learnerLimitState.canAddLearner) {
-      setError(learnerLimitState.message);
+    if (!learnerAbuseCeilingState.canAddLearner) {
+      setError(learnerAbuseCeilingState.message);
       return;
     }
 
@@ -1009,16 +1011,16 @@ function CleanProfileWorkspaceBody() {
             ) : (
               <section id="add-learner" data-guidance-id="profile-add-learner" style={cardStyle}>
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>
-                  {learnerLimitState.canAddLearner
+                  {learnerAbuseCeilingState.canAddLearner
                     ? "Learners are ready for now"
-                    : "Learner limit reached"}
+                    : "Need support to add learners"}
                 </h2>
                 <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                  {learnerLimitState.canAddLearner
+                  {learnerAbuseCeilingState.canAddLearner
                     ? "You've added the number of learners you told us about. You can add another learner later if your setup changes."
-                    : learnerLimitState.message}
+                    : learnerAbuseCeilingState.message}
                 </p>
-                {learnerLimitState.canAddLearner ? (
+                {learnerAbuseCeilingState.canAddLearner ? (
                   <button
                     type="button"
                     style={secondaryButtonStyle}
