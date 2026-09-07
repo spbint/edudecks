@@ -36,6 +36,7 @@ import {
 } from "@/lib/clean/portfolio/client";
 import {
   buildReportPdfEvidenceItems,
+  buildEvidenceLearnerLabel,
   getParentFacingEvidenceSummary,
   getEvidencePresentationMeta,
   getEvidencePreviewImage,
@@ -177,6 +178,15 @@ function formatEvidenceEventDateLabel(value: string | null) {
 
 function portfolioCardTitle(item: CleanPortfolioItem) {
   return item.evidence.title || item.evidence.whatHappened;
+}
+
+function evidenceIncludesLearner(item: CleanPortfolioItem, learnerId: string) {
+  const selectedLearnerId = String(learnerId ?? "").trim();
+  if (!selectedLearnerId) return true;
+  const participantLearnerIds = item.evidence.participantLearnerIds?.length
+    ? item.evidence.participantLearnerIds
+    : [item.evidence.learnerId];
+  return participantLearnerIds.includes(selectedLearnerId);
 }
 
 function sortPortfolioItems(items: CleanPortfolioItem[]) {
@@ -397,17 +407,21 @@ function MobilePortfolioContent({
   workspaceSchemaMissing,
 }: MobilePortfolioContentProps) {
   const [showOlderLearning, setShowOlderLearning] = useState(false);
+  const mobileLearnerLabelById = useMemo(
+    () => new Map(learnerOptions.map((option) => [option.value, option.label])),
+    [learnerOptions],
+  );
   const recentItems = useMemo(
     () => sortPortfolioItems(
       selectedLearnerId
-        ? items.filter((item) => item.evidence.learnerId === selectedLearnerId)
+        ? items.filter((item) => evidenceIncludesLearner(item, selectedLearnerId))
         : items,
     ),
     [items, selectedLearnerId],
   );
   const visibleJustCapturedItem =
     justCapturedItem &&
-    (!selectedLearnerId || justCapturedItem.evidence.learnerId === selectedLearnerId)
+    (!selectedLearnerId || evidenceIncludesLearner(justCapturedItem, selectedLearnerId))
       ? justCapturedItem
       : null;
   const displayedRecentItems = recentItems
@@ -462,7 +476,7 @@ function MobilePortfolioContent({
             <MobilePortfolioEvidenceCard
               capturePathBase={capturePathBase}
               item={visibleJustCapturedItem}
-              learnerLabel={learnerOptions.find((option) => option.value === visibleJustCapturedItem.evidence.learnerId)?.label ?? null}
+              learnerLabel={buildEvidenceLearnerLabel(visibleJustCapturedItem.evidence, mobileLearnerLabelById)}
               onDelete={onDelete}
               onOpen={onOpenEvidence}
               onToggleHighlight={onToggleHighlight}
@@ -487,7 +501,7 @@ function MobilePortfolioContent({
                   key={item.evidence.id}
                   capturePathBase={capturePathBase}
                   item={item}
-                  learnerLabel={selectedLearnerId ? null : learnerOptions.find((option) => option.value === item.evidence.learnerId)?.label ?? null}
+                  learnerLabel={selectedLearnerId ? null : buildEvidenceLearnerLabel(item.evidence, mobileLearnerLabelById)}
                   onDelete={onDelete}
                   onOpen={onOpenEvidence}
                   onToggleHighlight={onToggleHighlight}
@@ -934,7 +948,7 @@ function CleanPortfolioWorkspaceBody() {
         setMessage("Removed from portfolio.");
       } else {
         await createCleanPortfolioHighlight(workspace.profile.id, {
-          learnerId: item.evidence.learnerId,
+          learnerId: selectedLearnerId || item.evidence.learnerId,
           evidenceEntryId: item.evidence.id,
         });
         setMessage(
@@ -1126,7 +1140,7 @@ function CleanPortfolioWorkspaceBody() {
         ? sortPortfolioItems(
             items.filter(
               (item) =>
-                item.evidence.learnerId === selectedLearnerId &&
+                evidenceIncludesLearner(item, selectedLearnerId) &&
                 item.evidence.includeInReport,
             ),
           )
@@ -1165,7 +1179,7 @@ function CleanPortfolioWorkspaceBody() {
 
     if (sourceFromQuery !== "my-capture" || !selectedLearnerId) return null;
     return sortPortfolioItems(
-      items.filter((item) => item.evidence.learnerId === selectedLearnerId),
+      items.filter((item) => evidenceIncludesLearner(item, selectedLearnerId)),
     )[0] ?? null;
   }, [items, latestEvidenceIdFromQuery, selectedLearnerId, sourceFromQuery]);
   const justCapturedMeta = justCapturedItem ? getEvidencePresentationMeta(justCapturedItem) : null;
@@ -2114,10 +2128,7 @@ function CleanPortfolioWorkspaceBody() {
               {!itemsLoading && !itemsError && sortedFilteredItems.length ? (
                 <div style={{ display: "grid", gap: 12 }}>
                   {sortedFilteredItems.map((item) => {
-                    const learnerLabel =
-                      learnerOptions.find(
-                        (option) => option.value === item.evidence.learnerId,
-                      )?.label || "Unknown learner";
+                    const learnerLabel = buildEvidenceLearnerLabel(item.evidence, learnerLabelById);
                     const pathwayMeta =
                       filteredPathwayEvidenceSummary.stepByEvidenceId.get(item.evidence.id) ??
                       null;
@@ -2396,7 +2407,7 @@ function CleanPortfolioWorkspaceBody() {
                                   />
                                 ) : null}
                                 {item.evidence.includeInReport ? (
-                                  <Link href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`} style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}>
+                                  <Link href={`${reportsPathBase}?learner_id=${selectedLearnerId || item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`} style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}>
                                     Use in report
                                   </Link>
                                 ) : null}
@@ -2536,8 +2547,9 @@ function CleanPortfolioWorkspaceBody() {
                   Delete this evidence note?
                 </h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  This removes it from Quick Capture, Portfolio, Reports, and Outputs. This
-                  cannot be undone.
+                  {(pendingDeleteItem.evidence.participantLearnerCount ?? 1) > 1
+                    ? `This removes this learning record for ${buildEvidenceLearnerLabel(pendingDeleteItem.evidence, learnerLabelById)}.`
+                    : "This removes it from Quick Capture, Portfolio, Reports, and Outputs."} This cannot be undone.
                 </p>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                   {portfolioCardTitle(pendingDeleteItem)}

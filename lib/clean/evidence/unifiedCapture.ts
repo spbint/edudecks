@@ -26,11 +26,13 @@ export type UnifiedCaptureSourceType =
   | "portfolio"
   | "reports"
   | "manual"
-  | "quick-capture";
+  | "quick-capture"
+  | "learning-chronicle";
 
 export type UnifiedCaptureDraft = {
   familyId: string;
   learnerId: string;
+  participantLearnerIds?: string[];
   learnerContext?: LearnerContextSnapshot;
   /** Runtime-only family scope used by the authoritative guard. */
   availableLearners?: Learner[];
@@ -107,11 +109,20 @@ function buildUnifiedCaptureReflection(draft: UnifiedCaptureDraft) {
   return lines.filter(Boolean).join("\n") || null;
 }
 
+function cleanCaptureSource(value: string | null | undefined) {
+  const normalizedValue = safe(value).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return normalizedValue || null;
+}
+
 export function buildUnifiedCaptureEvidenceInput(
   draft: UnifiedCaptureDraft,
 ): CleanEvidenceEntryInput {
   const familyId = safe(draft.familyId);
   const learnerId = safe(draft.learnerId);
+  const participantLearnerIds = [...new Set([
+    learnerId,
+    ...(draft.participantLearnerIds ?? []).map((id) => safe(id)),
+  ].filter(Boolean))];
   const whatHappened = safe(draft.whatHappened);
   const observedOn = normalizeUnifiedCaptureDate(draft.activityDate);
 
@@ -121,6 +132,17 @@ export function buildUnifiedCaptureEvidenceInput(
 
   if (!learnerId) {
     throw new Error("Choose the learner who completed the learning.");
+  }
+
+  if (draft.participantLearnerIds?.length && draft.availableLearners?.length) {
+    const availableLearnerIds = new Set(
+      draft.availableLearners
+        .filter((learner) => safe(learner.familyId) === familyId)
+        .map((learner) => learner.id),
+    );
+    if (!participantLearnerIds.every((id) => availableLearnerIds.has(id))) {
+      throw new Error("Choose learners from this family.");
+    }
   }
 
   if (draft.learnerContext) {
@@ -151,6 +173,7 @@ export function buildUnifiedCaptureEvidenceInput(
 
   return {
     learnerId,
+    participantLearnerIds,
     observedOn,
     title: safe(draft.title) || null,
     whatHappened,
@@ -159,6 +182,7 @@ export function buildUnifiedCaptureEvidenceInput(
     programId: safe(draft.programId) || null,
     calendarItemId: safe(draft.calendarItemId) || null,
     curriculumNodeIds: draft.curriculumNodeIds ?? [],
+    captureSource: cleanCaptureSource(draft.sourceType),
     includeInPortfolio: draft.includeInPortfolio === true,
     includeInReport: draft.includeInReport === true,
   };
@@ -176,6 +200,7 @@ export function buildUnifiedCaptureIdempotencyKey(draft: UnifiedCaptureDraft) {
     safe(draft.sourceId),
     safe(draft.pathwayStepId),
     safe(draft.stepKey),
+    ...(draft.participantLearnerIds ?? []).map((id) => safe(id)).filter(Boolean).sort(),
   ].join("::");
 }
 

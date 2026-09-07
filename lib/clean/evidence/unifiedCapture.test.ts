@@ -108,6 +108,51 @@ describe("unified learning capture", () => {
     expect(input.reflection).not.toContain("Progress level:");
   });
 
+  it("builds Learning Chronicle input as one text evidence record with shared participants only", () => {
+    const input = buildUnifiedCaptureEvidenceInput(
+      draft({
+        learnerId: "learner-1",
+        participantLearnerIds: ["learner-1", "learner-2", "learner-3", "learner-4", "learner-5"],
+        availableLearners: ["learner-1", "learner-2", "learner-3", "learner-4", "learner-5"].map((id) => ({
+          id,
+          familyId: "family-1",
+          firstName: id,
+          preferredName: null,
+          surname: null,
+          yearLevel: null,
+          notes: null,
+          createdByUserId: "user-1",
+          createdAt: null,
+          updatedAt: null,
+        })),
+        title: "Science museum visit",
+        whatHappened: "We visited the science museum and explored electricity.",
+        learningArea: null,
+        calendarItemId: null,
+        programId: null,
+        curriculumNodeIds: [],
+        progressJudgement: null,
+        learnerReflection: null,
+        sourceType: "learning-chronicle",
+      }),
+    );
+
+    expect(input.learnerId).toBe("learner-1");
+    expect(input.participantLearnerIds).toEqual([
+      "learner-1",
+      "learner-2",
+      "learner-3",
+      "learner-4",
+      "learner-5",
+    ]);
+    expect(input.captureSource).toBe("learning_chronicle");
+    expect(input.learningArea).toBeNull();
+    expect(input.calendarItemId).toBeNull();
+    expect(input.programId).toBeNull();
+    expect(input.curriculumNodeIds).toEqual([]);
+    expect(input.reflection).not.toContain("Progress level:");
+  });
+
   it("keeps portfolio and report inclusion independent", () => {
     const portfolioOnly = buildUnifiedCaptureEvidenceInput(
       draft({ includeInPortfolio: true, includeInReport: false }),

@@ -61,7 +61,8 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("saveUnifiedLearningCapture");
     expect(source).toContain("includeInPortfolio: true");
     expect(source).toContain("includeInReport: true");
-    expect(source).toContain('sourceType: "quick-capture"');
+    expect(source).toContain('sourceType: "learning-chronicle"');
+    expect(source).toContain("participantLearnerIds,");
     expect(source).toContain("learnerId,");
     expect(source).toContain("activityDate: observedOn");
     expect(source).toContain("whatHappened: nextCaption");
@@ -86,13 +87,14 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("availableLearners: workspace.learners");
     expect(source).toContain("Attachment still needs attaching");
     expect(source).toContain("Retry attachment");
-    expect(source).toContain("Add a photo or a short caption");
+    expect(source).toContain("Tell MyLearna what happened before saving.");
   });
 
-  it("keeps quick capture visually anchored and camera-first", () => {
+  it("keeps quick capture visually anchored with a text-first Chronicle path", () => {
     expect(source).toContain("window.scrollTo({ top: 0");
-    expect(source).toContain('mobileCompanion ? "Capture learning" : "Quick Capture"');
-    expect(source).toContain("Capture a learning moment now. Start a new detailed capture later.");
+    expect(source).toContain("Learning Chronicle");
+    expect(source).toContain("Tell MyLearna what happened");
+    expect(source).toContain("Who was involved?");
     expect(source).not.toContain("Add it to the portfolio later.");
     expect(source).toContain("CleanEvidenceAttachmentControls");
     expect(attachmentControlsSource).toContain('aria-label="Take a photo"');

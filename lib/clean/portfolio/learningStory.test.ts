@@ -8,6 +8,8 @@ function item(overrides: Partial<CleanPortfolioItem["evidence"]> & { highlighted
       id: overrides.id ?? "evidence-1",
       familyId: "family-1",
       learnerId: overrides.learnerId ?? "learner-1",
+      participantLearnerIds: overrides.participantLearnerIds,
+      participantLearnerCount: overrides.participantLearnerCount,
       programId: null,
       calendarItemId: null,
       observedOn: overrides.observedOn ?? "2026-09-01",
@@ -18,6 +20,7 @@ function item(overrides: Partial<CleanPortfolioItem["evidence"]> & { highlighted
       curriculumNodeIds: [],
       attachmentUrls: [],
       imageUrl: null,
+      captureSource: overrides.captureSource,
       includeInPortfolio: overrides.includeInPortfolio ?? true,
       includeInReport: true,
       createdByUserId: "user-1",
@@ -78,5 +81,20 @@ describe("Portfolio Learning Story", () => {
     expect(story.learningAreaCount).toBe(0);
     expect(story.learningAreas).toEqual([]);
     expect(JSON.stringify(story)).not.toMatch(/mastery|progress|percent|missing|deficit/i);
+  });
+
+  it("includes shared Chronicle evidence for participating learners only", () => {
+    const shared = item({
+      id: "museum",
+      learnerId: "learner-1",
+      participantLearnerIds: ["learner-1", "learner-2", "learner-3"],
+      participantLearnerCount: 3,
+      captureSource: "learning_chronicle",
+      learningArea: "",
+    });
+
+    expect(buildPortfolioLearningStory([shared], "learner-2").evidenceCount).toBe(1);
+    expect(buildPortfolioLearningStory([shared], "learner-4").evidenceCount).toBe(0);
+    expect(buildPortfolioLearningStory([shared], null).evidenceCount).toBe(1);
   });
 });

@@ -33,7 +33,8 @@ describe("Mobile Portfolio companion experience", () => {
     expect(mobilePortfolioSource).toContain("Learning saved");
     expect(mobilePortfolioSource).toContain("Just captured");
     expect(mobilePortfolioSource).toContain('aria-label="Choose learner for recent learning"');
-    expect(mobilePortfolioSource).toContain("item.evidence.learnerId === selectedLearnerId");
+    expect(mobilePortfolioSource).toContain("evidenceIncludesLearner(justCapturedItem, selectedLearnerId)");
+    expect(mobilePortfolioSource).toContain("evidenceIncludesLearner(item, selectedLearnerId)");
     expect(mobilePortfolioSource).toContain("visibleJustCapturedItem");
   });
 

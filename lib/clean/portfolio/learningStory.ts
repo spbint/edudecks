@@ -29,6 +29,15 @@ function compareRecentEvidence(left: CleanPortfolioItem, right: CleanPortfolioIt
   return left.evidence.id.localeCompare(right.evidence.id);
 }
 
+function evidenceIncludesLearner(item: CleanPortfolioItem, learnerId?: string | null) {
+  const selectedLearnerId = String(learnerId ?? "").trim();
+  if (!selectedLearnerId) return true;
+  const participantLearnerIds = item.evidence.participantLearnerIds?.length
+    ? item.evidence.participantLearnerIds
+    : [item.evidence.learnerId];
+  return participantLearnerIds.includes(selectedLearnerId);
+}
+
 /**
  * Purely describes records already in Portfolio. It deliberately makes no
  * judgement about progress, mastery, coverage, or missing learning areas.
@@ -40,7 +49,7 @@ export function buildPortfolioLearningStory(
   const learnerItems = items.filter(
     (item) =>
       item.evidence.includeInPortfolio &&
-      (!learnerId || item.evidence.learnerId === learnerId),
+      evidenceIncludesLearner(item, learnerId),
   );
   const recentItems = [...learnerItems].sort(compareRecentEvidence);
   const areaCounts = new Map<string, number>();

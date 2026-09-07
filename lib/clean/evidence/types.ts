@@ -2,6 +2,8 @@ export type CleanEvidenceEntry = {
   id: string;
   familyId: string;
   learnerId: string;
+  participantLearnerIds?: string[];
+  participantLearnerCount?: number;
   programId: string | null;
   calendarItemId: string | null;
   observedOn: string;
@@ -12,6 +14,7 @@ export type CleanEvidenceEntry = {
   curriculumNodeIds: string[];
   attachmentUrls: string[];
   imageUrl: string | null;
+  captureSource?: string | null;
   includeInPortfolio: boolean;
   includeInReport: boolean;
   createdByUserId: string;
@@ -21,6 +24,7 @@ export type CleanEvidenceEntry = {
 
 export type CleanEvidenceEntryInput = {
   learnerId: string;
+  participantLearnerIds?: string[];
   observedOn: string;
   title?: string | null;
   whatHappened: string;
@@ -29,6 +33,7 @@ export type CleanEvidenceEntryInput = {
   programId?: string | null;
   calendarItemId?: string | null;
   curriculumNodeIds?: string[];
+  captureSource?: string | null;
   includeInPortfolio?: boolean;
   includeInReport?: boolean;
 };

@@ -202,12 +202,14 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
   });
 
   it("keeps historic evidence accessible and reduces current-year usage on supported deletion", () => {
+    const deleteFunctionStart = evidenceClient.indexOf("export async function deleteCleanEvidenceEntry");
+    const deleteFunctionSource = evidenceClient.slice(deleteFunctionStart);
     expect(migration).not.toMatch(/delete\s+from\s+public\.evidence_entries/i);
     expect(migration).not.toMatch(/delete\s+from\s+storage\.objects/i);
     expect(evidenceClient).toContain("summarizeFamilyEvidenceAttachments(existing.data)");
-    expect(evidenceClient).toContain("await removeFamilyEvidenceFiles(storagePaths)");
-    expect(evidenceClient.indexOf("await removeFamilyEvidenceFiles(storagePaths)")).toBeLessThan(
-      evidenceClient.indexOf(".delete()"),
+    expect(deleteFunctionSource).toContain("await removeFamilyEvidenceFiles(storagePaths)");
+    expect(deleteFunctionSource.indexOf("await removeFamilyEvidenceFiles(storagePaths)")).toBeLessThan(
+      deleteFunctionSource.indexOf(".delete()"),
     );
   });
 

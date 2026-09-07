@@ -20,6 +20,7 @@ type EvidenceEntryRow = {
   id: string;
   family_id: string;
   learner_id: string;
+  capture_source?: string | null;
   program_id?: string | null;
   calendar_item_id?: string | null;
   observed_on: string;
@@ -38,10 +39,10 @@ type EvidenceEntryRow = {
 };
 
 const CLEAN_EVIDENCE_ENTRY_BASE_SELECT =
-  "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
+  "id,family_id,learner_id,capture_source,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
 
 const CLEAN_EVIDENCE_ENTRY_ATTACHMENT_SELECT =
-  "id,family_id,learner_id,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
+  "id,family_id,learner_id,capture_source,program_id,calendar_item_id,observed_on,title,what_happened,reflection,learning_area,curriculum_node_ids,attachment_urls,image_url,include_in_portfolio,include_in_report,created_by_user_id,created_at,updated_at";
 
 export const CLEAN_EVIDENCE_CHANGED_EVENT = "edudecks:clean-evidence-changed";
 
@@ -118,6 +119,14 @@ function normalizeStringArray(value: unknown) {
     .filter((entry) => Boolean(entry));
 }
 
+function normalizeParticipantLearnerIds(primaryLearnerId: unknown, learnerIds?: unknown) {
+  const ids = [
+    safe(primaryLearnerId),
+    ...(Array.isArray(learnerIds) ? learnerIds.map((entry) => safe(entry)) : []),
+  ].filter((entry) => Boolean(entry));
+  return [...new Set(ids)];
+}
+
 function normalizeAttachmentArray(value: unknown) {
   if (!Array.isArray(value)) return [];
 
@@ -133,11 +142,17 @@ function normalizeAttachmentArray(value: unknown) {
     .filter((entry) => Boolean(entry));
 }
 
-function toCleanEvidenceEntry(row: EvidenceEntryRow): CleanEvidenceEntry {
+function toCleanEvidenceEntry(
+  row: EvidenceEntryRow,
+  participantLearnerIds?: string[],
+): CleanEvidenceEntry {
+  const participantIds = normalizeParticipantLearnerIds(row.learner_id, participantLearnerIds);
   return {
     id: safe(row.id),
     familyId: safe(row.family_id),
     learnerId: safe(row.learner_id),
+    participantLearnerIds: participantIds,
+    participantLearnerCount: participantIds.length || 1,
     programId: normalizeNullString(row.program_id),
     calendarItemId: normalizeNullString(row.calendar_item_id),
     observedOn: sanitizeDate(row.observed_on),
@@ -148,12 +163,78 @@ function toCleanEvidenceEntry(row: EvidenceEntryRow): CleanEvidenceEntry {
     curriculumNodeIds: normalizeStringArray(row.curriculum_node_ids),
     attachmentUrls: normalizeAttachmentArray(row.attachment_urls),
     imageUrl: normalizeNullString(row.image_url),
+    captureSource: normalizeNullString(row.capture_source),
     includeInPortfolio: normalizeBoolean(row.include_in_portfolio, true),
     includeInReport: normalizeBoolean(row.include_in_report, true),
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
   };
+}
+
+function isMissingEvidenceLearnerLinks(error: unknown) {
+  const record = error as { code?: unknown; message?: unknown; details?: unknown };
+  const text = `${safe(record?.code)} ${safe(record?.message)} ${safe(record?.details)}`;
+  return (
+    /evidence_entry_learner_links/i.test(text) &&
+    /(does not exist|schema cache|could not find|PGRST|42P01)/i.test(text)
+  );
+}
+
+async function loadParticipantIdsByEvidenceId(
+  familyId: string,
+  evidenceEntryIds: string[],
+) {
+  const ids = [...new Set(evidenceEntryIds.map((id) => safe(id)).filter(Boolean))];
+  const byEvidenceId = new Map<string, string[]>();
+  if (!ids.length) return byEvidenceId;
+
+  const response = await supabase
+    .from("evidence_entry_learner_links")
+    .select("evidence_entry_id,learner_id")
+    .eq("family_id", familyId)
+    .in("evidence_entry_id", ids);
+
+  if (response.error) {
+    if (isMissingEvidenceLearnerLinks(response.error)) return byEvidenceId;
+    throw response.error;
+  }
+
+  for (const row of (response.data ?? []) as Array<{ evidence_entry_id?: unknown; learner_id?: unknown }>) {
+    const evidenceEntryId = safe(row.evidence_entry_id);
+    const learnerId = safe(row.learner_id);
+    if (!evidenceEntryId || !learnerId) continue;
+    byEvidenceId.set(
+      evidenceEntryId,
+      normalizeParticipantLearnerIds(null, [...(byEvidenceId.get(evidenceEntryId) ?? []), learnerId]),
+    );
+  }
+
+  return byEvidenceId;
+}
+
+async function loadEvidenceIdsForParticipantLearner(
+  familyId: string,
+  learnerId: string,
+) {
+  const response = await supabase
+    .from("evidence_entry_learner_links")
+    .select("evidence_entry_id")
+    .eq("family_id", familyId)
+    .eq("learner_id", learnerId);
+
+  if (response.error) {
+    if (isMissingEvidenceLearnerLinks(response.error)) return null;
+    throw response.error;
+  }
+
+  return [
+    ...new Set(
+      ((response.data ?? []) as Array<{ evidence_entry_id?: unknown }>)
+        .map((row) => safe(row.evidence_entry_id))
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export function sortEvidenceEntries(items: CleanEvidenceEntry[]) {
@@ -215,6 +296,8 @@ function sanitizeEvidenceEntryInput(
             .map((entry) => safe(entry))
             .filter((entry) => Boolean(entry))
         : undefined,
+    capture_source:
+      "captureSource" in input ? normalizeNullString(input.captureSource) : undefined,
     include_in_portfolio:
       "includeInPortfolio" in input && input.includeInPortfolio !== undefined
         ? input.includeInPortfolio === true
@@ -235,6 +318,13 @@ export async function listCleanEvidenceEntries(
   const calendarItemId = safe(options.calendarItemId);
   const fromDate = sanitizeDate(options.fromDate);
   const toDate = sanitizeDate(options.toDate);
+  const linkedEvidenceIds = learnerId
+    ? await loadEvidenceIdsForParticipantLearner(familyId, learnerId)
+    : null;
+
+  if (learnerId && Array.isArray(linkedEvidenceIds) && !linkedEvidenceIds.length) {
+    return [];
+  }
 
   async function runQuery(selectProjection: string) {
     let query = supabase
@@ -245,7 +335,9 @@ export async function listCleanEvidenceEntries(
       .order("created_at", { ascending: false });
 
     if (learnerId) {
-      query = query.eq("learner_id", learnerId);
+      query = Array.isArray(linkedEvidenceIds)
+        ? query.in("id", linkedEvidenceIds)
+        : query.eq("learner_id", learnerId);
     }
 
     if (programId) {
@@ -287,11 +379,47 @@ export async function listCleanEvidenceEntries(
     );
   }
 
-  return sortEvidenceEntries(
-    (((response.data ?? []) as unknown) as EvidenceEntryRow[]).map((row) =>
-      toCleanEvidenceEntry(row),
-    ),
+  const rows = ((response.data ?? []) as unknown) as EvidenceEntryRow[];
+  const participantIdsByEvidenceId = await loadParticipantIdsByEvidenceId(
+    familyId,
+    rows.map((row) => row.id),
   );
+
+  return sortEvidenceEntries(
+    rows.map((row) => toCleanEvidenceEntry(row, participantIdsByEvidenceId.get(safe(row.id)))),
+  );
+}
+
+async function saveEvidenceEntryParticipantLinks(
+  familyId: string,
+  entryId: string,
+  participantLearnerIds: string[],
+  createdByUserId: string,
+) {
+  const learnerIds = normalizeParticipantLearnerIds(null, participantLearnerIds);
+  if (!learnerIds.length) throw new Error("Choose at least one learner.");
+
+  const response = await supabase
+    .from("evidence_entry_learner_links")
+    .upsert(
+      learnerIds.map((learnerId) => ({
+        family_id: familyId,
+        evidence_entry_id: entryId,
+        learner_id: learnerId,
+        created_by_user_id: createdByUserId,
+      })),
+      { onConflict: "evidence_entry_id,learner_id", ignoreDuplicates: true },
+    );
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(
+        response.error,
+        "We could not connect this learning record to every selected learner.",
+        "evidence",
+      ),
+    );
+  }
 }
 
 export async function createCleanEvidenceEntry(
@@ -304,6 +432,10 @@ export async function createCleanEvidenceEntry(
   }
 
   const payload = sanitizeEvidenceEntryInput(input);
+  const participantLearnerIds = normalizeParticipantLearnerIds(
+    payload.learner_id,
+    input.participantLearnerIds,
+  );
 
   if (!safe(payload.learner_id)) {
     throw new Error("A learner is required.");
@@ -322,6 +454,7 @@ export async function createCleanEvidenceEntry(
     .insert({
       family_id: familyId,
       learner_id: payload.learner_id,
+      capture_source: payload.capture_source ?? null,
       program_id: payload.program_id ?? null,
       calendar_item_id: payload.calendar_item_id ?? null,
       observed_on: payload.observed_on,
@@ -350,8 +483,24 @@ export async function createCleanEvidenceEntry(
     );
   }
 
-  const entry = toCleanEvidenceEntry(response.data as EvidenceEntryRow);
-  notifyCleanEvidenceChanged({ familyId, learnerId: entry.learnerId, source: "evidence-created" });
+  try {
+    await saveEvidenceEntryParticipantLinks(
+      familyId,
+      safe(response.data.id),
+      participantLearnerIds,
+      currentUserId,
+    );
+  } catch (error) {
+    await supabase
+      .from("evidence_entries")
+      .delete()
+      .eq("family_id", familyId)
+      .eq("id", safe(response.data.id));
+    throw error;
+  }
+
+  const entry = toCleanEvidenceEntry(response.data as EvidenceEntryRow, participantLearnerIds);
+  notifyCleanEvidenceChanged({ familyId, learnerId: null, source: "evidence-created" });
   return entry;
 }
 

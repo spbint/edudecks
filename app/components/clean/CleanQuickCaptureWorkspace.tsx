@@ -46,7 +46,37 @@ import {
   useCaptureNetworkHint,
 } from "@/lib/clean/evidence/captureNetworkStatus";
 
-const MAX_CAPTION_LENGTH = 280;
+const MAX_CHRONICLE_LENGTH = 1200;
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionErrorEventLike = {
+  error?: string;
+};
+
+type SpeechRecognitionResultEventLike = {
+  resultIndex: number;
+  results: ArrayLike<{
+    0?: { transcript?: string };
+    isFinal: boolean;
+  }>;
+};
+
+type SpeechWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
 
 const buttonStyle: React.CSSProperties = {
   minHeight: 44,
@@ -118,6 +148,9 @@ export default function CleanQuickCaptureWorkspace() {
   const returnPath = safeQuickCaptureReturnPath(searchParams.get("returnTo"));
   const mobileCompanion = useMobileCompanion();
   const [learnerId, setLearnerId] = useState(requestedLearnerId);
+  const [selectedLearnerIds, setSelectedLearnerIds] = useState<string[]>(
+    requestedLearnerId ? [requestedLearnerId] : [],
+  );
   const [observedOn, setObservedOn] = useState(
     /^\d{4}-\d{2}-\d{2}$/.test(requestedObservedOn) ? requestedObservedOn : getTodayDate,
   );
@@ -137,8 +170,14 @@ export default function CleanQuickCaptureWorkspace() {
   const [photoUploadError, setPhotoUploadError] = useState("");
   const [sharingOpen, setSharingOpen] = useState(false);
   const [learningAreaOpen, setLearningAreaOpen] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechListening, setSpeechListening] = useState(false);
+  const [speechMessage, setSpeechMessage] = useState("");
   const quickCaptureTopRef = useRef<HTMLElement | null>(null);
   const quickCaptureFormRef = useRef<HTMLFormElement | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const speechTranscriptUsedRef = useRef(false);
+  const speechStoppedManuallyRef = useRef(false);
   const mobileEditingTimeoutRef = useRef<number | null>(null);
   const submissionIdRef = useRef("");
   const openedTrackedRef = useRef(false);
@@ -196,14 +235,25 @@ export default function CleanQuickCaptureWorkspace() {
     });
   }, [requestedCalendarItemId, requestedProgramId, user?.id, workspace.profile]);
 
-  const selectedLearner = useMemo(
-    () => workspace.learners.find((learner) => learner.id === learnerId) ?? null,
-    [learnerId, workspace.learners],
-  );
+  const selectedParticipantLearners = selectedLearnerIds
+    .map((id) => workspace.learners.find((learner) => learner.id === id) ?? null)
+    .filter(Boolean) as typeof workspace.learners;
+  const selectedParticipantLabel = selectedParticipantLearners.length
+    ? selectedParticipantLearners.map((learner) => learnerLabel(learner)).join(", ")
+    : "";
   const savedLearner = savedEntry
     ? workspace.learners.find((learner) => learner.id === savedEntry.learnerId) ?? null
     : null;
-  const savedLearnerLabel = savedLearner ? learnerLabel(savedLearner) : "Your learner";
+  const savedParticipantLearners = savedEntry
+    ? (savedEntry.participantLearnerIds ?? [savedEntry.learnerId])
+        .map((id) => workspace.learners.find((learner) => learner.id === id) ?? null)
+        .filter(Boolean) as typeof workspace.learners
+    : [];
+  const savedLearnerLabel = savedParticipantLearners.length
+    ? savedParticipantLearners.map((learner) => learnerLabel(learner)).join(", ")
+    : savedLearner
+      ? learnerLabel(savedLearner)
+      : "Your learner";
   const successHandoff = savedEntry
     ? buildQuickCaptureSuccessHandoff({
         evidenceId: savedEntry.id,
@@ -257,20 +307,34 @@ export default function CleanQuickCaptureWorkspace() {
   useEffect(() => {
     if (!workspace.learners.length) return;
     if (requestedLearnerId && workspace.learners.some((learner) => learner.id === requestedLearnerId)) {
-      setLearnerId(requestedLearnerId);
+      if (learnerId !== requestedLearnerId) setLearnerId(requestedLearnerId);
+      if (selectedLearnerIds.length !== 1 || selectedLearnerIds[0] !== requestedLearnerId) {
+        setSelectedLearnerIds([requestedLearnerId]);
+      }
       return;
     }
-    if (!workspace.learners.some((learner) => learner.id === learnerId)) {
-      setLearnerId(workspace.setupStatus.activeLearnerId || workspace.profile?.defaultLearnerId || workspace.learners[0]?.id || "");
+    const validSelectedLearnerIds = selectedLearnerIds.filter((id) =>
+      workspace.learners.some((learner) => learner.id === id),
+    );
+    if (validSelectedLearnerIds.length !== selectedLearnerIds.length) {
+      setSelectedLearnerIds(validSelectedLearnerIds);
+      setLearnerId(validSelectedLearnerIds[0] ?? "");
+      return;
     }
-  }, [learnerId, requestedLearnerId, workspace.learners, workspace.profile?.defaultLearnerId, workspace.setupStatus.activeLearnerId]);
+    if (learnerId && !workspace.learners.some((learner) => learner.id === learnerId)) {
+      setLearnerId(validSelectedLearnerIds[0] ?? "");
+    }
+  }, [learnerId, requestedLearnerId, selectedLearnerIds, workspace.learners]);
 
   useEffect(() => {
     if (!sessionDraftKey || !workspace.learners.length || restoredDraftKeyRef.current === sessionDraftKey) return;
     const draft = readQuickCaptureSessionDraft(sessionDraftKey);
     restoredDraftKeyRef.current = sessionDraftKey;
     if (!draft) return;
-    if (workspace.learners.some((learner) => learner.id === draft.learnerId)) setLearnerId(draft.learnerId);
+    if (workspace.learners.some((learner) => learner.id === draft.learnerId)) {
+      setLearnerId(draft.learnerId);
+      setSelectedLearnerIds([draft.learnerId]);
+    }
     if (/^\d{4}-\d{2}-\d{2}$/.test(draft.observedOn)) setObservedOn(draft.observedOn);
     setCaption(draft.caption);
     setReflection(draft.reflection);
@@ -322,6 +386,25 @@ export default function CleanQuickCaptureWorkspace() {
   }, [attachments.hasSelectedAttachments, attachments.selectedFiles, pathname, user?.id]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const speechWindow = window as SpeechWindow;
+    setSpeechSupported(Boolean(speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition));
+
+    return () => {
+      const recognition = speechRecognitionRef.current;
+      if (!recognition) return;
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {
+        // The browser may already have ended the speech session.
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (
         captureAbandonmentTrackedRef.current ||
@@ -345,17 +428,110 @@ export default function CleanQuickCaptureWorkspace() {
     };
   }, [pathname, user?.id]);
 
+  function toggleLearnerSelection(nextLearnerId: string) {
+    const cleanLearnerId = String(nextLearnerId ?? "").trim();
+    if (!cleanLearnerId) return;
+
+    setSelectedLearnerIds((current) => {
+      const next = current.includes(cleanLearnerId)
+        ? current.filter((id) => id !== cleanLearnerId)
+        : [...current, cleanLearnerId];
+      setLearnerId(next[0] ?? "");
+      return next;
+    });
+  }
+
+  function appendSpeechTranscript(transcript: string) {
+    const cleanTranscript = transcript.trim();
+    if (!cleanTranscript) return;
+    setCaption((current) => {
+      const separator = current.trim() ? " " : "";
+      return `${current}${separator}${cleanTranscript}`.slice(0, MAX_CHRONICLE_LENGTH);
+    });
+    speechTranscriptUsedRef.current = true;
+  }
+
+  function startSpeechInput() {
+    if (typeof window === "undefined" || speechListening) return;
+    const speechWindow = window as SpeechWindow;
+    const RecognitionConstructor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!RecognitionConstructor) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    const recognition = new RecognitionConstructor();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || "en-AU";
+    recognition.onresult = (event) => {
+      const transcriptParts: string[] = [];
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        if (result?.isFinal) transcriptParts.push(result[0]?.transcript ?? "");
+      }
+      appendSpeechTranscript(transcriptParts.join(" "));
+    };
+    recognition.onerror = (event) => {
+      setSpeechMessage(
+        event.error === "not-allowed"
+          ? "Microphone permission was not available. You can keep typing."
+          : "Speech input stopped. You can keep typing.",
+      );
+    };
+    recognition.onend = () => {
+      setSpeechListening(false);
+      setSpeechMessage(
+        speechStoppedManuallyRef.current
+          ? "Speech input stopped. Only the text you keep is saved to MyLearna."
+          : "Speech input ended. You can edit the text before saving.",
+      );
+      speechStoppedManuallyRef.current = false;
+    };
+
+    try {
+      speechRecognitionRef.current = recognition;
+      speechStoppedManuallyRef.current = false;
+      recognition.start();
+      setSpeechListening(true);
+      setSpeechMessage("Listening. Stop when you are finished.");
+      trackProductEvent("learning_chronicle_voice_started", {
+        area: "quick_capture",
+        route: pathname,
+      }, user?.id);
+    } catch {
+      setSpeechListening(false);
+      setSpeechMessage("Speech input could not start. You can keep typing.");
+    }
+  }
+
+  function stopSpeechInput() {
+    const recognition = speechRecognitionRef.current;
+    if (!recognition) return;
+    speechStoppedManuallyRef.current = true;
+    try {
+      recognition.stop();
+    } catch {
+      setSpeechListening(false);
+    }
+  }
+
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMobileEditing(false);
     if (submitting || savedEntry || !workspace.profile) return;
-    const nextCaption = caption.trim().slice(0, MAX_CAPTION_LENGTH);
-    if (!selectedLearner && workspace.learners.length) {
-      setError("Choose the learner for this learning moment.");
+    const nextCaption = caption.trim().slice(0, MAX_CHRONICLE_LENGTH);
+    const participantLearnerIds = selectedLearnerIds.filter((id) =>
+      workspace.learners.some((learner) => learner.id === id),
+    );
+    const primaryLearnerId = participantLearnerIds[0] ?? learnerId;
+    const primaryLearner = workspace.learners.find((learner) => learner.id === primaryLearnerId) ?? null;
+    if (!participantLearnerIds.length || !primaryLearner) {
+      setError("Choose at least one learner for this learning note.");
       return;
     }
     if (!attachments.hasSelectedAttachments && !nextCaption) {
-      setError("Add a photo or a short caption before saving.");
+      setError("Tell MyLearna what happened before saving.");
       return;
     }
     const attachmentValidationError = attachments.validateSelectedAttachments();
@@ -363,13 +539,13 @@ export default function CleanQuickCaptureWorkspace() {
       setError(attachmentValidationError);
       return;
     }
-    if (!learnerId) {
-      setError("Add a learner before saving a learning moment.");
+    if (!primaryLearnerId) {
+      setError("Add a learner before saving a learning note.");
       return;
     }
 
     if (sessionDraftKey) {
-      writeQuickCaptureSessionDraft(sessionDraftKey, { learnerId, observedOn, caption, reflection, learningArea });
+      writeQuickCaptureSessionDraft(sessionDraftKey, { learnerId: primaryLearnerId, observedOn, caption, reflection, learningArea });
     }
 
     setSubmitting(true);
@@ -386,24 +562,26 @@ export default function CleanQuickCaptureWorkspace() {
       }
       const result = await saveUnifiedLearningCapture({
         familyId: workspace.profile.id,
-        learnerId,
+        learnerId: primaryLearnerId,
+        participantLearnerIds,
         learnerContext: {
           familyId: workspace.profile.id,
-          selectedLearnerId: learnerId,
-          sourceLearnerId: learnerId,
+          selectedLearnerId: primaryLearnerId,
+          sourceLearnerId: primaryLearnerId,
           sourceFamilyId: workspace.profile.id,
           sourceType: "quick-capture",
           sourceId: null,
         },
         availableLearners: workspace.learners,
         activityDate: observedOn,
-        title: "Learning moment",
+        title: nextCaption ? nextCaption.slice(0, 80) : "Learning moment",
         whatHappened: nextCaption || "Learning moment captured.",
         parentNote: reflection.trim() || null,
         learningArea: learningArea.trim() || null,
         programId: requestedProgramId || null,
         calendarItemId: requestedCalendarItemId || null,
-        sourceType: "quick-capture",
+        curriculumNodeIds: [],
+        sourceType: "learning-chronicle",
         clientSubmissionId: submissionIdRef.current,
         includeInPortfolio: true,
         includeInReport: true,
@@ -412,7 +590,28 @@ export default function CleanQuickCaptureWorkspace() {
       captureSavedRef.current = true;
       if (sessionDraftKey) clearQuickCaptureSessionDraft(sessionDraftKey);
 
-      trackProductEvent("quick_capture_saved", { area: "quick_capture", route: pathname, hasLearner: true, hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption), hasLearningArea: Boolean(learningArea.trim()) }, user?.id);
+      trackProductEvent("learning_chronicle_saved", {
+        area: "quick_capture",
+        route: pathname,
+        learner_count: participantLearnerIds.length,
+        has_media: attachments.hasSelectedAttachments,
+        used_voice_input: speechTranscriptUsedRef.current,
+      }, user?.id);
+      if (participantLearnerIds.length > 1) {
+        trackProductEvent("learning_chronicle_multi_learner", {
+          area: "quick_capture",
+          route: pathname,
+          learner_count: participantLearnerIds.length,
+          has_media: attachments.hasSelectedAttachments,
+        }, user?.id);
+      }
+      if (speechTranscriptUsedRef.current) {
+        trackProductEvent("learning_chronicle_voice_transcript_used", {
+          area: "quick_capture",
+          route: pathname,
+          learner_count: participantLearnerIds.length,
+        }, user?.id);
+      }
       trackCoreJourneyEvent(
         "capture_save_succeeded",
         {
@@ -423,7 +622,7 @@ export default function CleanQuickCaptureWorkspace() {
           includeInPortfolio: result.entry.includeInPortfolio,
           includeInReport: result.entry.includeInReport,
           sourceSurface: "quick_capture",
-          captureMode: "quick",
+          captureMode: "learning_chronicle",
           isEdit: false,
         },
         user?.id,
@@ -497,16 +696,16 @@ export default function CleanQuickCaptureWorkspace() {
       setError(
         `${normalizeCleanErrorMessage(saveError, "We could not save this learning moment.")} ${captureRecoveryMessage(networkHint)}`,
       );
-      trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: Boolean(learnerId), hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption) }, user?.id);
+      trackProductEvent("quick_capture_save_failed", { area: "quick_capture", route: pathname, hasLearner: Boolean(primaryLearnerId), hasImage: Boolean(attachments.photoFile), hasCaption: Boolean(nextCaption) }, user?.id);
       trackCoreJourneyEvent(
         "capture_save_failed",
         {
           area: "quick_capture",
           route: pathname,
-          hasLearner: Boolean(learnerId),
+          hasLearner: Boolean(primaryLearnerId),
           hasAttachment: attachments.hasSelectedAttachments,
           sourceSurface: "quick_capture",
-          captureMode: "quick",
+          captureMode: "learning_chronicle",
           isEdit: false,
           failureStage: "save",
           onlineHint: networkHint,
@@ -600,6 +799,11 @@ export default function CleanQuickCaptureWorkspace() {
     setCaption("");
     setReflection("");
     setLearningArea("");
+    setSelectedLearnerIds(requestedLearnerId ? [requestedLearnerId] : []);
+    setLearnerId(requestedLearnerId || "");
+    setSpeechMessage("");
+    setSpeechListening(false);
+    speechTranscriptUsedRef.current = false;
     attachments.clearSelectedAttachments();
     setObservedOn(getTodayDate());
     setStatus("");
@@ -607,6 +811,134 @@ export default function CleanQuickCaptureWorkspace() {
     submissionIdRef.current = "";
     firstAttachmentTrackedRef.current = false;
   }
+
+  const chronicleTextField = (
+    <label style={{ display: "grid", gap: 8 }}>
+      <span style={{ color: "#17204b", fontWeight: 850 }}>What happened?</span>
+      <textarea
+        aria-label="Tell MyLearna what happened"
+        value={caption}
+        maxLength={MAX_CHRONICLE_LENGTH}
+        onChange={(event) => setCaption(event.target.value)}
+        rows={mobileCompanion ? 6 : 7}
+        placeholder="Tell MyLearna what happened"
+        style={{
+          width: "100%",
+          border: "1px solid #cbd5e1",
+          borderRadius: 12,
+          padding: "12px",
+          font: "inherit",
+          resize: "vertical",
+          minHeight: mobileCompanion ? 150 : 180,
+        }}
+      />
+      <span style={{ color: "#64748b", fontSize: 12 }}>
+        {caption.length}/{MAX_CHRONICLE_LENGTH}
+      </span>
+    </label>
+  );
+
+  const speechControl = speechSupported ? (
+    <div style={{ display: "grid", gap: 6 }}>
+      <button
+        type="button"
+        aria-label={speechListening ? "Stop speech input" : "Speak learning note"}
+        aria-pressed={speechListening}
+        onClick={speechListening ? stopSpeechInput : startSpeechInput}
+        disabled={submitting}
+        style={{
+          ...secondaryButtonStyle,
+          justifySelf: "start",
+          minHeight: 44,
+          background: speechListening ? "#17204b" : "#ffffff",
+          color: speechListening ? "#ffffff" : "#17204b",
+        }}
+      >
+        {speechListening ? "Stop" : "Speak"}
+      </button>
+      {speechMessage ? (
+        <p role="status" aria-live="polite" style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+          {speechMessage}
+        </p>
+      ) : (
+        <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+          Only the text you keep is saved to MyLearna.
+        </p>
+      )}
+    </div>
+  ) : null;
+
+  const learnerSelectionControl = (
+    <fieldset
+      aria-label="Who was involved?"
+      style={{
+        border: "1px solid #e2e8f0",
+        borderRadius: 14,
+        padding: 12,
+        margin: 0,
+        display: "grid",
+        gap: 10,
+        background: "#f8fafc",
+      }}
+    >
+      <legend style={{ color: "#17204b", fontWeight: 850, padding: "0 4px" }}>
+        Who was involved?
+      </legend>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {workspace.learners.map((learner) => {
+          const checked = selectedLearnerIds.includes(learner.id);
+          return (
+            <label
+              key={learner.id}
+              style={{
+                minHeight: 42,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                border: checked ? "1px solid #17204b" : "1px solid #cbd5e1",
+                borderRadius: 12,
+                background: checked ? "#eff6ff" : "#ffffff",
+                color: "#17204b",
+                padding: "8px 10px",
+                fontWeight: 800,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggleLearnerSelection(learner.id)}
+              />
+              <span>{learnerLabel(learner)}</span>
+            </label>
+          );
+        })}
+      </div>
+      {selectedParticipantLabel ? (
+        <span style={{ color: "#475569", fontSize: 13, lineHeight: 1.45 }}>
+          Selected: {selectedParticipantLabel}
+        </span>
+      ) : null}
+    </fieldset>
+  );
+
+  const attachmentControls = (
+    <CleanEvidenceAttachmentControls
+      attachments={attachments}
+      disabled={submitting}
+      uploadsDisabled={portfolioStoragePresentation.level === "full"}
+      storageNotice={portfolioStoragePresentation.message}
+      storageNoticeLevel={portfolioStoragePresentation.level === "none" ? "usage" : portfolioStoragePresentation.level}
+      compact
+      cameraFirst={mobileCompanion}
+      title="Optional photo or file"
+    />
+  );
 
   if (workspace.loading) return <V2LoadingState title="Preparing Quick Capture" body="Your family learning space is loading." />;
   if (workspace.schemaMissing || workspace.error) return <section style={{ padding: 20 }}><h1>Quick Capture is unavailable</h1><p>{workspace.error || "Learning evidence is temporarily unavailable. Try again shortly."}</p></section>;
@@ -721,7 +1053,7 @@ export default function CleanQuickCaptureWorkspace() {
       <style jsx global>{`.mylearna-quick-capture-main fieldset:first-of-type > div { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; } @media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
       <CoreJourneyCue stage="capture" />
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{mobileCompanion ? "Capture learning" : "Quick Capture"}</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>{mobileCompanion ? "Capture learning" : "Quick Capture"}</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>{mobileCompanion ? "Take a photo or write a short note. Save it safely to your learner record." : "Capture a learning moment now. Start a new detailed capture later."}</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learning Chronicle</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Tell MyLearna what happened</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Save a learning note for one or more learners. Photos and files are optional.</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         {restoredDraftNotice ? <p role="status" style={{ margin: 0, color: "#475569", lineHeight: 1.45 }}>{restoredDraftNotice}</p> : null}
         <form
           onSubmit={handleSave}
@@ -736,17 +1068,19 @@ export default function CleanQuickCaptureWorkspace() {
           {mobileCompanion ? <>
             <section aria-label="Capture context" style={{ display: "grid", gap: 8, border: "1px solid #e2e8f0", borderRadius: 14, padding: 12, background: "#f8fafc" }}>
               {requestedCalendarItemId ? <div style={{ display: "grid", gap: 3, color: "#475569", fontSize: 13 }}><strong style={{ color: "#17204b" }}>{requestedActivityTitle || "Planned learning"}</strong><span>{formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</span></div> : null}
-              <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
             </section>
-            <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} uploadsDisabled={portfolioStoragePresentation.level === "full"} storageNotice={portfolioStoragePresentation.message} storageNoticeLevel={portfolioStoragePresentation.level === "none" ? "usage" : portfolioStoragePresentation.level} compact cameraFirst title="Add a photo or file" />
-            <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened?</span><textarea aria-label="What happened?" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Write a short note" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>
+            {chronicleTextField}
+            {speechControl}
+            {learnerSelectionControl}
+            {attachmentControls}
             <details><summary style={{ color: "#4f46b8", fontWeight: 800, cursor: "pointer" }}>Optional details</summary><div style={{ display: "grid", gap: 12, marginTop: 12 }}><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label></div></details>
           </> : <>
-            <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} uploadsDisabled={portfolioStoragePresentation.level === "full"} storageNotice={portfolioStoragePresentation.message} storageNoticeLevel={portfolioStoragePresentation.level === "none" ? "usage" : portfolioStoragePresentation.level} compact />
-            <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
+            {chronicleTextField}
+            {speechControl}
+            {learnerSelectionControl}
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label>
-            <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened? <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Learning moment caption" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Add a short caption" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label>
+            {attachmentControls}
             <div style={{ borderTop: "1px solid #eef0f5", paddingTop: 12 }}><button type="button" onClick={() => setLearningAreaOpen((current) => !current)} aria-expanded={learningAreaOpen} style={{ ...tertiaryButtonStyle, textDecoration: "none", padding: 0 }}>{learningAreaOpen ? "Hide learning area" : "Add learning area"}</button>{learningAreaOpen ? <label style={{ display: "grid", gap: 6, marginTop: 10 }}><span style={{ color: "#17204b", fontWeight: 750 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label> : null}</div>
           </>}
           <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" aria-live="polite" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving learning" : mobileCompanion ? "Save learning" : "Save learning moment"}</button></div>

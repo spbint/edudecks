@@ -9,13 +9,14 @@ const day = readFileSync(join(process.cwd(), "app/components/clean/CleanDayWorks
 const success = readFileSync(join(process.cwd(), "lib/clean/evidence/quickCaptureSuccess.ts"), "utf8");
 
 describe("mobile Capture companion", () => {
-  it("keeps the mobile hierarchy capture-first while retaining desktop Quick Capture", () => {
-    expect(capture).toContain('mobileCompanion ? "Capture learning" : "Quick Capture"');
-    expect(capture).toContain('title="Add a photo or file"');
-    expect(capture).toContain('aria-label="What happened?"');
+  it("keeps the mobile hierarchy Chronicle-first inside Capture", () => {
+    expect(capture).toContain("Learning Chronicle");
+    expect(capture).toContain("Tell MyLearna what happened");
+    expect(capture).toContain('title="Optional photo or file"');
+    expect(capture).toContain('aria-label="Tell MyLearna what happened"');
+    expect(capture).toContain("Who was involved?");
     expect(capture).toContain("Optional details");
     expect(capture).toContain('mobileCompanion ? "Save learning" : "Save learning moment"');
-    expect(capture).toContain('mobileCompanion ? "Capture learning" : "Quick Capture"');
   });
 
   it("makes the existing camera input visually primary without changing its attachment contract", () => {

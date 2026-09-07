@@ -81,13 +81,14 @@ export function getEvidenceProgressLevel(reflection: string | null | undefined) 
 export function getEvidencePresentationMeta(item: CleanPortfolioItem): EvidencePresentationMeta {
   const pathwayContext = parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds);
   const learningMoment = /(?:^|\n)source\s*:\s*learning moment/i.test(item.evidence.reflection || "");
+  const learningChronicle = item.evidence.captureSource === "learning_chronicle";
   const stepLabel =
     pathwayContext?.stepNumber && pathwayContext.stepTitle
       ? `Step ${pathwayContext.stepNumber} - ${pathwayContext.stepTitle}`
       : pathwayContext?.stepTitle || null;
 
   return {
-    sourceLabel: pathwayContext ? "My Pathways" : learningMoment ? "Learning Moment" : "My Capture",
+    sourceLabel: pathwayContext ? "My Pathways" : learningChronicle ? "Learning Chronicle" : learningMoment ? "Learning Moment" : "My Capture",
     pathwayLabel: pathwayContext?.pathwayLabel || pathwayContext?.pathwayKey || null,
     strandLabel: pathwayContext?.pathwayLabel || pathwayContext?.pathwayKey || null,
     stageLabel: pathwayContext?.stageLabel || pathwayContext?.stageKey || null,
@@ -96,6 +97,23 @@ export function getEvidencePresentationMeta(item: CleanPortfolioItem): EvidenceP
     hasAttachment:
       Boolean(item.evidence.imageUrl) || Boolean(item.evidence.attachmentUrls.length),
   };
+}
+
+export function buildEvidenceLearnerLabel(
+  evidence: Pick<CleanEvidenceEntry, "learnerId" | "participantLearnerIds">,
+  learnerLabelById: Map<string, string>,
+  fallback?: string | null,
+) {
+  const participantLabels = [
+    ...new Set(
+      (evidence.participantLearnerIds?.length ? evidence.participantLearnerIds : [evidence.learnerId])
+        .map((learnerId) => learnerLabelById.get(learnerId))
+        .filter(Boolean) as string[],
+    ),
+  ];
+
+  if (participantLabels.length) return participantLabels.join(", ");
+  return fallback || "Unknown learner";
 }
 
 function cleanParentFacingEvidenceText(value: string | null | undefined) {
@@ -165,10 +183,11 @@ export function buildReportPdfEvidenceItems(
       id: item.evidence.id,
       title: item.evidence.title || item.evidence.whatHappened,
       observedOn: item.evidence.observedOn,
-      learnerLabel:
-        options.learnerLabelById.get(item.evidence.learnerId) ||
-        options.selectedLearnerLabel ||
-        "Unknown learner",
+      learnerLabel: buildEvidenceLearnerLabel(
+        item.evidence,
+        options.learnerLabelById,
+        options.selectedLearnerLabel,
+      ),
       learningArea: item.evidence.learningArea || linkedCalendarItem?.learningArea || null,
       programTitle,
       segmentTitle,
