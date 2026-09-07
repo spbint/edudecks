@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import {
   FREE_PORTFOLIO_STORAGE_FULL_MESSAGE,
+  normalizePlatformGuardrailMessage,
 } from "@/lib/clean/entitlements/freeGuardrails";
 import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 
@@ -378,7 +379,7 @@ function logFamilyEvidenceAttachmentDiagnostic(
 
 function normalizeAttachmentUploadErrorMessage(error: unknown, fallback: string) {
   const row = asObject(error);
-  const message = safe(row?.message) || fallback;
+  const message = normalizePlatformGuardrailMessage(row ?? error, fallback);
   if (/portfolio storage is full|storage allowance|exceed/i.test(message)) {
     return FREE_PORTFOLIO_STORAGE_FULL_MESSAGE;
   }

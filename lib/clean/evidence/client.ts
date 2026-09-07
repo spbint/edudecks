@@ -14,6 +14,7 @@ import {
   removeFamilyEvidenceFiles,
   summarizeFamilyEvidenceAttachments,
 } from "@/lib/familyEvidence";
+import { normalizePlatformGuardrailMessage } from "@/lib/clean/entitlements/freeGuardrails";
 
 type EvidenceEntryRow = {
   id: string;
@@ -338,10 +339,13 @@ export async function createCleanEvidenceEntry(
 
   if (response.error || !response.data) {
     throw new Error(
-      normalizeCleanErrorMessage(
+      normalizePlatformGuardrailMessage(
         response.error,
-        "Unable to create the clean evidence entry.",
-        "evidence",
+        normalizeCleanErrorMessage(
+          response.error,
+          "Unable to create the clean evidence entry.",
+          "evidence",
+        ),
       ),
     );
   }

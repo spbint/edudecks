@@ -5,8 +5,12 @@ import {
   FREE_FAMILY_PORTFOLIO_STORAGE_BYTES,
   FREE_PORTFOLIO_STORAGE_FULL_MESSAGE,
   FREE_PORTFOLIO_STORAGE_NEAR_LIMIT_MESSAGE,
+  MEDIA_UPLOADS_PAUSED_MESSAGE,
+  NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE,
+  PLATFORM_RATE_LIMIT_MESSAGE,
   getLearnerAbuseCeilingState,
   getFreePortfolioStoragePresentation,
+  normalizePlatformGuardrailMessage,
   wouldExceedFreePortfolioStorageAllowance,
   type FreePortfolioStorageUsage,
 } from "@/lib/clean/entitlements/freeGuardrails";
@@ -124,5 +128,25 @@ describe("MyLearna Free V1 guardrails", () => {
         2 * 1024 * 1024,
       ),
     ).toBe(true);
+  });
+
+  it("normalizes operational circuit-breaker and throttle messages without entitlement copy", () => {
+    expect(
+      normalizePlatformGuardrailMessage(
+        new Error("MyLearna is temporarily pausing new family setup. Please try again shortly."),
+        "fallback",
+      ),
+    ).toBe(NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE);
+
+    expect(
+      normalizePlatformGuardrailMessage(
+        new Error("Media uploads are temporarily unavailable."),
+        "fallback",
+      ),
+    ).toBe(MEDIA_UPLOADS_PAUSED_MESSAGE);
+
+    expect(normalizePlatformGuardrailMessage(new Error("too many requests"), "fallback")).toBe(
+      PLATFORM_RATE_LIMIT_MESSAGE,
+    );
   });
 });

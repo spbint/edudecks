@@ -4,6 +4,11 @@ import {
   encodeAuthorityReportingModeForSave,
   getCanonicalAuthorityReportingMode,
 } from "@/lib/clean/authority/brent";
+import {
+  NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE,
+  normalizePlatformGuardrailMessage,
+  type PlatformRuntimeControlState,
+} from "@/lib/clean/entitlements/freeGuardrails";
 import type {
   CreateCleanFamilyProfileInput,
   FamilyMember,
@@ -48,6 +53,16 @@ function safe(value: unknown) {
 function normalizeNullString(value: unknown) {
   const text = safe(value);
   return text || null;
+}
+
+function isMissingRuntimeControlFunction(error: unknown) {
+  const message = safe((error as { message?: unknown })?.message).toLowerCase();
+  const code = safe((error as { code?: unknown })?.code);
+  return (
+    code === "PGRST202" ||
+    code === "42883" ||
+    (message.includes("function") && message.includes("mylearna_get_runtime_control_state"))
+  );
 }
 
 function toFamilyProfile(row: FamilyProfileRow): FamilyProfile {
@@ -320,6 +335,11 @@ export async function createCleanFamilyProfile(
     throw new Error("A family display name is required.");
   }
 
+  const activationState = await loadPlatformRuntimeControlState("new_family_activation");
+  if (activationState && !activationState.isEnabled) {
+    throw new Error(NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE);
+  }
+
   const profilePayload = sanitizeFamilyProfileInput({
     ...input,
     displayName,
@@ -344,10 +364,40 @@ export async function createCleanFamilyProfile(
     .maybeSingle();
 
   if (profileResp.error || !profileResp.data) {
-    throw profileResp.error ?? new Error("Unable to create the clean family profile.");
+    throw new Error(
+      normalizePlatformGuardrailMessage(
+        profileResp.error,
+        "Unable to create the clean family profile.",
+      ),
+    );
   }
 
   return toFamilyProfile(profileResp.data as FamilyProfileRow);
+}
+
+export async function loadPlatformRuntimeControlState(
+  controlKey: PlatformRuntimeControlState["controlKey"],
+): Promise<PlatformRuntimeControlState | null> {
+  const response = await supabase
+    .rpc("mylearna_get_runtime_control_state", { p_control_key: controlKey })
+    .maybeSingle();
+
+  if (response.error) {
+    if (isMissingRuntimeControlFunction(response.error)) return null;
+    throw response.error;
+  }
+
+  const row = (response.data ?? {}) as {
+    control_key?: unknown;
+    is_enabled?: unknown;
+    reason_code?: unknown;
+  };
+
+  return {
+    controlKey,
+    isEnabled: row.is_enabled !== false,
+    reasonCode: normalizeNullString(row.reason_code),
+  };
 }
 
 export async function updateCleanFamilyProfile(

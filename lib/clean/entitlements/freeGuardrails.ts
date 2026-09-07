@@ -6,6 +6,22 @@ export const FREE_PORTFOLIO_STORAGE_FULL_MESSAGE =
   "Your Portfolio storage is full for this learning year. Everything you've already captured is safe. You can continue using MyLearna and adding text learning records.";
 export const FREE_PORTFOLIO_STORAGE_NEAR_LIMIT_MESSAGE =
   "Your Portfolio is nearly at this year's storage allowance.";
+export const PLATFORM_RATE_LIMIT_MESSAGE =
+  "That's a lot of activity at once. Please wait a moment and try again.";
+export const NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE =
+  "MyLearna is temporarily pausing new family setup. Please try again shortly.";
+export const MEDIA_UPLOADS_PAUSED_MESSAGE =
+  "Media uploads are temporarily unavailable. You can still save a text learning record and use the rest of MyLearna.";
+
+export type PlatformRuntimeControlKey =
+  | "new_family_activation"
+  | "evidence_media_uploads";
+
+export type PlatformRuntimeControlState = {
+  controlKey: PlatformRuntimeControlKey;
+  isEnabled: boolean;
+  reasonCode: string | null;
+};
 
 export type LearnerAbuseCeilingState = {
   learnerCount: number;
@@ -84,4 +100,18 @@ export function wouldExceedFreePortfolioStorageAllowance(
   incomingBytes: number,
 ) {
   return Math.max(0, incomingBytes) > Math.max(0, usage.remainingBytes);
+}
+
+export function normalizePlatformGuardrailMessage(error: unknown, fallback: string) {
+  const message = String((error as { message?: unknown })?.message ?? fallback).trim();
+  if (/temporarily pausing new family setup/i.test(message)) {
+    return NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE;
+  }
+  if (/media uploads are temporarily unavailable/i.test(message)) {
+    return MEDIA_UPLOADS_PAUSED_MESSAGE;
+  }
+  if (/lot of activity at once|rate limit|too many requests/i.test(message)) {
+    return PLATFORM_RATE_LIMIT_MESSAGE;
+  }
+  return message || fallback;
 }

@@ -11,6 +11,7 @@ import type {
 import {
   LEARNER_ABUSE_CEILING_MESSAGE,
   getLearnerAbuseCeilingState,
+  normalizePlatformGuardrailMessage,
 } from "@/lib/clean/entitlements/freeGuardrails";
 
 type LearnerRow = {
@@ -136,7 +137,12 @@ export async function createCleanLearner(
     .maybeSingle();
 
   if (response.error || !response.data) {
-    throw response.error ?? new Error("Unable to create the learner.");
+    throw new Error(
+      normalizePlatformGuardrailMessage(
+        response.error,
+        "Unable to create the learner.",
+      ),
+    );
   }
 
   return toLearner(response.data as LearnerRow);

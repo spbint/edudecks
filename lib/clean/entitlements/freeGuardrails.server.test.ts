@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 
 const readSource = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const migration = readSource("supabase/migrations/20260907072856_free_v1_usage_guardrails.sql");
+const platformMigration = readSource(
+  "supabase/migrations/20260907101740_free_platform_abuse_protections.sql",
+);
 const learnerMigration = readdirSync(join(process.cwd(), "supabase/migrations"))
   .map((name) => readSource(`supabase/migrations/${name}`))
   .find((source) => source.includes("mylearna_enforce_learner_abuse_ceiling")) || "";
@@ -11,6 +14,8 @@ const learnerMigration = readdirSync(join(process.cwd(), "supabase/migrations"))
 const learnerClient = readSource("lib/clean/learners/client.ts");
 const profileWorkspace = readSource("app/components/clean/CleanProfileWorkspace.tsx");
 const familyEvidence = readSource("lib/familyEvidence.ts");
+const familyClient = readSource("lib/clean/family/client.ts");
+const entitlementSource = readSource("lib/clean/entitlements/freeGuardrails.ts");
 const evidenceClient = readSource("lib/clean/evidence/client.ts");
 const unifiedCapture = readSource("lib/clean/evidence/unifiedCapture.ts");
 const captureWorkspace = readSource("app/components/clean/CleanCaptureWorkspace.tsx");
@@ -36,8 +41,10 @@ describe("MyLearna Free V1 learner guardrails", () => {
     expect(learnerMigration).toContain("for update;");
     expect(learnerMigration).toContain("before insert on public.learners");
     expect(learnerMigration).toContain(
-      "We couldn't add another learner to this family. Please contact MyLearna support if you need help.",
+      "We couldn''t add another learner to this family. Please contact MyLearna support if you need help.",
     );
+    expect(platformMigration).toContain("learner_abuse_ceiling_triggered");
+    expect(platformMigration).toContain("mylearna_learner_creation_rate_limit_before_insert");
   });
 
   it("removes legacy customer-facing 3-learner Free copy", () => {
@@ -54,6 +61,90 @@ describe("MyLearna Free V1 learner guardrails", () => {
   });
 });
 
+describe("MyLearna Free V1 platform circuit breakers", () => {
+  it("keeps new family activation enabled by default but blockable at the DB write path", () => {
+    expect(platformMigration).toContain("create table if not exists public.mylearna_runtime_controls");
+    expect(platformMigration).toContain("'new_family_activation', true");
+    expect(platformMigration).toContain("mylearna_enforce_new_family_activation_enabled");
+    expect(platformMigration).toContain(
+      "before insert on public.family_profiles",
+    );
+    expect(platformMigration).toContain(
+      "MyLearna is temporarily pausing new family setup. Please try again shortly.",
+    );
+    expect(platformMigration).toContain("signup_temporarily_blocked");
+    expect(familyClient).toContain("loadPlatformRuntimeControlState(\"new_family_activation\")");
+    expect(familyClient).toContain("NEW_FAMILY_ACTIVATION_PAUSED_MESSAGE");
+  });
+
+  it("keeps existing authenticated families usable when activation is disabled", () => {
+    expect(platformMigration).not.toContain("before update on public.family_profiles");
+    expect(platformMigration).not.toContain("before insert on public.family_members");
+    expect(platformMigration).not.toContain("on public.reports");
+    expect(platformMigration).not.toContain("on public.report_exports");
+    expect(platformMigration).not.toContain("on public.calendar_items");
+  });
+
+  it("blocks new evidence media uploads authoritatively while preserving text-only evidence creation", () => {
+    expect(platformMigration).toContain("'evidence_media_uploads', true");
+    expect(platformMigration).toContain("mylearna_runtime_control_enabled('evidence_media_uploads')");
+    expect(platformMigration).toContain("mylearna_reserve_evidence_attachment_upload");
+    expect(platformMigration).toContain("mylearna_evidence_attachment_upload_reserved");
+    expect(platformMigration).toContain("mylearna_apply_storage_insert_to_free_quota");
+    expect(platformMigration).toContain("evidence_upload_blocked");
+    expect(platformMigration).toContain(
+      "Media uploads are temporarily unavailable. You can still save a text learning record and use the rest of MyLearna.",
+    );
+    expect(unifiedCapture).not.toContain("mylearna_reserve_evidence_attachment_upload");
+    expect(evidenceClient).toContain("normalizePlatformGuardrailMessage");
+  });
+
+  it("uses non-customer-facing runtime controls with no normal-user mutation access", () => {
+    expect(platformMigration).toContain("alter table public.mylearna_runtime_controls enable row level security");
+    expect(platformMigration).toContain("revoke all on public.mylearna_runtime_controls from authenticated");
+    expect(platformMigration).toContain("grant execute on function public.mylearna_get_runtime_control_state(text) to authenticated");
+    expect(platformMigration).not.toMatch(/create policy .*mylearna_runtime_controls/i);
+    expect(`${captureWorkspace}\n${quickCaptureWorkspace}\n${portfolioWorkspace}`).not.toMatch(
+      /circuit breaker|rate limit|Supabase|anti abuse/i,
+    );
+  });
+});
+
+describe("MyLearna Free V1 durable mutation throttles", () => {
+  it("rate-limits only expensive mutation paths with generous fixed hourly windows", () => {
+    expect(platformMigration).toContain("mylearna_mutation_rate_limit_buckets");
+    expect(platformMigration).toContain("when 'evidence_attachment_reservation' then 120");
+    expect(platformMigration).toContain("when 'evidence_record_creation' then 300");
+    expect(platformMigration).toContain("when 'learner_creation' then 20");
+    expect(platformMigration).toContain("window_seconds integer := 3600");
+    expect(platformMigration).toContain("for update;");
+    expect(platformMigration).toContain("expires_at < now()");
+    expect(platformMigration).toContain("limit 500");
+    expect(platformMigration).toContain(
+      "That''s a lot of activity at once. Please wait a moment and try again.",
+    );
+  });
+
+  it("scopes durable rate-limit state per family and user so one family cannot consume another", () => {
+    expect(platformMigration).toContain("current_scope_key := p_family_id::text || ':' || auth.uid()::text");
+    expect(platformMigration).toContain("primary key (scope_key, action_key, window_start)");
+    expect(platformMigration).toContain("public.is_family_member(p_family_id)");
+    expect(platformMigration).toContain("mylearna_evidence_record_rate_limit_before_insert");
+    expect(platformMigration).toContain("before insert on public.evidence_entries");
+    expect(platformMigration).toContain("mylearna_learner_creation_rate_limit_before_insert");
+    expect(platformMigration).toContain("before insert on public.learners");
+    expect(platformMigration).toContain("mylearna_enforce_mutation_rate_limit(");
+  });
+
+  it("records bounded guardrail events without sensitive child, email, filename, or evidence content", () => {
+    expect(platformMigration).toContain("mylearna_guardrail_event_buckets");
+    expect(platformMigration).toContain("event_scope_key text not null");
+    expect(platformMigration).toContain("event_count = public.mylearna_guardrail_event_buckets.event_count + 1");
+    expect(platformMigration).toContain("updated_at < now() - interval '30 days'");
+    expect(platformMigration).not.toMatch(/child_name|learner_name|email|filename|file_name|what_happened|evidence_content/i);
+  });
+});
+
 describe("MyLearna Free V1 portfolio storage guardrails", () => {
   it("uses the canonical family academic year for the 250 MB evidence attachment allowance", () => {
     expect(migration).toContain("family_evidence_storage_usage");
@@ -63,6 +154,7 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
     expect(migration).toContain("ay.starts_on <= target_observed_on");
     expect(migration).toContain("ay.ends_on >= target_observed_on");
     expect(migration).toContain("evidence_row.observed_on");
+    expect(entitlementSource).toContain("FREE_FAMILY_PORTFOLIO_STORAGE_BYTES = 250 * 1024 * 1024");
   });
 
   it("counts only family-owned uploaded evidence attachment bytes from Supabase storage metadata", () => {
@@ -90,12 +182,18 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
   });
 
   it("handles exact allowance, overage, combined attachments, concurrency, and year separation server-side", () => {
+    expect(platformMigration).toContain("mylearna_reserve_evidence_attachment_upload");
     expect(migration).toContain(
       "p_byte_size > greatest(0, usage_row.allowance_bytes - usage_row.used_bytes - usage_row.reserved_bytes)",
     );
+    expect(platformMigration).toContain(
+      "p_byte_size > greatest(0, usage_row.allowance_bytes - usage_row.used_bytes - usage_row.reserved_bytes)",
+    );
     expect(migration).toContain("reserved_bytes = reserved_bytes + p_byte_size");
+    expect(platformMigration).toContain("reserved_bytes = reserved_bytes + p_byte_size");
     expect(migration).toContain("for update");
     expect(migration).toContain("byte_size <= 10485760");
+    expect(platformMigration).toContain("p_byte_size > 10485760");
     expect(migration).toContain("after insert on storage.objects");
     expect(migration).toContain("after delete on storage.objects");
     expect(migration).toContain("used_bytes = used_bytes + actual_size");
@@ -131,5 +229,12 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
     expect(
       `${familyEvidence}\n${captureWorkspace}\n${quickCaptureWorkspace}\n${portfolioWorkspace}`,
     ).not.toMatch(/Upgrade now|Stripe|checkout|paid storage/i);
+  });
+
+  it("does not let abuse protections multiply or alter the family/year media allowance", () => {
+    expect(platformMigration).not.toMatch(/allowance_bytes\s*=\s*allowance_bytes\s*\+/i);
+    expect(platformMigration).not.toMatch(/learner_id.*allowance_bytes/i);
+    expect(platformMigration).not.toMatch(/per learner|per_learner/i);
+    expect(`${migration}\n${platformMigration}\n${entitlementSource}`).toContain("262144000");
   });
 });
