@@ -10,6 +10,10 @@ import type {
   CleanEvidenceEntryUpdate,
 } from "@/lib/clean/evidence/types";
 import { requestCoachStateRefresh, type CoachRefreshSource } from "@/lib/clean/coach/coachRefresh";
+import {
+  removeFamilyEvidenceFiles,
+  summarizeFamilyEvidenceAttachments,
+} from "@/lib/familyEvidence";
 
 type EvidenceEntryRow = {
   id: string;
@@ -396,6 +400,33 @@ export async function deleteCleanEvidenceEntry(
   entryId: string,
   learnerId?: string,
 ) {
+  const existing = await supabase
+    .from("evidence_entries")
+    .select("learner_id,attachment_urls,image_url,file_url,audio_url")
+    .eq("family_id", familyId)
+    .eq("id", entryId)
+    .maybeSingle();
+
+  if (existing.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(
+        existing.error,
+        "Unable to confirm the clean evidence entry before deleting it.",
+        "evidence",
+      ),
+    );
+  }
+
+  if (existing.data) {
+    const attachmentSummary = summarizeFamilyEvidenceAttachments(existing.data);
+    const storagePaths = attachmentSummary.attachments
+      .map((attachment) => attachment.path)
+      .filter(Boolean) as string[];
+    if (storagePaths.length) {
+      await removeFamilyEvidenceFiles(storagePaths);
+    }
+  }
+
   const response = await supabase
     .from("evidence_entries")
     .delete()
@@ -412,5 +443,9 @@ export async function deleteCleanEvidenceEntry(
     );
   }
 
-  notifyCleanEvidenceChanged({ familyId, learnerId, source: "evidence-deleted" });
+  notifyCleanEvidenceChanged({
+    familyId,
+    learnerId: learnerId ?? normalizeNullString(existing.data?.learner_id),
+    source: "evidence-deleted",
+  });
 }

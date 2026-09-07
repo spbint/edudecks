@@ -20,6 +20,11 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { useCleanEvidenceAttachments } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
 import { captureAttachmentCategory } from "@/lib/clean/evidence/captureAnalytics";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
+import {
+  getFreePortfolioStoragePresentation,
+  type FreePortfolioStorageUsage,
+} from "@/lib/clean/entitlements/freeGuardrails";
+import { loadFreePortfolioStorageUsage } from "@/lib/clean/evidence/storageQuota";
 import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import {
   clearQuickCaptureSessionDraft,
@@ -121,6 +126,8 @@ export default function CleanQuickCaptureWorkspace() {
   const [learningArea, setLearningArea] = useState(requestedLearningArea);
   const attachments = useCleanEvidenceAttachments();
   const networkHint = useCaptureNetworkHint();
+  const [portfolioStorageUsage, setPortfolioStorageUsage] =
+    useState<FreePortfolioStorageUsage | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [savePhase, setSavePhase] = useState("");
   const [error, setError] = useState("");
@@ -210,6 +217,10 @@ export default function CleanQuickCaptureWorkspace() {
           : "/my-portfolio",
       })
     : null;
+  const portfolioStoragePresentation = useMemo(
+    () => getFreePortfolioStoragePresentation(portfolioStorageUsage),
+    [portfolioStorageUsage],
+  );
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -217,6 +228,31 @@ export default function CleanQuickCaptureWorkspace() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setPortfolioStorageUsage(null);
+      return;
+    }
+
+    let cancelled = false;
+    loadFreePortfolioStorageUsage(workspace.profile.id, observedOn)
+      .then((usage) => {
+        if (!cancelled) setPortfolioStorageUsage(usage);
+      })
+      .catch(() => {
+        if (!cancelled) setPortfolioStorageUsage(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    observedOn,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
 
   useEffect(() => {
     if (!workspace.learners.length) return;
@@ -702,11 +738,11 @@ export default function CleanQuickCaptureWorkspace() {
               {requestedCalendarItemId ? <div style={{ display: "grid", gap: 3, color: "#475569", fontSize: 13 }}><strong style={{ color: "#17204b" }}>{requestedActivityTitle || "Planned learning"}</strong><span>{formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</span></div> : null}
               <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
             </section>
-            <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} compact cameraFirst title="Add a photo or file" />
+            <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} uploadsDisabled={portfolioStoragePresentation.level === "full"} storageNotice={portfolioStoragePresentation.message} storageNoticeLevel={portfolioStoragePresentation.level === "none" ? "usage" : portfolioStoragePresentation.level} compact cameraFirst title="Add a photo or file" />
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened?</span><textarea aria-label="What happened?" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Write a short note" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>
             <details><summary style={{ color: "#4f46b8", fontWeight: 800, cursor: "pointer" }}>Optional details</summary><div style={{ display: "grid", gap: 12, marginTop: 12 }}><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label></div></details>
           </> : <>
-            <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} compact />
+            <CleanEvidenceAttachmentControls attachments={attachments} disabled={submitting} uploadsDisabled={portfolioStoragePresentation.level === "full"} storageNotice={portfolioStoragePresentation.message} storageNoticeLevel={portfolioStoragePresentation.level === "none" ? "usage" : portfolioStoragePresentation.level} compact />
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learner</span><select aria-label="Choose learner" value={learnerId} onChange={(event) => setLearnerId(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", background: "#ffffff", color: "#17204b", fontWeight: 700 }}>{workspace.learners.map((learner) => <option key={learner.id} value={learner.id}>{learnerLabel(learner)}</option>)}</select></label>
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label>
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 850 }}>What happened? <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Learning moment caption" value={caption} maxLength={MAX_CAPTION_LENGTH} onChange={(event) => setCaption(event.target.value)} rows={4} placeholder="Add a short caption" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /><span style={{ color: "#64748b", fontSize: 12 }}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>

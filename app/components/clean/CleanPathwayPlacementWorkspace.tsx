@@ -21,6 +21,7 @@ import {
   readPathwayPlacement,
   savePathwayPlacement,
 } from "@/lib/clean/pathways/pathwayPlacement";
+import { isCustomerPathwaySubjectActive } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -96,7 +97,9 @@ function getLearnerLabel(learner: Learner | null) {
 
 function getValidSubjectKey(value: string | null): PathwaySubjectKey {
   const subject = PATHWAY_SUBJECTS.find(
-    (candidate) => candidate.key === value && candidate.status === "detailed",
+    (candidate) =>
+      candidate.key === value &&
+      isCustomerPathwaySubjectActive(candidate, DETAILED_SUBJECT_CONFIGS[candidate.key]),
   );
   return subject?.key || DEFAULT_PATHWAY_SUBJECT_KEY;
 }
@@ -187,7 +190,9 @@ function CleanPathwayPlacementWorkspaceBody() {
     ? "/clean-my-profile"
     : "/my-profile";
 
-  const supportedSubjects = PATHWAY_SUBJECTS.filter((subject) => subject.status === "detailed");
+  const supportedSubjects = PATHWAY_SUBJECTS.filter((subject) =>
+    isCustomerPathwaySubjectActive(subject, DETAILED_SUBJECT_CONFIGS[subject.key]),
+  );
   const initialSubjectKey = getValidSubjectKey(searchParams.get("subjectKey"));
   const [selectedLearnerId, setSelectedLearnerId] = useState(
     () => searchParams.get("learnerId") || "",

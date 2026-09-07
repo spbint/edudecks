@@ -8,6 +8,10 @@ import type {
   Learner,
   UpdateCleanLearnerInput,
 } from "@/lib/clean/learners/types";
+import {
+  FREE_FAMILY_LEARNER_LIMIT_MESSAGE,
+  getFreeLearnerLimitState,
+} from "@/lib/clean/entitlements/freeGuardrails";
 
 type LearnerRow = {
   id: string;
@@ -100,6 +104,19 @@ export async function createCleanLearner(
   const payload = sanitizeLearnerInput(input);
   if (!safe(payload.first_name)) {
     throw new Error("A learner first name is required.");
+  }
+
+  const existingLearners = await supabase
+    .from("learners")
+    .select("id", { count: "exact", head: true })
+    .eq("family_id", familyId);
+
+  if (existingLearners.error) {
+    throw existingLearners.error;
+  }
+
+  if (!getFreeLearnerLimitState(existingLearners.count ?? 0).canAddLearner) {
+    throw new Error(FREE_FAMILY_LEARNER_LIMIT_MESSAGE);
   }
 
   const response = await supabase

@@ -44,6 +44,10 @@ import {
   buildPathwayStepReturnHref,
 } from "@/lib/clean/pathways/pathwayNavigationContext";
 import { CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
+import {
+  getPathwaySubjectAvailabilityOptions,
+  isCustomerPathwaySubjectActive,
+} from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 import { supabase } from "@/lib/supabaseClient";
@@ -68,7 +72,6 @@ import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytic
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
-  type PathwaySubjectDefinition,
   type PathwaySubjectKey,
 } from "@/lib/clean/pathways/pathwaySubjects";
 import {
@@ -114,16 +117,6 @@ const helperCardStyle: React.CSSProperties = {
   gap: 8,
 };
 
-const summaryCardStyle: React.CSSProperties = {
-  border: "1px solid #E7EAF2",
-  borderRadius: 16,
-  background: "#ffffff",
-  padding: 14,
-  display: "grid",
-  gap: 8,
-  boxShadow: "0 8px 24px rgba(23,32,75,0.045)",
-};
-
 const curriculumChipStyle: React.CSSProperties = {
   border: "1px solid #E7EAF2",
   borderRadius: 999,
@@ -145,13 +138,18 @@ const EMPTY_STRAND_CARD: SubjectStrandCard = {
   status: "coming-later",
 };
 
-const LIVE_PATHWAY_SUBJECTS = PATHWAY_SUBJECTS.filter((subject) => {
-  const config = DETAILED_SUBJECT_CONFIGS[subject.key];
-  return Boolean(
-    subject.status === "detailed" &&
-      config?.domainCards.some((domain) => Boolean(config.workspaceBuilders[domain.key])),
-  );
-});
+const PATHWAY_SUBJECT_OPTIONS = getPathwaySubjectAvailabilityOptions(
+  PATHWAY_SUBJECTS,
+  DETAILED_SUBJECT_CONFIGS,
+);
+
+const LIVE_PATHWAY_SUBJECTS = PATHWAY_SUBJECT_OPTIONS.filter(
+  (option) => option.selectable,
+).map((option) => option.subject);
+
+const IN_DEVELOPMENT_PATHWAY_SUBJECT_OPTIONS = PATHWAY_SUBJECT_OPTIONS.filter(
+  (option) => !option.selectable,
+);
 
 const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
 const PATHWAYS_INTERACTION_STORAGE_KEY = "mylearna:clean-pathways-interaction:v1";
@@ -1078,7 +1076,12 @@ function PathwaysWorkspaceBody() {
     LIVE_PATHWAY_SUBJECTS.find((subject) => subject.key === selectedSubjectKey) ||
     LIVE_PATHWAY_SUBJECTS[0] ||
     PATHWAY_SUBJECTS[0];
-  const selectedDetailedSubjectConfig = DETAILED_SUBJECT_CONFIGS[selectedSubjectKey] || null;
+  const selectedDetailedSubjectConfig = isCustomerPathwaySubjectActive(
+    selectedSubject,
+    DETAILED_SUBJECT_CONFIGS[selectedSubjectKey],
+  )
+    ? DETAILED_SUBJECT_CONFIGS[selectedSubjectKey] || null
+    : null;
   const selectedSubjectSupportsDetailedPathways = Boolean(selectedDetailedSubjectConfig);
   const selectedStrandKey = selectedDetailedSubjectConfig
     ? selectedStrandKeyBySubject[selectedSubjectKey] || selectedDetailedSubjectConfig.defaultStrandKey
@@ -1784,6 +1787,14 @@ function PathwaysWorkspaceBody() {
   }
 
   function handleSelectSubject(nextSubjectKey: PathwaySubjectKey) {
+    const nextSubject = PATHWAY_SUBJECTS.find((subject) => subject.key === nextSubjectKey);
+    if (
+      !nextSubject ||
+      !isCustomerPathwaySubjectActive(nextSubject, DETAILED_SUBJECT_CONFIGS[nextSubjectKey])
+    ) {
+      return;
+    }
+
     const nextStrandKey =
       DETAILED_SUBJECT_CONFIGS[nextSubjectKey]?.defaultStrandKey ||
       selectedStrandKeyBySubject[nextSubjectKey] ||
@@ -2138,11 +2149,25 @@ function PathwaysWorkspaceBody() {
                       cursor: "pointer",
                     }}
                   >
-                    {LIVE_PATHWAY_SUBJECTS.map((subject) => (
-                      <option key={subject.key} value={subject.key}>
-                        {subject.title}
-                      </option>
-                    ))}
+                    <optgroup label="Active">
+                      {LIVE_PATHWAY_SUBJECTS.map((subject) => (
+                        <option key={subject.key} value={subject.key}>
+                          {subject.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="In development">
+                      {IN_DEVELOPMENT_PATHWAY_SUBJECT_OPTIONS.map((option) => (
+                        <option
+                          key={option.subject.key}
+                          value={option.subject.key}
+                          disabled
+                          aria-label={option.screenReaderLabel}
+                        >
+                          {option.customerLabel}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </label>
                 <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
@@ -2929,9 +2954,7 @@ function PathwaysWorkspaceBody() {
               </section>
             ) : null}
           </>
-        ) : (
-          <PathwaySubjectPlaceholderSection subject={selectedSubject} />
-        )}
+        ) : null}
 
         <details style={helperCardStyle}>
           <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
@@ -2947,63 +2970,6 @@ function PathwaysWorkspaceBody() {
         </details>
       </div>
     </div>
-  );
-}
-
-function PathwaySubjectPlaceholderSection({
-  subject,
-}: {
-  subject: PathwaySubjectDefinition;
-}) {
-  return (
-    <section style={cardStyle}>
-      <div style={{ display: "grid", gap: 18 }}>
-        <div style={{ display: "grid", gap: 8, maxWidth: 820 }}>
-          <div style={eyebrowStyle}>Selected subject</div>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{subject.title} pathways</h2>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{subject.description}</p>
-          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{subject.guidance}</p>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          }}
-        >
-          <section style={helperCardStyle}>
-            <div style={eyebrowStyle}>Likely future strands</div>
-            <div style={{ display: "grid", gap: 8 }}>
-              {subject.futureStrands.map((strand) => (
-                <div key={`${subject.key}-${strand}`} style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {strand}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section style={summaryCardStyle}>
-            <div style={eyebrowStyle}>How this will help</div>
-            <div style={{ display: "grid", gap: 8, color: "#475569", lineHeight: 1.6 }}>
-              <div>Choose a strand or domain inside the subject.</div>
-              <div>Review current focus, next steps, and evidence ideas.</div>
-              <div>Build portfolio and reporting support over time.</div>
-            </div>
-          </section>
-
-          <section style={summaryCardStyle}>
-            <div style={eyebrowStyle}>Current note</div>
-            <div style={{ color: "#475569", lineHeight: 1.6 }}>{subject.placeholderNote}</div>
-            <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-              Mathematics, English, Science, Humanities & Social Sciences, Technologies,
-              Arts, and Health / PE are currently detailed while the wider pathway
-              architecture can still expand into future optional areas later.
-            </div>
-          </section>
-        </div>
-      </div>
-    </section>
   );
 }
 

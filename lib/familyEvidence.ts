@@ -1,4 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
+import {
+  FREE_PORTFOLIO_STORAGE_FULL_MESSAGE,
+} from "@/lib/clean/entitlements/freeGuardrails";
 import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 
 type QueryClient = Pick<typeof supabase, "from">;
@@ -371,6 +374,21 @@ function logFamilyEvidenceAttachmentDiagnostic(
     phase,
     ...details,
   });
+}
+
+function normalizeAttachmentUploadErrorMessage(error: unknown, fallback: string) {
+  const row = asObject(error);
+  const message = safe(row?.message) || fallback;
+  if (/up to 3 learners per family/i.test(message)) {
+    return "MyLearna Free supports up to 3 learners per family.";
+  }
+  if (/portfolio storage is full|storage allowance|exceed/i.test(message)) {
+    return FREE_PORTFOLIO_STORAGE_FULL_MESSAGE;
+  }
+  if (/smaller than 10 mb/i.test(message)) {
+    return "Choose a file smaller than 10 MB.";
+  }
+  return message;
 }
 
 function isEvidenceAttachmentSchemaError(error: unknown) {
@@ -797,6 +815,68 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
   };
 }
 
+async function reserveFamilyEvidenceAttachmentUpload(input: {
+  familyProfileId: string;
+  studentId: string;
+  evidenceId: string;
+  objectPath: string;
+  byteSize: number;
+}) {
+  const response = await supabase.rpc("mylearna_reserve_evidence_attachment_upload", {
+    p_family_id: input.familyProfileId,
+    p_learner_id: input.studentId,
+    p_evidence_entry_id: input.evidenceId,
+    p_object_path: input.objectPath,
+    p_byte_size: input.byteSize,
+  });
+
+  if (response.error) {
+    throw new Error(
+      normalizeAttachmentUploadErrorMessage(
+        response.error,
+        "Attachment upload could not be reserved.",
+      ),
+    );
+  }
+}
+
+async function releaseFamilyEvidenceAttachmentReservation(objectPath: string) {
+  const cleanPath = safe(objectPath);
+  if (!cleanPath) return;
+
+  await supabase.rpc("mylearna_release_evidence_attachment_reservation", {
+    p_object_path: cleanPath,
+  });
+}
+
+export async function removeFamilyEvidenceFiles(
+  attachments: Array<string | UploadedFamilyEvidenceFile | StoredFamilyEvidenceAttachment>,
+) {
+  const paths = unique(
+    attachments
+      .map((attachment) => {
+        if (typeof attachment === "string") return safe(attachment);
+        return safe(attachment.path);
+      })
+      .filter((path) => looksLikeStoragePath(path)),
+  );
+
+  if (!paths.length) return;
+
+  const response = await supabase.storage
+    .from(FAMILY_EVIDENCE_STORAGE_BUCKET)
+    .remove(paths);
+
+  if (response.error) {
+    throw new Error(
+      normalizeAttachmentUploadErrorMessage(
+        response.error,
+        "Uploaded attachment cleanup failed.",
+      ),
+    );
+  }
+}
+
 export async function uploadFamilyEvidenceFiles(input: {
   familyProfileId: string;
   studentId: string;
@@ -818,33 +898,60 @@ export async function uploadFamilyEvidenceFiles(input: {
   for (const file of files) {
     const safeName = sanitizeAttachmentFilename(file.name);
     const objectPath = `family/${familyProfileId}/learner/${studentId}/evidence/${evidenceId}/${uniqueAttachmentToken()}-${safeName}`;
-    const { error: uploadError } = await supabase.storage
-      .from(FAMILY_EVIDENCE_STORAGE_BUCKET)
-      .upload(objectPath, file, {
-        upsert: false,
-        contentType: safe(file.type) || undefined,
+    try {
+      await reserveFamilyEvidenceAttachmentUpload({
+        familyProfileId,
+        studentId,
+        evidenceId,
+        objectPath,
+        byteSize: typeof file.size === "number" ? file.size : 0,
       });
 
-    if (uploadError) {
+      const { error: uploadError } = await supabase.storage
+        .from(FAMILY_EVIDENCE_STORAGE_BUCKET)
+        .upload(objectPath, file, {
+          upsert: false,
+          contentType: safe(file.type) || undefined,
+        });
+
+      if (uploadError) {
+        await releaseFamilyEvidenceAttachmentReservation(objectPath);
+        failed.push({
+          name: file.name,
+          message: normalizeAttachmentUploadErrorMessage(uploadError, "Upload failed."),
+          code: safe((uploadError as unknown as { code?: unknown }).code) || null,
+          status:
+            safe((uploadError as unknown as { statusCode?: unknown }).statusCode) ||
+            safe((uploadError as unknown as { status?: unknown }).status) ||
+            null,
+        });
+        break;
+      }
+
+      uploaded.push({
+        label: safe(file.name) || attachmentLabelFromReference(objectPath),
+        path: objectPath,
+        mimeType: safe(file.type) || null,
+        size: typeof file.size === "number" ? file.size : null,
+        kind: attachmentKindFromFile(file),
+      });
+    } catch (error) {
       failed.push({
         name: file.name,
-        message: safe(uploadError.message) || "Upload failed.",
-        code: safe((uploadError as unknown as { code?: unknown }).code) || null,
+        message: normalizeAttachmentUploadErrorMessage(error, "Upload failed."),
+        code: safe((error as unknown as { code?: unknown }).code) || null,
         status:
-          safe((uploadError as unknown as { statusCode?: unknown }).statusCode) ||
-          safe((uploadError as unknown as { status?: unknown }).status) ||
+          safe((error as unknown as { statusCode?: unknown }).statusCode) ||
+          safe((error as unknown as { status?: unknown }).status) ||
           null,
       });
-      continue;
+      break;
     }
+  }
 
-    uploaded.push({
-      label: safe(file.name) || attachmentLabelFromReference(objectPath),
-      path: objectPath,
-      mimeType: safe(file.type) || null,
-      size: typeof file.size === "number" ? file.size : null,
-      kind: attachmentKindFromFile(file),
-    });
+  if (failed.length && uploaded.length) {
+    await removeFamilyEvidenceFiles(uploaded);
+    return { uploaded: [], failed };
   }
 
   return { uploaded, failed };

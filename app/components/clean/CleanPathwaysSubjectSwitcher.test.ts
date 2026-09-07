@@ -21,14 +21,53 @@ describe("desktop Pathways subject switcher", () => {
     expect(currentContext).toContain('htmlFor="pathways-current-subject-selector"');
     expect(currentContext).toContain('aria-label="Pathways subject"');
     expect(currentContext).toContain("LIVE_PATHWAY_SUBJECTS.map");
+    expect(currentContext).toContain("IN_DEVELOPMENT_PATHWAY_SUBJECT_OPTIONS.map");
     expect(currentContext).toContain("handleSelectSubject");
     expect(workspaceSource).not.toContain('id="pathway-subject-selector"');
   });
 
-  it("only promotes live registry-backed subjects in the switcher", () => {
-    expect(workspaceSource).toContain("const LIVE_PATHWAY_SUBJECTS = PATHWAY_SUBJECTS.filter");
-    expect(workspaceSource).toContain("config?.domainCards.some");
-    expect(workspaceSource).toContain("config.workspaceBuilders[domain.key]");
+  it("shows active and in-development subjects in the native selector", () => {
+    const subjectSelector = workspaceSource.slice(
+      workspaceSource.indexOf('id="pathways-current-subject-selector"'),
+      workspaceSource.indexOf("</select>", workspaceSource.indexOf('id="pathways-current-subject-selector"')),
+    );
+
+    expect(subjectSelector).toContain('<optgroup label="Active">');
+    expect(subjectSelector).toContain('<optgroup label="In development">');
+    expect(subjectSelector).toContain("LIVE_PATHWAY_SUBJECTS.map");
+    expect(subjectSelector).toContain("IN_DEVELOPMENT_PATHWAY_SUBJECT_OPTIONS.map");
+    expect(subjectSelector).toContain("disabled");
+    expect(subjectSelector).toContain("aria-label={option.screenReaderLabel}");
+    expect(subjectSelector).toContain("{option.customerLabel}");
+  });
+
+  it("keeps active and in-development subject availability content-driven", () => {
+    expect(workspaceSource).toContain("getPathwaySubjectAvailabilityOptions");
+    expect(workspaceSource).toContain("isCustomerPathwaySubjectActive");
+    expect(workspaceSource).toContain("option.selectable");
+  });
+
+  it("ignores in-development subject selections without replacing the current context", () => {
+    const handleSelectSubject = workspaceSource.slice(
+      workspaceSource.indexOf("function handleSelectSubject"),
+      workspaceSource.indexOf("function handleSelectSubjectStrand"),
+    );
+
+    expect(handleSelectSubject).toContain("!isCustomerPathwaySubjectActive");
+    expect(handleSelectSubject.indexOf("return;")).toBeLessThan(
+      handleSelectSubject.indexOf("setSelectedSubjectKey(nextSubjectKey)"),
+    );
+    expect(handleSelectSubject.indexOf("return;")).toBeLessThan(
+      handleSelectSubject.indexOf("replacePathwayViewParams(nextSubjectKey, nextStrandKey)"),
+    );
+    expect(handleSelectSubject.indexOf("return;")).toBeLessThan(
+      handleSelectSubject.indexOf('trackPathwayAnalyticsEvent("pathway_subject_selected"'),
+    );
+  });
+
+  it("does not render empty future-subject Pathways content for unavailable subjects", () => {
+    expect(workspaceSource).not.toContain("<PathwaySubjectPlaceholderSection subject={selectedSubject} />");
+    expect(workspaceSource).not.toContain("function PathwaySubjectPlaceholderSection");
   });
 
   it("switching subjects clears stale exact-step URL context without writing progress or evidence", () => {

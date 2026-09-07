@@ -6,6 +6,7 @@ import { encodePathwayContextNodeIds } from "@/lib/clean/evidence/curriculumCont
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
 import {
+  removeFamilyEvidenceFiles,
   updateFamilyEvidenceEntryAttachments,
   uploadFamilyEvidenceFiles,
   type UploadedFamilyEvidenceFile,
@@ -343,17 +344,22 @@ export default function WorksheetEvidenceCapture({
           throw new Error("The photo could not be uploaded.");
         }
 
-        await updateFamilyEvidenceEntryAttachments({
-          evidenceId: entry.id,
-          attachmentUrls: [{
-            path: uploadedAttachment.path,
-            name: uploadedAttachment.label,
-            mimeType: uploadedAttachment.mimeType,
-            size: uploadedAttachment.size,
-            kind: uploadedAttachment.kind,
-          }],
-          imageUrl: uploadedAttachment.path,
-        });
+        try {
+          await updateFamilyEvidenceEntryAttachments({
+            evidenceId: entry.id,
+            attachmentUrls: [{
+              path: uploadedAttachment.path,
+              name: uploadedAttachment.label,
+              mimeType: uploadedAttachment.mimeType,
+              size: uploadedAttachment.size,
+              kind: uploadedAttachment.kind,
+            }],
+            imageUrl: uploadedAttachment.path,
+          });
+        } catch (attachmentError) {
+          await removeFamilyEvidenceFiles([uploadedAttachment]);
+          throw attachmentError;
+        }
       }
 
       const savedEntry = {

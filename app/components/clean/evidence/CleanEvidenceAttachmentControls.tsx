@@ -35,21 +35,28 @@ const tertiaryButtonStyle: React.CSSProperties = {
 type Props = {
   attachments: CleanEvidenceAttachmentState;
   disabled?: boolean;
+  uploadsDisabled?: boolean;
   cameraFirst?: boolean;
   compact?: boolean;
   title?: string;
+  storageNotice?: string | null;
+  storageNoticeLevel?: "usage" | "near-limit" | "full";
 };
 
 export default function CleanEvidenceAttachmentControls({
   attachments,
   disabled = false,
+  uploadsDisabled = false,
   cameraFirst = false,
   compact = false,
   title = "Add evidence",
+  storageNotice = null,
+  storageNoticeLevel = "usage",
 }: Props) {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadControlsDisabled = disabled || uploadsDisabled;
 
   return (
     <fieldset
@@ -65,6 +72,24 @@ export default function CleanEvidenceAttachmentControls({
       <legend style={{ color: "#17204b", fontWeight: 850, padding: 0 }}>
         {title} <span style={{ color: "#5b6478", fontWeight: 500, fontSize: 13 }}>(optional)</span>
       </legend>
+      {storageNotice ? (
+        <p
+          role={storageNoticeLevel === "full" ? "alert" : "status"}
+          style={{
+            margin: 0,
+            border: `1px solid ${storageNoticeLevel === "full" ? "#fecdd3" : storageNoticeLevel === "near-limit" ? "#fde68a" : "#cbd5e1"}`,
+            borderRadius: 10,
+            background: storageNoticeLevel === "full" ? "#fff1f2" : storageNoticeLevel === "near-limit" ? "#fffbeb" : "#f8fafc",
+            color: storageNoticeLevel === "full" ? "#be123c" : storageNoticeLevel === "near-limit" ? "#92400e" : "#475569",
+            padding: "9px 10px",
+            fontSize: 13,
+            lineHeight: 1.45,
+            fontWeight: 750,
+          }}
+        >
+          {storageNotice}
+        </p>
+      ) : null}
       <div
         style={{
           display: "grid",
@@ -75,28 +100,28 @@ export default function CleanEvidenceAttachmentControls({
         <button
           type="button"
           onClick={() => cameraInputRef.current?.click()}
-          disabled={disabled}
-          style={{ minHeight: compact ? 56 : 64, border: `1px solid ${cameraFirst ? "#6c4df6" : "#c4b5fd"}`, borderRadius: 12, background: cameraFirst ? "#6c4df6" : "#faf9ff", color: cameraFirst ? "#ffffff" : "#17204b", fontWeight: 800, cursor: disabled ? "default" : "pointer", ...(cameraFirst ? { gridColumn: "1 / -1" } : {}) }}
+          disabled={uploadControlsDisabled}
+          style={{ minHeight: compact ? 56 : 64, border: `1px solid ${cameraFirst ? "#6c4df6" : "#c4b5fd"}`, borderRadius: 12, background: cameraFirst ? "#6c4df6" : "#faf9ff", color: cameraFirst ? "#ffffff" : "#17204b", fontWeight: 800, cursor: uploadControlsDisabled ? "default" : "pointer", ...(cameraFirst ? { gridColumn: "1 / -1" } : {}) }}
         >
           Take photo
         </button>
         <button
           type="button"
           onClick={() => libraryInputRef.current?.click()}
-          disabled={disabled}
-          style={{ minHeight: compact ? 56 : 64, border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#17204b", fontWeight: 800, cursor: disabled ? "default" : "pointer" }}
+          disabled={uploadControlsDisabled}
+          style={{ minHeight: compact ? 56 : 64, border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#17204b", fontWeight: 800, cursor: uploadControlsDisabled ? "default" : "pointer" }}
         >
           Choose photo
         </button>
         <label
-          style={{ minHeight: compact ? 56 : 64, border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#17204b", fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "default" : "pointer" }}
+          style={{ minHeight: compact ? 56 : 64, border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#17204b", fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: uploadControlsDisabled ? "default" : "pointer" }}
         >
           Upload file
           <input
             ref={fileInputRef}
             type="file"
             accept={CLEAN_CAPTURE_FILE_ACCEPT}
-            disabled={disabled}
+            disabled={uploadControlsDisabled}
             onChange={attachments.handleEvidenceFileChange}
             aria-label="Upload a file"
             style={visuallyHiddenFileInputStyle}
@@ -109,7 +134,7 @@ export default function CleanEvidenceAttachmentControls({
         type="file"
         accept={CLEAN_CAPTURE_IMAGE_ACCEPT}
         capture="environment"
-        disabled={disabled}
+        disabled={uploadControlsDisabled}
         onChange={attachments.handlePhotoChange}
         aria-label="Take a photo"
         style={visuallyHiddenFileInputStyle}
@@ -119,7 +144,7 @@ export default function CleanEvidenceAttachmentControls({
         ref={libraryInputRef}
         type="file"
         accept={CLEAN_CAPTURE_IMAGE_ACCEPT}
-        disabled={disabled}
+        disabled={uploadControlsDisabled}
         onChange={attachments.handlePhotoChange}
         aria-label="Choose a photo"
         style={visuallyHiddenFileInputStyle}
@@ -138,7 +163,7 @@ export default function CleanEvidenceAttachmentControls({
             <img src={attachments.photoPreviewUrl} alt="Selected learning evidence" style={{ width: "100%", maxHeight: compact ? 220 : 260, objectFit: "contain", borderRadius: 10 }} />
           ) : null}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" onClick={() => libraryInputRef.current?.click()} disabled={disabled} style={tertiaryButtonStyle}>Replace photo</button>
+            <button type="button" onClick={() => libraryInputRef.current?.click()} disabled={uploadControlsDisabled} style={tertiaryButtonStyle}>Replace photo</button>
             <button type="button" onClick={attachments.removePhoto} disabled={disabled} style={tertiaryButtonStyle}>Remove photo</button>
           </div>
           <span style={{ color: "#64748b", fontSize: 12 }}>{attachments.photoSelectionMessage}</span>
@@ -148,7 +173,7 @@ export default function CleanEvidenceAttachmentControls({
         <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", border: "1px solid #dbeafe", borderRadius: 12, padding: 10, background: "#eff6ff" }}>
           <div style={{ display: "grid", gap: 3 }}>
             <strong style={{ color: "#1d4ed8", fontSize: 13 }}>File attached: {attachments.evidenceFileName}</strong>
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={disabled} style={{ ...tertiaryButtonStyle, width: "fit-content" }}>Replace file</button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadControlsDisabled} style={{ ...tertiaryButtonStyle, width: "fit-content" }}>Replace file</button>
             <span style={{ color: "#64748b", fontSize: 12 }}>{attachments.fileSelectionMessage}</span>
           </div>
           <button type="button" onClick={attachments.removeEvidenceFile} disabled={disabled} style={tertiaryButtonStyle}>Remove file</button>

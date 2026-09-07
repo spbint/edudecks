@@ -52,6 +52,12 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import {
+  getFreePortfolioStoragePresentation,
+  type FreePortfolioStorageUsage,
+} from "@/lib/clean/entitlements/freeGuardrails";
+import { loadFreePortfolioStorageUsage } from "@/lib/clean/evidence/storageQuota";
+import {
+  removeFamilyEvidenceFiles,
   updateFamilyEvidenceEntryAttachments,
   uploadFamilyEvidenceFiles,
   type UploadedFamilyEvidenceFile,
@@ -596,6 +602,8 @@ function CleanCaptureWorkspaceBody() {
     useState<WorksheetProgressLevel | "">("");
   const attachments = useCleanEvidenceAttachments();
   const networkHint = useCaptureNetworkHint();
+  const [portfolioStorageUsage, setPortfolioStorageUsage] =
+    useState<FreePortfolioStorageUsage | null>(null);
   const {
     photoFile,
     photoName,
@@ -902,6 +910,11 @@ function CleanCaptureWorkspaceBody() {
     );
   }, [calendarItems, learnerId]);
 
+  const portfolioStoragePresentation = useMemo(
+    () => getFreePortfolioStoragePresentation(portfolioStorageUsage),
+    [portfolioStorageUsage],
+  );
+
   const reloadEntries = useCallback(async () => {
     if (!workspace.profile) return;
 
@@ -1056,6 +1069,31 @@ function CleanCaptureWorkspaceBody() {
     filteredCalendarItems,
     filteredPrograms,
     programId,
+  ]);
+
+  useEffect(() => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setPortfolioStorageUsage(null);
+      return;
+    }
+
+    let cancelled = false;
+    loadFreePortfolioStorageUsage(workspace.profile.id, observedOn)
+      .then((usage) => {
+        if (!cancelled) setPortfolioStorageUsage(usage);
+      })
+      .catch(() => {
+        if (!cancelled) setPortfolioStorageUsage(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    observedOn,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
   ]);
 
   useEffect(() => {
@@ -1496,7 +1534,7 @@ function CleanCaptureWorkspaceBody() {
           const nextError = new Error(
             uploadPhaseErrorMessage("attachment-update", rawAttachmentError),
           ) as WorksheetAttachmentUpdateError;
-          nextError.uploadedAttachments = uploadedAttachments;
+          await removeFamilyEvidenceFiles(uploadedAttachments);
           throw nextError;
         }
 
@@ -3540,6 +3578,13 @@ function CleanCaptureWorkspaceBody() {
                   <CleanEvidenceAttachmentControls
                     attachments={attachments}
                     disabled={submitting}
+                    uploadsDisabled={portfolioStoragePresentation.level === "full"}
+                    storageNotice={portfolioStoragePresentation.message}
+                    storageNoticeLevel={
+                      portfolioStoragePresentation.level === "none"
+                        ? "usage"
+                        : portfolioStoragePresentation.level
+                    }
                     compact
                     title="Optional attachments"
                   />

@@ -109,9 +109,9 @@ describe("universal Quick Capture attachments", () => {
   });
 
   it("persists file attachments through the existing evidence columns", () => {
-    expect(attachmentHookSource).toContain("fileUrl: uploadResult.uploaded.find");
+    expect(attachmentHookSource).toContain("fileUrl: uploadedForAttempt.find");
     expect(attachmentHookSource).toContain("const files = [photoFile, evidenceFile]");
-    expect(attachmentHookSource).toContain("attachmentMetadata(uploadResult.uploaded)");
+    expect(attachmentHookSource).toContain("attachmentMetadata(uploadedForAttempt)");
     expect(familyEvidenceSource).toContain("file_url");
     expect(familyEvidenceSource).toContain("attachment_urls");
   });

@@ -47,6 +47,11 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import {
+  getFreePortfolioStoragePresentation,
+  type FreePortfolioStorageUsage,
+} from "@/lib/clean/entitlements/freeGuardrails";
+import { loadFreePortfolioStorageUsage } from "@/lib/clean/evidence/storageQuota";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
@@ -550,6 +555,8 @@ function CleanPortfolioWorkspaceBody() {
   const openedEvidenceIdsRef = useRef(new Set<string>());
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [portfolioStorageUsage, setPortfolioStorageUsage] =
+    useState<FreePortfolioStorageUsage | null>(null);
   const pathwaySteps = useMemo(() => getAllPathwaySteps(), []);
   const pathwaySubjects = useMemo(
     () => Array.from(new Map(pathwaySteps.map((step) => [step.subjectKey, step])).values()),
@@ -845,12 +852,38 @@ function CleanPortfolioWorkspaceBody() {
       setPrograms([]);
       setProgramSegments([]);
       setCalendarItems([]);
+      setPortfolioStorageUsage(null);
       return;
     }
 
     void reloadItems();
   }, [
     reloadItems,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
+
+  useEffect(() => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setPortfolioStorageUsage(null);
+      return;
+    }
+
+    let cancelled = false;
+    const today = new Date().toISOString().slice(0, 10);
+    loadFreePortfolioStorageUsage(workspace.profile.id, today)
+      .then((usage) => {
+        if (!cancelled) setPortfolioStorageUsage(usage);
+      })
+      .catch(() => {
+        if (!cancelled) setPortfolioStorageUsage(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
     workspace.profile,
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
@@ -1079,6 +1112,10 @@ function CleanPortfolioWorkspaceBody() {
 
   const readyForPortfolio =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const portfolioStoragePresentation = useMemo(
+    () => getFreePortfolioStoragePresentation(portfolioStorageUsage),
+    [portfolioStorageUsage],
+  );
   const hasPortfolioEvidence = Boolean(workspace.setupStatus.hasPortfolioItem || items.length);
   const showPortfolioGuidance = !workspace.setupLoading && !hasPortfolioEvidence;
   const selectedLearnerLabel =
@@ -1451,6 +1488,23 @@ function CleanPortfolioWorkspaceBody() {
 
         {readyForPortfolio && workspace.profile && workspace.learners.length ? (
           <>
+            {portfolioStoragePresentation.message ? (
+              <section
+                role={portfolioStoragePresentation.level === "full" ? "alert" : "status"}
+                style={{
+                  border: `1px solid ${portfolioStoragePresentation.level === "full" ? "#fecdd3" : portfolioStoragePresentation.level === "near-limit" ? "#fde68a" : "#cbd5e1"}`,
+                  borderRadius: 12,
+                  background: portfolioStoragePresentation.level === "full" ? "#fff1f2" : portfolioStoragePresentation.level === "near-limit" ? "#fffbeb" : "#f8fafc",
+                  color: portfolioStoragePresentation.level === "full" ? "#be123c" : portfolioStoragePresentation.level === "near-limit" ? "#92400e" : "#475569",
+                  padding: "10px 12px",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  fontWeight: 750,
+                }}
+              >
+                {portfolioStoragePresentation.message}
+              </section>
+            ) : null}
             <section
               className="mylearna-portfolio-learning-story"
               style={{

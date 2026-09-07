@@ -8,6 +8,7 @@ export type PathwaySubjectKey =
   | "health-pe";
 
 export type PathwaySubjectStatus = "detailed" | "coming-soon";
+export type PathwaySubjectCustomerAvailability = "live" | "in-development";
 
 export type PathwaySubjectDefinition = {
   key: PathwaySubjectKey;
@@ -15,6 +16,7 @@ export type PathwaySubjectDefinition = {
   description: string;
   guidance: string;
   status: PathwaySubjectStatus;
+  customerPathwaysAvailability: PathwaySubjectCustomerAvailability;
   futureStrands: string[];
   placeholderNote: string;
 };
@@ -32,6 +34,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     guidance:
       "Choose a strand, review the current stage, then use practise, assess, and capture evidence to build portfolio and reporting support over time.",
     status: "detailed",
+    customerPathwaysAvailability: "live",
     futureStrands: [
       "Number and place value",
       "Operations and calculation",
@@ -49,6 +52,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     guidance:
       "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support literacy growth, portfolio building, and later reporting.",
     status: "detailed",
+    customerPathwaysAvailability: "live",
     futureStrands: [
       "Reading and comprehension",
       "Writing and composition",
@@ -70,6 +74,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     guidance:
       "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support inquiry, explanation, and later science reporting.",
     status: "detailed",
+    customerPathwaysAvailability: "in-development",
     futureStrands: [
       "Scientific inquiry and investigation",
       "Living things and environments",
@@ -91,6 +96,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     guidance:
       "Families may also recognise this area as Social Studies. Choose a strand, review the current stage, then use practise, assess, and capture evidence to support inquiry, discussion, comparison, and later reporting.",
     status: "detailed",
+    customerPathwaysAvailability: "in-development",
     futureStrands: [
       "History and change over time",
       "Geography, place and environment",
@@ -110,6 +116,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     guidance:
       "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support hands-on making, digital confidence, problem-solving, and later reporting.",
     status: "detailed",
+    customerPathwaysAvailability: "in-development",
     futureStrands: [
       "Design and production",
       "Digital technologies and systems",
@@ -123,12 +130,13 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
   },
   {
     key: "arts",
-    title: "Arts",
+    title: "The Arts",
     description:
-      "Arts pathways help families explore creating, responding, performing, presenting, visual expression, music, drama, dance, media, and creative communication through staged strand progressions.",
+      "The Arts pathways help families explore creating, responding, performing, presenting, visual expression, music, drama, dance, media, and creative communication through staged strand progressions.",
     guidance:
       "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support creative growth, reflection, and later reporting.",
     status: "detailed",
+    customerPathwaysAvailability: "in-development",
     futureStrands: [
       "Visual arts and design",
       "Music and sound",
@@ -138,16 +146,17 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
       "Responding to artworks and creative choices",
     ],
     placeholderNote:
-      "Arts is now the sixth detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
+      "The Arts is now the sixth detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
   },
   {
     key: "health-pe",
-    title: "Health / PE",
+    title: "Health & Physical Education",
     description:
-      "Health / PE pathways help families explore movement, coordination, physical activity, wellbeing, safety, relationships, healthy choices, teamwork, and personal development through staged strand progressions.",
+      "Health & Physical Education pathways help families explore movement, coordination, physical activity, wellbeing, safety, relationships, healthy choices, teamwork, and personal development through staged strand progressions.",
     guidance:
       "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support movement confidence, wellbeing routines, respectful participation, and later reporting.",
     status: "detailed",
+    customerPathwaysAvailability: "in-development",
     futureStrands: [
       "Movement skills and coordination",
       "Physical activity and fitness",
@@ -157,6 +166,6 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
       "Outdoor, practical and active learning",
     ],
     placeholderNote:
-      "Health / PE is now the seventh detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
+      "Health & Physical Education is now the seventh detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
   },
 ];

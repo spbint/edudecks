@@ -39,6 +39,7 @@ import {
   readGuidedStartState,
   writeGuidedStartState,
 } from "@/app/components/clean/guidance/guidedMissions";
+import { getFreeLearnerLimitState } from "@/lib/clean/entitlements/freeGuardrails";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -250,7 +251,9 @@ function CleanProfileWorkspaceBody() {
   const learnerTargetMet = Boolean(
     expectedLearnerCount && workspace.learners.length >= expectedLearnerCount,
   );
-  const shouldShowAddLearnerForm = !learnerTargetMet || showExtraLearnerForm;
+  const learnerLimitState = getFreeLearnerLimitState(workspace.learners.length);
+  const shouldShowAddLearnerForm =
+    learnerLimitState.canAddLearner && (!learnerTargetMet || showExtraLearnerForm);
   const suggestedDefaultLearner =
     workspace.learners.length && !workspace.profile?.defaultLearnerId
       ? workspace.learners[0]
@@ -368,6 +371,10 @@ function CleanProfileWorkspaceBody() {
     event.preventDefault();
 
     if (!workspace.profile) return;
+    if (!learnerLimitState.canAddLearner) {
+      setError(learnerLimitState.message);
+      return;
+    }
 
     setSubmitting(true);
     setMessage(null);
@@ -1001,18 +1008,25 @@ function CleanProfileWorkspaceBody() {
             </section>
             ) : (
               <section id="add-learner" data-guidance-id="profile-add-learner" style={cardStyle}>
-                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners are ready for now</h2>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>
+                  {learnerLimitState.canAddLearner
+                    ? "Learners are ready for now"
+                    : "Learner limit reached"}
+                </h2>
                 <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                  You&apos;ve added the number of learners you told us about. You can add another
-                  learner later if your setup changes.
+                  {learnerLimitState.canAddLearner
+                    ? "You've added the number of learners you told us about. You can add another learner later if your setup changes."
+                    : learnerLimitState.message}
                 </p>
-                <button
-                  type="button"
-                  style={secondaryButtonStyle}
-                  onClick={() => setShowExtraLearnerForm(true)}
-                >
-                  Add another learner if needed
-                </button>
+                {learnerLimitState.canAddLearner ? (
+                  <button
+                    type="button"
+                    style={secondaryButtonStyle}
+                    onClick={() => setShowExtraLearnerForm(true)}
+                  >
+                    Add another learner if needed
+                  </button>
+                ) : null}
               </section>
             )}
 

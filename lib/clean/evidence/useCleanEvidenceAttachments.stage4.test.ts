@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const familyEvidenceMocks = vi.hoisted(() => ({
+  removeFamilyEvidenceFiles: vi.fn(),
   updateFamilyEvidenceEntryAttachments: vi.fn(),
   uploadFamilyEvidenceFiles: vi.fn(),
 }));
@@ -40,6 +41,7 @@ describe("slow and retrying attachment uploads", () => {
   beforeEach(() => {
     familyEvidenceMocks.updateFamilyEvidenceEntryAttachments.mockReset();
     familyEvidenceMocks.uploadFamilyEvidenceFiles.mockReset();
+    familyEvidenceMocks.removeFamilyEvidenceFiles.mockReset();
     imagePreparationMocks.compressCleanEvidenceImage.mockReset();
     imagePreparationMocks.compressCleanEvidenceImage.mockImplementation(async (file: File) => file);
     Object.defineProperty(URL, "createObjectURL", {

@@ -10,6 +10,7 @@ import {
   isSupportedCleanCaptureFile,
 } from "@/lib/clean/evidence/attachmentPolicy";
 import {
+  removeFamilyEvidenceFiles,
   updateFamilyEvidenceEntryAttachments,
   uploadFamilyEvidenceFiles,
   type UploadedFamilyEvidenceFile,
@@ -202,6 +203,7 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
     );
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
+      let uploadedForAttempt: UploadedFamilyEvidenceFile[] = [];
       try {
         const currentValidationError = validateSelectedAttachments();
         if (currentValidationError) {
@@ -221,17 +223,22 @@ export function useCleanEvidenceAttachments(): CleanEvidenceAttachmentState {
         if (!uploadResult.uploaded.length) {
           throw new Error("No attachment was uploaded. Please try again.");
         }
+        uploadedForAttempt = uploadResult.uploaded;
 
         setPhase?.("Finalising evidence");
         const stored = await updateFamilyEvidenceEntryAttachments({
           evidenceId,
-          attachmentUrls: attachmentMetadata(uploadResult.uploaded),
-          imageUrl: uploadResult.uploaded.find((attachment) => attachment.kind === "image")?.path ?? null,
-          fileUrl: uploadResult.uploaded.find((attachment) => attachment.kind === "file")?.path ?? null,
+          attachmentUrls: attachmentMetadata(uploadedForAttempt),
+          imageUrl: uploadedForAttempt.find((attachment) => attachment.kind === "image")?.path ?? null,
+          fileUrl: uploadedForAttempt.find((attachment) => attachment.kind === "file")?.path ?? null,
         });
-        assertStoredAttachmentsConfirmed(uploadResult.uploaded, stored);
-        return uploadResult.uploaded;
+        assertStoredAttachmentsConfirmed(uploadedForAttempt, stored);
+        return uploadedForAttempt;
       } catch (error) {
+        if (uploadedForAttempt.length) {
+          await removeFamilyEvidenceFiles(uploadedForAttempt);
+          uploadedForAttempt = [];
+        }
         lastError = error instanceof Error ? error : new Error("Attachment upload failed.");
         if (attempt === 2) throw lastError;
       }

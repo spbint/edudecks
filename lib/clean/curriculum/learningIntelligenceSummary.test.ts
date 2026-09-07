@@ -209,7 +209,7 @@ describe("learning intelligence summary", () => {
     expect(artsRow?.evidenceLinkedCount).toBeGreaterThanOrEqual(1);
     expect(artsRow?.secureStrongCount).toBeGreaterThanOrEqual(1);
     expect(artsRow?.readiness).toBe("Ready");
-    expect(artsSummary.selectedSubjectTitle).toBe("Arts");
+    expect(artsSummary.selectedSubjectTitle).toBe("The Arts");
     expect(artsSummary.scopeLabel).toBe("Strand progress");
     expect(musicRow?.title).toBe("Music and sound");
     expect(musicRow?.evidenceLinkedCount).toBeGreaterThanOrEqual(1);
