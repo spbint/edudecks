@@ -571,6 +571,9 @@ function CleanCaptureWorkspaceBody() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const captureRouteBase = pathname.startsWith("/clean-my-capture") ? "/clean-my-capture" : "/my-capture";
+  const chronicleHref = `${captureRouteBase}?mode=chronicle&returnTo=${encodeURIComponent(pathname)}`;
+  const quickCaptureHref = `${captureRouteBase}?mode=quick&returnTo=${encodeURIComponent(pathname)}`;
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
@@ -2567,31 +2570,95 @@ function CleanCaptureWorkspaceBody() {
             >
               Learning moments
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>Quick Capture</h1>
+            <h1 style={{ margin: 0, fontSize: 26, color: "#17204B", fontWeight: 650 }}>Capture learning</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               Save a learning moment privately. It starts in your Portfolio, and you can add more detail later.
             </p>
             <div>
               <GuidancePageAction tourId="my-capture" />
             </div>
-            <Link
-              href={`/my-capture?mode=quick&returnTo=${encodeURIComponent(pathname)}`}
+            <div
+              className="mylearna-capture-entry-actions"
               style={{
-                width: "fit-content",
-                minHeight: 46,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 12,
-                padding: "10px 15px",
-                background: "#6c4df6",
-                color: "#ffffff",
-                textDecoration: "none",
-                fontWeight: 850,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 12,
+                marginTop: 8,
               }}
             >
-              Quick Capture
-            </Link>
+              <div
+                style={{
+                  border: "1px solid #d9d0ff",
+                  borderRadius: 14,
+                  background: "#fbfaff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <strong style={{ color: "#17204B", fontSize: 16 }}>Learning Chronicle</strong>
+                <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                  Tell MyLearna what happened.
+                </span>
+                <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+                  Type or speak a quick learning note, choose who was involved, and optionally add a photo or file.
+                </span>
+                <Link
+                  href={chronicleHref}
+                  style={{
+                    width: "fit-content",
+                    minHeight: 44,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    background: "#6c4df6",
+                    color: "#ffffff",
+                    textDecoration: "none",
+                    fontWeight: 850,
+                  }}
+                >
+                  Add learning note
+                </Link>
+              </div>
+              <div
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  background: "#ffffff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <strong style={{ color: "#17204B", fontSize: 16 }}>Quick Capture</strong>
+                <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                  Capture a photo or piece of learning quickly.
+                </span>
+                <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+                  Start with a photo or file, then add a short note if useful.
+                </span>
+                <Link
+                  href={quickCaptureHref}
+                  style={{
+                    width: "fit-content",
+                    minHeight: 44,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    border: "1px solid #0f172a",
+                    color: "#0f172a",
+                    textDecoration: "none",
+                    fontWeight: 850,
+                  }}
+                >
+                  Quick Capture
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -4212,8 +4279,12 @@ function CleanCaptureWorkspaceBody() {
 
 export default function CleanCaptureWorkspace() {
   const searchParams = useSearchParams();
-  if (searchParams.get("mode") === "quick") {
-    return <CleanQuickCaptureWorkspace />;
+  const captureMode = searchParams.get("mode");
+  if (captureMode === "chronicle") {
+    return <CleanQuickCaptureWorkspace mode="chronicle" />;
+  }
+  if (captureMode === "quick") {
+    return <CleanQuickCaptureWorkspace mode="quick" />;
   }
   return <CleanCaptureWorkspaceBody />;
 }

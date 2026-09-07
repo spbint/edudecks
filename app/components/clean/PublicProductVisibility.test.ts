@@ -43,7 +43,10 @@ describe("public product visibility", () => {
     const capture = read("app/components/clean/CleanCaptureWorkspace.tsx");
     const shell = read("app/components/clean/design-v2/MyLearnaAppShellV2.tsx");
 
-    expect(capture).toContain(">Quick Capture</h1>");
+    expect(capture).toContain("Capture learning");
+    expect(capture).toContain("Learning Chronicle");
+    expect(capture).toContain("Add learning note");
+    expect(capture).toContain("Quick Capture");
     expect(shell).toContain('href: "/my-capture", label: "Quick Capture"');
     expect(shell).toContain('"/my-capture?mode=quick"');
   });

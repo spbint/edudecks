@@ -43,25 +43,28 @@ describe("Quick Capture doorway", () => {
   });
 
   it("keeps the Quick Capture route and activity shell separate from companion navigation", () => {
-    expect(shellSource).toContain("const quickCaptureRoute = pathname === \"/my-capture\" && searchParams.get(\"mode\") === \"quick\";");
+    expect(shellSource).toContain("const focusedCaptureRoute = (pathname === \"/my-capture\" || pathname === \"/clean-my-capture\") && (captureMode === \"quick\" || captureMode === \"chronicle\");");
+    expect(shellSource).toContain('captureMode === "chronicle" ? "Learning Chronicle" : "Quick Capture"');
     expect(shellSource).toContain("if (activityMode)");
     expect(shellSource).toContain("mylearna-v2-quick-capture-content");
   });
 
   it("uses one mode route from every approved entry point", () => {
+    expect(captureSource).toContain("mode=chronicle");
     expect(captureSource).toContain("mode=quick");
     expect(daySource).toContain("mode=quick");
     expect(portfolioSource).toContain("mode=quick");
     expect(myLearnaSource).toContain("mode=quick");
     expect(shellSource).toContain("quickCaptureHref");
-    expect(captureSource).toContain("<CleanQuickCaptureWorkspace />");
+    expect(captureSource).toContain('<CleanQuickCaptureWorkspace mode="chronicle" />');
+    expect(captureSource).toContain('<CleanQuickCaptureWorkspace mode="quick" />');
   });
 
   it("includes new Quick Capture records in Portfolio and Reports by default", () => {
     expect(source).toContain("saveUnifiedLearningCapture");
     expect(source).toContain("includeInPortfolio: true");
     expect(source).toContain("includeInReport: true");
-    expect(source).toContain('sourceType: "learning-chronicle"');
+    expect(source).toContain('sourceType: chronicleMode ? "learning-chronicle" : "quick-capture"');
     expect(source).toContain("participantLearnerIds,");
     expect(source).toContain("learnerId,");
     expect(source).toContain("activityDate: observedOn");
@@ -92,6 +95,8 @@ describe("Quick Capture doorway", () => {
 
   it("keeps quick capture visually anchored with a text-first Chronicle path", () => {
     expect(source).toContain("window.scrollTo({ top: 0");
+    expect(captureSource).toContain("Learning Chronicle");
+    expect(captureSource).toContain("Add learning note");
     expect(source).toContain("Learning Chronicle");
     expect(source).toContain("Tell MyLearna what happened");
     expect(source).toContain("Who was involved?");
@@ -105,6 +110,15 @@ describe("Quick Capture doorway", () => {
     expect(attachmentControlsSource).toContain("Replace photo");
     expect(attachmentControlsSource).toContain("Remove photo");
     expect(source).toContain("Add learning area");
+  });
+
+  it("preserves Quick Capture as a separate photo-first mode", () => {
+    expect(source).toContain('type CleanQuickCaptureMode = "quick" | "chronicle"');
+    expect(source).toContain('mode = "chronicle"');
+    expect(source).toContain("chronicleMode ? chronicleTextField : attachmentControls");
+    expect(source).toContain("Capture a photo or file quickly");
+    expect(source).toContain("Add photo or file");
+    expect(source).toContain('sourceType: chronicleMode ? "learning-chronicle" : "quick-capture"');
   });
 
   it("keeps the mobile save action above the unchanged bottom navigation", () => {

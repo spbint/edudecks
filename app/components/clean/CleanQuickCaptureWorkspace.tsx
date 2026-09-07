@@ -133,7 +133,14 @@ function formatDate(value: string) {
   return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function CleanQuickCaptureWorkspace() {
+type CleanQuickCaptureMode = "quick" | "chronicle";
+
+type CleanQuickCaptureWorkspaceProps = {
+  mode?: CleanQuickCaptureMode;
+};
+
+export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: CleanQuickCaptureWorkspaceProps) {
+  const chronicleMode = mode === "chronicle";
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
   const pathname = usePathname();
@@ -360,14 +367,14 @@ export default function CleanQuickCaptureWorkspace() {
       {
         area: "quick_capture",
         route: pathname,
-        hasLearner: Boolean(learnerId),
-        sourceSurface: "quick_capture",
-        captureMode: "quick",
-      },
-      user?.id,
-    );
+          hasLearner: Boolean(learnerId),
+          sourceSurface: "quick_capture",
+          captureMode: chronicleMode ? "learning_chronicle" : "quick",
+        },
+        user?.id,
+      );
     openedTrackedRef.current = true;
-  }, [learnerId, pathname, user?.id]);
+  }, [chronicleMode, learnerId, pathname, user?.id]);
 
   useEffect(() => {
     if (!attachments.hasSelectedAttachments || firstAttachmentTrackedRef.current) return;
@@ -417,7 +424,7 @@ export default function CleanQuickCaptureWorkspace() {
           area: "quick_capture",
           route: pathname,
           sourceSurface: "quick_capture",
-          captureMode: "quick",
+          captureMode: chronicleMode ? "learning_chronicle" : "quick",
           hadMeaningfulInput: true,
           isEdit: false,
           hasAttachment: captureHasAttachmentRef.current,
@@ -426,7 +433,7 @@ export default function CleanQuickCaptureWorkspace() {
       );
       captureAbandonmentTrackedRef.current = true;
     };
-  }, [pathname, user?.id]);
+  }, [chronicleMode, pathname, user?.id]);
 
   function toggleLearnerSelection(nextLearnerId: string) {
     const cleanLearnerId = String(nextLearnerId ?? "").trim();
@@ -531,7 +538,7 @@ export default function CleanQuickCaptureWorkspace() {
       return;
     }
     if (!attachments.hasSelectedAttachments && !nextCaption) {
-      setError("Tell MyLearna what happened before saving.");
+      setError(chronicleMode ? "Tell MyLearna what happened before saving." : "Add a photo, file, or short note before saving.");
       return;
     }
     const attachmentValidationError = attachments.validateSelectedAttachments();
@@ -581,7 +588,7 @@ export default function CleanQuickCaptureWorkspace() {
         programId: requestedProgramId || null,
         calendarItemId: requestedCalendarItemId || null,
         curriculumNodeIds: [],
-        sourceType: "learning-chronicle",
+        sourceType: chronicleMode ? "learning-chronicle" : "quick-capture",
         clientSubmissionId: submissionIdRef.current,
         includeInPortfolio: true,
         includeInReport: true,
@@ -590,14 +597,14 @@ export default function CleanQuickCaptureWorkspace() {
       captureSavedRef.current = true;
       if (sessionDraftKey) clearQuickCaptureSessionDraft(sessionDraftKey);
 
-      trackProductEvent("learning_chronicle_saved", {
+      trackProductEvent(chronicleMode ? "learning_chronicle_saved" : "quick_capture_saved", {
         area: "quick_capture",
         route: pathname,
         learner_count: participantLearnerIds.length,
         has_media: attachments.hasSelectedAttachments,
         used_voice_input: speechTranscriptUsedRef.current,
       }, user?.id);
-      if (participantLearnerIds.length > 1) {
+      if (chronicleMode && participantLearnerIds.length > 1) {
         trackProductEvent("learning_chronicle_multi_learner", {
           area: "quick_capture",
           route: pathname,
@@ -605,7 +612,7 @@ export default function CleanQuickCaptureWorkspace() {
           has_media: attachments.hasSelectedAttachments,
         }, user?.id);
       }
-      if (speechTranscriptUsedRef.current) {
+      if (chronicleMode && speechTranscriptUsedRef.current) {
         trackProductEvent("learning_chronicle_voice_transcript_used", {
           area: "quick_capture",
           route: pathname,
@@ -622,7 +629,7 @@ export default function CleanQuickCaptureWorkspace() {
           includeInPortfolio: result.entry.includeInPortfolio,
           includeInReport: result.entry.includeInReport,
           sourceSurface: "quick_capture",
-          captureMode: "learning_chronicle",
+          captureMode: chronicleMode ? "learning_chronicle" : "quick",
           isEdit: false,
         },
         user?.id,
@@ -705,7 +712,7 @@ export default function CleanQuickCaptureWorkspace() {
           hasLearner: Boolean(primaryLearnerId),
           hasAttachment: attachments.hasSelectedAttachments,
           sourceSurface: "quick_capture",
-          captureMode: "learning_chronicle",
+          captureMode: chronicleMode ? "learning_chronicle" : "quick",
           isEdit: false,
           failureStage: "save",
           onlineHint: networkHint,
@@ -816,12 +823,12 @@ export default function CleanQuickCaptureWorkspace() {
     <label style={{ display: "grid", gap: 8 }}>
       <span style={{ color: "#17204b", fontWeight: 850 }}>What happened?</span>
       <textarea
-        aria-label="Tell MyLearna what happened"
+        aria-label={chronicleMode ? "Tell MyLearna what happened" : "Add a short learning note"}
         value={caption}
         maxLength={MAX_CHRONICLE_LENGTH}
         onChange={(event) => setCaption(event.target.value)}
         rows={mobileCompanion ? 6 : 7}
-        placeholder="Tell MyLearna what happened"
+        placeholder={chronicleMode ? "Tell MyLearna what happened" : "Add a short note about the photo or file"}
         style={{
           width: "100%",
           border: "1px solid #cbd5e1",
@@ -936,7 +943,7 @@ export default function CleanQuickCaptureWorkspace() {
       storageNoticeLevel={portfolioStoragePresentation.level === "none" ? "usage" : portfolioStoragePresentation.level}
       compact
       cameraFirst={mobileCompanion}
-      title="Optional photo or file"
+      title={chronicleMode ? "Optional photo or file" : "Add photo or file"}
     />
   );
 
@@ -1053,7 +1060,7 @@ export default function CleanQuickCaptureWorkspace() {
       <style jsx global>{`.mylearna-quick-capture-main fieldset:first-of-type > div { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; } @media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
       <CoreJourneyCue stage="capture" />
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learning Chronicle</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>Tell MyLearna what happened</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>Save a learning note for one or more learners. Photos and files are optional.</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{chronicleMode ? "Learning Chronicle" : "Quick Capture"}</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>{chronicleMode ? "Tell MyLearna what happened" : "Capture a photo or file quickly"}</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>{chronicleMode ? "Save a learning note for one or more learners. Photos and files are optional." : "Start with a photo or file, then add a short note if you want."}</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         {restoredDraftNotice ? <p role="status" style={{ margin: 0, color: "#475569", lineHeight: 1.45 }}>{restoredDraftNotice}</p> : null}
         <form
           onSubmit={handleSave}
@@ -1069,18 +1076,18 @@ export default function CleanQuickCaptureWorkspace() {
             <section aria-label="Capture context" style={{ display: "grid", gap: 8, border: "1px solid #e2e8f0", borderRadius: 14, padding: 12, background: "#f8fafc" }}>
               {requestedCalendarItemId ? <div style={{ display: "grid", gap: 3, color: "#475569", fontSize: 13 }}><strong style={{ color: "#17204b" }}>{requestedActivityTitle || "Planned learning"}</strong><span>{formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</span></div> : null}
             </section>
-            {chronicleTextField}
-            {speechControl}
+            {chronicleMode ? chronicleTextField : attachmentControls}
+            {chronicleMode ? speechControl : null}
             {learnerSelectionControl}
-            {attachmentControls}
+            {chronicleMode ? attachmentControls : chronicleTextField}
             <details><summary style={{ color: "#4f46b8", fontWeight: 800, cursor: "pointer" }}>Optional details</summary><div style={{ display: "grid", gap: 12, marginTop: 12 }}><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label><label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label></div></details>
           </> : <>
-            {chronicleTextField}
-            {speechControl}
+            {chronicleMode ? chronicleTextField : attachmentControls}
+            {chronicleMode ? speechControl : null}
             {learnerSelectionControl}
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Learning date</span><input aria-label="Learning date" type="date" value={observedOn} onChange={(event) => setObservedOn(event.target.value)} style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label>
             <label style={{ display: "grid", gap: 6 }}><span style={{ color: "#17204b", fontWeight: 800 }}>Reflection <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><textarea aria-label="Reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} rows={3} placeholder="What stood out or should you remember?" style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit", resize: "vertical" }} /></label>
-            {attachmentControls}
+            {chronicleMode ? attachmentControls : chronicleTextField}
             <div style={{ borderTop: "1px solid #eef0f5", paddingTop: 12 }}><button type="button" onClick={() => setLearningAreaOpen((current) => !current)} aria-expanded={learningAreaOpen} style={{ ...tertiaryButtonStyle, textDecoration: "none", padding: 0 }}>{learningAreaOpen ? "Hide learning area" : "Add learning area"}</button>{learningAreaOpen ? <label style={{ display: "grid", gap: 6, marginTop: 10 }}><span style={{ color: "#17204b", fontWeight: 750 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label> : null}</div>
           </>}
           <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" aria-live="polite" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving learning" : mobileCompanion ? "Save learning" : "Save learning moment"}</button></div>

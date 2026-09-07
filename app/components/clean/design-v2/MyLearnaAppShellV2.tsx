@@ -640,10 +640,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const activeMobileSection = getActiveMobileSection(pathname);
   const quickCaptureReturnPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
   const quickCaptureHref = `/my-capture?mode=quick&returnTo=${encodeURIComponent(quickCaptureReturnPath)}`;
-  const quickCaptureRoute = pathname === "/my-capture" && searchParams.get("mode") === "quick";
-  const title = quickCaptureRoute ? "Quick Capture" : routeTitle(pathname);
-  const breadcrumbs = quickCaptureRoute
-    ? [{ label: "My Day", href: "/my-day" }, { label: "Quick Capture" }]
+  const captureMode = searchParams.get("mode");
+  const focusedCaptureRoute = (pathname === "/my-capture" || pathname === "/clean-my-capture") && (captureMode === "quick" || captureMode === "chronicle");
+  const title = focusedCaptureRoute ? (captureMode === "chronicle" ? "Learning Chronicle" : "Quick Capture") : routeTitle(pathname);
+  const breadcrumbs = focusedCaptureRoute
+    ? [{ label: "My Capture", href: "/my-capture" }, { label: captureMode === "chronicle" ? "Learning Chronicle" : "Quick Capture" }]
     : routeCrumbs(pathname);
   const familySetupState = {
     authenticated: Boolean(user),
@@ -920,7 +921,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
     );
   }
 
-  const hideMobileBottomNavForCapture = quickCaptureRoute && mobileCaptureEditing;
+  const hideMobileBottomNavForCapture = focusedCaptureRoute && mobileCaptureEditing;
 
   return (
     <div
@@ -1316,7 +1317,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </div>
           </header>
 
-          <main className={`mylearna-v2-content-main${quickCaptureRoute ? " mylearna-v2-quick-capture-content" : ""}`} style={{ padding: "clamp(16px, 3vw, 28px)" }}>
+          <main className={`mylearna-v2-content-main${focusedCaptureRoute ? " mylearna-v2-quick-capture-content" : ""}`} style={{ padding: "clamp(16px, 3vw, 28px)" }}>
             <div className="mylearna-v2-content-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 18 }}>
               {children}
               {!mobileCompanion ? (

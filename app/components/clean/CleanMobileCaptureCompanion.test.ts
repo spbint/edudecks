@@ -12,8 +12,8 @@ describe("mobile Capture companion", () => {
   it("keeps the mobile hierarchy Chronicle-first inside Capture", () => {
     expect(capture).toContain("Learning Chronicle");
     expect(capture).toContain("Tell MyLearna what happened");
-    expect(capture).toContain('title="Optional photo or file"');
-    expect(capture).toContain('aria-label="Tell MyLearna what happened"');
+    expect(capture).toContain('title={chronicleMode ? "Optional photo or file" : "Add photo or file"}');
+    expect(capture).toContain('aria-label={chronicleMode ? "Tell MyLearna what happened" : "Add a short learning note"}');
     expect(capture).toContain("Who was involved?");
     expect(capture).toContain("Optional details");
     expect(capture).toContain('mobileCompanion ? "Save learning" : "Save learning moment"');

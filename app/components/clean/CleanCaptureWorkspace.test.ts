@@ -8,6 +8,26 @@ const source = readFileSync(
 );
 
 describe("My Capture success receipt", () => {
+  it("exposes Learning Chronicle immediately on the authenticated Capture route", () => {
+    expect(source).toContain("Learning Chronicle");
+    expect(source).toContain("Tell MyLearna what happened.");
+    expect(source).toContain("Type or speak a quick learning note");
+    expect(source).toContain("Add learning note");
+    expect(source).toContain("mode=chronicle");
+    expect(source).toContain('captureMode === "chronicle"');
+    expect(source).toContain('<CleanQuickCaptureWorkspace mode="chronicle" />');
+  });
+
+  it("keeps Quick Capture and detailed Record learning available separately", () => {
+    expect(source).toContain("Quick Capture");
+    expect(source).toContain("Capture a photo or piece of learning quickly.");
+    expect(source).toContain("Start with a photo or file");
+    expect(source).toContain("mode=quick");
+    expect(source).toContain('<CleanQuickCaptureWorkspace mode="quick" />');
+    expect(source).toContain("Record learning");
+    expect(source).toContain('className="mylearna-capture-form"');
+  });
+
   it("makes a complete saved record replace the reset form and announces it", () => {
     expect(source).toContain("const showSavedReceipt = Boolean(lastSavedEvidenceId && !pendingAttachmentError);");
     expect(source).toContain("{!showSavedReceipt ? (");
