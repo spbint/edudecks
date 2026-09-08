@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
@@ -12,7 +12,6 @@ import {
   setMobileCompanionCaptureEditing,
   useMobileCompanion,
 } from "@/app/components/clean/design-v2/useMobileCompanion";
-import CleanLearningMomentShareCard from "@/app/components/clean/CleanLearningMomentShareCard";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanEvidenceAttachmentControls from "@/app/components/clean/evidence/CleanEvidenceAttachmentControls";
 import { saveUnifiedLearningCapture } from "@/lib/clean/evidence/unifiedCapture";
@@ -25,7 +24,6 @@ import {
   type FreePortfolioStorageUsage,
 } from "@/lib/clean/entitlements/freeGuardrails";
 import { loadFreePortfolioStorageUsage } from "@/lib/clean/evidence/storageQuota";
-import { setQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import {
   clearQuickCaptureSessionDraft,
   getQuickCaptureSessionDraftKey,
@@ -144,7 +142,6 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const requestedLearnerId = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
   const requestedCalendarItemId = searchParams.get("calendar_item_id") || "";
@@ -175,7 +172,6 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
   const [savedEntry, setSavedEntry] = useState<CleanEvidenceEntry | null>(null);
   const [savedPhotoAttached, setSavedPhotoAttached] = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState("");
-  const [sharingOpen, setSharingOpen] = useState(false);
   const [learningAreaOpen, setLearningAreaOpen] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [speechListening, setSpeechListening] = useState(false);
@@ -367,12 +363,12 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
       {
         area: "quick_capture",
         route: pathname,
-          hasLearner: Boolean(learnerId),
-          sourceSurface: "quick_capture",
-          captureMode: chronicleMode ? "learning_chronicle" : "quick",
-        },
-        user?.id,
-      );
+        hasLearner: Boolean(learnerId),
+        sourceSurface: "quick_capture",
+        captureMode: chronicleMode ? "learning_chronicle" : "quick",
+      },
+      user?.id,
+    );
     openedTrackedRef.current = true;
   }, [chronicleMode, learnerId, pathname, user?.id]);
 
@@ -788,20 +784,11 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
     );
   }
 
-  function addMoreDetail() {
-    if (!savedEntry) return;
-    setQuickCaptureDraft({ learnerId: savedEntry.learnerId, observedOn: savedEntry.observedOn, caption: caption.trim(), learningArea: learningArea.trim(), photoFile: attachments.photoFile });
-    const basePath = pathname.startsWith("/clean-my-capture") ? "/clean-my-capture" : "/my-capture";
-    const params = new URLSearchParams({ learner_id: savedEntry.learnerId, observed_on: savedEntry.observedOn, quickDraft: "1", returnTo: returnPath });
-    router.push(`${basePath}?${params.toString()}`);
-  }
-
   function captureAnother() {
     if (sessionDraftKey) clearQuickCaptureSessionDraft(sessionDraftKey);
     setSavedEntry(null);
     setSavedPhotoAttached(false);
     setPhotoUploadError("");
-    setSharingOpen(false);
     setLearningAreaOpen(false);
     setCaption("");
     setReflection("");
@@ -878,19 +865,23 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
   const learnerSelectionControl = (
     <fieldset
       aria-label="Who was involved?"
+      aria-describedby="learning-moment-learner-requirement"
       style={{
-        border: "1px solid #e2e8f0",
+        border: "2px solid #6c4df6",
         borderRadius: 14,
-        padding: 12,
+        padding: 14,
         margin: 0,
         display: "grid",
         gap: 10,
-        background: "#f8fafc",
+        background: "#fbfaff",
       }}
     >
-      <legend style={{ color: "#17204b", fontWeight: 850, padding: "0 4px" }}>
-        Who was involved?
+      <legend style={{ color: "#17204b", fontWeight: 850, padding: "0 6px", fontSize: 16 }}>
+        Who was involved? <span style={{ color: "#6c4df6", fontSize: 13 }}>Required</span>
       </legend>
+      <span id="learning-moment-learner-requirement" style={{ color: "#475569", fontSize: 13, lineHeight: 1.45 }}>
+        Choose one or more learners before saving.
+      </span>
       <div
         style={{
           display: "grid",
@@ -952,29 +943,6 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
   if (!workspace.profile || workspace.requiresFamilyCreation) return <section style={{ padding: 20 }}><h1>Set up your family workspace</h1><p>Create your family profile before saving a learning moment.</p><Link href="/my-profile">Open My Profile</Link></section>;
   if (!workspace.learners.length) return <section style={{ padding: 20 }}><h1>Add a learner first</h1><p>Quick Capture needs a learner so the private record stays in the right family context.</p><Link href="/my-profile">Add a learner</Link></section>;
 
-  if (savedEntry && sharingOpen) {
-    return (
-      <main
-        id="quick-capture-share-step"
-        ref={quickCaptureTopRef}
-        tabIndex={-1}
-        style={{ minHeight: "calc(100dvh - 72px)", paddingBottom: "calc(92px + env(safe-area-inset-bottom, 0px))", display: "grid", alignContent: "start", gap: 16, maxWidth: 760, margin: "0 auto", outline: "none" }}
-      >
-        <CoreJourneyCue stage="capture" />
-        <div style={{ display: "grid", gap: 6 }}>
-          <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Step 2 — Create your share card</p>
-          <p style={{ margin: 0, color: "#5b6478", lineHeight: 1.5 }}>Choose what you want to share from this saved learning moment.</p>
-        </div>
-        <CleanLearningMomentShareCard
-          entry={savedEntry}
-          learnerLabel={savedLearnerLabel}
-          imageUrl={attachments.photoPreviewUrl || null}
-          onClose={() => setSharingOpen(false)}
-        />
-      </main>
-    );
-  }
-
   if (savedEntry) {
     return (
       <main
@@ -1006,7 +974,7 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
           {submitting && savePhase ? savePhase : "Learning saved"}
         </p>
         <section style={{ border: "1px solid #bbf7d0", borderRadius: 20, background: "#f0fdf4", padding: "clamp(18px, 5vw, 30px)", display: "grid", gap: 16 }}>
-          <div><p style={{ margin: 0, color: "#15803d", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Step 1 — Learning moment saved</p><h1 style={{ margin: "6px 0 0", color: "#14532d", fontSize: "clamp(28px, 6vw, 42px)" }}>Learning moment saved</h1></div>
+          <div><p style={{ margin: 0, color: "#15803d", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learning moment saved</p><h1 style={{ margin: "6px 0 0", color: "#14532d", fontSize: "clamp(28px, 6vw, 42px)" }}>Learning moment saved</h1></div>
           <div style={{ display: "grid", gap: 6, color: "#166534", lineHeight: 1.55 }}>
             <strong>{savedLearnerLabel}</strong>
             <span>{formatDate(savedEntry.observedOn)}</span>
@@ -1041,10 +1009,8 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
                   View in Portfolio
                 </Link>
               ) : null}
-              {!mobileCompanion ? <button type="button" onClick={() => setSharingOpen(true)} style={secondaryButtonStyle}>Create a share card</button> : null}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
-              {!mobileCompanion ? <button type="button" onClick={addMoreDetail} style={tertiaryButtonStyle}>New detailed capture</button> : null}
               {successHandoff?.showCaptureAnother ? <button type="button" onClick={captureAnother} style={mobileCompanion ? secondaryButtonStyle : tertiaryButtonStyle}>Capture another</button> : null}
               {successHandoff?.returnKind === "other" ? <Link href={successHandoff.returnHref} style={mobileCompanion ? secondaryButtonStyle : tertiaryButtonStyle}>{successHandoff.returnLabel}</Link> : null}
             </div>
@@ -1060,7 +1026,7 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
       <style jsx global>{`.mylearna-quick-capture-main fieldset:first-of-type > div { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; } @media (max-width: 720px) { .mylearna-quick-capture-main { padding-bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + 112px + env(safe-area-inset-bottom, 0px)) !important; } .mylearna-quick-capture-save-bar { position: fixed !important; left: 0; right: 0; bottom: calc(var(--mylearna-mobile-bottom-nav-height, 62px) + env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 55; display: grid !important; gap: 8px !important; border-radius: 0 !important; padding: 10px max(12px, env(safe-area-inset-left, 0px)) !important; } .mylearna-quick-capture-save-bar > button { width: 100%; } .mylearna-quick-capture-photo-preview { max-height: 34vh !important; } }`}</style>
       <CoreJourneyCue stage="capture" />
       <section style={{ border: "1px solid #e7eaf2", borderRadius: 20, background: "#ffffff", padding: "clamp(16px, 4vw, 26px)", boxShadow: "0 8px 24px rgba(23,32,75,0.05)", display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{chronicleMode ? "Learning Chronicle" : "Quick Capture"}</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>{chronicleMode ? "Tell MyLearna what happened" : "Capture a photo or file quickly"}</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>{chronicleMode ? "Save a learning note for one or more learners. Photos and files are optional." : "Start with a photo or file, then add a short note if you want."}</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}><div><p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{chronicleMode ? "Record a learning moment" : "Quick Capture"}</p><h1 style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 7vw, 44px)" }}>{chronicleMode ? "Tell MyLearna what happened" : "Capture a photo or file quickly"}</h1><p style={{ margin: "10px 0 0", color: "#5b6478", lineHeight: 1.55 }}>{chronicleMode ? "Type it, speak it, or add a photo." : "Start with a photo or file, then add a short note if you want."}</p>{requestedCalendarItemId ? <p role="note" style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>From your planned learning on {formatDate(observedOn)}{learningArea ? ` · ${learningArea}` : ""}</p> : null}</div><Link href={returnPath} style={{ color: "#17204b", fontWeight: 800 }}>Back</Link></div>
         {restoredDraftNotice ? <p role="status" style={{ margin: 0, color: "#475569", lineHeight: 1.45 }}>{restoredDraftNotice}</p> : null}
         <form
           onSubmit={handleSave}
@@ -1090,7 +1056,7 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
             {chronicleMode ? attachmentControls : chronicleTextField}
             <div style={{ borderTop: "1px solid #eef0f5", paddingTop: 12 }}><button type="button" onClick={() => setLearningAreaOpen((current) => !current)} aria-expanded={learningAreaOpen} style={{ ...tertiaryButtonStyle, textDecoration: "none", padding: 0 }}>{learningAreaOpen ? "Hide learning area" : "Add learning area"}</button>{learningAreaOpen ? <label style={{ display: "grid", gap: 6, marginTop: 10 }}><span style={{ color: "#17204b", fontWeight: 750 }}>Learning area <span style={{ color: "#5b6478", fontWeight: 500 }}>(optional)</span></span><input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} maxLength={80} placeholder="For example, Science or Art" style={{ minHeight: 46, border: "1px solid #cbd5e1", borderRadius: 12, padding: "0 12px", font: "inherit" }} /></label> : null}</div>
           </>}
-          <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" aria-live="polite" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving learning" : mobileCompanion ? "Save learning" : "Save learning moment"}</button></div>
+          <div className="mylearna-quick-capture-save-bar" style={{ position: "sticky", bottom: 8, border: "1px solid #ddd6fe", borderRadius: 16, background: "rgba(250,249,255,0.97)", padding: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(12px)" }}><span role="status" aria-live="polite" style={{ color: savePhase ? "#6c4df6" : "#5b6478", fontSize: 13 }}>{savePhase || "Private to your family · Portfolio on · Reports on"}</span><button type="submit" disabled={submitting} style={{ minHeight: 48, border: "1px solid #6c4df6", borderRadius: 12, background: "#6c4df6", color: "#ffffff", padding: "10px 16px", fontSize: 14, fontWeight: 850, cursor: submitting ? "wait" : "pointer", whiteSpace: "nowrap" }}>{submitting ? savePhase || "Saving learning" : chronicleMode ? "Record learning" : mobileCompanion ? "Save learning" : "Save learning moment"}</button></div>
           {networkHint === "offline" ? (
             <p role="status" aria-live="polite" style={{ margin: 0, color: "#92400e", lineHeight: 1.5 }}>
               Your device appears offline. Keep this page open; your entries will stay

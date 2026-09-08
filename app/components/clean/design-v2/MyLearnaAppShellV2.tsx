@@ -642,9 +642,9 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const quickCaptureHref = `/my-capture?mode=quick&returnTo=${encodeURIComponent(quickCaptureReturnPath)}`;
   const captureMode = searchParams.get("mode");
   const focusedCaptureRoute = (pathname === "/my-capture" || pathname === "/clean-my-capture") && (captureMode === "quick" || captureMode === "chronicle");
-  const title = focusedCaptureRoute ? (captureMode === "chronicle" ? "Learning Chronicle" : "Quick Capture") : routeTitle(pathname);
+  const title = focusedCaptureRoute ? (captureMode === "chronicle" ? "Record a learning moment" : "Quick Capture") : routeTitle(pathname);
   const breadcrumbs = focusedCaptureRoute
-    ? [{ label: "My Capture", href: "/my-capture" }, { label: captureMode === "chronicle" ? "Learning Chronicle" : "Quick Capture" }]
+    ? [{ label: "My Capture", href: "/my-capture" }, { label: captureMode === "chronicle" ? "Record a learning moment" : "Quick Capture" }]
     : routeCrumbs(pathname);
   const familySetupState = {
     authenticated: Boolean(user),

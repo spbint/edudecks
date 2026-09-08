@@ -36,14 +36,16 @@ describe("Learning Chronicle shared capture", () => {
     expect(storageGuardrailMigration).toContain("byte_size <= 10485760");
   });
 
-  it("adds a text-first Chronicle UX with optional media and multi-learner selection", () => {
-    expect(quickCapture).toContain("Learning Chronicle");
+  it("adds a text-first learning moment UX with optional media and multi-learner selection", () => {
+    expect(quickCapture).toContain("Record a learning moment");
     expect(quickCapture).toContain("Tell MyLearna what happened");
     expect(quickCapture).toContain("Who was involved?");
+    expect(quickCapture).toContain("Choose one or more learners before saving.");
     expect(quickCapture).toContain("type=\"checkbox\"");
     expect(quickCapture).toContain("Optional photo or file");
     expect(quickCapture).toContain("Tell MyLearna what happened before saving.");
     expect(quickCapture).toContain("Choose at least one learner for this learning note.");
+    expect(quickCapture).not.toContain("Learning Chronicle");
     expect(quickCapture).not.toMatch(/subject.*required|calendar.*required/i);
   });
 
@@ -66,8 +68,8 @@ describe("Learning Chronicle shared capture", () => {
     expect(quickCapture).toContain("setSavedEntry(result.entry)");
   });
 
-  it("surfaces shared Chronicles in Portfolio without treating them as assessment or mastery", () => {
-    expect(portfolioPresentation).toContain("Learning Chronicle");
+  it("surfaces shared learning moments in Portfolio without treating them as assessment or mastery", () => {
+    expect(portfolioPresentation).toContain("Learning Moment");
     expect(portfolioPresentation).toContain("buildEvidenceLearnerLabel");
     expect(portfolioWorkspace).toContain("evidenceIncludesLearner(item, selectedLearnerId)");
     expect(portfolioWorkspace).toContain("buildEvidenceLearnerLabel(item.evidence, learnerLabelById)");

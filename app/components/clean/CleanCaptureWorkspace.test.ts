@@ -8,14 +8,15 @@ const source = readFileSync(
 );
 
 describe("My Capture success receipt", () => {
-  it("exposes Learning Chronicle immediately on the authenticated Capture route", () => {
-    expect(source).toContain("Learning Chronicle");
+  it("exposes the learning moment entry point immediately on the authenticated Capture route", () => {
+    expect(source).toContain("Record a learning moment");
     expect(source).toContain("Tell MyLearna what happened.");
-    expect(source).toContain("Type or speak a quick learning note");
-    expect(source).toContain("Add learning note");
+    expect(source).toContain("Type it, speak it, or add a photo.");
+    expect(source).toContain("Record learning");
     expect(source).toContain("mode=chronicle");
     expect(source).toContain('captureMode === "chronicle"');
     expect(source).toContain('<CleanQuickCaptureWorkspace mode="chronicle" />');
+    expect(source).not.toContain("Learning Chronicle");
   });
 
   it("keeps Quick Capture and detailed Record learning available separately", () => {

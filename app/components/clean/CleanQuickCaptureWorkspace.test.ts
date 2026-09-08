@@ -44,7 +44,7 @@ describe("Quick Capture doorway", () => {
 
   it("keeps the Quick Capture route and activity shell separate from companion navigation", () => {
     expect(shellSource).toContain("const focusedCaptureRoute = (pathname === \"/my-capture\" || pathname === \"/clean-my-capture\") && (captureMode === \"quick\" || captureMode === \"chronicle\");");
-    expect(shellSource).toContain('captureMode === "chronicle" ? "Learning Chronicle" : "Quick Capture"');
+    expect(shellSource).toContain('captureMode === "chronicle" ? "Record a learning moment" : "Quick Capture"');
     expect(shellSource).toContain("if (activityMode)");
     expect(shellSource).toContain("mylearna-v2-quick-capture-content");
   });
@@ -71,7 +71,6 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("whatHappened: nextCaption");
     expect(source).toContain("learningArea: learningArea.trim() || null");
     expect(source).toContain("Learning moment saved");
-    expect(source).toContain("setQuickCaptureDraft");
     expect(source).toContain("if (submitting || savedEntry");
   });
 
@@ -93,13 +92,17 @@ describe("Quick Capture doorway", () => {
     expect(source).toContain("Tell MyLearna what happened before saving.");
   });
 
-  it("keeps quick capture visually anchored with a text-first Chronicle path", () => {
+  it("keeps quick capture visually anchored with a text-first learning moment path", () => {
     expect(source).toContain("window.scrollTo({ top: 0");
-    expect(captureSource).toContain("Learning Chronicle");
-    expect(captureSource).toContain("Add learning note");
-    expect(source).toContain("Learning Chronicle");
+    expect(captureSource).toContain("Record a learning moment");
+    expect(captureSource).toContain("Record learning");
+    expect(source).toContain("Record a learning moment");
     expect(source).toContain("Tell MyLearna what happened");
+    expect(source).toContain("Type it, speak it, or add a photo.");
     expect(source).toContain("Who was involved?");
+    expect(source).toContain("Choose one or more learners before saving.");
+    expect(source).toContain("Required</span>");
+    expect(source).not.toContain("Learning Chronicle");
     expect(source).not.toContain("Add it to the portfolio later.");
     expect(source).toContain("CleanEvidenceAttachmentControls");
     expect(attachmentControlsSource).toContain('aria-label="Take a photo"');
@@ -135,27 +138,16 @@ describe("Quick Capture doorway", () => {
     expect(shellSource).toContain("grid-template-columns: repeat(4, minmax(0, 1fr)) !important");
   });
 
-  it("keeps the saved receipt calm and makes sharing a focused second step", () => {
-    expect(source).toContain("Step 1");
-    expect(source).toContain("Step 2 — Create your share card");
-    expect(shareSource).toContain("Back to saved moment");
-    expect(source).toContain("onClick={() => setSharingOpen(true)}");
+  it("keeps the saved receipt focused on Portfolio and another capture", () => {
+    expect(source).not.toContain("Step 1");
+    expect(source).not.toContain("Step 2");
+    expect(source).not.toContain("Create your share card");
+    expect(source).not.toContain("onClick={() => setSharingOpen(true)}");
     expect(source).not.toContain("Close share card");
     expect(source).not.toContain('setStatus("Learning moment saved.")');
-    expect(source).toContain("style={tertiaryButtonStyle}");
-  });
-
-  it("labels the existing full-Capture draft handoff as a new detailed capture", () => {
-    const handoffStart = source.indexOf("function addMoreDetail()");
-    const handoffEnd = source.indexOf("function captureAnother()", handoffStart);
-    const handoff = source.slice(handoffStart, handoffEnd);
-
-    expect(source).toContain(">New detailed capture</button>");
-    expect(handoff).toContain("setQuickCaptureDraft");
-    expect(handoff).toContain('quickDraft: "1"');
-    expect(handoff).toContain('params = new URLSearchParams({ learner_id: savedEntry.learnerId, observed_on: savedEntry.observedOn, quickDraft: "1", returnTo: returnPath })');
-    expect(handoff).toContain("router.push");
-    expect(handoff).not.toContain("saveUnifiedLearningCapture");
+    expect(source).not.toContain("New detailed capture");
+    expect(source).toContain("View in Portfolio");
+    expect(source).toContain("Capture another");
   });
 
   it("guides a successful save to Portfolio without changing persistence", () => {

@@ -88,7 +88,7 @@ export function getEvidencePresentationMeta(item: CleanPortfolioItem): EvidenceP
       : pathwayContext?.stepTitle || null;
 
   return {
-    sourceLabel: pathwayContext ? "My Pathways" : learningChronicle ? "Learning Chronicle" : learningMoment ? "Learning Moment" : "My Capture",
+    sourceLabel: pathwayContext ? "My Pathways" : learningChronicle ? "Learning Moment" : learningMoment ? "Learning Moment" : "My Capture",
     pathwayLabel: pathwayContext?.pathwayLabel || pathwayContext?.pathwayKey || null,
     strandLabel: pathwayContext?.pathwayLabel || pathwayContext?.pathwayKey || null,
     stageLabel: pathwayContext?.stageLabel || pathwayContext?.stageKey || null,

@@ -10,13 +10,17 @@ const success = readFileSync(join(process.cwd(), "lib/clean/evidence/quickCaptur
 
 describe("mobile Capture companion", () => {
   it("keeps the mobile hierarchy Chronicle-first inside Capture", () => {
-    expect(capture).toContain("Learning Chronicle");
+    expect(capture).toContain("Record a learning moment");
     expect(capture).toContain("Tell MyLearna what happened");
+    expect(capture).toContain("Type it, speak it, or add a photo.");
     expect(capture).toContain('title={chronicleMode ? "Optional photo or file" : "Add photo or file"}');
     expect(capture).toContain('aria-label={chronicleMode ? "Tell MyLearna what happened" : "Add a short learning note"}');
     expect(capture).toContain("Who was involved?");
+    expect(capture).toContain("Choose one or more learners before saving.");
+    expect(capture).toContain("Required</span>");
     expect(capture).toContain("Optional details");
-    expect(capture).toContain('mobileCompanion ? "Save learning" : "Save learning moment"');
+    expect(capture).toContain('chronicleMode ? "Record learning"');
+    expect(capture).not.toContain("Learning Chronicle");
   });
 
   it("makes the existing camera input visually primary without changing its attachment contract", () => {
@@ -71,8 +75,10 @@ describe("mobile Capture companion", () => {
     expect(capture).toContain("successHandoff?.returnHref");
     expect(capture).toContain("mobileCompanion && successHandoff?.portfolioHref");
     expect(capture).toContain("!mobileCompanion && successHandoff?.portfolioHref");
-    expect(capture).toContain("!mobileCompanion ? <button type=\"button\" onClick={addMoreDetail}");
-    expect(capture).toContain("!mobileCompanion ? <button type=\"button\" onClick={() => setSharingOpen(true)}");
+    expect(capture).not.toContain("!mobileCompanion ? <button type=\"button\" onClick={addMoreDetail}");
+    expect(capture).not.toContain("!mobileCompanion ? <button type=\"button\" onClick={() => setSharingOpen(true)}");
+    expect(capture).not.toContain("New detailed capture");
+    expect(capture).not.toContain("Create a share card");
     expect(success).toContain("latestEvidenceId");
     expect(capture).toContain("buildQuickCaptureSuccessHandoff");
   });

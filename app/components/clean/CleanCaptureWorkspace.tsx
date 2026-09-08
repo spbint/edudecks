@@ -2596,12 +2596,12 @@ function CleanCaptureWorkspaceBody() {
                   gap: 8,
                 }}
               >
-                <strong style={{ color: "#17204B", fontSize: 16 }}>Learning Chronicle</strong>
+                <strong style={{ color: "#17204B", fontSize: 16 }}>Record a learning moment</strong>
                 <span style={{ color: "#475569", lineHeight: 1.5 }}>
                   Tell MyLearna what happened.
                 </span>
                 <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
-                  Type or speak a quick learning note, choose who was involved, and optionally add a photo or file.
+                  Type it, speak it, or add a photo.
                 </span>
                 <Link
                   href={chronicleHref}
@@ -2619,7 +2619,7 @@ function CleanCaptureWorkspaceBody() {
                     fontWeight: 850,
                   }}
                 >
-                  Add learning note
+                  Record learning
                 </Link>
               </div>
               <div
