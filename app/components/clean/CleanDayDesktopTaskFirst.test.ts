@@ -31,6 +31,28 @@ describe("Desktop My Day task-first presentation", () => {
     expect(source).toContain('<CleanFirstRunSetupGate currentStep="day" />');
   });
 
+  it("places On Deck after the primary Today learning area and before the broader Pathways prompt", () => {
+    const desktopSource = source.slice(source.indexOf("if (mobileCompanion)"));
+    const todayCardIndex = desktopSource.indexOf('data-guidance-id="my-day-today-plan"');
+    const onDeckIndex = desktopSource.indexOf("<OnDeckSection");
+    const pathwaysPromptIndex = desktopSource.indexOf('data-guidance-id="my-day-next-pathways"');
+
+    expect(todayCardIndex).toBeGreaterThan(-1);
+    expect(onDeckIndex).toBeGreaterThan(todayCardIndex);
+    expect(pathwaysPromptIndex).toBeGreaterThan(onDeckIndex);
+    expect(source).toContain("Keep the next few pieces of learning in focus.");
+    expect(source).toContain("No dates required.");
+    expect(source).toContain("Choose from Pathways");
+  });
+
+  it("keeps On Deck persistence independent from Calendar, evidence, and Pathway progress", () => {
+    expect(source).toContain("listLearningQueueItems");
+    expect(source).toContain("resolveOnDeckItem");
+    expect(source).not.toContain('source_type: "on_deck"');
+    expect(source).not.toContain("savePathwayPlacement(");
+    expect(source).not.toContain("createCleanEvidenceEntry");
+  });
+
   it("keeps retry and mobile read-only capture context contracts intact", () => {
     expect(source).toContain("setDayReloadNonce((current) => current + 1)");
     expect(source).toContain("calendar_item_id: item.id");

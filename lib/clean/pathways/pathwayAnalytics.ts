@@ -14,7 +14,11 @@ export type PathwayAnalyticsEvent =
   | "pathway_assessment_saved"
   | "pathway_assessment_readback_shown"
   | "pathway_capture_selected"
-  | "pathway_next_step_selected";
+  | "pathway_next_step_selected"
+  | "on_deck_item_added"
+  | "on_deck_item_removed"
+  | "on_deck_item_reordered"
+  | "on_deck_item_opened";
 
 export type PathwayAnalyticsContext = {
   subjectKey?: string;

@@ -47,6 +47,17 @@ import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
+  listLearningQueueItems,
+  moveLearningQueueItem,
+  removeLearningQueueItem,
+} from "@/lib/clean/onDeck/client";
+import {
+  resolveOnDeckItem,
+  sortLearningQueueItems,
+  type LearningQueueItem,
+  type OnDeckResolvedItem,
+} from "@/lib/clean/onDeck/learningQueue";
+import {
   beginCleanPlanningTiming,
   recordCleanPlanningMilestone,
 } from "@/lib/clean/performance/planningTiming";
@@ -244,6 +255,204 @@ function isValidDateValue(value: string | null): value is string {
   return !Number.isNaN(date.getTime());
 }
 
+function OnDeckSection({
+  compact = false,
+  items,
+  learnerLabelById,
+  onMove,
+  onRemove,
+  pathwaysHref,
+  selectedLearnerId,
+  updatingId,
+  userId,
+}: {
+  compact?: boolean;
+  items: OnDeckResolvedItem[];
+  learnerLabelById: Map<string, string>;
+  onMove: (itemId: string, learnerId: string, direction: "up" | "down") => void;
+  onRemove: (itemId: string) => void;
+  pathwaysHref: string;
+  selectedLearnerId: string;
+  updatingId: string;
+  userId?: string | null;
+}) {
+  const actionStyle: React.CSSProperties = {
+    minHeight: compact ? 40 : 42,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    padding: compact ? "8px 10px" : "9px 12px",
+    fontSize: compact ? 13 : 14,
+    fontWeight: 800,
+    textDecoration: "none",
+    border: "1px solid #cbd5e1",
+    background: "#ffffff",
+    color: "#17204b",
+    cursor: "pointer",
+  };
+  const showReorder = selectedLearnerId && items.length > 1;
+
+  return (
+    <section
+      aria-labelledby={compact ? "mobile-on-deck-title" : "on-deck-title"}
+      style={{
+        border: "1px solid #e2e8f0",
+        borderRadius: compact ? 16 : 18,
+        background: "#ffffff",
+        padding: compact ? 14 : 18,
+        display: "grid",
+        gap: 12,
+        boxShadow: compact ? "none" : "0 8px 22px rgba(15,23,42,0.04)",
+      }}
+    >
+      <header style={{ display: "grid", gap: 5 }}>
+        <p
+          style={{
+            margin: 0,
+            color: "#2563eb",
+            fontSize: 12,
+            fontWeight: 850,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          On deck
+        </p>
+        <h2
+          id={compact ? "mobile-on-deck-title" : "on-deck-title"}
+          style={{ margin: 0, color: "#17204b", fontSize: compact ? 16 : 20 }}
+        >
+          Keep the next few pieces of learning in focus.
+        </h2>
+        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.55, fontSize: 14 }}>
+          No dates required.
+        </p>
+      </header>
+
+      {!items.length ? (
+        <div style={{ display: "grid", gap: 10 }}>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>
+            Keep a few pieces of learning in focus without adding them to the calendar.
+          </p>
+          <Link href={pathwaysHref} style={{ ...actionStyle, width: "fit-content" }}>
+            Choose from Pathways
+          </Link>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {items.slice(0, 8).map((resolved, index) => {
+            const { item } = resolved;
+            const learnerLabel = learnerLabelById.get(item.learnerId) || "Learner";
+            const busy = updatingId === item.id;
+
+            return (
+              <article
+                key={item.id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  background: resolved.available ? "#fbfdff" : "#f8fafc",
+                  padding: 12,
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <span style={blockMetaPillStyle}>On deck</span>
+                    <span style={blockMetaPillStyle}>{resolved.subjectLabel}</span>
+                    {selectedLearnerId ? null : (
+                      <span style={blockMetaPillStyle}>{learnerLabel}</span>
+                    )}
+                    {resolved.worksheetAvailable ? (
+                      <span style={blockMetaPillStyle}>Worksheet available</span>
+                    ) : null}
+                    {!resolved.available ? (
+                      <span style={blockMetaPillStyle}>Unavailable</span>
+                    ) : null}
+                  </div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      color: "#17204b",
+                      fontSize: compact ? 15 : 16,
+                      lineHeight: 1.35,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {resolved.title}
+                  </h3>
+                  {resolved.pathwayLabel || resolved.stageLabel ? (
+                    <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+                      {[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {resolved.href ? (
+                    <Link
+                      href={resolved.href}
+                      onClick={() =>
+                        trackProductEvent(
+                          "on_deck_item_opened",
+                          {
+                            subjectKey: item.subjectKey,
+                            strandKey: item.strandKey,
+                            stageKey: item.stageKey,
+                            stepKey: item.stepKey,
+                            pathwayStepId: item.pathwayStepId,
+                            position: item.position,
+                          },
+                          userId,
+                        )
+                      }
+                      style={{ ...actionStyle, borderColor: "#6c4df6", background: "#6c4df6", color: "#ffffff" }}
+                    >
+                      Open step
+                    </Link>
+                  ) : null}
+                  {showReorder ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onMove(item.id, item.learnerId, "up")}
+                        disabled={busy || index === 0}
+                        aria-label={`Move ${resolved.title} up`}
+                        style={{ ...actionStyle, opacity: busy || index === 0 ? 0.55 : 1 }}
+                      >
+                        Move up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onMove(item.id, item.learnerId, "down")}
+                        disabled={busy || index === items.length - 1}
+                        aria-label={`Move ${resolved.title} down`}
+                        style={{ ...actionStyle, opacity: busy || index === items.length - 1 ? 0.55 : 1 }}
+                      >
+                        Move down
+                      </button>
+                    </>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onRemove(item.id)}
+                    disabled={busy}
+                    style={{ ...actionStyle, opacity: busy ? 0.55 : 1 }}
+                  >
+                    Remove from deck
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 type MobileTodayContentProps = {
   calendarHref: string;
   completionError: { itemId: string; message: string } | null;
@@ -259,9 +468,15 @@ type MobileTodayContentProps = {
   myDayPresentationState: CleanMyDayPresentationState | null;
   onCompletionToggle: (item: CleanCalendarItem) => void;
   onLearnerChange: (learnerId: string) => void;
+  onDeckItems: OnDeckResolvedItem[];
+  onDeckError: string | null;
+  onDeckUpdatingId: string;
+  onMoveOnDeckItem: (itemId: string, learnerId: string, direction: "up" | "down") => void;
+  onRemoveOnDeckItem: (itemId: string) => void;
   onMoveDay: (offset: number) => void;
   onRetry: () => void;
   onToday: () => void;
+  pathwaysHref: string;
   quickCaptureHref: string;
   selectedLearnerId: string;
   selectedLearnerLabel: string | null;
@@ -288,9 +503,15 @@ function MobileTodayContent({
   myDayPresentationState,
   onCompletionToggle,
   onLearnerChange,
+  onDeckItems,
+  onDeckError,
+  onDeckUpdatingId,
+  onMoveOnDeckItem,
+  onRemoveOnDeckItem,
   onMoveDay,
   onRetry,
   onToday,
+  pathwaysHref,
   quickCaptureHref,
   selectedLearnerId,
   selectedLearnerLabel,
@@ -446,6 +667,22 @@ function MobileTodayContent({
             }) : null}
           </section>
 
+          <OnDeckSection
+            compact
+            items={onDeckItems}
+            learnerLabelById={learnerLabelById}
+            onMove={onMoveOnDeckItem}
+            onRemove={onRemoveOnDeckItem}
+            pathwaysHref={pathwaysHref}
+            selectedLearnerId={selectedLearnerId}
+            updatingId={onDeckUpdatingId}
+            userId={null}
+          />
+
+          {onDeckError ? (
+            <section style={mobileCardStyle} role="alert">{onDeckError}</section>
+          ) : null}
+
           {!itemsLoading && !itemsError && !hasItems ? (
             <section style={mobileCardStyle}>
               <strong style={{ color: "#17204b" }}>
@@ -481,6 +718,9 @@ function CleanDayWorkspaceBody() {
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
   const [evidenceEntries, setEvidenceEntries] = useState<CleanEvidenceEntry[]>([]);
+  const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
+  const [onDeckError, setOnDeckError] = useState<string | null>(null);
+  const [onDeckUpdatingId, setOnDeckUpdatingId] = useState("");
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -749,6 +989,52 @@ function CleanDayWorkspaceBody() {
         : pathwaysPathBase,
     [pathwaysPathBase, selectedLearnerId],
   );
+  const resolvedOnDeckItems = useMemo(
+    () =>
+      sortLearningQueueItems(onDeckItems).map((item) =>
+        resolveOnDeckItem(item, pathwaysPathBase),
+      ),
+    [onDeckItems, pathwaysPathBase],
+  );
+  const reloadOnDeckItems = useCallback(async () => {
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setOnDeckItems([]);
+      setOnDeckError(null);
+      return;
+    }
+
+    try {
+      const nextItems = await listLearningQueueItems(
+        workspace.profile.id,
+        selectedLearnerId || null,
+      );
+      setOnDeckItems(nextItems);
+      setOnDeckError(null);
+    } catch (error) {
+      setOnDeckItems([]);
+      setOnDeckError(
+        normalizeCleanErrorMessage(error, "We could not load On Deck just now."),
+      );
+    }
+  }, [
+    selectedLearnerId,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    void Promise.resolve().then(async () => {
+      if (!active) return;
+      await reloadOnDeckItems();
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [reloadOnDeckItems]);
   useEffect(() => {
     if (!workspace.learners.length) {
       setSelectedLearnerId("");
@@ -1095,6 +1381,75 @@ function CleanDayWorkspaceBody() {
     }
   }
 
+  async function handleRemoveOnDeckItem(itemId: string) {
+    if (!workspace.profile) return;
+    const item = onDeckItems.find((entry) => entry.id === itemId) || null;
+    setOnDeckUpdatingId(itemId);
+    setOnDeckError(null);
+    try {
+      await removeLearningQueueItem(workspace.profile.id, itemId);
+      setOnDeckItems((current) => current.filter((entry) => entry.id !== itemId));
+      if (item) {
+        trackProductEvent(
+          "on_deck_item_removed",
+          {
+            subjectKey: item.subjectKey,
+            strandKey: item.strandKey,
+            stageKey: item.stageKey,
+            stepKey: item.stepKey,
+            pathwayStepId: item.pathwayStepId,
+          },
+          user?.id,
+        );
+      }
+    } catch (error) {
+      setOnDeckError(
+        normalizeCleanErrorMessage(error, "We could not remove this On Deck item."),
+      );
+    } finally {
+      setOnDeckUpdatingId("");
+    }
+  }
+
+  async function handleMoveOnDeckItem(
+    itemId: string,
+    learnerId: string,
+    direction: "up" | "down",
+  ) {
+    if (!workspace.profile) return;
+    setOnDeckUpdatingId(itemId);
+    setOnDeckError(null);
+    try {
+      const nextItems = await moveLearningQueueItem(
+        workspace.profile.id,
+        learnerId,
+        itemId,
+        direction,
+      );
+      if (selectedLearnerId) {
+        setOnDeckItems(nextItems);
+      } else {
+        await reloadOnDeckItems();
+      }
+      const movedItem = nextItems.find((entry) => entry.id === itemId) || null;
+      trackProductEvent(
+        "on_deck_item_reordered",
+        {
+          subjectKey: movedItem?.subjectKey || null,
+          source: "on_deck",
+          position: movedItem?.position ?? null,
+        },
+        user?.id,
+      );
+    } catch (error) {
+      setOnDeckError(
+        normalizeCleanErrorMessage(error, "We could not update the On Deck order."),
+      );
+    } finally {
+      setOnDeckUpdatingId("");
+    }
+  }
+
   async function handleDailyPlannerDownload() {
     if (!workspace.profile) return;
 
@@ -1269,11 +1624,19 @@ function CleanDayWorkspaceBody() {
           learnerLabelById={learnerLabelById}
           learnerOptions={learnerOptions}
           myDayPresentationState={myDayPresentationState}
+          onDeckItems={resolvedOnDeckItems}
+          onDeckError={onDeckError}
+          onDeckUpdatingId={onDeckUpdatingId}
           onCompletionToggle={(item) => void handleCompletionToggle(item)}
           onLearnerChange={handleLearnerChange}
+          onMoveOnDeckItem={(itemId, learnerId, direction) =>
+            void handleMoveOnDeckItem(itemId, learnerId, direction)
+          }
           onMoveDay={(offset) => router.push(buildDayPath(addDays(selectedDate, offset)))}
+          onRemoveOnDeckItem={(itemId) => void handleRemoveOnDeckItem(itemId)}
           onRetry={() => setDayReloadNonce((current) => current + 1)}
           onToday={() => router.push(buildDayPath(today))}
+          pathwaysHref={currentPathwayHref}
           quickCaptureHref={mobileQuickCaptureHref}
           selectedLearnerId={selectedLearnerId}
           selectedLearnerLabel={selectedLearnerLabel}
@@ -2209,6 +2572,25 @@ function CleanDayWorkspaceBody() {
                 </datalist>
               </div>
             </section>
+
+            <OnDeckSection
+              items={resolvedOnDeckItems}
+              learnerLabelById={learnerLabelById}
+              onMove={(itemId, learnerId, direction) =>
+                void handleMoveOnDeckItem(itemId, learnerId, direction)
+              }
+              onRemove={(itemId) => void handleRemoveOnDeckItem(itemId)}
+              pathwaysHref={currentPathwayHref}
+              selectedLearnerId={selectedLearnerId}
+              updatingId={onDeckUpdatingId}
+              userId={user?.id}
+            />
+
+            {onDeckError ? (
+              <div role="alert" style={{ color: "#b91c1c", fontSize: 13, fontWeight: 800 }}>
+                {onDeckError}
+              </div>
+            ) : null}
 
             {PUBLIC_PATHWAYS_ENABLED ? <section data-guidance-id="my-day-next-pathways" style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>

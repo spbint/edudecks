@@ -141,6 +141,45 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
   });
 
+  it("adds a restrained Put on deck action without changing the primary Pathways action", () => {
+    const onPutOnDeck = vi.fn();
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: "Use place value",
+        worksheetResource,
+        onPutOnDeck,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Put on deck" }));
+
+    expect(onPutOnDeck).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Add to Portfolio",
+    );
+    expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
+  });
+
+  it("shows On deck state and a low-noise remove action when already queued", () => {
+    const onRemoveFromDeck = vi.fn();
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: "Use place value",
+        worksheetResource,
+        onDeck: true,
+        onRemoveFromDeck,
+      }),
+    );
+
+    expect(screen.getByRole("status").textContent).toContain("On deck");
+    fireEvent.click(screen.getByRole("button", { name: "Remove from deck" }));
+
+    expect(onRemoveFromDeck).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Put on deck" })).toBeNull();
+  });
+
   it("keeps the canonical Capture return URL for worksheet evidence", () => {
     render(
       React.createElement(CleanPathwayStepActionRow, {

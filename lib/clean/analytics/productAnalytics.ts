@@ -33,6 +33,7 @@ const SAFE_PROPERTY_KEYS = new Set([
   "hasEndTime",
   "viewType",
   "source",
+  "position",
   "entryType",
   "dateRangeDays",
   "format",

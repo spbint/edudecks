@@ -40,7 +40,12 @@ type CleanPathwayStepActionRowProps = {
   worksheetResource?: MathWorksheetResource | null;
   latestEvidenceEntry?: CleanEvidenceEntry | null;
   manualComplete?: boolean;
+  onDeck?: boolean;
+  onDeckBusy?: boolean;
+  onDeckUnavailable?: boolean;
   onManualCompletionChange?: (completed: boolean) => void;
+  onPutOnDeck?: () => void;
+  onRemoveFromDeck?: () => void;
   onActionSelected?: (action: PathwayNextAction, primary: boolean) => void;
 };
 
@@ -137,7 +142,12 @@ export default function CleanPathwayStepActionRow({
   worksheetResource,
   latestEvidenceEntry = null,
   manualComplete = false,
+  onDeck = false,
+  onDeckBusy = false,
+  onDeckUnavailable = false,
   onManualCompletionChange,
+  onPutOnDeck,
+  onRemoveFromDeck,
   onActionSelected,
 }: CleanPathwayStepActionRowProps) {
   const worksheetEvidenceCaptureHref =
@@ -283,12 +293,63 @@ export default function CleanPathwayStepActionRow({
         </div>
       ) : null}
 
-      {actionPlan.secondary.length || (!manualComplete && onManualCompletionChange) || worksheetResource ? (
+      {actionPlan.secondary.length ||
+      (!manualComplete && onManualCompletionChange) ||
+      worksheetResource ||
+      onPutOnDeck ||
+      onDeck ? (
         <div
           className="mylearna-pathway-secondary-actions"
           style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
         >
           {actionPlan.secondary.map((action) => renderAction(action))}
+          {onPutOnDeck && !onDeck ? (
+            <button
+              type="button"
+              onClick={onPutOnDeck}
+              disabled={onDeckBusy || onDeckUnavailable}
+              style={{
+                ...secondaryButtonStyle,
+                opacity: onDeckBusy || onDeckUnavailable ? 0.62 : 1,
+                cursor: onDeckBusy || onDeckUnavailable ? "not-allowed" : "pointer",
+              }}
+            >
+              {onDeckBusy ? "Saving..." : "Put on deck"}
+            </button>
+          ) : null}
+          {onDeck ? (
+            <span
+              role="status"
+              style={{
+                border: "1px solid #bbf7d0",
+                borderRadius: 999,
+                background: "#f0fdf4",
+                color: "#166534",
+                padding: "6px 9px",
+                minHeight: 36,
+                display: "inline-flex",
+                alignItems: "center",
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              On deck
+            </span>
+          ) : null}
+          {onDeck && onRemoveFromDeck ? (
+            <button
+              type="button"
+              onClick={onRemoveFromDeck}
+              disabled={onDeckBusy}
+              style={{
+                ...secondaryButtonStyle,
+                opacity: onDeckBusy ? 0.62 : 1,
+                cursor: onDeckBusy ? "not-allowed" : "pointer",
+              }}
+            >
+              Remove from deck
+            </button>
+          ) : null}
           {!manualComplete && onManualCompletionChange ? (
             <button
               type="button"

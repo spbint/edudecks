@@ -38,6 +38,7 @@ import {
 import {
   buildPathwayRegistryStepKey,
   getAllPathwaySteps,
+  type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
   appendPathwayCaptureReturnTo,
@@ -74,6 +75,13 @@ import {
   PATHWAY_SUBJECTS,
   type PathwaySubjectKey,
 } from "@/lib/clean/pathways/pathwaySubjects";
+import {
+  addPathwayStepToLearningQueue,
+  hasLearningQueueItemForStep,
+  listLearningQueueItems,
+  removeLearningQueueItem,
+} from "@/lib/clean/onDeck/client";
+import type { LearningQueueItem } from "@/lib/clean/onDeck/learningQueue";
 import {
   readPathwayPlacement,
   savePathwayPlacement,
@@ -970,6 +978,9 @@ function PathwaysWorkspaceBody() {
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
+  const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
+  const [onDeckBusyStepId, setOnDeckBusyStepId] = useState("");
+  const [onDeckMessage, setOnDeckMessage] = useState<string | null>(null);
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -1099,6 +1110,106 @@ function PathwaysWorkspaceBody() {
   }, [currentLearnerFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey]);
   const selectedStrandIsActive =
     selectedSubjectSupportsDetailedPathways && hasExplicitStrandSelection;
+
+  const reloadOnDeckItems = useCallback(async () => {
+    if (
+      !workspace.profile ||
+      workspace.schemaMissing ||
+      workspace.requiresFamilyCreation ||
+      !selectedLearnerId
+    ) {
+      setOnDeckItems([]);
+      return;
+    }
+
+    try {
+      const nextItems = await listLearningQueueItems(
+        workspace.profile.id,
+        selectedLearnerId,
+      );
+      setOnDeckItems(nextItems);
+    } catch {
+      setOnDeckItems([]);
+    }
+  }, [
+    selectedLearnerId,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    void Promise.resolve().then(async () => {
+      if (!active) return;
+      await reloadOnDeckItems();
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [reloadOnDeckItems]);
+
+  const handlePutStepOnDeck = useCallback(
+    async (registryItem: PathwayStepRegistryItem) => {
+      if (!workspace.profile || !selectedLearnerId) return;
+      setOnDeckBusyStepId(registryItem.id);
+      setOnDeckMessage(null);
+      try {
+        const result = await addPathwayStepToLearningQueue({
+          familyId: workspace.profile.id,
+          learnerId: selectedLearnerId,
+          registryItem,
+        });
+        await reloadOnDeckItems();
+        setOnDeckMessage(result.created ? "Added to On Deck." : "Already on deck.");
+        trackPathwayAnalyticsEvent("on_deck_item_added", {
+          subjectKey: registryItem.subjectKey,
+          strandKey: registryItem.strandKey,
+          stageKey: registryItem.stageKey,
+          stepKey: registryItem.stepKey,
+          pathwayStepId: registryItem.id,
+        });
+      } catch (error) {
+        setOnDeckMessage(
+          String((error as { message?: unknown })?.message || "We could not update On Deck."),
+        );
+      } finally {
+        setOnDeckBusyStepId("");
+      }
+    },
+    [reloadOnDeckItems, selectedLearnerId, workspace.profile],
+  );
+
+  const handleRemoveStepFromDeck = useCallback(
+    async (queueItemId: string, registryItem: PathwayStepRegistryItem | null) => {
+      if (!workspace.profile) return;
+      setOnDeckBusyStepId(registryItem?.id || queueItemId);
+      setOnDeckMessage(null);
+      try {
+        await removeLearningQueueItem(workspace.profile.id, queueItemId);
+        await reloadOnDeckItems();
+        setOnDeckMessage("Removed from On Deck.");
+        if (registryItem) {
+          trackPathwayAnalyticsEvent("on_deck_item_removed", {
+            subjectKey: registryItem.subjectKey,
+            strandKey: registryItem.strandKey,
+            stageKey: registryItem.stageKey,
+            stepKey: registryItem.stepKey,
+            pathwayStepId: registryItem.id,
+          });
+        }
+      } catch (error) {
+        setOnDeckMessage(
+          String((error as { message?: unknown })?.message || "We could not update On Deck."),
+        );
+      } finally {
+        setOnDeckBusyStepId("");
+      }
+    },
+    [reloadOnDeckItems, workspace.profile],
+  );
 
   const reloadUnifiedPathwayStepState = useCallback(async () => {
     if (
@@ -2943,8 +3054,12 @@ function PathwaysWorkspaceBody() {
                     onExpandedStepChange={setExpandedStepId}
                     regionalStageContext={regionalStageContext}
                     manualCompletions={manualCompletions}
+                    onDeckItems={onDeckItems}
+                    onDeckBusyStepId={onDeckBusyStepId}
                     onManualCompletionChange={handleManualCompletionChange}
                     onPathwayProgressSaved={handlePathwayProgressSaved}
+                    onPutStepOnDeck={handlePutStepOnDeck}
+                    onRemoveStepFromDeck={handleRemoveStepFromDeck}
                     onActiveStageChange={handleSelectWorkspaceStage}
                   />
                 </MathematicsStrandWorkspaceShell>
@@ -2952,6 +3067,18 @@ function PathwaysWorkspaceBody() {
                   <PathwayComingLaterStrandSection domain={selectedSubjectDomain} />
                 )}
               </section>
+            ) : null}
+            {onDeckMessage ? (
+              <div
+                role="status"
+                style={{
+                  color: onDeckMessage.includes("could not") ? "#b91c1c" : "#166534",
+                  fontSize: 13,
+                  fontWeight: 800,
+                }}
+              >
+                {onDeckMessage}
+              </div>
             ) : null}
           </>
         ) : null}
@@ -3475,8 +3602,12 @@ function PathwayStageJourney({
   onExpandedStepChange,
   regionalStageContext,
   manualCompletions,
+  onDeckItems,
+  onDeckBusyStepId,
   onManualCompletionChange,
   onPathwayProgressSaved,
+  onPutStepOnDeck,
+  onRemoveStepFromDeck,
   onActiveStageChange,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
@@ -3499,8 +3630,15 @@ function PathwayStageJourney({
   onExpandedStepChange: (stepId: string | null) => void;
   regionalStageContext: string | null;
   manualCompletions: ManualPathwayCompletionMap;
+  onDeckItems: LearningQueueItem[];
+  onDeckBusyStepId: string;
   onManualCompletionChange: (pathwayStepId: string, completed: boolean) => void;
   onPathwayProgressSaved: () => void;
+  onPutStepOnDeck: (registryItem: PathwayStepRegistryItem) => void;
+  onRemoveStepFromDeck: (
+    queueItemId: string,
+    registryItem: PathwayStepRegistryItem | null,
+  ) => void;
   onActiveStageChange: (stageKey: string) => void;
 }) {
   const activeStageTitle = activeStage
@@ -3697,10 +3835,14 @@ function PathwayStageJourney({
           expandedStepId={expandedStepId}
           onExpandedStepChange={onExpandedStepChange}
           regionalStageContext={regionalStageContext}
-          manualCompletions={manualCompletions}
-          onManualCompletionChange={onManualCompletionChange}
-          onPathwayProgressSaved={onPathwayProgressSaved}
-        />
+                manualCompletions={manualCompletions}
+                onDeckItems={onDeckItems}
+                onDeckBusyStepId={onDeckBusyStepId}
+                onManualCompletionChange={onManualCompletionChange}
+                onPathwayProgressSaved={onPathwayProgressSaved}
+                onPutStepOnDeck={onPutStepOnDeck}
+                onRemoveStepFromDeck={onRemoveStepFromDeck}
+              />
       ) : null}
     </div>
   );
@@ -3916,8 +4058,12 @@ function DetailedMathematicsStageCard({
   onExpandedStepChange,
   regionalStageContext,
   manualCompletions,
+  onDeckItems,
+  onDeckBusyStepId,
   onManualCompletionChange,
   onPathwayProgressSaved,
+  onPutStepOnDeck,
+  onRemoveStepFromDeck,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -3937,8 +4083,15 @@ function DetailedMathematicsStageCard({
   onExpandedStepChange: (stepId: string | null) => void;
   regionalStageContext: string | null;
   manualCompletions: ManualPathwayCompletionMap;
+  onDeckItems: LearningQueueItem[];
+  onDeckBusyStepId: string;
   onManualCompletionChange: (pathwayStepId: string, completed: boolean) => void;
   onPathwayProgressSaved: () => void;
+  onPutStepOnDeck: (registryItem: PathwayStepRegistryItem) => void;
+  onRemoveStepFromDeck: (
+    queueItemId: string,
+    registryItem: PathwayStepRegistryItem | null,
+  ) => void;
 }) {
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const stageDisplayTitle = getRegionalStageLabel(
@@ -4149,8 +4302,12 @@ function DetailedMathematicsStageCard({
                 buildManualPathwayCompletionKey(selectedLearnerId, manualPathwayStepId)
               ] || null
             }
+            onDeckItems={onDeckItems}
+            onDeckBusyStepId={onDeckBusyStepId}
             onManualCompletionChange={onManualCompletionChange}
             onPathwayProgressSaved={onPathwayProgressSaved}
+            onPutStepOnDeck={onPutStepOnDeck}
+            onRemoveStepFromDeck={onRemoveStepFromDeck}
           />
           );
         }) : (
@@ -4192,8 +4349,12 @@ function DetailedMathematicsStepCard({
   onToggle,
   densityMode,
   manualCompletion,
+  onDeckItems,
+  onDeckBusyStepId,
   onManualCompletionChange,
   onPathwayProgressSaved,
+  onPutStepOnDeck,
+  onRemoveStepFromDeck,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -4213,8 +4374,15 @@ function DetailedMathematicsStepCard({
   onToggle: () => void;
   densityMode: PathwayDensityMode;
   manualCompletion: ManualPathwayCompletionRecord | null;
+  onDeckItems: LearningQueueItem[];
+  onDeckBusyStepId: string;
   onManualCompletionChange: (pathwayStepId: string, completed: boolean) => void;
   onPathwayProgressSaved: () => void;
+  onPutStepOnDeck: (registryItem: PathwayStepRegistryItem) => void;
+  onRemoveStepFromDeck: (
+    queueItemId: string,
+    registryItem: PathwayStepRegistryItem | null,
+  ) => void;
 }) {
   const statusState = getWorkspaceDisplayedPathwayStatus(
     selectedSubjectKey,
@@ -4292,6 +4460,17 @@ function DetailedMathematicsStepCard({
     strandKey,
     stageKey,
   });
+  const onDeckItem = onDeckItems.find(
+    (item) =>
+      item.learnerId === selectedLearnerId &&
+      item.pathwayStepId === canonicalPathwayStepId,
+  ) || null;
+  const stepOnDeck = hasLearningQueueItemForStep(
+    onDeckItems,
+    selectedLearnerId,
+    canonicalPathwayStepId || "",
+  );
+  const onDeckActionUnavailable = !registryStep || !selectedLearnerId || !familyId;
   const visibleThumbnail = getVisiblePathwayThumbnail(worksheetResource, {
     isStaffPreview: false,
   });
@@ -4751,9 +4930,22 @@ function DetailedMathematicsStepCard({
           worksheetResource={worksheetResource}
           latestEvidenceEntry={stepUnifiedState?.latestEvidenceEntry ?? null}
           manualComplete={stepComplete}
+          onDeck={stepOnDeck}
+          onDeckBusy={onDeckBusyStepId === (registryStep?.id || canonicalPathwayStepId)}
+          onDeckUnavailable={onDeckActionUnavailable}
           onManualCompletionChange={
             canonicalPathwayStepId
               ? (completed) => onManualCompletionChange(canonicalPathwayStepId, completed)
+              : undefined
+          }
+          onPutOnDeck={
+            registryStep && !stepOnDeck
+              ? () => onPutStepOnDeck(registryStep)
+              : undefined
+          }
+          onRemoveFromDeck={
+            onDeckItem
+              ? () => onRemoveStepFromDeck(onDeckItem.id, registryStep)
               : undefined
           }
         />

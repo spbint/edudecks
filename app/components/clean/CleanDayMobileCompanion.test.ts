@@ -40,6 +40,18 @@ describe("Mobile Today companion experience", () => {
     expect(mobileTodaySource).not.toContain("saveUnifiedLearningCapture");
   });
 
+  it("shows On Deck inside Today without adding a fifth companion nav item", () => {
+    expect(mobileTodaySource).toContain("<OnDeckSection");
+    expect(mobileTodaySource).toContain("onDeckItems");
+    expect(source).toContain("Choose from Pathways");
+    expect(source).toContain("Open step");
+    expect(source).toContain("Remove from deck");
+    expect(source).toContain("listLearningQueueItems");
+    expect(source).toContain("moveLearningQueueItem");
+    expect(source).toContain("removeLearningQueueItem");
+    expect(source).not.toContain("On Deck</Link>");
+  });
+
   it("keeps empty and first-value states calm, capture-first and calendar-secondary", () => {
     expect(mobileTodaySource).toContain('myDayPresentationState === "READY_FOR_FIRST_VALUE"');
     expect(mobileTodaySource).toContain("Nothing planned yet.");
