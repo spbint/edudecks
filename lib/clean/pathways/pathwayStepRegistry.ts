@@ -100,6 +100,20 @@ export function buildPathwayStepId(
   return [safe(subjectKey), safe(strandKey), safe(stageKey), safe(stepKey)].join("::");
 }
 
+const LEGACY_PATHWAY_STEP_ID_ALIASES: Readonly<Record<string, string>> = {
+  "english::morphology-and-spelling::middle-primary::u001-prefix-re":
+    "english::morphology-and-spelling::upper-elementary::u001-prefix-re",
+};
+
+/**
+ * Keeps the one previously deployed Morphology identity readable without
+ * treating it as a second pathway or mutating stored customer data.
+ */
+export function normalizePathwayStepId(value: string | null | undefined) {
+  const normalizedValue = safe(value);
+  return LEGACY_PATHWAY_STEP_ID_ALIASES[normalizedValue] || normalizedValue;
+}
+
 export function parsePathwayStepId(value: string): PathwayStepIdentity | null {
   const [subjectKey, strandKey, stageKey, stepKey, ...rest] = safe(value).split("::");
   if (rest.length > 0) return null;

@@ -26,6 +26,25 @@ function attempt(pathwayStepId = stepTwo): CleanAssessmentAttempt {
 }
 
 describe("current learning candidates", () => {
+  it("normalizes the retired Morphology stage identity to the canonical current step", () => {
+    const candidates = selectCurrentLearningCandidates({
+      stepIndex: buildUnifiedPathwayStepStateIndex({}),
+      fallbackPathwayStepIds: [
+        "english::morphology-and-spelling::middle-primary::u001-prefix-re",
+      ],
+    });
+
+    expect(candidates).toMatchObject([{
+      pathwayStepId: "english::morphology-and-spelling::upper-elementary::u001-prefix-re",
+      registryItem: {
+        stageKey: "upper-elementary",
+        stepKey: "u001-prefix-re",
+        stepTitle: "Prefix re-",
+      },
+      source: "existing-focus",
+    }]);
+  });
+
   it("carries the exact live parent-status row through the loader mapping and into a canonical candidate", () => {
     const pathwayStepId = "mathematics::number-and-place-value::middle-primary::estimate-and-check-reasonableness";
     const loadedStatus = mapAssessmentSkillStatusRow({

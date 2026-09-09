@@ -1,6 +1,10 @@
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import { getEvidenceProgressJudgement, type UnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
-import { getAllPathwaySteps, type PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRegistry";
+import {
+  getAllPathwaySteps,
+  normalizePathwayStepId,
+  type PathwayStepRegistryItem,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
 
 export type CurrentLearningCandidateSource =
   | "parent-confirmation"
@@ -59,14 +63,15 @@ export function selectCurrentLearningCandidates(input: {
   };
 
   input.stepIndex.forEach((state, pathwayStepId) => {
-    const registryItem = registryById.get(pathwayStepId);
+    const canonicalPathwayStepId = normalizePathwayStepId(pathwayStepId);
+    const registryItem = registryById.get(canonicalPathwayStepId);
     if (!registryItem) return;
     if (state.assessmentStatusRecord) {
-      add({ pathwayStepId, registryItem, source: "parent-confirmation", recency: timestamp(state.assessmentStatusRecord.updatedAt, state.assessmentStatusRecord.createdAt) });
+      add({ pathwayStepId: canonicalPathwayStepId, registryItem, source: "parent-confirmation", recency: timestamp(state.assessmentStatusRecord.updatedAt, state.assessmentStatusRecord.createdAt) });
     }
     state.linkedEvidenceEntries.forEach((entry) => {
       add({
-        pathwayStepId,
+        pathwayStepId: canonicalPathwayStepId,
         registryItem,
         source: getEvidenceProgressJudgement(entry) ? "observed-evidence" : "linked-evidence",
         recency: timestamp(entry.updatedAt, entry.createdAt, entry.observedOn),
@@ -76,14 +81,23 @@ export function selectCurrentLearningCandidates(input: {
 
   (input.attempts || []).forEach((attempt) => {
     if (attempt.status !== "completed") return;
-    const registryItem = registryById.get(attempt.pathwayStepId);
+    const canonicalPathwayStepId = normalizePathwayStepId(attempt.pathwayStepId);
+    const registryItem = registryById.get(canonicalPathwayStepId);
     if (!registryItem) return;
-    add({ pathwayStepId: attempt.pathwayStepId, registryItem, source: "completed-check", recency: timestamp(attempt.completedAt, attempt.updatedAt, attempt.createdAt) });
+    add({ pathwayStepId: canonicalPathwayStepId, registryItem, source: "completed-check", recency: timestamp(attempt.completedAt, attempt.updatedAt, attempt.createdAt) });
   });
 
   (input.fallbackPathwayStepIds || []).forEach((pathwayStepId) => {
-    const registryItem = registryById.get(pathwayStepId);
-    if (registryItem) add({ pathwayStepId, registryItem, source: "existing-focus", recency: 0 });
+    const canonicalPathwayStepId = normalizePathwayStepId(pathwayStepId);
+    const registryItem = registryById.get(canonicalPathwayStepId);
+    if (registryItem) {
+      add({
+        pathwayStepId: canonicalPathwayStepId,
+        registryItem,
+        source: "existing-focus",
+        recency: 0,
+      });
+    }
   });
 
   return [...candidates.values()]

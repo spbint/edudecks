@@ -1,4 +1,5 @@
 import type { PathwaySubjectKey } from "@/lib/clean/pathways/pathwaySubjects";
+import { normalizePathwayStepId } from "@/lib/clean/pathways/pathwayStepRegistry";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
 
 export type PathwayPlacementMethod =
@@ -57,7 +58,14 @@ export function readPathwayPlacements() {
     const parsed = JSON.parse(
       window.localStorage.getItem(PATHWAY_PLACEMENT_STORAGE_KEY) || "[]",
     );
-    return Array.isArray(parsed) ? parsed.filter(isPathwayPlacement) : [];
+    return Array.isArray(parsed)
+      ? parsed
+          .filter(isPathwayPlacement)
+          .map((placement) => ({
+            ...placement,
+            pathwayStepId: normalizePathwayStepId(placement.pathwayStepId),
+          }))
+      : [];
   } catch {
     return [];
   }

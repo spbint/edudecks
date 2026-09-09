@@ -30,6 +30,7 @@ import {
 import { buildLearningIntelligenceSummary } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import { buildExplainableProgressStory } from "@/lib/clean/pathways/explainableProgressStory";
 import { selectCurrentLearningCandidates } from "@/lib/clean/pathways/currentLearningCandidates";
+import { readPathwayPlacements } from "@/lib/clean/pathways/pathwayPlacement";
 import { listComparableLearningObservations } from "@/lib/clean/pathways/learningObservationHistory";
 import {
   buildActionablePathwayRecommendation,
@@ -500,6 +501,7 @@ export default function CleanMyLearnaWorkspace() {
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
+  const [pathwayPlacementIds, setPathwayPlacementIds] = useState<string[]>([]);
   const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesRefreshing, setEntriesRefreshing] = useState(false);
@@ -541,6 +543,19 @@ export default function CleanMyLearnaWorkspace() {
     const defaultLearner = workspace.learners.find((learner) => learner.id === workspace.profile?.defaultLearnerId);
     setSelectedLearnerId(queryLearner?.id || defaultLearner?.id || workspace.learners[0]?.id || "");
   }, [queryLearnerId, selectedLearnerId, workspace.learners, workspace.profile?.defaultLearnerId]);
+
+  useEffect(() => {
+    if (!selectedLearnerId) {
+      setPathwayPlacementIds([]);
+      return;
+    }
+
+    setPathwayPlacementIds(
+      readPathwayPlacements()
+        .filter((placement) => placement.learnerId === selectedLearnerId)
+        .map((placement) => placement.pathwayStepId),
+    );
+  }, [selectedLearnerId]);
 
   const evidenceKey = profileId && selectedLearnerId
     ? `${profileId}:${selectedLearnerId}`
@@ -745,9 +760,12 @@ export default function CleanMyLearnaWorkspace() {
     () => selectCurrentLearningCandidates({
       stepIndex: pathwayStepIndex,
       attempts: visibleAssessmentAttempts,
-      fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
+      fallbackPathwayStepIds: [
+        ...pathwayPlacementIds,
+        ...summary.nextLearningSteps.map((step) => step.pathwayStepId),
+      ],
     }),
-    [pathwayStepIndex, summary.nextLearningSteps, visibleAssessmentAttempts],
+    [pathwayPlacementIds, pathwayStepIndex, summary.nextLearningSteps, visibleAssessmentAttempts],
   );
   const currentLearningSteps = currentLearningCandidates.map(candidateToNextStep);
   const whereWeAreSummaries = useMemo(

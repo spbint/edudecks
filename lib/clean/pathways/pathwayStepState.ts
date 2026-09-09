@@ -12,6 +12,7 @@ import {
   buildPathwayRegistryStepKey,
   buildPathwayStepId,
   getAllPathwaySteps,
+  normalizePathwayStepId,
   parsePathwayStepId,
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
@@ -473,9 +474,10 @@ export function resolveCanonicalPathwayStepIdFromParts(
   input: PathwayStepResolutionInput,
 ) {
   const pathwayStepId = safe(input.pathwayStepId);
+  const normalizedPathwayStepId = normalizePathwayStepId(pathwayStepId);
   const parsedPathwayStepId = parsePathwayStepId(pathwayStepId);
-  if (parsedPathwayStepId && REGISTRY_BY_ID.has(pathwayStepId)) {
-    return pathwayStepId;
+  if (parsedPathwayStepId && REGISTRY_BY_ID.has(normalizedPathwayStepId)) {
+    return normalizedPathwayStepId;
   }
 
   const subjectKey = safe(input.subjectKey);
@@ -624,7 +626,7 @@ export function buildUnifiedPathwayStepStateIndex(
   const nextIndex = new Map<string, UnifiedPathwayStepState>();
 
   (input.assessmentStatuses || []).forEach((statusRecord) => {
-    const pathwayStepId = safe(statusRecord.pathwayStepId);
+    const pathwayStepId = normalizePathwayStepId(statusRecord.pathwayStepId);
     if (!pathwayStepId) {
       return;
     }

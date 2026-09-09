@@ -117,6 +117,25 @@ describe("Where We Are subject summaries", () => {
     expect(english?.upNext).toBeNull();
   });
 
+  it("keeps the historical Morphology identity aligned with the canonical Where We Are step", () => {
+    const canonicalStep = getPathwayStepById(
+      "english",
+      "morphology-and-spelling",
+      "upper-elementary",
+      "u001-prefix-re",
+    );
+
+    expect(canonicalStep).not.toBeNull();
+    expect(canonicalStep?.stageKey).toBe("upper-elementary");
+    expect(canonicalStep?.stepTitle).toBe("Prefix re-");
+    expect(getPathwayStepById(
+      "english",
+      "morphology-and-spelling",
+      "middle-primary",
+      "u001-prefix-re",
+    )).toBeNull();
+  });
+
   it("keeps On Deck and evidence learner-specific without turning evidence into mastery", () => {
     const summaries = buildWhereWeAreSubjectSummaries({
       learnerId: "learner-a",
