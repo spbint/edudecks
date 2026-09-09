@@ -262,6 +262,7 @@ function OnDeckSection({
   onMove,
   onRemove,
   pathwaysHref,
+  whereWeAreHref,
   selectedLearnerId,
   updatingId,
   userId,
@@ -272,6 +273,7 @@ function OnDeckSection({
   onMove: (itemId: string, learnerId: string, direction: "up" | "down") => void;
   onRemove: (itemId: string) => void;
   pathwaysHref: string;
+  whereWeAreHref: string;
   selectedLearnerId: string;
   updatingId: string;
   userId?: string | null;
@@ -328,6 +330,12 @@ function OnDeckSection({
         <p style={{ margin: 0, color: "#64748b", lineHeight: 1.55, fontSize: 14 }}>
           No dates required.
         </p>
+        <Link
+          href={whereWeAreHref}
+          style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 800, width: "fit-content" }}
+        >
+          See where we are
+        </Link>
       </header>
 
       {!items.length ? (
@@ -477,6 +485,7 @@ type MobileTodayContentProps = {
   onRetry: () => void;
   onToday: () => void;
   pathwaysHref: string;
+  whereWeAreHref: string;
   quickCaptureHref: string;
   selectedLearnerId: string;
   selectedLearnerLabel: string | null;
@@ -512,6 +521,7 @@ function MobileTodayContent({
   onRetry,
   onToday,
   pathwaysHref,
+  whereWeAreHref,
   quickCaptureHref,
   selectedLearnerId,
   selectedLearnerLabel,
@@ -674,6 +684,7 @@ function MobileTodayContent({
             onMove={onMoveOnDeckItem}
             onRemove={onRemoveOnDeckItem}
             pathwaysHref={pathwaysHref}
+            whereWeAreHref={whereWeAreHref}
             selectedLearnerId={selectedLearnerId}
             updatingId={onDeckUpdatingId}
             userId={null}
@@ -1637,6 +1648,7 @@ function CleanDayWorkspaceBody() {
           onRetry={() => setDayReloadNonce((current) => current + 1)}
           onToday={() => router.push(buildDayPath(today))}
           pathwaysHref={currentPathwayHref}
+          whereWeAreHref={buildLearnerContextHref("/my-learna", selectedLearnerId)}
           quickCaptureHref={mobileQuickCaptureHref}
           selectedLearnerId={selectedLearnerId}
           selectedLearnerLabel={selectedLearnerLabel}
@@ -2581,6 +2593,7 @@ function CleanDayWorkspaceBody() {
               }
               onRemove={(itemId) => void handleRemoveOnDeckItem(itemId)}
               pathwaysHref={currentPathwayHref}
+              whereWeAreHref={buildLearnerContextHref("/my-learna", selectedLearnerId)}
               selectedLearnerId={selectedLearnerId}
               updatingId={onDeckUpdatingId}
               userId={user?.id}

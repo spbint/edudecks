@@ -15,7 +15,7 @@ import {
 import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
 
 const PREFIX_RE_PATHWAY_STEP_ID =
-  "english::morphology-and-spelling::middle-primary::u001-prefix-re";
+  "english::morphology-and-spelling::upper-elementary::u001-prefix-re";
 const PREFIX_RE_WORKSHEET_FILE =
   "MYL-LIT-MORPH-UE-U001-Prefix-Re-Worksheet.pdf";
 const EXPECTED_PREFIX_RE_PUBLIC_PATH = join(
@@ -44,19 +44,19 @@ describe("English Morphology & Spelling pathway foundation", () => {
 
   it("registers U001 Prefix re- with the supplied learning goal", () => {
     const workspace = ENGLISH_STRAND_WORKSPACE_BUILDERS["morphology-and-spelling"](
-      "middle-primary",
+      "upper-elementary",
     );
-    const prefixReStage = workspace.stages.find((stage) => stage.key === "middle-primary");
+    const prefixReStage = workspace.stages.find((stage) => stage.key === "upper-elementary");
     const prefixReStep = prefixReStage?.steps[0] || null;
     const registryStep = getPathwayStepById(
       "english",
       "morphology-and-spelling",
-      "middle-primary",
+      "upper-elementary",
       "u001-prefix-re",
     );
 
     expect(workspace.title).toBe("Morphology & Spelling");
-    expect(getRegionalStageLabel("middle-primary", "US", prefixReStage?.title)).toBe(
+    expect(getRegionalStageLabel("upper-elementary", "AU", prefixReStage?.title)).toBe(
       "Upper Elementary",
     );
     expect(prefixReStep).toMatchObject({
@@ -69,7 +69,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
       id: PREFIX_RE_PATHWAY_STEP_ID,
       subjectKey: "english",
       strandKey: "morphology-and-spelling",
-      stageKey: "middle-primary",
+      stageKey: "upper-elementary",
       stepKey: "u001-prefix-re",
       stepTitle: "Prefix re-",
     });
@@ -88,7 +88,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
       pathwayStepId: PREFIX_RE_PATHWAY_STEP_ID,
       subjectKey: "english",
       strandKey: "morphology-and-spelling",
-      stageKey: "middle-primary",
+      stageKey: "upper-elementary",
       stepKey: "u001-prefix-re",
     });
 

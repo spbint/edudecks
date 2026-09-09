@@ -43,6 +43,8 @@ describe("Desktop My Day task-first presentation", () => {
     expect(source).toContain("Keep the next few pieces of learning in focus.");
     expect(source).toContain("No dates required.");
     expect(source).toContain("Choose from Pathways");
+    expect(source).toContain("See where we are");
+    expect(source).toContain('buildLearnerContextHref("/my-learna", selectedLearnerId)');
   });
 
   it("keeps On Deck persistence independent from Calendar, evidence, and Pathway progress", () => {

@@ -15,7 +15,7 @@ const mathematicsStep = getPathwayStepById(
 const englishPrefixReStep = getPathwayStepById(
   "english",
   "morphology-and-spelling",
-  "middle-primary",
+  "upper-elementary",
   "u001-prefix-re",
 )!;
 
@@ -113,6 +113,7 @@ describe("Where We Are subject summaries", () => {
     expect(mathematics?.workingOn?.stepTitle).toBe("Read, write, order and compare numbers to 1000 and beyond");
     expect(mathematics?.upNext?.stepTitle).toBe("Understand hundreds, tens and ones");
     expect(english?.workingOn?.stepTitle).toBe("Prefix re-");
+    expect(english?.workingOn?.stageKey).toBe("upper-elementary");
     expect(english?.upNext).toBeNull();
   });
 

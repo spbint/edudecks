@@ -16,6 +16,7 @@ export type PathwayStageKey =
   | "foundation-kindergarten"
   | "lower-primary"
   | "middle-primary"
+  | "upper-elementary"
   | "upper-primary"
   | "lower-secondary"
   | "years-9-10-consolidation";
@@ -61,6 +62,7 @@ export const PATHWAY_STAGE_ORDER: PathwayStageKey[] = [
   "foundation-kindergarten",
   "lower-primary",
   "middle-primary",
+  "upper-elementary",
   "upper-primary",
   "lower-secondary",
   "years-9-10-consolidation",

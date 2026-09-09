@@ -1624,6 +1624,17 @@ function PathwaysWorkspaceBody() {
         : [],
     [selectedPlacementStep],
   );
+  const selectedPlacementOnDeckItem = useMemo(
+    () =>
+      selectedPlacementStep
+        ? onDeckItems.find(
+            (item) =>
+              item.learnerId === selectedLearnerId &&
+              item.pathwayStepId === selectedPlacementStep.id,
+          ) || null
+        : null,
+    [onDeckItems, selectedLearnerId, selectedPlacementStep],
+  );
   const selectedPlacementStepIndex = selectedPlacementStep
     ? selectedPlacementStrandSteps.findIndex((step) => step.id === selectedPlacementStep.id)
     : -1;
@@ -2346,8 +2357,25 @@ function PathwaysWorkspaceBody() {
                   worksheetResource={selectedPlacementWorksheet}
                   latestEvidenceEntry={selectedPlacementLatestEvidenceEntry}
                   manualComplete={selectedPlacementComplete}
+                  onDeck={Boolean(selectedPlacementOnDeckItem)}
+                  onDeckBusy={onDeckBusyStepId === selectedPlacementStep.id}
+                  onDeckUnavailable={!workspace.profile || !selectedLearnerId}
                   onManualCompletionChange={(completed) =>
                     handleManualCompletionChange(selectedPlacementStep.id, completed)
+                  }
+                  onPutOnDeck={
+                    selectedPlacementOnDeckItem
+                      ? undefined
+                      : () => void handlePutStepOnDeck(selectedPlacementStep)
+                  }
+                  onRemoveFromDeck={
+                    selectedPlacementOnDeckItem
+                      ? () =>
+                          void handleRemoveStepFromDeck(
+                            selectedPlacementOnDeckItem.id,
+                            selectedPlacementStep,
+                          )
+                      : undefined
                   }
                   onActionSelected={(action) => {
                     if (action === "worksheet") {

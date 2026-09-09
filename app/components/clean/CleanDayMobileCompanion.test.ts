@@ -46,6 +46,8 @@ describe("Mobile Today companion experience", () => {
     expect(source).toContain("Choose from Pathways");
     expect(source).toContain("Open step");
     expect(source).toContain("Remove from deck");
+    expect(source).toContain("See where we are");
+    expect(source).toContain('buildLearnerContextHref("/my-learna", selectedLearnerId)');
     expect(source).toContain("listLearningQueueItems");
     expect(source).toContain("moveLearningQueueItem");
     expect(source).toContain("removeLearningQueueItem");

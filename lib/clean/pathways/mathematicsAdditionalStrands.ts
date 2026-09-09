@@ -9,6 +9,7 @@ const STAGE_TITLES: Record<PathwayStageKey, string> = {
   "foundation-kindergarten": "Foundation / Kindergarten",
   "lower-primary": "Lower Primary",
   "middle-primary": "Middle Primary",
+  "upper-elementary": "Upper Elementary",
   "upper-primary": "Upper Primary",
   "lower-secondary": "Lower Secondary",
   "years-9-10-consolidation": "Years 9-10 / consolidation",

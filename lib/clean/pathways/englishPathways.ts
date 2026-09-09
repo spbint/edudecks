@@ -42,6 +42,7 @@ const STAGE_TITLES: Record<PathwayStageKey, string> = {
   "foundation-kindergarten": "Foundation / Kindergarten",
   "lower-primary": "Lower Primary",
   "middle-primary": "Middle Primary",
+  "upper-elementary": "Upper Elementary",
   "upper-primary": "Upper Primary",
   "lower-secondary": "Lower Secondary",
   "years-9-10-consolidation": "Years 9-10 / consolidation",
@@ -193,7 +194,7 @@ const MORPHOLOGY_AND_SPELLING: EnglishStrandConfig = {
     "This pathway builds on sound-letter knowledge, spelling patterns, reading, and oral vocabulary. It connects spelling choices to word meaning so learners can use word parts deliberately.",
   stages: [
     {
-      key: "middle-primary",
+      key: "upper-elementary",
       helper:
         "Upper Elementary morphology work focuses on meaningful word parts such as prefixes, suffixes, and base words, and how these parts help learners spell, read, and use vocabulary more confidently.",
       steps: [
