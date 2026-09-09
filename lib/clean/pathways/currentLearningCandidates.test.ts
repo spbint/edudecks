@@ -7,7 +7,10 @@ import { buildPathwayCaptureContext, encodePathwayContextNodeIds } from "@/lib/c
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { buildUnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
 import { getAllPathwaySteps } from "@/lib/clean/pathways/pathwayStepRegistry";
-import { selectCurrentLearningCandidates } from "@/lib/clean/pathways/currentLearningCandidates";
+import {
+  getDefaultCurrentPathwayStepIds,
+  selectCurrentLearningCandidates,
+} from "@/lib/clean/pathways/currentLearningCandidates";
 
 const [stepOneItem, stepTwoItem] = getAllPathwaySteps().filter((step) => step.subjectKey === "mathematics");
 const stepOne = stepOneItem!.id;
@@ -26,6 +29,12 @@ function attempt(pathwayStepId = stepTwo): CleanAssessmentAttempt {
 }
 
 describe("current learning candidates", () => {
+  it("uses the same canonical default-step resolver as Pathways for active subjects", () => {
+    expect(getDefaultCurrentPathwayStepIds("Year 4")).toContain(
+      "english::morphology-and-spelling::upper-elementary::u001-prefix-re",
+    );
+  });
+
   it("normalizes the retired Morphology stage identity to the canonical current step", () => {
     const candidates = selectCurrentLearningCandidates({
       stepIndex: buildUnifiedPathwayStepStateIndex({}),

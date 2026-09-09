@@ -29,7 +29,10 @@ import {
 } from "@/lib/clean/family/client";
 import { buildLearningIntelligenceSummary } from "@/lib/clean/curriculum/learningIntelligenceSummary";
 import { buildExplainableProgressStory } from "@/lib/clean/pathways/explainableProgressStory";
-import { selectCurrentLearningCandidates } from "@/lib/clean/pathways/currentLearningCandidates";
+import {
+  getDefaultCurrentPathwayStepIds,
+  selectCurrentLearningCandidates,
+} from "@/lib/clean/pathways/currentLearningCandidates";
 import { readPathwayPlacements } from "@/lib/clean/pathways/pathwayPlacement";
 import { listComparableLearningObservations } from "@/lib/clean/pathways/learningObservationHistory";
 import {
@@ -762,10 +765,17 @@ export default function CleanMyLearnaWorkspace() {
       attempts: visibleAssessmentAttempts,
       fallbackPathwayStepIds: [
         ...pathwayPlacementIds,
+        ...getDefaultCurrentPathwayStepIds(selectedLearner?.yearLevel),
         ...summary.nextLearningSteps.map((step) => step.pathwayStepId),
       ],
     }),
-    [pathwayPlacementIds, pathwayStepIndex, summary.nextLearningSteps, visibleAssessmentAttempts],
+    [
+      pathwayPlacementIds,
+      pathwayStepIndex,
+      selectedLearner?.yearLevel,
+      summary.nextLearningSteps,
+      visibleAssessmentAttempts,
+    ],
   );
   const currentLearningSteps = currentLearningCandidates.map(candidateToNextStep);
   const whereWeAreSummaries = useMemo(

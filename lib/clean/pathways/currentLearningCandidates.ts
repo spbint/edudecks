@@ -1,10 +1,17 @@
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import { getEvidenceProgressJudgement, type UnifiedPathwayStepStateIndex } from "@/lib/clean/pathways/pathwayStepState";
 import {
+  DETAILED_SUBJECT_CONFIGS,
+} from "@/lib/clean/pathways/detailedSubjectConfigs";
+import {
   getAllPathwaySteps,
+  getDefaultPathwayStepIdForWorkspace,
   normalizePathwayStepId,
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
+import { inferPathwayStageFromYearLevel } from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import { PATHWAY_SUBJECTS } from "@/lib/clean/pathways/pathwaySubjects";
+import { isCustomerPathwaySubjectActive } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 
 export type CurrentLearningCandidateSource =
   | "parent-confirmation"
@@ -19,6 +26,23 @@ export type CurrentLearningCandidate = {
   source: CurrentLearningCandidateSource;
   recency: number;
 };
+
+export function getDefaultCurrentPathwayStepIds(learnerYearLevel: string | null | undefined) {
+  const currentFocusStageKey = inferPathwayStageFromYearLevel(learnerYearLevel);
+
+  return PATHWAY_SUBJECTS.filter((subject) =>
+    isCustomerPathwaySubjectActive(subject, DETAILED_SUBJECT_CONFIGS[subject.key]),
+  ).flatMap((subject) => {
+    const config = DETAILED_SUBJECT_CONFIGS[subject.key];
+    if (!config) return [];
+
+    const workspace = config.workspaceBuilders[config.defaultStrandKey]?.(currentFocusStageKey);
+    const pathwayStepId = workspace
+      ? getDefaultPathwayStepIdForWorkspace(subject.key, workspace)
+      : null;
+    return pathwayStepId ? [pathwayStepId] : [];
+  });
+}
 
 const sourcePriority: Record<CurrentLearningCandidateSource, number> = {
   "parent-confirmation": 0,

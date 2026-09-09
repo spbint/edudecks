@@ -29,6 +29,7 @@ describe("Pathways On Deck action", () => {
     expect(workspaceSource).toContain("onDeckBusy={onDeckBusyStepId === selectedPlacementStep.id}");
     expect(workspaceSource).toContain("handlePutStepOnDeck(selectedPlacementStep)");
     expect(workspaceSource).toContain("selectedPlacementOnDeckItem.id");
+    expect(workspaceSource).toContain("getDefaultPathwayStepIdForWorkspace");
     expect(actionRowSource).toContain("Put on deck");
     expect(actionRowSource).toContain("On deck");
     expect(actionRowSource).toContain("Remove from deck");

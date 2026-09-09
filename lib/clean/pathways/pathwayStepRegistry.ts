@@ -4,6 +4,7 @@ import {
 } from "@/lib/clean/pathways/detailedSubjectConfigs";
 import type {
   MathematicsDetailedStrandStep,
+  MathematicsDetailedStrandWorkspace,
 } from "@/lib/clean/pathways/mathematicsDetailedStrands";
 import type {
   PathwayProgressStatus,
@@ -112,6 +113,36 @@ const LEGACY_PATHWAY_STEP_ID_ALIASES: Readonly<Record<string, string>> = {
 export function normalizePathwayStepId(value: string | null | undefined) {
   const normalizedValue = safe(value);
   return LEGACY_PATHWAY_STEP_ID_ALIASES[normalizedValue] || normalizedValue;
+}
+
+export function getDefaultPathwayStepIdForWorkspace(
+  subjectKey: PathwaySubjectKey,
+  workspace: MathematicsDetailedStrandWorkspace,
+) {
+  const defaultStage =
+    workspace.stages.find((stage) => stage.key === workspace.currentFocusStageKey) ||
+    workspace.stages[0] ||
+    null;
+  const defaultStep = defaultStage?.steps[0] || null;
+  if (!defaultStage || !defaultStep) return null;
+
+  const stepKey = buildPathwayRegistryStepKey(
+    defaultStep.title,
+    defaultStep.id,
+  );
+  const exactMatch = getPathwayStepById(
+    subjectKey,
+    workspace.key,
+    defaultStage.key,
+    stepKey,
+  );
+  if (exactMatch) return exactMatch.id;
+
+  return getPathwayStepsByStrand(subjectKey, workspace.key).find(
+    (step) =>
+      step.stageKey === defaultStage.key &&
+      step.legacyStepNumber === String(defaultStep.id),
+  )?.id || null;
 }
 
 export function parsePathwayStepId(value: string): PathwayStepIdentity | null {

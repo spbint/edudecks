@@ -38,6 +38,7 @@ import {
 import {
   buildPathwayRegistryStepKey,
   getAllPathwaySteps,
+  getDefaultPathwayStepIdForWorkspace,
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
@@ -1480,26 +1481,13 @@ function PathwaysWorkspaceBody() {
     numberPathwayRevealGroups?.currentLearningZone[0] || null;
   const selectedSubjectDefaultPathwayStepId = useMemo(() => {
     if (!selectedSubjectWorkspace) return "";
-    const defaultStage =
-      selectedWorkspaceCurrentStage ||
-      selectedSubjectWorkspace.stages[0] ||
-      null;
-    const defaultStep = defaultStage?.steps[0] || null;
-    if (!defaultStage || !defaultStep) return "";
-    const stepKey = buildPathwayRegistryStepKey(defaultStep.title, defaultStep.id);
-    return (
-      resolveCanonicalPathwayStepIdFromParts({
-        subjectKey: selectedSubjectKey,
-        pathwayKey: selectedSubjectWorkspace.key,
-        stageKey: defaultStage.key,
-        stepKey,
-        stepNumber: String(defaultStep.id),
-      }) || ""
-    );
+    return getDefaultPathwayStepIdForWorkspace(
+      selectedSubjectKey,
+      selectedSubjectWorkspace,
+    ) || "";
   }, [
     selectedSubjectKey,
     selectedSubjectWorkspace,
-    selectedWorkspaceCurrentStage,
   ]);
   const selectedWorkspaceCurrentStageTitle = selectedWorkspaceCurrentStage
     ? getRegionalStageLabel(
