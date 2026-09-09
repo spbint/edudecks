@@ -1,0 +1,93 @@
+import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
+import { isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
+import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
+import { normalizeLearningAreaLabel } from "@/lib/clean/calendar/planningIntegrity";
+import {
+  getAllPathwaySteps,
+  type PathwayStepRegistryItem,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
+
+export type RecoverableLearningItem = {
+  calendarItem: CleanCalendarItem;
+  registryItem: PathwayStepRegistryItem | null;
+  reason: "pathway-linked" | "whole-family" | "unresolved";
+};
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalized(value: unknown) {
+  return safe(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function isDateInRange(dateValue: string, startsOn: string, endsOn: string) {
+  return Boolean(dateValue && startsOn && endsOn && dateValue >= startsOn && dateValue <= endsOn);
+}
+
+export function isCalendarItemInActiveLearningPeriod(
+  item: Pick<CleanCalendarItem, "plannedDate">,
+  periods: readonly CleanLearningPeriod[],
+) {
+  if (
+    periods.some(
+      (period) =>
+        isBreakLearningPeriod(period) &&
+        isDateInRange(item.plannedDate, period.startsOn, period.endsOn),
+    )
+  ) {
+    return false;
+  }
+
+  return periods.some(
+    (period) =>
+      !isBreakLearningPeriod(period) &&
+      isDateInRange(item.plannedDate, period.startsOn, period.endsOn),
+  );
+}
+
+export function getRecoverableLearningItems(input: {
+  calendarItems: readonly CleanCalendarItem[];
+  today: string;
+  weekStart: string;
+  weekEnd: string;
+  learningPeriods: readonly CleanLearningPeriod[];
+}) {
+  return input.calendarItems
+    .filter(
+      (item) =>
+        item.plannedDate >= input.weekStart &&
+        item.plannedDate <= input.weekEnd &&
+        item.plannedDate < input.today &&
+        !item.completedAt &&
+        isCalendarItemInActiveLearningPeriod(item, input.learningPeriods),
+    )
+    .sort(
+      (left, right) =>
+        left.plannedDate.localeCompare(right.plannedDate) ||
+        safe(left.startsAt).localeCompare(safe(right.startsAt)) ||
+        left.title.localeCompare(right.title),
+    )
+    .map((calendarItem) => resolveRecoverableLearningItem(calendarItem));
+}
+
+export function resolveRecoverableLearningItem(
+  calendarItem: CleanCalendarItem,
+): RecoverableLearningItem {
+  if (!calendarItem.learnerId) {
+    return { calendarItem, registryItem: null, reason: "whole-family" };
+  }
+
+  const learningArea = normalized(normalizeLearningAreaLabel(calendarItem.learningArea));
+  const registryItem = getAllPathwaySteps().find(
+    (step) =>
+      (normalized(step.subjectKey) === learningArea || normalized(step.subjectTitle) === learningArea) &&
+      normalized(step.stepTitle) === normalized(calendarItem.title),
+  ) || null;
+
+  return {
+    calendarItem,
+    registryItem,
+    reason: registryItem ? "pathway-linked" : "unresolved",
+  };
+}

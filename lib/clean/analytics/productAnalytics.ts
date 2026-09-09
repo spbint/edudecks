@@ -35,6 +35,7 @@ const SAFE_PROPERTY_KEYS = new Set([
   "viewType",
   "source",
   "position",
+  "queueSize",
   "entryType",
   "dateRangeDays",
   "format",

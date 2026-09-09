@@ -33,6 +33,7 @@ import type {
   CleanProgram,
   CleanProgramSegment,
 } from "@/lib/clean/programs/types";
+import { listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import {
   buildCleanPlanningCacheKey,
   getOrCreateCleanPlanningCalendarItemsRequest,
@@ -47,6 +48,8 @@ import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
+  addPathwayStepToLearningQueue,
+  hasLearningQueueItemForStep,
   listLearningQueueItems,
   moveLearningQueueItem,
   removeLearningQueueItem,
@@ -61,6 +64,10 @@ import {
   beginCleanPlanningTiming,
   recordCleanPlanningMilestone,
 } from "@/lib/clean/performance/planningTiming";
+import {
+  getRecoverableLearningItems,
+  type RecoverableLearningItem,
+} from "@/lib/clean/recovery/recoverMyWeek";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -461,6 +468,91 @@ function OnDeckSection({
   );
 }
 
+function formatRecoveryDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, { weekday: "long" });
+}
+
+function RecoverMyWeekSection({
+  items,
+  onDeckItems,
+  onKeepInFocus,
+  updatingIds,
+  error,
+}: {
+  items: RecoverableLearningItem[];
+  onDeckItems: LearningQueueItem[];
+  onKeepInFocus: (item: RecoverableLearningItem) => void;
+  updatingIds: Set<string>;
+  error: { itemId: string; message: string } | null;
+}) {
+  if (!items.length) return null;
+
+  return (
+    <section
+      aria-labelledby="recover-my-week-title"
+      style={{
+        border: "1px solid #dbeafe",
+        borderRadius: 18,
+        background: "#f8fbff",
+        padding: 18,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <header style={{ display: "grid", gap: 5 }}>
+        <p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Recover my week
+        </p>
+        <h2 id="recover-my-week-title" style={{ margin: 0, color: "#17204b", fontSize: 20 }}>
+          Plans change. Choose what still matters.
+        </h2>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
+          Review unfinished learning from earlier this week and keep anything important in focus without changing your calendar.
+        </p>
+        <p style={{ margin: 0, color: "#334155", fontSize: 13, fontWeight: 750 }}>
+          {items.length} unfinished learning item{items.length === 1 ? "" : "s"} this week
+        </p>
+      </header>
+      <div style={{ display: "grid", gap: 9 }}>
+        {items.map(({ calendarItem, registryItem, reason }) => {
+          const updating = updatingIds.has(calendarItem.id);
+          const alreadyOnDeck = Boolean(
+            registryItem &&
+              hasLearningQueueItemForStep(
+                onDeckItems,
+                calendarItem.learnerId || "",
+                registryItem.id,
+              ),
+          );
+          return (
+            <article key={calendarItem.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, background: "#ffffff", padding: 12, display: "grid", gap: 8 }}>
+              <div style={{ display: "grid", gap: 4 }}>
+                <span style={{ color: "#64748b", fontSize: 12, fontWeight: 750 }}>{formatRecoveryDate(calendarItem.plannedDate)}</span>
+                <strong style={{ color: "#17204b", fontSize: 15 }}>{calendarItem.title}</strong>
+                <span style={{ color: "#64748b", fontSize: 13 }}>
+                  {[calendarItem.learningArea, calendarItem.learnerId ? null : "Whole family"].filter(Boolean).join(" · ") || "Learning"}
+                </span>
+              </div>
+              {reason === "pathway-linked" && registryItem ? (
+                <button type="button" onClick={() => onKeepInFocus({ calendarItem, registryItem, reason })} disabled={updating} style={{ ...secondaryButtonStyle, width: "fit-content", color: "#1d4ed8", borderColor: "#bfdbfe", opacity: updating ? 0.6 : 1 }}>
+                  {alreadyOnDeck ? "✓ On deck" : updating ? "Saving..." : "Keep in focus"}
+                </button>
+              ) : (
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+                  {reason === "whole-family" ? "This family activity is shown for review, but is not linked to a specific learner Pathway step." : "This activity isn't linked to a Pathway step yet."}
+                </p>
+              )}
+              {error?.itemId === calendarItem.id ? <span role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error.message}</span> : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 type MobileTodayContentProps = {
   calendarHref: string;
   completionError: { itemId: string; message: string } | null;
@@ -474,6 +566,11 @@ type MobileTodayContentProps = {
   learnerLabelById: Map<string, string>;
   learnerOptions: Array<{ value: string; label: string }>;
   myDayPresentationState: CleanMyDayPresentationState | null;
+  recoverItems: RecoverableLearningItem[];
+  recoverOnDeckItems: LearningQueueItem[];
+  recoverUpdatingIds: Set<string>;
+  recoverError: { itemId: string; message: string } | null;
+  onKeepRecoveryInFocus: (item: RecoverableLearningItem) => void;
   onCompletionToggle: (item: CleanCalendarItem) => void;
   onLearnerChange: (learnerId: string) => void;
   onDeckItems: OnDeckResolvedItem[];
@@ -510,6 +607,11 @@ function MobileTodayContent({
   learnerLabelById,
   learnerOptions,
   myDayPresentationState,
+  recoverItems,
+  recoverOnDeckItems,
+  recoverUpdatingIds,
+  recoverError,
+  onKeepRecoveryInFocus,
   onCompletionToggle,
   onLearnerChange,
   onDeckItems,
@@ -677,6 +779,14 @@ function MobileTodayContent({
             }) : null}
           </section>
 
+          <RecoverMyWeekSection
+            items={recoverItems}
+            onDeckItems={recoverOnDeckItems}
+            onKeepInFocus={onKeepRecoveryInFocus}
+            updatingIds={recoverUpdatingIds}
+            error={recoverError}
+          />
+
           <OnDeckSection
             compact
             items={onDeckItems}
@@ -754,9 +864,14 @@ function CleanDayWorkspaceBody() {
   } | null>(null);
   const [dailyPlannerDownloading, setDailyPlannerDownloading] = useState(false);
   const [dayReloadNonce, setDayReloadNonce] = useState(0);
+  const [recoveryCalendarItems, setRecoveryCalendarItems] = useState<CleanCalendarItem[]>([]);
+  const [recoveryLearningPeriods, setRecoveryLearningPeriods] = useState<Awaited<ReturnType<typeof listCleanLearningPeriods>>>([]);
+  const [recoveryUpdatingIds, setRecoveryUpdatingIds] = useState<Set<string>>(() => new Set());
+  const [recoveryError, setRecoveryError] = useState<{ itemId: string; message: string } | null>(null);
   const dayRequestGenerationRef = useRef(0);
   const dayPrimaryMilestoneRef = useRef<string | null>(null);
   const daySettledMilestoneRef = useRef<string | null>(null);
+  const recoveryShownWeekRef = useRef<string | null>(null);
   const firstValueChoiceTrackedRef = useRef(false);
   const [setupStatusReadyOnce, setSetupStatusReadyOnce] = useState(false);
 
@@ -1007,6 +1122,19 @@ function CleanDayWorkspaceBody() {
       ),
     [onDeckItems, pathwaysPathBase],
   );
+  const recoverableLearningItems = useMemo(
+    () =>
+      getRecoverableLearningItems({
+        calendarItems: recoveryCalendarItems.filter(
+          (item) => !selectedLearnerId || item.learnerId === selectedLearnerId || item.learnerId === null,
+        ),
+        today,
+        weekStart: getWeekStart(today),
+        weekEnd: addDays(getWeekStart(today), 6),
+        learningPeriods: recoveryLearningPeriods,
+      }),
+    [recoveryCalendarItems, recoveryLearningPeriods, selectedLearnerId, today],
+  );
   const reloadOnDeckItems = useCallback(async () => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setOnDeckItems([]);
@@ -1046,6 +1174,43 @@ function CleanDayWorkspaceBody() {
       active = false;
     };
   }, [reloadOnDeckItems]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadRecoveryItems() {
+      if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+        setRecoveryCalendarItems([]);
+        setRecoveryLearningPeriods([]);
+        return;
+      }
+
+      try {
+        const recoveryWeekStart = getWeekStart(today);
+        const recoveryWeekEnd = addDays(recoveryWeekStart, 6);
+        const [calendarResult, periodsResult] = await Promise.all([
+          listCleanCalendarItems(workspace.profile.id, {
+            fromDate: recoveryWeekStart,
+            toDate: recoveryWeekEnd,
+            limit: 100,
+          }),
+          listCleanLearningPeriods(workspace.profile.id, { limit: 100 }),
+        ]);
+        if (!active) return;
+        setRecoveryCalendarItems(calendarResult);
+        setRecoveryLearningPeriods(periodsResult);
+      } catch {
+        if (!active) return;
+        setRecoveryCalendarItems([]);
+        setRecoveryLearningPeriods([]);
+      }
+    }
+
+    void loadRecoveryItems();
+    return () => {
+      active = false;
+    };
+  }, [dayReloadNonce, today, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
   useEffect(() => {
     if (!workspace.learners.length) {
       setSelectedLearnerId("");
@@ -1461,6 +1626,43 @@ function CleanDayWorkspaceBody() {
     }
   }
 
+  async function handleKeepRecoveryInFocus(recoveryItem: RecoverableLearningItem) {
+    if (!workspace.profile || !recoveryItem.registryItem || !recoveryItem.calendarItem.learnerId) return;
+
+    const itemId = recoveryItem.calendarItem.id;
+    setRecoveryUpdatingIds((current) => new Set(current).add(itemId));
+    setRecoveryError(null);
+
+    try {
+      const result = await addPathwayStepToLearningQueue({
+        familyId: workspace.profile.id,
+        learnerId: recoveryItem.calendarItem.learnerId,
+        registryItem: recoveryItem.registryItem,
+      });
+      await reloadOnDeckItems();
+      trackProductEvent(
+        "recover_week_item_put_on_deck",
+        {
+          subjectKey: recoveryItem.registryItem.subjectKey,
+          hasPathwayContext: true,
+          queueSize: result.item ? result.item.position + 1 : null,
+        },
+        user?.id,
+      );
+    } catch (error) {
+      setRecoveryError({
+        itemId,
+        message: normalizeCleanErrorMessage(error, "We could not keep this learning in focus."),
+      });
+    } finally {
+      setRecoveryUpdatingIds((current) => {
+        const next = new Set(current);
+        next.delete(itemId);
+        return next;
+      });
+    }
+  }
+
   async function handleDailyPlannerDownload() {
     if (!workspace.profile) return;
 
@@ -1573,6 +1775,20 @@ function CleanDayWorkspaceBody() {
     });
   }, [dayPrimaryKey, itemsLoading, user?.id]);
 
+  useEffect(() => {
+    const recoveryWeek = getWeekStart(today);
+    if (!user?.id || !recoverableLearningItems.length || recoveryShownWeekRef.current === recoveryWeek) return;
+    recoveryShownWeekRef.current = recoveryWeek;
+    trackProductEvent(
+      "recover_week_shown",
+      {
+        itemCount: Math.min(recoverableLearningItems.length, 8),
+        learnerScope: selectedLearnerId ? "learner" : "family",
+      },
+      user.id,
+    );
+  }, [recoverableLearningItems.length, selectedLearnerId, today, user?.id]);
+
   function renderQuickAddForm() {
     if (!quickAddOpen) return null;
 
@@ -1635,6 +1851,11 @@ function CleanDayWorkspaceBody() {
           learnerLabelById={learnerLabelById}
           learnerOptions={learnerOptions}
           myDayPresentationState={myDayPresentationState}
+          recoverItems={recoverableLearningItems}
+          recoverOnDeckItems={onDeckItems}
+          recoverUpdatingIds={recoveryUpdatingIds}
+          recoverError={recoveryError}
+          onKeepRecoveryInFocus={(item) => void handleKeepRecoveryInFocus(item)}
           onDeckItems={resolvedOnDeckItems}
           onDeckError={onDeckError}
           onDeckUpdatingId={onDeckUpdatingId}
@@ -2584,6 +2805,14 @@ function CleanDayWorkspaceBody() {
                 </datalist>
               </div>
             </section>
+
+            <RecoverMyWeekSection
+              items={recoverableLearningItems}
+              onDeckItems={onDeckItems}
+              onKeepInFocus={(item) => void handleKeepRecoveryInFocus(item)}
+              updatingIds={recoveryUpdatingIds}
+              error={recoveryError}
+            />
 
             <OnDeckSection
               items={resolvedOnDeckItems}
