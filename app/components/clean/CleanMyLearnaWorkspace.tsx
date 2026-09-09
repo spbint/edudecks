@@ -20,6 +20,8 @@ import {
   shouldRefreshCleanEvidenceForLearner,
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import { listLearningQueueItems } from "@/lib/clean/onDeck/client";
+import type { LearningQueueItem } from "@/lib/clean/onDeck/learningQueue";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
@@ -44,6 +46,11 @@ import {
 } from "@/lib/clean/outputs/curriculumCoveragePdf";
 import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
+import {
+  buildWhereWeAreSubjectSummaries,
+  type WhereWeAreSubjectSummary,
+} from "@/lib/clean/learna/whereWeAre";
+import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e7eaf2",
@@ -253,6 +260,122 @@ function EmptyWorkspace({
   );
 }
 
+function stepLabel(step: WhereWeAreSubjectSummary["workingOn"]) {
+  if (!step) return "No current learning step yet.";
+  return step.legacyStepNumber
+    ? `Step ${step.legacyStepNumber} - ${step.stepTitle}`
+    : step.stepTitle;
+}
+
+function countLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function WhereWeAreSection({
+  learnerName,
+  summaries,
+  pathwaysHref,
+  onDeckHref,
+  userId,
+}: {
+  learnerName: string;
+  summaries: WhereWeAreSubjectSummary[];
+  pathwaysHref: string;
+  onDeckHref: string;
+  userId: string | null;
+}) {
+  return (
+    <section
+      aria-labelledby="where-we-are-heading"
+      data-where-we-are-summary="true"
+      style={{ display: "grid", gap: 12 }}
+    >
+      <div style={{ display: "grid", gap: 5, padding: "4px 2px" }}>
+        <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Where we are</p>
+        <h2 id="where-we-are-heading" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>What {learnerName} is working on</h2>
+        <p style={{ ...quietTextStyle, margin: 0 }}>See what each learner is working on and what comes next.</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+        {summaries.map((summary) => {
+          const hasCurrentStep = Boolean(summary.workingOn);
+          return (
+            <article
+              key={summary.subjectKey}
+              data-where-we-are-subject={summary.subjectKey}
+              style={{ ...cardStyle, display: "grid", gap: 14, alignContent: "start" }}
+            >
+              <div style={{ display: "grid", gap: 5 }}>
+                <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>{summary.subjectTitle}</p>
+                {summary.workingOn ? (
+                  <p style={{ margin: 0, color: "#475569", fontSize: 13, fontWeight: 750 }}>
+                    {summary.workingOn.strandTitle} - {summary.workingOn.stageTitle}
+                  </p>
+                ) : null}
+              </div>
+              <div role="group" aria-label={`${summary.subjectTitle} working on`} style={{ display: "grid", gap: 6 }}>
+                <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Working on</span>
+                <strong style={{ color: "#17204b", fontSize: hasCurrentStep ? 22 : 18, lineHeight: 1.2 }}>{stepLabel(summary.workingOn)}</strong>
+              </div>
+              <div role="group" aria-label={`${summary.subjectTitle} up next`} style={{ display: "grid", gap: 5, borderTop: "1px solid #e7eaf2", paddingTop: 12 }}>
+                <span style={{ color: "#64748b", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Up next</span>
+                <span style={{ color: "#334155", fontSize: 15, fontWeight: 750 }}>
+                  {summary.upNext ? stepLabel(summary.upNext) : "No next step suggested yet."}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <span style={{ padding: "7px 9px", borderRadius: 999, background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569", fontSize: 13, fontWeight: 750 }}>
+                  {countLabel(summary.onDeckCount, "item", "items")} On Deck
+                </span>
+                <span style={{ padding: "7px 9px", borderRadius: 999, background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569", fontSize: 13, fontWeight: 750 }}>
+                  {countLabel(summary.recentLearningCount, "recent learning record", "recent learning records")}
+                </span>
+                {summary.worksheetAvailable ? (
+                  <span style={{ padding: "7px 9px", borderRadius: 999, background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontSize: 13, fontWeight: 800 }}>
+                    Worksheet available
+                  </span>
+                ) : null}
+              </div>
+              {summary.onDeckTitles.length ? (
+                <ul style={{ margin: 0, paddingLeft: 18, color: "#475569", display: "grid", gap: 4, fontSize: 13 }}>
+                  {summary.onDeckTitles.map((title) => <li key={title}>{title}</li>)}
+                </ul>
+              ) : null}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                {summary.openStepHref ? (
+                  <Link
+                    href={summary.openStepHref}
+                    style={primaryActionStyle}
+                    onClick={() => {
+                      trackProductEvent(
+                        "where_we_are_step_opened",
+                        {
+                          subjectKey: summary.subjectKey,
+                          strandKey: summary.workingOn?.strandKey || null,
+                          stageKey: summary.workingOn?.stageKey || null,
+                          stepKey: summary.workingOn?.stepKey || null,
+                          pathwayStepId: summary.workingOn?.id || null,
+                          hasNextStep: Boolean(summary.upNext),
+                          hasOnDeck: summary.onDeckCount > 0,
+                        },
+                        userId,
+                      );
+                    }}
+                  >
+                    Open step
+                  </Link>
+                ) : (
+                  <Link href={pathwaysHref} style={secondaryActionStyle}>Choose from Pathways</Link>
+                )}
+                {summary.onDeckCount ? <Link href={onDeckHref} style={secondaryActionStyle}>View On Deck</Link> : null}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function CurrentLearningCard({
   step,
   stepIndex,
@@ -377,6 +500,7 @@ export default function CleanMyLearnaWorkspace() {
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
+  const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesRefreshing, setEntriesRefreshing] = useState(false);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
@@ -384,6 +508,7 @@ export default function CleanMyLearnaWorkspace() {
   const [attemptsLoading, setAttemptsLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [onDeckError, setOnDeckError] = useState<string | null>(null);
   const [coverageSubmitting, setCoverageSubmitting] = useState(false);
   const [coverageMessage, setCoverageMessage] = useState<string | null>(null);
   const [coverageError, setCoverageError] = useState<string | null>(null);
@@ -396,9 +521,12 @@ export default function CleanMyLearnaWorkspace() {
   const loadedEvidenceKeyRef = useRef("");
   const loadedAssessmentKeyRef = useRef("");
   const loadedAttemptsKeyRef = useRef("");
+  const loadedOnDeckKeyRef = useRef("");
+  const trackedWhereWeAreKeyRef = useRef("");
 
   const queryLearnerId = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
   const pathname = usePathname();
+  const pathwaysPathBase = pathname.startsWith("/clean-my-learna") ? "/clean-my-pathways" : "/my-pathways";
   const profileId = workspace.profile?.id ?? "";
   const selectedLearner = workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null;
   const selectedLearnerName = learnerDisplayName(selectedLearner);
@@ -417,6 +545,7 @@ export default function CleanMyLearnaWorkspace() {
   const evidenceKey = profileId && selectedLearnerId
     ? `${profileId}:${selectedLearnerId}`
     : "";
+  const onDeckKey = evidenceKey;
   const visibleEntries = useMemo(
     () => (loadedEvidenceKeyRef.current === evidenceKey ? entries : []),
     [entries, evidenceKey],
@@ -428,6 +557,10 @@ export default function CleanMyLearnaWorkspace() {
   const visibleAssessmentAttempts = useMemo(
     () => (loadedAttemptsKeyRef.current === evidenceKey ? assessmentAttempts : []),
     [assessmentAttempts, evidenceKey],
+  );
+  const visibleOnDeckItems = useMemo(
+    () => (loadedOnDeckKeyRef.current === onDeckKey ? onDeckItems : []),
+    [onDeckItems, onDeckKey],
   );
 
   const reloadLearnerData = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
@@ -522,9 +655,11 @@ export default function CleanMyLearnaWorkspace() {
       loadedEvidenceKeyRef.current = "";
       loadedAssessmentKeyRef.current = "";
       loadedAttemptsKeyRef.current = "";
+      loadedOnDeckKeyRef.current = "";
       setEntries([]);
       setAssessmentStatuses([]);
       setAssessmentAttempts([]);
+      setOnDeckItems([]);
       setEntriesLoading(false);
       setEntriesRefreshing(false);
       setAssessmentLoading(false);
@@ -559,6 +694,36 @@ export default function CleanMyLearnaWorkspace() {
     };
   }, [evidenceKey, pathname, profileId, reloadLearnerData, selectedLearnerId]);
 
+  useEffect(() => {
+    if (!onDeckKey || !profileId || workspace.requiresFamilyCreation || workspace.schemaMissing) {
+      loadedOnDeckKeyRef.current = "";
+      setOnDeckItems([]);
+      setOnDeckError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const requestOnDeckKey = onDeckKey;
+    setOnDeckError(null);
+
+    void listLearningQueueItems(profileId, selectedLearnerId)
+      .then((nextItems) => {
+        if (cancelled || requestOnDeckKey !== onDeckKey) return;
+        loadedOnDeckKeyRef.current = onDeckKey;
+        setOnDeckItems(nextItems);
+      })
+      .catch((error) => {
+        if (cancelled || requestOnDeckKey !== onDeckKey) return;
+        loadedOnDeckKeyRef.current = "";
+        setOnDeckItems([]);
+        setOnDeckError(normalizeCleanErrorMessage(error, "We could not load On Deck just now."));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onDeckKey, profileId, selectedLearnerId, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+
   const summary = useMemo(
     () => buildLearningIntelligenceSummary({
       evidenceEntries: visibleEntries,
@@ -576,13 +741,63 @@ export default function CleanMyLearnaWorkspace() {
   );
   const latestEntry = visibleEntries[0] ?? null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
+  const currentLearningCandidates = useMemo(
+    () => selectCurrentLearningCandidates({
+      stepIndex: pathwayStepIndex,
+      attempts: visibleAssessmentAttempts,
+      fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
+    }),
+    [pathwayStepIndex, summary.nextLearningSteps, visibleAssessmentAttempts],
+  );
+  const currentLearningSteps = currentLearningCandidates.map(candidateToNextStep);
+  const whereWeAreSummaries = useMemo(
+    () =>
+      buildWhereWeAreSubjectSummaries({
+        learnerId: selectedLearnerId,
+        currentCandidates: currentLearningCandidates,
+        evidenceEntries: visibleEntries,
+        onDeckItems: visibleOnDeckItems,
+        pathwayPathname: pathwaysPathBase,
+      }),
+    [
+      currentLearningCandidates,
+      selectedLearnerId,
+      visibleEntries,
+      visibleOnDeckItems,
+      pathwaysPathBase,
+    ],
+  );
+  useEffect(() => {
+    if (!selectedLearnerId || !onDeckKey) return;
+    if (entriesLoading || assessmentLoading || attemptsLoading) return;
+    const hasOnDeck = whereWeAreSummaries.some((summary) => summary.onDeckCount > 0);
+    const hasNextStep = whereWeAreSummaries.some((summary) => Boolean(summary.upNext));
+    const trackKey = `${selectedLearnerId}:${onDeckKey}:${
+      whereWeAreSummaries.map((summary) => `${summary.subjectKey}:${summary.workingOn?.id || "none"}:${summary.onDeckCount}`).join("|")
+    }`;
+    if (trackedWhereWeAreKeyRef.current === trackKey) return;
+    trackedWhereWeAreKeyRef.current = trackKey;
+    trackProductEvent("where_we_are_viewed", {
+      subjectKey: whereWeAreSummaries[0]?.subjectKey ?? null,
+      learnerCount: workspace.learners.length,
+      hasOnDeck,
+      hasNextStep,
+      evidenceCount: Math.min(visibleEntries.length, 200),
+    });
+  }, [
+    assessmentLoading,
+    attemptsLoading,
+    entriesLoading,
+    selectedLearnerId,
+    onDeckKey,
+    visibleAssessmentAttempts,
+    visibleAssessmentStatuses,
+    visibleEntries,
+    whereWeAreSummaries,
+    workspace.learners.length,
+  ]);
   // My Pathways can remain hidden from public navigation without hiding the
   // learner hub's existing canonical progress signals.
-  const currentLearningSteps = selectCurrentLearningCandidates({
-    stepIndex: pathwayStepIndex,
-    attempts: visibleAssessmentAttempts,
-    fallbackPathwayStepIds: summary.nextLearningSteps.map((step) => step.pathwayStepId),
-  }).map(candidateToNextStep);
   const quickCaptureHref = buildLearnerContextHref("/my-capture?mode=quick", selectedLearnerId, {
     returnTo: learnerPath("/my-learna", selectedLearnerId),
   });
@@ -670,6 +885,18 @@ export default function CleanMyLearnaWorkspace() {
           <span style={{ color: "#6c4df6", fontSize: 13, fontWeight: 800 }}>{entriesLoading ? "Refreshing recent records" : `${visibleEntries.length} learning records · ${summary.progressJudgementObservations.length} progress judgements`}</span>
         </aside>
       </section>
+      <WhereWeAreSection
+        learnerName={selectedLearnerName}
+        summaries={whereWeAreSummaries}
+        pathwaysHref={learnerPath(pathwaysPathBase, selectedLearnerId)}
+        onDeckHref={learnerPath("/my-day", selectedLearnerId)}
+        userId={null}
+      />
+      {onDeckError ? (
+        <div role="status" style={{ ...cardStyle, borderColor: "#fca5a5", background: "#fef2f2", color: "#991b1b" }}>
+          {onDeckError}
+        </div>
+      ) : null}
       <section aria-label="Quick actions" style={{ ...cardStyle, display: "grid", gap: 12 }}>
         <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick actions</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

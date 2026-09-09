@@ -25,6 +25,7 @@ const SAFE_PROPERTY_KEYS = new Set([
   "scoreBand",
   "parentJudgementPresent",
   "hasEvidence",
+  "hasOnDeck",
   "reportPeriodDays",
   "blockType",
   "hasLearner",

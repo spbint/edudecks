@@ -33,8 +33,9 @@ describe("My Learna parent guidance workspace", () => {
   });
 
   it("keeps canonical progress in the visible learner hub when My Pathways navigation is hidden", () => {
-    expect(source).toContain("const currentLearningSteps = selectCurrentLearningCandidates");
-    expect(source).toContain("{currentLearningSteps.length ? currentLearningSteps.map");
+    expect(source).toContain("const currentLearningCandidates = useMemo(");
+    expect(source).toContain("currentLearningSteps = currentLearningCandidates.map");
+    expect(source).toContain("whereWeAreSummaries");
     expect(source).not.toContain("PUBLIC_PATHWAYS_ENABLED && currentLearningSteps.length");
   });
 
@@ -47,6 +48,14 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).not.toContain("Progress percentage");
     expect(source).not.toContain("Improving");
     expect(source).not.toContain("Declining");
+  });
+
+  it("adds Where we are summary cards for each active subject", () => {
+    expect(source).toContain("data-where-we-are-summary");
+    expect(source).toContain("Where we are");
+    expect(source).toContain("No next step suggested yet.");
+    expect(source).toContain("Open step");
+    expect(source).toContain("View On Deck");
   });
 
   it("provides accessible progressive disclosure and preserves deeper links", () => {
