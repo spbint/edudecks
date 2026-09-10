@@ -29,6 +29,8 @@ import {
   listAssessmentLearningEvidenceEventsForLearner,
   type LearningEvidenceEvent,
 } from "@/lib/clean/evidence/learningEvidenceEvents";
+import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
   createCleanReport,
   createCleanReportingPeriod,
@@ -66,6 +68,7 @@ import {
   resolveReportNextAction,
   type ReportNextAction,
 } from "@/lib/clean/reports/reportNextAction";
+import { buildReportReadinessSummary } from "@/lib/clean/reports/reportReadiness";
 
 type PendingReportAction =
   | { type: "archive"; report: CleanReport }
@@ -174,6 +177,40 @@ type ReportBuildStepCardProps = {
 };
 
 type ReportPeriodMode = "current" | "custom";
+
+const readinessMetricStyle: React.CSSProperties = {
+  display: "grid", gap: 3, padding: 12, borderRadius: 12,
+  background: "#ffffff", border: "1px solid #dbeafe", color: "#475569", fontSize: 12,
+};
+
+function ReportReadinessCard({
+  entries, learnerLabel, period, portfolioHref, captureHref,
+}: { entries: CleanEvidenceEntry[]; learnerLabel: string; period: CleanReportingPeriod | null; portfolioHref: string; captureHref: string }) {
+  const summary = useMemo(() => buildReportReadinessSummary(entries), [entries]);
+  return (
+    <section aria-labelledby="report-readiness-title" style={{ ...helperCardStyle, borderColor: "#bfdbfe" }}>
+      <div style={{ display: "grid", gap: 5 }}>
+        <p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Your learning record</p>
+        <h2 id="report-readiness-title" style={{ margin: 0, color: "#17204b", fontSize: 21 }}>Your report is already taking shape.</h2>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.55, fontSize: 14 }}>{period ? `${learnerLabel} · ${period.title}` : "Learning records available for your reports."}</p>
+      </div>
+      {!summary.recordCount ? (
+        <div style={{ display: "grid", gap: 8 }}><p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>Your learning record will build as you capture learning.</p><Link href={captureHref} style={{ ...secondaryButtonStyle, width: "fit-content", textDecoration: "none" }}>Record a learning moment</Link></div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+            <div style={readinessMetricStyle}><strong>{summary.recordCount}</strong><span>learning records this period</span></div>
+            <div style={readinessMetricStyle}><strong>{summary.reportIncludedCount}</strong><span>ready to appear in reports</span></div>
+            <div style={readinessMetricStyle}><strong>{summary.mediaRecordCount}</strong><span>include photos or files</span></div>
+          </div>
+          {summary.subjects.length ? <div style={{ display: "grid", gap: 5 }}><strong style={{ color: "#334155", fontSize: 13 }}>Learning recorded across</strong>{summary.subjects.map((subject) => <div key={subject.label} style={{ display: "flex", justifyContent: "space-between", color: "#475569", fontSize: 14 }}><span>{subject.label}</span><span>{subject.count}</span></div>)}</div> : null}
+          {summary.reportIncludedCount < summary.recordCount ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{summary.recordCount - summary.reportIncludedCount} other learning record{summary.recordCount - summary.reportIncludedCount === 1 ? " is" : "s are"} not currently included.</p> : null}
+          <Link href={portfolioHref} style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 800, width: "fit-content" }}>Review learning records</Link>
+        </>
+      )}
+    </section>
+  );
+}
 
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
@@ -587,6 +624,7 @@ function CleanReportsWorkspaceBody() {
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
+  const [readinessEntries, setReadinessEntries] = useState<CleanEvidenceEntry[]>([]);
   const [assessmentEvidenceEvents, setAssessmentEvidenceEvents] = useState<
     LearningEvidenceEvent[]
   >([]);
@@ -961,6 +999,7 @@ function CleanReportsWorkspaceBody() {
   const reloadPortfolioItems = useCallback(async () => {
     if (!workspace.profile || !activeLearnerId) {
       setPortfolioItems([]);
+      setReadinessEntries([]);
       setAssessmentEvidenceEvents([]);
       setPortfolioError(null);
       return;
@@ -970,7 +1009,7 @@ function CleanReportsWorkspaceBody() {
     setPortfolioError(null);
 
     try {
-      const [nextItems, nextAssessmentEvidenceEvents] = await Promise.all([
+      const [nextItems, nextAssessmentEvidenceEvents, nextReadinessEntries] = await Promise.all([
         listCleanPortfolioItems(workspace.profile.id, {
           learnerId: activeLearnerId,
           fromDate: activePeriod?.startsOn ?? null,
@@ -987,8 +1026,15 @@ function CleanReportsWorkspaceBody() {
             limit: 100,
           },
         ),
+        listCleanEvidenceEntries(workspace.profile.id, {
+          learnerId: activeLearnerId,
+          fromDate: activePeriod?.startsOn ?? null,
+          toDate: activePeriod?.endsOn ?? null,
+          limit: 100,
+        }),
       ]);
       setPortfolioItems(nextItems);
+      setReadinessEntries(nextReadinessEntries);
       setAssessmentEvidenceEvents(nextAssessmentEvidenceEvents);
     } catch (error) {
       setPortfolioError(
@@ -1543,6 +1589,16 @@ function CleanReportsWorkspaceBody() {
           body="We are loading the learners, evidence, and reporting context for this workspace."
         />
       ) : null}
+
+        {readyForReports && activeLearnerId ? (
+          <ReportReadinessCard
+            entries={readinessEntries}
+            learnerLabel={reportContextLearnerLabel || "Selected learner"}
+            period={activePeriod}
+            portfolioHref={portfolioReturnHref}
+            captureHref={`${pathname.startsWith("/clean-my-reports") ? "/clean-my-capture" : "/my-capture"}?mode=quick&learner_id=${encodeURIComponent(activeLearnerId)}`}
+          />
+        ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
