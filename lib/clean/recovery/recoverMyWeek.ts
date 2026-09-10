@@ -1,6 +1,7 @@
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
+import { isPathwayStepEligibleForOnDeck } from "@/lib/clean/onDeck/learningQueue";
 import {
   getAllPathwaySteps,
   normalizePathwayStepId,
@@ -80,10 +81,13 @@ export function resolveRecoverableLearningItem(
   const registryItem = pathwayStepId
     ? getAllPathwaySteps().find((step) => step.id === pathwayStepId) || null
     : null;
+  const activeRegistryItem = isPathwayStepEligibleForOnDeck(registryItem)
+    ? registryItem
+    : null;
 
   return {
     calendarItem,
-    registryItem,
-    reason: registryItem ? "pathway-linked" : "unresolved",
+    registryItem: activeRegistryItem,
+    reason: activeRegistryItem ? "pathway-linked" : "unresolved",
   };
 }
