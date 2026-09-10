@@ -1,9 +1,9 @@
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { isBreakLearningPeriod } from "@/lib/clean/setup/setupStatus";
 import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
-import { normalizeLearningAreaLabel } from "@/lib/clean/calendar/planningIntegrity";
 import {
   getAllPathwaySteps,
+  normalizePathwayStepId,
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
 
@@ -15,10 +15,6 @@ export type RecoverableLearningItem = {
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
-}
-
-function normalized(value: unknown) {
-  return safe(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function isDateInRange(dateValue: string, startsOn: string, endsOn: string) {
@@ -78,12 +74,12 @@ export function resolveRecoverableLearningItem(
     return { calendarItem, registryItem: null, reason: "whole-family" };
   }
 
-  const learningArea = normalized(normalizeLearningAreaLabel(calendarItem.learningArea));
-  const registryItem = getAllPathwaySteps().find(
-    (step) =>
-      (normalized(step.subjectKey) === learningArea || normalized(step.subjectTitle) === learningArea) &&
-      normalized(step.stepTitle) === normalized(calendarItem.title),
-  ) || null;
+  // Calendar text is descriptive only. A step is Pathways-linked only when
+  // the row carries explicit canonical context; never infer it from a title.
+  const pathwayStepId = normalizePathwayStepId(calendarItem.pathwayStepId);
+  const registryItem = pathwayStepId
+    ? getAllPathwaySteps().find((step) => step.id === pathwayStepId) || null
+    : null;
 
   return {
     calendarItem,

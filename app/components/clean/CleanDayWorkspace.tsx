@@ -487,6 +487,7 @@ function RecoverMyWeekSection({
   updatingIds: Set<string>;
   error: { itemId: string; message: string } | null;
 }) {
+  const [reviewOpen, setReviewOpen] = useState(false);
   if (!items.length) return null;
 
   return (
@@ -511,11 +512,21 @@ function RecoverMyWeekSection({
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
           Review unfinished learning from earlier this week and keep anything important in focus without changing your calendar.
         </p>
-        <p style={{ margin: 0, color: "#334155", fontSize: 13, fontWeight: 750 }}>
-          {items.length} unfinished learning item{items.length === 1 ? "" : "s"} this week
-        </p>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <p style={{ margin: 0, color: "#334155", fontSize: 13, fontWeight: 750 }}>
+            {items.length} unfinished learning item{items.length === 1 ? "" : "s"} this week
+          </p>
+          <button
+            type="button"
+            onClick={() => setReviewOpen((current) => !current)}
+            aria-expanded={reviewOpen}
+            style={{ ...secondaryButtonStyle, color: "#1d4ed8", borderColor: "#bfdbfe" }}
+          >
+            {reviewOpen ? "Close review" : "Review unfinished learning"}
+          </button>
+        </div>
       </header>
-      <div style={{ display: "grid", gap: 9 }}>
+      {reviewOpen ? <div style={{ display: "grid", gap: 9 }}>
         {items.map(({ calendarItem, registryItem, reason }) => {
           const updating = updatingIds.has(calendarItem.id);
           const alreadyOnDeck = Boolean(
@@ -548,7 +559,7 @@ function RecoverMyWeekSection({
             </article>
           );
         })}
-      </div>
+      </div> : null}
     </section>
   );
 }

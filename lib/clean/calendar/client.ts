@@ -18,6 +18,7 @@ type CalendarItemRow = {
   learner_id?: string | null;
   program_id?: string | null;
   program_segment_id?: string | null;
+  pathway_step_id?: string | null;
   title: string;
   description?: string | null;
   starts_at?: string | null;
@@ -67,6 +68,7 @@ function toCleanCalendarItem(row: CalendarItemRow): CleanCalendarItem {
     learnerId: normalizeNullString(row.learner_id),
     programId: normalizeNullString(row.program_id),
     programSegmentId: normalizeNullString(row.program_segment_id),
+    pathwayStepId: normalizeNullString(row.pathway_step_id),
     title: safe(row.title),
     description: normalizeNullString(row.description),
     startsAt: normalizeNullString(row.starts_at),
@@ -117,6 +119,10 @@ function sanitizeCalendarItemInput(
       "programSegmentId" in input
         ? normalizeNullString(input.programSegmentId)
         : undefined,
+    pathway_step_id:
+      "pathwayStepId" in input
+        ? normalizeNullString(input.pathwayStepId)
+        : undefined,
     title: "title" in input && input.title !== undefined ? safe(input.title) || null : undefined,
     description:
       "description" in input
@@ -165,7 +171,7 @@ export async function listCleanCalendarItems(
   let query = supabase
     .from("calendar_items")
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,pathway_step_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     )
     .eq("family_id", familyId)
     .order("planned_date", { ascending: true })
@@ -232,6 +238,7 @@ export async function createCleanCalendarItem(
       learner_id: payload.learner_id ?? null,
       program_id: payload.program_id ?? null,
       program_segment_id: payload.program_segment_id ?? null,
+      pathway_step_id: payload.pathway_step_id ?? null,
       title: payload.title,
       description: payload.description ?? null,
       starts_at: payload.starts_at ?? null,
@@ -247,7 +254,7 @@ export async function createCleanCalendarItem(
       created_by_user_id: currentUserId,
     })
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,pathway_step_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
@@ -296,6 +303,7 @@ export async function createCleanCalendarItems(
         learner_id: payload.learner_id ?? null,
         program_id: payload.program_id ?? null,
         program_segment_id: payload.program_segment_id ?? null,
+        pathway_step_id: payload.pathway_step_id ?? null,
         title: payload.title,
         description: payload.description ?? null,
         starts_at: payload.starts_at ?? null,
@@ -312,7 +320,7 @@ export async function createCleanCalendarItems(
       })),
     )
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,pathway_step_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     );
 
   if (response.error) {
@@ -354,7 +362,7 @@ export async function updateCleanCalendarItem(
     .eq("family_id", familyId)
     .eq("id", calendarItemId)
     .select(
-      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,pathway_step_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,marketplace_resource_id,completed_at,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
 import {
@@ -42,6 +44,7 @@ const item = (overrides: Partial<CleanCalendarItem> = {}): CleanCalendarItem => 
   isHighlighted: false,
   marketplaceResourceId: null,
   completedAt: null,
+  pathwayStepId: null,
   createdByUserId: "user-1",
   createdAt: null,
   updatedAt: null,
@@ -49,6 +52,15 @@ const item = (overrides: Partial<CleanCalendarItem> = {}): CleanCalendarItem => 
 });
 
 describe("recover my week", () => {
+  it("documents explicit, nullable calendar Pathways provenance", () => {
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260910100000_add_calendar_pathway_context.sql"),
+      "utf8",
+    );
+    expect(migration).toContain("add column if not exists pathway_step_id text null");
+    expect(migration).not.toMatch(/update public\.calendar_items/i);
+  });
+
   it("includes only unfinished earlier-week items inside active teaching periods", () => {
     const result = getRecoverableLearningItems({
       calendarItems: [
@@ -67,8 +79,10 @@ describe("recover my week", () => {
     expect(result.map((entry) => entry.calendarItem.id)).toEqual(["item-1"]);
   });
 
-  it("maps only an exact learner-specific registered step", () => {
-    expect(resolveRecoverableLearningItem(item()).reason).toBe("pathway-linked");
+  it("maps only explicit canonical learner Pathways context", () => {
+    expect(resolveRecoverableLearningItem(item()).reason).toBe("unresolved");
+    expect(resolveRecoverableLearningItem(item({ pathwayStepId: "english::morphology-and-spelling::upper-elementary::u001-prefix-re" })).reason).toBe("pathway-linked");
+    expect(resolveRecoverableLearningItem(item({ pathwayStepId: "english::morphology-and-spelling::middle-primary::u001-prefix-re" })).registryItem?.stageKey).toBe("upper-elementary");
     expect(resolveRecoverableLearningItem(item({ learnerId: null })).reason).toBe("whole-family");
     expect(resolveRecoverableLearningItem(item({ title: "Unlinked activity" })).reason).toBe("unresolved");
   });

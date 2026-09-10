@@ -6,6 +6,7 @@ export type CleanCalendarItem = {
   learnerId: string | null;
   programId: string | null;
   programSegmentId: string | null;
+  pathwayStepId?: string | null;
   title: string;
   description: string | null;
   startsAt: string | null;
@@ -31,6 +32,7 @@ export type CleanCalendarItemInput = {
   learnerId?: string | null;
   programId?: string | null;
   programSegmentId?: string | null;
+  pathwayStepId?: string | null;
   description?: string | null;
   startsAt?: string | null;
   endsAt?: string | null;
