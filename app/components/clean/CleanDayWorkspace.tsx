@@ -574,6 +574,7 @@ type MobileTodayContentProps = {
   items: CleanCalendarItem[];
   itemsError: string | null;
   itemsLoading: boolean;
+  learnerViewHref: string | null;
   learnerLabelById: Map<string, string>;
   learnerOptions: Array<{ value: string; label: string }>;
   myDayPresentationState: CleanMyDayPresentationState | null;
@@ -615,6 +616,7 @@ function MobileTodayContent({
   items,
   itemsError,
   itemsLoading,
+  learnerViewHref,
   learnerLabelById,
   learnerOptions,
   myDayPresentationState,
@@ -710,6 +712,12 @@ function MobileTodayContent({
         </label>
       ) : selectedLearnerLabel ? (
         <p style={{ margin: 0, color: "#475569", fontSize: 14, fontWeight: 700 }}>{selectedLearnerLabel}</p>
+      ) : null}
+
+      {learnerViewHref ? (
+        <Link href={learnerViewHref} style={{ ...actionStyle, border: "1px solid #c4b5fd", background: "#ffffff", color: "#5b21b6", textDecoration: "none" }}>
+          Open learner view
+        </Link>
       ) : null}
 
       {workspaceLoading ? (
@@ -1860,6 +1868,7 @@ function CleanDayWorkspaceBody() {
           itemsError={itemsError}
           itemsLoading={itemsLoading}
           learnerLabelById={learnerLabelById}
+          learnerViewHref={selectedLearnerId ? `/learner-view?learner_id=${encodeURIComponent(selectedLearnerId)}` : null}
           learnerOptions={learnerOptions}
           myDayPresentationState={myDayPresentationState}
           recoverItems={recoverableLearningItems}
@@ -2239,6 +2248,14 @@ function CleanDayWorkspaceBody() {
                         ))}
                       </select>
                     </label>
+                    {selectedLearnerId ? (
+                      <Link
+                        href={`/learner-view?learner_id=${encodeURIComponent(selectedLearnerId)}`}
+                        style={{ ...secondaryButtonStyle, textDecoration: "none", color: "#5b21b6", borderColor: "#c4b5fd" }}
+                      >
+                        Open learner view
+                      </Link>
+                    ) : null}
                     <Link href={quickCaptureHref} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
                       Capture learning
                     </Link>
