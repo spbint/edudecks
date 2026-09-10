@@ -1054,6 +1054,7 @@ function CleanReportsWorkspaceBody() {
       setReports([]);
       setSections([]);
       setPortfolioItems([]);
+      setReadinessEntries([]);
       setAssessmentEvidenceEvents([]);
       setLearningPeriods([]);
       setPortfolioError(null);
