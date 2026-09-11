@@ -11,12 +11,24 @@ describe("My Day timeout recovery", () => {
     const loadBody = source.slice(loadStart, loadEnd);
 
     expect(loadBody).toContain("listCleanCalendarItems(workspace.profile!.id");
+    expect(loadBody).toContain("withCleanPlanningTimeout");
+    expect(loadBody).toContain('"My Day calendar items"');
     expect(loadBody).toContain("fromDate: selectedDate");
     expect(loadBody).toContain("toDate: selectedDate");
     expect(loadBody).toContain("limit: 40");
     expect(loadBody).toContain("} catch (error) {");
     expect(loadBody).toContain('setItemsError("We couldn\'t load today\'s learning. Try again.")');
     expect(loadBody).toContain("Sentry.captureException(error");
+  });
+
+  it("bounds optional My Day work independently from the core calendar read", () => {
+    const loadStart = source.indexOf("async function loadItems()");
+    const loadEnd = source.indexOf("useEffect(() =>", loadStart + 1);
+    const loadBody = source.slice(loadStart, loadEnd);
+    expect(loadBody).toContain('withCleanPlanningTimeout(evidencePromise, "My Day evidence")');
+    expect(loadBody).toContain('withCleanPlanningTimeout(programsPromise, "My Day programs")');
+    expect(loadBody).toContain("Promise.allSettled");
+    expect(loadBody).toContain("setItemsLoading(false)");
   });
 
   it("retries the same read through state only, without automatic Calendar materialisation or writes", () => {

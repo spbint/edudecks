@@ -74,11 +74,21 @@ export function getOrCreateCleanPlanningCalendarItemsRequest(
   if (existing) return existing;
 
   const requestPromise = request();
-  const nextRequest = requestPromise.finally(() => {
+  const clearInFlight = () => {
     if (calendarItemsInFlight.get(key) === nextRequest) {
       calendarItemsInFlight.delete(key);
     }
-  });
+  };
+  const nextRequest = requestPromise.then(
+    (value) => {
+      clearInFlight();
+      return value;
+    },
+    (error) => {
+      clearInFlight();
+      throw error;
+    },
+  );
   calendarItemsInFlight.set(key, nextRequest);
   return nextRequest;
 }

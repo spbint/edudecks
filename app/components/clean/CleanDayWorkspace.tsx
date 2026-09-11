@@ -64,6 +64,7 @@ import {
   beginCleanPlanningTiming,
   recordCleanPlanningMilestone,
 } from "@/lib/clean/performance/planningTiming";
+import { withCleanPlanningTimeout } from "@/lib/clean/planning/withTimeout";
 import {
   getRecoverableLearningItems,
   type RecoverableLearningItem,
@@ -1331,7 +1332,10 @@ function CleanDayWorkspaceBody() {
       });
 
       try {
-        const nextItems = await itemsPromise;
+        const nextItems = await withCleanPlanningTimeout(
+          itemsPromise,
+          "My Day calendar items",
+        );
         itemsTiming(
           requestGeneration === dayRequestGenerationRef.current ? "success" : "cancelled",
         );
@@ -1356,8 +1360,8 @@ function CleanDayWorkspaceBody() {
       void (async () => {
         try {
           const [evidenceResult, programsResult] = await Promise.allSettled([
-            evidencePromise,
-            programsPromise,
+            withCleanPlanningTimeout(evidencePromise, "My Day evidence"),
+            withCleanPlanningTimeout(programsPromise, "My Day programs"),
           ]);
 
           if (requestGeneration !== dayRequestGenerationRef.current) {
@@ -1381,7 +1385,10 @@ function CleanDayWorkspaceBody() {
 
           const segmentResults = await Promise.allSettled(
             nextPrograms.map((program) =>
-              listCleanProgramSegments(workspace.profile!.id, program.id),
+              withCleanPlanningTimeout(
+                listCleanProgramSegments(workspace.profile!.id, program.id),
+                "My Day program details",
+              ),
             ),
           );
 

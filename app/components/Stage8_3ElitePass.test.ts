@@ -62,7 +62,7 @@ describe("Stage 8.3 systemic mobile remediation", () => {
   it("releases Day and Calendar primary content before secondary setup hydration", () => {
     expect(providerSource).toContain("setLoading(false);");
     expect(providerSource).toContain("const nextSetupStatus = await loadCleanSetupStatus(nextWorkspace);");
-    expect(daySource).toContain("const nextItems = await itemsPromise;");
+    expect(daySource).toContain("const nextItems = await withCleanPlanningTimeout(");
     expect(daySource).toContain("void (async () => {");
     expect(calendarSource).toContain("calendarItemsRequestGenerationRef");
     expect(calendarSource).toContain("workspace.loading && !workspace.profile");
