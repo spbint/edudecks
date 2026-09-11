@@ -65,6 +65,7 @@ import {
   recordCleanPlanningMilestone,
 } from "@/lib/clean/performance/planningTiming";
 import { withCleanPlanningTimeout } from "@/lib/clean/planning/withTimeout";
+import { getCleanDayCoreState } from "@/lib/clean/planning/dayCoreState";
 import {
   getRecoverableLearningItems,
   type RecoverableLearningItem,
@@ -1751,6 +1752,14 @@ function CleanDayWorkspaceBody() {
         hasPlannedItemsForSelectedDate,
       })
     : null;
+  const dayCoreState = getCleanDayCoreState({
+    readyForDay,
+    itemsLoading,
+    itemsError,
+    dayPrimaryKey,
+    itemsResolvedKey,
+    presentationState: myDayPresentationState,
+  });
 
   useEffect(() => {
     if (myDayPresentationState !== "READY_FOR_FIRST_VALUE" || firstValueChoiceTrackedRef.current) return;
@@ -2043,7 +2052,19 @@ function CleanDayWorkspaceBody() {
             display: none !important;
           }
         `}</style>
-        {readyForDay && !myDayPresentationState ? (
+        {dayCoreState === "error" ? (
+          <section
+            data-testid="my-day-primary-error-state"
+            style={{ ...cardStyle, color: "#475569" }}
+            role="alert"
+          >
+            <p style={{ margin: 0 }}>We couldn&apos;t load today&apos;s learning. Try again.</p>
+            <button type="button" onClick={() => setDayReloadNonce((current) => current + 1)} style={{ ...secondaryButtonStyle, width: "fit-content" }}>
+              Try again
+            </button>
+          </section>
+        ) : null}
+        {dayCoreState === "loading" ? (
           <section
             data-testid="my-day-primary-loading-state"
             style={{ ...cardStyle, color: "#475569" }}
@@ -2154,7 +2175,7 @@ function CleanDayWorkspaceBody() {
           </section>
         ) : null}
 
-        {readyForDay && myDayPresentationState ? (
+        {dayCoreState === "ready" && myDayPresentationState ? (
           <>
             {myDayPresentationState !== "POPULATED_DAY" ? <section
               className={`mylearna-day-first-value mylearna-day-first-value-${myDayPresentationState.toLowerCase()}`}

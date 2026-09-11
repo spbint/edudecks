@@ -13,6 +13,8 @@ describe("My Day timeout recovery", () => {
     expect(loadBody).toContain("listCleanCalendarItems(workspace.profile!.id");
     expect(loadBody).toContain("withCleanPlanningTimeout");
     expect(loadBody).toContain('"My Day calendar items"');
+    expect(source).toContain('data-testid="my-day-primary-error-state"');
+    expect(source).toContain('getCleanDayCoreState');
     expect(loadBody).toContain("fromDate: selectedDate");
     expect(loadBody).toContain("toDate: selectedDate");
     expect(loadBody).toContain("limit: 40");
@@ -29,6 +31,12 @@ describe("My Day timeout recovery", () => {
     expect(loadBody).toContain('withCleanPlanningTimeout(programsPromise, "My Day programs")');
     expect(loadBody).toContain("Promise.allSettled");
     expect(loadBody).toContain("setItemsLoading(false)");
+  });
+
+  it("gives a terminal core error precedence over the literal loading branch", () => {
+    expect(source).toContain('dayCoreState === "error"');
+    expect(source).toContain('dayCoreState === "loading"');
+    expect(source).toContain('dayCoreState === "ready" && myDayPresentationState');
   });
 
   it("retries the same read through state only, without automatic Calendar materialisation or writes", () => {
