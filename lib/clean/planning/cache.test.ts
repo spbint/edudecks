@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCleanPlanningCacheKey,
   clearCleanPlanningCache,
+  clearCleanPlanningCalendarItemsRequest,
   clearCleanPlanningCacheForFamily,
   getOrCreateCleanPlanningCalendarItemsRequest,
   getCleanPlanningCacheAge,
@@ -107,6 +108,18 @@ describe("clean planning cache scope", () => {
     expect(first).toBe(second);
     expect(factoryCalls).toBe(1);
     resolveRequest([]);
+    await expect(first).resolves.toEqual([]);
+  });
+
+  it("allows a timed-out consumer to evict a still-pending request before retry", async () => {
+    clearCleanPlanningCache();
+    let firstResolve!: (value: []) => void;
+    const firstRequest = new Promise<[]>(resolve => { firstResolve = resolve; });
+    const first = getOrCreateCleanPlanningCalendarItemsRequest("retry-range", () => firstRequest);
+    clearCleanPlanningCalendarItemsRequest("retry-range");
+    const second = getOrCreateCleanPlanningCalendarItemsRequest("retry-range", () => Promise.resolve([]));
+    await expect(second).resolves.toEqual([]);
+    firstResolve([]);
     await expect(first).resolves.toEqual([]);
   });
 

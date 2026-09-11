@@ -36,6 +36,7 @@ import type {
 import { listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import {
   buildCleanPlanningCacheKey,
+  clearCleanPlanningCalendarItemsRequest,
   getOrCreateCleanPlanningCalendarItemsRequest,
   readCleanPlanningCalendarItems,
   writeCleanPlanningCalendarItems,
@@ -1347,6 +1348,7 @@ function CleanDayWorkspaceBody() {
         setItemsLoading(false);
       } catch (error) {
         itemsTiming("error");
+        clearCleanPlanningCalendarItemsRequest(cacheKey);
         if (requestGeneration === dayRequestGenerationRef.current) {
           Sentry.captureException(error, {
             level: "warning",

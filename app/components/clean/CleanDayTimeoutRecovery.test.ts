@@ -13,6 +13,7 @@ describe("My Day timeout recovery", () => {
     expect(loadBody).toContain("listCleanCalendarItems(workspace.profile!.id");
     expect(loadBody).toContain("withCleanPlanningTimeout");
     expect(loadBody).toContain('"My Day calendar items"');
+    expect(loadBody).toContain("clearCleanPlanningCalendarItemsRequest(cacheKey)");
     expect(source).toContain('data-testid="my-day-primary-error-state"');
     expect(source).toContain('getCleanDayCoreState');
     expect(loadBody).toContain("fromDate: selectedDate");

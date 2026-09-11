@@ -93,6 +93,10 @@ export function getOrCreateCleanPlanningCalendarItemsRequest(
   return nextRequest;
 }
 
+export function clearCleanPlanningCalendarItemsRequest(key: string) {
+  calendarItemsInFlight.delete(key);
+}
+
 export function getCleanPlanningCacheAge(key: string) {
   const entry = calendarItemsCache.get(key);
   return entry ? Date.now() - entry.savedAt : null;
