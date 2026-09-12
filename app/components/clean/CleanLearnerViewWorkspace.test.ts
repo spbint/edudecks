@@ -26,8 +26,8 @@ describe("Learner View", () => {
     expect(daySource).toContain("function LearnerViewEntry");
     expect(daySource).toContain("learnerOptions.length === 1");
     expect(daySource).toContain("Who is learning?");
-    expect(daySource).toContain("Open learner view");
     expect(daySource).toContain("Open ${learner.label}'s learner view");
+    expect(daySource).not.toContain("href={`/my-day?learner_id=");
     expect(daySource).toContain("/learner-view?learner_id=");
     expect(daySource).toContain("<LearnerViewEntry compact");
     expect(daySource).toContain("<LearnerViewEntry learnerOptions={learnerOptions}");
@@ -38,5 +38,6 @@ describe("Learner View", () => {
     expect(daySource).not.toContain("setLearner");
     expect(daySource).not.toContain("learnerViewHref");
     expect(daySource).not.toContain("bottom-navigation");
+    expect(daySource).toContain('aria-label="Learner or family view"');
   });
 });
