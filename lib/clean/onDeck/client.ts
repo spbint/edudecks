@@ -14,7 +14,9 @@ import type { PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRe
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,position))";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,position,resource_file:family_resource_files(original_filename,object_path,status)))";
+const LEARNING_QUEUE_CORE_SELECT =
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
 
 export const ON_DECK_NOT_READY_MESSAGE =
   "On Deck is not ready yet. Please try again shortly.";
@@ -62,9 +64,21 @@ export async function listLearningQueueItems(
 
   if (response.error) {
     if (isMissingLearningQueueTable(response.error)) return [];
-    throw new Error(
-      normalizeOnDeckError(response.error, "We could not load On Deck just now."),
-    );
+    // Resource metadata is secondary to the On Deck/Today queue. A missing or
+    // unhealthy optional resource relation must not turn into a global Today
+    // loading failure.
+    let coreQuery = supabase
+      .from("learning_queue_items")
+      .select(LEARNING_QUEUE_CORE_SELECT)
+      .eq("family_id", familyId)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (safe(learnerId)) coreQuery = coreQuery.eq("learner_id", safe(learnerId));
+    const coreResponse = await coreQuery;
+    if (coreResponse.error) {
+      throw new Error(normalizeOnDeckError(coreResponse.error, "We could not load On Deck just now."));
+    }
+    return sortLearningQueueItems(((coreResponse.data ?? []) as LearningQueueItemRow[]).map((row) => toLearningQueueItem(row)));
   }
 
   return sortLearningQueueItems(

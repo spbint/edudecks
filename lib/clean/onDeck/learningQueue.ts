@@ -45,10 +45,14 @@ export type LearningQueueItem = {
 
 export type CustomLearningResource = {
   id: string;
-  resourceType: "web_link" | "reference";
+  resourceType: "web_link" | "reference" | "file";
   label: string | null;
   url: string | null;
   referenceText: string | null;
+  resourceFileId: string | null;
+  resourceFileName: string | null;
+  resourceFilePath: string | null;
+  resourceFileStatus: "pending" | "ready" | "deleted" | null;
   position: number;
 };
 
@@ -74,6 +78,8 @@ export type LearningQueueItemRow = {
       label?: string | null;
       url?: string | null;
       reference_text?: string | null;
+      resource_file_id?: string | null;
+      resource_file?: { original_filename?: string | null; object_path?: string | null; status?: string | null } | null;
       position?: number | null;
     }> | null;
   } | null;
@@ -115,8 +121,8 @@ function normalizePosition(value: unknown) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
 }
 
-function normalizeResourceType(value: unknown): "web_link" | "reference" {
-  return safe(value) === "web_link" ? "web_link" : "reference";
+function normalizeResourceType(value: unknown): "web_link" | "reference" | "file" {
+  return safe(value) === "web_link" ? "web_link" : safe(value) === "file" ? "file" : "reference";
 }
 
 function normalizeSubjectKey(value: unknown): PathwaySubjectKey {
@@ -138,9 +144,15 @@ export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueIte
       label: normalizeNullString(resource.label),
       url: normalizeNullString(resource.url),
       referenceText: normalizeNullString(resource.reference_text),
+      resourceFileId: normalizeNullString(resource.resource_file_id),
+      resourceFileName: normalizeNullString(resource.resource_file?.original_filename),
+      resourceFilePath: normalizeNullString(resource.resource_file?.object_path),
+      resourceFileStatus: ["pending", "ready", "deleted"].includes(safe(resource.resource_file?.status))
+        ? (safe(resource.resource_file?.status) as "pending" | "ready" | "deleted")
+        : null,
       position: normalizePosition(resource.position),
     }))
-    .filter((resource) => resource.id)
+    .filter((resource) => resource.id && (resource.resourceType !== "file" || resource.resourceFileStatus === "ready"))
     .sort((left, right) => left.position - right.position || left.id.localeCompare(right.id));
   return {
     id: safe(row.id),

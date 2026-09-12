@@ -58,6 +58,7 @@ import {
   removeLearningQueueItem,
   removeCustomLearningResource,
 } from "@/lib/clean/onDeck/client";
+import { isAllowedResourcePdf, openCustomLearningPdf, resourceFileSizeLabel, uploadCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
 import {
   resolveOnDeckItem,
   sortLearningQueueItems,
@@ -282,16 +283,17 @@ function AddCustomLearningSection({
   learnerOptions: Array<{ value: string; label: string }>;
   defaultLearnerId: string;
   compact?: boolean;
-  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference"; label: string | null; value: string } | null }) => Promise<void>;
+  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; file?: File | null } | null }) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [customLearnerId, setCustomLearnerId] = useState(defaultLearnerId);
   const [title, setTitle] = useState("");
   const [learningArea, setLearningArea] = useState("");
   const [note, setNote] = useState("");
-  const [resourceType, setResourceType] = useState<"web_link" | "reference">("web_link");
+  const [resourceType, setResourceType] = useState<"web_link" | "reference" | "file">("web_link");
   const [resourceLabel, setResourceLabel] = useState("");
   const [resourceValue, setResourceValue] = useState("");
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -309,8 +311,9 @@ function AddCustomLearningSection({
     setSaving(true);
     setError(null);
     try {
-      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null, resource: resourceValue.trim() ? { resourceType, label: resourceLabel.trim() || null, value: resourceValue.trim() } : null });
-      setTitle(""); setLearningArea(""); setNote(""); setResourceLabel(""); setResourceValue(""); setOpen(false);
+      const hasResource = resourceType === "file" ? Boolean(resourceFile) : Boolean(resourceValue.trim());
+      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null, resource: hasResource ? { resourceType, label: resourceLabel.trim() || null, value: resourceValue.trim(), file: resourceFile } : null });
+      setTitle(""); setLearningArea(""); setNote(""); setResourceLabel(""); setResourceValue(""); setResourceFile(null); setOpen(false);
     } catch (reason) {
       setError(normalizeCleanErrorMessage(reason, "We could not add this learning to On Deck."));
     } finally { setSaving(false); }
@@ -332,6 +335,8 @@ function AddCustomLearningSection({
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learning area (optional)<input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} list="clean-my-day-learning-areas" style={input} placeholder="English" /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Note (optional)<textarea aria-label="Note" value={note} onChange={(event) => setNote(event.target.value)} style={{ ...input, minHeight: 76, resize: "vertical" }} placeholder="A short note for this learning" /></label>
         <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "grid", gap: 10 }}><legend style={{ padding: "0 4px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Resource (optional)</legend><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{resourceType === "web_link" ? "URL" : "Book, curriculum or resource"}<input aria-label={resourceType === "web_link" ? "URL" : "Book, curriculum or resource"} value={resourceValue} onChange={(event) => setResourceValue(event.target.value)} style={input} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "The Hobbit — Chapter 5"} /></label>{resourceType === "web_link" ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Label (optional)<input aria-label="Resource label" value={resourceLabel} onChange={(event) => setResourceLabel(event.target.value)} style={input} placeholder="Fractions lesson" /></label> : null}</fieldset>
+        <button type="button" onClick={() => setResourceType("file")} style={{ ...secondaryButtonStyle, width: "fit-content" }}>PDF file</button>
+        {resourceType === "file" ? <div style={{ display: "grid", gap: 6 }}><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Choose PDF<input type="file" accept="application/pdf,.pdf" onChange={(event) => setResourceFile(event.target.files?.[0] || null)} /></label>{resourceFile ? <span style={{ fontSize: 13, overflowWrap: "anywhere" }}>{resourceFile.name} · {resourceFileSizeLabel(resourceFile.size)}</span> : null}<span style={{ color: "#64748b", fontSize: 12 }}>PDF only · up to 25 MB</span></div> : null}
         {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
         <button type="submit" disabled={saving} style={{ ...primaryButtonStyle, width: "fit-content" }}>{saving ? "Saving..." : "Put On Deck"}</button>
       </form> : null}
@@ -343,10 +348,12 @@ function CustomResourceControls({
   item,
   onAddResource,
   onRemoveResource,
+  onUploadPdf,
 }: {
   item: LearningQueueItem;
   onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource: (resourceId: string) => Promise<void>;
+  onUploadPdf: (customLearningItemId: string, file: File) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [resourceType, setResourceType] = useState<"web_link" | "reference">("web_link");
@@ -354,6 +361,7 @@ function CustomResourceControls({
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pdf, setPdf] = useState<File | null>(null);
   async function add(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!item.customLearningItemId || !value.trim()) return;
@@ -362,12 +370,19 @@ function CustomResourceControls({
     catch (reason) { setError(normalizeCleanErrorMessage(reason, "We could not add this resource.")); }
     finally { setBusy(false); }
   }
+  async function uploadPdf() {
+    if (!item.customLearningItemId || !pdf) return;
+    setBusy(true); setError(null);
+    try { await onUploadPdf(item.customLearningItemId, pdf); setPdf(null); }
+    catch (reason) { setError(normalizeCleanErrorMessage(reason, "The PDF could not be uploaded. You can try again from Resources.")); }
+    finally { setBusy(false); }
+  }
   return <div style={{ display: "grid", gap: 7 }}>
     {item.resources.length ? <div style={{ color: "#64748b", fontSize: 13 }}>{item.resources.length} resource{item.resources.length === 1 ? "" : "s"}</div> : null}
     <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary style={{ color: "#1d4ed8", cursor: "pointer", fontSize: 13, fontWeight: 800 }}>Resources</summary>
       <div style={{ display: "grid", gap: 8, paddingTop: 8 }}>
-        {item.resources.map((resource) => <div key={resource.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 13 }}><span>{resource.label || resource.referenceText || resource.url}</span><button type="button" onClick={() => void onRemoveResource(resource.id)} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Remove</button></div>)}
+        {item.resources.map((resource) => <div key={resource.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 13 }}><span style={{ overflowWrap: "anywhere" }}>{resource.resourceType === "file" ? resource.resourceFileName || resource.label || "PDF file" : resource.label || resource.referenceText || resource.url}</span><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{resource.resourceType === "file" && resource.resourceFilePath ? <button type="button" onClick={() => void openCustomLearningPdf(resource.resourceFilePath!)} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Open PDF</button> : null}<button type="button" onClick={() => void onRemoveResource(resource.id)} aria-label={`Remove ${resource.resourceType === "file" ? resource.resourceFileName || "PDF file" : "resource"}`} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Remove</button></div></div>)}
         <form onSubmit={(event) => void add(event)} style={{ display: "grid", gap: 8, borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 13 }}><input type="radio" name={`resource-type-${item.id}`} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 13 }}><input type="radio" name={`resource-type-${item.id}`} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div>
           <input aria-label={resourceType === "web_link" ? "Resource URL" : "Resource reference"} value={value} onChange={(event) => setValue(event.target.value)} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "Book or workbook reference"} style={inputStyle} />
@@ -375,6 +390,7 @@ function CustomResourceControls({
           {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
           <button type="submit" disabled={busy || !value.trim()} style={{ ...secondaryButtonStyle, width: "fit-content" }}>{busy ? "Saving..." : "Add resource"}</button>
         </form>
+        <div style={{ display: "grid", gap: 8, borderTop: "1px solid #e2e8f0", paddingTop: 8 }}><strong style={{ fontSize: 13 }}>PDF file</strong><label style={{ display: "grid", gap: 5, fontSize: 13 }}>Choose PDF<input type="file" accept="application/pdf,.pdf" onChange={(event) => setPdf(event.target.files?.[0] || null)} /></label>{pdf ? <span style={{ fontSize: 13, color: "#475569", overflowWrap: "anywhere" }}>{pdf.name} · {resourceFileSizeLabel(pdf.size)}</span> : null}<span style={{ fontSize: 12, color: "#64748b" }}>PDF only · up to 25 MB</span>{pdf && !isAllowedResourcePdf(pdf) ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>Choose a PDF file up to 25 MB.</div> : null}<button type="button" disabled={!pdf || !isAllowedResourcePdf(pdf) || busy} onClick={() => void uploadPdf()} style={{ ...secondaryButtonStyle, width: "fit-content" }}>{busy ? "Uploading..." : "Upload PDF"}</button></div>
       </div>
     </details>
   </div>;
@@ -395,6 +411,7 @@ function OnDeckSection({
   onClearHelp,
   onAddResource,
   onRemoveResource,
+  onUploadPdf,
 }: {
   compact?: boolean;
   items: OnDeckResolvedItem[];
@@ -410,6 +427,7 @@ function OnDeckSection({
   onClearHelp?: (requestId: string) => void;
   onAddResource?: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource?: (resourceId: string) => Promise<void>;
+  onUploadPdf?: (customLearningItemId: string, file: File) => Promise<void>;
 }) {
   const actionStyle: React.CSSProperties = {
     minHeight: compact ? 40 : 42,
@@ -532,7 +550,7 @@ function OnDeckSection({
                   {item.sourceType === "custom_learning" && item.customNote ? (
                     <p style={{ margin: 0, color: "#475569", fontSize: 13, lineHeight: 1.5 }}>{item.customNote}</p>
                   ) : null}
-                  {item.sourceType === "custom_learning" && onAddResource && onRemoveResource ? <CustomResourceControls item={item} onAddResource={onAddResource} onRemoveResource={onRemoveResource} /> : null}
+                  {item.sourceType === "custom_learning" && onAddResource && onRemoveResource && onUploadPdf ? <CustomResourceControls item={item} onAddResource={onAddResource} onRemoveResource={onRemoveResource} onUploadPdf={onUploadPdf} /> : null}
                   {helpRequests.filter((request) => request.sourceType === "on_deck_item" && request.sourceId === item.id).map((request) => (
                     <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
                       <strong>{learnerLabel} needs help</strong>
@@ -762,9 +780,10 @@ type MobileTodayContentProps = {
   workspaceSchemaMissing: boolean;
   buildItemCaptureHref: (item: CleanCalendarItem) => string;
   defaultCustomLearningLearnerId: string;
-  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference"; label: string | null; value: string } | null }) => Promise<void>;
+  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; file?: File | null } | null }) => Promise<void>;
   onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource: (resourceId: string) => Promise<void>;
+  onUploadPdf: (customLearningItemId: string, file: File) => Promise<void>;
 };
 
 function MobileTodayContent({
@@ -812,6 +831,7 @@ function MobileTodayContent({
   onCreateCustomLearning,
   onAddResource,
   onRemoveResource,
+  onUploadPdf,
 }: MobileTodayContentProps) {
   const hasItems = items.length > 0;
   const mobileCardStyle: React.CSSProperties = {
@@ -987,6 +1007,7 @@ function MobileTodayContent({
             onClearHelp={onClearHelp}
             onAddResource={onAddResource}
             onRemoveResource={onRemoveResource}
+            onUploadPdf={onUploadPdf}
             learnerLabelById={learnerLabelById}
             onMove={onMoveOnDeckItem}
             onRemove={onRemoveOnDeckItem}
@@ -1791,17 +1812,30 @@ function CleanDayWorkspaceBody() {
     title: string;
     learningArea: string | null;
     note: string | null;
-    resource: { resourceType: "web_link" | "reference"; label: string | null; value: string } | null;
+    resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; file?: File | null } | null;
   }) {
     if (!workspace.profile) throw new Error("My Day is not ready for custom learning yet.");
-    await createCustomLearningOnDeck({
+    const textResource = input.resource?.resourceType === "web_link" || input.resource?.resourceType === "reference"
+      ? { resourceType: input.resource.resourceType, label: input.resource.label, value: input.resource.value }
+      : null;
+    const queueId = await createCustomLearningOnDeck({
       familyId: workspace.profile.id,
       learnerId: input.learnerId,
       title: input.title,
       learningArea: input.learningArea,
       note: input.note,
-      resource: input.resource,
+      resource: textResource,
     });
+    if (input.resource?.resourceType === "file" && input.resource.file) {
+      const createdItems = await listLearningQueueItems(workspace.profile.id, input.learnerId);
+      const createdItem = createdItems.find((item) => item.id === queueId);
+      if (!createdItem?.customLearningItemId) throw new Error("Learning was added, but the PDF could not be attached. You can try again from Resources.");
+      try {
+        await handleUploadCustomPdf(createdItem.customLearningItemId, input.resource.file);
+      } catch {
+        throw new Error("Learning was added, but the PDF could not be uploaded. You can try again from Resources.");
+      }
+    }
     trackProductEvent("custom_learning_created", {
       sourceType: "custom_learning",
       learningArea: input.learningArea,
@@ -1833,6 +1867,19 @@ function CleanDayWorkspaceBody() {
     await removeCustomLearningResource(workspace.profile.id, resourceId);
     await reloadOnDeckItems();
     trackProductEvent("custom_resource_removed", { surface: "my_day" }, user?.id);
+  }
+
+  async function handleUploadCustomPdf(customLearningItemId: string, file: File) {
+    if (!workspace.profile) return;
+    trackProductEvent("custom_resource_file_upload_started", { sizeBucket: file.size < 1024 * 1024 ? "under_1mb" : file.size <= 5 * 1024 * 1024 ? "1_to_5mb" : file.size <= 15 * 1024 * 1024 ? "5_to_15mb" : "15_to_25mb", surface: "my_day" }, user?.id);
+    try {
+      await uploadCustomLearningPdf({ familyId: workspace.profile.id, customLearningItemId, file });
+      await reloadOnDeckItems();
+      trackProductEvent("custom_resource_file_uploaded", { surface: "my_day" }, user?.id);
+    } catch (error) {
+      trackProductEvent("custom_resource_file_upload_failed", { surface: "my_day" }, user?.id);
+      throw error;
+    }
   }
 
   async function handleRemoveOnDeckItem(itemId: string) {
@@ -2158,6 +2205,7 @@ function CleanDayWorkspaceBody() {
           onClearHelp={(requestId) => void handleClearHelp(requestId)}
           onAddResource={(input) => handleAddCustomResource(input)}
           onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
+          onUploadPdf={(customLearningItemId, file) => handleUploadCustomPdf(customLearningItemId, file)}
           onDeckError={onDeckError}
           onDeckUpdatingId={onDeckUpdatingId}
           onCompletionToggle={(item) => void handleCompletionToggle(item)}
@@ -3150,6 +3198,7 @@ function CleanDayWorkspaceBody() {
               onClearHelp={(requestId) => void handleClearHelp(requestId)}
               onAddResource={(input) => handleAddCustomResource(input)}
               onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
+              onUploadPdf={handleUploadCustomPdf}
               learnerLabelById={learnerLabelById}
               onMove={(itemId, learnerId, direction) =>
                 void handleMoveOnDeckItem(itemId, learnerId, direction)

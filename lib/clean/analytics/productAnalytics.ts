@@ -79,6 +79,7 @@ const SAFE_PROPERTY_KEYS = new Set([
   "page_path",
   "resource_id",
   "resource_asset",
+  "sizeBucket",
   "subjectKey",
   "strandKey",
   "stageKey",

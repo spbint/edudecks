@@ -9,6 +9,7 @@ import { listCleanCalendarItems, updateCleanCalendarItem } from "@/lib/clean/cal
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { listLearningQueueItems, moveLearningQueueItem } from "@/lib/clean/onDeck/client";
+import { openCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
 import { resolveOnDeckItem, sortLearningQueueItems, type LearningQueueItem } from "@/lib/clean/onDeck/learningQueue";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import {
@@ -48,7 +49,7 @@ function LearnerCustomNotes({ items }: { items: ReturnType<typeof resolveOnDeckI
 
 function LearnerResources({ item }: { item: ReturnType<typeof resolveOnDeckItem>["item"] }) {
   if (item.sourceType !== "custom_learning" || !item.resources.length) return null;
-  return <div style={{ display: "grid", gap: 6 }}><strong style={{ color: "#475569", fontSize: 13 }}>Resources</strong>{item.resources.map((resource) => resource.resourceType === "web_link" && resource.url ? <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer" style={{ color: "#1d4ed8", fontSize: 14, fontWeight: 750, overflowWrap: "anywhere" }}>{resource.label || "Open resource"}</a> : <span key={resource.id} style={{ color: "#475569", fontSize: 14 }}>{resource.label || resource.referenceText}</span>)}</div>;
+  return <div style={{ display: "grid", gap: 6 }}><strong style={{ color: "#475569", fontSize: 13 }}>RESOURCE</strong>{item.resources.map((resource) => resource.resourceType === "web_link" && resource.url ? <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer" style={{ color: "#1d4ed8", fontSize: 14, fontWeight: 750, overflowWrap: "anywhere" }}>{resource.label || "Open resource"}</a> : resource.resourceType === "file" && resource.resourceFilePath ? <button key={resource.id} type="button" onClick={() => void openCustomLearningPdf(resource.resourceFilePath!)} aria-label={`Open PDF ${resource.resourceFileName || "resource"}`} style={{ color: "#1d4ed8", background: "transparent", border: 0, padding: 0, textAlign: "left", font: "inherit", fontSize: 14, fontWeight: 750, cursor: "pointer", overflowWrap: "anywhere" }}>{resource.resourceFileName || resource.label || "Open PDF"}</button> : <span key={resource.id} style={{ color: "#475569", fontSize: 14 }}>{resource.label || resource.referenceText}</span>)}</div>;
 }
 
 export default function CleanLearnerViewWorkspace() {
