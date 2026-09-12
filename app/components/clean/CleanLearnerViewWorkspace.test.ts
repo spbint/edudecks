@@ -22,8 +22,21 @@ describe("Learner View", () => {
     expect(source).not.toContain("settings");
   });
 
-  it("offers the entry point only when My Day has a selected learner", () => {
-    expect(daySource).toContain("selectedLearnerId ? `/learner-view?learner_id=");
+  it("makes Learner View discoverable without a preselected learner", () => {
+    expect(daySource).toContain("function LearnerViewEntry");
+    expect(daySource).toContain("learnerOptions.length === 1");
+    expect(daySource).toContain("Who is learning?");
     expect(daySource).toContain("Open learner view");
+    expect(daySource).toContain("Open ${learner.label}'s learner view");
+    expect(daySource).toContain("/learner-view?learner_id=");
+    expect(daySource).toContain("<LearnerViewEntry compact");
+    expect(daySource).toContain("<LearnerViewEntry learnerOptions={learnerOptions}");
+  });
+
+  it("keeps learner choice as navigation without adding persistence or parent navigation", () => {
+    expect(daySource).not.toContain("createLearner");
+    expect(daySource).not.toContain("setLearner");
+    expect(daySource).not.toContain("learnerViewHref");
+    expect(daySource).not.toContain("bottom-navigation");
   });
 });

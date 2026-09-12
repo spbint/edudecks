@@ -582,6 +582,25 @@ function RecoverMyWeekSection({
   );
 }
 
+type LearnerViewEntryProps = {
+  compact?: boolean;
+  learnerOptions: Array<{ value: string; label: string }>;
+  selectedLearnerId: string;
+};
+
+function LearnerViewEntry({ compact = false, learnerOptions, selectedLearnerId }: LearnerViewEntryProps) {
+  if (!learnerOptions.length) return null;
+  const selectedLearner = learnerOptions.find((option) => option.value === selectedLearnerId);
+  const linkStyle: React.CSSProperties = { minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 11, padding: "10px 12px", fontSize: 14, fontWeight: 800, textDecoration: "none", border: "1px solid #c4b5fd", background: "#ffffff", color: "#5b21b6" };
+  const headingId = compact ? "mobile-learner-view-title" : "learner-view-title";
+  const description = "Let a learner see today's work and choose what to do next.";
+  if (selectedLearner || learnerOptions.length === 1) {
+    const learner = selectedLearner ?? learnerOptions[0]!;
+    return <section aria-labelledby={headingId} style={{ display: "grid", gap: 8 }}><div><p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learner view</p><p id={headingId} style={{ margin: "4px 0 0", color: "#475569", fontSize: 14 }}>{description}</p></div><Link href={`/learner-view?learner_id=${encodeURIComponent(learner.value)}`} style={{ ...linkStyle, width: "fit-content" }}>{selectedLearner ? `Open ${learner.label}'s learner view` : "Open learner view"}</Link></section>;
+  }
+  return <section aria-labelledby={headingId} style={{ display: "grid", gap: 8 }}><div><p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learner view</p><h2 id={headingId} style={{ margin: "4px 0 0", color: "#17204b", fontSize: compact ? 16 : 18 }}>Who is learning?</h2><p style={{ margin: "4px 0 0", color: "#475569", fontSize: 14 }}>{description}</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{learnerOptions.map((learner) => <Link key={learner.value} href={`/learner-view?learner_id=${encodeURIComponent(learner.value)}`} style={linkStyle}>{learner.label}</Link>)}</div></section>;
+}
+
 type MobileTodayContentProps = {
   calendarHref: string;
   completionError: { itemId: string; message: string } | null;
@@ -592,7 +611,6 @@ type MobileTodayContentProps = {
   items: CleanCalendarItem[];
   itemsError: string | null;
   itemsLoading: boolean;
-  learnerViewHref: string | null;
   learnerLabelById: Map<string, string>;
   learnerOptions: Array<{ value: string; label: string }>;
   myDayPresentationState: CleanMyDayPresentationState | null;
@@ -636,7 +654,6 @@ function MobileTodayContent({
   items,
   itemsError,
   itemsLoading,
-  learnerViewHref,
   learnerLabelById,
   learnerOptions,
   myDayPresentationState,
@@ -740,11 +757,7 @@ function MobileTodayContent({
         <p style={{ margin: 0, color: "#475569", fontSize: 14, fontWeight: 700 }}>{selectedLearnerLabel}</p>
       ) : null}
 
-      {learnerViewHref ? (
-        <Link href={learnerViewHref} style={{ ...actionStyle, border: "1px solid #c4b5fd", background: "#ffffff", color: "#5b21b6", textDecoration: "none" }}>
-          Open learner view
-        </Link>
-      ) : null}
+      <LearnerViewEntry compact learnerOptions={learnerOptions} selectedLearnerId={selectedLearnerId} />
 
       {workspaceLoading ? (
         <section style={mobileCardStyle} aria-live="polite">Loading today&apos;s learning...</section>
@@ -1948,7 +1961,6 @@ function CleanDayWorkspaceBody() {
           itemsError={itemsError}
           itemsLoading={itemsLoading}
           learnerLabelById={learnerLabelById}
-          learnerViewHref={selectedLearnerId ? `/learner-view?learner_id=${encodeURIComponent(selectedLearnerId)}` : null}
           learnerOptions={learnerOptions}
           myDayPresentationState={myDayPresentationState}
           recoverItems={recoverableLearningItems}
@@ -2343,14 +2355,7 @@ function CleanDayWorkspaceBody() {
                         ))}
                       </select>
                     </label>
-                    {selectedLearnerId ? (
-                      <Link
-                        href={`/learner-view?learner_id=${encodeURIComponent(selectedLearnerId)}`}
-                        style={{ ...secondaryButtonStyle, textDecoration: "none", color: "#5b21b6", borderColor: "#c4b5fd" }}
-                      >
-                        Open learner view
-                      </Link>
-                    ) : null}
+                    <LearnerViewEntry learnerOptions={learnerOptions} selectedLearnerId={selectedLearnerId} />
                     <Link href={quickCaptureHref} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
                       Capture learning
                     </Link>
