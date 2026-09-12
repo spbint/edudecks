@@ -50,11 +50,13 @@ import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
   addPathwayStepToLearningQueue,
+  addCustomLearningResource,
   createCustomLearningOnDeck,
   hasLearningQueueItemForStep,
   listLearningQueueItems,
   moveLearningQueueItem,
   removeLearningQueueItem,
+  removeCustomLearningResource,
 } from "@/lib/clean/onDeck/client";
 import {
   resolveOnDeckItem,
@@ -280,13 +282,16 @@ function AddCustomLearningSection({
   learnerOptions: Array<{ value: string; label: string }>;
   defaultLearnerId: string;
   compact?: boolean;
-  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null }) => Promise<void>;
+  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference"; label: string | null; value: string } | null }) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [customLearnerId, setCustomLearnerId] = useState(defaultLearnerId);
   const [title, setTitle] = useState("");
   const [learningArea, setLearningArea] = useState("");
   const [note, setNote] = useState("");
+  const [resourceType, setResourceType] = useState<"web_link" | "reference">("web_link");
+  const [resourceLabel, setResourceLabel] = useState("");
+  const [resourceValue, setResourceValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -304,8 +309,8 @@ function AddCustomLearningSection({
     setSaving(true);
     setError(null);
     try {
-      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null });
-      setTitle(""); setLearningArea(""); setNote(""); setOpen(false);
+      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null, resource: resourceValue.trim() ? { resourceType, label: resourceLabel.trim() || null, value: resourceValue.trim() } : null });
+      setTitle(""); setLearningArea(""); setNote(""); setResourceLabel(""); setResourceValue(""); setOpen(false);
     } catch (reason) {
       setError(normalizeCleanErrorMessage(reason, "We could not add this learning to On Deck."));
     } finally { setSaving(false); }
@@ -326,11 +331,53 @@ function AddCustomLearningSection({
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Title<input required aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} style={input} placeholder="Read Chapter 4 — The Hobbit" autoFocus /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learning area (optional)<input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} list="clean-my-day-learning-areas" style={input} placeholder="English" /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Note (optional)<textarea aria-label="Note" value={note} onChange={(event) => setNote(event.target.value)} style={{ ...input, minHeight: 76, resize: "vertical" }} placeholder="A short note for this learning" /></label>
+        <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "grid", gap: 10 }}><legend style={{ padding: "0 4px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Resource (optional)</legend><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{resourceType === "web_link" ? "URL" : "Book, curriculum or resource"}<input aria-label={resourceType === "web_link" ? "URL" : "Book, curriculum or resource"} value={resourceValue} onChange={(event) => setResourceValue(event.target.value)} style={input} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "The Hobbit — Chapter 5"} /></label>{resourceType === "web_link" ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Label (optional)<input aria-label="Resource label" value={resourceLabel} onChange={(event) => setResourceLabel(event.target.value)} style={input} placeholder="Fractions lesson" /></label> : null}</fieldset>
         {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
         <button type="submit" disabled={saving} style={{ ...primaryButtonStyle, width: "fit-content" }}>{saving ? "Saving..." : "Put On Deck"}</button>
       </form> : null}
     </section>
   );
+}
+
+function CustomResourceControls({
+  item,
+  onAddResource,
+  onRemoveResource,
+}: {
+  item: LearningQueueItem;
+  onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
+  onRemoveResource: (resourceId: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [resourceType, setResourceType] = useState<"web_link" | "reference">("web_link");
+  const [label, setLabel] = useState("");
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function add(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!item.customLearningItemId || !value.trim()) return;
+    setBusy(true); setError(null);
+    try { await onAddResource({ customLearningItemId: item.customLearningItemId, resourceType, label: label.trim() || null, value: value.trim() }); setValue(""); setLabel(""); setOpen(false); }
+    catch (reason) { setError(normalizeCleanErrorMessage(reason, "We could not add this resource.")); }
+    finally { setBusy(false); }
+  }
+  return <div style={{ display: "grid", gap: 7 }}>
+    {item.resources.length ? <div style={{ color: "#64748b", fontSize: 13 }}>{item.resources.length} resource{item.resources.length === 1 ? "" : "s"}</div> : null}
+    <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary style={{ color: "#1d4ed8", cursor: "pointer", fontSize: 13, fontWeight: 800 }}>Resources</summary>
+      <div style={{ display: "grid", gap: 8, paddingTop: 8 }}>
+        {item.resources.map((resource) => <div key={resource.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 13 }}><span>{resource.label || resource.referenceText || resource.url}</span><button type="button" onClick={() => void onRemoveResource(resource.id)} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Remove</button></div>)}
+        <form onSubmit={(event) => void add(event)} style={{ display: "grid", gap: 8, borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 13 }}><input type="radio" name={`resource-type-${item.id}`} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 13 }}><input type="radio" name={`resource-type-${item.id}`} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div>
+          <input aria-label={resourceType === "web_link" ? "Resource URL" : "Resource reference"} value={value} onChange={(event) => setValue(event.target.value)} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "Book or workbook reference"} style={inputStyle} />
+          {resourceType === "web_link" ? <input aria-label="Resource label" value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Label (optional)" style={inputStyle} /> : null}
+          {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
+          <button type="submit" disabled={busy || !value.trim()} style={{ ...secondaryButtonStyle, width: "fit-content" }}>{busy ? "Saving..." : "Add resource"}</button>
+        </form>
+      </div>
+    </details>
+  </div>;
 }
 
 function OnDeckSection({
@@ -346,6 +393,8 @@ function OnDeckSection({
   userId,
   helpRequests = [],
   onClearHelp,
+  onAddResource,
+  onRemoveResource,
 }: {
   compact?: boolean;
   items: OnDeckResolvedItem[];
@@ -359,6 +408,8 @@ function OnDeckSection({
   userId?: string | null;
   helpRequests?: LearnerHelpRequest[];
   onClearHelp?: (requestId: string) => void;
+  onAddResource?: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
+  onRemoveResource?: (resourceId: string) => Promise<void>;
 }) {
   const actionStyle: React.CSSProperties = {
     minHeight: compact ? 40 : 42,
@@ -481,6 +532,7 @@ function OnDeckSection({
                   {item.sourceType === "custom_learning" && item.customNote ? (
                     <p style={{ margin: 0, color: "#475569", fontSize: 13, lineHeight: 1.5 }}>{item.customNote}</p>
                   ) : null}
+                  {item.sourceType === "custom_learning" && onAddResource && onRemoveResource ? <CustomResourceControls item={item} onAddResource={onAddResource} onRemoveResource={onRemoveResource} /> : null}
                   {helpRequests.filter((request) => request.sourceType === "on_deck_item" && request.sourceId === item.id).map((request) => (
                     <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
                       <strong>{learnerLabel} needs help</strong>
@@ -710,7 +762,9 @@ type MobileTodayContentProps = {
   workspaceSchemaMissing: boolean;
   buildItemCaptureHref: (item: CleanCalendarItem) => string;
   defaultCustomLearningLearnerId: string;
-  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null }) => Promise<void>;
+  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference"; label: string | null; value: string } | null }) => Promise<void>;
+  onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
+  onRemoveResource: (resourceId: string) => Promise<void>;
 };
 
 function MobileTodayContent({
@@ -756,6 +810,8 @@ function MobileTodayContent({
   buildItemCaptureHref,
   defaultCustomLearningLearnerId,
   onCreateCustomLearning,
+  onAddResource,
+  onRemoveResource,
 }: MobileTodayContentProps) {
   const hasItems = items.length > 0;
   const mobileCardStyle: React.CSSProperties = {
@@ -929,6 +985,8 @@ function MobileTodayContent({
             items={onDeckItems}
             helpRequests={helpRequests}
             onClearHelp={onClearHelp}
+            onAddResource={onAddResource}
+            onRemoveResource={onRemoveResource}
             learnerLabelById={learnerLabelById}
             onMove={onMoveOnDeckItem}
             onRemove={onRemoveOnDeckItem}
@@ -1733,6 +1791,7 @@ function CleanDayWorkspaceBody() {
     title: string;
     learningArea: string | null;
     note: string | null;
+    resource: { resourceType: "web_link" | "reference"; label: string | null; value: string } | null;
   }) {
     if (!workspace.profile) throw new Error("My Day is not ready for custom learning yet.");
     await createCustomLearningOnDeck({
@@ -1741,11 +1800,14 @@ function CleanDayWorkspaceBody() {
       title: input.title,
       learningArea: input.learningArea,
       note: input.note,
+      resource: input.resource,
     });
     trackProductEvent("custom_learning_created", {
       sourceType: "custom_learning",
       learningArea: input.learningArea,
       hasNote: Boolean(input.note),
+      resourceType: input.resource?.resourceType || null,
+      resourceCountBucket: input.resource ? "1" : "0",
       surface: "my_day",
     }, user?.id);
     await reloadOnDeckItems();
@@ -1753,8 +1815,24 @@ function CleanDayWorkspaceBody() {
       sourceType: "custom_learning",
       learningArea: input.learningArea,
       hasNote: Boolean(input.note),
+      resourceType: input.resource?.resourceType || null,
+      resourceCountBucket: input.resource ? "1" : "0",
       surface: "my_day",
     }, user?.id);
+  }
+
+  async function handleAddCustomResource(input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) {
+    if (!workspace.profile) return;
+    await addCustomLearningResource({ familyId: workspace.profile.id, ...input });
+    await reloadOnDeckItems();
+    trackProductEvent("custom_resource_added", { resourceType: input.resourceType, surface: "my_day", resourceCountBucket: "1" }, user?.id);
+  }
+
+  async function handleRemoveCustomResource(resourceId: string) {
+    if (!workspace.profile) return;
+    await removeCustomLearningResource(workspace.profile.id, resourceId);
+    await reloadOnDeckItems();
+    trackProductEvent("custom_resource_removed", { surface: "my_day" }, user?.id);
   }
 
   async function handleRemoveOnDeckItem(itemId: string) {
@@ -2078,6 +2156,8 @@ function CleanDayWorkspaceBody() {
           onDeckItems={resolvedOnDeckItems}
           helpRequests={helpRequests}
           onClearHelp={(requestId) => void handleClearHelp(requestId)}
+          onAddResource={(input) => handleAddCustomResource(input)}
+          onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
           onDeckError={onDeckError}
           onDeckUpdatingId={onDeckUpdatingId}
           onCompletionToggle={(item) => void handleCompletionToggle(item)}
@@ -3068,6 +3148,8 @@ function CleanDayWorkspaceBody() {
               items={resolvedOnDeckItems}
               helpRequests={helpRequests}
               onClearHelp={(requestId) => void handleClearHelp(requestId)}
+              onAddResource={(input) => handleAddCustomResource(input)}
+              onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
               learnerLabelById={learnerLabelById}
               onMove={(itemId, learnerId, direction) =>
                 void handleMoveOnDeckItem(itemId, learnerId, direction)

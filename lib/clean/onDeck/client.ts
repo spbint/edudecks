@@ -14,7 +14,7 @@ import type { PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRe
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,position))";
 
 export const ON_DECK_NOT_READY_MESSAGE =
   "On Deck is not ready yet. Please try again shortly.";
@@ -164,13 +164,36 @@ export async function createCustomLearningOnDeck(input: {
   title: string;
   learningArea?: string | null;
   note?: string | null;
+  resource?: {
+    resourceType: "web_link" | "reference";
+    label?: string | null;
+    value: string;
+  } | null;
 }) {
   const currentUserId = await getCurrentCleanUserId();
   if (!currentUserId) throw new Error("You need to sign in before adding learning.");
   if (!safe(input.learnerId)) throw new Error("Choose a learner before adding learning.");
   if (!safe(input.title)) throw new Error("Add a title before putting learning On Deck.");
 
-  const response = await supabase.rpc("mylearna_create_custom_learning_queue_item", {
+  const resource = input.resource && {
+    resourceType: input.resource.resourceType,
+    label: safe(input.resource.label) || null,
+    value: safe(input.resource.value),
+  };
+  if (resource && !resource.value) throw new Error("Add the resource link or reference.");
+  if (resource?.resourceType === "web_link" && !/^https?:\/\//i.test(resource.value)) {
+    throw new Error("Use a web link starting with http:// or https://.");
+  }
+  const response = await supabase.rpc(resource ? "mylearna_create_custom_learning_queue_item_with_resource" : "mylearna_create_custom_learning_queue_item", resource ? {
+    p_family_id: input.familyId,
+    p_learner_id: input.learnerId,
+    p_title: input.title,
+    p_learning_area: input.learningArea || null,
+    p_note: input.note || null,
+    p_resource_type: resource.resourceType,
+    p_resource_label: resource.label,
+    p_resource_value: resource.value,
+  } : {
     p_family_id: input.familyId,
     p_learner_id: input.learnerId,
     p_title: input.title,
@@ -181,6 +204,57 @@ export async function createCustomLearningOnDeck(input: {
     throw new Error(normalizeOnDeckError(response.error, "We could not add this learning to On Deck."));
   }
   return response.data as string;
+}
+
+export function isSafeCustomWebLink(value: string) {
+  return /^https?:\/\/[^\s]+$/i.test(value.trim());
+}
+
+export async function addCustomLearningResource(input: {
+  familyId: string;
+  customLearningItemId: string;
+  resourceType: "web_link" | "reference";
+  label?: string | null;
+  value: string;
+}) {
+  const currentUserId = await getCurrentCleanUserId();
+  const value = safe(input.value);
+  if (!currentUserId) throw new Error("You need to sign in before adding a resource.");
+  if (!value) throw new Error("Add the resource link or reference.");
+  if (input.resourceType === "web_link" && !isSafeCustomWebLink(value)) {
+    throw new Error("Use a web link starting with http:// or https://.");
+  }
+  const response = await supabase.from("custom_learning_resources").insert({
+    family_id: input.familyId,
+    custom_learning_item_id: input.customLearningItemId,
+    resource_type: input.resourceType,
+    label: safe(input.label) || null,
+    url: input.resourceType === "web_link" ? value : null,
+    reference_text: input.resourceType === "reference" ? value : null,
+    created_by_user_id: currentUserId,
+  }).select("id,resource_type,label,url,reference_text,position").maybeSingle();
+  if (response.error || !response.data) throw new Error(normalizeOnDeckError(response.error, "We could not add this resource."));
+  const row = response.data as {
+    id: string;
+    resource_type: string;
+    label?: string | null;
+    url?: string | null;
+    reference_text?: string | null;
+    position?: number | null;
+  };
+  return {
+    id: row.id,
+    resourceType: row.resource_type === "web_link" ? "web_link" : "reference",
+    label: row.label ?? null,
+    url: row.url ?? null,
+    referenceText: row.reference_text ?? null,
+    position: Number(row.position ?? 0),
+  };
+}
+
+export async function removeCustomLearningResource(familyId: string, resourceId: string) {
+  const response = await supabase.from("custom_learning_resources").delete().eq("family_id", familyId).eq("id", resourceId);
+  if (response.error) throw new Error(normalizeOnDeckError(response.error, "We could not remove this resource."));
 }
 
 export async function removeLearningQueueItem(familyId: string, itemId: string) {

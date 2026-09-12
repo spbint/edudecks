@@ -35,11 +35,21 @@ export type LearningQueueItem = {
   customTitle: string | null;
   customLearningArea: string | null;
   customNote: string | null;
+  resources: CustomLearningResource[];
   displayTitle: string | null;
   position: number;
   createdByUserId: string;
   createdAt: string | null;
   updatedAt: string | null;
+};
+
+export type CustomLearningResource = {
+  id: string;
+  resourceType: "web_link" | "reference";
+  label: string | null;
+  url: string | null;
+  referenceText: string | null;
+  position: number;
 };
 
 export type LearningQueueItemRow = {
@@ -58,6 +68,14 @@ export type LearningQueueItemRow = {
     title?: string | null;
     learning_area?: string | null;
     note?: string | null;
+    custom_learning_resources?: Array<{
+      id?: string | null;
+      resource_type?: string | null;
+      label?: string | null;
+      url?: string | null;
+      reference_text?: string | null;
+      position?: number | null;
+    }> | null;
   } | null;
   display_title?: string | null;
   position?: number | null;
@@ -97,6 +115,10 @@ function normalizePosition(value: unknown) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
 }
 
+function normalizeResourceType(value: unknown): "web_link" | "reference" {
+  return safe(value) === "web_link" ? "web_link" : "reference";
+}
+
 function normalizeSubjectKey(value: unknown): PathwaySubjectKey {
   const candidate = safe(value) as PathwaySubjectKey;
   return PATHWAY_SUBJECTS.some((subject) => subject.key === candidate)
@@ -109,6 +131,17 @@ function normalizeSourceType(value: unknown): LearningQueueSourceType {
 }
 
 export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueItem {
+  const resources = (row.custom_learning_item?.custom_learning_resources ?? [])
+    .map((resource) => ({
+      id: safe(resource.id),
+      resourceType: normalizeResourceType(resource.resource_type),
+      label: normalizeNullString(resource.label),
+      url: normalizeNullString(resource.url),
+      referenceText: normalizeNullString(resource.reference_text),
+      position: normalizePosition(resource.position),
+    }))
+    .filter((resource) => resource.id)
+    .sort((left, right) => left.position - right.position || left.id.localeCompare(right.id));
   return {
     id: safe(row.id),
     familyId: safe(row.family_id),
@@ -123,6 +156,7 @@ export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueIte
     customTitle: normalizeNullString(row.custom_learning_item?.title),
     customLearningArea: normalizeNullString(row.custom_learning_item?.learning_area),
     customNote: normalizeNullString(row.custom_learning_item?.note),
+    resources,
     displayTitle: normalizeNullString(row.display_title),
     position: normalizePosition(row.position),
     createdByUserId: safe(row.created_by_user_id),
