@@ -19,18 +19,22 @@ import {
   getWorksheetResourceForPathwayStep,
 } from "@/lib/clean/resources/mathWorksheetResources";
 
-export type LearningQueueSourceType = "pathway_step";
+export type LearningQueueSourceType = "pathway_step" | "custom_learning";
 
 export type LearningQueueItem = {
   id: string;
   familyId: string;
   learnerId: string;
   sourceType: LearningQueueSourceType;
-  subjectKey: PathwaySubjectKey;
-  strandKey: string;
-  stageKey: string;
-  stepKey: string;
-  pathwayStepId: string;
+  subjectKey: PathwaySubjectKey | null;
+  strandKey: string | null;
+  stageKey: string | null;
+  stepKey: string | null;
+  pathwayStepId: string | null;
+  customLearningItemId: string | null;
+  customTitle: string | null;
+  customLearningArea: string | null;
+  customNote: string | null;
   displayTitle: string | null;
   position: number;
   createdByUserId: string;
@@ -43,11 +47,18 @@ export type LearningQueueItemRow = {
   family_id: string;
   learner_id: string;
   source_type?: string | null;
-  subject_key: string;
-  strand_key: string;
-  stage_key: string;
-  step_key: string;
-  pathway_step_id: string;
+  subject_key?: string | null;
+  strand_key?: string | null;
+  stage_key?: string | null;
+  step_key?: string | null;
+  pathway_step_id?: string | null;
+  custom_learning_item_id?: string | null;
+  custom_learning_item?: {
+    id?: string | null;
+    title?: string | null;
+    learning_area?: string | null;
+    note?: string | null;
+  } | null;
   display_title?: string | null;
   position?: number | null;
   created_by_user_id: string;
@@ -93,17 +104,25 @@ function normalizeSubjectKey(value: unknown): PathwaySubjectKey {
     : "mathematics";
 }
 
+function normalizeSourceType(value: unknown): LearningQueueSourceType {
+  return safe(value) === "custom_learning" ? "custom_learning" : "pathway_step";
+}
+
 export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueItem {
   return {
     id: safe(row.id),
     familyId: safe(row.family_id),
     learnerId: safe(row.learner_id),
-    sourceType: "pathway_step",
-    subjectKey: normalizeSubjectKey(row.subject_key),
-    strandKey: safe(row.strand_key),
-    stageKey: safe(row.stage_key),
-    stepKey: safe(row.step_key),
-    pathwayStepId: safe(row.pathway_step_id),
+    sourceType: normalizeSourceType(row.source_type),
+    subjectKey: row.source_type === "custom_learning" ? null : normalizeSubjectKey(row.subject_key),
+    strandKey: normalizeNullString(row.strand_key),
+    stageKey: normalizeNullString(row.stage_key),
+    stepKey: normalizeNullString(row.step_key),
+    pathwayStepId: normalizeNullString(row.pathway_step_id),
+    customLearningItemId: normalizeNullString(row.custom_learning_item_id),
+    customTitle: normalizeNullString(row.custom_learning_item?.title),
+    customLearningArea: normalizeNullString(row.custom_learning_item?.learning_area),
+    customNote: normalizeNullString(row.custom_learning_item?.note),
     displayTitle: normalizeNullString(row.display_title),
     position: normalizePosition(row.position),
     createdByUserId: safe(row.created_by_user_id),
@@ -149,6 +168,9 @@ export function buildOnDeckStepHref(
   pathname = "/my-pathways",
   detailStepId = item.stepKey,
 ) {
+  if (!item.subjectKey || !item.strandKey || !item.stageKey || !item.stepKey || !item.pathwayStepId) {
+    return "";
+  }
   return buildPathwayStepReturnHref({
     pathname,
     subjectKey: item.subjectKey,
@@ -165,6 +187,32 @@ export function resolveOnDeckItem(
   item: LearningQueueItem,
   pathname = "/my-pathways",
 ): OnDeckResolvedItem {
+  if (item.sourceType === "custom_learning") {
+    return {
+      item,
+      registryItem: null,
+      available: Boolean(item.customLearningItemId && item.customTitle),
+      subjectLabel: item.customLearningArea || "Custom learning",
+      pathwayLabel: null,
+      stageLabel: null,
+      title: item.customTitle || item.displayTitle || "Custom learning",
+      worksheetAvailable: false,
+      href: null,
+    };
+  }
+  if (!item.pathwayStepId || !item.subjectKey || !item.strandKey || !item.stageKey || !item.stepKey) {
+    return {
+      item,
+      registryItem: null,
+      available: false,
+      subjectLabel: "Learning",
+      pathwayLabel: null,
+      stageLabel: null,
+      title: "This learning step is no longer available.",
+      worksheetAvailable: false,
+      href: null,
+    };
+  }
   const registryItem = getOnDeckRegistryItem(item.pathwayStepId);
   const available =
     Boolean(registryItem) &&
@@ -187,7 +235,7 @@ export function resolveOnDeckItem(
     item,
     registryItem,
     available,
-    subjectLabel: registryItem?.subjectTitle || item.subjectKey,
+    subjectLabel: registryItem?.subjectTitle || item.subjectKey || "Learning",
     pathwayLabel: registryItem?.pathwayLabel || null,
     stageLabel: registryItem?.stageTitle || null,
     title: available

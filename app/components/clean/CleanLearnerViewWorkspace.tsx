@@ -40,6 +40,12 @@ function helpSourceKey(sourceType: LearnerHelpSourceType, sourceId: string) {
   return `${sourceType}:${sourceId}`;
 }
 
+function LearnerCustomNotes({ items }: { items: ReturnType<typeof resolveOnDeckItem>[] }) {
+  const notes = items.filter((entry) => entry.item.sourceType === "custom_learning" && entry.item.customNote);
+  if (!notes.length) return null;
+  return <div style={{ display: "grid", gap: 4 }}>{notes.map((entry) => <p key={`${entry.item.id}-note`} style={{ margin: 0, color: "#475569", fontSize: 13 }}>Note: {entry.item.customNote}</p>)}</div>;
+}
+
 export default function CleanLearnerViewWorkspace() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
@@ -191,6 +197,7 @@ export default function CleanLearnerViewWorkspace() {
           </section>
 
           <section aria-labelledby="learner-on-deck-title" style={cardStyle}>
+            <LearnerCustomNotes items={resolvedQueue} />
             <div style={{ display: "grid", gap: 5 }}><p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>On Deck</p><h2 id="learner-on-deck-title" style={{ margin: 0, color: "#17204b", fontSize: 22 }}>Choose what&apos;s next</h2><p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>Learning that is ready when you are.</p></div>
             {!resolvedQueue.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing else is in focus right now.</p> : <div style={{ display: "grid", gap: 10 }}>{resolvedQueue.map((resolved) => { const request = helpRequests.find((entry) => entry.sourceType === "on_deck_item" && entry.sourceId === resolved.item.id); const helpKey = helpSourceKey("on_deck_item", resolved.item.id); return <article key={resolved.item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 9 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{resolved.subjectLabel}{resolved.worksheetAvailable ? " · Worksheet available" : ""}</div><h3 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{resolved.title}</h3>{resolved.pathwayLabel || resolved.stageLabel ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}</p> : null}{request ? <span role="status" style={{ color: "#92400e", fontWeight: 800 }}>✓ Help requested</span> : null}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => void chooseNext(resolved.item.id)} disabled={busyItemId === resolved.item.id || resolved.item.position === 0} aria-label={`Do ${resolved.title} next`} style={{ ...actionStyle, width: "fit-content", color: "#ffffff", background: "#6c4df6", border: "1px solid #6c4df6", opacity: busyItemId === resolved.item.id || resolved.item.position === 0 ? 0.6 : 1 }}>{resolved.item.position === 0 ? "✓ Next" : busyItemId === resolved.item.id ? "Saving..." : "Do this next"}</button><button type="button" onClick={() => void toggleHelp("on_deck_item", resolved.item.id)} disabled={busyItemId === helpKey} aria-label={request ? `I’m okay now about ${resolved.title}` : `I need help with ${resolved.title}`} style={{ ...actionStyle, width: "fit-content", color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", opacity: busyItemId === helpKey ? 0.6 : 1 }}>{busyItemId === helpKey ? "Saving..." : request ? "I’m okay now" : "I need help"}</button></div></article>; })}</div>}
           </section>

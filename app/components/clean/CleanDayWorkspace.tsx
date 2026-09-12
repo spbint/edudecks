@@ -50,6 +50,7 @@ import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
   addPathwayStepToLearningQueue,
+  createCustomLearningOnDeck,
   hasLearningQueueItemForStep,
   listLearningQueueItems,
   moveLearningQueueItem,
@@ -270,6 +271,68 @@ function isValidDateValue(value: string | null): value is string {
   return !Number.isNaN(date.getTime());
 }
 
+function AddCustomLearningSection({
+  learnerOptions,
+  defaultLearnerId,
+  compact = false,
+  onCreated,
+}: {
+  learnerOptions: Array<{ value: string; label: string }>;
+  defaultLearnerId: string;
+  compact?: boolean;
+  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null }) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [customLearnerId, setCustomLearnerId] = useState(defaultLearnerId);
+  const [title, setTitle] = useState("");
+  const [learningArea, setLearningArea] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!customLearnerId || !learnerOptions.some((option) => option.value === customLearnerId)) {
+      setCustomLearnerId(defaultLearnerId);
+    }
+  }, [customLearnerId, defaultLearnerId, learnerOptions]);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const cleanTitle = title.trim();
+    if (!customLearnerId) { setError("Choose a learner before adding learning."); return; }
+    if (!cleanTitle) { setError("Add a title before putting learning On Deck."); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null });
+      setTitle(""); setLearningArea(""); setNote(""); setOpen(false);
+    } catch (reason) {
+      setError(normalizeCleanErrorMessage(reason, "We could not add this learning to On Deck."));
+    } finally { setSaving(false); }
+  }
+
+  const input = { ...inputStyle, minHeight: compact ? 42 : 44 };
+  return (
+    <section aria-labelledby={compact ? "mobile-add-learning-title" : "add-learning-title"} style={{ ...quickAddCardStyle, padding: compact ? 14 : 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Add learning</p>
+          <h2 id={compact ? "mobile-add-learning-title" : "add-learning-title"} style={{ margin: 0, color: "#17204b", fontSize: compact ? 16 : 20 }}>Bring your own learning into focus.</h2>
+        </div>
+        <button type="button" onClick={() => { setOpen((value) => !value); setError(null); }} style={secondaryButtonStyle}>{open ? "Close" : "Add learning"}</button>
+      </div>
+      {open ? <form onSubmit={(event) => void submit(event)} style={{ display: "grid", gap: 12 }}>
+        <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learner<select required aria-label="Learner" value={customLearnerId} onChange={(event) => setCustomLearnerId(event.target.value)} style={input}><option value="">Choose a learner</option>{learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Title<input required aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} style={input} placeholder="Read Chapter 4 — The Hobbit" autoFocus /></label>
+        <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learning area (optional)<input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} list="clean-my-day-learning-areas" style={input} placeholder="English" /></label>
+        <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Note (optional)<textarea aria-label="Note" value={note} onChange={(event) => setNote(event.target.value)} style={{ ...input, minHeight: 76, resize: "vertical" }} placeholder="A short note for this learning" /></label>
+        {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
+        <button type="submit" disabled={saving} style={{ ...primaryButtonStyle, width: "fit-content" }}>{saving ? "Saving..." : "Put On Deck"}</button>
+      </form> : null}
+    </section>
+  );
+}
+
 function OnDeckSection({
   compact = false,
   items,
@@ -414,6 +477,9 @@ function OnDeckSection({
                     <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
                       {[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}
                     </p>
+                  ) : null}
+                  {item.sourceType === "custom_learning" && item.customNote ? (
+                    <p style={{ margin: 0, color: "#475569", fontSize: 13, lineHeight: 1.5 }}>{item.customNote}</p>
                   ) : null}
                   {helpRequests.filter((request) => request.sourceType === "on_deck_item" && request.sourceId === item.id).map((request) => (
                     <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
@@ -643,6 +709,8 @@ type MobileTodayContentProps = {
   workspaceNeedsFamily: boolean;
   workspaceSchemaMissing: boolean;
   buildItemCaptureHref: (item: CleanCalendarItem) => string;
+  defaultCustomLearningLearnerId: string;
+  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null }) => Promise<void>;
 };
 
 function MobileTodayContent({
@@ -686,6 +754,8 @@ function MobileTodayContent({
   workspaceNeedsFamily,
   workspaceSchemaMissing,
   buildItemCaptureHref,
+  defaultCustomLearningLearnerId,
+  onCreateCustomLearning,
 }: MobileTodayContentProps) {
   const hasItems = items.length > 0;
   const mobileCardStyle: React.CSSProperties = {
@@ -845,6 +915,13 @@ function MobileTodayContent({
             onKeepInFocus={onKeepRecoveryInFocus}
             updatingIds={recoverUpdatingIds}
             error={recoverError}
+          />
+
+          <AddCustomLearningSection
+            compact
+            learnerOptions={learnerOptions}
+            defaultLearnerId={defaultCustomLearningLearnerId}
+            onCreated={onCreateCustomLearning}
           />
 
           <OnDeckSection
@@ -1651,6 +1728,35 @@ function CleanDayWorkspaceBody() {
     }
   }
 
+  async function handleCreateCustomLearning(input: {
+    learnerId: string;
+    title: string;
+    learningArea: string | null;
+    note: string | null;
+  }) {
+    if (!workspace.profile) throw new Error("My Day is not ready for custom learning yet.");
+    await createCustomLearningOnDeck({
+      familyId: workspace.profile.id,
+      learnerId: input.learnerId,
+      title: input.title,
+      learningArea: input.learningArea,
+      note: input.note,
+    });
+    trackProductEvent("custom_learning_created", {
+      sourceType: "custom_learning",
+      learningArea: input.learningArea,
+      hasNote: Boolean(input.note),
+      surface: "my_day",
+    }, user?.id);
+    await reloadOnDeckItems();
+    trackProductEvent("custom_learning_put_on_deck", {
+      sourceType: "custom_learning",
+      learningArea: input.learningArea,
+      hasNote: Boolean(input.note),
+      surface: "my_day",
+    }, user?.id);
+  }
+
   async function handleRemoveOnDeckItem(itemId: string) {
     if (!workspace.profile) return;
     const item = onDeckItems.find((entry) => entry.id === itemId) || null;
@@ -1994,6 +2100,8 @@ function CleanDayWorkspaceBody() {
           workspaceNeedsFamily={workspace.requiresFamilyCreation}
           workspaceSchemaMissing={workspace.schemaMissing}
           buildItemCaptureHref={buildMobileItemCaptureHref}
+          defaultCustomLearningLearnerId={defaultQuickAddLearnerId}
+          onCreateCustomLearning={handleCreateCustomLearning}
         />
       </div>
     );
@@ -2948,6 +3056,12 @@ function CleanDayWorkspaceBody() {
               onKeepInFocus={(item) => void handleKeepRecoveryInFocus(item)}
               updatingIds={recoveryUpdatingIds}
               error={recoveryError}
+            />
+
+            <AddCustomLearningSection
+              learnerOptions={learnerOptions}
+              defaultLearnerId={defaultQuickAddLearnerId}
+              onCreated={handleCreateCustomLearning}
             />
 
             <OnDeckSection

@@ -10,6 +10,10 @@ const policyRepairMigration = readFileSync(
   "utf8",
 );
 const client = readFileSync("lib/clean/onDeck/client.ts", "utf8");
+const customMigration = readFileSync(
+  "supabase/migrations/20260912040441_custom_learning_on_deck.sql",
+  "utf8",
+);
 
 describe("On Deck persistence migration", () => {
   it("creates a family and learner scoped learning queue table", () => {
@@ -51,5 +55,24 @@ describe("On Deck persistence migration", () => {
     expect(client).not.toContain("pathway_progress");
     expect(migration).not.toContain("calendar_items");
     expect(migration).not.toContain("public.evidence_entries");
+  });
+
+  it("keeps custom learning in a separate identity table", () => {
+    expect(customMigration).toContain("create table if not exists public.custom_learning_items");
+    expect(customMigration).toContain("add column if not exists custom_learning_item_id uuid null");
+    expect(customMigration).toContain("source_type in ('pathway_step', 'custom_learning')");
+    expect(customMigration).toContain("learning_queue_items_custom_source_idx");
+    expect(customMigration).toContain("security invoker");
+    expect(customMigration).toContain("mylearna_create_custom_learning_queue_item");
+    expect(customMigration).toContain("custom_learning_item_id is null");
+    expect(customMigration).toContain("pathway_step_id is null");
+    expect(client).toContain("createCustomLearningOnDeck");
+    expect(client).toContain("mylearna_create_custom_learning_queue_item");
+  });
+
+  it("does not fabricate Pathways fields for custom queue rows", () => {
+    expect(customMigration).toContain("source_type, custom_learning_item_id");
+    expect(customMigration).not.toContain("pathway_step_id = 'custom'");
+    expect(customMigration).not.toContain("stage_key = 'custom'");
   });
 });

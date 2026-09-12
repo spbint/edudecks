@@ -14,7 +14,7 @@ import type { PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRe
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,display_title,position,created_by_user_id,created_at,updated_at";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
 
 export const ON_DECK_NOT_READY_MESSAGE =
   "On Deck is not ready yet. Please try again shortly.";
@@ -156,6 +156,31 @@ export async function addPathwayStepToLearningQueue(input: {
     item: response.data ? toLearningQueueItem(response.data as LearningQueueItemRow) : null,
     created: true,
   };
+}
+
+export async function createCustomLearningOnDeck(input: {
+  familyId: string;
+  learnerId: string;
+  title: string;
+  learningArea?: string | null;
+  note?: string | null;
+}) {
+  const currentUserId = await getCurrentCleanUserId();
+  if (!currentUserId) throw new Error("You need to sign in before adding learning.");
+  if (!safe(input.learnerId)) throw new Error("Choose a learner before adding learning.");
+  if (!safe(input.title)) throw new Error("Add a title before putting learning On Deck.");
+
+  const response = await supabase.rpc("mylearna_create_custom_learning_queue_item", {
+    p_family_id: input.familyId,
+    p_learner_id: input.learnerId,
+    p_title: input.title,
+    p_learning_area: input.learningArea || null,
+    p_note: input.note || null,
+  });
+  if (response.error) {
+    throw new Error(normalizeOnDeckError(response.error, "We could not add this learning to On Deck."));
+  }
+  return response.data as string;
 }
 
 export async function removeLearningQueueItem(familyId: string, itemId: string) {

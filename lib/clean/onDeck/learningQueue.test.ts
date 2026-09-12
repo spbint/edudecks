@@ -116,6 +116,30 @@ describe("On Deck learning queue", () => {
     expect(resolved.href).toBeNull();
   });
 
+  it("resolves custom learning without inventing Pathways identity or resources", () => {
+    const resolved = resolveOnDeckItem(item({
+      sourceType: "custom_learning",
+      subjectKey: null,
+      strandKey: null,
+      stageKey: null,
+      stepKey: null,
+      pathwayStepId: null,
+      customLearningItemId: "custom-a",
+      customTitle: "Read Chapter 4 — The Hobbit",
+      customLearningArea: "English",
+      customNote: "Discuss how Bilbo changes.",
+      displayTitle: "Read Chapter 4 — The Hobbit",
+    }));
+
+    expect(resolved.available).toBe(true);
+    expect(resolved.title).toBe("Read Chapter 4 — The Hobbit");
+    expect(resolved.subjectLabel).toBe("English");
+    expect(resolved.pathwayLabel).toBeNull();
+    expect(resolved.stageLabel).toBeNull();
+    expect(resolved.worksheetAvailable).toBe(false);
+    expect(resolved.href).toBeNull();
+  });
+
   it("builds a pathway href without touching Calendar", () => {
     const href = buildOnDeckStepHref(item());
 
