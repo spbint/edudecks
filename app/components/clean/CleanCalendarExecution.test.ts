@@ -84,6 +84,13 @@ describe("Calendar planning model", () => {
     expect(currentBoard).not.toContain("handleApplyGeneratedWeek");
   });
 
+  it("does not present a successful empty state after a Calendar read error", () => {
+    expect(source).toContain(
+      "{!itemsLoading && !itemsError && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (",
+    );
+    expect(source).toContain("We couldn&apos;t load your calendar.");
+  });
+
   it("carries occurrence context into the existing capture route", () => {
     expect(source).toContain("calendar_item_id: item.id");
     expect(source).toContain("observed_on: item.plannedDate");

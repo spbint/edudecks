@@ -4362,7 +4362,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                     paddingBottom: 4,
                   }}
                 >
-                  {!itemsLoading && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
+                  {!itemsLoading && !itemsError && !calendarBoardDates.some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0) ? (
                     <div
                       style={{
                         border: "1px solid #dbeafe",
