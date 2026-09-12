@@ -56,8 +56,8 @@ describe("Mobile Today companion experience", () => {
 
   it("keeps empty and first-value states calm, capture-first and calendar-secondary", () => {
     expect(mobileTodaySource).toContain('myDayPresentationState === "READY_FOR_FIRST_VALUE"');
-    expect(mobileTodaySource).toContain("Nothing planned yet.");
-    expect(mobileTodaySource).toContain("Nothing planned for today.");
+    expect(mobileTodaySource).toContain("Nothing scheduled yet.");
+    expect(mobileTodaySource).toContain("Nothing scheduled for today yet.");
     expect(mobileTodaySource).toContain("View calendar");
     expect(mobileTodaySource).not.toContain("My Settings");
     expect(mobileTodaySource).toContain('myDayPresentationState === "SETUP_INCOMPLETE"');

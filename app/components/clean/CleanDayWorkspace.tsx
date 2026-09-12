@@ -869,7 +869,7 @@ function MobileTodayContent({
           {!itemsLoading && !itemsError && !hasItems ? (
             <section style={mobileCardStyle}>
               <strong style={{ color: "#17204b" }}>
-                {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? "Nothing planned yet." : "Nothing planned for today."}
+                {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? "Nothing scheduled yet." : "Nothing scheduled for today yet."}
               </strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
                 Learning can still happen today. Capture what you do, then return to your calendar when you want to plan.
@@ -1145,8 +1145,8 @@ function CleanDayWorkspaceBody() {
       ? `${nextUpcomingItem.title} at ${formatTimeLabel(nextUpcomingItem.startsAt)}`
       : nextUpcomingItem.title
     : isViewingToday
-      ? "Nothing planned yet."
-      : "Nothing planned for this day yet.";
+      ? "Nothing scheduled yet."
+      : "Nothing scheduled for this day yet.";
   const nextUpLabel = isViewingToday ? "Next up" : "Looking ahead";
 
   const quickAddHeading = isViewingToday
@@ -2106,8 +2106,7 @@ function CleanDayWorkspaceBody() {
 
           @media (min-width: 768px) {
             .mylearna-day-mature-content-setup_incomplete,
-            .mylearna-day-mature-content-ready_for_first_value,
-            .mylearna-day-mature-content-returning_empty {
+            .mylearna-day-mature-content-ready_for_first_value {
               display: none !important;
             }
 
@@ -2126,8 +2125,7 @@ function CleanDayWorkspaceBody() {
           }
 
           .mylearna-day-mature-content-setup_incomplete,
-          .mylearna-day-mature-content-ready_for_first_value,
-          .mylearna-day-mature-content-returning_empty {
+          .mylearna-day-mature-content-ready_for_first_value {
             display: none !important;
           }
         `}</style>
@@ -2257,7 +2255,7 @@ function CleanDayWorkspaceBody() {
 
         {dayCoreState === "ready" && myDayPresentationState ? (
           <>
-            {myDayPresentationState !== "POPULATED_DAY" ? <section
+            {myDayPresentationState === "SETUP_INCOMPLETE" || myDayPresentationState === "READY_FOR_FIRST_VALUE" ? <section
               className={`mylearna-day-first-value mylearna-day-first-value-${myDayPresentationState.toLowerCase()}`}
               aria-labelledby="my-day-activation-title"
               style={{ display: "grid", gap: 12, padding: "clamp(18px, 4vw, 28px)", border: "1px solid #dbeafe", borderRadius: 18, background: "#f8fbff", boxShadow: "0 8px 22px rgba(15,23,42,0.04)" }}
@@ -2287,9 +2285,9 @@ function CleanDayWorkspaceBody() {
                   </div>
                 </>
               ) : null}
-              {myDayPresentationState === "RETURNING_EMPTY" ? (
+              {false ? (
                 <>
-                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "Nothing planned for today yet." : "Nothing planned for this day yet."}</h1>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "Nothing scheduled for today yet." : "Nothing scheduled for this day yet."}</h1>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{isViewingToday ? "Add something for today, capture learning that already happened, or open My Calendar." : "Add something for this day, capture learning that already happened, or open My Calendar."}</p>
                   <button type="button" onClick={openQuickAdd} style={{ ...primaryButtonStyle, width: "fit-content" }}>{isViewingToday ? "Add something for today" : "Add something for this day"}</button>
                   <Link href={quickCaptureHref} style={{ ...secondaryButtonStyle, textDecoration: "none", width: "fit-content" }}>
@@ -2630,8 +2628,8 @@ function CleanDayWorkspaceBody() {
                         {hasPlannedItemsForSelectedDate && selectedLearnerLabel
                           ? `Nothing planned for ${selectedLearnerLabel} on this day yet.`
                           : isViewingToday
-                            ? "Nothing planned for today yet."
-                            : "Nothing planned for this day yet."}
+                            ? "Nothing scheduled for today yet."
+                            : "Nothing scheduled for this day yet."}
                       </strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                         {hasPlannedItemsForSelectedDate && selectedLearnerLabel
@@ -2662,6 +2660,9 @@ function CleanDayWorkspaceBody() {
                         }}
                       >
                         Open My Calendar
+                      </Link>
+                      <Link href={quickCaptureHref} style={{ ...secondaryButtonStyle, textDecoration: "none" }}>
+                        Capture something you already did
                       </Link>
                     </div>
                   </div>
