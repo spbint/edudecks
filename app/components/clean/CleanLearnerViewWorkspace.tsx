@@ -11,6 +11,12 @@ import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { listLearningQueueItems, moveLearningQueueItem } from "@/lib/clean/onDeck/client";
 import { resolveOnDeckItem, sortLearningQueueItems, type LearningQueueItem } from "@/lib/clean/onDeck/learningQueue";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  clearLearnerHelpRequest,
+  listActiveLearnerHelpRequests,
+  requestLearnerHelp,
+} from "@/lib/clean/learnerHelp/client";
+import type { LearnerHelpRequest, LearnerHelpSourceType } from "@/lib/clean/learnerHelp/types";
 import { getLearnerViewTodayItems, sortLearnerViewTodayItems } from "@/lib/clean/learnerView/learnerView";
 
 const pageStyle: React.CSSProperties = { minHeight: "100vh", background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 56%, #f8fafc 100%)", padding: "24px 16px 48px" };
@@ -30,6 +36,10 @@ function timeLabel(value: string | null) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+function helpSourceKey(sourceType: LearnerHelpSourceType, sourceId: string) {
+  return `${sourceType}:${sourceId}`;
+}
+
 export default function CleanLearnerViewWorkspace() {
   const workspace = useCleanFamilyWorkspace();
   const { user } = useAuthUser();
@@ -41,6 +51,8 @@ export default function CleanLearnerViewWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyItemId, setBusyItemId] = useState("");
+  const [helpRequests, setHelpRequests] = useState<LearnerHelpRequest[]>([]);
+  const [helpError, setHelpError] = useState<string | null>(null);
 
   const learner = workspace.learners.find((entry) => entry.id === selectedLearnerId) || null;
   const learnerName = learner?.preferredName || learner?.firstName || "Learner";
@@ -70,6 +82,22 @@ export default function CleanLearnerViewWorkspace() {
   }, [selectedLearnerId, today, workspace.profile]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const loadHelp = useCallback(async () => {
+    if (!workspace.profile || !selectedLearnerId) {
+      setHelpRequests([]);
+      return;
+    }
+    try {
+      const requests = await listActiveLearnerHelpRequests(workspace.profile.id);
+      setHelpRequests(requests.filter((request) => request.learnerId === selectedLearnerId));
+      setHelpError(null);
+    } catch (reason) {
+      setHelpError(normalizeCleanErrorMessage(reason, "We could not load help requests just now."));
+    }
+  }, [selectedLearnerId, workspace.profile]);
+
+  useEffect(() => { void loadHelp(); }, [loadHelp]);
 
   const todayItems = useMemo(
     () => sortLearnerViewTodayItems(getLearnerViewTodayItems(calendarItems, selectedLearnerId, today)),
@@ -115,6 +143,29 @@ export default function CleanLearnerViewWorkspace() {
     }
   }
 
+  async function toggleHelp(sourceType: LearnerHelpSourceType, sourceId: string) {
+    if (!workspace.profile || !selectedLearnerId) return;
+    const key = helpSourceKey(sourceType, sourceId);
+    const existing = helpRequests.find((request) => helpSourceKey(request.sourceType, request.sourceId) === key);
+    setBusyItemId(key);
+    setHelpError(null);
+    try {
+      if (existing) {
+        await clearLearnerHelpRequest(workspace.profile.id, existing.id);
+        setHelpRequests((current) => current.filter((request) => request.id !== existing.id));
+        trackProductEvent("learner_help_cleared", { sourceType, actorType: "learner" }, user?.id);
+      } else {
+        const request = await requestLearnerHelp({ familyId: workspace.profile.id, learnerId: selectedLearnerId, sourceType, sourceId });
+        setHelpRequests((current) => [...current.filter((item) => item.id !== request.id), request]);
+        trackProductEvent("learner_help_requested", { sourceType, actorType: "learner" }, user?.id);
+      }
+    } catch (reason) {
+      setHelpError(normalizeCleanErrorMessage(reason, "We could not update this help request just now."));
+    } finally {
+      setBusyItemId("");
+    }
+  }
+
   if (!selectedLearnerId || !learner) {
     return <main style={pageStyle}><div style={wrapStyle}><header style={cardStyle}><strong style={{ color: "#17204b", fontSize: 22 }}>Learner View</strong><p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Choose a learner from My Day before opening Learner View.</p><Link href="/my-day" style={{ ...actionStyle, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "fit-content", background: "#17204b", color: "#ffffff", textDecoration: "none" }}>Back to parent view</Link></header></div></main>;
   }
@@ -131,16 +182,17 @@ export default function CleanLearnerViewWorkspace() {
         </header>
 
         {error ? <section role="alert" style={{ ...cardStyle, color: "#b91c1c" }}>{error}</section> : null}
+        {helpError ? <section role="alert" style={{ ...cardStyle, color: "#b91c1c" }}>{helpError}</section> : null}
         {loading ? <section style={cardStyle} aria-live="polite">Loading today&apos;s learning...</section> : null}
         {!loading ? <>
           <section aria-labelledby="learner-today-title" style={cardStyle}>
             <div style={{ display: "grid", gap: 5 }}><p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Today</p><h2 id="learner-today-title" style={{ margin: 0, color: "#17204b", fontSize: 22 }}>What are you learning today?</h2></div>
-            {!todayItems.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing is scheduled for today.</p> : <div style={{ display: "grid", gap: 10 }}>{todayItems.map((item) => <article key={item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 10, opacity: item.completedAt ? 0.72 : 1 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{timeLabel(item.startsAt)}{item.learningArea ? ` · ${item.learningArea}` : ""}</div><h3 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{item.title}</h3>{item.completedAt ? <span role="status" style={{ color: "#166534", fontWeight: 800 }}>✓ Done</span> : null}</div><button type="button" onClick={() => void toggleDone(item)} disabled={busyItemId === item.id} aria-label={item.completedAt ? `Mark ${item.title} not done` : `Mark ${item.title} done`} style={{ ...actionStyle, width: "fit-content", color: "#166534", background: "#f0fdf4", border: "1px solid #bbf7d0", opacity: busyItemId === item.id ? 0.6 : 1 }}>{busyItemId === item.id ? "Saving..." : item.completedAt ? "Undo" : "Done"}</button></article>)}</div>}
+            {!todayItems.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing is scheduled for today.</p> : <div style={{ display: "grid", gap: 10 }}>{todayItems.map((item) => { const request = helpRequests.find((entry) => entry.sourceType === "calendar_item" && entry.sourceId === item.id); const helpKey = helpSourceKey("calendar_item", item.id); return <article key={item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 10, opacity: item.completedAt ? 0.72 : 1 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{timeLabel(item.startsAt)}{item.learningArea ? ` · ${item.learningArea}` : ""}</div><h3 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{item.title}</h3>{item.completedAt ? <span role="status" style={{ color: "#166534", fontWeight: 800 }}>✓ Done</span> : null}{request ? <span role="status" style={{ color: "#92400e", fontWeight: 800 }}>✓ Help requested</span> : null}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => void toggleDone(item)} disabled={busyItemId === item.id} aria-label={item.completedAt ? `Mark ${item.title} not done` : `Mark ${item.title} done`} style={{ ...actionStyle, width: "fit-content", color: "#166534", background: "#f0fdf4", border: "1px solid #bbf7d0", opacity: busyItemId === item.id ? 0.6 : 1 }}>{busyItemId === item.id ? "Saving..." : item.completedAt ? "Undo" : "Done"}</button><button type="button" onClick={() => void toggleHelp("calendar_item", item.id)} disabled={busyItemId === helpKey} aria-label={request ? `I’m okay now about ${item.title}` : `I need help with ${item.title}`} style={{ ...actionStyle, width: "fit-content", color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", opacity: busyItemId === helpKey ? 0.6 : 1 }}>{busyItemId === helpKey ? "Saving..." : request ? "I’m okay now" : "I need help"}</button></div></article>; })}</div>}
           </section>
 
           <section aria-labelledby="learner-on-deck-title" style={cardStyle}>
             <div style={{ display: "grid", gap: 5 }}><p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>On Deck</p><h2 id="learner-on-deck-title" style={{ margin: 0, color: "#17204b", fontSize: 22 }}>Choose what&apos;s next</h2><p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>Learning that is ready when you are.</p></div>
-            {!resolvedQueue.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing else is in focus right now.</p> : <div style={{ display: "grid", gap: 10 }}>{resolvedQueue.map((resolved) => <article key={resolved.item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 9 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{resolved.subjectLabel}{resolved.worksheetAvailable ? " · Worksheet available" : ""}</div><h3 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{resolved.title}</h3>{resolved.pathwayLabel || resolved.stageLabel ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}</p> : null}</div><button type="button" onClick={() => void chooseNext(resolved.item.id)} disabled={busyItemId === resolved.item.id || resolved.item.position === 0} aria-label={`Do ${resolved.title} next`} style={{ ...actionStyle, width: "fit-content", color: "#ffffff", background: "#6c4df6", border: "1px solid #6c4df6", opacity: busyItemId === resolved.item.id || resolved.item.position === 0 ? 0.6 : 1 }}>{resolved.item.position === 0 ? "✓ Next" : busyItemId === resolved.item.id ? "Saving..." : "Do this next"}</button></article>)}</div>}
+            {!resolvedQueue.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing else is in focus right now.</p> : <div style={{ display: "grid", gap: 10 }}>{resolvedQueue.map((resolved) => { const request = helpRequests.find((entry) => entry.sourceType === "on_deck_item" && entry.sourceId === resolved.item.id); const helpKey = helpSourceKey("on_deck_item", resolved.item.id); return <article key={resolved.item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 9 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{resolved.subjectLabel}{resolved.worksheetAvailable ? " · Worksheet available" : ""}</div><h3 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{resolved.title}</h3>{resolved.pathwayLabel || resolved.stageLabel ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}</p> : null}{request ? <span role="status" style={{ color: "#92400e", fontWeight: 800 }}>✓ Help requested</span> : null}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => void chooseNext(resolved.item.id)} disabled={busyItemId === resolved.item.id || resolved.item.position === 0} aria-label={`Do ${resolved.title} next`} style={{ ...actionStyle, width: "fit-content", color: "#ffffff", background: "#6c4df6", border: "1px solid #6c4df6", opacity: busyItemId === resolved.item.id || resolved.item.position === 0 ? 0.6 : 1 }}>{resolved.item.position === 0 ? "✓ Next" : busyItemId === resolved.item.id ? "Saving..." : "Do this next"}</button><button type="button" onClick={() => void toggleHelp("on_deck_item", resolved.item.id)} disabled={busyItemId === helpKey} aria-label={request ? `I’m okay now about ${resolved.title}` : `I need help with ${resolved.title}`} style={{ ...actionStyle, width: "fit-content", color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", opacity: busyItemId === helpKey ? 0.6 : 1 }}>{busyItemId === helpKey ? "Saving..." : request ? "I’m okay now" : "I need help"}</button></div></article>; })}</div>}
           </section>
         </> : null}
       </div>

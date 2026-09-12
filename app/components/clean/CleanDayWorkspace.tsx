@@ -71,6 +71,11 @@ import {
   getRecoverableLearningItems,
   type RecoverableLearningItem,
 } from "@/lib/clean/recovery/recoverMyWeek";
+import {
+  clearLearnerHelpRequest,
+  listActiveLearnerHelpRequests,
+} from "@/lib/clean/learnerHelp/client";
+import type { LearnerHelpRequest } from "@/lib/clean/learnerHelp/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -276,6 +281,8 @@ function OnDeckSection({
   selectedLearnerId,
   updatingId,
   userId,
+  helpRequests = [],
+  onClearHelp,
 }: {
   compact?: boolean;
   items: OnDeckResolvedItem[];
@@ -287,6 +294,8 @@ function OnDeckSection({
   selectedLearnerId: string;
   updatingId: string;
   userId?: string | null;
+  helpRequests?: LearnerHelpRequest[];
+  onClearHelp?: (requestId: string) => void;
 }) {
   const actionStyle: React.CSSProperties = {
     minHeight: compact ? 40 : 42,
@@ -406,6 +415,12 @@ function OnDeckSection({
                       {[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}
                     </p>
                   ) : null}
+                  {helpRequests.filter((request) => request.sourceType === "on_deck_item" && request.sourceId === item.id).map((request) => (
+                    <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
+                      <strong>{learnerLabel} needs help</strong>
+                      {onClearHelp ? <button type="button" onClick={() => onClearHelp(request.id)} style={{ ...actionStyle, color: "#92400e", borderColor: "#fcd34d", background: "#fffbeb" }}>Got it</button> : null}
+                    </div>
+                  ))}
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -589,6 +604,8 @@ type MobileTodayContentProps = {
   onCompletionToggle: (item: CleanCalendarItem) => void;
   onLearnerChange: (learnerId: string) => void;
   onDeckItems: OnDeckResolvedItem[];
+  helpRequests: LearnerHelpRequest[];
+  onClearHelp: (requestId: string) => void;
   onDeckError: string | null;
   onDeckUpdatingId: string;
   onMoveOnDeckItem: (itemId: string, learnerId: string, direction: "up" | "down") => void;
@@ -631,6 +648,8 @@ function MobileTodayContent({
   onCompletionToggle,
   onLearnerChange,
   onDeckItems,
+  helpRequests,
+  onClearHelp,
   onDeckError,
   onDeckUpdatingId,
   onMoveOnDeckItem,
@@ -672,6 +691,10 @@ function MobileTodayContent({
     fontWeight: 800,
     textDecoration: "none",
   };
+
+  const helpFor = (sourceId: string) => helpRequests.filter(
+    (request) => request.sourceType === "calendar_item" && request.sourceId === sourceId,
+  );
 
   return (
     <main
@@ -796,6 +819,7 @@ function MobileTodayContent({
                     </button>
                   </div>
                   {completionError?.itemId === item.id ? <span role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{completionError.message}</span> : null}
+                  {helpFor(item.id).map((request) => <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}><strong>{learnerLabelById.get(request.learnerId) || "Learner"} needs help</strong><button type="button" onClick={() => onClearHelp(request.id)} style={{ ...actionStyle, border: "1px solid #fcd34d", background: "#fffbeb", color: "#92400e" }}>Got it</button></div>)}
                 </article>
               );
             }) : null}
@@ -812,6 +836,8 @@ function MobileTodayContent({
           <OnDeckSection
             compact
             items={onDeckItems}
+            helpRequests={helpRequests}
+            onClearHelp={onClearHelp}
             learnerLabelById={learnerLabelById}
             onMove={onMoveOnDeckItem}
             onRemove={onRemoveOnDeckItem}
@@ -863,6 +889,8 @@ function CleanDayWorkspaceBody() {
   const [evidenceEntries, setEvidenceEntries] = useState<CleanEvidenceEntry[]>([]);
   const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
   const [onDeckError, setOnDeckError] = useState<string | null>(null);
+  const [helpRequests, setHelpRequests] = useState<LearnerHelpRequest[]>([]);
+  const [helpError, setHelpError] = useState<string | null>(null);
   const [onDeckUpdatingId, setOnDeckUpdatingId] = useState("");
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
@@ -896,6 +924,7 @@ function CleanDayWorkspaceBody() {
   const recoveryShownWeekRef = useRef<string | null>(null);
   const firstValueChoiceTrackedRef = useRef(false);
   const [setupStatusReadyOnce, setSetupStatusReadyOnce] = useState(false);
+  const helpRequestSourceKey = `${selectedLearnerId}:${items.map((item) => item.id).join(",")}:${onDeckItems.map((item) => item.id).join(",")}`;
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
@@ -1233,6 +1262,28 @@ function CleanDayWorkspaceBody() {
       active = false;
     };
   }, [dayReloadNonce, today, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadHelpRequests() {
+      if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation || !selectedLearnerId) {
+        setHelpRequests([]);
+        return;
+      }
+      try {
+        const requests = await listActiveLearnerHelpRequests(workspace.profile.id);
+        if (!active) return;
+        const calendarIds = new Set(items.filter((item) => !selectedLearnerId || item.learnerId === selectedLearnerId || item.learnerId === null).map((item) => item.id));
+        const queueIds = new Set(onDeckItems.filter((item) => !selectedLearnerId || item.learnerId === selectedLearnerId).map((item) => item.id));
+        setHelpRequests(requests.filter((request) => (!selectedLearnerId || request.learnerId === selectedLearnerId) && ((request.sourceType === "calendar_item" && calendarIds.has(request.sourceId)) || (request.sourceType === "on_deck_item" && queueIds.has(request.sourceId)))));
+        setHelpError(null);
+      } catch (error) {
+        if (active) setHelpError(normalizeCleanErrorMessage(error, "We could not load help requests just now."));
+      }
+    }
+    void loadHelpRequests();
+    return () => { active = false; };
+  }, [helpRequestSourceKey, items, onDeckItems, selectedLearnerId, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
   useEffect(() => {
     if (!workspace.learners.length) {
       setSelectedLearnerId("");
@@ -1616,6 +1667,17 @@ function CleanDayWorkspaceBody() {
     }
   }
 
+  async function handleClearHelp(requestId: string) {
+    if (!workspace.profile) return;
+    try {
+      await clearLearnerHelpRequest(workspace.profile.id, requestId);
+      setHelpRequests((current) => current.filter((request) => request.id !== requestId));
+      trackProductEvent("parent_help_acknowledged", { actorType: "parent" }, user?.id);
+    } catch (error) {
+      setHelpError(normalizeCleanErrorMessage(error, "We could not clear this help request just now."));
+    }
+  }
+
   async function handleMoveOnDeckItem(
     itemId: string,
     learnerId: string,
@@ -1895,6 +1957,8 @@ function CleanDayWorkspaceBody() {
           recoverError={recoveryError}
           onKeepRecoveryInFocus={(item) => void handleKeepRecoveryInFocus(item)}
           onDeckItems={resolvedOnDeckItems}
+          helpRequests={helpRequests}
+          onClearHelp={(requestId) => void handleClearHelp(requestId)}
           onDeckError={onDeckError}
           onDeckUpdatingId={onDeckUpdatingId}
           onCompletionToggle={(item) => void handleCompletionToggle(item)}
@@ -2075,6 +2139,7 @@ function CleanDayWorkspaceBody() {
             Loading this day&apos;s plan...
           </section>
         ) : null}
+        {helpError ? <section role="alert" style={{ ...cardStyle, color: "#92400e" }}>We could not load help requests just now.</section> : null}
         {readyForDay && (myDayPresentationState === "RETURNING_EMPTY" || myDayPresentationState === "POPULATED_DAY") ? (
           <nav className="mylearna-day-essential-navigator" aria-label="My Day date navigation">
             <button type="button" onClick={() => router.push(buildDayPath(addDays(selectedDate, -1)))} style={secondaryButtonStyle} aria-label="Go to previous day">
@@ -2821,6 +2886,12 @@ function CleanDayWorkspaceBody() {
                                   Quick Capture
                                 </Link>
                               )}
+                              {helpRequests.filter((request) => request.sourceType === "calendar_item" && request.sourceId === item.id).map((request) => (
+                                <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
+                                  <strong>{learnerLabelById.get(request.learnerId) || "Learner"} needs help</strong>
+                                  <button type="button" onClick={() => void handleClearHelp(request.id)} style={{ ...secondaryButtonStyle, padding: "7px 10px", color: "#92400e", borderColor: "#fcd34d", background: "#fffbeb" }}>Got it</button>
+                                </div>
+                              ))}
                               <Link
                                 href={calendarPathBase}
                                 style={{ color: "#1d4ed8", fontWeight: 700 }}
@@ -2874,6 +2945,8 @@ function CleanDayWorkspaceBody() {
 
             <OnDeckSection
               items={resolvedOnDeckItems}
+              helpRequests={helpRequests}
+              onClearHelp={(requestId) => void handleClearHelp(requestId)}
               learnerLabelById={learnerLabelById}
               onMove={(itemId, learnerId, direction) =>
                 void handleMoveOnDeckItem(itemId, learnerId, direction)
