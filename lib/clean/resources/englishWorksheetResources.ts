@@ -9,6 +9,10 @@ const ENGLISH_LOWER_PRIMARY_STAGE_DISPLAY = "Lower Primary";
 const ENGLISH_MORPHOLOGY_STRAND_KEY = "morphology-and-spelling";
 const ENGLISH_MORPHOLOGY_STAGE_KEY = "upper-elementary";
 const ENGLISH_MORPHOLOGY_STAGE_DISPLAY = "Upper Elementary";
+const ENGLISH_MS_STAGE_KEY = "upper-primary";
+const ENGLISH_MS_STAGE_DISPLAY = "Upper Primary";
+const ENGLISH_HSF_STAGE_KEY = "lower-secondary";
+const ENGLISH_HSF_STAGE_DISPLAY = "Lower Secondary";
 
 function additionalEnglishWorksheetResource(
   stepNumber: number,
@@ -110,6 +114,55 @@ const SPELLING_CONVENTION_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   ),
 );
 
+const MS_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [1, "ms-u001-suffix-ion", "Suffix Ion", "MYL-LIT-MORPH-MS-U001-Suffix-Ion-Worksheet.pdf"],
+  [2, "ms-u002-suffix-ian-an", "Suffix Ian An", "MYL-LIT-MORPH-MS-U002-Suffix-Ian-An-Worksheet.pdf"],
+  [3, "ms-u003-suffix-ive", "Suffix Ive", "MYL-LIT-MORPH-MS-U003-Suffix-Ive-Worksheet.pdf"],
+  [4, "ms-u004-suffix-al", "Suffix Al", "MYL-LIT-MORPH-MS-U004-Suffix-Al-Worksheet.pdf"],
+  [5, "ms-u005-suffix-ic", "Suffix Ic", "MYL-LIT-MORPH-MS-U005-Suffix-Ic-Worksheet.pdf"],
+  [6, "ms-u006-suffix-ure", "Suffix Ure", "MYL-LIT-MORPH-MS-U006-Suffix-Ure-Worksheet.pdf"],
+  [7, "ms-u007-suffix-ance-ence", "Suffix Ance Ence", "MYL-LIT-MORPH-MS-U007-Suffix-Ance-Ence-Worksheet.pdf"],
+  [8, "ms-u008-suffix-ant-ent", "Suffix Ant Ent", "MYL-LIT-MORPH-MS-U008-Suffix-Ant-Ent-Worksheet.pdf"],
+  [9, "ms-u009-suffix-able-ible", "Suffix Able Ible", "MYL-LIT-MORPH-MS-U009-Suffix-Able-Ible-Worksheet.pdf"],
+  [10, "ms-u010-prefix-ad-ac-at", "Prefix Ad Ac At", "MYL-LIT-MORPH-MS-U010-Prefix-Ad-Ac-At-Worksheet.pdf"],
+  [11, "ms-u011-prefix-ex-e", "Prefix Ex E", "MYL-LIT-MORPH-MS-U011-Prefix-Ex-E-Worksheet.pdf"],
+  [12, "ms-u012-prefix-ob", "Prefix Ob", "MYL-LIT-MORPH-MS-U012-Prefix-Ob-Worksheet.pdf"],
+  [13, "ms-u013-prefix-per", "Prefix Per", "MYL-LIT-MORPH-MS-U013-Prefix-Per-Worksheet.pdf"],
+  [14, "ms-u014-prefix-pro", "Prefix Pro", "MYL-LIT-MORPH-MS-U014-Prefix-Pro-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_MS_STAGE_KEY,
+    ENGLISH_MS_STAGE_DISPLAY,
+    ENGLISH_MORPHOLOGY_STRAND_KEY,
+  ),
+);
+
+const HSF_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [1, "hsf-u001-prefix-contra-counter", "Prefix Contra Counter", "MYL-LIT-MORPH-HSF-U001-Prefix-Contra-Counter-Worksheet.pdf"],
+  [2, "hsf-u003-prefix-super", "Prefix Super", "MYL-LIT-MORPH-HSF-U003-Prefix-Super-Worksheet.pdf"],
+  [3, "hsf-u004-prefix-semi", "Prefix Semi", "MYL-LIT-MORPH-HSF-U004-Prefix-Semi-Worksheet.pdf"],
+  [4, "hsf-u005-suffix-ary", "Suffix Ary", "MYL-LIT-MORPH-HSF-U005-Suffix-Ary-Worksheet.pdf"],
+  [5, "hsf-u006-suffix-ative", "Suffix Ative", "MYL-LIT-MORPH-HSF-U006-Suffix-Ative-Worksheet.pdf"],
+  [6, "hsf-u007-suffix-ous", "Suffix Ous", "MYL-LIT-MORPH-HSF-U007-Suffix-Ous-Worksheet.pdf"],
+  [7, "hsf-u008-suffix-ate", "Suffix Ate", "MYL-LIT-MORPH-HSF-U008-Suffix-Ate-Worksheet.pdf"],
+  [8, "hsf-u009-multiple-affixes", "Multiple Affixes", "MYL-LIT-MORPH-HSF-U009-Multiple-Affixes-Worksheet.pdf"],
+  [9, "hsf-u010-unlock-academic-vocabulary", "Unlock Academic Vocabulary", "MYL-LIT-MORPH-HSF-U010-Unlock-Academic-Vocabulary-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_HSF_STAGE_KEY,
+    ENGLISH_HSF_STAGE_DISPLAY,
+    ENGLISH_MORPHOLOGY_STRAND_KEY,
+  ),
+);
+
 const resources: WorksheetResource[] = [
   {
     pathwayStepId: `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${ENGLISH_STAGE_KEY}::kf-u001-beginning-sounds`,
@@ -201,6 +254,8 @@ const resources: WorksheetResource[] = [
   ...EXTENDED_ENGLISH_WORKSHEET_RESOURCES,
   ...MORPHOLOGY_ENGLISH_WORKSHEET_RESOURCES,
   ...SPELLING_CONVENTION_ENGLISH_WORKSHEET_RESOURCES,
+  ...MS_ENGLISH_WORKSHEET_RESOURCES,
+  ...HSF_ENGLISH_WORKSHEET_RESOURCES,
 ];
 
 export const ENGLISH_WORKSHEET_RESOURCES = resources;

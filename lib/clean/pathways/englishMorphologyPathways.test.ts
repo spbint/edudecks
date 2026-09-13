@@ -78,7 +78,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
   it("keeps the Morphology sequence extendable without inventing future units", () => {
     const steps = getPathwayStepsByStrand("english", "morphology-and-spelling");
 
-    expect(steps).toHaveLength(17);
+    expect(steps).toHaveLength(40);
     expect(steps[0]?.id).toBe(PREFIX_RE_PATHWAY_STEP_ID);
   });
 

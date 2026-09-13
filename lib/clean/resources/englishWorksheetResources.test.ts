@@ -62,6 +62,32 @@ const BATCH_C = [
   ["ue-u007-explain-spelling", "Explain Spelling", "spelling-and-word-study", "lower-primary", "MYL-LIT-MORPH-UE-U007-Explain-Spelling-Worksheet.pdf"],
 ] as const;
 
+const BATCH_D = [
+  ["ms-u001-suffix-ion", "Suffix Ion", "upper-primary", "MYL-LIT-MORPH-MS-U001-Suffix-Ion-Worksheet.pdf"],
+  ["ms-u002-suffix-ian-an", "Suffix Ian An", "upper-primary", "MYL-LIT-MORPH-MS-U002-Suffix-Ian-An-Worksheet.pdf"],
+  ["ms-u003-suffix-ive", "Suffix Ive", "upper-primary", "MYL-LIT-MORPH-MS-U003-Suffix-Ive-Worksheet.pdf"],
+  ["ms-u004-suffix-al", "Suffix Al", "upper-primary", "MYL-LIT-MORPH-MS-U004-Suffix-Al-Worksheet.pdf"],
+  ["ms-u005-suffix-ic", "Suffix Ic", "upper-primary", "MYL-LIT-MORPH-MS-U005-Suffix-Ic-Worksheet.pdf"],
+  ["ms-u006-suffix-ure", "Suffix Ure", "upper-primary", "MYL-LIT-MORPH-MS-U006-Suffix-Ure-Worksheet.pdf"],
+  ["ms-u007-suffix-ance-ence", "Suffix Ance Ence", "upper-primary", "MYL-LIT-MORPH-MS-U007-Suffix-Ance-Ence-Worksheet.pdf"],
+  ["ms-u008-suffix-ant-ent", "Suffix Ant Ent", "upper-primary", "MYL-LIT-MORPH-MS-U008-Suffix-Ant-Ent-Worksheet.pdf"],
+  ["ms-u009-suffix-able-ible", "Suffix Able Ible", "upper-primary", "MYL-LIT-MORPH-MS-U009-Suffix-Able-Ible-Worksheet.pdf"],
+  ["ms-u010-prefix-ad-ac-at", "Prefix Ad Ac At", "upper-primary", "MYL-LIT-MORPH-MS-U010-Prefix-Ad-Ac-At-Worksheet.pdf"],
+  ["ms-u011-prefix-ex-e", "Prefix Ex E", "upper-primary", "MYL-LIT-MORPH-MS-U011-Prefix-Ex-E-Worksheet.pdf"],
+  ["ms-u012-prefix-ob", "Prefix Ob", "upper-primary", "MYL-LIT-MORPH-MS-U012-Prefix-Ob-Worksheet.pdf"],
+  ["ms-u013-prefix-per", "Prefix Per", "upper-primary", "MYL-LIT-MORPH-MS-U013-Prefix-Per-Worksheet.pdf"],
+  ["ms-u014-prefix-pro", "Prefix Pro", "upper-primary", "MYL-LIT-MORPH-MS-U014-Prefix-Pro-Worksheet.pdf"],
+  ["hsf-u001-prefix-contra-counter", "Prefix Contra Counter", "lower-secondary", "MYL-LIT-MORPH-HSF-U001-Prefix-Contra-Counter-Worksheet.pdf"],
+  ["hsf-u003-prefix-super", "Prefix Super", "lower-secondary", "MYL-LIT-MORPH-HSF-U003-Prefix-Super-Worksheet.pdf"],
+  ["hsf-u004-prefix-semi", "Prefix Semi", "lower-secondary", "MYL-LIT-MORPH-HSF-U004-Prefix-Semi-Worksheet.pdf"],
+  ["hsf-u005-suffix-ary", "Suffix Ary", "lower-secondary", "MYL-LIT-MORPH-HSF-U005-Suffix-Ary-Worksheet.pdf"],
+  ["hsf-u006-suffix-ative", "Suffix Ative", "lower-secondary", "MYL-LIT-MORPH-HSF-U006-Suffix-Ative-Worksheet.pdf"],
+  ["hsf-u007-suffix-ous", "Suffix Ous", "lower-secondary", "MYL-LIT-MORPH-HSF-U007-Suffix-Ous-Worksheet.pdf"],
+  ["hsf-u008-suffix-ate", "Suffix Ate", "lower-secondary", "MYL-LIT-MORPH-HSF-U008-Suffix-Ate-Worksheet.pdf"],
+  ["hsf-u009-multiple-affixes", "Multiple Affixes", "lower-secondary", "MYL-LIT-MORPH-HSF-U009-Multiple-Affixes-Worksheet.pdf"],
+  ["hsf-u010-unlock-academic-vocabulary", "Unlock Academic Vocabulary", "lower-secondary", "MYL-LIT-MORPH-HSF-U010-Unlock-Academic-Vocabulary-Worksheet.pdf"],
+] as const;
+
 function publicPath(resource: { href: string }) {
   return path.join(process.cwd(), "public", resource.href.replace(/^\//, ""));
 }
@@ -85,7 +111,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(53);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(76);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({
@@ -140,7 +166,7 @@ describe("English Word Builders Batch A", () => {
   it("does not contain malformed or duplicate worksheet filenames", () => {
     const filenames = ENGLISH_WORKSHEET_RESOURCES.map((resource) => resource.fileName);
     expect(new Set(filenames).size).toBe(filenames.length);
-    expect(filenames.every((filename) => /^MYL-LIT-MORPH-(KF|EE|E|UE)-U\d{3}-[A-Za-z0-9-]+\.pdf$/.test(filename))).toBe(true);
+    expect(filenames.every((filename) => /^MYL-LIT-MORPH-(KF|EE|E|UE|MS|HSF)-U\d{3}-[A-Za-z0-9-]+\.pdf$/.test(filename))).toBe(true);
     expect(filenames.some((filename) => /\.pdf\.pdf|\([123]\)/i.test(filename))).toBe(false);
   });
 
@@ -215,7 +241,49 @@ describe("English Word Builders Batch A", () => {
         href: `/resources/worksheets/english/spelling-and-word-study/lower-primary/${expectedFileName}`,
       });
       expect(existsSync(publicPath(resource!))).toBe(true);
-    });
+  });
   });
 
+  it("maps MS and HSF morphology resources across their selected stages", () => {
+    const morphologySteps = getPathwayStepsByStrand("english", "morphology-and-spelling");
+    const batchSteps = morphologySteps.filter((step) => step.stepKey.startsWith("ms-u") || step.stepKey.startsWith("hsf-u"));
+
+    expect(batchSteps).toHaveLength(BATCH_D.length);
+    expect(new Set(batchSteps.map((step) => step.id)).size).toBe(batchSteps.length);
+
+    BATCH_D.forEach(([stepKey, title, stageKey, expectedFileName]) => {
+      const pathwayStepId = `english::morphology-and-spelling::${stageKey}::${stepKey}`;
+      expect(batchSteps).toContainEqual(expect.objectContaining({
+        id: pathwayStepId,
+        stepKey,
+        stepTitle: title,
+        strandKey: "morphology-and-spelling",
+        stageKey,
+      }));
+
+      const resource = getEnglishWorksheetResourceForPathwayStep({
+        pathwayStepId,
+        stepKey,
+        subjectKey: "english",
+        strandKey: "morphology-and-spelling",
+        stageKey,
+      });
+      expect(resource).toMatchObject({
+        pathwayStepId,
+        stepKey,
+        stageKey,
+        fileName: expectedFileName,
+        href: `/resources/worksheets/english/morphology-and-spelling/${stageKey}/${expectedFileName}`,
+      });
+      expect(existsSync(publicPath(resource!))).toBe(true);
+    });
+
+    expect(getEnglishWorksheetResourceForPathwayStep({
+      pathwayStepId: "english::morphology-and-spelling::lower-secondary::hsf-u002-missing",
+      stepKey: "hsf-u002-missing",
+      subjectKey: "english",
+      strandKey: "morphology-and-spelling",
+      stageKey: "lower-secondary",
+    })).toBeNull();
+  });
 });
