@@ -21,6 +21,20 @@ const RESOURCE_SELECT = "id,family_id,resource_type,name,url,reference_text,note
 
 function clean(value: unknown) { return String(value ?? "").trim(); }
 
+export function normalizeFamilyWebUrl(value: string) {
+  const trimmed = clean(value);
+  if (!trimmed || trimmed.startsWith("//")) return null;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let parsed: URL;
+  try { parsed = new URL(candidate); } catch { return null; }
+  if (!/^https?:$/.test(parsed.protocol) || parsed.username || parsed.password || /\s/.test(parsed.hostname)) return null;
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  const isIpv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) && hostname.split(".").every((part) => Number(part) <= 255);
+  const isHostname = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(hostname);
+  if (!isIpv4 && !isHostname) return null;
+  return candidate;
+}
+
 function normalizeType(value: unknown): FamilyResourceType {
   return clean(value) === "file" ? "file" : clean(value) === "web_link" ? "web_link" : "reference";
 }
@@ -62,11 +76,10 @@ export async function createFamilyResource(input: {
   const userId = await getCurrentCleanUserId();
   if (!userId) throw new Error("You need to sign in before adding a resource.");
   const name = clean(input.name);
-  const url = clean(input.url) || null;
+  const url = input.resourceType === "web_link" ? normalizeFamilyWebUrl(input.url ?? "") : null;
   const referenceText = clean(input.referenceText) || null;
   if (!name) throw new Error("Add a resource name.");
-  if (input.resourceType === "web_link" && !/^https?:\/\/[^\s]+$/i.test(url ?? "")) throw new Error("Use a web link starting with http:// or https://.");
-  if (input.resourceType === "reference" && !referenceText) throw new Error("Add the book, curriculum or reference details.");
+  if (input.resourceType === "web_link" && !url) throw new Error("Enter a valid web address.");
   const response = await supabase.from("family_resources").insert({
     family_id: input.familyId, resource_type: input.resourceType, name,
     url: input.resourceType === "web_link" ? url : null,

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { familyResourceTypeLabel } from "@/lib/clean/resources/familyResources";
+import { familyResourceTypeLabel, normalizeFamilyWebUrl } from "@/lib/clean/resources/familyResources";
 
 const migration = readFileSync("supabase/migrations/20260913032028_family_resource_cupboard.sql", "utf8");
 const quotaMigration = readFileSync("supabase/migrations/20260913041441_align_resource_cupboard_free_quota.sql", "utf8");
+const optionalReferenceMigration = readFileSync("supabase/migrations/20260913112513_make_reference_details_optional.sql", "utf8");
+const cupboardWorkspace = readFileSync("app/components/clean/CleanResourceCupboardWorkspace.tsx", "utf8");
 const featureFiles = `${readFileSync("lib/clean/onDeck/resourceFiles.ts", "utf8")}\n${readFileSync("lib/clean/onDeck/client.ts", "utf8")}`;
 
 describe("My Resource Cupboard foundation", () => {
@@ -43,5 +45,24 @@ describe("My Resource Cupboard foundation", () => {
     expect(featureFiles).toContain("attachFamilyResourceToCustomLearning");
     expect(featureFiles).toContain("mylearna_reserve_resource_file_upload");
     expect(featureFiles).not.toContain("mylearna_reserve_evidence_attachment_upload");
+  });
+
+  it("normalizes friendly website addresses without accepting unsafe schemes", () => {
+    expect(normalizeFamilyWebUrl(" www.khanacademy.com ")).toBe("https://www.khanacademy.com");
+    expect(normalizeFamilyWebUrl("khanacademy.com/math")).toBe("https://khanacademy.com/math");
+    expect(normalizeFamilyWebUrl("https://example.com")).toBe("https://example.com");
+    expect(normalizeFamilyWebUrl("http://example.com")).toBe("http://example.com");
+    expect(normalizeFamilyWebUrl("javascript:alert(1)")).toBeNull();
+    expect(normalizeFamilyWebUrl("data:text/html,hello")).toBeNull();
+    expect(normalizeFamilyWebUrl("not a hostname")).toBeNull();
+    expect(normalizeFamilyWebUrl("https://example")).toBeNull();
+  });
+
+  it("allows a named reference without requiring details and resets filters after success", () => {
+    expect(optionalReferenceMigration).toContain("resource_type = 'reference' and length(btrim(name)) > 0 and url is null");
+    expect(optionalReferenceMigration).not.toContain("length(btrim(coalesce(reference_text, ''))) > 0");
+    expect(cupboardWorkspace).toContain("setSearch(\"\"); setType(\"all\"); setSuccess(\"Saved to My Resource Cupboard.\")");
+    expect(cupboardWorkspace).toContain("Reference/details (optional)");
+    expect(cupboardWorkspace).not.toContain("Reference/details<textarea required");
   });
 });

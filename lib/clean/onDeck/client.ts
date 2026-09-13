@@ -11,7 +11,7 @@ import {
   type LearningQueueItemRow,
 } from "@/lib/clean/onDeck/learningQueue";
 import type { PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRegistry";
-import { attachFamilyResourceToCustomLearning, createFamilyResource } from "@/lib/clean/resources/familyResources";
+import { attachFamilyResourceToCustomLearning, createFamilyResource, normalizeFamilyWebUrl } from "@/lib/clean/resources/familyResources";
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
@@ -222,7 +222,7 @@ export async function createCustomLearningOnDeck(input: {
 }
 
 export function isSafeCustomWebLink(value: string) {
-  return /^https?:\/\/[^\s]+$/i.test(value.trim());
+  return Boolean(normalizeFamilyWebUrl(value));
 }
 
 export async function addCustomLearningResource(input: {
@@ -233,11 +233,12 @@ export async function addCustomLearningResource(input: {
   value: string;
 }) {
   const currentUserId = await getCurrentCleanUserId();
-  const value = safe(input.value);
+  const rawValue = safe(input.value);
+  const value = input.resourceType === "web_link" ? normalizeFamilyWebUrl(rawValue) : rawValue;
   if (!currentUserId) throw new Error("You need to sign in before adding a resource.");
   if (!value) throw new Error("Add the resource link or reference.");
   if (input.resourceType === "web_link" && !isSafeCustomWebLink(value)) {
-    throw new Error("Use a web link starting with http:// or https://.");
+    throw new Error("Enter a valid web address.");
   }
   const cupboardResource = await createFamilyResource({
     familyId: input.familyId, resourceType: input.resourceType, name: safe(input.label) || value,
