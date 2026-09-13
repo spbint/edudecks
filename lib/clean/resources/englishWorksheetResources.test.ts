@@ -20,6 +20,21 @@ const BATCH_A = [
   ["KF-U011", "kf-u011-cvc-word-match", "CVC Word Match", "MYL-LIT-MORPH-KF-U011-CVC-Word-Match-Worksheet.pdf"],
 ] as const;
 
+const BATCH_B = [
+  ["EE-U001", "ee-u001-consonant-digraphs", "Consonant Digraphs", "MYL-LIT-MORPH-EE-U001-Consonant-Digraphs-Worksheet.pdf"],
+  ["EE-U002", "ee-u002-ck-ng-qu", "CK NG QU", "MYL-LIT-MORPH-EE-U002-CK-NG-QU-Worksheet.pdf"],
+  ["EE-U003", "ee-u003-initial-consonant-blends", "Initial Consonant Blends", "MYL-LIT-MORPH-EE-U003-Initial-Consonant-Blends-Worksheet.pdf"],
+  ["EE-U004", "ee-u004-final-consonant-blends", "Final Consonant Blends", "MYL-LIT-MORPH-EE-U004-Final-Consonant-Blends-Worksheet.pdf"],
+  ["EE-U005", "ee-u005-long-vowels-silent-e", "Long Vowels Silent E", "MYL-LIT-MORPH-EE-U005-Long-Vowels-Silent-E-Worksheet.pdf"],
+  ["EE-U006", "ee-u006-common-vowel-teams", "Common Vowel Teams", "MYL-LIT-MORPH-EE-U006-Common-Vowel-Teams-Worksheet.pdf"],
+  ["EE-U007", "ee-u007-other-vowel-spellings", "Other Vowel Spellings", "MYL-LIT-MORPH-EE-U007-Other-Vowel-Spellings-Worksheet.pdf"],
+  ["EE-U008", "ee-u008-two-syllable-word-building", "Two-Syllable Word Building", "MYL-LIT-MORPH-EE-U008-Two-Syllable-Word-Building-Worksheet.pdf"],
+  ["EE-U010", "ee-u010-ed-ing", "ED ING", "MYL-LIT-MORPH-EE-U010-ED-ING-Worksheet.pdf"],
+  ["EE-U011", "ee-u011-er-est", "ER EST", "MYL-LIT-MORPH-EE-U011-ER-EST-Worksheet.pdf"],
+  ["EE-U012", "ee-u012-compound-words-and-base-words", "Compound Words and Base Words", "MYL-LIT-MORPH-EE-U012-Compound-Words-and-Base-Words-Worksheet.pdf"],
+  ["EE-U009", "ee-u009-plurals-s-es", "Plurals S ES", "MYL-LIT-MORPH-EE-U009-Plurals-S-ES-Worksheet.pdf"],
+] as const;
+
 function publicPath(resource: { href: string }) {
   return path.join(process.cwd(), "public", resource.href.replace(/^\//, ""));
 }
@@ -43,7 +58,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(18);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(30);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({
@@ -98,7 +113,42 @@ describe("English Word Builders Batch A", () => {
   it("does not contain malformed or duplicate worksheet filenames", () => {
     const filenames = ENGLISH_WORKSHEET_RESOURCES.map((resource) => resource.fileName);
     expect(new Set(filenames).size).toBe(filenames.length);
-    expect(filenames.every((filename) => /^MYL-LIT-MORPH-KF-U\d{3}-[A-Za-z0-9-]+\.pdf$/.test(filename))).toBe(true);
+    expect(filenames.every((filename) => /^MYL-LIT-MORPH-(KF|EE)-U\d{3}-[A-Za-z0-9-]+\.pdf$/.test(filename))).toBe(true);
     expect(filenames.some((filename) => /\.pdf\.pdf|\([123]\)/i.test(filename))).toBe(false);
   });
+
+  it("maps the deployed extended phonics worksheets to lower-primary identities", () => {
+    const steps = getPathwayStepsByStrand("english", "spelling-and-word-study");
+    const batchSteps = steps.filter((step) => step.stepKey.startsWith("ee-u"));
+
+    expect(batchSteps).toHaveLength(BATCH_B.length);
+    expect(new Set(batchSteps.map((step) => step.id)).size).toBe(batchSteps.length);
+
+    BATCH_B.forEach(([, stepKey, title, expectedFileName]) => {
+      const pathwayStepId = `english::spelling-and-word-study::lower-primary::${stepKey}`;
+      expect(batchSteps).toContainEqual(expect.objectContaining({
+        stepKey,
+        stepTitle: title,
+        id: pathwayStepId,
+        stageKey: "lower-primary",
+      }));
+
+      const resource = getEnglishWorksheetResourceForPathwayStep({
+        pathwayStepId,
+        stepKey,
+        subjectKey: "english",
+        strandKey: "spelling-and-word-study",
+        stageKey: "lower-primary",
+      });
+      expect(resource).toMatchObject({
+        pathwayStepId,
+        stepKey,
+        stageKey: "lower-primary",
+        fileName: expectedFileName,
+        href: `/resources/worksheets/english/spelling-and-word-study/lower-primary/${expectedFileName}`,
+      });
+      expect(existsSync(publicPath(resource!))).toBe(true);
+    });
+  });
+
 });

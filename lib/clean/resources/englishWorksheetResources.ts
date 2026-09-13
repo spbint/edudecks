@@ -4,22 +4,26 @@ const ENGLISH_SUBJECT_KEY = "english" as const;
 const ENGLISH_STRAND_KEY = "spelling-and-word-study";
 const ENGLISH_STAGE_KEY = "foundation-kindergarten";
 const ENGLISH_STAGE_DISPLAY = "Foundation / Kindergarten";
+const ENGLISH_LOWER_PRIMARY_STAGE_KEY = "lower-primary";
+const ENGLISH_LOWER_PRIMARY_STAGE_DISPLAY = "Lower Primary";
 
 function additionalEnglishWorksheetResource(
   stepNumber: number,
   stepKey: string,
   title: string,
   fileName: string,
+  stageKey: string = ENGLISH_STAGE_KEY,
+  stageDisplay: string = ENGLISH_STAGE_DISPLAY,
 ): WorksheetResource {
-  const pathwayStepId = `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${ENGLISH_STAGE_KEY}::${stepKey}`;
-  const href = `/resources/worksheets/english/${ENGLISH_STRAND_KEY}/${ENGLISH_STAGE_KEY}/${fileName}`;
+  const pathwayStepId = `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${stageKey}::${stepKey}`;
+  const href = `/resources/worksheets/english/${ENGLISH_STRAND_KEY}/${stageKey}/${fileName}`;
   return {
     pathwayStepId,
     stepKey,
     subjectKey: ENGLISH_SUBJECT_KEY,
     strandKey: ENGLISH_STRAND_KEY,
-    stageKey: ENGLISH_STAGE_KEY,
-    stageDisplay: ENGLISH_STAGE_DISPLAY,
+    stageKey,
+    stageDisplay,
     stepNumber,
     pathwayStepTitle: title,
     title,
@@ -28,6 +32,30 @@ function additionalEnglishWorksheetResource(
     resourceType: "worksheet-pdf",
   };
 }
+
+const EXTENDED_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [3, "ee-u001-consonant-digraphs", "Consonant Digraphs", "MYL-LIT-MORPH-EE-U001-Consonant-Digraphs-Worksheet.pdf"],
+  [4, "ee-u002-ck-ng-qu", "CK NG QU", "MYL-LIT-MORPH-EE-U002-CK-NG-QU-Worksheet.pdf"],
+  [5, "ee-u003-initial-consonant-blends", "Initial Consonant Blends", "MYL-LIT-MORPH-EE-U003-Initial-Consonant-Blends-Worksheet.pdf"],
+  [6, "ee-u004-final-consonant-blends", "Final Consonant Blends", "MYL-LIT-MORPH-EE-U004-Final-Consonant-Blends-Worksheet.pdf"],
+  [7, "ee-u005-long-vowels-silent-e", "Long Vowels Silent E", "MYL-LIT-MORPH-EE-U005-Long-Vowels-Silent-E-Worksheet.pdf"],
+  [8, "ee-u006-common-vowel-teams", "Common Vowel Teams", "MYL-LIT-MORPH-EE-U006-Common-Vowel-Teams-Worksheet.pdf"],
+  [9, "ee-u007-other-vowel-spellings", "Other Vowel Spellings", "MYL-LIT-MORPH-EE-U007-Other-Vowel-Spellings-Worksheet.pdf"],
+  [10, "ee-u008-two-syllable-word-building", "Two-Syllable Word Building", "MYL-LIT-MORPH-EE-U008-Two-Syllable-Word-Building-Worksheet.pdf"],
+  [11, "ee-u010-ed-ing", "ED ING", "MYL-LIT-MORPH-EE-U010-ED-ING-Worksheet.pdf"],
+  [12, "ee-u011-er-est", "ER EST", "MYL-LIT-MORPH-EE-U011-ER-EST-Worksheet.pdf"],
+  [13, "ee-u012-compound-words-and-base-words", "Compound Words and Base Words", "MYL-LIT-MORPH-EE-U012-Compound-Words-and-Base-Words-Worksheet.pdf"],
+  [14, "ee-u009-plurals-s-es", "Plurals S ES", "MYL-LIT-MORPH-EE-U009-Plurals-S-ES-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_LOWER_PRIMARY_STAGE_KEY,
+    ENGLISH_LOWER_PRIMARY_STAGE_DISPLAY,
+  ),
+);
 
 const resources: WorksheetResource[] = [
   {
@@ -117,6 +145,7 @@ const resources: WorksheetResource[] = [
   ] as const).map(([stepNumber, stepKey, title, fileName]) =>
     additionalEnglishWorksheetResource(stepNumber, stepKey, title, fileName),
   ),
+  ...EXTENDED_ENGLISH_WORKSHEET_RESOURCES,
 ];
 
 export const ENGLISH_WORKSHEET_RESOURCES = resources;
