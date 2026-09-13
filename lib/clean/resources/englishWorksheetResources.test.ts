@@ -88,6 +88,25 @@ const BATCH_D = [
   ["hsf-u010-unlock-academic-vocabulary", "Unlock Academic Vocabulary", "lower-secondary", "MYL-LIT-MORPH-HSF-U010-Unlock-Academic-Vocabulary-Worksheet.pdf"],
 ] as const;
 
+const BATCH_E1 = [
+  ["r-u001-root-bio", "Greek Root bio", "lower-secondary", "MYL-LIT-MORPH-R-U001-Greek-Root-Bio-Worksheet.pdf"],
+  ["r-u002-root-geo", "Greek Root geo", "lower-secondary", "MYL-LIT-MORPH-R-U002-Greek-Root-Geo-Worksheet.pdf"],
+  ["r-u003-root-graph-gram", "Greek Roots graph / gram", "lower-secondary", "MYL-LIT-MORPH-R-U003-Greek-Roots-Graph-Gram-Worksheet.pdf"],
+  ["r-u004-root-phon", "Greek Root phon", "lower-secondary", "MYL-LIT-MORPH-R-U004-Greek-Root-Phon-Worksheet.pdf"],
+  ["r-u005-root-tele", "Greek Root tele", "lower-secondary", "MYL-LIT-MORPH-R-U005-Greek-Root-Tele-Worksheet.pdf"],
+  ["r-u006-root-chron", "Greek Root chron", "lower-secondary", "MYL-LIT-MORPH-R-U006-Greek-Root-Chron-Worksheet.pdf"],
+  ["r-u007-root-morph", "Greek Root morph", "lower-secondary", "MYL-LIT-MORPH-R-U007-Greek-Root-Morph-Worksheet.pdf"],
+  ["r-u009-root-macro", "Greek Root macro", "lower-secondary", "MYL-LIT-MORPH-R-U009-Greek-Root-Macro-Worksheet.pdf"],
+  ["r-u010-root-photo-phot", "Greek Roots photo / phot", "lower-secondary", "MYL-LIT-MORPH-R-U010-Greek-Root-Photo-Phot-Worksheet.pdf"],
+  ["r-u011-root-therm", "Greek Root therm", "lower-secondary", "MYL-LIT-MORPH-R-U011-Greek-Root-Therm-Worksheet.pdf"],
+  ["r-u013-root-astro-astr", "Greek Roots astro / astr", "lower-secondary", "MYL-LIT-MORPH-R-U013-Greek-Root-Astro-Worksheet.pdf"],
+  ["r-u014-root-metr-meter", "Greek Roots metr / meter", "lower-secondary", "MYL-LIT-MORPH-R-U014-Greek-Root-Metr-Meter-Worksheet.pdf"],
+  ["r-u016-root-auto", "Greek Root auto", "lower-secondary", "MYL-LIT-MORPH-R-U016-Greek-Root-Auto-Worksheet.pdf"],
+  ["r-u017-root-demo-dem", "Greek Roots demo / dem", "lower-secondary", "MYL-LIT-MORPH-R-U017-Greek-Root-Demo-Dem-Worksheet.pdf"],
+  ["r-u018-root-psych", "Greek Root psych", "lower-secondary", "MYL-LIT-MORPH-R-U018-Greek-Root-Psych-Worksheet.pdf"],
+  ["r-u019-root-log-logy", "Greek Roots log / logy", "lower-secondary", "MYL-LIT-MORPH-R-U019-Greek-Root-Log-Logy-Worksheet.pdf"],
+] as const;
+
 function publicPath(resource: { href: string }) {
   return path.join(process.cwd(), "public", resource.href.replace(/^\//, ""));
 }
@@ -111,7 +130,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(76);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(92);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({
@@ -166,7 +185,7 @@ describe("English Word Builders Batch A", () => {
   it("does not contain malformed or duplicate worksheet filenames", () => {
     const filenames = ENGLISH_WORKSHEET_RESOURCES.map((resource) => resource.fileName);
     expect(new Set(filenames).size).toBe(filenames.length);
-    expect(filenames.every((filename) => /^MYL-LIT-MORPH-(KF|EE|E|UE|MS|HSF)-U\d{3}-[A-Za-z0-9-]+\.pdf$/.test(filename))).toBe(true);
+    expect(filenames.every((filename) => /^MYL-LIT-MORPH-(KF|EE|E|UE|MS|HSF|R)-U\d{3}-[A-Za-z0-9-]+\.pdf$/.test(filename))).toBe(true);
     expect(filenames.some((filename) => /\.pdf\.pdf|\([123]\)/i.test(filename))).toBe(false);
   });
 
@@ -281,6 +300,49 @@ describe("English Word Builders Batch A", () => {
     expect(getEnglishWorksheetResourceForPathwayStep({
       pathwayStepId: "english::morphology-and-spelling::lower-secondary::hsf-u002-missing",
       stepKey: "hsf-u002-missing",
+      subjectKey: "english",
+      strandKey: "morphology-and-spelling",
+      stageKey: "lower-secondary",
+    })).toBeNull();
+  });
+
+  it("maps the available Roots E1 resources to lower-secondary morphology", () => {
+    const morphologySteps = getPathwayStepsByStrand("english", "morphology-and-spelling");
+    const rootSteps = morphologySteps.filter((step) => step.stepKey.startsWith("r-u"));
+
+    expect(rootSteps).toHaveLength(BATCH_E1.length);
+    expect(new Set(rootSteps.map((step) => step.id)).size).toBe(rootSteps.length);
+
+    BATCH_E1.forEach(([stepKey, title, stageKey, expectedFileName]) => {
+      const pathwayStepId = `english::morphology-and-spelling::${stageKey}::${stepKey}`;
+      expect(rootSteps).toContainEqual(expect.objectContaining({
+        id: pathwayStepId,
+        stepKey,
+        stepTitle: title,
+        strandKey: "morphology-and-spelling",
+        stageKey,
+      }));
+
+      const resource = getEnglishWorksheetResourceForPathwayStep({
+        pathwayStepId,
+        stepKey,
+        subjectKey: "english",
+        strandKey: "morphology-and-spelling",
+        stageKey,
+      });
+      expect(resource).toMatchObject({
+        pathwayStepId,
+        stepKey,
+        stageKey,
+        fileName: expectedFileName,
+        href: `/resources/worksheets/english/morphology-and-spelling/${stageKey}/${expectedFileName}`,
+      });
+      expect(existsSync(publicPath(resource!))).toBe(true);
+    });
+
+    expect(getEnglishWorksheetResourceForPathwayStep({
+      pathwayStepId: "english::morphology-and-spelling::lower-secondary::r-u008-root-micro",
+      stepKey: "r-u008-root-micro",
       subjectKey: "english",
       strandKey: "morphology-and-spelling",
       stageKey: "lower-secondary",

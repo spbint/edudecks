@@ -163,6 +163,36 @@ const HSF_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   ),
 );
 
+const ROOTS_E1_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [10, "r-u001-root-bio", "Greek Root bio", "MYL-LIT-MORPH-R-U001-Greek-Root-Bio-Worksheet.pdf"],
+  [11, "r-u002-root-geo", "Greek Root geo", "MYL-LIT-MORPH-R-U002-Greek-Root-Geo-Worksheet.pdf"],
+  [12, "r-u003-root-graph-gram", "Greek Roots graph / gram", "MYL-LIT-MORPH-R-U003-Greek-Roots-Graph-Gram-Worksheet.pdf"],
+  [13, "r-u004-root-phon", "Greek Root phon", "MYL-LIT-MORPH-R-U004-Greek-Root-Phon-Worksheet.pdf"],
+  [14, "r-u005-root-tele", "Greek Root tele", "MYL-LIT-MORPH-R-U005-Greek-Root-Tele-Worksheet.pdf"],
+  [15, "r-u006-root-chron", "Greek Root chron", "MYL-LIT-MORPH-R-U006-Greek-Root-Chron-Worksheet.pdf"],
+  [16, "r-u007-root-morph", "Greek Root morph", "MYL-LIT-MORPH-R-U007-Greek-Root-Morph-Worksheet.pdf"],
+  [17, "r-u009-root-macro", "Greek Root macro", "MYL-LIT-MORPH-R-U009-Greek-Root-Macro-Worksheet.pdf"],
+  [18, "r-u010-root-photo-phot", "Greek Roots photo / phot", "MYL-LIT-MORPH-R-U010-Greek-Root-Photo-Phot-Worksheet.pdf"],
+  [19, "r-u011-root-therm", "Greek Root therm", "MYL-LIT-MORPH-R-U011-Greek-Root-Therm-Worksheet.pdf"],
+  [20, "r-u013-root-astro-astr", "Greek Roots astro / astr", "MYL-LIT-MORPH-R-U013-Greek-Root-Astro-Worksheet.pdf"],
+  [21, "r-u014-root-metr-meter", "Greek Roots metr / meter", "MYL-LIT-MORPH-R-U014-Greek-Root-Metr-Meter-Worksheet.pdf"],
+  [22, "r-u016-root-auto", "Greek Root auto", "MYL-LIT-MORPH-R-U016-Greek-Root-Auto-Worksheet.pdf"],
+  [23, "r-u017-root-demo-dem", "Greek Roots demo / dem", "MYL-LIT-MORPH-R-U017-Greek-Root-Demo-Dem-Worksheet.pdf"],
+  [24, "r-u018-root-psych", "Greek Root psych", "MYL-LIT-MORPH-R-U018-Greek-Root-Psych-Worksheet.pdf"],
+  [25, "r-u019-root-log-logy", "Greek Roots log / logy", "MYL-LIT-MORPH-R-U019-Greek-Root-Log-Logy-Worksheet.pdf"],
+  [26, "r-u020-root-path", "Greek Root path", "MYL-LIT-MORPH-R-U020-Greek-Root-Path-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_HSF_STAGE_KEY,
+    ENGLISH_HSF_STAGE_DISPLAY,
+    ENGLISH_MORPHOLOGY_STRAND_KEY,
+  ),
+);
+
 const resources: WorksheetResource[] = [
   {
     pathwayStepId: `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${ENGLISH_STAGE_KEY}::kf-u001-beginning-sounds`,
@@ -256,6 +286,7 @@ const resources: WorksheetResource[] = [
   ...SPELLING_CONVENTION_ENGLISH_WORKSHEET_RESOURCES,
   ...MS_ENGLISH_WORKSHEET_RESOURCES,
   ...HSF_ENGLISH_WORKSHEET_RESOURCES,
+  ...ROOTS_E1_ENGLISH_WORKSHEET_RESOURCES,
 ];
 
 export const ENGLISH_WORKSHEET_RESOURCES = resources;
