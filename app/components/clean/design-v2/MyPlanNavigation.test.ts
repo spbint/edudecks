@@ -64,6 +64,7 @@ describe("My Plan navigation hierarchy", () => {
 
     expect(getVisibleDesktopSectionItems(planSection?.items ?? []).map((item) => item.label)).toEqual([
       "My Pathways",
+      "Resource Cupboard",
     ]);
     expect(getVisibleDesktopSectionItems(captureSection?.items ?? []).map((item) => item.label)).toEqual([
       "Quick Capture",

@@ -98,6 +98,7 @@ export const finalProductNavSections = [
     items: [
       calendarNavItem,
       { href: "/my-pathways", label: "My Pathways", shortLabel: "Pathways", icon: "route", matches: ["/my-pathways", "/clean-my-pathways"] },
+      { href: "/my-resources", label: "Resource Cupboard", shortLabel: "Resources", icon: "folder", matches: ["/my-resources", "/clean-my-resources"] },
     ],
   },
   {
@@ -310,6 +311,7 @@ function routeTitle(pathname: string) {
     return "My Settings";
   }
   if (pathname.startsWith("/my-community")) return "My Community";
+  if (pathname.startsWith("/my-resources") || pathname.startsWith("/clean-my-resources")) return "My Resource Cupboard";
   if (pathname.startsWith("/my-pathways/activity-player-v4-preview")) {
     return "Activity Player V4 Preview";
   }
@@ -341,6 +343,7 @@ export function routeCrumbs(pathname: string): BreadcrumbItem[] {
     return [{ label: "My Day", href: "/my-day" }, { label: "My Settings", href: "/my-settings" }];
   }
   if (pathname.startsWith("/my-community")) return [{ label: "My Day", href: "/my-day" }, { label: "My Community" }];
+  if (pathname.startsWith("/my-resources") || pathname.startsWith("/clean-my-resources")) return [{ label: "My Day", href: "/my-day" }, { label: "My Resource Cupboard" }];
   if (pathname.startsWith("/my-pathways/activity-player-v4-preview")) {
     return [
       { label: "My Day", href: "/my-day" },
@@ -1376,6 +1379,15 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             >
               <ShellIcon name="learner" size={19} />
               <span>Account</span>
+            </Link>
+            <Link
+              href="/my-resources"
+              onClick={() => closeMobileMore(false)}
+              className="mylearna-v2-mobile-sheet-link"
+              style={{ background: isActive(pathname, ["/my-resources", "/clean-my-resources"]) ? v2Tokens.lavender : "#ffffff", color: isActive(pathname, ["/my-resources", "/clean-my-resources"]) ? v2Tokens.purple : v2Tokens.navy }}
+            >
+              <ShellIcon name="folder" size={19} />
+              <span>Resource Cupboard</span>
             </Link>
             <Link
               href="/my-community"

@@ -79,7 +79,9 @@ export type LearningQueueItemRow = {
       url?: string | null;
       reference_text?: string | null;
       resource_file_id?: string | null;
+      family_resource_id?: string | null;
       resource_file?: { original_filename?: string | null; object_path?: string | null; status?: string | null } | null;
+      family_resource?: { id?: string | null; name?: string | null; url?: string | null; reference_text?: string | null; resource_file_id?: string | null; resource_file?: { original_filename?: string | null; object_path?: string | null; byte_size?: number | null; status?: string | null } | null } | null;
       position?: number | null;
     }> | null;
   } | null;
@@ -138,20 +140,23 @@ function normalizeSourceType(value: unknown): LearningQueueSourceType {
 
 export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueItem {
   const resources = (row.custom_learning_item?.custom_learning_resources ?? [])
-    .map((resource) => ({
+    .map((resource) => {
+      const cupboard = resource.family_resource;
+      const file = resource.resource_file ?? cupboard?.resource_file;
+      return ({
       id: safe(resource.id),
       resourceType: normalizeResourceType(resource.resource_type),
-      label: normalizeNullString(resource.label),
-      url: normalizeNullString(resource.url),
-      referenceText: normalizeNullString(resource.reference_text),
-      resourceFileId: normalizeNullString(resource.resource_file_id),
-      resourceFileName: normalizeNullString(resource.resource_file?.original_filename),
-      resourceFilePath: normalizeNullString(resource.resource_file?.object_path),
-      resourceFileStatus: ["pending", "ready", "deleted"].includes(safe(resource.resource_file?.status))
-        ? (safe(resource.resource_file?.status) as "pending" | "ready" | "deleted")
+      label: normalizeNullString(resource.label) || normalizeNullString(cupboard?.name),
+      url: normalizeNullString(resource.url) || normalizeNullString(cupboard?.url),
+      referenceText: normalizeNullString(resource.reference_text) || normalizeNullString(cupboard?.reference_text),
+      resourceFileId: normalizeNullString(resource.resource_file_id) || normalizeNullString(cupboard?.resource_file_id),
+      resourceFileName: normalizeNullString(file?.original_filename),
+      resourceFilePath: normalizeNullString(file?.object_path),
+      resourceFileStatus: ["pending", "ready", "deleted"].includes(safe(file?.status))
+        ? (safe(file?.status) as "pending" | "ready" | "deleted")
         : null,
       position: normalizePosition(resource.position),
-    }))
+    }); })
     .filter((resource) => resource.id && (resource.resourceType !== "file" || resource.resourceFileStatus === "ready"))
     .sort((left, right) => left.position - right.position || left.id.localeCompare(right.id));
   return {

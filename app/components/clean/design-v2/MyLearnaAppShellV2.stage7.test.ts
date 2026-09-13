@@ -33,7 +33,7 @@ describe("Stage 7 final web integration", () => {
       "GROW",
     ]);
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
-      ["My Calendar", "My Pathways"],
+      ["My Calendar", "My Pathways", "Resource Cupboard"],
       ["Quick Capture", "My Portfolio"],
       ["My Learna", "My Reports"],
     ]);
@@ -51,6 +51,7 @@ describe("Stage 7 final web integration", () => {
       "My Day",
       "My Calendar",
       "My Pathways",
+      "Resource Cupboard",
       "Quick Capture",
       "My Portfolio",
       "My Learna",

@@ -47,7 +47,7 @@ describe("mobile companion shell", () => {
 
   it("keeps desktop navigation complete and removes mobile pillar navigation", () => {
     expect(finalProductNavSections.map((section) => section.items.map((item) => item.label))).toEqual([
-      ["My Calendar", "My Pathways"],
+      ["My Calendar", "My Pathways", "Resource Cupboard"],
       ["Quick Capture", "My Portfolio"],
       ["My Learna", "My Reports"],
     ]);

@@ -59,6 +59,7 @@ import {
   removeCustomLearningResource,
 } from "@/lib/clean/onDeck/client";
 import { isAllowedResourcePdf, openCustomLearningPdf, resourceFileSizeLabel, uploadCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
+import { attachFamilyResourceToCustomLearning, listFamilyResources, type FamilyResource } from "@/lib/clean/resources/familyResources";
 import {
   resolveOnDeckItem,
   sortLearningQueueItems,
@@ -276,14 +277,16 @@ function isValidDateValue(value: string | null): value is string {
 
 function AddCustomLearningSection({
   learnerOptions,
+  resourceOptions = [],
   defaultLearnerId,
   compact = false,
   onCreated,
 }: {
   learnerOptions: Array<{ value: string; label: string }>;
+  resourceOptions?: FamilyResource[];
   defaultLearnerId: string;
   compact?: boolean;
-  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; file?: File | null } | null }) => Promise<void>;
+  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null }) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [customLearnerId, setCustomLearnerId] = useState(defaultLearnerId);
@@ -294,6 +297,7 @@ function AddCustomLearningSection({
   const [resourceLabel, setResourceLabel] = useState("");
   const [resourceValue, setResourceValue] = useState("");
   const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [selectedResourceId, setSelectedResourceId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -311,9 +315,10 @@ function AddCustomLearningSection({
     setSaving(true);
     setError(null);
     try {
-      const hasResource = resourceType === "file" ? Boolean(resourceFile) : Boolean(resourceValue.trim());
-      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null, resource: hasResource ? { resourceType, label: resourceLabel.trim() || null, value: resourceValue.trim(), file: resourceFile } : null });
-      setTitle(""); setLearningArea(""); setNote(""); setResourceLabel(""); setResourceValue(""); setResourceFile(null); setOpen(false);
+      const selectedResource = resourceOptions.find((resource) => resource.id === selectedResourceId) || null;
+      const hasResource = selectedResource ? true : resourceType === "file" ? Boolean(resourceFile) : Boolean(resourceValue.trim());
+      await onCreated({ learnerId: customLearnerId, title: cleanTitle, learningArea: learningArea.trim() || null, note: note.trim() || null, resource: hasResource ? { resourceType: selectedResource?.resourceType || resourceType, label: selectedResource?.name || resourceLabel.trim() || null, value: selectedResource?.id || resourceValue.trim(), familyResource: selectedResource, file: resourceFile } : null });
+      setTitle(""); setLearningArea(""); setNote(""); setResourceLabel(""); setResourceValue(""); setResourceFile(null); setSelectedResourceId(""); setOpen(false);
     } catch (reason) {
       setError(normalizeCleanErrorMessage(reason, "We could not add this learning to On Deck."));
     } finally { setSaving(false); }
@@ -334,7 +339,7 @@ function AddCustomLearningSection({
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Title<input required aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} style={input} placeholder="Read Chapter 4 — The Hobbit" autoFocus /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learning area (optional)<input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} list="clean-my-day-learning-areas" style={input} placeholder="English" /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Note (optional)<textarea aria-label="Note" value={note} onChange={(event) => setNote(event.target.value)} style={{ ...input, minHeight: 76, resize: "vertical" }} placeholder="A short note for this learning" /></label>
-        <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "grid", gap: 10 }}><legend style={{ padding: "0 4px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Resource (optional)</legend><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{resourceType === "web_link" ? "URL" : "Book, curriculum or resource"}<input aria-label={resourceType === "web_link" ? "URL" : "Book, curriculum or resource"} value={resourceValue} onChange={(event) => setResourceValue(event.target.value)} style={input} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "The Hobbit — Chapter 5"} /></label>{resourceType === "web_link" ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Label (optional)<input aria-label="Resource label" value={resourceLabel} onChange={(event) => setResourceLabel(event.target.value)} style={input} placeholder="Fractions lesson" /></label> : null}</fieldset>
+        <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "grid", gap: 10 }}><legend style={{ padding: "0 4px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Resource (optional)</legend>{resourceOptions.length ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Choose from My Resource Cupboard<select aria-label="Choose from My Resource Cupboard" value={selectedResourceId} onChange={(event) => setSelectedResourceId(event.target.value)} style={input}><option value="">Add a new resource instead</option>{resourceOptions.map((resource) => <option key={resource.id} value={resource.id}>{resource.name} · {resource.resourceType === "file" ? "PDF" : resource.resourceType === "web_link" ? "Website" : "Reference"}</option>)}</select></label> : null}{!selectedResourceId ? <><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{resourceType === "web_link" ? "URL" : "Book, curriculum or resource"}<input aria-label={resourceType === "web_link" ? "URL" : "Book, curriculum or resource"} value={resourceValue} onChange={(event) => setResourceValue(event.target.value)} style={input} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "The Hobbit — Chapter 5"} /></label>{resourceType === "web_link" ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Label (optional)<input aria-label="Resource label" value={resourceLabel} onChange={(event) => setResourceLabel(event.target.value)} style={input} placeholder="Fractions lesson" /></label> : null}</> : null}</fieldset>
         <button type="button" onClick={() => setResourceType("file")} style={{ ...secondaryButtonStyle, width: "fit-content" }}>PDF file</button>
         {resourceType === "file" ? <div style={{ display: "grid", gap: 6 }}><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Choose PDF<input type="file" accept="application/pdf,.pdf" onChange={(event) => setResourceFile(event.target.files?.[0] || null)} /></label>{resourceFile ? <span style={{ fontSize: 13, overflowWrap: "anywhere" }}>{resourceFile.name} · {resourceFileSizeLabel(resourceFile.size)}</span> : null}<span style={{ color: "#64748b", fontSize: 12 }}>PDF only · up to 25 MB</span></div> : null}
         {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
@@ -780,7 +785,8 @@ type MobileTodayContentProps = {
   workspaceSchemaMissing: boolean;
   buildItemCaptureHref: (item: CleanCalendarItem) => string;
   defaultCustomLearningLearnerId: string;
-  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; file?: File | null } | null }) => Promise<void>;
+  resourceOptions: FamilyResource[];
+  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null }) => Promise<void>;
   onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource: (resourceId: string) => Promise<void>;
   onUploadPdf: (customLearningItemId: string, file: File) => Promise<void>;
@@ -828,6 +834,7 @@ function MobileTodayContent({
   workspaceSchemaMissing,
   buildItemCaptureHref,
   defaultCustomLearningLearnerId,
+  resourceOptions,
   onCreateCustomLearning,
   onAddResource,
   onRemoveResource,
@@ -996,6 +1003,7 @@ function MobileTodayContent({
           <AddCustomLearningSection
             compact
             learnerOptions={learnerOptions}
+            resourceOptions={resourceOptions}
             defaultLearnerId={defaultCustomLearningLearnerId}
             onCreated={onCreateCustomLearning}
           />
@@ -1094,7 +1102,13 @@ function CleanDayWorkspaceBody() {
   const recoveryShownWeekRef = useRef<string | null>(null);
   const firstValueChoiceTrackedRef = useRef(false);
   const [setupStatusReadyOnce, setSetupStatusReadyOnce] = useState(false);
+  const [resourceOptions, setResourceOptions] = useState<FamilyResource[]>([]);
   const helpRequestSourceKey = `${selectedLearnerId}:${items.map((item) => item.id).join(",")}:${onDeckItems.map((item) => item.id).join(",")}`;
+
+  useEffect(() => {
+    if (!workspace.profile?.id) return;
+    void listFamilyResources(workspace.profile.id).then(setResourceOptions).catch(() => setResourceOptions([]));
+  }, [workspace.profile?.id]);
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
@@ -1812,7 +1826,7 @@ function CleanDayWorkspaceBody() {
     title: string;
     learningArea: string | null;
     note: string | null;
-    resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; file?: File | null } | null;
+    resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null;
   }) {
     if (!workspace.profile) throw new Error("My Day is not ready for custom learning yet.");
     const textResource = input.resource?.resourceType === "web_link" || input.resource?.resourceType === "reference"
@@ -1824,11 +1838,18 @@ function CleanDayWorkspaceBody() {
       title: input.title,
       learningArea: input.learningArea,
       note: input.note,
-      resource: textResource,
+      resource: null,
     });
+    const createdItems = textResource || (input.resource?.resourceType === "file" && input.resource.file)
+      ? await listLearningQueueItems(workspace.profile.id, input.learnerId)
+      : [];
+    const createdItem = createdItems.find((item) => item.id === queueId);
+    if (input.resource?.familyResource && createdItem?.customLearningItemId) {
+      await attachFamilyResourceToCustomLearning({ familyId: workspace.profile.id, customLearningItemId: createdItem.customLearningItemId, resource: input.resource.familyResource });
+    } else if (textResource && createdItem?.customLearningItemId) {
+      await addCustomLearningResource({ familyId: workspace.profile.id, customLearningItemId: createdItem.customLearningItemId, ...textResource });
+    }
     if (input.resource?.resourceType === "file" && input.resource.file) {
-      const createdItems = await listLearningQueueItems(workspace.profile.id, input.learnerId);
-      const createdItem = createdItems.find((item) => item.id === queueId);
       if (!createdItem?.customLearningItemId) throw new Error("Learning was added, but the PDF could not be attached. You can try again from Resources.");
       try {
         await handleUploadCustomPdf(createdItem.customLearningItemId, input.resource.file);
@@ -2229,6 +2250,7 @@ function CleanDayWorkspaceBody() {
           workspaceSchemaMissing={workspace.schemaMissing}
           buildItemCaptureHref={buildMobileItemCaptureHref}
           defaultCustomLearningLearnerId={defaultQuickAddLearnerId}
+          resourceOptions={resourceOptions}
           onCreateCustomLearning={handleCreateCustomLearning}
         />
       </div>
@@ -3188,6 +3210,7 @@ function CleanDayWorkspaceBody() {
 
             <AddCustomLearningSection
               learnerOptions={learnerOptions}
+              resourceOptions={resourceOptions}
               defaultLearnerId={defaultQuickAddLearnerId}
               onCreated={handleCreateCustomLearning}
             />

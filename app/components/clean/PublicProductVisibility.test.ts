@@ -16,6 +16,7 @@ describe("public product visibility", () => {
     expect(finalProductNavSections.flatMap((section) => section.items.map((item) => item.label))).toEqual([
       "My Calendar",
       "My Pathways",
+      "Resource Cupboard",
       "Quick Capture",
       "My Portfolio",
       "My Learna",

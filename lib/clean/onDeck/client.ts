@@ -11,10 +11,11 @@ import {
   type LearningQueueItemRow,
 } from "@/lib/clean/onDeck/learningQueue";
 import type { PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRegistry";
+import { attachFamilyResourceToCustomLearning, createFamilyResource } from "@/lib/clean/resources/familyResources";
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,position,resource_file:family_resource_files(original_filename,object_path,status)))";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,family_resource_id,position,resource_file:family_resource_files(original_filename,object_path,status),family_resource:family_resources(id,name,url,reference_text,resource_file_id,resource_file:family_resource_files(original_filename,object_path,byte_size,status))))";
 const LEARNING_QUEUE_CORE_SELECT =
   "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
 
@@ -238,31 +239,19 @@ export async function addCustomLearningResource(input: {
   if (input.resourceType === "web_link" && !isSafeCustomWebLink(value)) {
     throw new Error("Use a web link starting with http:// or https://.");
   }
-  const response = await supabase.from("custom_learning_resources").insert({
-    family_id: input.familyId,
-    custom_learning_item_id: input.customLearningItemId,
-    resource_type: input.resourceType,
-    label: safe(input.label) || null,
+  const cupboardResource = await createFamilyResource({
+    familyId: input.familyId, resourceType: input.resourceType, name: safe(input.label) || value,
     url: input.resourceType === "web_link" ? value : null,
-    reference_text: input.resourceType === "reference" ? value : null,
-    created_by_user_id: currentUserId,
-  }).select("id,resource_type,label,url,reference_text,position").maybeSingle();
-  if (response.error || !response.data) throw new Error(normalizeOnDeckError(response.error, "We could not add this resource."));
-  const row = response.data as {
-    id: string;
-    resource_type: string;
-    label?: string | null;
-    url?: string | null;
-    reference_text?: string | null;
-    position?: number | null;
-  };
+    referenceText: input.resourceType === "reference" ? value : null,
+  });
+  const row = await attachFamilyResourceToCustomLearning({ familyId: input.familyId, customLearningItemId: input.customLearningItemId, resource: cupboardResource });
   return {
     id: row.id,
-    resourceType: row.resource_type === "web_link" ? "web_link" : "reference",
-    label: row.label ?? null,
-    url: row.url ?? null,
-    referenceText: row.reference_text ?? null,
-    position: Number(row.position ?? 0),
+    resourceType: input.resourceType,
+    label: cupboardResource.name,
+    url: cupboardResource.url,
+    referenceText: cupboardResource.referenceText,
+    position: Number((row as { position?: number | null }).position ?? 0),
   };
 }
 
