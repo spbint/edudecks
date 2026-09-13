@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { familyResourceTypeLabel } from "@/lib/clean/resources/familyResources";
 
 const migration = readFileSync("supabase/migrations/20260913032028_family_resource_cupboard.sql", "utf8");
+const quotaMigration = readFileSync("supabase/migrations/20260913041441_align_resource_cupboard_free_quota.sql", "utf8");
 const featureFiles = `${readFileSync("lib/clean/onDeck/resourceFiles.ts", "utf8")}\n${readFileSync("lib/clean/onDeck/client.ts", "utf8")}`;
 
 describe("My Resource Cupboard foundation", () => {
@@ -28,6 +29,13 @@ describe("My Resource Cupboard foundation", () => {
     expect(migration).toContain("not exists (\n    select 1 from public.custom_learning_resources");
     expect(migration).toContain("262144000");
     expect(migration).not.toContain("family_evidence_storage_usage");
+  });
+
+  it("keeps the Free Cupboard allowance aligned without corrupting usage", () => {
+    expect(quotaMigration).toContain("alter column allowance_bytes set default 262144000");
+    expect(quotaMigration).toContain("greatest(262144000, used_bytes + reserved_bytes)");
+    expect(quotaMigration).not.toContain("delete from public.family_resource");
+    expect(quotaMigration).not.toContain("family_evidence_storage_usage");
   });
 
   it("makes PDF upload save to the Cupboard before attaching", () => {

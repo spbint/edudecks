@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 export const RESOURCE_FILE_BUCKET = "learning-resources";
 export const RESOURCE_FILE_MAX_BYTES = 26214400;
-export const RESOURCE_STORAGE_ALLOWANCE_BYTES = 524288000;
+export const RESOURCE_STORAGE_ALLOWANCE_BYTES = 262144000;
 
 function clean(value: unknown) { return String(value ?? "").trim(); }
 
@@ -39,10 +39,16 @@ export function isAllowedResourcePdf(file: File | null | undefined) {
 }
 
 export async function getResourceStorageUsage(familyId: string) {
-  const response = await supabase.from("family_resource_storage_usage").select("allowance_bytes,used_bytes,reserved_bytes").eq("family_id", familyId).maybeSingle();
+  const [response, allowanceResponse] = await Promise.all([
+    supabase.from("family_resource_storage_usage").select("allowance_bytes,used_bytes,reserved_bytes").eq("family_id", familyId).maybeSingle(),
+    supabase.rpc("mylearna_resource_storage_allowance_bytes", { p_family_id: familyId }),
+  ]);
   if (response.error) throw new Error(normalizeCleanErrorMessage(response.error, "Resource storage is unavailable right now."));
   const row = response.data as { allowance_bytes?: number; used_bytes?: number; reserved_bytes?: number } | null;
-  const allowance = Number(row?.allowance_bytes ?? RESOURCE_STORAGE_ALLOWANCE_BYTES);
+  const resolvedAllowance = Number(allowanceResponse.data);
+  const allowance = Number.isFinite(resolvedAllowance) && resolvedAllowance > 0
+    ? resolvedAllowance
+    : RESOURCE_STORAGE_ALLOWANCE_BYTES;
   const used = Number(row?.used_bytes ?? 0);
   const reserved = Number(row?.reserved_bytes ?? 0);
   return { allowanceBytes: allowance, usedBytes: used, reservedBytes: reserved, remainingBytes: Math.max(0, allowance - used - reserved) };

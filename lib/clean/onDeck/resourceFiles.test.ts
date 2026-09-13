@@ -14,7 +14,7 @@ describe("custom learning PDF resources", () => {
     expect(isAllowedResourcePdf(file("lesson.pdf", "application/pdf", 100))).toBe(true);
     expect(isAllowedResourcePdf(file("lesson.pdf", "text/plain", 100))).toBe(false);
     expect(isAllowedResourcePdf(file("lesson.pdf", "application/pdf", RESOURCE_FILE_MAX_BYTES + 1))).toBe(false);
-    expect(RESOURCE_STORAGE_ALLOWANCE_BYTES).toBe(524288000);
+    expect(RESOURCE_STORAGE_ALLOWANCE_BYTES).toBe(262144000);
   });
 
   it("defines additive private storage, quota, reservation, and association security", () => {
