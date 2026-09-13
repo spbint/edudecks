@@ -14,7 +14,7 @@ import {
   CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
 } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
-import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
+import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
 
 type CleanPathwayStepActionRowProps = {
   captureHref: string;
@@ -37,7 +37,7 @@ type CleanPathwayStepActionRowProps = {
   stepTitle?: string;
   confidenceStatusLabel?: string | null;
   isExactStepContext?: boolean;
-  worksheetResource?: MathWorksheetResource | null;
+  worksheetResource?: WorksheetResource | null;
   latestEvidenceEntry?: CleanEvidenceEntry | null;
   manualComplete?: boolean;
   onDeck?: boolean;
@@ -78,7 +78,7 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 function appendWorksheetEvidenceParams(
   href: string,
-  worksheetResource: MathWorksheetResource,
+  worksheetResource: WorksheetResource,
 ) {
   const [path, query = ""] = href.split("?");
   const params = new URLSearchParams(query);

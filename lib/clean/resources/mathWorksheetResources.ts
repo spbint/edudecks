@@ -1,34 +1,12 @@
-import type { PathwaySubjectKey } from "@/lib/clean/pathways/pathwaySubjects";
+import type {
+  WorksheetResource,
+  WorksheetResourceType,
+  WorksheetStepContext,
+} from "@/lib/clean/resources/worksheetResources";
 
-export type MathWorksheetResourceType = "worksheet-pdf";
-
-export type MathWorksheetResource = {
-  pathwayStepId: string;
-  stepKey: string;
-  subjectKey: PathwaySubjectKey;
-  strandKey: string;
-  stageKey: string;
-  stageDisplay?: string;
-  stepNumber: number;
-  pathwayStepTitle?: string;
-  title: string;
-  curriculumCode?: string;
-  concept?: string;
-  includesAnswerSheet?: boolean;
-  regionalVariants?: string[];
-  containsRegionalMoneyPages?: boolean;
-  fileName: string;
-  href: string;
-  resourceType: MathWorksheetResourceType;
-};
-
-export type MathWorksheetStepContext = {
-  pathwayStepId?: string | null;
-  stepKey?: string | null;
-  subjectKey?: string | null;
-  strandKey?: string | null;
-  stageKey?: string | null;
-};
+export type MathWorksheetResourceType = WorksheetResourceType;
+export type MathWorksheetResource = WorksheetResource;
+export type MathWorksheetStepContext = WorksheetStepContext;
 
 const SMALL_QUANTITIES_WORKSHEET_FILE =
   "MYL-MATH-NPV-F-S001-Recognise-Small-Quantities-Without-Counting.pdf";

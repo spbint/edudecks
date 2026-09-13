@@ -15,6 +15,7 @@ const PUBLIC_ALLOW_PATHS = [
   "/login",
   "/faq",
   "/homeschool-answers",
+  "/learn",
   "/start-free",
   "/compare",
   "/homeschool-record-keeping",

@@ -11,7 +11,7 @@ import {
   uploadFamilyEvidenceFiles,
   type UploadedFamilyEvidenceFile,
 } from "@/lib/familyEvidence";
-import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
+import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
 
 export type WorksheetEvidenceProgressLevel =
   | "needs_support"
@@ -32,7 +32,7 @@ type WorksheetEvidenceCaptureProps = {
   pathwayStepId: string;
   stepKey: string;
   stepTitle: string;
-  worksheetResource: MathWorksheetResource;
+  worksheetResource: WorksheetResource;
   latestEvidenceEntry?: CleanEvidenceEntry | null;
   initialFormOpen?: boolean;
   onEvidenceSaved?: (entry: CleanEvidenceEntry) => void;

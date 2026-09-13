@@ -10,6 +10,8 @@ const PUBLIC_SITEMAP_PATHS = [
   "/homeschool-planning",
   "/homeschool-record-keeping",
   "/homeschool-answers",
+  "/learn",
+  "/learn/how-do-children-learn",
   "/homeschool-portfolio",
   "/homeschool-reporting",
   "/homeschool-learning-evidence",

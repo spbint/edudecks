@@ -108,6 +108,8 @@ export function buildPublicAcquisitionParams(
 }
 
 function isPublicRoute(pathname: string) {
+  if (pathname === "/learn" || pathname.startsWith("/learn/")) return true;
+
   return [
     "/",
     "/demo",

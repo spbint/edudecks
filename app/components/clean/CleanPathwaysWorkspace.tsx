@@ -51,9 +51,20 @@ import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
-import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
+import {
+  getWorksheetResourceForPathwayStep as getMathWorksheetResourceForPathwayStep,
+} from "@/lib/clean/resources/mathWorksheetResources";
+import { getEnglishWorksheetResourceForPathwayStep } from "@/lib/clean/resources/englishWorksheetResources";
+import type { WorksheetStepContext } from "@/lib/clean/resources/worksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+
+function getWorksheetResourceForPathwayStep(context: WorksheetStepContext) {
+  if (context.subjectKey === "english") {
+    return getEnglishWorksheetResourceForPathwayStep(context);
+  }
+  return getMathWorksheetResourceForPathwayStep(context);
+}
 import {
   buildUnifiedPathwayStepStateIndex,
   getUnifiedPathwayStepEvidenceCount,
