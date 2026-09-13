@@ -12,7 +12,7 @@ import {
   getPathwayStepById,
   getPathwayStepsByStrand,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
-import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
+import { getEnglishWorksheetResourceForPathwayStep } from "@/lib/clean/resources/englishWorksheetResources";
 
 const PREFIX_RE_PATHWAY_STEP_ID =
   "english::morphology-and-spelling::upper-elementary::u001-prefix-re";
@@ -78,13 +78,13 @@ describe("English Morphology & Spelling pathway foundation", () => {
   it("keeps the Morphology sequence extendable without inventing future units", () => {
     const steps = getPathwayStepsByStrand("english", "morphology-and-spelling");
 
-    expect(steps).toHaveLength(1);
+    expect(steps).toHaveLength(17);
     expect(steps[0]?.id).toBe(PREFIX_RE_PATHWAY_STEP_ID);
   });
 
-  it("does not expose a fake Prefix re- worksheet when the real PDF is absent", () => {
-    const assetExists = existsSync(EXPECTED_PREFIX_RE_PUBLIC_PATH);
-    const resource = getWorksheetResourceForPathwayStep({
+  it("resolves the real Prefix re- worksheet through the existing identity", () => {
+    expect(existsSync(EXPECTED_PREFIX_RE_PUBLIC_PATH)).toBe(true);
+    const resource = getEnglishWorksheetResourceForPathwayStep({
       pathwayStepId: PREFIX_RE_PATHWAY_STEP_ID,
       subjectKey: "english",
       strandKey: "morphology-and-spelling",
@@ -92,15 +92,11 @@ describe("English Morphology & Spelling pathway foundation", () => {
       stepKey: "u001-prefix-re",
     });
 
-    if (assetExists) {
-      expect(resource).toMatchObject({
-        fileName: PREFIX_RE_WORKSHEET_FILE,
-        subjectKey: "english",
-        strandKey: "morphology-and-spelling",
-        stageKey: "middle-primary",
-      });
-    } else {
-      expect(resource).toBeNull();
-    }
+    expect(resource).toMatchObject({
+      fileName: PREFIX_RE_WORKSHEET_FILE,
+      subjectKey: "english",
+      strandKey: "morphology-and-spelling",
+      stageKey: "upper-elementary",
+    });
   });
 });

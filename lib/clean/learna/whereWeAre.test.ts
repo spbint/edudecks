@@ -114,7 +114,8 @@ describe("Where We Are subject summaries", () => {
     expect(mathematics?.upNext?.stepTitle).toBe("Understand hundreds, tens and ones");
     expect(english?.workingOn?.stepTitle).toBe("Prefix re-");
     expect(english?.workingOn?.stageKey).toBe("upper-elementary");
-    expect(english?.upNext).toBeNull();
+    expect(english?.upNext?.stepTitle).toBe("Prefix Pre");
+    expect(english?.upNext?.id).toBe("english::morphology-and-spelling::upper-elementary::e-u003-prefix-pre");
   });
 
   it("keeps the historical Morphology identity aligned with the canonical Where We Are step", () => {

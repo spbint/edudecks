@@ -6,6 +6,9 @@ const ENGLISH_STAGE_KEY = "foundation-kindergarten";
 const ENGLISH_STAGE_DISPLAY = "Foundation / Kindergarten";
 const ENGLISH_LOWER_PRIMARY_STAGE_KEY = "lower-primary";
 const ENGLISH_LOWER_PRIMARY_STAGE_DISPLAY = "Lower Primary";
+const ENGLISH_MORPHOLOGY_STRAND_KEY = "morphology-and-spelling";
+const ENGLISH_MORPHOLOGY_STAGE_KEY = "upper-elementary";
+const ENGLISH_MORPHOLOGY_STAGE_DISPLAY = "Upper Elementary";
 
 function additionalEnglishWorksheetResource(
   stepNumber: number,
@@ -14,14 +17,15 @@ function additionalEnglishWorksheetResource(
   fileName: string,
   stageKey: string = ENGLISH_STAGE_KEY,
   stageDisplay: string = ENGLISH_STAGE_DISPLAY,
+  strandKey: string = ENGLISH_STRAND_KEY,
 ): WorksheetResource {
-  const pathwayStepId = `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${stageKey}::${stepKey}`;
-  const href = `/resources/worksheets/english/${ENGLISH_STRAND_KEY}/${stageKey}/${fileName}`;
+  const pathwayStepId = `${ENGLISH_SUBJECT_KEY}::${strandKey}::${stageKey}::${stepKey}`;
+  const href = `/resources/worksheets/english/${strandKey}/${stageKey}/${fileName}`;
   return {
     pathwayStepId,
     stepKey,
     subjectKey: ENGLISH_SUBJECT_KEY,
-    strandKey: ENGLISH_STRAND_KEY,
+    strandKey,
     stageKey,
     stageDisplay,
     stepNumber,
@@ -54,6 +58,55 @@ const EXTENDED_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
     fileName,
     ENGLISH_LOWER_PRIMARY_STAGE_KEY,
     ENGLISH_LOWER_PRIMARY_STAGE_DISPLAY,
+  ),
+);
+
+const MORPHOLOGY_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [2, "u001-prefix-re", "Prefix re-", "MYL-LIT-MORPH-UE-U001-Prefix-Re-Worksheet.pdf"],
+  [3, "e-u003-prefix-pre", "Prefix Pre", "MYL-LIT-MORPH-E-U003-Prefix-Pre-Worksheet.pdf"],
+  [4, "e-u004-prefix-mis", "Prefix Mis", "MYL-LIT-MORPH-E-U004-Prefix-Mis-Worksheet.pdf"],
+  [5, "e-u005-prefix-dis", "Prefix Dis", "MYL-LIT-MORPH-E-U005-Prefix-Dis-Worksheet.pdf"],
+  [6, "e-u006-prefix-sub", "Prefix Sub", "MYL-LIT-MORPH-E-U006-Prefix-Sub-Worksheet.pdf"],
+  [7, "e-u007-prefix-over-under", "Prefix Over Under", "MYL-LIT-MORPH-E-U007-Prefix-Over-Under-Worksheet.pdf"],
+  [8, "e-u008-suffixes-ful-less", "Suffixes Ful Less", "MYL-LIT-MORPH-E-U008-Suffixes-Ful-Less-Worksheet.pdf"],
+  [9, "e-u009-suffix-ness", "Suffix Ness", "MYL-LIT-MORPH-E-U009-Suffix-Ness-Worksheet.pdf"],
+  [10, "e-u010-suffix-ment", "Suffix Ment", "MYL-LIT-MORPH-E-U010-Suffix-Ment-Worksheet.pdf"],
+  [11, "e-u011-suffix-ly", "Suffix Ly", "MYL-LIT-MORPH-E-U011-Suffix-Ly-Worksheet.pdf"],
+  [12, "e-u012-suffix-able", "Suffix Able", "MYL-LIT-MORPH-E-U012-Suffix-Able-Worksheet.pdf"],
+  [13, "ue-u008-prefix-in-im-il-ir", "Prefix In Im Il Ir", "MYL-LIT-MORPH-UE-U008-Prefix-In-Im-Il-Ir-Worksheet.pdf"],
+  [14, "ue-u009-prefix-con-com-co", "Prefix Con Com Co", "MYL-LIT-MORPH-UE-U009-Prefix-Con-Com-Co-Worksheet.pdf"],
+  [15, "ue-u010-prefix-trans", "Prefix Trans", "MYL-LIT-MORPH-UE-U010-Prefix-Trans-Worksheet.pdf"],
+  [16, "ue-u011-prefix-inter", "Prefix Inter", "MYL-LIT-MORPH-UE-U011-Prefix-Inter-Worksheet.pdf"],
+  [17, "ue-u012-prefix-fore", "Prefix Fore", "MYL-LIT-MORPH-UE-U012-Prefix-Fore-Worksheet.pdf"],
+  [18, "ue-u013-prefix-mid", "Prefix Mid", "MYL-LIT-MORPH-UE-U013-Prefix-Mid-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_MORPHOLOGY_STAGE_KEY,
+    ENGLISH_MORPHOLOGY_STAGE_DISPLAY,
+    ENGLISH_MORPHOLOGY_STRAND_KEY,
+  ),
+);
+
+const SPELLING_CONVENTION_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [15, "ue-u002-drop-final-e", "Drop Final E", "MYL-LIT-MORPH-UE-U002-Drop-Final-E-Worksheet.pdf"],
+  [16, "ue-u003-double-final-consonant", "Double Final Consonant", "MYL-LIT-MORPH-UE-U003-Double-Final-Consonant-Worksheet.pdf"],
+  [17, "ue-u004-change-y-to-i", "Change Y to I", "MYL-LIT-MORPH-UE-U004-Change-Y-to-I-Worksheet.pdf"],
+  [18, "ue-u005-keep-the-base-word", "Keep the Base Word", "MYL-LIT-MORPH-UE-U005-Keep-the-Base-Word-Worksheet.pdf"],
+  [19, "ue-u006-compare-related-words", "Compare Related Words", "MYL-LIT-MORPH-UE-U006-Compare-Related-Words-Worksheet.pdf"],
+  [20, "ue-u007-explain-spelling", "Explain Spelling", "MYL-LIT-MORPH-UE-U007-Explain-Spelling-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_LOWER_PRIMARY_STAGE_KEY,
+    ENGLISH_LOWER_PRIMARY_STAGE_DISPLAY,
+    ENGLISH_STRAND_KEY,
   ),
 );
 
@@ -146,6 +199,8 @@ const resources: WorksheetResource[] = [
     additionalEnglishWorksheetResource(stepNumber, stepKey, title, fileName),
   ),
   ...EXTENDED_ENGLISH_WORKSHEET_RESOURCES,
+  ...MORPHOLOGY_ENGLISH_WORKSHEET_RESOURCES,
+  ...SPELLING_CONVENTION_ENGLISH_WORKSHEET_RESOURCES,
 ];
 
 export const ENGLISH_WORKSHEET_RESOURCES = resources;
