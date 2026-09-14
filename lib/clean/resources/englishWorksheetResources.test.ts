@@ -16,8 +16,8 @@ const BATCH_A = [
   ["KF-U002", "kf-u002-ending-sounds", "Ending Sounds", "MYL-LIT-MORPH-KF-U002-Ending-Sounds-Worksheet.pdf"],
   ["KF-U003", "kf-u003-segment-and-blend", "Segment and Blend", "MYL-LIT-MORPH-KF-U003-Segment-and-Blend-Worksheet.pdf"],
   ["KF-U004", "kf-u004-consonant-sounds", "Consonant Sounds", "MYL-LIT-MORPH-KF-U004-Consonant-Sounds-Worksheet.pdf"],
-  ["KF-U005", "kf-u005-short-vowel-a", "Short Vowel A", null],
-  ["KF-U006", "kf-u006-short-vowel-i", "Short Vowel I", null],
+  ["KF-U005", "kf-u005-short-vowel-a", "Short Vowel A", "MYL-LIT-MORPH-KF-U005-Short-Vowel-A-Worksheet.pdf"],
+  ["KF-U006", "kf-u006-short-vowel-i", "Short Vowel I", "MYL-LIT-MORPH-KF-U006-Short-Vowel-I-Worksheet.pdf"],
   ["KF-U011", "kf-u011-cvc-word-match", "CVC Word Match", "MYL-LIT-MORPH-KF-U011-CVC-Word-Match-Worksheet.pdf"],
 ] as const;
 
@@ -78,6 +78,7 @@ const BATCH_D = [
   ["ms-u013-prefix-per", "Prefix Per", "upper-primary", "MYL-LIT-MORPH-MS-U013-Prefix-Per-Worksheet.pdf"],
   ["ms-u014-prefix-pro", "Prefix Pro", "upper-primary", "MYL-LIT-MORPH-MS-U014-Prefix-Pro-Worksheet.pdf"],
   ["hsf-u001-prefix-contra-counter", "Prefix Contra Counter", "lower-secondary", "MYL-LIT-MORPH-HSF-U001-Prefix-Contra-Counter-Worksheet.pdf"],
+  ["hsf-u002-prefix-multi", "Prefix Multi", "lower-secondary", "MYL-LIT-MORPH-HSF-U002-Prefix-Multi-Worksheet.pdf"],
   ["hsf-u003-prefix-super", "Prefix Super", "lower-secondary", "MYL-LIT-MORPH-HSF-U003-Prefix-Super-Worksheet.pdf"],
   ["hsf-u004-prefix-semi", "Prefix Semi", "lower-secondary", "MYL-LIT-MORPH-HSF-U004-Prefix-Semi-Worksheet.pdf"],
   ["hsf-u005-suffix-ary", "Suffix Ary", "lower-secondary", "MYL-LIT-MORPH-HSF-U005-Suffix-Ary-Worksheet.pdf"],
@@ -96,9 +97,11 @@ const BATCH_E1 = [
   ["r-u005-root-tele", "Greek Root tele", "lower-secondary", "MYL-LIT-MORPH-R-U005-Greek-Root-Tele-Worksheet.pdf"],
   ["r-u006-root-chron", "Greek Root chron", "lower-secondary", "MYL-LIT-MORPH-R-U006-Greek-Root-Chron-Worksheet.pdf"],
   ["r-u007-root-morph", "Greek Root morph", "lower-secondary", "MYL-LIT-MORPH-R-U007-Greek-Root-Morph-Worksheet.pdf"],
+  ["r-u008-root-micro", "Greek Root micro", "lower-secondary", "MYL-LIT-MORPH-R-U008-Greek-Root-Micro-Worksheet.pdf"],
   ["r-u009-root-macro", "Greek Root macro", "lower-secondary", "MYL-LIT-MORPH-R-U009-Greek-Root-Macro-Worksheet.pdf"],
   ["r-u010-root-photo-phot", "Greek Roots photo / phot", "lower-secondary", "MYL-LIT-MORPH-R-U010-Greek-Root-Photo-Phot-Worksheet.pdf"],
   ["r-u011-root-therm", "Greek Root therm", "lower-secondary", "MYL-LIT-MORPH-R-U011-Greek-Root-Therm-Worksheet.pdf"],
+  ["r-u012-root-hydro", "Greek Root hydro", "lower-secondary", "MYL-LIT-MORPH-R-U012-Greek-Root-Hydro-Worksheet.pdf"],
   ["r-u013-root-astro-astr", "Greek Roots astro / astr", "lower-secondary", "MYL-LIT-MORPH-R-U013-Greek-Root-Astro-Worksheet.pdf"],
   ["r-u014-root-metr-meter", "Greek Roots metr / meter", "lower-secondary", "MYL-LIT-MORPH-R-U014-Greek-Root-Metr-Meter-Worksheet.pdf"],
   ["r-u016-root-auto", "Greek Root auto", "lower-secondary", "MYL-LIT-MORPH-R-U016-Greek-Root-Auto-Worksheet.pdf"],
@@ -125,9 +128,11 @@ const BATCH_E2 = [
   ["r-u034-root-mit-miss", "Latin Roots mit / miss", "lower-secondary", "MYL-LIT-MORPH-R-U034-Latin-Roots-Mit-Miss-Worksheet.pdf"],
   ["r-u035-root-duc-duct", "Latin Roots duc / duct", "lower-secondary", "MYL-LIT-MORPH-R-U035-Latin-Roots-Duc-Duct-Worksheet.pdf"],
   ["r-u036-root-fer", "Latin Root fer", "lower-secondary", "MYL-LIT-MORPH-R-U036-Latin-Root-Fer-Worksheet.pdf"],
+  ["r-u037-root-pend-pens", "Latin Roots pend / pens", "lower-secondary", "MYL-LIT-MORPH-R-U037-Latin-Roots-Pend-Pens-Worksheet.pdf"],
   ["r-u038-root-cred", "Latin Root cred", "lower-secondary", "MYL-LIT-MORPH-R-U038-Latin-Root-Cred-Worksheet.pdf"],
   ["r-u039-root-vid-vis", "Latin Roots vid / vis", "lower-secondary", "MYL-LIT-MORPH-R-U039-Latin-Roots-Vid-Vis-Worksheet.pdf"],
   ["r-u040-root-voc-vok", "Latin Roots voc / vok", "lower-secondary", "MYL-LIT-MORPH-R-U040-Latin-Roots-Voc-Vok-Worksheet.pdf"],
+  ["r-u058-root-mont", "Latin Root mont", "lower-secondary", "MYL-LIT-MORPH-R-U058-Latin-Root-Mont-Worksheet.pdf"],
 ] as const;
 
 const BATCH_E3 = [
@@ -161,7 +166,7 @@ describe("English Word Builders Batch A", () => {
     const steps = getPathwayStepsByStrand("english", "spelling-and-word-study");
     const batchSteps = steps.filter((step) => step.stepKey.startsWith("kf-u"));
 
-    expect(batchSteps).toHaveLength(20);
+    expect(batchSteps).toHaveLength(21);
     expect(new Set(batchSteps.map((step) => step.id)).size).toBe(batchSteps.length);
 
     BATCH_A.forEach(([, stepKey, title]) => {
@@ -175,7 +180,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(131);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(139);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({
@@ -212,6 +217,7 @@ describe("English Word Builders Batch A", () => {
       ["kf-u018-cvc-word-match-and-sort", "MYL-LIT-MORPH-KF-U018-CVC-Word-Match-and-Sort-Worksheet.pdf"],
       ["kf-u019-cvc-word-build-and-write", "MYL-LIT-MORPH-KF-U019-CVC-Word-Build-and-Write-Worksheet.pdf"],
       ["kf-u020-cvc-word-read-and-find", "MYL-LIT-MORPH-KF-U020-CVC-Word-Read-and-Find-Worksheet.pdf"],
+      ["kf-u021-cvc-word-fluency", "MYL-LIT-MORPH-KF-U021-CVC-Word-Fluency-Worksheet.pdf"],
     ] as const;
 
     continuation.forEach(([stepKey, fileName]) => {
@@ -386,8 +392,8 @@ describe("English Word Builders Batch A", () => {
     });
 
     expect(getEnglishWorksheetResourceForPathwayStep({
-      pathwayStepId: "english::morphology-and-spelling::lower-secondary::r-u008-root-micro",
-      stepKey: "r-u008-root-micro",
+      pathwayStepId: "english::morphology-and-spelling::lower-secondary::r-u015-root-scop-scope",
+      stepKey: "r-u015-root-scop-scope",
       subjectKey: "english",
       strandKey: "morphology-and-spelling",
       stageKey: "lower-secondary",

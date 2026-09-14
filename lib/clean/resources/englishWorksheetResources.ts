@@ -143,6 +143,7 @@ const MS_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
 
 const HSF_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   [1, "hsf-u001-prefix-contra-counter", "Prefix Contra Counter", "MYL-LIT-MORPH-HSF-U001-Prefix-Contra-Counter-Worksheet.pdf"],
+  [2, "hsf-u002-prefix-multi", "Prefix Multi", "MYL-LIT-MORPH-HSF-U002-Prefix-Multi-Worksheet.pdf"],
   [2, "hsf-u003-prefix-super", "Prefix Super", "MYL-LIT-MORPH-HSF-U003-Prefix-Super-Worksheet.pdf"],
   [3, "hsf-u004-prefix-semi", "Prefix Semi", "MYL-LIT-MORPH-HSF-U004-Prefix-Semi-Worksheet.pdf"],
   [4, "hsf-u005-suffix-ary", "Suffix Ary", "MYL-LIT-MORPH-HSF-U005-Suffix-Ary-Worksheet.pdf"],
@@ -181,6 +182,10 @@ const ROOTS_E1_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   [24, "r-u018-root-psych", "Greek Root psych", "MYL-LIT-MORPH-R-U018-Greek-Root-Psych-Worksheet.pdf"],
   [25, "r-u019-root-log-logy", "Greek Roots log / logy", "MYL-LIT-MORPH-R-U019-Greek-Root-Log-Logy-Worksheet.pdf"],
   [26, "r-u020-root-path", "Greek Root path", "MYL-LIT-MORPH-R-U020-Greek-Root-Path-Worksheet.pdf"],
+  [65, "r-u008-root-micro", "Greek Root micro", "MYL-LIT-MORPH-R-U008-Greek-Root-Micro-Worksheet.pdf"],
+  [66, "r-u012-root-hydro", "Greek Root hydro", "MYL-LIT-MORPH-R-U012-Greek-Root-Hydro-Worksheet.pdf"],
+  [67, "r-u037-root-pend-pens", "Latin Roots pend / pens", "MYL-LIT-MORPH-R-U037-Latin-Roots-Pend-Pens-Worksheet.pdf"],
+  [68, "r-u058-root-mont", "Latin Root mont", "MYL-LIT-MORPH-R-U058-Latin-Root-Mont-Worksheet.pdf"],
 ] as const).map(([stepNumber, stepKey, title, fileName]) =>
   additionalEnglishWorksheetResource(
     stepNumber,
@@ -342,6 +347,9 @@ const resources: WorksheetResource[] = [
     [20, "kf-u018-cvc-word-match-and-sort", "CVC Word Match and Sort", "MYL-LIT-MORPH-KF-U018-CVC-Word-Match-and-Sort-Worksheet.pdf"],
     [21, "kf-u019-cvc-word-build-and-write", "CVC Word Build and Write", "MYL-LIT-MORPH-KF-U019-CVC-Word-Build-and-Write-Worksheet.pdf"],
     [22, "kf-u020-cvc-word-read-and-find", "CVC Word Read and Find", "MYL-LIT-MORPH-KF-U020-CVC-Word-Read-and-Find-Worksheet.pdf"],
+    [7, "kf-u005-short-vowel-a", "Short Vowel A", "MYL-LIT-MORPH-KF-U005-Short-Vowel-A-Worksheet.pdf"],
+    [8, "kf-u006-short-vowel-i", "Short Vowel I", "MYL-LIT-MORPH-KF-U006-Short-Vowel-I-Worksheet.pdf"],
+    [23, "kf-u021-cvc-word-fluency", "CVC Word Fluency", "MYL-LIT-MORPH-KF-U021-CVC-Word-Fluency-Worksheet.pdf"],
   ] as const).map(([stepNumber, stepKey, title, fileName]) =>
     additionalEnglishWorksheetResource(stepNumber, stepKey, title, fileName),
   ),

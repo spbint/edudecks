@@ -78,7 +78,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
   it("keeps the Morphology sequence extendable without inventing future units", () => {
     const steps = getPathwayStepsByStrand("english", "morphology-and-spelling");
 
-    expect(steps).toHaveLength(95);
+    expect(steps).toHaveLength(100);
     expect(steps[0]?.id).toBe(PREFIX_RE_PATHWAY_STEP_ID);
   });
 
@@ -86,7 +86,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
     const steps = getPathwayStepsByStrand("english", "morphology-and-spelling");
     const roots = steps.filter((step) => step.stepKey.startsWith("r-u"));
 
-    expect(roots).toHaveLength(55);
+    expect(roots).toHaveLength(59);
     expect(roots.every((step) => step.stageKey === "lower-secondary")).toBe(true);
     expect(roots.map((step) => step.stepKey)).toEqual([
       "r-u001-root-bio",
@@ -96,9 +96,11 @@ describe("English Morphology & Spelling pathway foundation", () => {
       "r-u005-root-tele",
       "r-u006-root-chron",
       "r-u007-root-morph",
+      "r-u008-root-micro",
       "r-u009-root-macro",
       "r-u010-root-photo-phot",
       "r-u011-root-therm",
+      "r-u012-root-hydro",
       "r-u013-root-astro-astr",
       "r-u014-root-metr-meter",
       "r-u016-root-auto",
@@ -122,6 +124,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
       "r-u034-root-mit-miss",
       "r-u035-root-duc-duct",
       "r-u036-root-fer",
+      "r-u037-root-pend-pens",
       "r-u038-root-cred",
       "r-u039-root-vid-vis",
       "r-u040-root-voc-vok",
@@ -142,6 +145,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
       "r-u055-root-loc",
       "r-u056-root-mov-mot",
       "r-u057-root-nov",
+      "r-u058-root-mont",
       "r-u059-root-anim-anima",
       "r-u060-root-bene",
     ]);
