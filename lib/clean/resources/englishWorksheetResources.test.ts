@@ -355,6 +355,14 @@ describe("English Word Builders Batch A", () => {
       strandKey: "morphology-and-spelling",
       stageKey: "lower-secondary",
     })).toBeNull();
+
+    const hsfResources = ENGLISH_WORKSHEET_RESOURCES
+      .filter((resource) => resource.stepKey.startsWith("hsf-u"));
+    expect(hsfResources.map((resource) => resource.stepNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(new Set(hsfResources.map((resource) => resource.stepNumber)).size).toBe(10);
+    expect(hsfResources.every((resource) =>
+      resource.pathwayStepId === `english::morphology-and-spelling::lower-secondary::${resource.stepKey}`,
+    )).toBe(true);
   });
 
   it("maps the available Roots E1, E2, and E3 resources to lower-secondary morphology", () => {

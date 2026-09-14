@@ -151,6 +151,29 @@ describe("English Morphology & Spelling pathway foundation", () => {
     ]);
   });
 
+  it("keeps the HSF sequence numbered 1 through 10 without changing stable identities", () => {
+    const hsfSteps = getPathwayStepsByStrand("english", "morphology-and-spelling")
+      .filter((step) => step.stepKey.startsWith("hsf-u"));
+
+    expect(hsfSteps.map((step) => Number(step.legacyStepNumber))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(new Set(hsfSteps.map((step) => step.legacyStepNumber)).size).toBe(10);
+    expect(hsfSteps.map((step) => step.stepKey)).toEqual([
+      "hsf-u001-prefix-contra-counter",
+      "hsf-u002-prefix-multi",
+      "hsf-u003-prefix-super",
+      "hsf-u004-prefix-semi",
+      "hsf-u005-suffix-ary",
+      "hsf-u006-suffix-ative",
+      "hsf-u007-suffix-ous",
+      "hsf-u008-suffix-ate",
+      "hsf-u009-multiple-affixes",
+      "hsf-u010-unlock-academic-vocabulary",
+    ]);
+    expect(hsfSteps.map((step) => step.id)).toEqual(hsfSteps.map((step) =>
+      `english::morphology-and-spelling::lower-secondary::${step.stepKey}`,
+    ));
+  });
+
   it("resolves the real Prefix re- worksheet through the existing identity", () => {
     expect(existsSync(EXPECTED_PREFIX_RE_PUBLIC_PATH)).toBe(true);
     const resource = getEnglishWorksheetResourceForPathwayStep({

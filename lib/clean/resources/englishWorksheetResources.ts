@@ -144,17 +144,17 @@ const MS_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
 const HSF_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   [1, "hsf-u001-prefix-contra-counter", "Prefix Contra Counter", "MYL-LIT-MORPH-HSF-U001-Prefix-Contra-Counter-Worksheet.pdf"],
   [2, "hsf-u002-prefix-multi", "Prefix Multi", "MYL-LIT-MORPH-HSF-U002-Prefix-Multi-Worksheet.pdf"],
-  [2, "hsf-u003-prefix-super", "Prefix Super", "MYL-LIT-MORPH-HSF-U003-Prefix-Super-Worksheet.pdf"],
-  [3, "hsf-u004-prefix-semi", "Prefix Semi", "MYL-LIT-MORPH-HSF-U004-Prefix-Semi-Worksheet.pdf"],
-  [4, "hsf-u005-suffix-ary", "Suffix Ary", "MYL-LIT-MORPH-HSF-U005-Suffix-Ary-Worksheet.pdf"],
-  [5, "hsf-u006-suffix-ative", "Suffix Ative", "MYL-LIT-MORPH-HSF-U006-Suffix-Ative-Worksheet.pdf"],
-  [6, "hsf-u007-suffix-ous", "Suffix Ous", "MYL-LIT-MORPH-HSF-U007-Suffix-Ous-Worksheet.pdf"],
-  [7, "hsf-u008-suffix-ate", "Suffix Ate", "MYL-LIT-MORPH-HSF-U008-Suffix-Ate-Worksheet.pdf"],
-  [8, "hsf-u009-multiple-affixes", "Multiple Affixes", "MYL-LIT-MORPH-HSF-U009-Multiple-Affixes-Worksheet.pdf"],
-  [9, "hsf-u010-unlock-academic-vocabulary", "Unlock Academic Vocabulary", "MYL-LIT-MORPH-HSF-U010-Unlock-Academic-Vocabulary-Worksheet.pdf"],
-] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  [3, "hsf-u003-prefix-super", "Prefix Super", "MYL-LIT-MORPH-HSF-U003-Prefix-Super-Worksheet.pdf"],
+  [4, "hsf-u004-prefix-semi", "Prefix Semi", "MYL-LIT-MORPH-HSF-U004-Prefix-Semi-Worksheet.pdf"],
+  [5, "hsf-u005-suffix-ary", "Suffix Ary", "MYL-LIT-MORPH-HSF-U005-Suffix-Ary-Worksheet.pdf"],
+  [6, "hsf-u006-suffix-ative", "Suffix Ative", "MYL-LIT-MORPH-HSF-U006-Suffix-Ative-Worksheet.pdf"],
+  [7, "hsf-u007-suffix-ous", "Suffix Ous", "MYL-LIT-MORPH-HSF-U007-Suffix-Ous-Worksheet.pdf"],
+  [8, "hsf-u008-suffix-ate", "Suffix Ate", "MYL-LIT-MORPH-HSF-U008-Suffix-Ate-Worksheet.pdf"],
+  [9, "hsf-u009-multiple-affixes", "Multiple Affixes", "MYL-LIT-MORPH-HSF-U009-Multiple-Affixes-Worksheet.pdf"],
+  [10, "hsf-u010-unlock-academic-vocabulary", "Unlock Academic Vocabulary", "MYL-LIT-MORPH-HSF-U010-Unlock-Academic-Vocabulary-Worksheet.pdf"],
+] as const).map(([, stepKey, title, fileName], index) =>
   additionalEnglishWorksheetResource(
-    stepNumber,
+    index + 1,
     stepKey,
     title,
     fileName,
