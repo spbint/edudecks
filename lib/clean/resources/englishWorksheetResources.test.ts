@@ -130,6 +130,28 @@ const BATCH_E2 = [
   ["r-u040-root-voc-vok", "Latin Roots voc / vok", "lower-secondary", "MYL-LIT-MORPH-R-U040-Latin-Roots-Voc-Vok-Worksheet.pdf"],
 ] as const;
 
+const BATCH_E3 = [
+  ["r-u041-root-aud", "Latin Root aud", "lower-secondary", "MYL-LIT-MORPH-R-U041-Latin-Root-Aud-Worksheet.pdf"],
+  ["r-u042-root-cap-cept-cip", "Latin Roots cap / cept / cip", "lower-secondary", "MYL-LIT-MORPH-R-U042-Latin-Roots-Cap-Cept-Cip-Worksheet.pdf"],
+  ["r-u043-root-fac-fect-fic", "Latin Roots fac / fect / fic", "lower-secondary", "MYL-LIT-MORPH-R-U043-Latin-Roots-Fac-Fect-Fic-Worksheet.pdf"],
+  ["r-u044-root-grad-gress", "Latin Roots grad / gress", "lower-secondary", "MYL-LIT-MORPH-R-U044-Latin-Roots-Grad-Gress-Worksheet.pdf"],
+  ["r-u045-root-pos-pon", "Latin Roots pos / pon", "lower-secondary", "MYL-LIT-MORPH-R-U045-Latin-Roots-Pos-Pon-Worksheet.pdf"],
+  ["r-u046-root-ten-tain", "Latin Roots ten / tain", "lower-secondary", "MYL-LIT-MORPH-R-U046-Latin-Roots-Ten-Tain-Worksheet.pdf"],
+  ["r-u047-root-ven-vent", "Latin Roots ven / vent", "lower-secondary", "MYL-LIT-MORPH-R-U047-Latin-Roots-Ven-Vent-Worksheet.pdf"],
+  ["r-u048-root-ced-ceed-cess", "Latin Roots ced / ceed / cess", "lower-secondary", "MYL-LIT-MORPH-R-U048-Latin-Roots-Ced-Ceed-Cess-Worksheet.pdf"],
+  ["r-u049-root-form", "Latin Root form", "lower-secondary", "MYL-LIT-MORPH-R-U049-Latin-Root-Form-Worksheet.pdf"],
+  ["r-u050-root-terr", "Latin Root terr", "lower-secondary", "MYL-LIT-MORPH-R-U050-Latin-Root-Terr-Worksheet.pdf"],
+  ["r-u051-root-aqu-aqua", "Latin Roots aqu / aqua", "lower-secondary", "MYL-LIT-MORPH-R-U051-Latin-Roots-Aqu-Aqua-Worksheet.pdf"],
+  ["r-u052-root-ped", "Latin Root ped", "lower-secondary", "MYL-LIT-MORPH-R-U052-Latin-Root-Ped-Worksheet.pdf"],
+  ["r-u053-root-man-manu", "Latin Roots man / manu", "lower-secondary", "MYL-LIT-MORPH-R-U053-Latin-Roots-Man-Manu-Worksheet.pdf"],
+  ["r-u054-root-mar", "Latin Root mar", "lower-secondary", "MYL-LIT-MORPH-R-U054-Latin-Root-Mar-Worksheet.pdf"],
+  ["r-u055-root-loc", "Latin Root loc", "lower-secondary", "MYL-LIT-MORPH-R-U055-Latin-Root-Loc-Worksheet.pdf"],
+  ["r-u056-root-mov-mot", "Latin Roots mov / mot", "lower-secondary", "MYL-LIT-MORPH-R-U056-Latin-Roots-Mov-Mot-Worksheet.pdf"],
+  ["r-u057-root-nov", "Latin Root nov", "lower-secondary", "MYL-LIT-MORPH-R-U057-Latin-Root-Nov-Worksheet.pdf"],
+  ["r-u059-root-anim-anima", "Latin Roots anim / anima", "lower-secondary", "MYL-LIT-MORPH-R-U059-Latin-Roots-Anim-Anima-Worksheet.pdf"],
+  ["r-u060-root-bene", "Latin Root bene", "lower-secondary", "MYL-LIT-MORPH-R-U060-Latin-Root-Bene-Worksheet.pdf"],
+] as const;
+
 function publicPath(resource: { href: string }) {
   return path.join(process.cwd(), "public", resource.href.replace(/^\//, ""));
 }
@@ -153,7 +175,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(112);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(131);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({
@@ -329,14 +351,14 @@ describe("English Word Builders Batch A", () => {
     })).toBeNull();
   });
 
-  it("maps the available Roots E1 and E2 resources to lower-secondary morphology", () => {
+  it("maps the available Roots E1, E2, and E3 resources to lower-secondary morphology", () => {
     const morphologySteps = getPathwayStepsByStrand("english", "morphology-and-spelling");
     const rootSteps = morphologySteps.filter((step) => step.stepKey.startsWith("r-u"));
 
-    expect(rootSteps).toHaveLength(BATCH_E1.length + BATCH_E2.length);
+    expect(rootSteps).toHaveLength(BATCH_E1.length + BATCH_E2.length + BATCH_E3.length);
     expect(new Set(rootSteps.map((step) => step.id)).size).toBe(rootSteps.length);
 
-    [...BATCH_E1, ...BATCH_E2].forEach(([stepKey, title, stageKey, expectedFileName]) => {
+    [...BATCH_E1, ...BATCH_E2, ...BATCH_E3].forEach(([stepKey, title, stageKey, expectedFileName]) => {
       const pathwayStepId = `english::morphology-and-spelling::${stageKey}::${stepKey}`;
       expect(rootSteps).toContainEqual(expect.objectContaining({
         id: pathwayStepId,

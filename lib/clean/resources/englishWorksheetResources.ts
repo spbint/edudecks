@@ -225,6 +225,38 @@ const ROOTS_E2_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   ),
 );
 
+const ROOTS_E3_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [46, "r-u041-root-aud", "Latin Root aud", "MYL-LIT-MORPH-R-U041-Latin-Root-Aud-Worksheet.pdf"],
+  [47, "r-u042-root-cap-cept-cip", "Latin Roots cap / cept / cip", "MYL-LIT-MORPH-R-U042-Latin-Roots-Cap-Cept-Cip-Worksheet.pdf"],
+  [48, "r-u043-root-fac-fect-fic", "Latin Roots fac / fect / fic", "MYL-LIT-MORPH-R-U043-Latin-Roots-Fac-Fect-Fic-Worksheet.pdf"],
+  [49, "r-u044-root-grad-gress", "Latin Roots grad / gress", "MYL-LIT-MORPH-R-U044-Latin-Roots-Grad-Gress-Worksheet.pdf"],
+  [50, "r-u045-root-pos-pon", "Latin Roots pos / pon", "MYL-LIT-MORPH-R-U045-Latin-Roots-Pos-Pon-Worksheet.pdf"],
+  [51, "r-u046-root-ten-tain", "Latin Roots ten / tain", "MYL-LIT-MORPH-R-U046-Latin-Roots-Ten-Tain-Worksheet.pdf"],
+  [52, "r-u047-root-ven-vent", "Latin Roots ven / vent", "MYL-LIT-MORPH-R-U047-Latin-Roots-Ven-Vent-Worksheet.pdf"],
+  [53, "r-u048-root-ced-ceed-cess", "Latin Roots ced / ceed / cess", "MYL-LIT-MORPH-R-U048-Latin-Roots-Ced-Ceed-Cess-Worksheet.pdf"],
+  [54, "r-u049-root-form", "Latin Root form", "MYL-LIT-MORPH-R-U049-Latin-Root-Form-Worksheet.pdf"],
+  [55, "r-u050-root-terr", "Latin Root terr", "MYL-LIT-MORPH-R-U050-Latin-Root-Terr-Worksheet.pdf"],
+  [56, "r-u051-root-aqu-aqua", "Latin Roots aqu / aqua", "MYL-LIT-MORPH-R-U051-Latin-Roots-Aqu-Aqua-Worksheet.pdf"],
+  [57, "r-u052-root-ped", "Latin Root ped", "MYL-LIT-MORPH-R-U052-Latin-Root-Ped-Worksheet.pdf"],
+  [58, "r-u053-root-man-manu", "Latin Roots man / manu", "MYL-LIT-MORPH-R-U053-Latin-Roots-Man-Manu-Worksheet.pdf"],
+  [59, "r-u054-root-mar", "Latin Root mar", "MYL-LIT-MORPH-R-U054-Latin-Root-Mar-Worksheet.pdf"],
+  [60, "r-u055-root-loc", "Latin Root loc", "MYL-LIT-MORPH-R-U055-Latin-Root-Loc-Worksheet.pdf"],
+  [61, "r-u056-root-mov-mot", "Latin Roots mov / mot", "MYL-LIT-MORPH-R-U056-Latin-Roots-Mov-Mot-Worksheet.pdf"],
+  [62, "r-u057-root-nov", "Latin Root nov", "MYL-LIT-MORPH-R-U057-Latin-Root-Nov-Worksheet.pdf"],
+  [63, "r-u059-root-anim-anima", "Latin Roots anim / anima", "MYL-LIT-MORPH-R-U059-Latin-Roots-Anim-Anima-Worksheet.pdf"],
+  [64, "r-u060-root-bene", "Latin Root bene", "MYL-LIT-MORPH-R-U060-Latin-Root-Bene-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_HSF_STAGE_KEY,
+    ENGLISH_HSF_STAGE_DISPLAY,
+    ENGLISH_MORPHOLOGY_STRAND_KEY,
+  ),
+);
+
 const resources: WorksheetResource[] = [
   {
     pathwayStepId: `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${ENGLISH_STAGE_KEY}::kf-u001-beginning-sounds`,
@@ -320,6 +352,7 @@ const resources: WorksheetResource[] = [
   ...HSF_ENGLISH_WORKSHEET_RESOURCES,
   ...ROOTS_E1_ENGLISH_WORKSHEET_RESOURCES,
   ...ROOTS_E2_ENGLISH_WORKSHEET_RESOURCES,
+  ...ROOTS_E3_ENGLISH_WORKSHEET_RESOURCES,
 ];
 
 export const ENGLISH_WORKSHEET_RESOURCES = resources;
