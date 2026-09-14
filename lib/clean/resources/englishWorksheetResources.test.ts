@@ -105,6 +105,7 @@ const BATCH_E1 = [
   ["r-u017-root-demo-dem", "Greek Roots demo / dem", "lower-secondary", "MYL-LIT-MORPH-R-U017-Greek-Root-Demo-Dem-Worksheet.pdf"],
   ["r-u018-root-psych", "Greek Root psych", "lower-secondary", "MYL-LIT-MORPH-R-U018-Greek-Root-Psych-Worksheet.pdf"],
   ["r-u019-root-log-logy", "Greek Roots log / logy", "lower-secondary", "MYL-LIT-MORPH-R-U019-Greek-Root-Log-Logy-Worksheet.pdf"],
+  ["r-u020-root-path", "Greek Root path", "lower-secondary", "MYL-LIT-MORPH-R-U020-Greek-Root-Path-Worksheet.pdf"],
 ] as const;
 
 function publicPath(resource: { href: string }) {
@@ -130,7 +131,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(92);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(93);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({

@@ -78,7 +78,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
   it("keeps the Morphology sequence extendable without inventing future units", () => {
     const steps = getPathwayStepsByStrand("english", "morphology-and-spelling");
 
-    expect(steps).toHaveLength(56);
+    expect(steps).toHaveLength(57);
     expect(steps[0]?.id).toBe(PREFIX_RE_PATHWAY_STEP_ID);
   });
 
@@ -86,7 +86,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
     const steps = getPathwayStepsByStrand("english", "morphology-and-spelling");
     const roots = steps.filter((step) => step.stepKey.startsWith("r-u"));
 
-    expect(roots).toHaveLength(16);
+    expect(roots).toHaveLength(17);
     expect(roots.every((step) => step.stageKey === "lower-secondary")).toBe(true);
     expect(roots.map((step) => step.stepKey)).toEqual([
       "r-u001-root-bio",
@@ -105,6 +105,7 @@ describe("English Morphology & Spelling pathway foundation", () => {
       "r-u017-root-demo-dem",
       "r-u018-root-psych",
       "r-u019-root-log-logy",
+      "r-u020-root-path",
     ]);
   });
 
