@@ -108,6 +108,28 @@ const BATCH_E1 = [
   ["r-u020-root-path", "Greek Root path", "lower-secondary", "MYL-LIT-MORPH-R-U020-Greek-Root-Path-Worksheet.pdf"],
 ] as const;
 
+const BATCH_E2 = [
+  ["r-u021-root-gen", "Greek Root gen", "lower-secondary", "MYL-LIT-MORPH-R-U021-Greek-Root-Gen-Worksheet.pdf"],
+  ["r-u022-root-cycl", "Greek Root cycl", "lower-secondary", "MYL-LIT-MORPH-R-U022-Greek-Root-Cycl-Worksheet.pdf"],
+  ["r-u023-root-poly", "Greek Root poly", "lower-secondary", "MYL-LIT-MORPH-R-U023-Greek-Root-Poly-Worksheet.pdf"],
+  ["r-u024-root-mono", "Greek Root mono", "lower-secondary", "MYL-LIT-MORPH-R-U024-Greek-Root-Mono-Worksheet.pdf"],
+  ["r-u025-root-techn-techno", "Greek Roots techn / techno", "lower-secondary", "MYL-LIT-MORPH-R-U025-Greek-Root-Techn-Techno-Worksheet.pdf"],
+  ["r-u026-root-port", "Latin Root port", "lower-secondary", "MYL-LIT-MORPH-R-U026-Latin-Root-Port-Worksheet.pdf"],
+  ["r-u027-root-struct", "Latin Root struct", "lower-secondary", "MYL-LIT-MORPH-R-U027-Latin-Root-Struct-Worksheet.pdf"],
+  ["r-u028-root-spect", "Latin Root spect", "lower-secondary", "MYL-LIT-MORPH-R-U028-Latin-Root-Spect-Worksheet.pdf"],
+  ["r-u029-root-scrib-script", "Latin Roots scrib / script", "lower-secondary", "MYL-LIT-MORPH-R-U029-Latin-Roots-Scrib-Script-Worksheet.pdf"],
+  ["r-u030-root-tract", "Latin Root tract", "lower-secondary", "MYL-LIT-MORPH-R-U030-Latin-Root-Tract-Worksheet.pdf"],
+  ["r-u031-root-ject", "Latin Root ject", "lower-secondary", "MYL-LIT-MORPH-R-U031-Latin-Root-Ject-Worksheet.pdf"],
+  ["r-u032-root-dict", "Latin Root dict", "lower-secondary", "MYL-LIT-MORPH-R-U032-Latin-Root-Dict-Worksheet.pdf"],
+  ["r-u033-root-rupt", "Latin Root rupt", "lower-secondary", "MYL-LIT-MORPH-R-U033-Latin-Root-Rupt-Worksheet.pdf"],
+  ["r-u034-root-mit-miss", "Latin Roots mit / miss", "lower-secondary", "MYL-LIT-MORPH-R-U034-Latin-Roots-Mit-Miss-Worksheet.pdf"],
+  ["r-u035-root-duc-duct", "Latin Roots duc / duct", "lower-secondary", "MYL-LIT-MORPH-R-U035-Latin-Roots-Duc-Duct-Worksheet.pdf"],
+  ["r-u036-root-fer", "Latin Root fer", "lower-secondary", "MYL-LIT-MORPH-R-U036-Latin-Root-Fer-Worksheet.pdf"],
+  ["r-u038-root-cred", "Latin Root cred", "lower-secondary", "MYL-LIT-MORPH-R-U038-Latin-Root-Cred-Worksheet.pdf"],
+  ["r-u039-root-vid-vis", "Latin Roots vid / vis", "lower-secondary", "MYL-LIT-MORPH-R-U039-Latin-Roots-Vid-Vis-Worksheet.pdf"],
+  ["r-u040-root-voc-vok", "Latin Roots voc / vok", "lower-secondary", "MYL-LIT-MORPH-R-U040-Latin-Roots-Voc-Vok-Worksheet.pdf"],
+] as const;
+
 function publicPath(resource: { href: string }) {
   return path.join(process.cwd(), "public", resource.href.replace(/^\//, ""));
 }
@@ -131,7 +153,7 @@ describe("English Word Builders Batch A", () => {
   });
 
   it("maps only deployed PDFs to their exact registry identities and public files", () => {
-    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(93);
+    expect(ENGLISH_WORKSHEET_RESOURCES).toHaveLength(112);
 
     BATCH_A.forEach(([, stepKey, , expectedFileName]) => {
       const resource = getEnglishWorksheetResourceForPathwayStep({
@@ -307,14 +329,14 @@ describe("English Word Builders Batch A", () => {
     })).toBeNull();
   });
 
-  it("maps the available Roots E1 resources to lower-secondary morphology", () => {
+  it("maps the available Roots E1 and E2 resources to lower-secondary morphology", () => {
     const morphologySteps = getPathwayStepsByStrand("english", "morphology-and-spelling");
     const rootSteps = morphologySteps.filter((step) => step.stepKey.startsWith("r-u"));
 
-    expect(rootSteps).toHaveLength(BATCH_E1.length);
+    expect(rootSteps).toHaveLength(BATCH_E1.length + BATCH_E2.length);
     expect(new Set(rootSteps.map((step) => step.id)).size).toBe(rootSteps.length);
 
-    BATCH_E1.forEach(([stepKey, title, stageKey, expectedFileName]) => {
+    [...BATCH_E1, ...BATCH_E2].forEach(([stepKey, title, stageKey, expectedFileName]) => {
       const pathwayStepId = `english::morphology-and-spelling::${stageKey}::${stepKey}`;
       expect(rootSteps).toContainEqual(expect.objectContaining({
         id: pathwayStepId,

@@ -193,6 +193,38 @@ const ROOTS_E1_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
   ),
 );
 
+const ROOTS_E2_ENGLISH_WORKSHEET_RESOURCES: WorksheetResource[] = ([
+  [27, "r-u021-root-gen", "Greek Root gen", "MYL-LIT-MORPH-R-U021-Greek-Root-Gen-Worksheet.pdf"],
+  [28, "r-u022-root-cycl", "Greek Root cycl", "MYL-LIT-MORPH-R-U022-Greek-Root-Cycl-Worksheet.pdf"],
+  [29, "r-u023-root-poly", "Greek Root poly", "MYL-LIT-MORPH-R-U023-Greek-Root-Poly-Worksheet.pdf"],
+  [30, "r-u024-root-mono", "Greek Root mono", "MYL-LIT-MORPH-R-U024-Greek-Root-Mono-Worksheet.pdf"],
+  [31, "r-u025-root-techn-techno", "Greek Roots techn / techno", "MYL-LIT-MORPH-R-U025-Greek-Root-Techn-Techno-Worksheet.pdf"],
+  [32, "r-u026-root-port", "Latin Root port", "MYL-LIT-MORPH-R-U026-Latin-Root-Port-Worksheet.pdf"],
+  [33, "r-u027-root-struct", "Latin Root struct", "MYL-LIT-MORPH-R-U027-Latin-Root-Struct-Worksheet.pdf"],
+  [34, "r-u028-root-spect", "Latin Root spect", "MYL-LIT-MORPH-R-U028-Latin-Root-Spect-Worksheet.pdf"],
+  [35, "r-u029-root-scrib-script", "Latin Roots scrib / script", "MYL-LIT-MORPH-R-U029-Latin-Roots-Scrib-Script-Worksheet.pdf"],
+  [36, "r-u030-root-tract", "Latin Root tract", "MYL-LIT-MORPH-R-U030-Latin-Root-Tract-Worksheet.pdf"],
+  [37, "r-u031-root-ject", "Latin Root ject", "MYL-LIT-MORPH-R-U031-Latin-Root-Ject-Worksheet.pdf"],
+  [38, "r-u032-root-dict", "Latin Root dict", "MYL-LIT-MORPH-R-U032-Latin-Root-Dict-Worksheet.pdf"],
+  [39, "r-u033-root-rupt", "Latin Root rupt", "MYL-LIT-MORPH-R-U033-Latin-Root-Rupt-Worksheet.pdf"],
+  [40, "r-u034-root-mit-miss", "Latin Roots mit / miss", "MYL-LIT-MORPH-R-U034-Latin-Roots-Mit-Miss-Worksheet.pdf"],
+  [41, "r-u035-root-duc-duct", "Latin Roots duc / duct", "MYL-LIT-MORPH-R-U035-Latin-Roots-Duc-Duct-Worksheet.pdf"],
+  [42, "r-u036-root-fer", "Latin Root fer", "MYL-LIT-MORPH-R-U036-Latin-Root-Fer-Worksheet.pdf"],
+  [43, "r-u038-root-cred", "Latin Root cred", "MYL-LIT-MORPH-R-U038-Latin-Root-Cred-Worksheet.pdf"],
+  [44, "r-u039-root-vid-vis", "Latin Roots vid / vis", "MYL-LIT-MORPH-R-U039-Latin-Roots-Vid-Vis-Worksheet.pdf"],
+  [45, "r-u040-root-voc-vok", "Latin Roots voc / vok", "MYL-LIT-MORPH-R-U040-Latin-Roots-Voc-Vok-Worksheet.pdf"],
+] as const).map(([stepNumber, stepKey, title, fileName]) =>
+  additionalEnglishWorksheetResource(
+    stepNumber,
+    stepKey,
+    title,
+    fileName,
+    ENGLISH_HSF_STAGE_KEY,
+    ENGLISH_HSF_STAGE_DISPLAY,
+    ENGLISH_MORPHOLOGY_STRAND_KEY,
+  ),
+);
+
 const resources: WorksheetResource[] = [
   {
     pathwayStepId: `${ENGLISH_SUBJECT_KEY}::${ENGLISH_STRAND_KEY}::${ENGLISH_STAGE_KEY}::kf-u001-beginning-sounds`,
@@ -287,6 +319,7 @@ const resources: WorksheetResource[] = [
   ...MS_ENGLISH_WORKSHEET_RESOURCES,
   ...HSF_ENGLISH_WORKSHEET_RESOURCES,
   ...ROOTS_E1_ENGLISH_WORKSHEET_RESOURCES,
+  ...ROOTS_E2_ENGLISH_WORKSHEET_RESOURCES,
 ];
 
 export const ENGLISH_WORKSHEET_RESOURCES = resources;
