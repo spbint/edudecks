@@ -109,6 +109,7 @@ export function buildPublicAcquisitionParams(
 
 function isPublicRoute(pathname: string) {
   if (pathname === "/learn" || pathname.startsWith("/learn/")) return true;
+  if (pathname === "/word-builders" || pathname.startsWith("/word-builders/")) return true;
 
   return [
     "/",
@@ -149,7 +150,15 @@ export function trackPublicAcquisitionEvent(
     source,
     referrer: document.referrer || null,
   }, window.sessionStorage);
+  const campaign = params.get("utm_campaign");
+  const content = params.get("utm_content");
+  const medium = params.get("utm_medium");
   const acquisitionParams = buildPublicAcquisitionParams(publicSource, pathname, context);
+  Object.assign(acquisitionParams, {
+    ...(campaign ? { utm_campaign: campaign } : {}),
+    ...(content ? { utm_content: content } : {}),
+    ...(medium ? { utm_medium: medium } : {}),
+  });
 
   trackProductEvent(eventName, acquisitionParams);
 

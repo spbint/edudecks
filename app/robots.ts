@@ -24,6 +24,8 @@ const PUBLIC_ALLOW_PATHS = [
   "/homeschool-reporting",
   "/homeschool-planning",
   "/homeschool-maths-worksheets",
+  "/word-builders",
+  "/word-builders/",
 ];
 
 const PRIVATE_DISALLOW_PATHS = [
