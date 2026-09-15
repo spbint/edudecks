@@ -46,8 +46,8 @@ describe("My Day activation safeguards", () => {
   });
 
   it("makes adding today's learning the first-value action", () => {
-    expect(source).toContain("What are you learning today?");
-    expect(source).toContain("What are you learning on this day?");
+    expect(source).toContain("Today&apos;s learning");
+    expect(source).toContain("Learning on this day");
     expect(source).toContain("Add something for today");
     expect(source).toContain("Add something for this day");
     expect(source).toContain("Plan our Master Week");

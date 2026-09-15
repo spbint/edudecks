@@ -12,7 +12,7 @@ describe("Desktop My Day task-first presentation", () => {
 
     expect(headerIndex).toBeGreaterThan(-1);
     expect(itemsIndex).toBeGreaterThan(headerIndex);
-    expect(source).toContain('aria-label="Learner or family view"');
+    expect(source).toContain('aria-label="Filter by learner or family"');
     expect(desktopSource.slice(headerIndex, itemsIndex)).toContain("Capture learning");
   });
 

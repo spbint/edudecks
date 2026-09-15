@@ -80,11 +80,6 @@ import {
   getRecoverableLearningItems,
   type RecoverableLearningItem,
 } from "@/lib/clean/recovery/recoverMyWeek";
-import {
-  clearLearnerHelpRequest,
-  listActiveLearnerHelpRequests,
-} from "@/lib/clean/learnerHelp/client";
-import type { LearnerHelpRequest } from "@/lib/clean/learnerHelp/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -417,8 +412,6 @@ function OnDeckSection({
   selectedLearnerId,
   updatingId,
   userId,
-  helpRequests = [],
-  onClearHelp,
   onAddResource,
   onRemoveResource,
   onUploadPdf,
@@ -434,8 +427,6 @@ function OnDeckSection({
   selectedLearnerId: string;
   updatingId: string;
   userId?: string | null;
-  helpRequests?: LearnerHelpRequest[];
-  onClearHelp?: (requestId: string) => void;
   onAddResource?: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource?: (resourceId: string) => Promise<void>;
   onUploadPdf?: (customLearningItemId: string, file: File) => Promise<void>;
@@ -585,12 +576,6 @@ function OnDeckSection({
                     <p style={{ margin: 0, color: "#475569", fontSize: 13, lineHeight: 1.5 }}>{item.customNote}</p>
                   ) : null}
                   {item.sourceType === "custom_learning" && onAddResource && onRemoveResource && onUploadPdf ? <CustomResourceControls item={item} onAddResource={onAddResource} onRemoveResource={onRemoveResource} onUploadPdf={onUploadPdf} /> : null}
-                  {helpRequests.filter((request) => request.sourceType === "on_deck_item" && request.sourceId === item.id).map((request) => (
-                    <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
-                      <strong>{learnerLabel} needs help</strong>
-                      {onClearHelp ? <button type="button" onClick={() => onClearHelp(request.id)} style={{ ...actionStyle, color: "#92400e", borderColor: "#fcd34d", background: "#fffbeb" }}>Got it</button> : null}
-                    </div>
-                  ))}
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -754,26 +739,6 @@ function RecoverMyWeekSection({
   );
 }
 
-type LearnerViewEntryProps = {
-  compact?: boolean;
-  learnerOptions: Array<{ value: string; label: string }>;
-  selectedLearnerId: string;
-};
-
-function LearnerViewEntry({ compact = false, learnerOptions, selectedLearnerId }: LearnerViewEntryProps) {
-  if (!learnerOptions.length) return null;
-  const selectedLearner = learnerOptions.find((option) => option.value === selectedLearnerId);
-  const linkStyle: React.CSSProperties = { minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 11, padding: "10px 12px", fontSize: 14, fontWeight: 800, textDecoration: "none", border: "1px solid #c4b5fd", background: "#ffffff", color: "#5b21b6" };
-  const headingId = compact ? "mobile-learner-view-title" : "learner-view-title";
-  const description = "Let a learner see today's work and choose what to do next.";
-  const sectionStyle: React.CSSProperties = { border: "1px solid #ddd6fe", borderRadius: 14, background: "#fafaff", padding: compact ? 12 : 14, display: "grid", gap: 8, minWidth: compact ? 0 : 280 };
-  if (selectedLearner || learnerOptions.length === 1) {
-    const learner = selectedLearner ?? learnerOptions[0]!;
-    return <section aria-labelledby={headingId} style={sectionStyle}><div><p style={{ margin: 0, color: "#5b21b6", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learner view</p><p id={headingId} style={{ margin: "4px 0 0", color: "#475569", fontSize: 14 }}>{description}</p></div><Link href={`/learner-view?learner_id=${encodeURIComponent(learner.value)}`} style={{ ...linkStyle, width: "fit-content" }}>{selectedLearner ? `Open ${learner.label}'s learner view` : `Open ${learner.label}'s learner view`}</Link></section>;
-  }
-  return <section aria-labelledby={headingId} style={sectionStyle}><div><p style={{ margin: 0, color: "#5b21b6", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learner view</p><h2 id={headingId} style={{ margin: "4px 0 0", color: "#17204b", fontSize: compact ? 16 : 18 }}>Who is learning?</h2><p style={{ margin: "4px 0 0", color: "#475569", fontSize: 14 }}>{description}</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{learnerOptions.map((learner) => <Link key={learner.value} href={`/learner-view?learner_id=${encodeURIComponent(learner.value)}`} style={linkStyle}>{`Open ${learner.label}'s learner view`}</Link>)}</div></section>;
-}
-
 type MobileTodayContentProps = {
   calendarHref: string;
   completionError: { itemId: string; message: string } | null;
@@ -795,8 +760,6 @@ type MobileTodayContentProps = {
   onCompletionToggle: (item: CleanCalendarItem) => void;
   onLearnerChange: (learnerId: string) => void;
   onDeckItems: OnDeckResolvedItem[];
-  helpRequests: LearnerHelpRequest[];
-  onClearHelp: (requestId: string) => void;
   onDeckError: string | null;
   onDeckUpdatingId: string;
   onMoveOnDeckItem: (itemId: string, learnerId: string, direction: "up" | "down") => void;
@@ -845,8 +808,6 @@ function MobileTodayContent({
   onCompletionToggle,
   onLearnerChange,
   onDeckItems,
-  helpRequests,
-  onClearHelp,
   onDeckError,
   onDeckUpdatingId,
   onMoveOnDeckItem,
@@ -896,10 +857,6 @@ function MobileTodayContent({
     textDecoration: "none",
   };
 
-  const helpFor = (sourceId: string) => helpRequests.filter(
-    (request) => request.sourceType === "calendar_item" && request.sourceId === sourceId,
-  );
-
   return (
     <main
       className="mylearna-mobile-today"
@@ -943,8 +900,6 @@ function MobileTodayContent({
       ) : selectedLearnerLabel ? (
         <p style={{ margin: 0, color: "#475569", fontSize: 14, fontWeight: 700 }}>{selectedLearnerLabel}</p>
       ) : null}
-
-      <LearnerViewEntry compact learnerOptions={learnerOptions} selectedLearnerId={selectedLearnerId} />
 
       {workspaceLoading ? (
         <section style={mobileCardStyle} aria-live="polite">Loading today&apos;s learning...</section>
@@ -1019,7 +974,6 @@ function MobileTodayContent({
                     </button>
                   </div>
                   {completionError?.itemId === item.id ? <span role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{completionError.message}</span> : null}
-                  {helpFor(item.id).map((request) => <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}><strong>{learnerLabelById.get(request.learnerId) || "Learner"} needs help</strong><button type="button" onClick={() => onClearHelp(request.id)} style={{ ...actionStyle, border: "1px solid #fcd34d", background: "#fffbeb", color: "#92400e" }}>Got it</button></div>)}
                 </article>
               );
             }) : null}
@@ -1044,8 +998,6 @@ function MobileTodayContent({
           <OnDeckSection
             compact
             items={onDeckItems}
-            helpRequests={helpRequests}
-            onClearHelp={onClearHelp}
             onAddResource={onAddResource}
             onRemoveResource={onRemoveResource}
             onUploadPdf={onUploadPdf}
@@ -1101,8 +1053,6 @@ function CleanDayWorkspaceBody() {
   const [evidenceEntries, setEvidenceEntries] = useState<CleanEvidenceEntry[]>([]);
   const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
   const [onDeckError, setOnDeckError] = useState<string | null>(null);
-  const [helpRequests, setHelpRequests] = useState<LearnerHelpRequest[]>([]);
-  const [helpError, setHelpError] = useState<string | null>(null);
   const [onDeckUpdatingId, setOnDeckUpdatingId] = useState("");
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
@@ -1137,8 +1087,6 @@ function CleanDayWorkspaceBody() {
   const firstValueChoiceTrackedRef = useRef(false);
   const [setupStatusReadyOnce, setSetupStatusReadyOnce] = useState(false);
   const [resourceOptions, setResourceOptions] = useState<FamilyResource[]>([]);
-  const helpRequestSourceKey = `${selectedLearnerId}:${items.map((item) => item.id).join(",")}:${onDeckItems.map((item) => item.id).join(",")}`;
-
   useEffect(() => {
     if (!workspace.profile?.id) return;
     void listFamilyResources(workspace.profile.id).then(setResourceOptions).catch(() => setResourceOptions([]));
@@ -1481,27 +1429,6 @@ function CleanDayWorkspaceBody() {
     };
   }, [dayReloadNonce, today, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
 
-  useEffect(() => {
-    let active = true;
-    async function loadHelpRequests() {
-      if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation || !selectedLearnerId) {
-        setHelpRequests([]);
-        return;
-      }
-      try {
-        const requests = await listActiveLearnerHelpRequests(workspace.profile.id);
-        if (!active) return;
-        const calendarIds = new Set(items.filter((item) => !selectedLearnerId || item.learnerId === selectedLearnerId || item.learnerId === null).map((item) => item.id));
-        const queueIds = new Set(onDeckItems.filter((item) => !selectedLearnerId || item.learnerId === selectedLearnerId).map((item) => item.id));
-        setHelpRequests(requests.filter((request) => (!selectedLearnerId || request.learnerId === selectedLearnerId) && ((request.sourceType === "calendar_item" && calendarIds.has(request.sourceId)) || (request.sourceType === "on_deck_item" && queueIds.has(request.sourceId)))));
-        setHelpError(null);
-      } catch (error) {
-        if (active) setHelpError(normalizeCleanErrorMessage(error, "We could not load help requests just now."));
-      }
-    }
-    void loadHelpRequests();
-    return () => { active = false; };
-  }, [helpRequestSourceKey, items, onDeckItems, selectedLearnerId, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
   useEffect(() => {
     if (!workspace.learners.length) {
       setSelectedLearnerId("");
@@ -1967,17 +1894,6 @@ function CleanDayWorkspaceBody() {
     }
   }
 
-  async function handleClearHelp(requestId: string) {
-    if (!workspace.profile) return;
-    try {
-      await clearLearnerHelpRequest(workspace.profile.id, requestId);
-      setHelpRequests((current) => current.filter((request) => request.id !== requestId));
-      trackProductEvent("parent_help_acknowledged", { actorType: "parent" }, user?.id);
-    } catch (error) {
-      setHelpError(normalizeCleanErrorMessage(error, "We could not clear this help request just now."));
-    }
-  }
-
   async function handleMoveOnDeckItem(
     itemId: string,
     learnerId: string,
@@ -2289,8 +2205,6 @@ function CleanDayWorkspaceBody() {
           recoverError={recoveryError}
           onKeepRecoveryInFocus={(item) => void handleKeepRecoveryInFocus(item)}
           onDeckItems={resolvedOnDeckItems}
-          helpRequests={helpRequests}
-          onClearHelp={(requestId) => void handleClearHelp(requestId)}
           onAddResource={(input) => handleAddCustomResource(input)}
           onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
           onUploadPdf={(customLearningItemId, file) => handleUploadCustomPdf(customLearningItemId, file)}
@@ -2476,7 +2390,6 @@ function CleanDayWorkspaceBody() {
             Loading this day&apos;s plan...
           </section>
         ) : null}
-        {helpError ? <section role="alert" style={{ ...cardStyle, color: "#92400e" }}>We could not load help requests just now.</section> : null}
         {readyForDay && (myDayPresentationState === "RETURNING_EMPTY" || myDayPresentationState === "POPULATED_DAY") ? (
           <nav className="mylearna-day-essential-navigator" aria-label="My Day date navigation">
             <button type="button" onClick={() => router.push(buildDayPath(addDays(selectedDate, -1)))} style={secondaryButtonStyle} aria-label="Go to previous day">
@@ -2602,7 +2515,7 @@ function CleanDayWorkspaceBody() {
               ) : null}
               {myDayPresentationState === "READY_FOR_FIRST_VALUE" ? (
                 <>
-                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "What are you learning today?" : "What are you learning on this day?"}</h1>
+                  <h1 id="my-day-activation-title" style={{ margin: 0, color: "#17204b", fontSize: 28 }}>{isViewingToday ? "Today&apos;s learning" : "Learning on this day"}</h1>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Add one thing to get started. You can plan more whenever you need to.</p>
                   <div style={{ display: "grid", gap: 10, width: "min(100%, 480px)" }}>
                     <button type="button" onClick={() => { trackFirstValueChoice("add-today"); openQuickAdd(); }} style={primaryButtonStyle}>{isViewingToday ? "Add something for today" : "Add something for this day"}</button>
@@ -2667,7 +2580,7 @@ function CleanDayWorkspaceBody() {
                     <label style={{ display: "grid", gap: 5, color: "#64748b", fontSize: 12, fontWeight: 800 }}>
                       Viewing
                       <select
-                        aria-label="Learner or family view"
+                        aria-label="Filter by learner or family"
                         value={selectedLearnerId}
                         onChange={(event) => handleLearnerChange(event.target.value)}
                         style={compactInputStyle}
@@ -2680,7 +2593,6 @@ function CleanDayWorkspaceBody() {
                         ))}
                       </select>
                     </label>
-                    <LearnerViewEntry learnerOptions={learnerOptions} selectedLearnerId={selectedLearnerId} />
                     <Link href={quickCaptureHref} style={{ ...primaryButtonStyle, textDecoration: "none" }}>
                       Capture learning
                     </Link>
@@ -3219,12 +3131,6 @@ function CleanDayWorkspaceBody() {
                                   Quick Capture
                                 </Link>
                               )}
-                              {helpRequests.filter((request) => request.sourceType === "calendar_item" && request.sourceId === item.id).map((request) => (
-                                <div key={request.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: "#92400e" }}>
-                                  <strong>{learnerLabelById.get(request.learnerId) || "Learner"} needs help</strong>
-                                  <button type="button" onClick={() => void handleClearHelp(request.id)} style={{ ...secondaryButtonStyle, padding: "7px 10px", color: "#92400e", borderColor: "#fcd34d", background: "#fffbeb" }}>Got it</button>
-                                </div>
-                              ))}
                               <Link
                                 href={calendarPathBase}
                                 style={{ color: "#1d4ed8", fontWeight: 700 }}
@@ -3285,8 +3191,6 @@ function CleanDayWorkspaceBody() {
 
             <OnDeckSection
               items={resolvedOnDeckItems}
-              helpRequests={helpRequests}
-              onClearHelp={(requestId) => void handleClearHelp(requestId)}
               onAddResource={(input) => handleAddCustomResource(input)}
               onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
               onUploadPdf={handleUploadCustomPdf}

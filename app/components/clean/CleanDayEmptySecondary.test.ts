@@ -12,16 +12,16 @@ describe("empty My Day secondary workspace", () => {
 
   it("uses scheduled language and keeps secondary entry points outside the calendar read", () => {
     expect(source).toContain("Nothing scheduled for today yet.");
-    expect(source).toContain("<LearnerViewEntry learnerOptions={learnerOptions}");
+    expect(source).not.toContain("LearnerViewEntry");
     expect(source).toContain("<OnDeckSection");
     expect(source).toContain("listLearningQueueItems(");
     expect(source).toContain("listCleanCalendarItems(");
     expect(source).not.toContain("createCleanCalendarItem(.*OnDeck");
   });
 
-  it("keeps learner-specific queue filtering and direct learner-view navigation", () => {
+  it("keeps learner-specific family filtering without a learner-operated mode", () => {
     expect(source).toContain("selectedLearnerId || null");
-    expect(source).toContain("/learner-view?learner_id=");
-    expect(source).toContain("Open ${learner.label}'s learner view");
+    expect(source).not.toContain("/learner-view");
+    expect(source).not.toContain("Open ${learner.label}'s learner view");
   });
 });

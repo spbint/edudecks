@@ -3,11 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations/20260912100000_add_learner_help_requests.sql"), "utf8");
-const learnerView = readFileSync(join(process.cwd(), "app/components/clean/CleanLearnerViewWorkspace.tsx"), "utf8");
 const day = readFileSync(join(process.cwd(), "app/components/clean/CleanDayWorkspace.tsx"), "utf8");
+const learnerViewRoute = readFileSync(join(process.cwd(), "app/(learner-view)/learner-view/page.tsx"), "utf8");
 
-describe("learner help signal", () => {
-  it("uses one active source identity per learner and protects family access with RLS", () => {
+describe("retired learner-operated help signal", () => {
+  it("retains the historical table migration with family-scoped RLS", () => {
     expect(migration).toContain("create table if not exists public.learner_help_requests");
     expect(migration).toContain("source_type in ('calendar_item', 'on_deck_item')");
     expect(migration).toContain("learner_help_requests_active_source_idx");
@@ -16,19 +16,16 @@ describe("learner help signal", () => {
     expect(migration).toContain("public.is_family_member(family_id)");
   });
 
-  it("keeps help actions tied to real Today and On Deck source IDs", () => {
-    expect(learnerView).toContain('toggleHelp("calendar_item", item.id)');
-    expect(learnerView).toContain('toggleHelp("on_deck_item", resolved.item.id)');
-    expect(learnerView).toContain("I need help");
-    expect(learnerView).toContain("I’m okay now");
-    expect(day).toContain("parent_help_acknowledged");
-    expect(day).toContain("needs help");
-    expect(day).toContain("Got it");
+  it("removes learner-operated help from the active parent product", () => {
+    expect(day).not.toContain("learner_help_requests");
+    expect(day).not.toContain("helpRequests");
+    expect(day).not.toContain("helpError");
+    expect(day).not.toContain("I need help");
+    expect(day).not.toContain("Got it");
+    expect(day).not.toContain("needs help");
   });
 
-  it("keeps help loading secondary to the existing My Day core", () => {
-    expect(day).toContain("listActiveLearnerHelpRequests");
-    expect(day).toContain("helpError");
-    expect(day).not.toContain("helpRequests && itemsLoading");
+  it("retires the old route instead of rendering learner UI", () => {
+    expect(learnerViewRoute).toContain('redirect(learnerId ? `/my-day?learner_id=${encodeURIComponent(learnerId)}` : "/my-day")');
   });
 });
