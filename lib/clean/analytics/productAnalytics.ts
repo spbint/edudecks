@@ -34,6 +34,8 @@ const SAFE_PROPERTY_KEYS = new Set([
   "hasEndTime",
   "viewType",
   "source",
+  "from_priority",
+  "to_priority",
   "position",
   "queueSize",
   "entryType",

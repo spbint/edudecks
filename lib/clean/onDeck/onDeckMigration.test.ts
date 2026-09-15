@@ -14,6 +14,10 @@ const customMigration = readFileSync(
   "supabase/migrations/20260912040441_custom_learning_on_deck.sql",
   "utf8",
 );
+const priorityMigration = readFileSync(
+  "supabase/migrations/20260915110046_adaptive_on_deck_priorities.sql",
+  "utf8",
+);
 
 describe("On Deck persistence migration", () => {
   it("creates a family and learner scoped learning queue table", () => {
@@ -74,5 +78,24 @@ describe("On Deck persistence migration", () => {
     expect(customMigration).toContain("source_type, custom_learning_item_id");
     expect(customMigration).not.toContain("pathway_step_id = 'custom'");
     expect(customMigration).not.toContain("stage_key = 'custom'");
+  });
+
+  it("adds only date-free queue priority with a safe default and index", () => {
+    expect(priorityMigration).toContain(
+      "add column if not exists priority text not null default 'flexible'",
+    );
+    expect(priorityMigration).toContain(
+      "learning_queue_items_priority_check",
+    );
+    expect(priorityMigration).toContain(
+      "priority in ('must_do', 'flexible', 'extra')",
+    );
+    expect(priorityMigration).toContain(
+      "learning_queue_items_family_learner_priority_position_idx",
+    );
+    expect(priorityMigration).not.toContain("calendar_items");
+    expect(priorityMigration).not.toContain("evidence_entries");
+    expect(priorityMigration).not.toContain("due_date");
+    expect(priorityMigration).not.toContain("scheduled_date");
   });
 });

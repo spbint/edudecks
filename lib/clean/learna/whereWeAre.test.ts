@@ -90,6 +90,7 @@ function onDeck(
     stepKey: registryItem.stepKey,
     pathwayStepId: registryItem.id,
     displayTitle: registryItem.stepTitle,
+    priority: "flexible",
     position: 0,
     createdByUserId: "user-a",
     createdAt: "2026-09-08T10:00:00.000Z",

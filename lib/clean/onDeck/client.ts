@@ -8,6 +8,7 @@ import {
   sortLearningQueueItems,
   toLearningQueueItem,
   type LearningQueueItem,
+  type LearningQueuePriority,
   type LearningQueueItemRow,
 } from "@/lib/clean/onDeck/learningQueue";
 import type { PathwayStepRegistryItem } from "@/lib/clean/pathways/pathwayStepRegistry";
@@ -15,9 +16,9 @@ import { attachFamilyResourceToCustomLearning, createFamilyResource, normalizeFa
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,family_resource_id,position,resource_file:family_resource_files(original_filename,object_path,status),family_resource:family_resources(id,name,url,reference_text,resource_file_id,resource_file:family_resource_files(original_filename,object_path,byte_size,status))))";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,priority,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,family_resource_id,position,resource_file:family_resource_files(original_filename,object_path,status),family_resource:family_resources(id,name,url,reference_text,resource_file_id,resource_file:family_resource_files(original_filename,object_path,byte_size,status))))";
 const LEARNING_QUEUE_CORE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,priority,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
 
 export const ON_DECK_NOT_READY_MESSAGE =
   "On Deck is not ready yet. Please try again shortly.";
@@ -273,6 +274,25 @@ export async function removeLearningQueueItem(familyId: string, itemId: string) 
       normalizeOnDeckError(response.error, "We could not remove this On Deck item."),
     );
   }
+}
+
+export async function updateLearningQueueItemPriority(
+  familyId: string,
+  itemId: string,
+  priority: LearningQueuePriority,
+) {
+  const response = await supabase
+    .from("learning_queue_items")
+    .update({ priority })
+    .eq("family_id", familyId)
+    .eq("id", itemId)
+    .select(LEARNING_QUEUE_SELECT)
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(normalizeOnDeckError(response.error, "We could not update this On Deck priority."));
+  }
+  return toLearningQueueItem(response.data as LearningQueueItemRow);
 }
 
 export async function moveLearningQueueItem(

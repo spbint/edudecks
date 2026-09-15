@@ -56,14 +56,18 @@ import {
   listLearningQueueItems,
   moveLearningQueueItem,
   removeLearningQueueItem,
+  updateLearningQueueItemPriority,
   removeCustomLearningResource,
 } from "@/lib/clean/onDeck/client";
 import { isAllowedResourcePdf, openCustomLearningPdf, resourceFileSizeLabel, uploadCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
 import { attachFamilyResourceToCustomLearning, listFamilyResources, type FamilyResource } from "@/lib/clean/resources/familyResources";
 import {
   resolveOnDeckItem,
+  LEARNING_QUEUE_PRIORITY_LABELS,
+  LEARNING_QUEUE_PRIORITIES,
   sortLearningQueueItems,
   type LearningQueueItem,
+  type LearningQueuePriority,
   type OnDeckResolvedItem,
 } from "@/lib/clean/onDeck/learningQueue";
 import {
@@ -407,6 +411,7 @@ function OnDeckSection({
   learnerLabelById,
   onMove,
   onRemove,
+  onPriorityChange,
   pathwaysHref,
   whereWeAreHref,
   selectedLearnerId,
@@ -423,6 +428,7 @@ function OnDeckSection({
   learnerLabelById: Map<string, string>;
   onMove: (itemId: string, learnerId: string, direction: "up" | "down") => void;
   onRemove: (itemId: string) => void;
+  onPriorityChange: (itemId: string, priority: LearningQueuePriority) => void;
   pathwaysHref: string;
   whereWeAreHref: string;
   selectedLearnerId: string;
@@ -449,7 +455,11 @@ function OnDeckSection({
     color: "#17204b",
     cursor: "pointer",
   };
-  const showReorder = selectedLearnerId && items.length > 1;
+  const groupedItems = LEARNING_QUEUE_PRIORITIES.map((priority) => ({
+    priority,
+    items: items.filter((entry) => entry.item.priority === priority),
+  })).filter((group) => group.items.length);
+  const visibleQueueItems = groupedItems.flatMap((group) => group.items).slice(0, 8);
 
   return (
     <section
@@ -505,7 +515,14 @@ function OnDeckSection({
         </div>
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
-          {items.slice(0, 8).map((resolved, index) => {
+          {groupedItems.map((group) => {
+            const visibleItems = group.items.filter((item) => visibleQueueItems.includes(item));
+            if (!visibleItems.length) return null;
+            return <React.Fragment key={group.priority}>
+              <h3 style={{ margin: "8px 0 0", color: "#17204b", fontSize: compact ? 15 : 17 }}>
+                {LEARNING_QUEUE_PRIORITY_LABELS[group.priority]}
+              </h3>
+              {visibleItems.map((resolved, index) => {
             const { item } = resolved;
             const learnerLabel = learnerLabelById.get(item.learnerId) || "Learner";
             const busy = updatingId === item.id;
@@ -547,6 +564,18 @@ function OnDeckSection({
                   >
                     {resolved.title}
                   </h3>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 6, width: "fit-content", color: "#475569", fontSize: 13, fontWeight: 750 }}>
+                    Priority
+                    <select
+                      aria-label={`Priority for ${resolved.title}`}
+                      value={item.priority}
+                      onChange={(event) => onPriorityChange(item.id, event.target.value as LearningQueuePriority)}
+                      disabled={busy}
+                      style={{ minHeight: 36, border: "1px solid #cbd5e1", borderRadius: 8, padding: "5px 8px", color: "#17204b", background: "#ffffff" }}
+                    >
+                      {LEARNING_QUEUE_PRIORITIES.map((priority) => <option key={priority} value={priority}>{LEARNING_QUEUE_PRIORITY_LABELS[priority]}</option>)}
+                    </select>
+                  </label>
                   {resolved.pathwayLabel || resolved.stageLabel ? (
                     <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
                       {[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}
@@ -587,7 +616,7 @@ function OnDeckSection({
                       Open step
                     </Link>
                   ) : null}
-                  {showReorder ? (
+                  {selectedLearnerId && visibleItems.length > 1 ? (
                     <>
                       <button
                         type="button"
@@ -601,9 +630,9 @@ function OnDeckSection({
                       <button
                         type="button"
                         onClick={() => onMove(item.id, item.learnerId, "down")}
-                        disabled={busy || index === items.length - 1}
+                        disabled={busy || index === visibleItems.length - 1}
                         aria-label={`Move ${resolved.title} down`}
-                        style={{ ...actionStyle, opacity: busy || index === items.length - 1 ? 0.55 : 1 }}
+                        style={{ ...actionStyle, opacity: busy || index === visibleItems.length - 1 ? 0.55 : 1 }}
                       >
                         Move down
                       </button>
@@ -620,6 +649,8 @@ function OnDeckSection({
                 </div>
               </article>
             );
+              })}
+            </React.Fragment>;
           })}
         </div>
       )}
@@ -770,6 +801,7 @@ type MobileTodayContentProps = {
   onDeckUpdatingId: string;
   onMoveOnDeckItem: (itemId: string, learnerId: string, direction: "up" | "down") => void;
   onRemoveOnDeckItem: (itemId: string) => void;
+  onPriorityChange: (itemId: string, priority: LearningQueuePriority) => void;
   onMoveDay: (offset: number) => void;
   onRetry: () => void;
   onToday: () => void;
@@ -819,6 +851,7 @@ function MobileTodayContent({
   onDeckUpdatingId,
   onMoveOnDeckItem,
   onRemoveOnDeckItem,
+  onPriorityChange,
   onMoveDay,
   onRetry,
   onToday,
@@ -1019,6 +1052,7 @@ function MobileTodayContent({
             learnerLabelById={learnerLabelById}
             onMove={onMoveOnDeckItem}
             onRemove={onRemoveOnDeckItem}
+            onPriorityChange={onPriorityChange}
             pathwaysHref={pathwaysHref}
             whereWeAreHref={whereWeAreHref}
             selectedLearnerId={selectedLearnerId}
@@ -1983,6 +2017,39 @@ function CleanDayWorkspaceBody() {
     }
   }
 
+  async function handleChangeOnDeckPriority(itemId: string, priority: LearningQueuePriority) {
+    if (!workspace.profile) return;
+    const item = onDeckItems.find((entry) => entry.id === itemId);
+    if (!item || item.priority === priority) return;
+    setOnDeckUpdatingId(itemId);
+    setOnDeckError(null);
+    try {
+      const updatedItem = await updateLearningQueueItemPriority(
+        workspace.profile.id,
+        itemId,
+        priority,
+      );
+      setOnDeckItems((current) => current.map((entry) => entry.id === itemId ? updatedItem : entry));
+      trackProductEvent(
+        "on_deck_priority_changed",
+        {
+          from_priority: item.priority,
+          to_priority: priority,
+          source: item.sourceType,
+          subjectKey: item.subjectKey,
+          area: item.customLearningArea,
+        },
+        user?.id,
+      );
+    } catch (error) {
+      setOnDeckError(
+        normalizeCleanErrorMessage(error, "We could not update this On Deck priority."),
+      );
+    } finally {
+      setOnDeckUpdatingId("");
+    }
+  }
+
   async function handleKeepRecoveryInFocus(recoveryItem: RecoverableLearningItem) {
     if (!workspace.profile || !recoveryItem.registryItem || !recoveryItem.calendarItem.learnerId) return;
 
@@ -2236,6 +2303,7 @@ function CleanDayWorkspaceBody() {
           }
           onMoveDay={(offset) => router.push(buildDayPath(addDays(selectedDate, offset)))}
           onRemoveOnDeckItem={(itemId) => void handleRemoveOnDeckItem(itemId)}
+          onPriorityChange={(itemId, priority) => void handleChangeOnDeckPriority(itemId, priority)}
           onRetry={() => setDayReloadNonce((current) => current + 1)}
           onToday={() => router.push(buildDayPath(today))}
           pathwaysHref={currentPathwayHref}
@@ -3227,6 +3295,7 @@ function CleanDayWorkspaceBody() {
                 void handleMoveOnDeckItem(itemId, learnerId, direction)
               }
               onRemove={(itemId) => void handleRemoveOnDeckItem(itemId)}
+              onPriorityChange={(itemId, priority) => void handleChangeOnDeckPriority(itemId, priority)}
               pathwaysHref={currentPathwayHref}
               whereWeAreHref={buildLearnerContextHref("/my-learna", selectedLearnerId)}
               selectedLearnerId={selectedLearnerId}

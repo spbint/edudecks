@@ -10,7 +10,13 @@ import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { listLearningQueueItems, moveLearningQueueItem } from "@/lib/clean/onDeck/client";
 import { openCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
-import { resolveOnDeckItem, sortLearningQueueItems, type LearningQueueItem } from "@/lib/clean/onDeck/learningQueue";
+import {
+  LEARNING_QUEUE_PRIORITY_LABELS,
+  LEARNING_QUEUE_PRIORITIES,
+  resolveOnDeckItem,
+  sortLearningQueueItems,
+  type LearningQueueItem,
+} from "@/lib/clean/onDeck/learningQueue";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 import {
   clearLearnerHelpRequest,
@@ -119,6 +125,13 @@ export default function CleanLearnerViewWorkspace() {
     () => sortLearningQueueItems(queueItems).map((item) => resolveOnDeckItem(item, "/my-pathways")),
     [queueItems],
   );
+  const groupedQueue = useMemo(
+    () => LEARNING_QUEUE_PRIORITIES.map((priority) => ({
+      priority,
+      items: resolvedQueue.filter((entry) => entry.item.priority === priority),
+    })).filter((group) => group.items.length),
+    [resolvedQueue],
+  );
 
   async function toggleDone(item: CleanCalendarItem) {
     if (!workspace.profile || busyItemId === item.id) return;
@@ -137,7 +150,11 @@ export default function CleanLearnerViewWorkspace() {
 
   async function chooseNext(itemId: string) {
     if (!workspace.profile || busyItemId === itemId) return;
-    const currentIndex = resolvedQueue.findIndex((entry) => entry.item.id === itemId);
+    const selected = resolvedQueue.find((entry) => entry.item.id === itemId);
+    const currentGroup = selected
+      ? resolvedQueue.filter((entry) => entry.item.priority === selected.item.priority)
+      : [];
+    const currentIndex = currentGroup.findIndex((entry) => entry.item.id === itemId);
     if (currentIndex <= 0) return;
     setBusyItemId(itemId);
     setError(null);
@@ -147,7 +164,7 @@ export default function CleanLearnerViewWorkspace() {
         nextItems = await moveLearningQueueItem(workspace.profile.id, selectedLearnerId, itemId, "up");
       }
       setQueueItems(nextItems);
-      trackProductEvent("learner_on_deck_chosen_next", { subjectKey: resolvedQueue[currentIndex]?.item.subjectKey || null, onDeckCount: queueItems.length }, user?.id);
+    trackProductEvent("learner_on_deck_chosen_next", { subjectKey: selected?.item.subjectKey || null, onDeckCount: queueItems.length }, user?.id);
     } catch (reason) {
       setError(normalizeCleanErrorMessage(reason, "We could not choose this learning next."));
     } finally {
@@ -205,7 +222,7 @@ export default function CleanLearnerViewWorkspace() {
           <section aria-labelledby="learner-on-deck-title" style={cardStyle}>
             <LearnerCustomNotes items={resolvedQueue} />
             <div style={{ display: "grid", gap: 5 }}><p style={{ margin: 0, color: "#2563eb", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>On Deck</p><h2 id="learner-on-deck-title" style={{ margin: 0, color: "#17204b", fontSize: 22 }}>Choose what&apos;s next</h2><p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>Learning that is ready when you are.</p></div>
-            {!resolvedQueue.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing else is in focus right now.</p> : <div style={{ display: "grid", gap: 10 }}>{resolvedQueue.map((resolved) => { const request = helpRequests.find((entry) => entry.sourceType === "on_deck_item" && entry.sourceId === resolved.item.id); const helpKey = helpSourceKey("on_deck_item", resolved.item.id); return <article key={resolved.item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 9 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{resolved.subjectLabel}{resolved.worksheetAvailable ? " · Worksheet available" : ""}</div><h3 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{resolved.title}</h3>{resolved.pathwayLabel || resolved.stageLabel ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}</p> : null}<LearnerResources item={resolved.item} />{request ? <span role="status" style={{ color: "#92400e", fontWeight: 800 }}>✓ Help requested</span> : null}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => void chooseNext(resolved.item.id)} disabled={busyItemId === resolved.item.id || resolved.item.position === 0} aria-label={`Do ${resolved.title} next`} style={{ ...actionStyle, width: "fit-content", color: "#ffffff", background: "#6c4df6", border: "1px solid #6c4df6", opacity: busyItemId === resolved.item.id || resolved.item.position === 0 ? 0.6 : 1 }}>{resolved.item.position === 0 ? "✓ Next" : busyItemId === resolved.item.id ? "Saving..." : "Do this next"}</button><button type="button" onClick={() => void toggleHelp("on_deck_item", resolved.item.id)} disabled={busyItemId === helpKey} aria-label={request ? `I’m okay now about ${resolved.title}` : `I need help with ${resolved.title}`} style={{ ...actionStyle, width: "fit-content", color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", opacity: busyItemId === helpKey ? 0.6 : 1 }}>{busyItemId === helpKey ? "Saving..." : request ? "I’m okay now" : "I need help"}</button></div></article>; })}</div>}
+            {!resolvedQueue.length ? <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>Nothing else is in focus right now.</p> : <div style={{ display: "grid", gap: 14 }}>{groupedQueue.map((group) => <section key={group.priority} aria-labelledby={`learner-on-deck-${group.priority}`} style={{ display: "grid", gap: 10 }}><h3 id={`learner-on-deck-${group.priority}`} style={{ margin: 0, color: "#17204b", fontSize: 16 }}>{LEARNING_QUEUE_PRIORITY_LABELS[group.priority]}</h3>{group.items.map((resolved, groupIndex) => { const request = helpRequests.find((entry) => entry.sourceType === "on_deck_item" && entry.sourceId === resolved.item.id); const helpKey = helpSourceKey("on_deck_item", resolved.item.id); const isFirstInGroup = groupIndex === 0; return <article key={resolved.item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gap: 9 }}><div style={{ display: "grid", gap: 5 }}><div style={{ color: "#64748b", fontSize: 13, fontWeight: 750 }}>{resolved.subjectLabel}{resolved.worksheetAvailable ? " · Worksheet available" : ""}</div><h4 style={{ margin: 0, color: "#17204b", fontSize: 17 }}>{resolved.title}</h4>{resolved.pathwayLabel || resolved.stageLabel ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{[resolved.pathwayLabel, resolved.stageLabel].filter(Boolean).join(" / ")}</p> : null}<LearnerResources item={resolved.item} />{request ? <span role="status" style={{ color: "#92400e", fontWeight: 800 }}>✓ Help requested</span> : null}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => void chooseNext(resolved.item.id)} disabled={busyItemId === resolved.item.id || isFirstInGroup} aria-label={`Do ${resolved.title} next`} style={{ ...actionStyle, width: "fit-content", color: "#ffffff", background: "#6c4df6", border: "1px solid #6c4df6", opacity: busyItemId === resolved.item.id || isFirstInGroup ? 0.6 : 1 }}>{isFirstInGroup ? "✓ Next" : busyItemId === resolved.item.id ? "Saving..." : "Do this next"}</button><button type="button" onClick={() => void toggleHelp("on_deck_item", resolved.item.id)} disabled={busyItemId === helpKey} aria-label={request ? `I’m okay now about ${resolved.title}` : `I need help with ${resolved.title}`} style={{ ...actionStyle, width: "fit-content", color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", opacity: busyItemId === helpKey ? 0.6 : 1 }}>{busyItemId === helpKey ? "Saving..." : request ? "I’m okay now" : "I need help"}</button></div></article>; })}</section>)}</div>}
           </section>
         </> : null}
       </div>

@@ -6,6 +6,7 @@ import {
   getOnDeckRegistryItem,
   isPathwayStepEligibleForOnDeck,
   resolveOnDeckItem,
+  groupLearningQueueItems,
   sortLearningQueueItems,
   toLearningQueueItem,
   type LearningQueueItem,
@@ -32,6 +33,7 @@ function item(
     stepKey: registryItem.stepKey,
     pathwayStepId: registryItem.id,
     displayTitle: registryItem.stepTitle,
+    priority: "flexible",
     position: 0,
     createdByUserId: "user-a",
     createdAt: "2026-09-08T00:00:00.000Z",
@@ -53,6 +55,7 @@ describe("On Deck learning queue", () => {
       step_key: "extend-place-value-to-larger-numbers",
       pathway_step_id:
         "mathematics::number-and-place-value::upper-primary::extend-place-value-to-larger-numbers",
+      priority: "must_do",
       display_title: "Extend place value",
       position: 2,
       created_by_user_id: "user-a",
@@ -64,6 +67,7 @@ describe("On Deck learning queue", () => {
     expect(normalized.familyId).toBe("family-a");
     expect(normalized.learnerId).toBe("learner-a");
     expect(normalized.position).toBe(2);
+    expect(normalized.priority).toBe("must_do");
   });
 
   it("uses learner and canonical step identity for duplicate prevention", () => {
@@ -159,11 +163,28 @@ describe("On Deck learning queue", () => {
     expect(sorted.map((entry) => entry.id)).toEqual(["first", "second", "third"]);
   });
 
+  it("groups priorities before applying the existing position order", () => {
+    const groups = groupLearningQueueItems([
+      item({ id: "extra-a", priority: "extra", position: 0 }),
+      item({ id: "must-b", priority: "must_do", position: 1 }),
+      item({ id: "flexible-c", priority: "flexible", position: 2 }),
+      item({ id: "must-d", priority: "must_do", position: 3 }),
+      item({ id: "extra-e", priority: "extra", position: 4 }),
+    ]);
+
+    expect(groups.map((group) => group.items.map((entry) => entry.id))).toEqual([
+      ["must-b", "must-d"],
+      ["flexible-c"],
+      ["extra-a", "extra-e"],
+    ]);
+  });
+
   it("calculates move up and move down position updates only for the queue", () => {
     const queue = [
-      item({ id: "first", position: 0 }),
-      item({ id: "second", position: 1 }),
-      item({ id: "third", position: 2 }),
+      item({ id: "first", priority: "flexible", position: 0 }),
+      item({ id: "second", priority: "flexible", position: 1 }),
+      item({ id: "third", priority: "flexible", position: 2 }),
+      item({ id: "extra", priority: "extra", position: 3 }),
     ];
 
     expect(getLearningQueueMoveUpdates(queue, "second", "up")).toEqual([

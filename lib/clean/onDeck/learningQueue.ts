@@ -20,6 +20,19 @@ import {
 } from "@/lib/clean/resources/mathWorksheetResources";
 
 export type LearningQueueSourceType = "pathway_step" | "custom_learning";
+export type LearningQueuePriority = "must_do" | "flexible" | "extra";
+
+export const LEARNING_QUEUE_PRIORITIES: readonly LearningQueuePriority[] = [
+  "must_do",
+  "flexible",
+  "extra",
+];
+
+export const LEARNING_QUEUE_PRIORITY_LABELS: Record<LearningQueuePriority, string> = {
+  must_do: "Must do",
+  flexible: "Flexible",
+  extra: "Extra",
+};
 
 export type LearningQueueItem = {
   id: string;
@@ -32,6 +45,7 @@ export type LearningQueueItem = {
   stepKey: string | null;
   pathwayStepId: string | null;
   customLearningItemId: string | null;
+  priority: LearningQueuePriority;
   customTitle: string | null;
   customLearningArea: string | null;
   customNote: string | null;
@@ -67,6 +81,7 @@ export type LearningQueueItemRow = {
   step_key?: string | null;
   pathway_step_id?: string | null;
   custom_learning_item_id?: string | null;
+  priority?: string | null;
   custom_learning_item?: {
     id?: string | null;
     title?: string | null;
@@ -138,6 +153,12 @@ function normalizeSourceType(value: unknown): LearningQueueSourceType {
   return safe(value) === "custom_learning" ? "custom_learning" : "pathway_step";
 }
 
+function normalizePriority(value: unknown): LearningQueuePriority {
+  return LEARNING_QUEUE_PRIORITIES.includes(value as LearningQueuePriority)
+    ? (value as LearningQueuePriority)
+    : "flexible";
+}
+
 export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueItem {
   const resources = (row.custom_learning_item?.custom_learning_resources ?? [])
     .map((resource) => {
@@ -170,6 +191,7 @@ export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueIte
     stepKey: normalizeNullString(row.step_key),
     pathwayStepId: normalizeNullString(row.pathway_step_id),
     customLearningItemId: normalizeNullString(row.custom_learning_item_id),
+    priority: normalizePriority(row.priority),
     customTitle: normalizeNullString(row.custom_learning_item?.title),
     customLearningArea: normalizeNullString(row.custom_learning_item?.learning_area),
     customNote: normalizeNullString(row.custom_learning_item?.note),
@@ -185,10 +207,18 @@ export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueIte
 export function sortLearningQueueItems(items: readonly LearningQueueItem[]) {
   return [...items].sort(
     (left, right) =>
+      LEARNING_QUEUE_PRIORITIES.indexOf(left.priority) - LEARNING_QUEUE_PRIORITIES.indexOf(right.priority) ||
       left.position - right.position ||
       safe(left.createdAt).localeCompare(safe(right.createdAt)) ||
       left.id.localeCompare(right.id),
   );
+}
+
+export function groupLearningQueueItems(items: readonly LearningQueueItem[]) {
+  return LEARNING_QUEUE_PRIORITIES.map((priority) => ({
+    priority,
+    items: sortLearningQueueItems(items.filter((item) => item.priority === priority)),
+  }));
 }
 
 export function isPathwayStepEligibleForOnDeck(
@@ -302,7 +332,11 @@ export function getLearningQueueMoveUpdates(
   itemId: string,
   direction: "up" | "down",
 ): LearningQueuePositionUpdate[] {
-  const sorted = sortLearningQueueItems(items);
+  const movingItem = items.find((item) => item.id === itemId);
+  if (!movingItem) return [];
+  const sorted = sortLearningQueueItems(
+    items.filter((item) => item.priority === movingItem.priority),
+  );
   const index = sorted.findIndex((item) => item.id === itemId);
   if (index < 0) return [];
 
