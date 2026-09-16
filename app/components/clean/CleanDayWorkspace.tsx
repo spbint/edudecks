@@ -407,6 +407,7 @@ function OnDeckSection({
   onMove,
   onRemove,
   onPriorityChange,
+  onCapture,
   pathwaysHref,
   whereWeAreHref,
   selectedLearnerId,
@@ -422,6 +423,7 @@ function OnDeckSection({
   onMove: (itemId: string, learnerId: string, direction: "up" | "down") => void;
   onRemove: (itemId: string) => void;
   onPriorityChange: (itemId: string, priority: LearningQueuePriority) => void;
+  onCapture: (item: LearningQueueItem) => void;
   pathwaysHref: string;
   whereWeAreHref: string;
   selectedLearnerId: string;
@@ -601,6 +603,16 @@ function OnDeckSection({
                       Open step
                     </Link>
                   ) : null}
+                  {resolved.available ? (
+                    <button
+                      type="button"
+                      onClick={() => onCapture(item)}
+                      disabled={busy}
+                      style={{ ...actionStyle, borderColor: "#2563eb", color: "#1d4ed8" }}
+                    >
+                      Capture learning
+                    </button>
+                  ) : null}
                   {selectedLearnerId && visibleItems.length > 1 ? (
                     <>
                       <button
@@ -765,6 +777,7 @@ type MobileTodayContentProps = {
   onMoveOnDeckItem: (itemId: string, learnerId: string, direction: "up" | "down") => void;
   onRemoveOnDeckItem: (itemId: string) => void;
   onPriorityChange: (itemId: string, priority: LearningQueuePriority) => void;
+  onCapture: (item: LearningQueueItem) => void;
   onMoveDay: (offset: number) => void;
   onRetry: () => void;
   onToday: () => void;
@@ -813,6 +826,7 @@ function MobileTodayContent({
   onMoveOnDeckItem,
   onRemoveOnDeckItem,
   onPriorityChange,
+  onCapture,
   onMoveDay,
   onRetry,
   onToday,
@@ -998,6 +1012,7 @@ function MobileTodayContent({
           <OnDeckSection
             compact
             items={onDeckItems}
+            onCapture={onCapture}
             onAddResource={onAddResource}
             onRemoveResource={onRemoveResource}
             onUploadPdf={onUploadPdf}
@@ -1311,6 +1326,18 @@ function CleanDayWorkspaceBody() {
   const quickCaptureLearnerId = selectedLearnerId || accountSetup.activeLearnerId || "";
   const quickCaptureHref = `${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(buildDayPath(selectedDate))}${quickCaptureLearnerId ? `&learner_id=${encodeURIComponent(quickCaptureLearnerId)}` : ""}`;
   const mobileQuickCaptureHref = `${capturePathBase}?mode=quick&returnTo=${encodeURIComponent(mobileDayReturnHref)}${quickCaptureLearnerId ? `&learner_id=${encodeURIComponent(quickCaptureLearnerId)}` : ""}`;
+  const buildOnDeckCaptureHref = useMemo(
+    () => (item: LearningQueueItem) => {
+      const params = new URLSearchParams({
+        source: "on_deck",
+        queue_item_id: item.id,
+        learner_id: item.learnerId,
+        returnTo: buildLearnerContextHref(buildDayPath(selectedDate), item.learnerId),
+      });
+      return `${capturePathBase}?${params.toString()}`;
+    },
+    [buildDayPath, capturePathBase, selectedDate],
+  );
   const defaultQuickAddLearnerId = useMemo(() => {
     if (selectedLearnerId && workspace.learners.some((learner) => learner.id === selectedLearnerId)) {
       return selectedLearnerId;
@@ -2218,6 +2245,15 @@ function CleanDayWorkspaceBody() {
           onMoveDay={(offset) => router.push(buildDayPath(addDays(selectedDate, offset)))}
           onRemoveOnDeckItem={(itemId) => void handleRemoveOnDeckItem(itemId)}
           onPriorityChange={(itemId, priority) => void handleChangeOnDeckPriority(itemId, priority)}
+          onCapture={(item) => {
+            trackProductEvent("on_deck_capture_selected", {
+              source_type: item.sourceType,
+              priority: item.priority,
+              subject: item.subjectKey || item.customLearningArea,
+              return_surface: "my_day",
+            }, user?.id);
+            router.push(buildOnDeckCaptureHref(item));
+          }}
           onRetry={() => setDayReloadNonce((current) => current + 1)}
           onToday={() => router.push(buildDayPath(today))}
           pathwaysHref={currentPathwayHref}
@@ -3200,6 +3236,15 @@ function CleanDayWorkspaceBody() {
               }
               onRemove={(itemId) => void handleRemoveOnDeckItem(itemId)}
               onPriorityChange={(itemId, priority) => void handleChangeOnDeckPriority(itemId, priority)}
+              onCapture={(item) => {
+                trackProductEvent("on_deck_capture_selected", {
+                  source_type: item.sourceType,
+                  priority: item.priority,
+                  subject: item.subjectKey || item.customLearningArea,
+                  return_surface: "my_day",
+                }, user?.id);
+                router.push(buildOnDeckCaptureHref(item));
+              }}
               pathwaysHref={currentPathwayHref}
               whereWeAreHref={buildLearnerContextHref("/my-learna", selectedLearnerId)}
               selectedLearnerId={selectedLearnerId}

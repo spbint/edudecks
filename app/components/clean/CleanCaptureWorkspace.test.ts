@@ -61,6 +61,25 @@ describe("My Capture success receipt", () => {
     expect(source).toContain('const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")');
   });
 
+  it("resolves safe On Deck context and keeps the saved item in focus", () => {
+    expect(source).toContain('searchParams.get("source") === "on_deck"');
+    expect(source).toContain("listLearningQueueItems(workspace.profile.id)");
+    expect(source).toContain("getOnDeckRegistryItem(onDeckContextItem.pathwayStepId)");
+    expect(source).toContain("pathwayKey: onDeckContextItem.strandKey");
+    expect(source).toContain("From On Deck");
+    expect(source).toContain("This item is still On Deck.");
+    expect(source).toContain("Remove from On Deck");
+    expect(source).toContain("removeLearningQueueItem(workspace.profile.id, lastSavedOnDeckItemId)");
+    expect(source).toContain("Evidence records what happened; it does not remove your current focus.");
+  });
+
+  it("does not place custom learning text in the On Deck navigation URL", () => {
+    expect(source).toContain("queue_item_id");
+    expect(source).not.toContain('params.set("title"');
+    expect(source).not.toContain('params.set("note"');
+    expect(source).not.toContain('params.set("resourceUrl"');
+  });
+
   it("hydrates saved inclusion choices for edits and restores true defaults for a new record", () => {
     expect(source).toContain("setLifeAddToPortfolio(entry.includeInPortfolio);");
     expect(source).toContain("setLifeIncludeInReport(entry.includeInReport);");

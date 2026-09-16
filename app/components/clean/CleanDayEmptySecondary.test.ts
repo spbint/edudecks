@@ -24,4 +24,12 @@ describe("empty My Day secondary workspace", () => {
     expect(source).not.toContain("/learner-view");
     expect(source).not.toContain("Open ${learner.label}'s learner view");
   });
+
+  it("hands On Deck capture to the existing Capture route without serialising item text", () => {
+    expect(source).toContain('source: "on_deck"');
+    expect(source).toContain('queue_item_id: item.id');
+    expect(source).toContain('returnTo: buildLearnerContextHref(buildDayPath(selectedDate), item.learnerId)');
+    expect(source).toContain("Capture learning");
+    expect(source).not.toContain("customNote: item.customNote");
+  });
 });

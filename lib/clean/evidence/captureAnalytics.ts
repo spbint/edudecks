@@ -1,6 +1,7 @@
 export type CaptureSourceSurface =
   | "pathways"
   | "my_day"
+  | "on_deck"
   | "calendar"
   | "quick_capture"
   | "general"
@@ -10,10 +11,12 @@ export function resolveCaptureSourceSurface(input: {
   isQuickCapture?: boolean;
   hasPathwayContext?: boolean;
   hasCalendarItem?: boolean;
+  hasOnDeckItem?: boolean;
   returnTo?: string | null;
 }): CaptureSourceSurface {
   if (input.isQuickCapture) return "quick_capture";
   if (input.hasPathwayContext) return "pathways";
+  if (input.hasOnDeckItem) return "on_deck";
 
   const returnTo = String(input.returnTo ?? "");
   if (returnTo.startsWith("/my-day") || returnTo.startsWith("/clean-my-day")) {

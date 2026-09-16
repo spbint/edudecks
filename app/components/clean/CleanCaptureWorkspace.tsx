@@ -32,6 +32,8 @@ import {
 } from "@/lib/clean/evidence/captureAnalytics";
 import { consumeQuickCaptureDraft } from "@/lib/clean/evidence/quickCaptureDraft";
 import { resolveLearnerContext } from "@/lib/clean/learnerContext";
+import { listLearningQueueItems, removeLearningQueueItem } from "@/lib/clean/onDeck/client";
+import { getOnDeckRegistryItem, type LearningQueueItem } from "@/lib/clean/onDeck/learningQueue";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import {
   buildCurriculumCaptureContext,
@@ -579,6 +581,8 @@ function CleanCaptureWorkspaceBody() {
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
+  const [onDeckContextItem, setOnDeckContextItem] = useState<LearningQueueItem | null>(null);
+  const [onDeckContextLoading, setOnDeckContextLoading] = useState(false);
   const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
   const [linkingLoading, setLinkingLoading] = useState(false);
   const [linkingError, setLinkingError] = useState<string | null>(null);
@@ -636,6 +640,8 @@ function CleanCaptureWorkspaceBody() {
   const [lastSavedDate, setLastSavedDate] = useState("");
   const [lastSavedLearningArea, setLastSavedLearningArea] = useState("");
   const [lastSavedMyDayReturnPath, setLastSavedMyDayReturnPath] = useState<string | null>(null);
+  const [lastSavedOnDeckItemId, setLastSavedOnDeckItemId] = useState<string | null>(null);
+  const [onDeckRemovalError, setOnDeckRemovalError] = useState<string | null>(null);
   const [lastSavedPortfolioIncluded, setLastSavedPortfolioIncluded] = useState(true);
   const [lastSavedReportIncluded, setLastSavedReportIncluded] = useState(true);
   const [lastSavedWorksheetProgress, setLastSavedWorksheetProgress] = useState("");
@@ -667,6 +673,7 @@ function CleanCaptureWorkspaceBody() {
   const captureSourceSurface = resolveCaptureSourceSurface({
     hasPathwayContext: Boolean(searchParams.get("pathwayStepId") || searchParams.get("stepKey")),
     hasCalendarItem: Boolean(searchParams.get("calendar_item_id")),
+    hasOnDeckItem: Boolean(searchParams.get("source") === "on_deck" && searchParams.get("queue_item_id")),
     returnTo: searchParams.get("returnTo"),
   });
   const captureSourceSurfaceRef = useRef(captureSourceSurface);
@@ -755,6 +762,8 @@ function CleanCaptureWorkspaceBody() {
 
   const captureContextKey = searchParams.toString();
   const evidenceEntryIdFromQuery = safeQueryValue(searchParams.get("evidence_entry_id"));
+  const onDeckQueueItemIdFromQuery = safeQueryValue(searchParams.get("queue_item_id"));
+  const onDeckContextRequested = searchParams.get("source") === "on_deck" && Boolean(onDeckQueueItemIdFromQuery);
   const calendarItemIdFromQuery = safeQueryValue(searchParams.get("calendar_item_id"));
   const learnerIdFromQuery =
     safeQueryValue(searchParams.get("learner_id")) ||
@@ -778,6 +787,32 @@ function CleanCaptureWorkspaceBody() {
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
     safeQueryValue(searchParams.get("planned_date"));
+
+  useEffect(() => {
+    let active = true;
+    if (!onDeckContextRequested) {
+      setOnDeckContextItem(null);
+      setOnDeckContextLoading(false);
+      return;
+    }
+    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setOnDeckContextItem(null);
+      setOnDeckContextLoading(false);
+      return;
+    }
+    setOnDeckContextLoading(true);
+    void listLearningQueueItems(workspace.profile.id).then((items) => {
+      if (!active) return;
+      const candidate = items.find((item) => item.id === onDeckQueueItemIdFromQuery) ?? null;
+      const requestedLearnerId = learnerIdFromQuery;
+      setOnDeckContextItem(candidate && (!requestedLearnerId || candidate.learnerId === requestedLearnerId) ? candidate : null);
+    }).catch(() => {
+      if (active) setOnDeckContextItem(null);
+    }).finally(() => {
+      if (active) setOnDeckContextLoading(false);
+    });
+    return () => { active = false; };
+  }, [learnerIdFromQuery, onDeckContextRequested, onDeckQueueItemIdFromQuery, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
 
   function getCaptureContextEditState() {
     if (captureContextEditsRef.current.key !== captureContextKey) {
@@ -1590,7 +1625,8 @@ function CleanCaptureWorkspaceBody() {
       !captureContextKey ||
       captureContextKey === lastAppliedContextKey ||
       linkingLoading ||
-      entriesLoading
+      entriesLoading ||
+      onDeckContextLoading
     ) {
       return;
     }
@@ -1654,19 +1690,38 @@ function CleanCaptureWorkspaceBody() {
     const linkedSegment = programSegmentIdFromQuery
       ? programSegments.find((segment) => segment.id === programSegmentIdFromQuery) ?? null
       : null;
+    const onDeckRegistryItem = onDeckContextItem?.sourceType === "pathway_step" && onDeckContextItem.pathwayStepId
+      ? getOnDeckRegistryItem(onDeckContextItem.pathwayStepId)
+      : null;
+    const onDeckPathwayContext = onDeckContextItem?.sourceType === "pathway_step"
+      ? buildPathwayCaptureContext({
+          subjectKey: onDeckContextItem.subjectKey,
+          subjectLabel: onDeckRegistryItem?.subjectTitle,
+          pathwayKey: onDeckContextItem.strandKey,
+          pathwayLabel: onDeckRegistryItem?.pathwayLabel,
+          stageKey: onDeckContextItem.stageKey,
+          stageLabel: onDeckRegistryItem?.stageTitle,
+          pathwayStepId: onDeckContextItem.pathwayStepId,
+          stepKey: onDeckContextItem.stepKey,
+          stepNumber: onDeckRegistryItem?.legacyStepNumber,
+          stepTitle: onDeckRegistryItem?.stepTitle || onDeckContextItem.displayTitle,
+          stepMeaning: onDeckRegistryItem?.stepDescription,
+          skillFocus: onDeckRegistryItem?.skillFocus,
+        })
+      : null;
     const nextCurriculumContext = curriculumContextFromQuery;
-    const nextPathwayContext = pathwayContextFromQuery;
+    const nextPathwayContext = onDeckPathwayContext || pathwayContextFromQuery;
     const derivedPathwayCurriculumContext = nextPathwayContext
       ? buildCurriculumCaptureContext({
-          learningAreaKey: learningAreaFromQuery || "mathematics",
-          learningAreaLabel: learningAreaLabelFromQuery || "Mathematics",
+          learningAreaKey: learningAreaFromQuery || onDeckContextItem?.subjectKey || "mathematics",
+          learningAreaLabel: learningAreaLabelFromQuery || onDeckRegistryItem?.subjectTitle || "Mathematics",
         })
       : null;
     const curriculumTitleSuggestion = buildCurriculumTitleSuggestion(nextCurriculumContext);
     const pathwayTitleSuggestion = buildPathwayTitleSuggestion(nextPathwayContext);
 
     const contextualLearnerId = nextPathwayContext
-      ? learnerIdFromQuery || "missing-contextual-learner"
+      ? (onDeckContextItem?.learnerId || learnerIdFromQuery || "missing-contextual-learner")
       : linkedCalendarItem?.learnerId || linkedSegment?.learnerId || linkedProgram?.learnerId || null;
     const learnerResolution = resolveLearnerContext({
       learners: workspace.learners,
@@ -1709,6 +1764,7 @@ function CleanCaptureWorkspaceBody() {
       worksheetTitleSuggestion ||
       pathwayTitleSuggestion ||
       curriculumTitleSuggestion ||
+      onDeckContextItem?.customTitle ||
       linkedCalendarItem?.title ||
       linkedSegment?.title ||
       linkedProgram?.title ||
@@ -1720,6 +1776,7 @@ function CleanCaptureWorkspaceBody() {
       nextCurriculumContext?.learningAreaLabel ||
       learningAreaLabelFromQuery ||
       learningAreaFromQuery ||
+      onDeckContextItem?.customLearningArea ||
       linkedCalendarItem?.learningArea ||
       linkedProgram?.learningArea ||
       "";
@@ -1765,6 +1822,8 @@ function CleanCaptureWorkspaceBody() {
     setLastSavedTitle("");
     setLastSavedDate("");
     setLastSavedLearningArea("");
+    setLastSavedOnDeckItemId(null);
+    setOnDeckRemovalError(null);
     setLastSavedPortfolioIncluded(true);
     setLastSavedReportIncluded(true);
     setLastSavedWorksheetProgress("");
@@ -1780,6 +1839,8 @@ function CleanCaptureWorkspaceBody() {
     captureContextKey,
     curriculumContextFromQuery,
     pathwayContextFromQuery,
+    onDeckContextItem,
+    onDeckContextLoading,
     entries,
     entriesLoading,
     evidenceEntryIdFromQuery,
@@ -2061,6 +2122,8 @@ function CleanCaptureWorkspaceBody() {
             : "",
       );
       setLastSavedEvidenceId(savedEntry.id);
+      setLastSavedOnDeckItemId(await resolveSavedOnDeckItemId(onDeckContextItem));
+      setOnDeckRemovalError(null);
       setLastSavedLearnerLabel(
         learnerOptions.find((option) => option.value === savedEntry.learnerId)?.label || "",
       );
@@ -2068,7 +2131,9 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedDate(savedEntry.observedOn);
       setLastSavedLearningArea(savedEntry.learningArea || "");
       setLastSavedMyDayReturnPath(
-        calendarItemIdFromQuery
+        onDeckContextItem && returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
+          ? returnToFromQuery
+          : calendarItemIdFromQuery
           ? `/my-day?date=${encodeURIComponent(savedEntry.observedOn)}`
           : null,
       );
@@ -2150,6 +2215,30 @@ function CleanCaptureWorkspaceBody() {
     } finally {
       if (!captureRecordSaved) setSavePhase("");
       setSubmitting(false);
+    }
+  }
+
+  async function resolveSavedOnDeckItemId(item: LearningQueueItem | null) {
+    if (!workspace.profile || !item) return null;
+    try {
+      const currentItems = await listLearningQueueItems(workspace.profile.id, item.learnerId);
+      return currentItems.some((currentItem) => currentItem.id === item.id) ? item.id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function removeSavedOnDeckItem() {
+    if (!workspace.profile || !lastSavedOnDeckItemId) return;
+    setOnDeckRemovalError(null);
+    try {
+      await removeLearningQueueItem(workspace.profile.id, lastSavedOnDeckItemId);
+      setLastSavedOnDeckItemId(null);
+      setMessage("Learning saved and removed from On Deck.");
+    } catch (error) {
+      setOnDeckRemovalError(
+        normalizeCleanErrorMessage(error, "We could not remove this item from On Deck just now."),
+      );
     }
   }
 
@@ -2863,6 +2952,40 @@ function CleanCaptureWorkspaceBody() {
                       Existing note workflow.
                     </span>
                   </button>
+                </div>
+              ) : null}
+
+              {onDeckContextItem ? (
+                <div
+                  className="mylearna-capture-source-context"
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #d9d0ff",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#fbfaff",
+                    display: "grid",
+                    gap: 5,
+                  }}
+                >
+                  <strong style={{ color: "#17204b" }}>From On Deck</strong>
+                  <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                    {selectedLearnerLabel || "Selected learner"}
+                  </span>
+                  <span style={{ color: "#17204b", lineHeight: 1.5, fontWeight: 700 }}>
+                    {onDeckContextItem.sourceType === "pathway_step"
+                      ? pathwayStepLabel
+                      : onDeckContextItem.customTitle || "Custom learning"}
+                  </span>
+                  {(onDeckContextItem.sourceType === "pathway_step"
+                    ? formPathwayContext?.subjectLabel || formPathwayContext?.subjectKey
+                    : onDeckContextItem.customLearningArea) ? (
+                    <span style={{ color: "#64748b", lineHeight: 1.5 }}>
+                      {onDeckContextItem.sourceType === "pathway_step"
+                        ? formPathwayContext?.subjectLabel || formPathwayContext?.subjectKey
+                        : onDeckContextItem.customLearningArea}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -3931,6 +4054,13 @@ function CleanCaptureWorkspaceBody() {
                   <strong style={{ margin: 0, color: "#0f766e", fontSize: 16 }}>
                     ✓ Learning saved
                   </strong>
+                  {lastSavedOnDeckItemId ? (
+                    <div style={{ display: "grid", gap: 5, color: "#0f766e", fontSize: 13 }}>
+                      <strong>This item is still On Deck.</strong>
+                      <span>Evidence records what happened; it does not remove your current focus.</span>
+                      {onDeckRemovalError ? <span role="alert" style={{ color: "#b91c1c" }}>{onDeckRemovalError}</span> : null}
+                    </div>
+                  ) : null}
                   {lastSavedPathwayContext ? (
                     <div style={{ display: "grid", gap: 4, color: "#0f766e", fontSize: 13 }}>
                       {lastSavedLearnerLabel ? <span>{lastSavedLearnerLabel}</span> : null}
@@ -3984,6 +4114,12 @@ function CleanCaptureWorkspaceBody() {
                     </p>
                   ) : null}
                   <div className="mylearna-capture-success-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {lastSavedOnDeckItemId ? (
+                      <>
+                        {lastSavedMyDayReturnPath ? <Link href={lastSavedMyDayReturnPath} style={{ ...buttonStyle, textDecoration: "none" }}>Back to On Deck</Link> : null}
+                        <button type="button" onClick={() => void removeSavedOnDeckItem()} disabled={submitting} style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}>Remove from On Deck</button>
+                      </>
+                    ) : null}
                     {lastSavedMyDayReturnPath ? (
                       <Link href={lastSavedMyDayReturnPath} style={{ ...buttonStyle, textDecoration: "none" }}>
                         Back to My Day
