@@ -67,6 +67,13 @@ describe("My Capture success receipt", () => {
     expect(source).toContain("getOnDeckRegistryItem(onDeckContextItem.pathwayStepId)");
     expect(source).toContain("pathwayKey: onDeckContextItem.strandKey");
     expect(source).toContain("From On Deck");
+    expect(source).toContain("onDeckContextLearnerLabel");
+    expect(source).toContain("disabled={Boolean(onDeckContextItem) || submitting}");
+    expect(source).toContain("This learning is connected to");
+    expect(source).toContain("learnerId !== onDeckContextItem.learnerId");
+    expect(source).toContain('sourceType: onDeckContextItem ? "on-deck" : sourceType');
+    expect(source).toContain("sourceId: onDeckContextItem?.id");
+    expect(source).toContain("Back to On Deck");
     expect(source).toContain("This item is still On Deck.");
     expect(source).toContain("Remove from On Deck");
     expect(source).toContain("removeLearningQueueItem(workspace.profile.id, lastSavedOnDeckItemId)");

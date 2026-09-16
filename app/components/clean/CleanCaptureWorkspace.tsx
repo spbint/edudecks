@@ -1720,13 +1720,13 @@ function CleanCaptureWorkspaceBody() {
     const curriculumTitleSuggestion = buildCurriculumTitleSuggestion(nextCurriculumContext);
     const pathwayTitleSuggestion = buildPathwayTitleSuggestion(nextPathwayContext);
 
-    const contextualLearnerId = nextPathwayContext
-      ? (onDeckContextItem?.learnerId || learnerIdFromQuery || "missing-contextual-learner")
-      : linkedCalendarItem?.learnerId || linkedSegment?.learnerId || linkedProgram?.learnerId || null;
+    const contextualLearnerId = onDeckContextItem?.learnerId || (nextPathwayContext
+      ? (learnerIdFromQuery || "missing-contextual-learner")
+      : linkedCalendarItem?.learnerId || linkedSegment?.learnerId || linkedProgram?.learnerId || null);
     const learnerResolution = resolveLearnerContext({
       learners: workspace.learners,
       contextualLearnerId,
-      explicitLearnerId: nextPathwayContext ? null : learnerIdFromQuery,
+      explicitLearnerId: onDeckContextItem || nextPathwayContext ? null : learnerIdFromQuery,
       activeLearnerId: workspace.setupStatus.activeLearnerId,
       rememberedLearnerId: workspace.setupStatus.activeLearnerId,
     });
@@ -1873,6 +1873,13 @@ function CleanCaptureWorkspaceBody() {
     event.preventDefault();
     if (!workspace.profile) return;
 
+    if (onDeckContextItem && learnerId !== onDeckContextItem.learnerId) {
+      setActionError(
+        "This learning is connected to a different learner. Open general Capture to record it for another learner.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
@@ -1910,12 +1917,12 @@ function CleanCaptureWorkspaceBody() {
         curriculumNodeIds,
         nextPathwayContext,
       );
-      const sourceLearnerId = nextPathwayContext
+      const sourceLearnerId = onDeckContextItem?.learnerId || (nextPathwayContext
         ? learnerIdFromQuery || null
         : selectedCalendarItem?.learnerId ||
           selectedProgramSegment?.learnerId ||
           selectedProgram?.learnerId ||
-          null;
+          null);
       const sourceType = sourceLearnerId
         ? worksheetEvidenceMode
           ? "worksheet"
@@ -1943,8 +1950,8 @@ function CleanCaptureWorkspaceBody() {
             selectedLearnerId: learnerId,
             sourceLearnerId,
             sourceFamilyId: sourceLearnerId ? workspace.profile.id : null,
-            sourceType,
-            sourceId: calendarItemId || nextPathwayContext?.pathwayStepId || null,
+            sourceType: onDeckContextItem ? "on-deck" : sourceType,
+            sourceId: onDeckContextItem?.id || calendarItemId || nextPathwayContext?.pathwayStepId || null,
           },
           availableLearners: workspace.learners,
           activityDate: observedOn,
@@ -2085,6 +2092,13 @@ function CleanCaptureWorkspaceBody() {
                 : "",
           );
           setLastSavedEvidenceId(savedEntry.id);
+          setLastSavedMyDayReturnPath(
+            onDeckContextItem
+              ? returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
+                ? returnToFromQuery
+                : `/my-day?learner_id=${encodeURIComponent(onDeckContextItem.learnerId)}`
+              : null,
+          );
           setLastSavedWorksheetProgress(worksheetEvidenceMode ? worksheetProgressLevel : "");
           setLastSavedPhotoAttached(false);
           setPendingAttachmentEvidenceId(savedEntry.id);
@@ -2131,8 +2145,10 @@ function CleanCaptureWorkspaceBody() {
       setLastSavedDate(savedEntry.observedOn);
       setLastSavedLearningArea(savedEntry.learningArea || "");
       setLastSavedMyDayReturnPath(
-        onDeckContextItem && returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
-          ? returnToFromQuery
+        onDeckContextItem
+          ? returnToFromQuery.startsWith("/") && !returnToFromQuery.startsWith("//")
+            ? returnToFromQuery
+            : `/my-day?learner_id=${encodeURIComponent(onDeckContextItem.learnerId)}`
           : calendarItemIdFromQuery
           ? `/my-day?date=${encodeURIComponent(savedEntry.observedOn)}`
           : null,
@@ -2453,17 +2469,21 @@ function CleanCaptureWorkspaceBody() {
   const recentNotesPanelId = "clean-capture-recent-notes";
   const selectedLearnerLabel =
     learnerOptions.find((option) => option.value === learnerId)?.label || "";
-  const sourceLearnerId = formPathwayContext
+  const onDeckContextLearnerLabel = onDeckContextItem
+    ? learnerOptions.find((option) => option.value === onDeckContextItem.learnerId)?.label || "Selected learner"
+    : "";
+  const sourceLearnerId = onDeckContextItem?.learnerId || (formPathwayContext
     ? learnerIdFromQuery || null
     : selectedCalendarItem?.learnerId ||
       selectedProgramSegment?.learnerId ||
       selectedProgram?.learnerId ||
-      null;
+      null);
   const learnerContextMismatch = Boolean(
     sourceLearnerId && learnerId && sourceLearnerId !== learnerId,
   );
 
   function handleLearnerChange(nextLearnerId: string) {
+    if (onDeckContextItem) return;
     if (sourceLearnerId && nextLearnerId !== sourceLearnerId) {
       setLearnerChangePendingId(nextLearnerId);
       return;
@@ -2970,7 +2990,7 @@ function CleanCaptureWorkspaceBody() {
                 >
                   <strong style={{ color: "#17204b" }}>From On Deck</strong>
                   <span style={{ color: "#475569", lineHeight: 1.5 }}>
-                    {selectedLearnerLabel || "Selected learner"}
+                    {onDeckContextLearnerLabel}
                   </span>
                   <span style={{ color: "#17204b", lineHeight: 1.5, fontWeight: 700 }}>
                     {onDeckContextItem.sourceType === "pathway_step"
@@ -3133,6 +3153,7 @@ function CleanCaptureWorkspaceBody() {
                       value={learnerId}
                       onChange={(event) => handleLearnerChange(event.target.value)}
                       aria-label="Learner"
+                      disabled={Boolean(onDeckContextItem) || submitting}
                       aria-invalid={learnerContextMismatch || !learnerId ? true : undefined}
                       style={inputStyle}
                     >
@@ -3143,6 +3164,11 @@ function CleanCaptureWorkspaceBody() {
                         </option>
                       ))}
                     </select>
+                    {onDeckContextItem ? (
+                      <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                        This learning is connected to {onDeckContextLearnerLabel}&apos;s On Deck item.
+                      </span>
+                    ) : null}
                   </label>
                   <label style={{ display: "grid", gap: 6 }}>
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>Date of learning</span>
@@ -4022,14 +4048,23 @@ function CleanCaptureWorkspaceBody() {
                     >
                       Save without photo
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push(savedEvidencePathwayReturnPath)}
-                      disabled={submitting}
-                      style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
-                    >
-                      Return to pathway
-                    </button>
+                    {onDeckContextItem ? (
+                      <Link
+                        href={lastSavedMyDayReturnPath || `/my-day?learner_id=${encodeURIComponent(onDeckContextItem.learnerId)}`}
+                        style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A", textDecoration: "none" }}
+                      >
+                        Back to On Deck
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => router.push(savedEvidencePathwayReturnPath)}
+                        disabled={submitting}
+                        style={{ ...buttonStyle, background: "#FFFFFF", color: "#0F172A" }}
+                      >
+                        Return to pathway
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : null}

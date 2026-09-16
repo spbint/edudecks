@@ -5,6 +5,7 @@ export type LearnerContextSource =
   | "my-pathways"
   | "worksheet"
   | "calendar"
+  | "on-deck"
   | "portfolio"
   | "reports"
   | "my-data"
@@ -134,7 +135,11 @@ export function validateLearnerContext(
 
   if (sourceLearnerId && selectedLearnerId !== sourceLearnerId) {
     const learnerLabel = sourceLearner?.preferredName || sourceLearner?.firstName || "the selected learner";
-    const connectionLabel = context.sourceType === "worksheet" ? "worksheet" : "pathway";
+    const connectionLabel = context.sourceType === "worksheet"
+      ? "worksheet"
+      : context.sourceType === "on-deck"
+        ? "On Deck"
+        : "pathway";
     throw new Error(
       `This completed work is connected to ${learnerLabel}'s ${connectionLabel}. To record it for another learner, remove the connection first.`,
     );
