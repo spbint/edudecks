@@ -7,6 +7,10 @@ import {
   FOUNDER_MIN_PASSWORD_LENGTH,
 } from "@/lib/clean/founder/founderIdentity";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import {
+  isWeakPasswordError,
+  LEAKED_PASSWORD_CHANGE_MESSAGE,
+} from "@/lib/authPasswordSecurity";
 
 type AccessState = "checking" | "allowed" | "denied";
 
@@ -87,7 +91,11 @@ export default function FounderPasswordForm() {
 
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
-        setError("The Founder password could not be saved. Please try again.");
+        setError(
+          isWeakPasswordError(updateError)
+            ? LEAKED_PASSWORD_CHANGE_MESSAGE
+            : "The Founder password could not be saved. Please try again.",
+        );
         return;
       }
 
@@ -95,8 +103,12 @@ export default function FounderPasswordForm() {
       setConfirmPassword("");
       router.replace("/founder");
       router.refresh();
-    } catch {
-      setError("The Founder password could not be saved. Please try again.");
+    } catch (submitError: unknown) {
+      setError(
+        isWeakPasswordError(submitError)
+          ? LEAKED_PASSWORD_CHANGE_MESSAGE
+          : "The Founder password could not be saved. Please try again.",
+      );
     } finally {
       setBusy(false);
     }

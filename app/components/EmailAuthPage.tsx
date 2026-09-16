@@ -24,6 +24,11 @@ import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
 import { completeFamilySignOut } from "@/lib/familySignOut";
 import { readSignupPrefill } from "@/lib/signupPrefill";
+import {
+  isWeakPasswordError,
+  LEAKED_PASSWORD_CHANGE_MESSAGE,
+  LEAKED_PASSWORD_SIGN_IN_MESSAGE,
+} from "@/lib/authPasswordSecurity";
 
 export type EmailAuthPageMode = "login" | "signup";
 
@@ -89,6 +94,12 @@ function isValidEmail(value: string) {
 }
 
 function authErrorMessage(error: unknown, mode: EmailAuthPageMode) {
+  if (isWeakPasswordError(error)) {
+    return mode === "signup"
+      ? LEAKED_PASSWORD_CHANGE_MESSAGE
+      : LEAKED_PASSWORD_SIGN_IN_MESSAGE;
+  }
+
   const original = safe((error as { message?: unknown })?.message);
   const message = original.toLowerCase();
 

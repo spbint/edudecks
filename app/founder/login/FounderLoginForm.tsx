@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { buildAuthCallbackUrl } from "@/lib/authRedirect";
 import { FOUNDER_EMAIL } from "@/lib/clean/founder/founderIdentity";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import {
+  isWeakPasswordError,
+  LEAKED_PASSWORD_FOUNDER_SIGN_IN_MESSAGE,
+} from "@/lib/authPasswordSecurity";
 
 const SAFE_ERROR = "The Founder account could not be verified.";
 
@@ -30,7 +34,15 @@ export default function FounderLoginForm() {
         email: FOUNDER_EMAIL,
         password,
       });
-      if (authError || !data.user) {
+      if (authError) {
+        setError(
+          isWeakPasswordError(authError)
+            ? LEAKED_PASSWORD_FOUNDER_SIGN_IN_MESSAGE
+            : SAFE_ERROR,
+        );
+        return;
+      }
+      if (!data.user) {
         setError(SAFE_ERROR);
         return;
       }

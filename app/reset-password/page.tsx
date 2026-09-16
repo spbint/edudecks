@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import {
+  isWeakPasswordError,
+  LEAKED_PASSWORD_CHANGE_MESSAGE,
+} from "@/lib/authPasswordSecurity";
 
 type ResetState = "idle" | "saving" | "success" | "error";
 
@@ -164,8 +168,10 @@ export default function ResetPasswordPage() {
     } catch (err: unknown) {
       setStatus("error");
       setMessage(
-        safe((err as { message?: unknown })?.message) ||
-          "We couldn't update your password just yet. Please try again.",
+        isWeakPasswordError(err)
+          ? LEAKED_PASSWORD_CHANGE_MESSAGE
+          : safe((err as { message?: unknown })?.message) ||
+              "We couldn't update your password just yet. Please try again.",
       );
     }
   }
