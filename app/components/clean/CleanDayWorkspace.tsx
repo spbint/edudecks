@@ -610,7 +610,7 @@ function OnDeckSection({
                       disabled={busy}
                       style={{ ...actionStyle, borderColor: "#2563eb", color: "#1d4ed8" }}
                     >
-                      Capture learning
+                      Capture this learning
                     </button>
                   ) : null}
                   {selectedLearnerId && visibleItems.length > 1 ? (

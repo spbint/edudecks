@@ -30,6 +30,7 @@ describe("empty My Day secondary workspace", () => {
     expect(source).toContain('queue_item_id: item.id');
     expect(source).toContain('returnTo: buildLearnerContextHref(buildDayPath(selectedDate), item.learnerId)');
     expect(source).toContain("Capture learning");
+    expect(source).toContain("Capture this learning");
     expect(source).not.toContain("customNote: item.customNote");
   });
 });
