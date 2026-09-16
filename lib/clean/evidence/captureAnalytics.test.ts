@@ -7,6 +7,7 @@ import {
 describe("Capture analytics context", () => {
   it("classifies Capture sources without learner or evidence identifiers", () => {
     expect(resolveCaptureSourceSurface({ hasPathwayContext: true })).toBe("pathways");
+    expect(resolveCaptureSourceSurface({ hasOnDeckItem: true })).toBe("on_deck");
     expect(resolveCaptureSourceSurface({ returnTo: "/my-day?date=2026-09-04" })).toBe("my_day");
     expect(resolveCaptureSourceSurface({ hasCalendarItem: true })).toBe("calendar");
     expect(resolveCaptureSourceSurface({ isQuickCapture: true })).toBe("quick_capture");
