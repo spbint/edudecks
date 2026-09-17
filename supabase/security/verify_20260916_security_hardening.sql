@@ -4,8 +4,9 @@
 --   * 20260916082435_contain_remaining_legacy_rls_exposure.sql
 --   * 20260916082517_harden_legacy_security_definer_functions.sql
 --   * 20260916082555_pin_public_function_search_paths.sql
+--   * 20260917083821_repair_family_authorization_helpers.sql
 --
--- Run this as a privileged database role only after all three migrations have
+-- Run this as a privileged database role only after all four migrations have
 -- been applied to an approved test environment. It does not create test data
 -- or change database objects. Any failed assertion aborts the transaction.
 -- The final ROLLBACK also clears the local role/JWT settings used below.
@@ -813,7 +814,205 @@ end
 $verify_function_security$;
 
 -- ---------------------------------------------------------------------------
--- 3. Dormant portfolio-share implementation and password-bypass regression
+-- 3. Family authorization helpers and evidence-path binding
+-- ---------------------------------------------------------------------------
+
+do $verify_family_authorization_helpers$
+declare
+  uuid_helper_oid oid := pg_catalog.to_regprocedure(
+    'public.mylearna_family_profile_owned_by_auth(uuid)'
+  )::oid;
+  text_helper_oid oid := pg_catalog.to_regprocedure(
+    'public.mylearna_family_profile_owned_by_auth(text)'
+  )::oid;
+  storage_helper_oid oid := pg_catalog.to_regprocedure(
+    'public.mylearna_evidence_storage_object_owned_by_auth(text)'
+  )::oid;
+  uuid_helper_definition text;
+  text_helper_definition text;
+  storage_helper_definition text;
+  member_user_id uuid;
+  member_family_id uuid;
+  unrelated_family_id uuid;
+  evidence_id uuid;
+  evidence_family_id uuid;
+  evidence_learner_id uuid;
+  evidence_user_id uuid;
+  tampered_family_id uuid;
+  tampered_learner_id uuid;
+  valid_object_name text;
+begin
+  if uuid_helper_oid is null or text_helper_oid is null or storage_helper_oid is null then
+    raise exception 'A repaired family/storage authorization helper is missing';
+  end if;
+
+  uuid_helper_definition := lower(pg_catalog.pg_get_functiondef(uuid_helper_oid));
+  text_helper_definition := lower(pg_catalog.pg_get_functiondef(text_helper_oid));
+  storage_helper_definition := lower(pg_catalog.pg_get_functiondef(storage_helper_oid));
+
+  if position('fp.user_id' in uuid_helper_definition) > 0
+     or position('fp.owner_user_id' in uuid_helper_definition) > 0
+     or position('fp.user_id' in text_helper_definition) > 0
+     or position('fp.owner_user_id' in text_helper_definition) > 0 then
+    raise exception 'A family-profile authorization helper still references a removed legacy column';
+  end if;
+
+  if position('fp.created_by_user_id = auth.uid()' in uuid_helper_definition) = 0
+     or position('public.is_family_member(fp.id)' in uuid_helper_definition) = 0
+     or position('fp.created_by_user_id = auth.uid()' in text_helper_definition) = 0
+     or position('public.is_family_member(fp.id)' in text_helper_definition) = 0 then
+    raise exception 'A family-profile authorization helper is missing creator/member checks';
+  end if;
+
+  if position('ee.family_id::text = object_path.segments[2]' in storage_helper_definition) = 0
+     or position('ee.learner_id::text = object_path.segments[4]' in storage_helper_definition) = 0
+     or position('ee.id::text = object_path.segments[6]' in storage_helper_definition) = 0
+     or position('array_length(object_path.segments, 1) = 6' in storage_helper_definition) = 0 then
+    raise exception 'Evidence storage authorization is not bound to the full canonical object path';
+  end if;
+
+  -- A caller without a subject must be denied, and arbitrary text must fail
+  -- closed rather than being cast to UUID and raising an input error.
+  perform pg_catalog.set_config('request.jwt.claim.sub', '', true);
+  perform pg_catalog.set_config(
+    'request.jwt.claims',
+    pg_catalog.jsonb_build_object('role', 'authenticated')::text,
+    true
+  );
+
+  if public.mylearna_family_profile_owned_by_auth(
+       '00000000-0000-0000-0000-000000000001'::uuid
+     )
+     or public.mylearna_family_profile_owned_by_auth('not-a-uuid') then
+    raise exception 'Family-profile authorization accepted an unauthenticated caller';
+  end if;
+
+  -- When a clone contains family data, exercise both overloads against a real
+  -- membership and prove that the same identity cannot cross into another
+  -- family. No row contents are emitted or changed.
+  select member.user_id, profile.id
+  into member_user_id, member_family_id
+  from public.family_profiles as profile
+  join public.family_members as member
+    on member.family_id = profile.id
+  order by profile.id, member.user_id
+  limit 1;
+
+  if member_user_id is not null then
+    perform pg_catalog.set_config('request.jwt.claim.sub', member_user_id::text, true);
+    perform pg_catalog.set_config(
+      'request.jwt.claims',
+      pg_catalog.jsonb_build_object(
+        'sub', member_user_id::text,
+        'role', 'authenticated'
+      )::text,
+      true
+    );
+
+    if not public.mylearna_family_profile_owned_by_auth(member_family_id)
+       or not public.mylearna_family_profile_owned_by_auth(member_family_id::text) then
+      raise exception 'A current family member was denied by a repaired profile helper';
+    end if;
+
+    select profile.id
+    into unrelated_family_id
+    from public.family_profiles as profile
+    where profile.id <> member_family_id
+      and profile.created_by_user_id <> member_user_id
+      and not exists (
+        select 1
+        from public.family_members as member
+        where member.family_id = profile.id
+          and member.user_id = member_user_id
+      )
+    order by profile.id
+    limit 1;
+
+    if unrelated_family_id is not null
+       and (
+         public.mylearna_family_profile_owned_by_auth(unrelated_family_id)
+         or public.mylearna_family_profile_owned_by_auth(unrelated_family_id::text)
+       ) then
+      raise exception 'A family member crossed into an unrelated family profile';
+    end if;
+  end if;
+
+  -- When evidence and membership data exist, prove that the canonical path is
+  -- accepted while changing only its family or learner segment is rejected.
+  select entry.id, entry.family_id, entry.learner_id, member.user_id
+  into evidence_id, evidence_family_id, evidence_learner_id, evidence_user_id
+  from public.evidence_entries as entry
+  join public.family_members as member
+    on member.family_id = entry.family_id
+  order by entry.id, member.user_id
+  limit 1;
+
+  if evidence_id is not null then
+    perform pg_catalog.set_config('request.jwt.claim.sub', evidence_user_id::text, true);
+    perform pg_catalog.set_config(
+      'request.jwt.claims',
+      pg_catalog.jsonb_build_object(
+        'sub', evidence_user_id::text,
+        'role', 'authenticated'
+      )::text,
+      true
+    );
+
+    valid_object_name := pg_catalog.format(
+      'family/%s/learner/%s/evidence/%s/verification.bin',
+      evidence_family_id,
+      evidence_learner_id,
+      evidence_id
+    );
+
+    if not public.mylearna_evidence_storage_object_owned_by_auth(valid_object_name) then
+      raise exception 'Canonical evidence object path was denied for a family member';
+    end if;
+
+    tampered_family_id := case
+      when evidence_family_id = '00000000-0000-0000-0000-000000000001'::uuid
+        then '00000000-0000-0000-0000-000000000002'::uuid
+      else '00000000-0000-0000-0000-000000000001'::uuid
+    end;
+    tampered_learner_id := case
+      when evidence_learner_id = '00000000-0000-0000-0000-000000000001'::uuid
+        then '00000000-0000-0000-0000-000000000002'::uuid
+      else '00000000-0000-0000-0000-000000000001'::uuid
+    end;
+
+    if public.mylearna_evidence_storage_object_owned_by_auth(
+         pg_catalog.format(
+           'family/%s/learner/%s/evidence/%s/verification.bin',
+           tampered_family_id,
+           evidence_learner_id,
+           evidence_id
+         )
+       ) then
+      raise exception 'Evidence storage accepted a tampered family path segment';
+    end if;
+
+    if public.mylearna_evidence_storage_object_owned_by_auth(
+         pg_catalog.format(
+           'family/%s/learner/%s/evidence/%s/verification.bin',
+           evidence_family_id,
+           tampered_learner_id,
+           evidence_id
+         )
+       ) then
+      raise exception 'Evidence storage accepted a tampered learner path segment';
+    end if;
+
+    if public.mylearna_evidence_storage_object_owned_by_auth(
+         valid_object_name || '/unexpected-child.bin'
+       ) then
+      raise exception 'Evidence storage accepted a non-canonical nested object path';
+    end if;
+  end if;
+end
+$verify_family_authorization_helpers$;
+
+-- ---------------------------------------------------------------------------
+-- 4. Dormant portfolio-share implementation and password-bypass regression
 -- ---------------------------------------------------------------------------
 
 do $verify_portfolio_share_functions$
@@ -924,7 +1123,7 @@ end
 $verify_portfolio_share_functions$;
 
 -- ---------------------------------------------------------------------------
--- 4. Runtime role simulation: two unrelated signed-in identities
+-- 5. Runtime role simulation: two unrelated signed-in identities
 -- ---------------------------------------------------------------------------
 
 -- These deterministic UUIDs are used only as JWT claims. Abort rather than
@@ -1057,7 +1256,7 @@ reset role;
 rollback;
 
 -- ---------------------------------------------------------------------------
--- 5. Compact advisor-oriented result (all assertions above have passed)
+-- 6. Compact advisor-oriented result (all assertions above have passed)
 -- ---------------------------------------------------------------------------
 
 select pg_catalog.jsonb_build_object(
