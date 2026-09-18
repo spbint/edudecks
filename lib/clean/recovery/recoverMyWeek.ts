@@ -11,7 +11,7 @@ import {
 export type RecoverableLearningItem = {
   calendarItem: CleanCalendarItem;
   registryItem: PathwayStepRegistryItem | null;
-  reason: "pathway-linked" | "whole-family" | "unresolved";
+  reason: "pathway-linked" | "calendar-custom" | "whole-family" | "unavailable";
 };
 
 function safe(value: unknown) {
@@ -85,9 +85,13 @@ export function resolveRecoverableLearningItem(
     ? registryItem
     : null;
 
+  if (pathwayStepId && !activeRegistryItem) {
+    return { calendarItem, registryItem: null, reason: "unavailable" };
+  }
+
   return {
     calendarItem,
     registryItem: activeRegistryItem,
-    reason: activeRegistryItem ? "pathway-linked" : "unresolved",
+    reason: activeRegistryItem ? "pathway-linked" : "calendar-custom",
   };
 }

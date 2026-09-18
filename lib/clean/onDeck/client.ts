@@ -16,7 +16,7 @@ import { attachFamilyResourceToCustomLearning, createFamilyResource, normalizeFa
 import { supabase } from "@/lib/supabaseClient";
 
 const LEARNING_QUEUE_SELECT =
-  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,priority,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,family_resource_id,position,resource_file:family_resource_files(original_filename,object_path,status),family_resource:family_resources(id,name,url,reference_text,resource_file_id,resource_file:family_resource_files(original_filename,object_path,byte_size,status))))";
+  "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,priority,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note,source_calendar_item_id,custom_learning_resources(id,resource_type,label,url,reference_text,resource_file_id,family_resource_id,position,resource_file:family_resource_files(original_filename,object_path,status),family_resource:family_resources(id,name,url,reference_text,resource_file_id,resource_file:family_resource_files(original_filename,object_path,byte_size,status))))";
 const LEARNING_QUEUE_CORE_SELECT =
   "id,family_id,learner_id,source_type,subject_key,strand_key,stage_key,step_key,pathway_step_id,custom_learning_item_id,priority,display_title,position,created_by_user_id,created_at,updated_at,custom_learning_item:custom_learning_items(id,title,learning_area,note)";
 
@@ -219,6 +219,31 @@ export async function createCustomLearningOnDeck(input: {
   if (response.error) {
     throw new Error(normalizeOnDeckError(response.error, "We could not add this learning to On Deck."));
   }
+  return response.data as string;
+}
+
+export async function recoverCalendarItemToLearningQueue(input: {
+  familyId: string;
+  calendarItemId: string;
+  learnerId: string;
+  priority?: LearningQueuePriority;
+}) {
+  const response = await supabase.rpc("mylearna_keep_calendar_item_in_focus", {
+    p_family_id: input.familyId,
+    p_calendar_item_id: input.calendarItemId,
+    p_learner_id: input.learnerId,
+    p_priority: input.priority || "flexible",
+  });
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeOnDeckError(
+        response.error,
+        "We could not keep this Calendar learning in focus.",
+      ),
+    );
+  }
+
   return response.data as string;
 }
 

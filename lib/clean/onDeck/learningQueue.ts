@@ -45,6 +45,7 @@ export type LearningQueueItem = {
   stepKey: string | null;
   pathwayStepId: string | null;
   customLearningItemId: string | null;
+  sourceCalendarItemId?: string | null;
   priority: LearningQueuePriority;
   customTitle: string | null;
   customLearningArea: string | null;
@@ -87,6 +88,7 @@ export type LearningQueueItemRow = {
     title?: string | null;
     learning_area?: string | null;
     note?: string | null;
+    source_calendar_item_id?: string | null;
     custom_learning_resources?: Array<{
       id?: string | null;
       resource_type?: string | null;
@@ -191,6 +193,7 @@ export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueIte
     stepKey: normalizeNullString(row.step_key),
     pathwayStepId: normalizeNullString(row.pathway_step_id),
     customLearningItemId: normalizeNullString(row.custom_learning_item_id),
+    sourceCalendarItemId: normalizeNullString(row.custom_learning_item?.source_calendar_item_id),
     priority: normalizePriority(row.priority),
     customTitle: normalizeNullString(row.custom_learning_item?.title),
     customLearningArea: normalizeNullString(row.custom_learning_item?.learning_area),

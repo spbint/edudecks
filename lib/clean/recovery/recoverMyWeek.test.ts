@@ -61,6 +61,25 @@ describe("recover my week", () => {
     expect(migration).not.toMatch(/update public\.calendar_items/i);
   });
 
+  it("documents durable calendar provenance and authoritative recovery", () => {
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260918071831_recover_calendar_learning_into_on_deck.sql"),
+      "utf8",
+    );
+    expect(migration).toContain("source_calendar_item_id uuid null");
+    expect(migration).toContain("on delete set null");
+    expect(migration).toContain("custom_learning_items_family_learner_calendar_source_idx");
+    expect(migration).toContain("source_calendar_item_id is distinct from old.source_calendar_item_id");
+    expect(migration).toContain("mylearna_keep_calendar_item_in_focus");
+    expect(migration).toContain("completed_at is not null");
+    expect(migration).toContain("Use the canonical Pathways recovery");
+    expect(migration).toContain("on conflict (family_id, learner_id, source_calendar_item_id)");
+    expect(migration).toContain("on conflict (family_id, learner_id, custom_learning_item_id)");
+    expect(migration).toContain("priority not in ('must_do', 'flexible', 'extra')");
+    expect(migration).not.toMatch(/update public\.calendar_items/i);
+    expect(migration).not.toMatch(/evidence_entries/i);
+  });
+
   it("includes only unfinished earlier-week items inside active teaching periods", () => {
     const result = getRecoverableLearningItems({
       calendarItems: [
@@ -80,10 +99,11 @@ describe("recover my week", () => {
   });
 
   it("maps only explicit canonical learner Pathways context", () => {
-    expect(resolveRecoverableLearningItem(item()).reason).toBe("unresolved");
+    expect(resolveRecoverableLearningItem(item()).reason).toBe("calendar-custom");
     expect(resolveRecoverableLearningItem(item({ pathwayStepId: "english::morphology-and-spelling::upper-elementary::u001-prefix-re" })).reason).toBe("pathway-linked");
     expect(resolveRecoverableLearningItem(item({ pathwayStepId: "english::morphology-and-spelling::middle-primary::u001-prefix-re" })).registryItem?.stageKey).toBe("upper-elementary");
     expect(resolveRecoverableLearningItem(item({ learnerId: null })).reason).toBe("whole-family");
-    expect(resolveRecoverableLearningItem(item({ title: "Unlinked activity" })).reason).toBe("unresolved");
+    expect(resolveRecoverableLearningItem(item({ title: "Unlinked activity" })).reason).toBe("calendar-custom");
+    expect(resolveRecoverableLearningItem(item({ pathwayStepId: "stale-step" })).reason).toBe("unavailable");
   });
 });

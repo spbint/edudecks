@@ -10,6 +10,10 @@ describe("Recover My Week surface", () => {
     expect(source).toContain("Plans change. Choose what still matters.");
     expect(source).toContain("Keep in focus");
     expect(source).toContain("addPathwayStepToLearningQueue");
+    expect(source).toContain("recoverCalendarItemToLearningQueue");
+    expect(source).toContain("calendar-custom");
+    expect(source).toContain("In focus");
+    expect(source).toContain("Choose learner before keeping in focus");
     expect(source).not.toContain("updateCleanCalendarItem(workspace.profile.id, recovery");
     expect(source).not.toContain("createCleanCalendarItem(workspace.profile.id, recovery");
   });

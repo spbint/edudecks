@@ -52,6 +52,7 @@ import {
   addPathwayStepToLearningQueue,
   addCustomLearningResource,
   createCustomLearningOnDeck,
+  recoverCalendarItemToLearningQueue,
   hasLearningQueueItemForStep,
   listLearningQueueItems,
   moveLearningQueueItem,
@@ -664,17 +665,23 @@ function formatRecoveryDate(value: string) {
 function RecoverMyWeekSection({
   items,
   onDeckItems,
+  learnerOptions,
+  selectedLearnerId,
   onKeepInFocus,
   updatingIds,
   error,
 }: {
   items: RecoverableLearningItem[];
   onDeckItems: LearningQueueItem[];
-  onKeepInFocus: (item: RecoverableLearningItem) => void;
+  learnerOptions: Array<{ value: string; label: string }>;
+  selectedLearnerId: string;
+  onKeepInFocus: (item: RecoverableLearningItem, priority: LearningQueuePriority, learnerId: string) => void;
   updatingIds: Set<string>;
   error: { itemId: string; message: string } | null;
 }) {
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [priorityByItem, setPriorityByItem] = useState<Record<string, LearningQueuePriority>>({});
+  const [learnerByItem, setLearnerByItem] = useState<Record<string, string>>({});
   if (!items.length) return null;
 
   return (
@@ -716,6 +723,8 @@ function RecoverMyWeekSection({
       {reviewOpen ? <div style={{ display: "grid", gap: 9 }}>
         {items.map(({ calendarItem, registryItem, reason }) => {
           const updating = updatingIds.has(calendarItem.id);
+          const recoveryLearnerId = learnerByItem[calendarItem.id] || calendarItem.learnerId || selectedLearnerId;
+          const recoveryPriority = priorityByItem[calendarItem.id] || "flexible";
           const alreadyOnDeck = Boolean(
             registryItem &&
               hasLearningQueueItemForStep(
@@ -723,6 +732,12 @@ function RecoverMyWeekSection({
                 calendarItem.learnerId || "",
                 registryItem.id,
               ),
+          ) || onDeckItems.some(
+            (entry) =>
+              reason === "calendar-custom" &&
+              entry.sourceType === "custom_learning" &&
+              entry.sourceCalendarItemId === calendarItem.id &&
+              entry.learnerId === recoveryLearnerId,
           );
           return (
             <article key={calendarItem.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, background: "#ffffff", padding: 12, display: "grid", gap: 8 }}>
@@ -733,13 +748,41 @@ function RecoverMyWeekSection({
                   {[calendarItem.learningArea, calendarItem.learnerId ? null : "Whole family"].filter(Boolean).join(" · ") || "Learning"}
                 </span>
               </div>
-              {reason === "pathway-linked" && registryItem ? (
-                <button type="button" onClick={() => onKeepInFocus({ calendarItem, registryItem, reason })} disabled={updating} style={{ ...secondaryButtonStyle, width: "fit-content", color: "#1d4ed8", borderColor: "#bfdbfe", opacity: updating ? 0.6 : 1 }}>
+              {calendarItem.learnerId === null ? (
+                <label style={{ display: "grid", gap: 5, color: "#475569", fontSize: 12, fontWeight: 750 }}>
+                  Choose learner before keeping in focus
+                  <select
+                    aria-label={`Choose learner for ${calendarItem.title}`}
+                    value={recoveryLearnerId}
+                    onChange={(event) => setLearnerByItem((current) => ({ ...current, [calendarItem.id]: event.target.value }))}
+                    style={{ ...compactInputStyle, width: "100%" }}
+                  >
+                    <option value="">Choose learner</option>
+                    {learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              {reason !== "unavailable" ? (
+                <label style={{ display: "grid", gap: 5, color: "#475569", fontSize: 12, fontWeight: 750 }}>
+                  Priority
+                  <select
+                    aria-label={`Priority for ${calendarItem.title}`}
+                    value={recoveryPriority}
+                    onChange={(event) => setPriorityByItem((current) => ({ ...current, [calendarItem.id]: event.target.value as LearningQueuePriority }))}
+                    style={{ ...compactInputStyle, width: "100%" }}
+                  >
+                    {LEARNING_QUEUE_PRIORITIES.map((value) => <option key={value} value={value}>{LEARNING_QUEUE_PRIORITY_LABELS[value]}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              {reason !== "unavailable" ? (
+                <button type="button" onClick={() => onKeepInFocus({ calendarItem, registryItem, reason }, recoveryPriority, recoveryLearnerId)} disabled={updating || alreadyOnDeck || !recoveryLearnerId} aria-label={alreadyOnDeck ? "In focus" : "Keep in focus"} style={{ ...secondaryButtonStyle, width: "fit-content", color: "#1d4ed8", borderColor: "#bfdbfe", opacity: updating || alreadyOnDeck || !recoveryLearnerId ? 0.6 : 1, fontSize: alreadyOnDeck ? 0 : undefined }}>
+                  {alreadyOnDeck ? <span style={{ fontSize: 13 }}>In focus</span> : null}
                   {alreadyOnDeck ? "✓ On deck" : updating ? "Saving..." : "Keep in focus"}
                 </button>
               ) : (
                 <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
-                  {reason === "whole-family" ? "This family activity is shown for review, but is not linked to a specific learner Pathway step." : "This activity isn't linked to a Pathway step yet."}
+                  This learning is no longer linked to an available Pathways step.
                 </p>
               )}
               {error?.itemId === calendarItem.id ? <span role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error.message}</span> : null}
@@ -768,7 +811,7 @@ type MobileTodayContentProps = {
   recoverOnDeckItems: LearningQueueItem[];
   recoverUpdatingIds: Set<string>;
   recoverError: { itemId: string; message: string } | null;
-  onKeepRecoveryInFocus: (item: RecoverableLearningItem) => void;
+  onKeepRecoveryInFocus: (item: RecoverableLearningItem, priority?: LearningQueuePriority, learnerId?: string) => void;
   onCompletionToggle: (item: CleanCalendarItem) => void;
   onLearnerChange: (learnerId: string) => void;
   onDeckItems: OnDeckResolvedItem[];
@@ -996,6 +1039,8 @@ function MobileTodayContent({
           <RecoverMyWeekSection
             items={recoverItems}
             onDeckItems={recoverOnDeckItems}
+            learnerOptions={learnerOptions}
+            selectedLearnerId={selectedLearnerId}
             onKeepInFocus={onKeepRecoveryInFocus}
             updatingIds={recoverUpdatingIds}
             error={recoverError}
@@ -1993,26 +2038,44 @@ function CleanDayWorkspaceBody() {
     }
   }
 
-  async function handleKeepRecoveryInFocus(recoveryItem: RecoverableLearningItem) {
-    if (!workspace.profile || !recoveryItem.registryItem || !recoveryItem.calendarItem.learnerId) return;
+  async function handleKeepRecoveryInFocus(
+    recoveryItem: RecoverableLearningItem,
+    priority: LearningQueuePriority = "flexible",
+    learnerId = recoveryItem.calendarItem.learnerId || selectedLearnerId,
+  ) {
+    if (!workspace.profile || !learnerId || recoveryItem.reason === "unavailable") return;
 
     const itemId = recoveryItem.calendarItem.id;
     setRecoveryUpdatingIds((current) => new Set(current).add(itemId));
     setRecoveryError(null);
 
     try {
-      const result = await addPathwayStepToLearningQueue({
-        familyId: workspace.profile.id,
-        learnerId: recoveryItem.calendarItem.learnerId,
-        registryItem: recoveryItem.registryItem,
-      });
+      if (recoveryItem.reason === "pathway-linked" && recoveryItem.registryItem) {
+        const result = await addPathwayStepToLearningQueue({
+          familyId: workspace.profile.id,
+          learnerId,
+          registryItem: recoveryItem.registryItem,
+        });
+        if (result.created && priority !== "flexible" && result.item) {
+          await updateLearningQueueItemPriority(workspace.profile.id, result.item.id, priority);
+        }
+      } else if (recoveryItem.reason === "calendar-custom") {
+        await recoverCalendarItemToLearningQueue({
+          familyId: workspace.profile.id,
+          calendarItemId: recoveryItem.calendarItem.id,
+          learnerId,
+          priority,
+        });
+      } else {
+        return;
+      }
       await reloadOnDeckItems();
       trackProductEvent(
-        "recover_week_item_put_on_deck",
+        "recover_my_week_kept_in_focus",
         {
-          subjectKey: recoveryItem.registryItem.subjectKey,
-          hasPathwayContext: true,
-          queueSize: result.item ? result.item.position + 1 : null,
+          source_type: recoveryItem.reason === "pathway-linked" ? "pathway_step" : "calendar_custom",
+          priority,
+          whole_family_source: recoveryItem.calendarItem.learnerId === null,
         },
         user?.id,
       );
@@ -2230,7 +2293,7 @@ function CleanDayWorkspaceBody() {
           recoverOnDeckItems={onDeckItems}
           recoverUpdatingIds={recoveryUpdatingIds}
           recoverError={recoveryError}
-          onKeepRecoveryInFocus={(item) => void handleKeepRecoveryInFocus(item)}
+          onKeepRecoveryInFocus={(item, priority, learnerId) => void handleKeepRecoveryInFocus(item, priority, learnerId)}
           onDeckItems={resolvedOnDeckItems}
           onAddResource={(input) => handleAddCustomResource(input)}
           onRemoveResource={(resourceId) => handleRemoveCustomResource(resourceId)}
@@ -3213,7 +3276,9 @@ function CleanDayWorkspaceBody() {
             <RecoverMyWeekSection
               items={recoverableLearningItems}
               onDeckItems={onDeckItems}
-              onKeepInFocus={(item) => void handleKeepRecoveryInFocus(item)}
+              learnerOptions={learnerOptions}
+              selectedLearnerId={selectedLearnerId}
+              onKeepInFocus={(item, priority, learnerId) => void handleKeepRecoveryInFocus(item, priority, learnerId)}
               updatingIds={recoveryUpdatingIds}
               error={recoveryError}
             />
