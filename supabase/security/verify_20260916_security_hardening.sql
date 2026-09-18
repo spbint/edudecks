@@ -5,8 +5,9 @@
 --   * 20260916082517_harden_legacy_security_definer_functions.sql
 --   * 20260916082555_pin_public_function_search_paths.sql
 --   * 20260917083821_repair_family_authorization_helpers.sql
+--   * 20260917095615_contain_legacy_storage_owner_policies.sql
 --
--- Run this as a privileged database role only after all four migrations have
+-- Run this as a privileged database role only after all five migrations have
 -- been applied to an approved test environment. It does not create test data
 -- or change database objects. Any failed assertion aborts the transaction.
 -- The final ROLLBACK also clears the local role/JWT settings used below.
@@ -1012,7 +1013,184 @@ end
 $verify_family_authorization_helpers$;
 
 -- ---------------------------------------------------------------------------
--- 4. Dormant portfolio-share implementation and password-bypass regression
+-- 4. Storage owner-policy containment and bucket-specific flow preservation
+-- ---------------------------------------------------------------------------
+
+do $verify_storage_policy_containment$
+declare
+  policy_name text;
+  unexpected_policy text;
+  orphan_record record;
+begin
+  foreach policy_name in array array[
+    'Users can access own files',
+    'Users can delete own files',
+    'Users can update own files',
+    'Users can upload own files'
+  ]
+  loop
+    if exists (
+      select 1
+      from pg_catalog.pg_policies as policy
+      where policy.schemaname = 'storage'
+        and policy.tablename = 'objects'
+        and policy.policyname = policy_name
+    ) then
+      raise exception 'Legacy bucket-agnostic Storage owner policy remains: %', policy_name;
+    end if;
+  end loop;
+
+  -- Refuse any renamed equivalent that can satisfy an API-role request on
+  -- owner alone without first restricting the bucket and MyLearna object.
+  select policy.policyname
+  into unexpected_policy
+  from pg_catalog.pg_policies as policy
+  where policy.schemaname = 'storage'
+    and policy.tablename = 'objects'
+    and policy.roles && array['public', 'anon', 'authenticated']::name[]
+    and position(
+      'owner' in lower(coalesce(policy.qual, '') || ' ' || coalesce(policy.with_check, ''))
+    ) > 0
+    and position(
+      'auth.uid()' in lower(coalesce(policy.qual, '') || ' ' || coalesce(policy.with_check, ''))
+    ) > 0
+    and position(
+      'bucket_id' in lower(coalesce(policy.qual, '') || ' ' || coalesce(policy.with_check, ''))
+    ) = 0
+  order by policy.policyname
+  limit 1;
+
+  if unexpected_policy is not null then
+    raise exception 'Bucket-agnostic owner policy remains on storage.objects: %',
+      unexpected_policy;
+  end if;
+
+  if exists (
+    select 1
+    from storage.buckets as bucket
+    where bucket.id in ('evidence', 'learning-resources')
+      and bucket.public
+  ) then
+    raise exception 'A private MyLearna Storage bucket is configured as public';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna evidence storage insert own'
+      and policy.cmd = 'INSERT'
+      and policy.roles @> array['authenticated']::name[]
+      and position('bucket_id' in lower(coalesce(policy.with_check, ''))) > 0
+      and position('mylearna_evidence_storage_object_owned_by_auth' in lower(coalesce(policy.with_check, ''))) > 0
+      and position('mylearna_evidence_attachment_upload_reserved' in lower(coalesce(policy.with_check, ''))) > 0
+  ) or not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna evidence storage select own'
+      and policy.cmd = 'SELECT'
+      and policy.roles @> array['authenticated']::name[]
+      and position('mylearna_evidence_storage_object_owned_by_auth' in lower(coalesce(policy.qual, ''))) > 0
+  ) or not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna evidence storage update own'
+      and policy.cmd = 'UPDATE'
+      and policy.roles @> array['authenticated']::name[]
+      and position('mylearna_evidence_storage_object_owned_by_auth' in lower(coalesce(policy.qual, ''))) > 0
+      and position('mylearna_evidence_storage_object_owned_by_auth' in lower(coalesce(policy.with_check, ''))) > 0
+  ) or not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna evidence storage delete own'
+      and policy.cmd = 'DELETE'
+      and policy.roles @> array['authenticated']::name[]
+      and position('mylearna_evidence_storage_object_owned_by_auth' in lower(coalesce(policy.qual, ''))) > 0
+  ) then
+    raise exception 'A required evidence Storage policy is missing or unexpectedly broad';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna learning resources insert reserved'
+      and policy.cmd = 'INSERT'
+      and policy.roles @> array['authenticated']::name[]
+      and position('mylearna_resource_file_upload_reserved' in lower(coalesce(policy.with_check, ''))) > 0
+  ) or not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna learning resources select family'
+      and policy.cmd = 'SELECT'
+      and policy.roles @> array['authenticated']::name[]
+      and position('is_family_member' in lower(coalesce(policy.qual, ''))) > 0
+  ) or not exists (
+    select 1
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.policyname = 'mylearna learning resources update reserved'
+      and policy.cmd = 'UPDATE'
+      and policy.roles @> array['authenticated']::name[]
+      and position('bucket_id' in lower(coalesce(policy.qual, ''))) > 0
+      and position('bucket_id' in lower(coalesce(policy.with_check, ''))) > 0
+  ) then
+    raise exception 'A required learning-resource Storage policy is missing or unexpectedly broad';
+  end if;
+
+  -- Existing orphan metadata, when present in a production-derived clone,
+  -- must fail the current MyLearna ownership helper even for its original
+  -- uploader. The verifier does not fetch or alter the underlying files.
+  for orphan_record in
+    select object_row.name, object_row.owner_id
+    from storage.objects as object_row
+    left join public.evidence_entries as evidence
+      on evidence.id::text = (storage.foldername(object_row.name))[6]
+     and evidence.family_id::text = (storage.foldername(object_row.name))[2]
+     and evidence.learner_id::text = (storage.foldername(object_row.name))[4]
+    where object_row.bucket_id = 'evidence'
+      and evidence.id is null
+      and object_row.owner_id is not null
+    order by object_row.id
+    limit 100
+  loop
+    perform pg_catalog.set_config('request.jwt.claim.sub', orphan_record.owner_id, true);
+    perform pg_catalog.set_config(
+      'request.jwt.claims',
+      pg_catalog.jsonb_build_object(
+        'sub', orphan_record.owner_id,
+        'role', 'authenticated'
+      )::text,
+      true
+    );
+
+    if public.mylearna_evidence_storage_object_owned_by_auth(orphan_record.name) then
+      raise exception 'Orphaned evidence object remains visible through the MyLearna helper';
+    end if;
+  end loop;
+
+  perform pg_catalog.set_config('request.jwt.claim.sub', '', true);
+  perform pg_catalog.set_config(
+    'request.jwt.claims',
+    pg_catalog.jsonb_build_object('role', 'authenticated')::text,
+    true
+  );
+end
+$verify_storage_policy_containment$;
+
+-- ---------------------------------------------------------------------------
+-- 5. Dormant portfolio-share implementation and password-bypass regression
 -- ---------------------------------------------------------------------------
 
 do $verify_portfolio_share_functions$
@@ -1123,7 +1301,7 @@ end
 $verify_portfolio_share_functions$;
 
 -- ---------------------------------------------------------------------------
--- 5. Runtime role simulation: two unrelated signed-in identities
+-- 6. Runtime role simulation: two unrelated signed-in identities
 -- ---------------------------------------------------------------------------
 
 -- These deterministic UUIDs are used only as JWT claims. Abort rather than
@@ -1256,7 +1434,7 @@ reset role;
 rollback;
 
 -- ---------------------------------------------------------------------------
--- 6. Compact advisor-oriented result (all assertions above have passed)
+-- 7. Compact advisor-oriented result (all assertions above have passed)
 -- ---------------------------------------------------------------------------
 
 select pg_catalog.jsonb_build_object(
@@ -1280,6 +1458,22 @@ select pg_catalog.jsonb_build_object(
         lower(pg_catalog.btrim(coalesce(policy.qual, ''))) in ('true', '(true)')
         or lower(pg_catalog.btrim(coalesce(policy.with_check, ''))) in ('true', '(true)')
       )
+  ),
+  'legacy_bucket_agnostic_storage_owner_policies', (
+    select count(*)
+    from pg_catalog.pg_policies as policy
+    where policy.schemaname = 'storage'
+      and policy.tablename = 'objects'
+      and policy.roles && array['public', 'anon', 'authenticated']::name[]
+      and position(
+        'owner' in lower(coalesce(policy.qual, '') || ' ' || coalesce(policy.with_check, ''))
+      ) > 0
+      and position(
+        'auth.uid()' in lower(coalesce(policy.qual, '') || ' ' || coalesce(policy.with_check, ''))
+      ) > 0
+      and position(
+        'bucket_id' in lower(coalesce(policy.qual, '') || ' ' || coalesce(policy.with_check, ''))
+      ) = 0
   ),
   'mutable_public_function_search_paths', (
     select count(*)
