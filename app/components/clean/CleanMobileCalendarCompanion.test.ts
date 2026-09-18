@@ -55,6 +55,12 @@ describe("Mobile Calendar companion experience", () => {
     expect(mobileCalendarSource).not.toContain("deleteCleanCalendarItem");
     expect(reloadSource).not.toContain("materializeMasterWeekRange");
     expect(reloadSource).not.toMatch(/(?:create|update|delete)CleanCalendarItem/);
+    expect(mobileCalendarSource).toContain("onAddLearning");
+    expect(mobileCalendarSource).toContain("Add learning block");
+    expect(mobileCalendarSource).toContain("Tap to add learning");
+    expect(mobileCalendarSource).toContain('aria-label={"Add learning on " + formatLongDateLabel(dateValue)}');
+    expect(source).toContain("onAddLearning={(dateValue) => openCreatePopover(dateValue, selectedMobileLearnerId || undefined)}");
+    expect(source).toContain("<CleanCalendarPopover");
   });
 
   it("preserves existing Quick Capture context without creating evidence on navigation", () => {
@@ -72,7 +78,7 @@ describe("Mobile Calendar companion experience", () => {
     expect(mobileCalendarSource).toContain("We couldn&apos;t load your calendar.");
     expect(mobileCalendarSource).toContain("Try again");
     expect(mobileCalendarSource).toContain("Nothing planned this week.");
-    expect(mobileCalendarSource).toContain("Nothing planned for");
+    expect(mobileCalendarSource).toContain("Nothing planned. Tap to add learning.");
     expect(mobileCalendarSource).toContain("Back to Today");
   });
 

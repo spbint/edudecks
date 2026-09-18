@@ -114,9 +114,13 @@ describe("Desktop Calendar task-first presentation", () => {
   });
 
   it("keeps explicit day-context Add tied to the exact selected day", () => {
-    expect(source).toContain("function openCreatePopover(dateValue: string)");
+    expect(source).toContain("function openCreatePopover(dateValue: string, learnerIdOverride?: string)");
     expect(source).toContain("setPopoverDate(dateValue)");
     expect(source).toContain("openCreatePopover(dateValue)");
+    expect(source).toContain('type="button"');
+    expect(source).toContain('aria-label={"Add learning on " + formatLongDateLabel(dateValue)}');
+    expect(source).toContain("Tap to add learning");
+    expect(source).toContain("Add learning block");
   });
 
   it("uses the same popover date for the modal and explicit Save payload", () => {
@@ -126,7 +130,7 @@ describe("Desktop Calendar task-first presentation", () => {
   });
 
   it("keeps opening and cancelling Add read-only while Save uses the existing write path", () => {
-    const openStart = source.indexOf("function openCreatePopover(dateValue: string)");
+    const openStart = source.indexOf("function openCreatePopover(dateValue: string, learnerIdOverride?: string)");
     const openEnd = source.indexOf("function openEditPopover", openStart);
     const closeStart = source.indexOf("function closePopover()");
     const closeEnd = source.indexOf("function openLearningPeriodEditor", closeStart);

@@ -960,6 +960,7 @@ type MobileCalendarContentProps = {
   itemsLoading: boolean;
   learnerOptions: PickerOption[];
   onLearnerChange: (learnerId: string) => void;
+  onAddLearning: (dateValue: string) => void;
   onRetry: () => void;
   onViewChange: (view: MobileCalendarView) => void;
   selectedLearnerId: string;
@@ -979,6 +980,7 @@ function MobileCalendarContent({
   itemsLoading,
   learnerOptions,
   onLearnerChange,
+  onAddLearning,
   onRetry,
   onViewChange,
   selectedLearnerId,
@@ -1009,7 +1011,7 @@ function MobileCalendarContent({
   }, [visibleItems]);
   const datesWithItems = visibleDates.filter((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0);
   const showEmptyWeek = activeView === "week" && !datesWithItems.length;
-  const datesToRender = activeView === "week" ? datesWithItems : visibleDates;
+  const datesToRender = visibleDates;
 
   return (
     <main
@@ -1091,9 +1093,16 @@ function MobileCalendarContent({
                   {formatLongDateLabel(dateValue)}
                 </h2>
                 {!dayItems.length ? (
-                  <section style={cardStyle}>
-                    <span style={{ color: "#475569" }}>Nothing planned for {activeView === "tomorrow" ? "tomorrow" : "today"}.</span>
-                  </section>
+                  <button
+                    type="button"
+                    className="mylearna-calendar-day-empty-action"
+                    aria-label={"Add learning on " + formatLongDateLabel(dateValue)}
+                    onClick={() => onAddLearning(dateValue)}
+                    style={{ ...cardStyle, minHeight: 64, display: "grid", gap: 4, textAlign: "left", cursor: "pointer" }}
+                  >
+                    <strong style={{ color: "#17204b" }}>Add learning block</strong>
+                    <span style={{ color: "#475569" }}>Nothing planned. Tap to add learning.</span>
+                  </button>
                 ) : dayItems.map((item) => {
                   const learnerLabel = item.learnerId
                     ? learnerOptions.find((option) => option.value === item.learnerId)?.label ?? "Learner"
@@ -1123,6 +1132,16 @@ function MobileCalendarContent({
                     </article>
                   );
                 })}
+                {dayItems.length ? (
+                  <button
+                    type="button"
+                    aria-label={"Add learning on " + formatLongDateLabel(dateValue)}
+                    onClick={() => onAddLearning(dateValue)}
+                    style={{ ...mutedButtonStyle, minHeight: 44 }}
+                  >
+                    Add learning block
+                  </button>
+                ) : null}
               </section>
             );
           })}
@@ -2271,13 +2290,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setEditingLearningPeriodNotes("");
   }
 
-  function openCreatePopover(dateValue: string) {
+  function openCreatePopover(dateValue: string, learnerIdOverride?: string) {
     resetPopoverForm();
     setPopoverDate(dateValue);
-    setPopoverLearnerId(workspace.setupStatus.activeLearnerId ?? "");
+    const defaultLearnerId = learnerIdOverride ?? workspace.setupStatus.activeLearnerId ?? "";
+    setPopoverLearnerId(defaultLearnerId);
     if (hasCalendarHandoff) {
       setPopoverTitle(handoffDefaults.title);
-      setPopoverLearnerId(handoffDefaults.learnerId || workspace.setupStatus.activeLearnerId || "");
+      setPopoverLearnerId(handoffDefaults.learnerId || defaultLearnerId);
       const handoffArea = resolveLearningAreaControl(handoffDefaults.learningArea);
       setPopoverLearningArea(handoffArea.area);
       setPopoverLearningAreaCustom(handoffArea.customLabel);
@@ -3655,6 +3675,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           itemsError={itemsError}
           itemsLoading={itemsLoading}
           learnerOptions={learnerOptions}
+          onAddLearning={(dateValue) => openCreatePopover(dateValue, selectedMobileLearnerId || undefined)}
           onLearnerChange={handleMobileLearnerChange}
           onRetry={() => void reloadCalendarItems()}
           onViewChange={setMobileCalendarView}
@@ -3664,6 +3685,49 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           workspaceLoading={workspace.loading && !workspace.profile}
           workspaceNeedsFamily={workspace.requiresFamilyCreation}
           workspaceSchemaMissing={workspace.schemaMissing}
+        />
+        <CleanCalendarPopover
+          open={popoverOpen}
+          mode={editingItemId ? "edit" : "create"}
+          plannedDate={popoverDate}
+          title={popoverTitle}
+          learnerId={popoverLearnerId}
+          learningArea={popoverLearningArea}
+          learningAreaCustom={popoverLearningAreaCustom}
+          timeMode={popoverTimeMode}
+          startTime={popoverStartTime}
+          endTime={popoverEndTime}
+          description={popoverDescription}
+          programId={popoverProgramId}
+          programSegmentId={popoverProgramSegmentId}
+          learnerOptions={learnerOptions}
+          programOptions={programOptions}
+          segmentOptions={visiblePopoverSegments}
+          onChangeTitle={setPopoverTitle}
+          onChangeLearnerId={setPopoverLearnerId}
+          onChangeLearningArea={setPopoverLearningArea}
+          onChangeLearningAreaCustom={setPopoverLearningAreaCustom}
+          onChangeTimeMode={(mode) => {
+            setPopoverTimeMode(mode);
+            if (mode === "untimed") {
+              setPopoverStartTime("");
+              setPopoverEndTime("");
+            }
+          }}
+          onChangeStartTime={setPopoverStartTime}
+          onChangeEndTime={setPopoverEndTime}
+          onChangeDescription={setPopoverDescription}
+          onChangeProgramId={(value) => {
+            setPopoverProgramId(value);
+            if (!value) {
+              setPopoverProgramSegmentId("");
+            }
+          }}
+          onChangeProgramSegmentId={setPopoverProgramSegmentId}
+          onClose={closePopover}
+          onSave={() => void handlePopoverSave()}
+          saving={submitting}
+          errorMessage={actionError}
         />
       </div>
     );
@@ -4622,32 +4686,52 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                                   {dayItems.length - 3 === 1 ? "" : "s"}
                                 </button>
                               ) : null}
+                              <button
+                                type="button"
+                                aria-label={"Add learning on " + formatLongDateLabel(dateValue)}
+                                style={{ ...mutedButtonStyle, minHeight: 44 }}
+                                onClick={() => openCreatePopover(dateValue)}
+                              >
+                                Add learning block
+                              </button>
                             </div>
                           ) : (
-                            <div
+                            <button
+                              type="button"
                               className={
                                 calendarBoardView === "week"
                                   ? "mylearna-calendar-day-empty-action"
                                   : undefined
                               }
+                              aria-label={"Add learning on " + formatLongDateLabel(dateValue)}
                               style={{
                                 ...getInteractiveZoneStyle(
                                   activeSurfaceId === emptyZoneSurfaceId,
                                 ),
-                                cursor: "default",
                                 padding: calendarBoardView === "month" ? "12px 10px" : "16px 14px",
                               }}
+                              onMouseEnter={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                              onMouseLeave={() =>
+                                setActiveSurfaceId((current) =>
+                                  current === emptyZoneSurfaceId ? null : current,
+                                )
+                              }
+                              onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                              onBlur={() =>
+                                setActiveSurfaceId((current) =>
+                                  current === emptyZoneSurfaceId ? null : current,
+                                )
+                              }
+                              onClick={() => openCreatePopover(dateValue)}
                             >
                               <strong style={{ color: "#0f172a", fontSize: 14 }}>Nothing planned</strong>
-                              {calendarBoardView === "week" ? (
-                                <span
-                                  className="mylearna-calendar-empty-repeated-copy"
-                                  style={{ color: "#475569", lineHeight: 1.5 }}
-                                >
-                                  Use Add learning block when you want to plan this date.
-                                </span>
-                              ) : null}
-                            </div>
+                              <span
+                                className="mylearna-calendar-empty-repeated-copy"
+                                style={{ color: "#475569", lineHeight: 1.5 }}
+                              >
+                                Tap to add learning
+                              </span>
+                            </button>
                           )}
                         </div>
                       );
