@@ -52,6 +52,29 @@ const item = (overrides: Partial<CleanCalendarItem> = {}): CleanCalendarItem => 
 });
 
 describe("recover my week", () => {
+  it("documents atomic whole-family recovery while preserving learner-scoped On Deck items", () => {
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260918231803_keep_whole_family_calendar_item_in_focus.sql"),
+      "utf8",
+    );
+    expect(migration).toContain("mylearna_keep_whole_family_calendar_item_in_focus");
+    expect(migration).toContain("security invoker");
+    expect(migration).toContain("set search_path = public");
+    expect(migration).toContain("calendar_row.learner_id is not null");
+    expect(migration).toContain("calendar_row.completed_at is not null");
+    expect(migration).toContain("calendar_row.pathway_step_id is not null");
+    expect(migration).toContain("p_priority is null");
+    expect(migration).toContain("from public.learners learner");
+    expect(migration).toContain("public.mylearna_keep_calendar_item_in_focus(");
+    expect(migration).toContain("all-or-nothing");
+    expect(migration).toContain("revoke all on function public.mylearna_keep_whole_family_calendar_item_in_focus");
+    expect(migration).toContain("grant execute on function public.mylearna_keep_whole_family_calendar_item_in_focus");
+    expect(migration).not.toMatch(/update public\.calendar_items/i);
+    expect(migration).not.toMatch(/alter table public\.learning_queue_items/i);
+    expect(migration).not.toMatch(/evidence_entries/i);
+    expect(migration).not.toMatch(/update public\.custom_learning_items/i);
+  });
+
   it("documents explicit, nullable calendar Pathways provenance", () => {
     const migration = readFileSync(
       join(process.cwd(), "supabase/migrations/20260910100000_add_calendar_pathway_context.sql"),

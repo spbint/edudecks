@@ -13,7 +13,14 @@ describe("Recover My Week surface", () => {
     expect(source).toContain("recoverCalendarItemToLearningQueue");
     expect(source).toContain("calendar-custom");
     expect(source).toContain("In focus");
-    expect(source).toContain("Choose learner before keeping in focus");
+    expect(source).toContain("Keep in focus for");
+    expect(source).toContain("Choose who");
+    expect(source).toContain("Whole family (all learners)");
+    expect(source).toContain("WHOLE_FAMILY_RECOVERY_TARGET");
+    expect(source).toContain("recoverWholeFamilyCalendarItemToLearningQueue");
+    expect(source).toContain('disabled={updating || alreadyOnDeck || !recoveryTarget}');
+    expect(source).toContain("learnerOptions.every");
+    expect(source).toContain("recoveryOnDeckItems");
     expect(source).not.toContain("updateCleanCalendarItem(workspace.profile.id, recovery");
     expect(source).not.toContain("createCleanCalendarItem(workspace.profile.id, recovery");
   });

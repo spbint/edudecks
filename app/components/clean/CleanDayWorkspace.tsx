@@ -53,6 +53,7 @@ import {
   addCustomLearningResource,
   createCustomLearningOnDeck,
   recoverCalendarItemToLearningQueue,
+  recoverWholeFamilyCalendarItemToLearningQueue,
   hasLearningQueueItemForStep,
   listLearningQueueItems,
   moveLearningQueueItem,
@@ -188,6 +189,8 @@ const COMMON_LEARNING_AREAS = [
   "Health and Physical Education",
   "Technologies",
 ];
+
+const WHOLE_FAMILY_RECOVERY_TARGET = "__whole_family__";
 
 function getTodayDate() {
   const now = new Date();
@@ -723,9 +726,12 @@ function RecoverMyWeekSection({
       {reviewOpen ? <div style={{ display: "grid", gap: 9 }}>
         {items.map(({ calendarItem, registryItem, reason }) => {
           const updating = updatingIds.has(calendarItem.id);
-          const recoveryLearnerId = learnerByItem[calendarItem.id] || calendarItem.learnerId || selectedLearnerId;
+          const wholeFamilyItem = calendarItem.learnerId === null;
+          const recoveryTarget = wholeFamilyItem
+            ? learnerByItem[calendarItem.id] ?? ""
+            : calendarItem.learnerId || selectedLearnerId;
           const recoveryPriority = priorityByItem[calendarItem.id] || "flexible";
-          const alreadyOnDeck = Boolean(
+          const individualAlreadyOnDeck = Boolean(
             registryItem &&
               hasLearningQueueItemForStep(
                 onDeckItems,
@@ -734,11 +740,26 @@ function RecoverMyWeekSection({
               ),
           ) || onDeckItems.some(
             (entry) =>
-              reason === "calendar-custom" &&
+              (reason === "calendar-custom" || reason === "whole-family") &&
               entry.sourceType === "custom_learning" &&
               entry.sourceCalendarItemId === calendarItem.id &&
-              entry.learnerId === recoveryLearnerId,
+              entry.learnerId === recoveryTarget,
           );
+          const wholeFamilyAlreadyOnDeck =
+            wholeFamilyItem &&
+            learnerOptions.length > 0 &&
+            learnerOptions.every((learner) =>
+              onDeckItems.some(
+                (entry) =>
+                  entry.sourceType === "custom_learning" &&
+                  entry.sourceCalendarItemId === calendarItem.id &&
+                  entry.learnerId === learner.value,
+              ),
+            );
+          const alreadyOnDeck =
+            recoveryTarget === WHOLE_FAMILY_RECOVERY_TARGET
+              ? wholeFamilyAlreadyOnDeck
+              : individualAlreadyOnDeck;
           return (
             <article key={calendarItem.id} style={{ border: "1px solid #e2e8f0", borderRadius: 14, background: "#ffffff", padding: 12, display: "grid", gap: 8 }}>
               <div style={{ display: "grid", gap: 4 }}>
@@ -748,16 +769,17 @@ function RecoverMyWeekSection({
                   {[calendarItem.learningArea, calendarItem.learnerId ? null : "Whole family"].filter(Boolean).join(" · ") || "Learning"}
                 </span>
               </div>
-              {calendarItem.learnerId === null ? (
+              {wholeFamilyItem ? (
                 <label style={{ display: "grid", gap: 5, color: "#475569", fontSize: 12, fontWeight: 750 }}>
-                  Choose learner before keeping in focus
+                  Keep in focus for
                   <select
-                    aria-label={`Choose learner for ${calendarItem.title}`}
-                    value={recoveryLearnerId}
+                    aria-label={`Keep ${calendarItem.title} in focus for`}
+                    value={recoveryTarget}
                     onChange={(event) => setLearnerByItem((current) => ({ ...current, [calendarItem.id]: event.target.value }))}
                     style={{ ...compactInputStyle, width: "100%" }}
                   >
-                    <option value="">Choose learner</option>
+                    <option value="">Choose who</option>
+                    <option value={WHOLE_FAMILY_RECOVERY_TARGET}>Whole family (all learners)</option>
                     {learnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
@@ -776,7 +798,7 @@ function RecoverMyWeekSection({
                 </label>
               ) : null}
               {reason !== "unavailable" ? (
-                <button type="button" onClick={() => onKeepInFocus({ calendarItem, registryItem, reason }, recoveryPriority, recoveryLearnerId)} disabled={updating || alreadyOnDeck || !recoveryLearnerId} aria-label={alreadyOnDeck ? "In focus" : "Keep in focus"} style={{ ...secondaryButtonStyle, width: "fit-content", color: "#1d4ed8", borderColor: "#bfdbfe", opacity: updating || alreadyOnDeck || !recoveryLearnerId ? 0.6 : 1, fontSize: alreadyOnDeck ? 0 : undefined }}>
+                <button type="button" onClick={() => onKeepInFocus({ calendarItem, registryItem, reason }, recoveryPriority, recoveryTarget)} disabled={updating || alreadyOnDeck || !recoveryTarget} aria-label={alreadyOnDeck ? "In focus" : "Keep in focus"} style={{ ...secondaryButtonStyle, width: "fit-content", color: "#1d4ed8", borderColor: "#bfdbfe", opacity: updating || alreadyOnDeck || !recoveryTarget ? 0.6 : 1, fontSize: alreadyOnDeck ? 0 : undefined }}>
                   {alreadyOnDeck ? <span style={{ fontSize: 13 }}>In focus</span> : null}
                   {alreadyOnDeck ? "✓ On deck" : updating ? "Saving..." : "Keep in focus"}
                 </button>
@@ -1112,6 +1134,7 @@ function CleanDayWorkspaceBody() {
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
   const [evidenceEntries, setEvidenceEntries] = useState<CleanEvidenceEntry[]>([]);
   const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
+  const [recoveryOnDeckItems, setRecoveryOnDeckItems] = useState<LearningQueueItem[]>([]);
   const [onDeckError, setOnDeckError] = useState<string | null>(null);
   const [onDeckUpdatingId, setOnDeckUpdatingId] = useState("");
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
@@ -1427,19 +1450,22 @@ function CleanDayWorkspaceBody() {
   const reloadOnDeckItems = useCallback(async () => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setOnDeckItems([]);
+      setRecoveryOnDeckItems([]);
       setOnDeckError(null);
       return;
     }
 
     try {
-      const nextItems = await listLearningQueueItems(
-        workspace.profile.id,
-        selectedLearnerId || null,
-      );
+      const nextItems = await listLearningQueueItems(workspace.profile.id, selectedLearnerId || null);
+      const nextRecoveryItems = selectedLearnerId
+        ? await listLearningQueueItems(workspace.profile.id)
+        : nextItems;
       setOnDeckItems(nextItems);
+      setRecoveryOnDeckItems(nextRecoveryItems);
       setOnDeckError(null);
     } catch (error) {
       setOnDeckItems([]);
+      setRecoveryOnDeckItems([]);
       setOnDeckError(
         normalizeCleanErrorMessage(error, "We could not load On Deck just now."),
       );
@@ -2059,7 +2085,16 @@ function CleanDayWorkspaceBody() {
         if (result.created && priority !== "flexible" && result.item) {
           await updateLearningQueueItemPriority(workspace.profile.id, result.item.id, priority);
         }
-      } else if (recoveryItem.reason === "calendar-custom") {
+      } else if (
+        recoveryItem.reason === "whole-family" &&
+        learnerId === WHOLE_FAMILY_RECOVERY_TARGET
+      ) {
+        await recoverWholeFamilyCalendarItemToLearningQueue({
+          familyId: workspace.profile.id,
+          calendarItemId: recoveryItem.calendarItem.id,
+          priority,
+        });
+      } else if (recoveryItem.reason === "calendar-custom" || recoveryItem.reason === "whole-family") {
         await recoverCalendarItemToLearningQueue({
           familyId: workspace.profile.id,
           calendarItemId: recoveryItem.calendarItem.id,
@@ -2076,6 +2111,7 @@ function CleanDayWorkspaceBody() {
           source_type: recoveryItem.reason === "pathway-linked" ? "pathway_step" : "calendar_custom",
           priority,
           whole_family_source: recoveryItem.calendarItem.learnerId === null,
+          whole_family_target: learnerId === WHOLE_FAMILY_RECOVERY_TARGET,
         },
         user?.id,
       );
@@ -2290,7 +2326,7 @@ function CleanDayWorkspaceBody() {
           learnerOptions={learnerOptions}
           myDayPresentationState={myDayPresentationState}
           recoverItems={recoverableLearningItems}
-          recoverOnDeckItems={onDeckItems}
+          recoverOnDeckItems={recoveryOnDeckItems}
           recoverUpdatingIds={recoveryUpdatingIds}
           recoverError={recoveryError}
           onKeepRecoveryInFocus={(item, priority, learnerId) => void handleKeepRecoveryInFocus(item, priority, learnerId)}
@@ -3275,7 +3311,7 @@ function CleanDayWorkspaceBody() {
 
             <RecoverMyWeekSection
               items={recoverableLearningItems}
-              onDeckItems={onDeckItems}
+              onDeckItems={recoveryOnDeckItems}
               learnerOptions={learnerOptions}
               selectedLearnerId={selectedLearnerId}
               onKeepInFocus={(item, priority, learnerId) => void handleKeepRecoveryInFocus(item, priority, learnerId)}

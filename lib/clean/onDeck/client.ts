@@ -247,6 +247,29 @@ export async function recoverCalendarItemToLearningQueue(input: {
   return response.data as string;
 }
 
+export async function recoverWholeFamilyCalendarItemToLearningQueue(input: {
+  familyId: string;
+  calendarItemId: string;
+  priority?: LearningQueuePriority;
+}) {
+  const response = await supabase.rpc("mylearna_keep_whole_family_calendar_item_in_focus", {
+    p_family_id: input.familyId,
+    p_calendar_item_id: input.calendarItemId,
+    p_priority: input.priority || "flexible",
+  });
+
+  if (response.error || !Array.isArray(response.data) || !response.data.length) {
+    throw new Error(
+      normalizeOnDeckError(
+        response.error,
+        "We could not keep this whole-family Calendar learning in focus.",
+      ),
+    );
+  }
+
+  return response.data as string[];
+}
+
 export function isSafeCustomWebLink(value: string) {
   return Boolean(normalizeFamilyWebUrl(value));
 }
