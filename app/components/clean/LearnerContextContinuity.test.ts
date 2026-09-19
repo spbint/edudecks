@@ -55,6 +55,13 @@ describe("ordinary learner-context continuity", () => {
     expect(shellSource).toContain('buildLearnerContextHref("/my-capture?mode=quick", shellLearnerId');
     expect(shellSource).toContain('href === "/my-pathways"');
     expect(shellSource).toContain("learnerId=");
+    expect(shellSource).toContain('"/my-resources"');
+    expect(shellSource).toContain('"/my-settings"');
+    expect(shellSource).toContain('"/my-profile"');
+    expect(shellSource).toContain('"/my-community"');
+    expect(shellSource).toContain('homeHref={buildShellLearnerHref("/my-day", shellLearnerId)}');
+    expect(shellSource).toContain('buildShellLearnerHref("/my-resources", shellLearnerId)');
+    expect(shellSource).toContain('buildShellLearnerHref("/my-community", shellLearnerId)');
   });
 
   it("does not alter the specialised Pathways context contract", () => {

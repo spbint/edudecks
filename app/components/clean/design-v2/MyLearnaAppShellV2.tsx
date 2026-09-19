@@ -132,6 +132,10 @@ const learnerContextNavHrefs = new Set([
   "/my-portfolio",
   "/my-learna",
   "/my-reports",
+  "/my-resources",
+  "/my-settings",
+  "/my-profile",
+  "/my-community",
 ]);
 
 function buildShellLearnerHref(href: string, learnerId: string) {
@@ -264,7 +268,15 @@ function ShellIcon({ name, size = 20 }: { name: ShellIconName; size?: number }) 
   );
 }
 
-function MyLearnaBrandMark({ compact = false, showBeta = true }: { compact?: boolean; showBeta?: boolean }) {
+function MyLearnaBrandMark({
+  compact = false,
+  showBeta = true,
+  homeHref = "/my-day",
+}: {
+  compact?: boolean;
+  showBeta?: boolean;
+  homeHref?: string;
+}) {
   return (
     <div
       className={`mylearna-v2-brand-mark${compact ? " mylearna-v2-mobile-brand" : ""}`}
@@ -277,7 +289,7 @@ function MyLearnaBrandMark({ compact = false, showBeta = true }: { compact?: boo
       }}
     >
       <Link
-        href="/my-day"
+        href={homeHref}
         aria-label="MyLearna home"
         className="mylearna-v2-brand-link"
         style={{ display: "block", textDecoration: "none", flexShrink: 0 }}
@@ -1229,7 +1241,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             gap: 22,
           }}
         >
-          <MyLearnaBrandMark showBeta={false} />
+          <MyLearnaBrandMark showBeta={false} homeHref={buildShellLearnerHref("/my-day", shellLearnerId)} />
 
           <nav
             className="mylearna-v2-nav"
@@ -1287,7 +1299,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               className="mylearna-v2-mobile-header-leading"
               style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}
             >
-              <MyLearnaBrandMark compact showBeta={false} />
+              <MyLearnaBrandMark compact showBeta={false} homeHref={buildShellLearnerHref("/my-day", shellLearnerId)} />
               <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
               <nav
                 className="mylearna-v2-breadcrumb"
@@ -1344,7 +1356,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             </div>
             <div className="mylearna-v2-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Link
-                href="/my-community"
+                href={buildShellLearnerHref("/my-community", shellLearnerId)}
                 className="mylearna-v2-desktop-help"
                 style={{ color: v2Tokens.navy, fontSize: 14, fontWeight: 750, textDecoration: "none" }}
               >
@@ -1406,7 +1418,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               <span>My Calendar</span>
             </Link>
             <Link
-              href="/my-profile"
+              href={buildShellLearnerHref("/my-profile", shellLearnerId)}
               onClick={() => closeMobileMore(false)}
               className="mylearna-v2-mobile-sheet-link"
               style={{ background: "#ffffff", color: v2Tokens.navy }}
@@ -1415,7 +1427,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               <span>Account</span>
             </Link>
             <Link
-              href="/my-resources"
+              href={buildShellLearnerHref("/my-resources", shellLearnerId)}
               onClick={() => closeMobileMore(false)}
               className="mylearna-v2-mobile-sheet-link"
               style={{ background: isActive(pathname, ["/my-resources", "/clean-my-resources"]) ? v2Tokens.lavender : "#ffffff", color: isActive(pathname, ["/my-resources", "/clean-my-resources"]) ? v2Tokens.purple : v2Tokens.navy }}
@@ -1424,7 +1436,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
               <span>Resource Cupboard</span>
             </Link>
             <Link
-              href="/my-community"
+              href={buildShellLearnerHref("/my-community", shellLearnerId)}
               onClick={() => closeMobileMore(false)}
               className="mylearna-v2-mobile-sheet-link"
               style={{ background: "#ffffff", color: v2Tokens.navy }}
