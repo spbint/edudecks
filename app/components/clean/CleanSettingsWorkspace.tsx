@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanPageIntroVideo from "@/app/components/clean/CleanPageIntroVideo";
 import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
+import MediaStorageSettingsCard from "@/app/components/clean/MediaStorageSettingsCard";
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import {
   GuidancePageAction,
@@ -944,6 +945,8 @@ function CleanSettingsWorkspaceBody() {
                 </div>
               </div>
             </section>
+
+            {!firstSetupMode ? <MediaStorageSettingsCard familyId={workspace.profile.id} /> : null}
 
             {!firstSetupMode ? (
               <div className="mylearna-settings-guidance">
