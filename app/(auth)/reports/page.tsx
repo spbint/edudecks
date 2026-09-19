@@ -1,9 +1,14 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import React from "react";
+import {
+  buildLegacyReportRedirectPath,
+  type LegacyReportSearchParams,
+} from "./legacyReportRedirect";
 
-import FamilyReportsWorkspace from "@/app/components/FamilyReportsWorkspace";
-
-export default function ReportsPage() {
-  return <FamilyReportsWorkspace includeShell={false} />;
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<LegacyReportSearchParams>;
+}) {
+  redirect(buildLegacyReportRedirectPath(await searchParams));
 }
