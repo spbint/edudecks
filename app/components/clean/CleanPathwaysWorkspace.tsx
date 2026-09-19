@@ -314,15 +314,6 @@ function getVisiblePathwayThumbnail(
   return null;
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  border: "1px solid #cbd5e1",
-  borderRadius: 10,
-  padding: "10px 12px",
-  fontSize: 14,
-  background: "#ffffff",
-};
-
 const buttonStyle: React.CSSProperties = {
   border: "1px solid #6C4DF6",
   background: "#6C4DF6",
@@ -995,6 +986,9 @@ function PathwaysWorkspaceBody() {
   const [onDeckBusyStepId, setOnDeckBusyStepId] = useState("");
   const [onDeckMessage, setOnDeckMessage] = useState<string | null>(null);
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
+  const pathwayLearnerRequestEpochRef = useRef(0);
+  const currentPathwaysLearnerIdRef = useRef("");
+  const lastPathwaysLearnerIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const nextState: PersistedPathwaysUiState = {
@@ -1065,6 +1059,32 @@ function PathwaysWorkspaceBody() {
     () => workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
     [selectedLearnerId, workspace.learners],
   );
+  currentPathwaysLearnerIdRef.current = selectedLearnerId;
+
+  useEffect(() => {
+    const learnerIdFromUrl = searchParams.get("learnerId") || "";
+    if (
+      learnerIdFromUrl &&
+      learnerIdFromUrl !== selectedLearnerIdOverride &&
+      workspace.learners.some((learner) => learner.id === learnerIdFromUrl)
+    ) {
+      setSelectedLearnerIdOverride(learnerIdFromUrl);
+    }
+  }, [searchParams, selectedLearnerIdOverride, workspace.learners]);
+
+  useEffect(() => {
+    if (lastPathwaysLearnerIdRef.current === selectedLearnerId) return;
+    const previousLearnerId = lastPathwaysLearnerIdRef.current;
+    lastPathwaysLearnerIdRef.current = selectedLearnerId;
+    if (!previousLearnerId) return;
+
+    pathwayLearnerRequestEpochRef.current += 1;
+    setOnDeckItems([]);
+    setUnifiedPathwayStepStateIndex(new Map());
+    setAssessmentAttempts([]);
+    setOnDeckBusyStepId("");
+    setOnDeckMessage(null);
+  }, [selectedLearnerId]);
 
   useEffect(() => {
     if (!selectedLearnerId) return;
@@ -1124,6 +1144,25 @@ function PathwaysWorkspaceBody() {
   const selectedStrandIsActive =
     selectedSubjectSupportsDetailedPathways && hasExplicitStrandSelection;
 
+  function handleSelectPathwaysLearner(nextLearnerId: string) {
+    const nextLearner = workspace.learners.find((learner) => learner.id === nextLearnerId);
+    if (!nextLearner || nextLearner.id === selectedLearnerId) return;
+
+    pathwayLearnerRequestEpochRef.current += 1;
+    currentPathwaysLearnerIdRef.current = nextLearner.id;
+    setOnDeckItems([]);
+    setUnifiedPathwayStepStateIndex(new Map());
+    setAssessmentAttempts([]);
+    setOnDeckBusyStepId("");
+    setOnDeckMessage(null);
+    setSelectedLearnerIdOverride(nextLearner.id);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("learnerId", nextLearner.id);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    trackPathwayAnalyticsEvent("pathway_learner_changed");
+  }
+
   const reloadOnDeckItems = useCallback(async () => {
     if (
       !workspace.profile ||
@@ -1135,13 +1174,28 @@ function PathwaysWorkspaceBody() {
       return;
     }
 
+    const requestLearnerId = selectedLearnerId;
+    const requestEpoch = pathwayLearnerRequestEpochRef.current;
+
     try {
       const nextItems = await listLearningQueueItems(
         workspace.profile.id,
-        selectedLearnerId,
+        requestLearnerId,
       );
+      if (
+        requestEpoch !== pathwayLearnerRequestEpochRef.current ||
+        requestLearnerId !== currentPathwaysLearnerIdRef.current
+      ) {
+        return;
+      }
       setOnDeckItems(nextItems);
     } catch {
+      if (
+        requestEpoch !== pathwayLearnerRequestEpochRef.current ||
+        requestLearnerId !== currentPathwaysLearnerIdRef.current
+      ) {
+        return;
+      }
       setOnDeckItems([]);
     }
   }, [
@@ -1235,13 +1289,23 @@ function PathwaysWorkspaceBody() {
       return;
     }
 
+    const requestLearnerId = selectedLearnerId;
+    const requestEpoch = pathwayLearnerRequestEpochRef.current;
+
     try {
       const [evidenceEntries, assessmentStatuses] = await Promise.all([
         listCleanEvidenceEntries(workspace.profile.id, {
-          learnerId: selectedLearnerId,
+          learnerId: requestLearnerId,
         }),
-        listCleanAssessmentSkillStatuses(workspace.profile.id, selectedLearnerId),
+        listCleanAssessmentSkillStatuses(workspace.profile.id, requestLearnerId),
       ]);
+
+      if (
+        requestEpoch !== pathwayLearnerRequestEpochRef.current ||
+        requestLearnerId !== currentPathwaysLearnerIdRef.current
+      ) {
+        return;
+      }
 
       setUnifiedPathwayStepStateIndex(
         buildUnifiedPathwayStepStateIndex({
@@ -1250,6 +1314,12 @@ function PathwaysWorkspaceBody() {
         }),
       );
     } catch {
+      if (
+        requestEpoch !== pathwayLearnerRequestEpochRef.current ||
+        requestLearnerId !== currentPathwaysLearnerIdRef.current
+      ) {
+        return;
+      }
       setUnifiedPathwayStepStateIndex(new Map());
     }
   }, [
@@ -1329,19 +1399,34 @@ function PathwaysWorkspaceBody() {
         return;
       }
 
+      const requestLearnerId = selectedLearnerId;
+      const requestEpoch = pathwayLearnerRequestEpochRef.current;
+
       try {
         const nextAttempts = await listAssessmentAttemptsForLearner(workspace.profile.id, {
-          learnerId: selectedLearnerId,
+          learnerId: requestLearnerId,
           subjectKey: selectedSubjectKey,
           strandKey: selectedStrandKey,
           status: "completed",
           limit: 50,
         });
 
-        if (!active) return;
+        if (
+          !active ||
+          requestEpoch !== pathwayLearnerRequestEpochRef.current ||
+          requestLearnerId !== currentPathwaysLearnerIdRef.current
+        ) {
+          return;
+        }
         setAssessmentAttempts(nextAttempts);
       } catch {
-        if (!active) return;
+        if (
+          !active ||
+          requestEpoch !== pathwayLearnerRequestEpochRef.current ||
+          requestLearnerId !== currentPathwaysLearnerIdRef.current
+        ) {
+          return;
+        }
         setAssessmentAttempts([]);
       }
     }
@@ -2248,9 +2333,46 @@ function PathwaysWorkspaceBody() {
                   gap: 8,
                 }}
               >
-                <span style={{ ...curriculumChipStyle, color: "#17204B", background: "#ffffff", borderColor: "#E7EAF2" }}>
-                  {selectedLearnerLabel}
-                </span>
+                {hasMultipleLearners ? (
+                  <label
+                    htmlFor="pathways-current-learner-selector"
+                    style={{
+                      ...curriculumChipStyle,
+                      color: "#17204B",
+                      background: "#ffffff",
+                      borderColor: "#E7EAF2",
+                      padding: "4px 8px",
+                    }}
+                  >
+                    <span style={{ color: "#5B6478", fontSize: 12 }}>Learner</span>
+                    <select
+                      id="pathways-current-learner-selector"
+                      aria-label="Viewing pathways for"
+                      value={selectedLearnerId}
+                      onChange={(event) => handleSelectPathwaysLearner(event.target.value)}
+                      style={{
+                        border: 0,
+                        background: "transparent",
+                        color: "#17204B",
+                        fontSize: 13,
+                        fontWeight: 750,
+                        padding: "2px 18px 2px 2px",
+                        minHeight: 44,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {learnerOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <span style={{ ...curriculumChipStyle, color: "#17204B", background: "#ffffff", borderColor: "#E7EAF2" }}>
+                    {selectedLearnerLabel}
+                  </span>
+                )}
                 <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
                 <label
                   htmlFor="pathways-current-subject-selector"
@@ -2686,34 +2808,14 @@ function PathwaysWorkspaceBody() {
                     Loading learner details...
                   </div>
                 ) : selectedLearner ? (
-                  hasMultipleLearners ? (
-                    <>
-                      <label style={{ color: "#334155", fontWeight: 700 }}>
-                        Viewing pathways for
-                      </label>
-                      <select
-                        value={selectedLearnerId}
-                        onChange={(event) => {
-                          setSelectedLearnerIdOverride(event.target.value);
-                          trackPathwayAnalyticsEvent("pathway_learner_changed");
-                        }}
-                        style={inputStyle}
-                      >
-                        {learnerOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  ) : (
-                    <>
-                      <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                        {selectedLearnerLabel}
-                      </strong>
-                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>Current learner</div>
-                    </>
-                  )
+                  <>
+                    <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                      {selectedLearnerLabel}
+                    </strong>
+                    <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                      {hasMultipleLearners ? "Change learner above." : "Current learner"}
+                    </div>
+                  </>
                 ) : (
                   <>
                     <strong style={{ color: "#0f172a" }}>
