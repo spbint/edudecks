@@ -161,6 +161,28 @@ describe("CleanPathwayStepActionRow", () => {
     expect(screen.queryByRole("link", { name: "View worksheet" })).toBeNull();
   });
 
+  it("offers a separate, canonical Calendar planning link without changing the recommended action", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        planHref: "/my-calendar?learner_id=learner-a&pathwayStepId=mathematics%3A%3Anumber-and-place-value%3A%3Amiddle-primary%3A%3Afractions-foundations&returnTo=%2Fmy-pathways",
+        subjectKey: "mathematics",
+        strandKey: "number-and-place-value",
+        stageKey: "middle-primary",
+        stepKey: "fractions-foundations",
+        pathwayStepId: "mathematics::number-and-place-value::middle-primary::fractions-foundations",
+        stepTitle: "Fractions foundations",
+      }),
+    );
+
+    const plan = screen.getByRole("link", { name: "Plan this learning" });
+    expect(plan.getAttribute("href")).toContain("pathwayStepId=");
+    expect(plan.getAttribute("href")).not.toContain("Fractions%20foundations");
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Add to Portfolio",
+    );
+  });
+
   it("shows On deck state and a low-noise remove action when already queued", () => {
     const onRemoveFromDeck = vi.fn();
     render(

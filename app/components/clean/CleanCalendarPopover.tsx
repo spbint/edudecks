@@ -128,6 +128,8 @@ export default function CleanCalendarPopover({
   onSave,
   saving,
   errorMessage,
+  learnerLocked = false,
+  contextLabel = null,
 }: {
   open: boolean;
   mode: "create" | "edit";
@@ -159,6 +161,8 @@ export default function CleanCalendarPopover({
   onSave: () => void;
   saving: boolean;
   errorMessage?: string | null;
+  learnerLocked?: boolean;
+  contextLabel?: string | null;
 }) {
   const overlayRef = React.useRef<HTMLDivElement>(null);
   const dialogRef = React.useRef<HTMLFormElement>(null);
@@ -500,6 +504,7 @@ export default function CleanCalendarPopover({
             <p id={descriptionId} style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>
               {formatDateLabel(plannedDate)}
             </p>
+            {contextLabel ? <p style={{ margin: 0, color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>{contextLabel}</p> : null}
           </div>
         </header>
 
@@ -545,6 +550,7 @@ export default function CleanCalendarPopover({
                 value={learnerId}
                 onChange={(event) => onChangeLearnerId(event.target.value)}
                 style={inputStyle}
+                disabled={learnerLocked}
               >
                 <option value="">Whole family</option>
                 {learnerOptions.map((option) => (

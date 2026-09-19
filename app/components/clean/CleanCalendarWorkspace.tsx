@@ -20,6 +20,8 @@ import {
   listCleanCalendarItems,
   updateCleanCalendarItem,
 } from "@/lib/clean/calendar/client";
+import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
+import { resolvePathwayCalendarHandoff } from "@/lib/clean/pathways/pathwayCalendarHandoff";
 import { resolveCalendarPageLevelCreateDate } from "@/lib/clean/calendar/dateContext";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
@@ -1299,6 +1301,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const handoffView = searchParams.get("view");
   const handoffProgramId = searchParams.get("programId");
   const handoffSegmentId = searchParams.get("segmentId");
+  const pathwayStepIdFromQuery = searchParams.get("pathwayStepId");
+  const pathwayReturnTo = searchParams.get("returnTo");
   const learnerIdFromQuery = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
   const mobileCalendarCompanion = mobileCompanion && !planningOnly;
 
@@ -1324,6 +1328,25 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     () => new Map(learnerOptions.map((option) => [option.value, option.label])),
     [learnerOptions],
   );
+  const pathwayCalendarHandoff = useMemo(
+    () =>
+      resolvePathwayCalendarHandoff({
+        pathwayStepId: pathwayStepIdFromQuery,
+        learnerId: learnerIdFromQuery,
+        learnerIds: workspace.learners.map((learner) => learner.id),
+        returnTo: pathwayReturnTo,
+      }),
+    [learnerIdFromQuery, pathwayReturnTo, pathwayStepIdFromQuery, workspace.learners],
+  );
+  const pathwayCalendarHandoffInvalid =
+    Boolean(pathwayStepIdFromQuery) &&
+    !workspace.loading &&
+    !workspace.requiresFamilyCreation &&
+    !workspace.schemaMissing &&
+    !pathwayCalendarHandoff;
+  const pathwayHandoffLearnerLabel = pathwayCalendarHandoff
+    ? learnerLabelById.get(pathwayCalendarHandoff.learnerId) || "Learner"
+    : "";
   const selectedMobileLearnerId =
     mobileCalendarCompanion && learnerOptions.some((option) => option.value === mobileSelectedLearnerId)
       ? mobileSelectedLearnerId
@@ -2291,11 +2314,22 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   }
 
   function openCreatePopover(dateValue: string, learnerIdOverride?: string) {
+    if (pathwayCalendarHandoffInvalid) {
+      setActionError("This Pathways step is no longer available. Return to My Pathways and choose it again.");
+      return;
+    }
     resetPopoverForm();
     setPopoverDate(dateValue);
     const defaultLearnerId = learnerIdOverride ?? workspace.setupStatus.activeLearnerId ?? "";
     setPopoverLearnerId(defaultLearnerId);
-    if (hasCalendarHandoff) {
+    if (pathwayCalendarHandoff) {
+      setPopoverTitle(pathwayCalendarHandoff.registryItem.stepTitle);
+      setPopoverLearnerId(pathwayCalendarHandoff.learnerId);
+      const pathwayArea = resolveLearningAreaControl(pathwayCalendarHandoff.registryItem.subjectTitle);
+      setPopoverLearningArea(pathwayArea.area);
+      setPopoverLearningAreaCustom(pathwayArea.customLabel);
+      setPopoverDescription(pathwayCalendarHandoff.registryItem.stepDescription);
+    } else if (hasCalendarHandoff) {
       setPopoverTitle(handoffDefaults.title);
       setPopoverLearnerId(handoffDefaults.learnerId || defaultLearnerId);
       const handoffArea = resolveLearningAreaControl(handoffDefaults.learningArea);
@@ -2342,6 +2376,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   function closePopover() {
     setPopoverOpen(false);
     resetPopoverForm();
+  }
+
+  function consumePathwayCalendarHandoff() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("pathwayStepId");
+    params.delete("pathwayPlan");
+    params.delete("returnTo");
+    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
   function openLearningPeriodEditor(period: CleanLearningPeriod) {
@@ -3285,6 +3327,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           : null,
         description: popoverDescription || null,
         sourceType: "manual" as const,
+        ...(!editingItemId && pathwayCalendarHandoff
+          ? { pathwayStepId: pathwayCalendarHandoff.registryItem.id }
+          : {}),
       };
 
       const updatePayload = editingItemId
@@ -3314,6 +3359,16 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         setMessage("This week's block was updated.");
       } else {
         await createCleanCalendarItem(workspace.profile.id, payload);
+        if (pathwayCalendarHandoff) {
+          trackPathwayAnalyticsEvent("pathway_calendar_planned", {
+            subjectKey: pathwayCalendarHandoff.registryItem.subjectKey,
+            strandKey: pathwayCalendarHandoff.registryItem.strandKey,
+            stageKey: pathwayCalendarHandoff.registryItem.stageKey,
+            stepKey: pathwayCalendarHandoff.registryItem.stepKey,
+            pathwayStepId: pathwayCalendarHandoff.registryItem.id,
+          });
+          consumePathwayCalendarHandoff();
+        }
         trackProductEvent(
           "calendar_block_created",
           {
@@ -3667,6 +3722,18 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
 
     return (
       <div style={shellStyle}>
+        {pathwayCalendarHandoff ? (
+          <section style={{ ...cardStyle, borderColor: "#bfdbfe", background: "#eff6ff", display: "grid", gap: 7 }}>
+            <strong style={{ color: "#1d4ed8" }}>Planning from My Pathways</strong>
+            <strong style={{ color: "#0f172a" }}>{pathwayCalendarHandoff.registryItem.stepTitle}</strong>
+            <span style={{ color: "#475569" }}>For {pathwayHandoffLearnerLabel}. Choose a date below.</span>
+            <Link href={pathwayCalendarHandoff.returnTo} style={{ color: "#1d4ed8", fontWeight: 700 }}>Back to My Pathways</Link>
+          </section>
+        ) : pathwayCalendarHandoffInvalid ? (
+          <section role="alert" style={{ ...cardStyle, borderColor: "#fecaca", color: "#991b1b" }}>
+            This Pathways step is no longer available. Return to My Pathways and choose it again.
+          </section>
+        ) : null}
         <MobileCalendarContent
           activeView={mobileCalendarView}
           buildItemCaptureHref={buildCalendarCaptureHref}
@@ -3728,6 +3795,12 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
           onSave={() => void handlePopoverSave()}
           saving={submitting}
           errorMessage={actionError}
+          learnerLocked={Boolean(pathwayCalendarHandoff && !editingItemId)}
+          contextLabel={
+            pathwayCalendarHandoff && !editingItemId
+              ? `Connected to ${pathwayHandoffLearnerLabel}'s Pathways step.`
+              : null
+          }
         />
       </div>
     );
@@ -6634,6 +6707,19 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                         </div>
                       ) : null}
 
+                      {pathwayCalendarHandoff ? (
+                        <section style={{ border: "1px solid #bfdbfe", borderRadius: 14, padding: 14, background: "#eff6ff", display: "grid", gap: 7 }}>
+                          <strong style={{ color: "#1d4ed8" }}>Planning from My Pathways</strong>
+                          <strong style={{ color: "#0f172a" }}>{pathwayCalendarHandoff.registryItem.stepTitle}</strong>
+                          <span style={{ color: "#475569" }}>For {pathwayHandoffLearnerLabel}. Choose a date below.</span>
+                          <Link href={pathwayCalendarHandoff.returnTo} style={{ color: "#1d4ed8", fontWeight: 700, width: "fit-content" }}>Back to My Pathways</Link>
+                        </section>
+                      ) : pathwayCalendarHandoffInvalid ? (
+                        <section role="alert" style={{ border: "1px solid #fecaca", borderRadius: 14, padding: 14, background: "#fff7f7", color: "#991b1b" }}>
+                          This Pathways step is no longer available. Return to My Pathways and choose it again.
+                        </section>
+                      ) : null}
+
                       {hasHiddenWeekendWeekContent ? (
                         <div
                           style={{
@@ -7489,6 +7575,12 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         onSave={() => void handlePopoverSave()}
         saving={submitting}
         errorMessage={actionError}
+        learnerLocked={Boolean(pathwayCalendarHandoff && !editingItemId)}
+        contextLabel={
+          pathwayCalendarHandoff && !editingItemId
+            ? `Connected to ${pathwayHandoffLearnerLabel}'s Pathways step.`
+            : null
+        }
       />
 
       <CleanRhythmBlockPopover

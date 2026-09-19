@@ -15,6 +15,8 @@ export type PathwayAnalyticsEvent =
   | "pathway_assessment_readback_shown"
   | "pathway_capture_selected"
   | "pathway_next_step_selected"
+  | "pathway_plan_selected"
+  | "pathway_calendar_planned"
   | "on_deck_item_added"
   | "on_deck_item_removed"
   | "on_deck_item_reordered"

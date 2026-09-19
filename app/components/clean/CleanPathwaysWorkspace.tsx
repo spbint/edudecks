@@ -45,6 +45,7 @@ import {
   appendPathwayCaptureReturnTo,
   buildPathwayStepReturnHref,
 } from "@/lib/clean/pathways/pathwayNavigationContext";
+import { buildPathwayCalendarHandoffHref } from "@/lib/clean/pathways/pathwayCalendarHandoff";
 import { CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import {
   getPathwaySubjectAvailabilityOptions,
@@ -1681,6 +1682,16 @@ function PathwaysWorkspaceBody() {
         detailPanelId: `pathway-step-${selectedPlacementStep.strandKey}-${selectedPlacementStep.stageKey}-${selectedPlacementStep.stepKey}`,
       })
     : pathname;
+  const selectedPlacementPlanHref = selectedPlacementStep
+    ? buildPathwayCalendarHandoffHref({
+        calendarPathname: pathname.startsWith("/clean-my-pathways")
+          ? "/clean-my-calendar"
+          : "/my-calendar",
+        learnerId: selectedLearnerId,
+        registryItem: selectedPlacementStep,
+        returnTo: selectedPlacementReturnHref,
+      })
+    : "";
   const selectedPlacementWorksheet = selectedPlacementStep
     ? getWorksheetResourceForPathwayStep({
         pathwayStepId: selectedPlacementStep.id,
@@ -2334,6 +2345,7 @@ function PathwaysWorkspaceBody() {
                   captureHref={selectedPlacementCaptureHref}
                   practiceHref={selectedPlacementPracticeHref}
                   assessmentHref={selectedPlacementAssessmentHref}
+                  planHref={selectedPlacementPlanHref}
                   nextStepHref={selectedPlacementComplete ? selectedPlacementNextStepHref : ""}
                   autoCheckStatus={selectedPlacementProgressStory?.latestCheck?.factualStatus || null}
                   parentProgress={selectedPlacementProgressStory?.currentProgress || "Not checked yet"}
@@ -4450,6 +4462,23 @@ function DetailedMathematicsStepCard({
   const registryStep = canonicalPathwayStepId
     ? getAllPathwaySteps().find((item) => item.id === canonicalPathwayStepId) || null
     : null;
+  const planHref = buildPathwayCalendarHandoffHref({
+    calendarPathname: returnPath.startsWith("/clean-my-pathways")
+      ? "/clean-my-calendar"
+      : "/my-calendar",
+    learnerId: selectedLearnerId,
+    registryItem: registryStep,
+    returnTo: buildPathwayStepReturnHref({
+      pathname: returnPath,
+      subjectKey: selectedSubjectKey,
+      strandKey,
+      stageKey,
+      pathwayStepId: registryStep?.id || canonicalPathwayStepId,
+      stepKey: canonicalStepKey,
+      learnerId: selectedLearnerId,
+      detailPanelId,
+    }),
+  });
   const stepUnifiedState = getUnifiedPathwayStepState(
     unifiedPathwayStepStateIndex,
     registryStep?.id || canonicalPathwayStepId,
@@ -4937,6 +4966,7 @@ function DetailedMathematicsStepCard({
           captureHref={captureHref}
           practiceHref={practiceHref}
           assessmentHref={assessmentHref}
+          planHref={planHref}
           nextStepHref={isStepSecure ? nextDetailedStepHref : ""}
           autoCheckStatus={progressStory.latestCheck?.factualStatus || null}
           parentProgress={progressStory.currentProgress}

@@ -147,6 +147,18 @@ describe("Desktop Calendar task-first presentation", () => {
     expect(saveBody).toContain("await createCleanCalendarItem(workspace.profile.id, payload)");
   });
 
+  it("keeps a Pathways handoff pending until a dated Calendar save", () => {
+    expect(source).toContain("Planning from My Pathways");
+    expect(source).toContain("Choose a date below.");
+    expect(source).toContain("Back to My Pathways");
+    expect(source).toContain("function consumePathwayCalendarHandoff()");
+    const openStart = source.indexOf("function openCreatePopover(dateValue: string, learnerIdOverride?: string)");
+    const openEnd = source.indexOf("function openEditPopover", openStart);
+    const openBody = source.slice(openStart, openEnd);
+    expect(openBody).not.toMatch(/(?:create|update|delete)CleanCalendarItem/);
+    expect(openBody).toContain("pathwayCalendarHandoff.registryItem.stepTitle");
+  });
+
   it("keeps empty Calendar copy aligned with the single Add path", () => {
     expect(source).toContain("Use Add learning block to create the first block for this view.");
     expect(source).not.toContain("Use a day below to add the first block for that date.");

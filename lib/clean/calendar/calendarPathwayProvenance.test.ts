@@ -7,6 +7,10 @@ const migration = readFileSync(
   join(process.cwd(), "supabase/migrations/20260910100000_add_calendar_pathway_context.sql"),
   "utf8",
 );
+const workspace = readFileSync(
+  join(process.cwd(), "app/components/clean/CleanCalendarWorkspace.tsx"),
+  "utf8",
+);
 
 describe("Calendar Pathways provenance", () => {
   it("stores explicit canonical context and leaves ordinary items null", () => {
@@ -25,5 +29,15 @@ describe("Calendar Pathways provenance", () => {
     expect(updateSection).toContain("Object.entries(sanitizeCalendarItemInput(input))");
     expect(updateSection).toContain(".update(payload)");
     expect(updateSection).not.toContain("pathway_step_id: null");
+  });
+
+  it("writes canonical pathway provenance only for an explicit Pathways handoff", () => {
+    expect(workspace).toContain("resolvePathwayCalendarHandoff");
+    expect(workspace).toContain("pathwayStepId: pathwayCalendarHandoff.registryItem.id");
+    expect(workspace).toContain("!editingItemId && pathwayCalendarHandoff");
+    expect(workspace).toContain("consumePathwayCalendarHandoff()");
+    expect(workspace).toContain("This Pathways step is no longer available");
+    expect(workspace).not.toContain("pathwayStepId: popoverTitle");
+    expect(workspace).not.toContain("pathwayStepId: popoverLearningArea");
   });
 });

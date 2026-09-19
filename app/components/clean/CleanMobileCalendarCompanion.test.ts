@@ -61,6 +61,8 @@ describe("Mobile Calendar companion experience", () => {
     expect(mobileCalendarSource).toContain('aria-label={"Add learning on " + formatLongDateLabel(dateValue)}');
     expect(source).toContain("onAddLearning={(dateValue) => openCreatePopover(dateValue, selectedMobileLearnerId || undefined)}");
     expect(source).toContain("<CleanCalendarPopover");
+    expect(source).toContain("Planning from My Pathways");
+    expect(source).toContain("learnerLocked={Boolean(pathwayCalendarHandoff && !editingItemId)}");
   });
 
   it("preserves existing Quick Capture context without creating evidence on navigation", () => {

@@ -20,6 +20,7 @@ type CleanPathwayStepActionRowProps = {
   captureHref: string;
   practiceHref?: string;
   assessmentHref?: string;
+  planHref?: string;
   nextStepHref?: string;
   autoCheckStatus?: ParentProgressStatus | null;
   parentProgress?: ParentProgressStatus;
@@ -130,6 +131,7 @@ export default function CleanPathwayStepActionRow({
   captureHref,
   practiceHref = "",
   assessmentHref = "",
+  planHref = "",
   nextStepHref = "",
   autoCheckStatus = null,
   parentProgress = "Not checked yet",
@@ -296,6 +298,7 @@ export default function CleanPathwayStepActionRow({
       {actionPlan.secondary.length ||
       (!manualComplete && onManualCompletionChange) ||
       worksheetResource ||
+      planHref ||
       onPutOnDeck ||
       onDeck ? (
         <div
@@ -303,6 +306,23 @@ export default function CleanPathwayStepActionRow({
           style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
         >
           {actionPlan.secondary.map((action) => renderAction(action))}
+          {planHref ? (
+            <Link
+              href={planHref}
+              onClick={() => {
+                trackPathwayAnalyticsEvent("pathway_plan_selected", {
+                  subjectKey,
+                  strandKey,
+                  stageKey,
+                  stepKey,
+                  pathwayStepId,
+                });
+              }}
+              style={{ ...secondaryButtonStyle, minHeight: 44 }}
+            >
+              Plan this learning
+            </Link>
+          ) : null}
           {onPutOnDeck && !onDeck ? (
             <button
               type="button"
