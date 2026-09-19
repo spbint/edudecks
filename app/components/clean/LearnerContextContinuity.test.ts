@@ -9,6 +9,7 @@ const portfolioSource = read("app/components/clean/CleanPortfolioWorkspace.tsx")
 const learnaSource = read("app/components/clean/CleanMyLearnaWorkspace.tsx");
 const captureSource = read("app/components/clean/CleanCaptureWorkspace.tsx");
 const reportsSource = read("app/components/clean/CleanReportsWorkspace.tsx");
+const shellSource = read("app/components/clean/design-v2/MyLearnaAppShellV2.tsx");
 
 describe("ordinary learner-context continuity", () => {
   it("hydrates My Day from a valid learner query and keeps an explicit switch in the URL", () => {
@@ -42,6 +43,18 @@ describe("ordinary learner-context continuity", () => {
     expect(portfolioSource).toContain("learnerOptions.some((option) => option.value === learnerIdFromQuery)");
     expect(reportsSource).toContain("learnerOptions.some((option) => option.value === learnerIdFromQuery)");
     expect(reportsSource).toContain("portfolioReturnHref");
+  });
+
+  it("carries a validated current learner through the global product navigation", () => {
+    expect(shellSource).toContain('searchParams.get("learner_id") || searchParams.get("learnerId")');
+    expect(shellSource).toContain("workspace.learners.some((learner) => learner.id === learnerIdFromQuery)");
+    expect(shellSource).toContain("buildShellLearnerHref(item.href, learnerId)");
+    expect(shellSource).toContain('buildShellLearnerHref("/my-calendar", shellLearnerId)');
+    expect(shellSource).toContain("buildShellLearnerHref(dayNavItem.href, shellLearnerId)");
+    expect(shellSource).toContain('buildShellLearnerHref("/my-portfolio", shellLearnerId)');
+    expect(shellSource).toContain('buildLearnerContextHref("/my-capture?mode=quick", shellLearnerId');
+    expect(shellSource).toContain('href === "/my-pathways"');
+    expect(shellSource).toContain("learnerId=");
   });
 
   it("does not alter the specialised Pathways context contract", () => {

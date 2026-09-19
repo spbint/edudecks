@@ -15,6 +15,7 @@ import {
   isFamilyProfileRoute,
   shouldHoldForFamilySetup,
 } from "@/lib/clean/setup/familySetupRouteGuard";
+import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import { MOBILE_COMPANION_CAPTURE_EDITING_EVENT, useMobileCompanion } from "./useMobileCompanion";
 
 export const v2Tokens = {
@@ -122,6 +123,27 @@ const groupedNavItems: readonly ProductNavItem[] = finalProductNavSections.flatM
 );
 
 const navItems: readonly ProductNavItem[] = [...myPlanNavItems, ...groupedNavItems, settingsNavItem];
+
+const learnerContextNavHrefs = new Set([
+  "/my-day",
+  "/my-calendar",
+  "/my-pathways",
+  "/my-capture",
+  "/my-portfolio",
+  "/my-learna",
+  "/my-reports",
+]);
+
+function buildShellLearnerHref(href: string, learnerId: string) {
+  const safeLearnerId = learnerId.trim();
+  if (!safeLearnerId || !learnerContextNavHrefs.has(href)) return href;
+
+  if (href === "/my-pathways") {
+    return `${href}?learnerId=${encodeURIComponent(safeLearnerId)}`;
+  }
+
+  return buildLearnerContextHref(href, safeLearnerId);
+}
 
 type ShellIconName = ProductNavIconName | "learner" | "review" | "help";
 
@@ -404,17 +426,19 @@ export function getVisibleDesktopSectionItems(items: readonly ProductNavItem[]) 
 function NavLink({
   item,
   pathname,
+  learnerId,
   nested = false,
 }: {
   item: ProductNavItem;
   pathname: string;
+  learnerId: string;
   nested?: boolean;
 }) {
   const active = isActive(pathname, item.matches);
 
   return (
     <Link
-      href={item.href}
+      href={buildShellLearnerHref(item.href, learnerId)}
       aria-current={active ? "page" : undefined}
       style={{
         minHeight: 44,
@@ -452,7 +476,7 @@ function NavLink({
   );
 }
 
-function MyPlanNavGroup({ pathname }: { pathname: string }) {
+function MyPlanNavGroup({ pathname, learnerId }: { pathname: string; learnerId: string }) {
   const planActive = myPlanNavItems.some((item) => isActive(pathname, item.matches));
   const [expanded, setExpanded] = React.useState(planActive);
 
@@ -493,7 +517,7 @@ function MyPlanNavGroup({ pathname }: { pathname: string }) {
       </button>
       {expanded ? (
         <div id="mylearna-my-plan-navigation" style={{ display: "grid", gap: 3 }}>
-          {myPlanNavItems.map((item) => <NavLink key={item.href} item={item} pathname={pathname} nested />)}
+          {myPlanNavItems.map((item) => <NavLink key={item.href} item={item} pathname={pathname} learnerId={learnerId} nested />)}
         </div>
       ) : null}
     </div>
@@ -641,14 +665,24 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
   const restoreMoreTriggerFocusRef = React.useRef(false);
   const activityMode = getActivityMode(pathname);
   const activeMobileSection = getActiveMobileSection(pathname);
+  const learnerIdFromQuery = searchParams.get("learner_id") || searchParams.get("learnerId") || "";
+  const shellLearnerId = workspace.learners.some((learner) => learner.id === learnerIdFromQuery)
+    ? learnerIdFromQuery
+    : "";
   const quickCaptureReturnPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-  const quickCaptureHref = `/my-capture?mode=quick&returnTo=${encodeURIComponent(quickCaptureReturnPath)}`;
+  const quickCaptureHref = buildLearnerContextHref("/my-capture?mode=quick", shellLearnerId, {
+    returnTo: quickCaptureReturnPath,
+  });
   const captureMode = searchParams.get("mode");
   const focusedCaptureRoute = (pathname === "/my-capture" || pathname === "/clean-my-capture") && (captureMode === "quick" || captureMode === "chronicle");
   const title = focusedCaptureRoute ? (captureMode === "chronicle" ? "Record a learning moment" : "Quick Capture") : routeTitle(pathname);
-  const breadcrumbs = focusedCaptureRoute
+  const breadcrumbs = (focusedCaptureRoute
     ? [{ label: "My Capture", href: "/my-capture" }, { label: captureMode === "chronicle" ? "Record a learning moment" : "Quick Capture" }]
-    : routeCrumbs(pathname);
+    : routeCrumbs(pathname)
+  ).map((crumb) => ({
+    ...crumb,
+    href: crumb.href ? buildShellLearnerHref(crumb.href, shellLearnerId) : undefined,
+  }));
   const familySetupState = {
     authenticated: Boolean(user),
     pathname,
@@ -1202,7 +1236,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
             aria-label="MyLearna sections"
             style={{ display: "grid", gap: 6, alignContent: "start" }}
           >
-            <MyPlanNavGroup pathname={pathname} />
+            <MyPlanNavGroup pathname={pathname} learnerId={shellLearnerId} />
             {finalProductNavSections.map((section) => {
               const visibleItems = getVisibleDesktopSectionItems(section.items);
               if (!visibleItems.length) return null;
@@ -1222,11 +1256,11 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
                   {section.label}
                 </div>
                 {visibleItems.map((item) => (
-                  <NavLink key={item.href} item={item} pathname={pathname} />
+                  <NavLink key={item.href} item={item} pathname={pathname} learnerId={shellLearnerId} />
                 ))}
               </div>;
             })}
-            <NavLink item={settingsNavItem} pathname={pathname} />
+            <NavLink item={settingsNavItem} pathname={pathname} learnerId={shellLearnerId} />
           </nav>
 
         </aside>
@@ -1363,7 +1397,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
           </div>
           <div className="mylearna-v2-mobile-sheet-grid">
             <Link
-              href="/my-calendar"
+              href={buildShellLearnerHref("/my-calendar", shellLearnerId)}
               onClick={() => closeMobileMore(false)}
               className="mylearna-v2-mobile-sheet-link"
               style={{ background: isActive(pathname, calendarNavItem.matches) ? v2Tokens.lavender : "#ffffff", color: isActive(pathname, calendarNavItem.matches) ? v2Tokens.purple : v2Tokens.navy }}
@@ -1408,7 +1442,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         aria-hidden={hideMobileBottomNavForCapture || undefined}
       >
         <Link
-          href={dayNavItem.href}
+          href={buildShellLearnerHref(dayNavItem.href, shellLearnerId)}
           aria-label="Today"
           aria-current={activeMobileSection === "today" ? "page" : undefined}
           className="mylearna-v2-mobile-nav-button"
@@ -1432,7 +1466,7 @@ export default function MyLearnaAppShellV2({ children }: { children: React.React
         </Link>
         {[
           { href: quickCaptureHref, icon: "camera" as const, label: "Capture", section: "capture" as const },
-          { href: "/my-portfolio", icon: "folder" as const, label: "Portfolio", section: "portfolio" as const },
+          { href: buildShellLearnerHref("/my-portfolio", shellLearnerId), icon: "folder" as const, label: "Portfolio", section: "portfolio" as const },
         ].map((item) => (
           <Link
             key={item.label}
