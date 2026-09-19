@@ -52,26 +52,44 @@ export default function MediaStorageSettingsCard({ familyId }: MediaStorageSetti
     let cancelled = false;
 
     async function load() {
+      const observedOn = currentDateIso();
+      let usage: EvidenceMediaEntitlementUsage | null;
+
       try {
-        const observedOn = currentDateIso();
-        const [usage, academicYears] = await Promise.all([
-          loadEvidenceMediaEntitlementUsage(familyId, observedOn),
-          listCleanAcademicYears(familyId),
-        ]);
-        if (cancelled) return;
-        if (!usage) {
-          setState({ status: "error", familyId });
-          return;
-        }
-        const matchingYear = academicYears.find((year) => year.id === usage.academicYearId);
-        setState({
-          status: "ready",
-          familyId,
-          usage,
-          learningYearLabel: matchingYear?.title || "Current learning year",
-        });
+        usage = await loadEvidenceMediaEntitlementUsage(familyId, observedOn);
       } catch {
         if (!cancelled) setState({ status: "error", familyId });
+        return;
+      }
+
+      if (cancelled) return;
+      if (!usage) {
+        setState({ status: "error", familyId });
+        return;
+      }
+
+      setState({
+        status: "ready",
+        familyId,
+        usage,
+        learningYearLabel: "Current learning year",
+      });
+
+      if (!usage.academicYearId) return;
+
+      try {
+        const academicYears = await listCleanAcademicYears(familyId);
+        if (cancelled) return;
+        const matchingYear = academicYears.find((year) => year.id === usage.academicYearId);
+        const learningYearLabel = matchingYear?.title?.trim();
+        if (!learningYearLabel) return;
+
+        setState((current) => {
+          if (current.familyId !== familyId || current.status !== "ready") return current;
+          return { ...current, learningYearLabel };
+        });
+      } catch {
+        return;
       }
     }
 

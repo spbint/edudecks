@@ -62,6 +62,29 @@ describe("Media storage settings", () => {
     expect(screen.queryByText(/subscribed|purchased/i)).toBeNull();
   });
 
+  it("keeps authoritative usage visible when academic-year label enrichment fails", async () => {
+    mocks.loadUsage.mockResolvedValue(betaUsage);
+    mocks.listAcademicYears.mockRejectedValue(new Error("Academic year labels unavailable"));
+
+    renderCard();
+
+    await screen.findByText("Beta media allowance");
+    expect(screen.getByText("Current learning year")).toBeTruthy();
+    expect(screen.getByText("100 MB used · 150 MB remaining")).toBeTruthy();
+    expect(screen.queryByText(/temporarily unavailable/i)).toBeNull();
+  });
+
+  it("shows the unavailable state only when authoritative usage cannot load", async () => {
+    mocks.loadUsage.mockRejectedValue(new Error("Usage unavailable"));
+    mocks.listAcademicYears.mockResolvedValue([{ id: "year-1", title: "2026 learning year" }]);
+
+    renderCard();
+
+    await screen.findByText(/Media storage information is temporarily unavailable/i);
+    expect(mocks.listAcademicYears).not.toHaveBeenCalled();
+    expect(screen.queryByText("Beta media allowance")).toBeNull();
+  });
+
   it("presents family-shared annual options without checkout controls or internal terminology", async () => {
     mocks.loadUsage.mockResolvedValue(betaUsage);
     mocks.listAcademicYears.mockResolvedValue([]);
