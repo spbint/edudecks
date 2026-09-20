@@ -104,6 +104,7 @@ describe("Media storage settings", () => {
       method: "POST",
       body: JSON.stringify({ familyId: "family-1", productKey: "MEDIA_100" }),
     }));
+    expect(screen.getByRole("button", { name: "Opening secure checkout..." })).toBeTruthy();
     expect((button[0] as HTMLButtonElement).disabled).toBe(true);
     expect((button[1] as HTMLButtonElement).disabled).toBe(true);
 
@@ -200,5 +201,7 @@ describe("Media storage settings", () => {
     const source = readFileSync(join(process.cwd(), "app/components/clean/MediaStorageSettingsCard.tsx"), "utf8");
     expect(source).not.toMatch(/price_1UHc|STRIPE_PRICE_MEDIA/i);
     expect(source).toContain('JSON.stringify({ familyId, productKey })');
+    expect(source).toContain("Opening secure checkout...");
+    expect(source).not.toMatch(/â|Ã|�/);
   });
 });

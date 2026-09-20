@@ -278,7 +278,12 @@ export async function createOneTimeMediaCheckout(input: {
     );
   }
 
-  if (!(await input.repository.userCanInitiateBilling(familyId, input.requestedByUserId))) {
+  const [canInitiateBilling, billingProfile] = await Promise.all([
+    input.repository.userCanInitiateBilling(familyId, input.requestedByUserId),
+    input.repository.getFamilyBillingProfile(familyId),
+  ]);
+
+  if (!canInitiateBilling) {
     throw new BillingCheckoutRequestError(
       "billing_not_authorised",
       403,
@@ -286,7 +291,6 @@ export async function createOneTimeMediaCheckout(input: {
     );
   }
 
-  const billingProfile = await input.repository.getFamilyBillingProfile(familyId);
   if (!billingProfile) {
     throw new BillingCheckoutRequestError(
       "billing_jurisdiction_required",
@@ -322,7 +326,12 @@ export async function createOneTimeMediaCheckout(input: {
     );
   }
 
-  if (await input.repository.hasCurrentExplicitMediaEntitlement(familyId, academicYear.id)) {
+  const [hasCurrentExplicitMediaEntitlement, existing] = await Promise.all([
+    input.repository.hasCurrentExplicitMediaEntitlement(familyId, academicYear.id),
+    input.repository.findOpenCheckoutIntent(familyId, academicYear.id),
+  ]);
+
+  if (hasCurrentExplicitMediaEntitlement) {
     throw new BillingCheckoutRequestError(
       "media_entitlement_already_current",
       409,
@@ -339,7 +348,6 @@ export async function createOneTimeMediaCheckout(input: {
     academicYearId: academicYear.id,
   };
   const now = input.now ?? new Date();
-  const existing = await input.repository.findOpenCheckoutIntent(familyId, academicYear.id);
   if (existing) {
     const resumed = await resolveExistingCheckout({
       repository: input.repository,

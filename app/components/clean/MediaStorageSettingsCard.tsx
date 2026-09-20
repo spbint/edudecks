@@ -221,7 +221,7 @@ export default function MediaStorageSettingsCard({
                   onClick={() => void beginCheckout(tier.key)}
                   style={{ minHeight: 40, border: 0, borderRadius: 10, background: "#2563eb", color: "#ffffff", cursor: checkoutProductKey ? "wait" : "pointer", fontWeight: 700 }}
                 >
-                  {checkoutProductKey === tier.key ? "Opening secure checkoutâ€¦" : "Choose this option"}
+                  {checkoutProductKey === tier.key ? "Opening secure checkout..." : "Choose this option"}
                 </button>
               ) : hasCurrentEntitlement ? (
                 <span style={{ color: "#047857", fontSize: 14 }}>Included with your current media allowance</span>
