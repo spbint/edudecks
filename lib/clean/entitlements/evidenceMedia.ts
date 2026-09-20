@@ -5,10 +5,7 @@ export const EVIDENCE_MEDIA_TIER_BYTES = {
   media_1000: 1024 * 1024 * 1024,
 } as const;
 
-// Phase 2 compatibility only. Existing beta families continue to use this
-// allowance until the separate customer-facing media-gate phase is approved.
-export const LEGACY_BETA_EVIDENCE_MEDIA_ALLOWANCE_BYTES =
-  EVIDENCE_MEDIA_TIER_BYTES.media_250;
+export const FREE_EVIDENCE_MEDIA_ALLOWANCE_BYTES = 5 * 1024 * 1024;
 
 export type EvidenceMediaTierKey = keyof typeof EVIDENCE_MEDIA_TIER_BYTES;
 

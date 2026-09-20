@@ -9,6 +9,7 @@ import {
   getMediaStorageUsagePresentation,
   MEDIA_TIER_CATALOG,
 } from "@/lib/clean/entitlements/mediaTierCatalog";
+import { getMediaBillingCurrencyForCountry } from "@/lib/billing/mediaProducts";
 import {
   loadEvidenceMediaEntitlementUsage,
   type EvidenceMediaEntitlementUsage,
@@ -17,6 +18,7 @@ import { listCleanAcademicYears } from "@/lib/clean/terms/client";
 
 type MediaStorageSettingsCardProps = {
   familyId: string;
+  countryCode: string | null;
 };
 
 type MediaStorageState =
@@ -43,10 +45,16 @@ function currentDateIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function MediaStorageSettingsCard({ familyId }: MediaStorageSettingsCardProps) {
+export default function MediaStorageSettingsCard({
+  familyId,
+  countryCode,
+}: MediaStorageSettingsCardProps) {
   const { user } = useAuthUser();
   const [state, setState] = useState<MediaStorageState>(() => ({ status: "loading", familyId }));
   const analyticsTrackedRef = useRef(false);
+  const [checkoutProductKey, setCheckoutProductKey] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutReturnState, setCheckoutReturnState] = useState<"success" | "cancelled" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +121,51 @@ export default function MediaStorageSettingsCard({ familyId }: MediaStorageSetti
     );
   }, [currentState.status, user?.id]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const billing = new URLSearchParams(window.location.search).get("billing");
+    setCheckoutReturnState(billing === "success" || billing === "cancelled" ? billing : null);
+  }, []);
+
+  const displayCurrency = getMediaBillingCurrencyForCountry(countryCode);
+  const hasCurrentEntitlement =
+    currentState.status === "ready" &&
+    !currentState.usage.isCompatibilityFallback &&
+    (currentState.usage.entitlementStatus === "active" ||
+      currentState.usage.entitlementStatus === "grace");
+  const canPurchase = Boolean(displayCurrency) && currentState.status === "ready" && !hasCurrentEntitlement;
+
+  async function beginCheckout(productKey: string) {
+    if (!displayCurrency || checkoutProductKey) return;
+    setCheckoutProductKey(productKey);
+    setCheckoutError(null);
+    try {
+      const response = await fetch("/api/billing/stripe/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ familyId, productKey }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        checkoutUrl?: unknown;
+        error?: unknown;
+      } | null;
+      const checkoutUrl = String(payload?.checkoutUrl ?? "").trim();
+      if (!response.ok || !checkoutUrl) {
+        throw new Error(String(payload?.error ?? "Media storage checkout is temporarily unavailable."));
+      }
+      const destination = new URL(checkoutUrl);
+      if (destination.protocol !== "https:") throw new Error("Invalid checkout destination.");
+      window.location.assign(destination.toString());
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error && error.message
+          ? error.message
+          : "Media storage checkout is temporarily unavailable.",
+      );
+      setCheckoutProductKey(null);
+    }
+  }
+
   return (
     <section aria-labelledby="media-storage-heading" style={cardStyle}>
       <div>
@@ -140,7 +193,7 @@ export default function MediaStorageSettingsCard({ familyId }: MediaStorageSetti
 
       <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 16, display: "grid", gap: 12 }}>
         <div>
-          <h3 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>Future media storage options</h3>
+          <h3 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>Media storage options</h3>
           <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.55 }}>
             Annual family media storage is shared across every learner and follows your learning year.
           </p>
@@ -156,13 +209,45 @@ export default function MediaStorageSettingsCard({ familyId }: MediaStorageSetti
             >
               <strong style={{ color: "#0f172a" }}>{tier.displayName}</strong>
               <span style={{ color: "#1e3a8a", fontSize: 20, fontWeight: 700 }}>{tier.allowanceLabel}</span>
-              <span style={{ color: "#475569" }}>{tier.displayPrices.AUD?.label}</span>
+              <span style={{ color: "#475569" }}>
+                {(displayCurrency ? tier.displayPrices[displayCurrency] : tier.displayPrices.AUD)?.label}
+              </span>
               <span style={{ color: "#475569", fontSize: 14 }}>Shared across your family</span>
               <span style={{ color: "#475569", fontSize: 14 }}>For one learning year</span>
-              <span style={{ color: "#64748b", fontSize: 14 }}>Coming soon</span>
+              {canPurchase && tier.availableForPurchase ? (
+                <button
+                  type="button"
+                  disabled={Boolean(checkoutProductKey)}
+                  onClick={() => void beginCheckout(tier.key)}
+                  style={{ minHeight: 40, border: 0, borderRadius: 10, background: "#2563eb", color: "#ffffff", cursor: checkoutProductKey ? "wait" : "pointer", fontWeight: 700 }}
+                >
+                  {checkoutProductKey === tier.key ? "Opening secure checkoutâ€¦" : "Choose this option"}
+                </button>
+              ) : hasCurrentEntitlement ? (
+                <span style={{ color: "#047857", fontSize: 14 }}>Included with your current media allowance</span>
+              ) : null}
             </article>
           ))}
         </div>
+        {!displayCurrency ? (
+          <p style={{ margin: 0, color: "#475569", fontSize: 14 }}>
+            Media purchases are not available in your country yet.
+          </p>
+        ) : null}
+        {checkoutReturnState === "success" ? (
+          <p aria-live="polite" style={{ margin: 0, color: "#047857", fontSize: 14 }}>
+            Your secure checkout is complete. Media storage will update after payment confirmation.
+          </p>
+        ) : checkoutReturnState === "cancelled" ? (
+          <p aria-live="polite" style={{ margin: 0, color: "#475569", fontSize: 14 }}>
+            Media storage checkout was cancelled. No purchase was made.
+          </p>
+        ) : null}
+        {checkoutError ? (
+          <p aria-live="polite" style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>
+            {checkoutError}
+          </p>
+        ) : null}
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
           When annual renewals are introduced, MyLearna plans to keep earlier paid learning-year media available as archive.
         </p>

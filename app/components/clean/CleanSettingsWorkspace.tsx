@@ -946,7 +946,12 @@ function CleanSettingsWorkspaceBody() {
               </div>
             </section>
 
-            {!firstSetupMode ? <MediaStorageSettingsCard familyId={workspace.profile.id} /> : null}
+            {!firstSetupMode ? (
+              <MediaStorageSettingsCard
+                familyId={workspace.profile.id}
+                countryCode={workspace.profile.countryCode}
+              />
+            ) : null}
 
             {!firstSetupMode ? (
               <div className="mylearna-settings-guidance">

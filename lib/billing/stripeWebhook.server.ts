@@ -4,9 +4,13 @@ import type Stripe from "stripe";
 import { createHash } from "node:crypto";
 import type { BillingCheckoutIntent } from "@/lib/billing/stripeCheckout.server";
 import {
-  findTrustedStripeMediaProductByPriceId,
+  findTrustedStripeMediaProductKeyByPriceId,
   getTrustedStripeMediaProduct,
 } from "@/lib/billing/stripe.server";
+import {
+  getOneTimeMediaProductForCurrency,
+  type MediaBillingCurrency,
+} from "@/lib/billing/mediaProducts";
 import { createBillingAdminClient } from "@/lib/billing/supabaseBilling.server";
 
 type StripeWebhookGateway = Pick<Stripe, "checkout">;
@@ -157,11 +161,34 @@ export async function processVerifiedStripeWebhook(input: {
     );
   }
 
-  const trustedProduct = getTrustedStripeMediaProduct(intent.productKey);
+  const approvedProduct = getOneTimeMediaProductForCurrency(
+    intent.productKey,
+    intent.currency,
+  );
+  if (!approvedProduct) {
+    return recordReview(
+      input.repository,
+      event,
+      payloadHash,
+      "checkout_amount_mismatch",
+      "Verified payment did not match its approved media product.",
+    );
+  }
+  const trustedProduct = getTrustedStripeMediaProduct(approvedProduct);
   if (
     session.currency?.toUpperCase() !== trustedProduct.currency ||
+    intent.currency !== trustedProduct.currency
+  ) {
+    return recordReview(
+      input.repository,
+      event,
+      payloadHash,
+      "checkout_currency_mismatch",
+      "Verified payment did not use its approved currency.",
+    );
+  }
+  if (
     session.amount_total !== trustedProduct.amountMinor ||
-    intent.currency !== trustedProduct.currency ||
     intent.amountMinor !== trustedProduct.amountMinor ||
     intent.quotaBytes !== trustedProduct.quotaBytes
   ) {
@@ -176,13 +203,15 @@ export async function processVerifiedStripeWebhook(input: {
 
   const lineItems = await input.stripe.checkout.sessions.listLineItems(checkoutSessionId, { limit: 2 });
   const lineItem = lineItems.data[0];
-  const mappedProduct = lineItem ? findTrustedStripeMediaProductByPriceId(stripePriceId(lineItem)) : null;
+  const mappedProductKey = lineItem
+    ? findTrustedStripeMediaProductKeyByPriceId(stripePriceId(lineItem))
+    : null;
   if (
     lineItems.data.length !== 1 ||
     !lineItem ||
     lineItem.quantity !== 1 ||
-    !mappedProduct ||
-    mappedProduct.key !== trustedProduct.key
+    !mappedProductKey ||
+    mappedProductKey !== trustedProduct.key
   ) {
     return recordReview(
       input.repository,
@@ -222,7 +251,7 @@ function asBillingIntent(row: Record<string, unknown>): BillingCheckoutIntent {
     familyId: safe(row.family_id),
     requestedByUserId: safe(row.requested_by_user_id),
     productKey: row.product_key as BillingCheckoutIntent["productKey"],
-    currency: "AUD",
+    currency: safe(row.currency).toUpperCase() as MediaBillingCurrency,
     amountMinor: Number(row.amount_minor),
     academicYearId: safe(row.academic_year_id),
     periodStartsOn: safe(row.period_starts_on),

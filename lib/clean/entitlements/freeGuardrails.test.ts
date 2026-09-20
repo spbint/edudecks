@@ -51,16 +51,16 @@ describe("MyLearna Free V1 guardrails", () => {
     expect(LEARNER_ABUSE_CEILING_MESSAGE).not.toContain("MyLearna Free supports up to 3 learners per family.");
   });
 
-  it("keeps the family storage allowance fixed at 250 MB", () => {
-    expect(FREE_FAMILY_PORTFOLIO_STORAGE_BYTES).toBe(262144000);
+  it("keeps the Free family media allowance fixed at 5 MB", () => {
+    expect(FREE_FAMILY_PORTFOLIO_STORAGE_BYTES).toBe(5242880);
   });
 
   it("stays quiet below 70 percent storage usage", () => {
     expect(
       getFreePortfolioStoragePresentation(
         usage({
-          usedBytes: 160 * 1024 * 1024,
-          remainingBytes: 90 * 1024 * 1024,
+          usedBytes: 3 * 1024 * 1024,
+          remainingBytes: 2 * 1024 * 1024,
         }),
       ),
     ).toEqual({ level: "none", message: null });
@@ -70,13 +70,13 @@ describe("MyLearna Free V1 guardrails", () => {
     expect(
       getFreePortfolioStoragePresentation(
         usage({
-          usedBytes: 176 * 1024 * 1024,
-          remainingBytes: 74 * 1024 * 1024,
+          usedBytes: 4 * 1024 * 1024,
+          remainingBytes: 1 * 1024 * 1024,
         }),
       ),
     ).toEqual({
       level: "usage",
-      message: "Portfolio storage: 176 MB of 250 MB used this learning year.",
+      message: "Portfolio storage: 4 MB of 5 MB used this learning year.",
     });
   });
 
@@ -84,8 +84,8 @@ describe("MyLearna Free V1 guardrails", () => {
     expect(
       getFreePortfolioStoragePresentation(
         usage({
-          usedBytes: 225 * 1024 * 1024,
-          remainingBytes: 25 * 1024 * 1024,
+          usedBytes: 4.5 * 1024 * 1024,
+          remainingBytes: 0.5 * 1024 * 1024,
         }),
       ),
     ).toEqual({
@@ -98,7 +98,7 @@ describe("MyLearna Free V1 guardrails", () => {
     expect(
       getFreePortfolioStoragePresentation(
         usage({
-          usedBytes: 250 * 1024 * 1024,
+          usedBytes: 5 * 1024 * 1024,
           remainingBytes: 0,
         }),
       ),
@@ -110,22 +110,22 @@ describe("MyLearna Free V1 guardrails", () => {
 
   it("allows uploads under and exactly to the remaining allowance", () => {
     const currentUsage = usage({
-      usedBytes: 240 * 1024 * 1024,
-      remainingBytes: 10 * 1024 * 1024,
+      usedBytes: 4 * 1024 * 1024,
+      remainingBytes: 1 * 1024 * 1024,
     });
 
     expect(wouldExceedFreePortfolioStorageAllowance(currentUsage, 1)).toBe(false);
-    expect(wouldExceedFreePortfolioStorageAllowance(currentUsage, 10 * 1024 * 1024)).toBe(false);
+    expect(wouldExceedFreePortfolioStorageAllowance(currentUsage, 1 * 1024 * 1024)).toBe(false);
   });
 
   it("rejects an incoming upload that exceeds remaining allowance", () => {
     expect(
       wouldExceedFreePortfolioStorageAllowance(
         usage({
-          usedBytes: 249 * 1024 * 1024,
-          remainingBytes: 1 * 1024 * 1024,
+          usedBytes: 4.5 * 1024 * 1024,
+          remainingBytes: 0.5 * 1024 * 1024,
         }),
-        2 * 1024 * 1024,
+        1 * 1024 * 1024,
       ),
     ).toBe(true);
   });

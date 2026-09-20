@@ -1,5 +1,5 @@
 import {
-  FREE_FAMILY_PORTFOLIO_STORAGE_BYTES,
+  FREE_FAMILY_MEDIA_ALLOWANCE_BYTES,
   type FreePortfolioStorageUsage,
 } from "@/lib/clean/entitlements/freeGuardrails";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
@@ -91,7 +91,7 @@ export async function loadEvidenceMediaEntitlementUsage(
 
   const quotaBytes = toBytes(
     row.quota_bytes,
-    FREE_FAMILY_PORTFOLIO_STORAGE_BYTES,
+    FREE_FAMILY_MEDIA_ALLOWANCE_BYTES,
   );
   const usedBytes = toBytes(row.used_bytes);
   const reservedBytes = toBytes(row.reserved_bytes);
@@ -99,7 +99,7 @@ export async function loadEvidenceMediaEntitlementUsage(
   return {
     familyId: safe(row.family_id) || cleanFamilyId,
     academicYearId: safe(row.academic_year_id) || null,
-    entitlementSource: safe(row.entitlement_source) || "legacy_beta_compatibility",
+    entitlementSource: safe(row.entitlement_source) || "free",
     entitlementStatus: safe(row.entitlement_status) || "none",
     quotaBytes,
     usedBytes,

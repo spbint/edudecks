@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   EVIDENCE_MEDIA_TIER_BYTES,
+  FREE_EVIDENCE_MEDIA_ALLOWANCE_BYTES,
   getRemainingEvidenceMediaBytes,
-  LEGACY_BETA_EVIDENCE_MEDIA_ALLOWANCE_BYTES,
 } from "@/lib/clean/entitlements/evidenceMedia";
 
 describe("evidence media entitlement byte model", () => {
@@ -13,7 +13,7 @@ describe("evidence media entitlement byte model", () => {
       media_500: 524288000,
       media_1000: 1073741824,
     });
-    expect(LEGACY_BETA_EVIDENCE_MEDIA_ALLOWANCE_BYTES).toBe(262144000);
+    expect(FREE_EVIDENCE_MEDIA_ALLOWANCE_BYTES).toBe(5242880);
   });
 
   it("calculates family remaining capacity from retained and reserved bytes", () => {

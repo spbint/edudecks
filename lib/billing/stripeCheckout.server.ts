@@ -2,7 +2,11 @@ import "server-only";
 
 import type Stripe from "stripe";
 import type { MediaProductKey } from "@/lib/clean/entitlements/mediaTierCatalog";
-import { isMediaProductKey } from "@/lib/billing/mediaProducts";
+import {
+  getOneTimeMediaProduct,
+  isMediaProductKey,
+  type MediaBillingCurrency,
+} from "@/lib/billing/mediaProducts";
 import {
   createStripeIntegrationIdentifier,
   getTrustedStripeMediaProduct,
@@ -11,6 +15,7 @@ import { BILLING_AUTHORITY_ROLES, createBillingAdminClient } from "@/lib/billing
 import {
   familyBillingDateKey,
   FamilyBillingEligibilityError,
+  resolveFamilyBillingMarket,
   type FamilyBillingProfile,
 } from "@/lib/billing/familyBillingEligibility";
 
@@ -26,7 +31,7 @@ export type BillingCheckoutIntent = {
   familyId: string;
   requestedByUserId: string;
   productKey: MediaProductKey;
-  currency: "AUD";
+  currency: MediaBillingCurrency;
   amountMinor: number;
   academicYearId: string;
   periodStartsOn: string;
@@ -162,12 +167,21 @@ export async function createOneTimeMediaCheckout(input: {
     throw new BillingCheckoutRequestError(
       "billing_jurisdiction_required",
       409,
-      "Update your family settings with your Australian state or territory before choosing media storage.",
+      "Update your family settings with your country and jurisdiction before choosing media storage.",
     );
   }
 
   let observedOn: string;
+  let trustedProduct: ReturnType<typeof getOneTimeMediaProduct>;
   try {
+    const billingMarket = resolveFamilyBillingMarket(billingProfile);
+    trustedProduct = getOneTimeMediaProduct(billingMarket.countryCode, input.productKey);
+    if (!trustedProduct) {
+      throw new FamilyBillingEligibilityError(
+        "billing_country_unsupported",
+        "Media storage purchases are not available in your country yet.",
+      );
+    }
     observedOn = familyBillingDateKey(billingProfile, input.now);
   } catch (error) {
     if (error instanceof FamilyBillingEligibilityError) {
@@ -192,7 +206,7 @@ export async function createOneTimeMediaCheckout(input: {
     );
   }
 
-  const trustedProduct = getTrustedStripeMediaProduct(input.productKey);
+  const trustedStripeProduct = getTrustedStripeMediaProduct(trustedProduct);
   let customerId = await input.repository.findFamilyStripeCustomer(familyId);
   if (!customerId) {
     const customer = await input.stripe.customers.create(
@@ -208,14 +222,14 @@ export async function createOneTimeMediaCheckout(input: {
   const intent = await input.repository.createCheckoutIntent({
     familyId,
     requestedByUserId: input.requestedByUserId,
-    productKey: trustedProduct.key,
-    currency: trustedProduct.currency,
-    amountMinor: trustedProduct.amountMinor,
+    productKey: trustedStripeProduct.key,
+    currency: trustedStripeProduct.currency,
+    amountMinor: trustedStripeProduct.amountMinor,
     academicYearId: academicYear.id,
     periodStartsOn: academicYear.startsOn,
     periodEndsOn: academicYear.endsOn,
     periodLabel: academicYear.label,
-    quotaBytes: trustedProduct.quotaBytes,
+    quotaBytes: trustedStripeProduct.quotaBytes,
     provider: "stripe",
     providerCustomerId: customerId,
   });
@@ -224,9 +238,10 @@ export async function createOneTimeMediaCheckout(input: {
     const origin = checkoutReturnOrigin();
     const session = await input.stripe.checkout.sessions.create({
       mode: "payment",
+      currency: trustedStripeProduct.currency.toLowerCase(),
       customer: customerId,
       client_reference_id: intent.id,
-      line_items: [{ price: trustedProduct.stripePriceId, quantity: 1 }],
+      line_items: [{ price: trustedStripeProduct.stripePriceId, quantity: 1 }],
       expires_at: stripeUnixTimestamp(intent.expiresAt),
       success_url: `${origin}/my-settings?billing=success`,
       cancel_url: `${origin}/my-settings?billing=cancelled`,
@@ -234,7 +249,7 @@ export async function createOneTimeMediaCheckout(input: {
         checkout_intent_id: intent.id,
         family_id: familyId,
         academic_year_id: academicYear.id,
-        media_product_key: trustedProduct.key,
+        media_product_key: trustedStripeProduct.key,
       },
       integration_identifier: createStripeIntegrationIdentifier(),
     }, {

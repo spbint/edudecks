@@ -27,15 +27,28 @@ describe("family media tier catalogue", () => {
       "A$34.95/year",
       "A$54.95/year",
     ]);
-    expect(MEDIA_TIER_CATALOG.every((tier) => tier.availableForPurchase === false)).toBe(true);
+    expect(MEDIA_TIER_CATALOG.every((tier) => tier.availableForPurchase)).toBe(true);
     expect(JSON.stringify(MEDIA_TIER_CATALOG).toLowerCase()).not.toContain("stripe");
     expect(MEDIA_TIER_CATALOG[0].displayPrices).toHaveProperty("AUD");
+    expect(MEDIA_TIER_CATALOG.map((tier) => tier.displayPrices.USD?.label)).toEqual([
+      "US$9.99/year",
+      "US$14.99/year",
+      "US$22.99/year",
+      "US$39.99/year",
+    ]);
+    expect(MEDIA_TIER_CATALOG.map((tier) => tier.displayPrices.GBP?.label)).toEqual([
+      "£7.99/year",
+      "£11.99/year",
+      "£18.99/year",
+      "£29.99/year",
+    ]);
   });
 
-  it("presents compatibility as beta access, never as a purchase", () => {
+  it("presents the implicit fallback as Free access and never as a paid entitlement", () => {
     expect(getMediaAllowanceSourceLabel("legacy_beta_compatibility", true)).toBe(
-      "Beta media allowance",
+      "Free media allowance",
     );
+    expect(getMediaAllowanceSourceLabel("free", true)).toBe("Free media allowance");
     expect(getMediaAllowanceSourceLabel("founding", false)).toBe(
       "Founding family media allowance",
     );

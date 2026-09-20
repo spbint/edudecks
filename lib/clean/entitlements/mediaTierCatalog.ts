@@ -27,14 +27,14 @@ export type MediaTierCatalogItem = {
   billingPeriod: "annual";
   familyShared: true;
   displayPrices: Partial<Record<SupportedMediaDisplayCurrency, MediaTierDisplayPrice>>;
-  availableForPurchase: false;
+  availableForPurchase: boolean;
 };
 
-function audPrice(amount: number) {
+function displayPrice(currency: SupportedMediaDisplayCurrency, amount: number, label: string) {
   return {
-    currency: "AUD" as const,
+    currency,
     amount,
-    label: `A$${amount.toFixed(2)}/year`,
+    label: `${label}${amount.toFixed(2)}/year`,
   };
 }
 
@@ -53,8 +53,12 @@ export const MEDIA_TIER_CATALOG: readonly MediaTierCatalogItem[] = [
     quotaBytes: EVIDENCE_MEDIA_TIER_BYTES[TIER_KEY_BY_PRODUCT_KEY.MEDIA_100],
     billingPeriod: "annual",
     familyShared: true,
-    displayPrices: { AUD: audPrice(14.95) },
-    availableForPurchase: false,
+    displayPrices: {
+      AUD: displayPrice("AUD", 14.95, "A$"),
+      USD: displayPrice("USD", 9.99, "US$"),
+      GBP: displayPrice("GBP", 7.99, "£"),
+    },
+    availableForPurchase: true,
   },
   {
     key: "MEDIA_250",
@@ -63,8 +67,12 @@ export const MEDIA_TIER_CATALOG: readonly MediaTierCatalogItem[] = [
     quotaBytes: EVIDENCE_MEDIA_TIER_BYTES[TIER_KEY_BY_PRODUCT_KEY.MEDIA_250],
     billingPeriod: "annual",
     familyShared: true,
-    displayPrices: { AUD: audPrice(21.95) },
-    availableForPurchase: false,
+    displayPrices: {
+      AUD: displayPrice("AUD", 21.95, "A$"),
+      USD: displayPrice("USD", 14.99, "US$"),
+      GBP: displayPrice("GBP", 11.99, "£"),
+    },
+    availableForPurchase: true,
   },
   {
     key: "MEDIA_500",
@@ -73,8 +81,12 @@ export const MEDIA_TIER_CATALOG: readonly MediaTierCatalogItem[] = [
     quotaBytes: EVIDENCE_MEDIA_TIER_BYTES[TIER_KEY_BY_PRODUCT_KEY.MEDIA_500],
     billingPeriod: "annual",
     familyShared: true,
-    displayPrices: { AUD: audPrice(34.95) },
-    availableForPurchase: false,
+    displayPrices: {
+      AUD: displayPrice("AUD", 34.95, "A$"),
+      USD: displayPrice("USD", 22.99, "US$"),
+      GBP: displayPrice("GBP", 18.99, "£"),
+    },
+    availableForPurchase: true,
   },
   {
     key: "MEDIA_1000",
@@ -83,8 +95,12 @@ export const MEDIA_TIER_CATALOG: readonly MediaTierCatalogItem[] = [
     quotaBytes: EVIDENCE_MEDIA_TIER_BYTES[TIER_KEY_BY_PRODUCT_KEY.MEDIA_1000],
     billingPeriod: "annual",
     familyShared: true,
-    displayPrices: { AUD: audPrice(54.95) },
-    availableForPurchase: false,
+    displayPrices: {
+      AUD: displayPrice("AUD", 54.95, "A$"),
+      USD: displayPrice("USD", 39.99, "US$"),
+      GBP: displayPrice("GBP", 29.99, "£"),
+    },
+    availableForPurchase: true,
   },
 ];
 
@@ -146,8 +162,8 @@ export function getMediaAllowanceSourceLabel(
   source: string | null,
   isCompatibilityFallback: boolean,
 ) {
-  if (isCompatibilityFallback || source === "legacy_beta_compatibility") {
-    return "Beta media allowance";
+  if (isCompatibilityFallback || source === "legacy_beta_compatibility" || source === "free") {
+    return "Free media allowance";
   }
   if (source === "founding") return "Founding family media allowance";
   if (source === "complimentary") return "Complimentary family media allowance";

@@ -1,7 +1,10 @@
+import { FREE_EVIDENCE_MEDIA_ALLOWANCE_BYTES } from "@/lib/clean/entitlements/evidenceMedia";
+
 export const LEARNER_ABUSE_CEILING_LIMIT = 20;
 export const LEARNER_ABUSE_CEILING_MESSAGE =
   "We couldn't add another learner to this family. Please contact MyLearna support if you need help.";
-export const FREE_FAMILY_PORTFOLIO_STORAGE_BYTES = 250 * 1024 * 1024;
+export const FREE_FAMILY_MEDIA_ALLOWANCE_BYTES = FREE_EVIDENCE_MEDIA_ALLOWANCE_BYTES;
+export const FREE_FAMILY_PORTFOLIO_STORAGE_BYTES = FREE_FAMILY_MEDIA_ALLOWANCE_BYTES;
 export const FREE_PORTFOLIO_STORAGE_FULL_MESSAGE =
   "Your Portfolio storage is full for this learning year. Everything you've already captured is safe. You can continue using MyLearna and adding text learning records.";
 export const FREE_PORTFOLIO_STORAGE_NEAR_LIMIT_MESSAGE =

@@ -51,6 +51,7 @@ describe("POST /api/billing/stripe/checkout", () => {
       familyId: "family-1",
       productKey: "MEDIA_250",
       amountMinor: 1,
+      currency: "GBP",
       quotaBytes: 1,
       priceId: "price_attacker",
     }));
@@ -61,6 +62,7 @@ describe("POST /api/billing/stripe/checkout", () => {
       requestedByUserId: "adult-1",
     }));
     expect(mocks.createCheckout.mock.calls[0][0]).not.toHaveProperty("amountMinor");
+    expect(mocks.createCheckout.mock.calls[0][0]).not.toHaveProperty("currency");
     expect(mocks.createCheckout.mock.calls[0][0]).not.toHaveProperty("quotaBytes");
     expect(mocks.createCheckout.mock.calls[0][0]).not.toHaveProperty("priceId");
   });

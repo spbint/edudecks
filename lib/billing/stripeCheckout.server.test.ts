@@ -70,10 +70,10 @@ function requestInput(repo: BillingCheckoutRepository, overrides: Record<string,
 describe("one-time Stripe media Checkout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.STRIPE_PRICE_MEDIA_100_AUD = "price_media_100";
-    process.env.STRIPE_PRICE_MEDIA_250_AUD = "price_media_250";
-    process.env.STRIPE_PRICE_MEDIA_500_AUD = "price_media_500";
-    process.env.STRIPE_PRICE_MEDIA_1000_AUD = "price_media_1000";
+    process.env.STRIPE_PRICE_MEDIA_100 = "price_media_100";
+    process.env.STRIPE_PRICE_MEDIA_250 = "price_media_250";
+    process.env.STRIPE_PRICE_MEDIA_500 = "price_media_500";
+    process.env.STRIPE_PRICE_MEDIA_1000 = "price_media_1000";
     process.env.MYLEARNA_APP_URL = "https://www.mylearna.com";
     createSession.mockResolvedValue({ id: "cs-1", url: "https://checkout.stripe.test/cs-1" });
     createCustomer.mockResolvedValue({ id: "cus-created" });
@@ -99,6 +99,7 @@ describe("one-time Stripe media Checkout", () => {
       idempotencyKey: "mylearna-media-checkout-intent-1",
     });
     expect(createSession.mock.calls[0][0].expires_at).toBe(1819802700);
+    expect(createSession.mock.calls[0][0].currency).toBe("aud");
   });
 
   it("uses only the trusted server Price and opaque metadata", async () => {
@@ -108,11 +109,13 @@ describe("one-time Stripe media Checkout", () => {
       amountMinor: 1,
       quotaBytes: 1,
       priceId: "price_attacker",
+      currency: "GBP",
       academicYearId: "foreign-year",
     }));
 
     const call = createSession.mock.calls[0][0];
     expect(call.mode).toBe("payment");
+    expect(call.currency).toBe("aud");
     expect(call.line_items).toEqual([{ price: "price_media_1000", quantity: 1 }]);
     expect(call.metadata).toEqual({
       checkout_intent_id: "intent-1",
@@ -149,8 +152,29 @@ describe("one-time Stripe media Checkout", () => {
   });
 
   it.each([
-    ["unauthorised adult", repository({ userCanInitiateBilling: vi.fn(async () => false) }), "billing_not_authorised", 403],
-    ["non-Australian family", repository({ getFamilyBillingProfile: vi.fn(async () => ({ countryCode: "GB", jurisdictionCode: "ENG" })) }), "billing_australia_only", 409],
+    ["US", "CA", "MEDIA_100", "usd", 999, "price_media_100"],
+    ["UK", "ENG", "MEDIA_500", "gbp", 1899, "price_media_500"],
+  ] as const)("uses the family market for %s Checkout", async (countryCode, jurisdictionCode, productKey, currency, amountMinor, priceId) => {
+    const repo = repository({
+      getFamilyBillingProfile: vi.fn(async () => ({ countryCode, jurisdictionCode })),
+    });
+
+    await createOneTimeMediaCheckout(requestInput(repo, { productKey }));
+
+    expect(repo.createCheckoutIntent).toHaveBeenCalledWith(expect.objectContaining({
+      productKey,
+      currency: currency.toUpperCase(),
+      amountMinor,
+    }));
+    expect(createSession.mock.calls[0][0]).toMatchObject({
+      currency,
+      line_items: [{ price: priceId, quantity: 1 }],
+    });
+  });
+
+  it.each([
+    ["caregiver without parent billing authority", repository({ userCanInitiateBilling: vi.fn(async () => false) }), "billing_not_authorised", 403],
+    ["unsupported family market", repository({ getFamilyBillingProfile: vi.fn(async () => ({ countryCode: "NZ", jurisdictionCode: "WGN" })) }), "billing_country_unsupported", 409],
     ["missing family jurisdiction", repository({ getFamilyBillingProfile: vi.fn(async () => ({ countryCode: "AU", jurisdictionCode: null })) }), "billing_jurisdiction_required", 409],
     ["no current academic year", repository({ getCurrentAcademicYear: vi.fn(async () => null) }), "current_learning_year_required", 409],
     ["existing explicit entitlement", repository({ hasCurrentExplicitMediaEntitlement: vi.fn(async () => true) }), "media_entitlement_already_current", 409],

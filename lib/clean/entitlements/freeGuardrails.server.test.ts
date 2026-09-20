@@ -146,7 +146,7 @@ describe("MyLearna Free V1 durable mutation throttles", () => {
 });
 
 describe("MyLearna Free V1 portfolio storage guardrails", () => {
-  it("uses the canonical family academic year for the 250 MB evidence attachment allowance", () => {
+  it("preserves the historical 250 MB record while the current client fallback is 5 MB", () => {
     expect(migration).toContain("family_evidence_storage_usage");
     expect(migration).toContain("primary key (family_id, academic_year_id)");
     expect(migration).toContain("262144000");
@@ -154,7 +154,7 @@ describe("MyLearna Free V1 portfolio storage guardrails", () => {
     expect(migration).toContain("ay.starts_on <= target_observed_on");
     expect(migration).toContain("ay.ends_on >= target_observed_on");
     expect(migration).toContain("evidence_row.observed_on");
-    expect(entitlementSource).toContain("FREE_FAMILY_PORTFOLIO_STORAGE_BYTES = 250 * 1024 * 1024");
+    expect(entitlementSource).toContain("FREE_FAMILY_MEDIA_ALLOWANCE_BYTES = FREE_EVIDENCE_MEDIA_ALLOWANCE_BYTES");
   });
 
   it("counts only family-owned uploaded evidence attachment bytes from Supabase storage metadata", () => {
