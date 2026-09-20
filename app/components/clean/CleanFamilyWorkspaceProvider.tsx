@@ -55,11 +55,14 @@ export default function CleanFamilyWorkspaceProvider({
 }) {
   const { user, loading: authLoading } = useAuthUser();
   const { workspace: familyWorkspace } = useFamilyWorkspace();
-  const authenticatedUserId = user?.id ?? familyWorkspace.userId;
-  const warmFamilySnapshot = hydrateCleanWorkspaceFromFamilySnapshot(
-    familyWorkspace,
-    authenticatedUserId,
-  );
+  const authenticatedUserId = user?.id ?? null;
+  const warmFamilySnapshot =
+    !authLoading && authenticatedUserId
+      ? hydrateCleanWorkspaceFromFamilySnapshot(
+          familyWorkspace,
+          authenticatedUserId,
+        )
+      : null;
   const [workspace, setWorkspace] = useState<CleanWorkspaceState>(
     () => warmFamilySnapshot ?? INITIAL_STATE,
   );
@@ -135,6 +138,7 @@ export default function CleanFamilyWorkspaceProvider({
   useEffect(() => {
     if (
       authLoading ||
+      !authenticatedUserId ||
       hasLoadedWorkspaceRef.current ||
       !warmFamilySnapshot ||
       warmFamilySnapshot.currentUserId !== authenticatedUserId
@@ -164,15 +168,33 @@ export default function CleanFamilyWorkspaceProvider({
     void reload();
   }, [authLoading, reload, user?.id]);
 
+  const workspaceMatchesConfirmedAuth =
+    !authLoading &&
+    (authenticatedUserId
+      ? workspace.currentUserId === authenticatedUserId
+      : workspace.currentUserId === null);
+  const visibleWorkspace = workspaceMatchesConfirmedAuth ? workspace : INITIAL_STATE;
+  const visibleSetupStatus = workspaceMatchesConfirmedAuth
+    ? setupStatus
+    : INITIAL_SETUP_STATUS;
+  const visibleLoading = workspaceMatchesConfirmedAuth ? loading : true;
+  const visibleSetupLoading = workspaceMatchesConfirmedAuth ? setupLoading : true;
+
   const value = useMemo(
     () => ({
-      ...workspace,
-      loading,
-      setupLoading,
-      setupStatus,
+      ...visibleWorkspace,
+      loading: visibleLoading,
+      setupLoading: visibleSetupLoading,
+      setupStatus: visibleSetupStatus,
       reload,
     }),
-    [loading, reload, setupLoading, setupStatus, workspace],
+    [
+      reload,
+      visibleLoading,
+      visibleSetupLoading,
+      visibleSetupStatus,
+      visibleWorkspace,
+    ],
   );
 
   return (

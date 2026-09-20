@@ -520,44 +520,6 @@ function mergeRemoteLearnerSources(
   return sortLearners(Array.from(merged.values()));
 }
 
-function mergeDatabaseAndLocalLearners(
-  remoteLearners: FamilyLearner[],
-  localLearners: FamilyLearner[],
-) {
-  if (!remoteLearners.length) {
-    return [];
-  }
-
-  const merged = [...remoteLearners];
-
-  for (const localLearner of localLearners) {
-    const matchIndex = merged.findIndex(
-      (remoteLearner) =>
-        learnerMatchesCandidate(remoteLearner, localLearner.id) ||
-        learnerMatchesCandidate(remoteLearner, localLearner.family_profile_child_id) ||
-        learnerMatchesCandidate(remoteLearner, localLearner.legacy_learner_id),
-    );
-
-    if (matchIndex >= 0) {
-      const remoteLearner = merged[matchIndex];
-      merged[matchIndex] = {
-        ...localLearner,
-        ...remoteLearner,
-        family_profile_child_id:
-          safe(remoteLearner.family_profile_child_id) ||
-          localLearner.family_profile_child_id ||
-          null,
-        legacy_learner_id:
-          safe(remoteLearner.legacy_learner_id) ||
-          localLearner.legacy_learner_id ||
-          null,
-      };
-    }
-  }
-
-  return sortLearners(merged);
-}
-
 async function resolveFamilyProfileChildLinkId(
   familyProfileId: string,
   learnerId: string,
@@ -660,7 +622,6 @@ export async function loadFamilyWorkspace(
     return localSnapshot;
   }
 
-  const localLearners = loadLearnersFromLocalCache();
   const authenticatedFallbackProfile: FamilyProfileRow = {
     ...DEFAULT_FAMILY_SETTINGS,
     ...DEFAULT_FAMILY_PROFILE,
@@ -705,9 +666,7 @@ export async function loadFamilyWorkspace(
   try {
     const databaseProfileReady = isDatabaseFamilyProfileId(profile.id);
     const databaseLearnersReady = databaseProfileReady && !learnerLoadFailed;
-    const learners = databaseLearnersReady
-      ? mergeDatabaseAndLocalLearners(dbLearners, localLearners)
-      : [];
+    const learners = databaseLearnersReady ? dbLearners : [];
 
     const mergedProfile: FamilyProfileRow = {
       ...authenticatedFallbackProfile,

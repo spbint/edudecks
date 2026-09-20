@@ -85,6 +85,15 @@ describe("public launch truthfulness", () => {
     expect(startFree).not.toMatch(/\bOTP\b/i);
   });
 
+  it("keeps the existing-session account-switch path on centralized sign-out cleanup", () => {
+    const startFree = read("app/start-free/page.tsx");
+
+    expect(startFree).toContain("You&apos;re already signed in");
+    expect(startFree).toContain("completeFamilySignOut");
+    expect(startFree).toContain("handleSignOutForDifferentEmail");
+    expect(startFree).toContain("Sign out and use a different email");
+  });
+
   it("keeps email authentication behavior while updating signup copy", () => {
     const emailAuth = read("app/components/EmailAuthPage.tsx");
     expect(emailAuth).toContain('heroTitle = isSignup ? "Open your private MyLearna space"');

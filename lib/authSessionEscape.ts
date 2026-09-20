@@ -28,6 +28,13 @@ const SESSION_ACCOUNT_SWITCH_KEYS = [
   "mylearna.auth.intendedRoute",
 ];
 
+const FAMILY_IDENTITY_CACHE_KEYS = [
+  "edudecks_family_settings_v1",
+  "edudecks_children_seed_v1",
+  "edudecks_active_student_id",
+  "mylearna.clean.activeLearnerByFamily.v1",
+];
+
 function removeStorageKey(storage: Storage, key: string) {
   try {
     storage.removeItem(key);
@@ -62,4 +69,11 @@ export function clearLocalSessionForAccountSwitch() {
   clearSignupPrefill();
   clearAuthRedirectState();
   clearSetupRedirectState();
+
+  if (typeof window === "undefined") return;
+
+  for (const key of FAMILY_IDENTITY_CACHE_KEYS) {
+    removeStorageKey(window.localStorage, key);
+    removeStorageKey(window.sessionStorage, key);
+  }
 }

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -195,5 +197,16 @@ describe("family workspace learner schema compatibility", () => {
     await expect(loadLinkedLearners("user-1", "family-1")).rejects.toMatchObject({
       code: "42501",
     });
+  });
+
+  it("keeps verified database learners authoritative over the unscoped browser cache", () => {
+    const source = readFileSync(join(process.cwd(), "lib/familyWorkspace.ts"), "utf8");
+
+    expect(source).toContain(
+      "const learners = databaseLearnersReady ? dbLearners : [];",
+    );
+    expect(source).not.toContain(
+      "mergeDatabaseAndLocalLearners(dbLearners, localLearners)",
+    );
   });
 });
