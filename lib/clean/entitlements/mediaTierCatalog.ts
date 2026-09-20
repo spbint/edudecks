@@ -34,7 +34,7 @@ function displayPrice(currency: SupportedMediaDisplayCurrency, amount: number, l
   return {
     currency,
     amount,
-    label: `${label}${amount.toFixed(2)}/year`,
+    label: `${label}${amount.toFixed(2)} · one-time`,
   };
 }
 
@@ -136,7 +136,7 @@ export function getMediaStorageUsagePresentation(
       percentUsed,
       usageBytes,
       warningState: "full",
-      warningCopy: "You’ve reached your current media allowance. More storage options are coming soon.",
+      warningCopy: "You've reached your current media allowance. Choose a storage option below to add more media.",
     };
   }
   if (percentUsed >= 90) {
@@ -144,7 +144,7 @@ export function getMediaStorageUsagePresentation(
       percentUsed,
       usageBytes,
       warningState: "nearly_full",
-      warningCopy: "You’re nearly at your media limit. More storage options are coming soon.",
+      warningCopy: "You're nearly at your media limit. Choose a storage option below to add more media.",
     };
   }
   if (percentUsed >= 75) {

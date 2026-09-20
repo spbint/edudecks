@@ -9,10 +9,12 @@ import {
 
 const createCustomer = vi.fn();
 const createSession = vi.fn();
+const retrieveSession = vi.fn();
+const expireSession = vi.fn();
 
 const stripe = {
   customers: { create: createCustomer },
-  checkout: { sessions: { create: createSession } },
+  checkout: { sessions: { create: createSession, retrieve: retrieveSession, expire: expireSession } },
 } as never;
 
 function repository(overrides: Partial<BillingCheckoutRepository> = {}) {
@@ -45,10 +47,12 @@ function repository(overrides: Partial<BillingCheckoutRepository> = {}) {
       label: "2027 Learning Year",
     })),
     hasCurrentExplicitMediaEntitlement: vi.fn(async () => false),
+    findOpenCheckoutIntent: vi.fn(async () => null),
     findFamilyStripeCustomer: vi.fn(async () => "cus-existing"),
     saveFamilyStripeCustomer: vi.fn(async (_familyId: string, customerId: string) => customerId),
     createCheckoutIntent: vi.fn(async () => intent),
     markCheckoutCreated: vi.fn(async () => undefined),
+    markCheckoutExpired: vi.fn(async () => undefined),
     markCheckoutFailed: vi.fn(async () => undefined),
     ...overrides,
   } satisfies BillingCheckoutRepository;
@@ -76,8 +80,33 @@ describe("one-time Stripe media Checkout", () => {
     process.env.STRIPE_PRICE_MEDIA_1000 = "price_media_1000";
     process.env.MYLEARNA_APP_URL = "https://www.mylearna.com";
     createSession.mockResolvedValue({ id: "cs-1", url: "https://checkout.stripe.test/cs-1" });
+    retrieveSession.mockReset();
+    expireSession.mockReset();
     createCustomer.mockResolvedValue({ id: "cus-created" });
   });
+
+  function openIntent(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "intent-open",
+      familyId: "family-1",
+      requestedByUserId: "adult-1",
+      productKey: "MEDIA_250" as const,
+      currency: "AUD" as const,
+      amountMinor: 2195,
+      academicYearId: "year-2027",
+      periodStartsOn: "2027-01-01",
+      periodEndsOn: "2027-12-31",
+      periodLabel: "2027 Learning Year",
+      quotaBytes: 262144000,
+      provider: "stripe" as const,
+      providerCustomerId: "cus-existing",
+      providerCheckoutSessionId: "cs-open",
+      providerPaymentIntentId: null,
+      expiresAt: "2027-09-01T12:45:00.000Z",
+      status: "checkout_created",
+      ...overrides,
+    };
+  }
 
   it("uses the current learning year even after its midpoint and snapshots trusted product facts before redirecting", async () => {
     const repo = repository();
@@ -149,6 +178,89 @@ describe("one-time Stripe media Checkout", () => {
       now: new Date("2027-01-01T13:30:00.000Z"),
     }));
     expect(repo.getCurrentAcademicYear).toHaveBeenCalledWith("family-1", "2027-01-01");
+  });
+
+  it("resumes an existing same-product open Checkout without creating anything new", async () => {
+    const repo = repository({ findOpenCheckoutIntent: vi.fn(async () => openIntent()) });
+    retrieveSession.mockResolvedValue({ id: "cs-open", url: "https://checkout.stripe.test/cs-open", status: "open" });
+
+    const result = await createOneTimeMediaCheckout(requestInput(repo));
+
+    expect(result).toEqual({ checkoutUrl: "https://checkout.stripe.test/cs-open", checkoutIntentId: "intent-open" });
+    expect(retrieveSession).toHaveBeenCalledWith("cs-open");
+    expect(createSession).not.toHaveBeenCalled();
+    expect(createCustomer).not.toHaveBeenCalled();
+    expect(repo.createCheckoutIntent).not.toHaveBeenCalled();
+    expect(expireSession).not.toHaveBeenCalled();
+  });
+
+  it("preserves the database concurrency boundary when a competing request wins the intent insert", async () => {
+    const repo = repository({
+      createCheckoutIntent: vi.fn(async () => {
+        throw new BillingCheckoutRequestError("media_checkout_already_open", 409, "already open");
+      }),
+      findOpenCheckoutIntent: vi.fn()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(openIntent()),
+    });
+    retrieveSession.mockResolvedValue({ id: "cs-open", url: "https://checkout.stripe.test/cs-open", status: "open" });
+
+    const result = await createOneTimeMediaCheckout(requestInput(repo));
+
+    expect(result.checkoutIntentId).toBe("intent-open");
+    expect(repo.createCheckoutIntent).toHaveBeenCalledOnce();
+    expect(createSession).not.toHaveBeenCalled();
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it("expires an expired Stripe Checkout and allows a fresh intent", async () => {
+    const repo = repository({ findOpenCheckoutIntent: vi.fn(async () => openIntent()) });
+    retrieveSession.mockResolvedValue({ id: "cs-open", url: "https://checkout.stripe.test/cs-open", status: "expired" });
+
+    await createOneTimeMediaCheckout(requestInput(repo));
+
+    expect(repo.markCheckoutExpired).toHaveBeenCalledWith("intent-open");
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(expireSession).not.toHaveBeenCalled();
+  });
+
+  it("expires a different open commercial snapshot before creating the requested tier", async () => {
+    const repo = repository({ findOpenCheckoutIntent: vi.fn(async () => openIntent({ productKey: "MEDIA_100" as const, amountMinor: 1495, quotaBytes: 104857600 })) });
+    retrieveSession.mockResolvedValue({ id: "cs-open", url: "https://checkout.stripe.test/cs-open", status: "open" });
+
+    await createOneTimeMediaCheckout(requestInput(repo));
+
+    expect(expireSession).toHaveBeenCalledWith("cs-open");
+    expect(repo.markCheckoutExpired).toHaveBeenCalledWith("intent-open");
+    expect(repo.createCheckoutIntent).toHaveBeenCalledWith(expect.objectContaining({ productKey: "MEDIA_250" }));
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not resume a prior Checkout when the authoritative family market changes", async () => {
+    const repo = repository({
+      getFamilyBillingProfile: vi.fn(async () => ({ countryCode: "US", jurisdictionCode: "CA" })),
+      findOpenCheckoutIntent: vi.fn(async () => openIntent()),
+    });
+    retrieveSession.mockResolvedValue({ id: "cs-open", url: "https://checkout.stripe.test/cs-open", status: "open" });
+
+    await createOneTimeMediaCheckout(requestInput(repo));
+
+    expect(expireSession).toHaveBeenCalledWith("cs-open");
+    expect(repo.markCheckoutExpired).toHaveBeenCalledWith("intent-open");
+    expect(repo.createCheckoutIntent).toHaveBeenCalledWith(expect.objectContaining({ currency: "USD", amountMinor: 1499 }));
+    expect(createSession.mock.calls[0][0]).toMatchObject({ currency: "usd" });
+  });
+
+  it.each(["complete", "processing"] as const)("does not create another checkout when payment is %s", async (status) => {
+    const repo = repository({ findOpenCheckoutIntent: vi.fn(async () => openIntent()) });
+    retrieveSession.mockResolvedValue({ id: "cs-open", url: "https://checkout.stripe.test/cs-open", status: status === "processing" ? "complete" : status });
+
+    await expect(createOneTimeMediaCheckout(requestInput(repo))).rejects.toMatchObject({
+      code: "media_checkout_payment_processing",
+      status: 409,
+    });
+    expect(createSession).not.toHaveBeenCalled();
+    expect(expireSession).not.toHaveBeenCalled();
   });
 
   it.each([

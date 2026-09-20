@@ -73,9 +73,9 @@ describe("Media storage settings", () => {
   });
 
   it.each([
-    ["AU", "A$14.95/year"],
-    ["US", "US$9.99/year"],
-    ["UK", "\u00a37.99/year"],
+    ["AU", "A$14.95 · one-time"],
+    ["US", "US$9.99 · one-time"],
+    ["UK", "\u00a37.99 · one-time"],
   ])("shows %s family prices and real purchase controls", async (countryCode, price) => {
     mocks.loadUsage.mockResolvedValue(freeUsage);
     mocks.listAcademicYears.mockResolvedValue([]);
@@ -85,6 +85,8 @@ describe("Media storage settings", () => {
     await screen.findByText("Media storage options");
     expect(screen.getByText(price)).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Choose this option" })).toHaveLength(4);
+    expect(screen.getAllByText("For one learning year")).toHaveLength(4);
+    expect(screen.queryByText(/annual renewals|subscription|\/year/i)).toBeNull();
   });
 
   it("posts only familyId and productKey, prevents repeat clicks, and redirects to Checkout", async () => {

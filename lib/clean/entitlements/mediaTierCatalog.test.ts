@@ -22,25 +22,25 @@ describe("family media tier catalogue", () => {
 
   it("keeps commercial display pricing separate from allowance authority", () => {
     expect(MEDIA_TIER_CATALOG.map((tier) => tier.displayPrices.AUD?.label)).toEqual([
-      "A$14.95/year",
-      "A$21.95/year",
-      "A$34.95/year",
-      "A$54.95/year",
+      "A$14.95 · one-time",
+      "A$21.95 · one-time",
+      "A$34.95 · one-time",
+      "A$54.95 · one-time",
     ]);
     expect(MEDIA_TIER_CATALOG.every((tier) => tier.availableForPurchase)).toBe(true);
     expect(JSON.stringify(MEDIA_TIER_CATALOG).toLowerCase()).not.toContain("stripe");
     expect(MEDIA_TIER_CATALOG[0].displayPrices).toHaveProperty("AUD");
     expect(MEDIA_TIER_CATALOG.map((tier) => tier.displayPrices.USD?.label)).toEqual([
-      "US$9.99/year",
-      "US$14.99/year",
-      "US$22.99/year",
-      "US$39.99/year",
+      "US$9.99 · one-time",
+      "US$14.99 · one-time",
+      "US$22.99 · one-time",
+      "US$39.99 · one-time",
     ]);
     expect(MEDIA_TIER_CATALOG.map((tier) => tier.displayPrices.GBP?.label)).toEqual([
-      "£7.99/year",
-      "£11.99/year",
-      "£18.99/year",
-      "£29.99/year",
+      "£7.99 · one-time",
+      "£11.99 · one-time",
+      "£18.99 · one-time",
+      "£29.99 · one-time",
     ]);
   });
 
@@ -64,5 +64,15 @@ describe("family media tier catalogue", () => {
     expect(getMediaStorageUsagePresentation(100, 100, 1).warningState).toBe("full");
     expect(getMediaStorageUsagePresentation(0, 0, 0).warningState).toBe("unavailable");
     expect(formatMediaStorageBytes(262144000)).toBe("250 MB");
+  });
+
+  it("uses actionable copy when storage is nearly full or exhausted", () => {
+    const nearlyFull = getMediaStorageUsagePresentation(5242880, 5000000, 0);
+    const full = getMediaStorageUsagePresentation(5242880, 5242880, 0);
+
+    expect(nearlyFull.warningCopy).toContain("Choose a storage option below to add more media.");
+    expect(full.warningCopy).toBe("You've reached your current media allowance. Choose a storage option below to add more media.");
+    expect(nearlyFull.warningCopy).not.toContain("coming soon");
+    expect(full.warningCopy).not.toContain("coming soon");
   });
 });

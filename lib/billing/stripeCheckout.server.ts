@@ -51,10 +51,12 @@ export type BillingCheckoutRepository = {
   getFamilyBillingProfile(familyId: string): Promise<FamilyBillingProfile | null>;
   getCurrentAcademicYear(familyId: string, observedOn: string): Promise<BillingAcademicYear | null>;
   hasCurrentExplicitMediaEntitlement(familyId: string, academicYearId: string): Promise<boolean>;
+  findOpenCheckoutIntent(familyId: string, academicYearId: string): Promise<BillingCheckoutIntent | null>;
   findFamilyStripeCustomer(familyId: string): Promise<string | null>;
   saveFamilyStripeCustomer(familyId: string, customerId: string): Promise<string>;
   createCheckoutIntent(input: Omit<BillingCheckoutIntent, "id" | "providerCheckoutSessionId" | "providerPaymentIntentId" | "expiresAt" | "status">): Promise<BillingCheckoutIntent>;
   markCheckoutCreated(intentId: string, checkoutSessionId: string): Promise<void>;
+  markCheckoutExpired(intentId: string): Promise<void>;
   markCheckoutFailed(intentId: string, safeReason: string): Promise<void>;
 };
 
@@ -136,6 +138,128 @@ function stripeUnixTimestamp(isoTimestamp: string) {
   return Math.floor(milliseconds / 1000);
 }
 
+function sameCommercialSnapshot(
+  intent: BillingCheckoutIntent,
+  expected: { productKey: MediaProductKey; currency: MediaBillingCurrency; amountMinor: number; quotaBytes: number; academicYearId: string },
+) {
+  return (
+    intent.academicYearId === expected.academicYearId &&
+    intent.productKey === expected.productKey &&
+    intent.currency === expected.currency &&
+    intent.amountMinor === expected.amountMinor &&
+    intent.quotaBytes === expected.quotaBytes
+  );
+}
+
+function isMissingStripeSession(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; statusCode?: unknown };
+  return candidate.code === "resource_missing" || candidate.statusCode === 404;
+}
+
+function paymentProcessingError() {
+  return new BillingCheckoutRequestError(
+    "media_checkout_payment_processing",
+    409,
+    "Your payment is being confirmed. Your media allowance will update shortly.",
+  );
+}
+
+async function resolveExistingCheckout(input: {
+  repository: BillingCheckoutRepository;
+  stripe: StripeCheckoutGateway;
+  existing: BillingCheckoutIntent;
+  expected: { productKey: MediaProductKey; currency: MediaBillingCurrency; amountMinor: number; quotaBytes: number; academicYearId: string };
+  now: Date;
+}) {
+  const sessionId = safe(input.existing.providerCheckoutSessionId);
+  if (!sessionId) {
+    if (Date.parse(input.existing.expiresAt) <= input.now.getTime()) {
+      await input.repository.markCheckoutExpired(input.existing.id);
+      return null;
+    }
+    throw new BillingCheckoutRequestError(
+      "media_checkout_already_open",
+      409,
+      "Your secure checkout is being prepared. Please try again shortly.",
+    );
+  }
+
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await input.stripe.checkout.sessions.retrieve(sessionId);
+  } catch (error) {
+    if (isMissingStripeSession(error)) {
+      await input.repository.markCheckoutExpired(input.existing.id);
+      return null;
+    }
+    throw new BillingCheckoutRequestError(
+      "stripe_checkout_unavailable",
+      503,
+      "Media storage checkout is temporarily unavailable.",
+    );
+  }
+
+  if (session.status === "complete") throw paymentProcessingError();
+  if (session.status === "expired") {
+    await input.repository.markCheckoutExpired(input.existing.id);
+    return null;
+  }
+
+  if (session.status !== "open") {
+    throw paymentProcessingError();
+  }
+
+  if (sameCommercialSnapshot(input.existing, input.expected)) {
+    const resumable = sessionIdPair(session);
+    return { checkoutUrl: resumable.url, checkoutIntentId: input.existing.id };
+  }
+
+  try {
+    await input.stripe.checkout.sessions.expire(sessionId);
+  } catch (error) {
+    if (isMissingStripeSession(error)) {
+      await input.repository.markCheckoutExpired(input.existing.id);
+      return null;
+    }
+    let latest: Stripe.Checkout.Session;
+    try {
+      latest = await input.stripe.checkout.sessions.retrieve(sessionId);
+    } catch {
+      throw new BillingCheckoutRequestError(
+        "stripe_checkout_unavailable",
+        503,
+        "Media storage checkout is temporarily unavailable.",
+      );
+    }
+    if (latest.status === "expired") {
+      await input.repository.markCheckoutExpired(input.existing.id);
+      return null;
+    }
+    if (latest.status === "complete") throw paymentProcessingError();
+    throw new BillingCheckoutRequestError(
+      "stripe_checkout_unavailable",
+      503,
+      "Media storage checkout is temporarily unavailable.",
+    );
+  }
+  await input.repository.markCheckoutExpired(input.existing.id);
+  return null;
+}
+
+function sessionIdPair(session: Stripe.Checkout.Session) {
+  const id = safe(session.id);
+  const url = safe(session.url);
+  if (!id || !url) {
+    throw new BillingCheckoutRequestError(
+      "stripe_checkout_unavailable",
+      503,
+      "Media storage checkout is temporarily unavailable.",
+    );
+  }
+  return { id, url };
+}
+
 export async function createOneTimeMediaCheckout(input: {
   familyId: unknown;
   productKey: unknown;
@@ -207,6 +331,26 @@ export async function createOneTimeMediaCheckout(input: {
   }
 
   const trustedStripeProduct = getTrustedStripeMediaProduct(trustedProduct);
+  const expectedSnapshot = {
+    productKey: trustedStripeProduct.key,
+    currency: trustedStripeProduct.currency,
+    amountMinor: trustedStripeProduct.amountMinor,
+    quotaBytes: trustedStripeProduct.quotaBytes,
+    academicYearId: academicYear.id,
+  };
+  const now = input.now ?? new Date();
+  const existing = await input.repository.findOpenCheckoutIntent(familyId, academicYear.id);
+  if (existing) {
+    const resumed = await resolveExistingCheckout({
+      repository: input.repository,
+      stripe: input.stripe,
+      existing,
+      expected: expectedSnapshot,
+      now,
+    });
+    if (resumed) return resumed;
+  }
+
   let customerId = await input.repository.findFamilyStripeCustomer(familyId);
   if (!customerId) {
     const customer = await input.stripe.customers.create(
@@ -219,7 +363,7 @@ export async function createOneTimeMediaCheckout(input: {
     customerId = await input.repository.saveFamilyStripeCustomer(familyId, customer.id);
   }
 
-  const intent = await input.repository.createCheckoutIntent({
+  const intentInput = {
     familyId,
     requestedByUserId: input.requestedByUserId,
     productKey: trustedStripeProduct.key,
@@ -230,9 +374,28 @@ export async function createOneTimeMediaCheckout(input: {
     periodEndsOn: academicYear.endsOn,
     periodLabel: academicYear.label,
     quotaBytes: trustedStripeProduct.quotaBytes,
-    provider: "stripe",
+    provider: "stripe" as const,
     providerCustomerId: customerId,
-  });
+  };
+  let intent: BillingCheckoutIntent;
+  try {
+    intent = await input.repository.createCheckoutIntent(intentInput);
+  } catch (error) {
+    if (!(error instanceof BillingCheckoutRequestError) || error.code !== "media_checkout_already_open") {
+      throw error;
+    }
+    const concurrent = await input.repository.findOpenCheckoutIntent(familyId, academicYear.id);
+    if (!concurrent) throw error;
+    const resumed = await resolveExistingCheckout({
+      repository: input.repository,
+      stripe: input.stripe,
+      existing: concurrent,
+      expected: expectedSnapshot,
+      now,
+    });
+    if (resumed) return resumed;
+    intent = await input.repository.createCheckoutIntent(intentInput);
+  }
 
   try {
     const origin = checkoutReturnOrigin();
@@ -332,6 +495,41 @@ export function createSupabaseBillingCheckoutRepository() : BillingCheckoutRepos
       if (response.error) throwDatabaseError(response.error, "Unable to verify current media storage.");
       return (response.data ?? []).length > 0;
     },
+    async findOpenCheckoutIntent(familyId, academicYearId) {
+      const response = await db
+        .from("billing_checkout_intents")
+        .select("id,family_id,requested_by_user_id,product_key,currency,amount_minor,academic_year_id,period_starts_on,period_ends_on,period_label,quota_bytes,provider,provider_customer_id,provider_checkout_session_id,provider_payment_intent_id,expires_at,status")
+        .eq("family_id", familyId)
+        .eq("academic_year_id", academicYearId)
+        .in("status", ["pending", "checkout_created"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (response.error) throwDatabaseError(response.error, "Unable to load the existing media checkout.");
+      if (!response.data) return null;
+      const row = response.data as Record<string, unknown>;
+      if (!isMediaProductKey(row.product_key)) return null;
+      if (row.currency !== "AUD" && row.currency !== "USD" && row.currency !== "GBP") return null;
+      return {
+        id: safe(row.id),
+        familyId: safe(row.family_id),
+        requestedByUserId: safe(row.requested_by_user_id),
+        productKey: row.product_key,
+        currency: row.currency,
+        amountMinor: Number(row.amount_minor),
+        academicYearId: safe(row.academic_year_id),
+        periodStartsOn: safe(row.period_starts_on),
+        periodEndsOn: safe(row.period_ends_on),
+        periodLabel: safe(row.period_label),
+        quotaBytes: Number(row.quota_bytes),
+        provider: "stripe",
+        providerCustomerId: safe(row.provider_customer_id),
+        providerCheckoutSessionId: safe(row.provider_checkout_session_id) || null,
+        providerPaymentIntentId: safe(row.provider_payment_intent_id) || null,
+        expiresAt: safe(row.expires_at),
+        status: safe(row.status),
+      };
+    },
     async findFamilyStripeCustomer(familyId) {
       const response = await db
         .from("family_billing_accounts")
@@ -414,6 +612,14 @@ export function createSupabaseBillingCheckoutRepository() : BillingCheckoutRepos
         .update({ status: "checkout_created", provider_checkout_session_id: checkoutSessionId })
         .eq("id", intentId);
       if (response.error) throwDatabaseError(response.error, "Unable to save checkout session.");
+    },
+    async markCheckoutExpired(intentId) {
+      const response = await db
+        .from("billing_checkout_intents")
+        .update({ status: "expired", updated_at: new Date().toISOString() })
+        .eq("id", intentId)
+        .in("status", ["pending", "checkout_created"]);
+      if (response.error) throwDatabaseError(response.error, "Unable to expire the previous media checkout.");
     },
     async markCheckoutFailed(intentId) {
       const response = await db

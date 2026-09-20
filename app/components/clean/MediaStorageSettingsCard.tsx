@@ -249,7 +249,7 @@ export default function MediaStorageSettingsCard({
           </p>
         ) : null}
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
-          When annual renewals are introduced, MyLearna plans to keep earlier paid learning-year media available as archive.
+          Media storage applies to one learning year. Media already attached to earlier learning records remains with those records.
         </p>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.55, fontSize: 14 }}>
           MyLearna Free includes text learning records, text Capture, text Portfolio, My Day, Calendar, Pathways, On Deck, Recover My Week, and useful basic reporting.
