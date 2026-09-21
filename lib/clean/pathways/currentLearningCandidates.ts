@@ -9,7 +9,7 @@ import {
   normalizePathwayStepId,
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
-import { inferPathwayStageFromYearLevel } from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import { inferPathwayStageFromYearLevel, tryInferPathwayStageFromYearLevel } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import { PATHWAY_SUBJECTS } from "@/lib/clean/pathways/pathwaySubjects";
 import { isCustomerPathwaySubjectActive } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 
@@ -28,6 +28,7 @@ export type CurrentLearningCandidate = {
 };
 
 export function getDefaultCurrentPathwayStepIds(learnerYearLevel: string | null | undefined) {
+  const recognisedFocusStageKey = tryInferPathwayStageFromYearLevel(learnerYearLevel);
   const currentFocusStageKey = inferPathwayStageFromYearLevel(learnerYearLevel);
 
   return PATHWAY_SUBJECTS.filter((subject) =>
@@ -35,6 +36,9 @@ export function getDefaultCurrentPathwayStepIds(learnerYearLevel: string | null 
   ).flatMap((subject) => {
     const config = DETAILED_SUBJECT_CONFIGS[subject.key];
     if (!config) return [];
+    if (subject.key === "classical" && recognisedFocusStageKey !== "middle-primary") {
+      return [];
+    }
 
     const workspace = config.workspaceBuilders[config.defaultStrandKey]?.(currentFocusStageKey);
     const pathwayStepId = workspace
