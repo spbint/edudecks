@@ -44,6 +44,15 @@ describe("current learning candidates", () => {
     expect(getDefaultCurrentPathwayStepIds("Year 6")).not.toContain(
       "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
     );
+    expect(getDefaultCurrentPathwayStepIds(null)).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+    expect(getDefaultCurrentPathwayStepIds("")).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+    expect(getDefaultCurrentPathwayStepIds("unspecified")).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
   });
 
   it("normalizes the retired Morphology stage identity to the canonical current step", () => {
