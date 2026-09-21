@@ -35,6 +35,7 @@ const bookletResource: WorksheetResource = {
   fileName: "MyLearna-Classical-Y3-4-Cycle-A-Encounter-1-From-Wandering-to-Settlement.pdf",
   href: "/api/classical/booklets/y3-4-a-u1-e01",
   resourceType: "booklet-pdf",
+  marketplaceExternalProductId: "MYL-CLASSICAL-Y34-A-U1-E01",
 };
 
 describe("CleanPathwayStepActionRow", () => {
@@ -87,6 +88,28 @@ describe("CleanPathwayStepActionRow", () => {
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
       "Download booklet",
     );
+  });
+
+  it("links the Classical booklet to the same Marketplace catalogue item used by the Cupboard", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const save = screen.getByRole("link", { name: "Save to My Resource Cupboard" });
+    const url = new URL(save.getAttribute("href") || "", "https://mylearna.test");
+
+    expect(url.pathname).toBe("/my-resources");
+    expect(url.searchParams.get("add_marketplace")).toBe("MYL-CLASSICAL-Y34-A-U1-E01");
+    expect(url.searchParams.get("source")).toBe("my-pathways");
   });
 
   it("carries the Classical booklet type into the Portfolio capture handoff", () => {
