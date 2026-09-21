@@ -1,6 +1,7 @@
 export type PathwaySubjectKey =
   | "mathematics"
   | "english"
+  | "classical"
   | "science"
   | "humanities"
   | "technologies"
@@ -65,6 +66,26 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     ],
     placeholderNote:
       "English is now the second detailed subject pathway and follows the same calm strand -> stage -> evidence structure as Mathematics.",
+  },
+  {
+    key: "classical",
+    title: "MyLearna Classical",
+    description:
+      "MyLearna Classical brings history, civilisation, literature, language, geography, reasoning, and cultural knowledge together through coherent two-year cycles and rich printable encounters.",
+    guidance:
+      "Choose a strand, follow the current encounter, download the booklet, then plan, narrate, capture, and preserve meaningful learning over time.",
+    status: "detailed",
+    customerPathwaysAvailability: "live",
+    futureStrands: [
+      "History and civilisation",
+      "Geography through civilisation",
+      "Literature and mythology",
+      "Classical language and Latin",
+      "Logic, rhetoric and philosophy",
+      "Art, music and cultural inheritance",
+    ],
+    placeholderNote:
+      "MyLearna Classical begins with Years 3-4 Cycle A: The Ancient World and will expand through the wider two-year-cycle framework.",
   },
   {
     key: "science",
