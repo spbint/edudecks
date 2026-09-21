@@ -182,6 +182,8 @@ export default function CleanPathwayStepActionRow({
       "capture-evidence": Boolean(captureHref),
     },
   });
+  const resourceActionAlreadyRendered =
+    actionPlan.primary === "worksheet" || actionPlan.secondary.includes("worksheet");
   const actionAnalyticsContext = {
     subjectKey,
     strandKey,
@@ -303,7 +305,7 @@ export default function CleanPathwayStepActionRow({
 
       {actionPlan.secondary.length ||
       (!manualComplete && onManualCompletionChange) ||
-      worksheetResource ||
+      (!resourceActionAlreadyRendered && worksheetResource) ||
       planHref ||
       onPutOnDeck ||
       onDeck ? (
@@ -385,13 +387,13 @@ export default function CleanPathwayStepActionRow({
               Mark complete
             </button>
           ) : null}
-          {worksheetResource ? (
+          {!resourceActionAlreadyRendered && worksheetResource ? (
             <a
               href={worksheetResource.href}
               download={worksheetResource.fileName}
               style={secondaryButtonStyle}
             >
-              Download worksheet
+              {actionLabel("worksheet", false, worksheetResource)}
             </a>
           ) : null}
         </div>
