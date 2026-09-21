@@ -52,23 +52,13 @@ import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
-import {
-  getWorksheetResourceForPathwayStep as getMathWorksheetResourceForPathwayStep,
-} from "@/lib/clean/resources/mathWorksheetResources";
-import { getEnglishWorksheetResourceForPathwayStep } from "@/lib/clean/resources/englishWorksheetResources";
-import { getClassicalCurriculumResourceForPathwayStep } from "@/lib/clean/resources/classicalCurriculumResources";
+import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
 import type { WorksheetStepContext } from "@/lib/clean/resources/worksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 
 function getWorksheetResourceForPathwayStep(context: WorksheetStepContext) {
-  if (context.subjectKey === "english") {
-    return getEnglishWorksheetResourceForPathwayStep(context);
-  }
-  if (context.subjectKey === "classical") {
-    return getClassicalCurriculumResourceForPathwayStep(context);
-  }
-  return getMathWorksheetResourceForPathwayStep(context);
+  return getPathwayResourceForPathwayStep(context);
 }
 import {
   buildUnifiedPathwayStepStateIndex,
@@ -926,6 +916,11 @@ function PathwaysWorkspaceBody() {
           ? strandParam || ""
           : persistedUiState.selectedStrandKeyBySubject?.science ||
             DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
+      classical:
+        initialSubjectKey === "classical" && queryStrandIsValid
+          ? strandParam || ""
+          : persistedUiState.selectedStrandKeyBySubject?.classical ||
+            DETAILED_SUBJECT_CONFIGS.classical?.defaultStrandKey || "",
       humanities:
         initialSubjectKey === "humanities" && queryStrandIsValid
           ? strandParam || ""
