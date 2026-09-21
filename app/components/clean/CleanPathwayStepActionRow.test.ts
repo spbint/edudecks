@@ -89,6 +89,31 @@ describe("CleanPathwayStepActionRow", () => {
     );
   });
 
+  it("carries the Classical booklet type into the Portfolio capture handoff", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const href = screen.getByRole("link", { name: "Add to Portfolio" }).getAttribute("href") || "";
+    const url = new URL(href, "https://mylearna.test");
+
+    expect(url.searchParams.get("pathwayResourceType")).toBe("booklet-pdf");
+    expect(url.searchParams.get("pathwayResourceTitle")).toBe("From Wandering to Settlement");
+    expect(url.searchParams.get("pathwayResourceHref")).toBe(
+      "/api/classical/booklets/y3-4-a-u1-e01",
+    );
+    expect(url.searchParams.get("worksheetEvidence")).toBe("1");
+  });
+
   it("keeps Mark complete separate from adding to Portfolio", () => {
     const onManualCompletionChange = vi.fn();
     render(
