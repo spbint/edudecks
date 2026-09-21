@@ -1,6 +1,6 @@
 import type { PathwaySubjectKey } from "@/lib/clean/pathways/pathwaySubjects";
 
-export type WorksheetResourceType = "worksheet-pdf";
+export type WorksheetResourceType = "worksheet-pdf" | "booklet-pdf" | "reading-pdf" | "reference-pdf";
 
 export type WorksheetResource = {
   pathwayStepId: string;
