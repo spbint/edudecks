@@ -112,7 +112,11 @@ function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefine
   return match?.[1]?.trim() || "Learning recorded";
 }
 
-function actionLabel(action: PathwayNextAction, primary: boolean) {
+function actionLabel(
+  action: PathwayNextAction,
+  primary: boolean,
+  resource?: WorksheetResource | null,
+) {
   switch (action) {
     case "check-understanding":
       return "Check understanding";
@@ -121,7 +125,9 @@ function actionLabel(action: PathwayNextAction, primary: boolean) {
     case "next-step":
       return "Next step";
     case "worksheet":
-      return "Download worksheet";
+      return resource?.resourceType === "booklet-pdf"
+        ? "Download booklet"
+        : "Download worksheet";
     case "capture-evidence":
       return "Add to Portfolio";
   }
@@ -172,7 +178,7 @@ export default function CleanPathwayStepActionRow({
       "check-understanding": Boolean(customerAssessmentHref),
       practise: Boolean(customerPracticeHref),
       "next-step": Boolean(nextStepHref),
-      worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource),
+      worksheet: Boolean(worksheetResource) && (worksheetResource?.resourceType === "booklet-pdf" || CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE),
       "capture-evidence": Boolean(captureHref),
     },
   });
@@ -213,7 +219,7 @@ export default function CleanPathwayStepActionRow({
   const renderAction = (action: PathwayNextAction, primary = false) => {
     const href = actionHref[action];
     const isWorksheet = action === "worksheet";
-    const label = actionLabel(action, primary);
+    const label = actionLabel(action, primary, worksheetResource);
 
     if (isWorksheet) {
       return (
