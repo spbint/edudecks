@@ -54,7 +54,10 @@ import {
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
 import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
-import type { WorksheetStepContext } from "@/lib/clean/resources/worksheetResources";
+import {
+  pathwayResourceLabel,
+  type WorksheetStepContext,
+} from "@/lib/clean/resources/worksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 
@@ -639,6 +642,10 @@ function appendWorksheetEvidenceCaptureParams(
   params.set("worksheetTitle", worksheetResource.title);
   params.set("worksheetHref", worksheetResource.href);
   params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("pathwayResourceType", worksheetResource.resourceType);
+  params.set("pathwayResourceTitle", worksheetResource.title);
+  params.set("pathwayResourceHref", worksheetResource.href);
+  params.set("pathwayResourceFileName", worksheetResource.fileName);
   params.set("includeInPortfolio", "1");
   params.set("includeInReport", "1");
   params.set("returnTo", returnTo);
@@ -4725,7 +4732,11 @@ function DetailedMathematicsStepCard({
   const captureHref = worksheetResource
     ? appendWorksheetEvidenceCaptureParams(captureBaseHref, worksheetResource, captureReturnTo)
     : captureBaseHref;
-  const worksheetStatus = worksheetResource ? "Worksheet ready" : "No worksheet";
+  const pathwayResourceName =
+    pathwayResourceLabel(worksheetResource?.resourceType) || "Resource";
+  const worksheetStatus = worksheetResource
+    ? `${pathwayResourceName} ready`
+    : "No resource";
   const worksheetFileName = worksheetResource?.fileName || "";
   const isStepSecure =
     isUnifiedPathwayStepComplete(stepUnifiedState) ||
@@ -4988,7 +4999,7 @@ function DetailedMathematicsStepCard({
                 fontWeight: 650,
                 lineHeight: 1.3,
               }}
-              title={worksheetFileName || "No worksheet is available for this step yet."}
+              title={worksheetFileName || "No resource is available for this step yet."}
             >
               {worksheetStatus}
             </div>
