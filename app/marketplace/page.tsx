@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getHome } from "@/lib/shopify/client";
 import { ShopifyError } from "@/lib/shopify/errors";
 import MarketplaceProductCard from "./MarketplaceProductCard";
+import MylearnaIncludedResourceCard from "./MylearnaIncludedResourceCard";
+import { MYLEARNA_MARKETPLACE_RESOURCES } from "@/lib/marketplace/mylearnaCatalog";
 
 export const metadata: Metadata = { title: "Affordable resources for meaningful learning", description: "Educational supplies, practical learning kits and structured programs for families and educators." };
 export const revalidate = 300;
@@ -19,6 +21,19 @@ export default async function MarketplaceHomePage() {
     {unavailable ? <section className="marketplace-state" role="alert"><strong>The Marketplace is temporarily unavailable.</strong><p>Please try again shortly.</p></section> : null}
     <section className="marketplace-section" aria-labelledby="collections-heading"><div className="marketplace-section-heading"><div><h2 id="collections-heading">Shop by collection</h2><p>Choose a starting point for your next learning moment.</p></div><Link className="marketplace-link" href="/marketplace/collections">View all</Link></div>
       {home?.collections.length ? <div className="marketplace-collection-grid">{home.collections.slice(0, 8).map((collection) => <Link className="marketplace-collection-card" key={collection.id} href={`/marketplace/collections/${encodeURIComponent(collection.handle)}`}>{collection.image ? <img src={collection.image.url} alt="" /> : null}<span>{collection.title}</span></Link>)}</div> : <div className="marketplace-state">Collections will appear here as they become available.</div>}
+    </section>
+    <section className="marketplace-section" aria-labelledby="included-heading">
+      <div className="marketplace-section-heading">
+        <div>
+          <h2 id="included-heading">Included with MyLearna</h2>
+          <p>First-party curriculum resources that connect directly to My Pathways and My Resource Cupboard.</p>
+        </div>
+      </div>
+      <div className="marketplace-product-grid">
+        {MYLEARNA_MARKETPLACE_RESOURCES.map((resource) => (
+          <MylearnaIncludedResourceCard key={resource.externalProductId} resource={resource} />
+        ))}
+      </div>
     </section>
     <section className="marketplace-section" aria-labelledby="products-heading"><div className="marketplace-section-heading"><div><h2 id="products-heading">Featured learning resources</h2><p>Real products from the MyLearna Shopify catalogue.</p></div></div>
       {home?.products.length ? <div className="marketplace-product-grid">{home.products.map((product) => <MarketplaceProductCard key={product.id} product={product} />)}</div> : <div className="marketplace-state">Featured products will appear here as the catalogue grows.</div>}
