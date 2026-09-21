@@ -22,7 +22,10 @@ function firstAvailable(
   return candidates.find((candidate) => availability[candidate]) || null;
 }
 
-function supportingText(action: PathwayNextAction | null) {
+function supportingText(
+  action: PathwayNextAction | null,
+  resourceLabel?: string | null,
+) {
   switch (action) {
     case "check-understanding":
       return "See how this skill is going.";
@@ -31,7 +34,7 @@ function supportingText(action: PathwayNextAction | null) {
     case "next-step":
       return "This step is ready to review or build on.";
     case "worksheet":
-      return "Use the available worksheet to work on this step.";
+      return `Use the available ${(resourceLabel || "Worksheet").toLowerCase()} to work on this step.`;
     case "capture-evidence":
       return "Record learning that has already happened.";
     default:
@@ -94,6 +97,6 @@ export function resolvePathwayNextAction(input: {
     secondary: (
       ["practise", "check-understanding", "next-step", "worksheet", "capture-evidence"] as const
     ).filter((action) => action !== primary && input.availability[action]),
-    supportingText: supportingText(primary),
+    supportingText: supportingText(primary, input.resourceLabel),
   };
 }
