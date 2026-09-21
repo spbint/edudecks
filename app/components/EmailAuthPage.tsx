@@ -11,6 +11,7 @@ import {
   supabase,
 } from "@/lib/supabaseClient";
 import { buildAuthCallbackUrl, normalizeAuthNextPath } from "@/lib/authRedirect";
+import { rememberPendingMarketplaceDestination } from "@/lib/authPendingMarketplaceDestination";
 import {
   getMagicLinkRetryAfterMs,
   MAGIC_LINK_CLIENT_RESEND_DELAY_MS,
@@ -303,16 +304,21 @@ function nextPathLabel(nextPath: string) {
 async function resolveFirstAppPath(requestedNextPath: string) {
   try {
     const familyState = await loadCleanFamilyProfile();
-    if (!familyState.profile) return "/my-profile";
+    if (!familyState.profile) {
+      rememberPendingMarketplaceDestination(requestedNextPath);
+      return "/my-profile";
+    }
     if (
       !hasRequiredLearningSettings(familyState.profile) &&
       requestedNextPath !== "/my-profile" &&
       requestedNextPath !== "/my-settings"
     ) {
+      rememberPendingMarketplaceDestination(requestedNextPath);
       return "/my-settings";
     }
     return requestedNextPath;
   } catch {
+    rememberPendingMarketplaceDestination(requestedNextPath);
     return "/my-profile";
   }
 }
