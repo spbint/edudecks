@@ -765,12 +765,18 @@ function CleanSettingsWorkspaceBody() {
       if (guidanceSetupStatus === "active") {
         completeSetupStep("settings");
         router.push("/my-calendar");
-      } else if (!firstSetupMode) {
-        const pendingMarketplaceDestination =
-          consumePendingMarketplaceDestination();
-        if (pendingMarketplaceDestination) {
-          router.push(pendingMarketplaceDestination);
-        }
+        return;
+      }
+
+      if (firstSetupMode) {
+        router.push("/my-calendar");
+        return;
+      }
+
+      const pendingMarketplaceDestination =
+        consumePendingMarketplaceDestination();
+      if (pendingMarketplaceDestination) {
+        router.push(pendingMarketplaceDestination);
       }
     } catch (nextError) {
       setError(
