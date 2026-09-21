@@ -186,8 +186,11 @@ describe("Where We Are subject summaries", () => {
     }).find((summary) => summary.subjectKey === "classical");
 
     expect(mathematics?.worksheetAvailable).toBe(true);
+    expect(mathematics?.resourceType).toBe("worksheet-pdf");
     expect(english?.worksheetAvailable).toBe(false);
+    expect(english?.resourceType).toBeNull();
     expect(classical?.worksheetAvailable).toBe(true);
+    expect(classical?.resourceType).toBe("booklet-pdf");
   });
 
   it("does not invent current or next state for in-development subjects or empty learners", () => {
