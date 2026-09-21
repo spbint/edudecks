@@ -512,10 +512,12 @@ export const NUMBER_PATHWAY_STAGES: NumberPathwayStage[] = [
   },
 ];
 
-export function inferPathwayStageFromYearLevel(yearLevel: string | null | undefined): PathwayStageKey {
+export function tryInferPathwayStageFromYearLevel(
+  yearLevel: string | null | undefined,
+): PathwayStageKey | null {
   const raw = (yearLevel || "").trim().toLowerCase();
 
-  if (!raw) return "middle-primary";
+  if (!raw) return null;
 
   if (
     raw === "f" ||
@@ -540,7 +542,11 @@ export function inferPathwayStageFromYearLevel(yearLevel: string | null | undefi
     if (yearNumber <= 10) return "years-9-10-consolidation";
   }
 
-  return "middle-primary";
+  return null;
+}
+
+export function inferPathwayStageFromYearLevel(yearLevel: string | null | undefined): PathwayStageKey {
+  return tryInferPathwayStageFromYearLevel(yearLevel) || "middle-primary";
 }
 
 export function getStageIndex(stage: PathwayStageKey) {
