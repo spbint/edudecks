@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
+import { rememberPendingMarketplaceDestination } from "@/lib/authPendingMarketplaceDestination";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 import { hasRequiredLearningSettings } from "@/lib/clean/setup/setupFlow";
 import { markPendingProductEntry, trackAuthEvent } from "@/lib/authAnalytics";
@@ -128,8 +129,17 @@ async function reconcileExistingSession(requestedNextPath: string) {
     if (session?.user) {
       try {
         const familyState = await withTimeout(loadCleanFamilyProfile(), 1000);
-        if (!familyState.profile) return "/my-profile";
-        if (!hasRequiredLearningSettings(familyState.profile) && requestedNextPath !== "/my-settings") return "/my-settings";
+        if (!familyState.profile) {
+          rememberPendingMarketplaceDestination(requestedNextPath);
+          return "/my-profile";
+        }
+        if (
+          !hasRequiredLearningSettings(familyState.profile) &&
+          requestedNextPath !== "/my-settings"
+        ) {
+          rememberPendingMarketplaceDestination(requestedNextPath);
+          return "/my-settings";
+        }
       } catch {
         // Keep the requested safe path when the family lookup is temporarily unavailable.
       }
@@ -319,6 +329,10 @@ function AuthCallbackPageContent() {
           ) {
             resolvedNextPath = "/my-settings";
           }
+        }
+
+        if (resolvedNextPath !== requestedNextPath) {
+          rememberPendingMarketplaceDestination(requestedNextPath);
         }
 
         if (!mounted) return;
