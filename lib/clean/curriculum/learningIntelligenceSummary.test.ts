@@ -200,8 +200,9 @@ describe("learning intelligence summary", () => {
       (row) => row.strandKey === "music-and-sound",
     );
 
-    expect(allSummary.totalSubjects).toBe(7);
-    expect(allSummary.scopeRows).toHaveLength(7);
+    expect(allSummary.totalSubjects).toBe(8);
+    expect(allSummary.scopeRows).toHaveLength(8);
+    expect(allSummary.allSubjectRows.some((row) => row.subjectKey === "classical")).toBe(true);
     expect(allSummary.recentActivity.some((item) => item.pathwayStepId === pathwayStepId)).toBe(
       true,
     );
