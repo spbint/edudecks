@@ -25,12 +25,16 @@ describe("Classical Marketplace to Resource Cupboard migration", () => {
     expect(source).not.toContain("insert into storage.objects");
   });
 
-  it("makes save-to-Cupboard idempotent and family-scoped", () => {
+  it("makes save-to-Cupboard atomic, idempotent, and family-scoped", () => {
     expect(source).toContain("mylearna_save_marketplace_resource_to_cupboard");
     expect(source).toContain("public.is_family_member(p_family_id)");
+    expect(source).toContain(
+      "on conflict (family_id, marketplace_resource_id) do nothing",
+    );
+    expect(source).toContain("returning id into saved_id");
+    expect(source).toContain("if saved_id is null then");
     expect(source).toContain("where family_id = p_family_id");
     expect(source).toContain("and marketplace_resource_id = catalogue_row.id");
-    expect(source).toContain("if saved_id is not null then");
     expect(source).toContain("return saved_id;");
   });
 
