@@ -56,6 +56,7 @@ import {
   getWorksheetResourceForPathwayStep as getMathWorksheetResourceForPathwayStep,
 } from "@/lib/clean/resources/mathWorksheetResources";
 import { getEnglishWorksheetResourceForPathwayStep } from "@/lib/clean/resources/englishWorksheetResources";
+import { getClassicalCurriculumResourceForPathwayStep } from "@/lib/clean/resources/classicalCurriculumResources";
 import type { WorksheetStepContext } from "@/lib/clean/resources/worksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
@@ -63,6 +64,9 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 function getWorksheetResourceForPathwayStep(context: WorksheetStepContext) {
   if (context.subjectKey === "english") {
     return getEnglishWorksheetResourceForPathwayStep(context);
+  }
+  if (context.subjectKey === "classical") {
+    return getClassicalCurriculumResourceForPathwayStep(context);
   }
   return getMathWorksheetResourceForPathwayStep(context);
 }
