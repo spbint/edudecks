@@ -22,7 +22,7 @@ import {
 import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
-import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
+import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
 
 export type WhereWeAreSubjectSummary = {
   subjectKey: PathwaySubjectKey;
@@ -149,7 +149,7 @@ export function buildWhereWeAreSubjectSummaries(input: {
       .map((item) => resolveOnDeckItem(item, input.pathwayPathname).title)
       .slice(0, 3);
     const worksheetResource = workingOn
-      ? getWorksheetResourceForPathwayStep({
+      ? getPathwayResourceForPathwayStep({
           pathwayStepId: workingOn.id,
           stepKey: workingOn.stepKey,
           subjectKey: workingOn.subjectKey,
