@@ -31,6 +31,7 @@ export const MYLEARNA_CLASSICAL_RESOURCES: ClassicalCurriculumResource[] = [
     pathwayStepTitle: "Encounter 1 · From Wandering to Settlement",
     title: "From Wandering to Settlement",
     curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E01",
+    marketplaceExternalProductId: "MYL-CLASSICAL-Y34-A-U1-E01",
     concept: "From mobile communities to early settled farming communities",
     includesAnswerSheet: true,
     regionalVariants: [],
