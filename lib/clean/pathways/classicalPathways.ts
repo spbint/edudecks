@@ -41,6 +41,20 @@ function buildClassicalHistoryAndCivilisationWorkspace(
     currentFocusStageKey,
     stages: [
       {
+        key: "foundation-kindergarten",
+        title: "Foundation",
+        helper:
+          "The Foundation MyLearna Classical sequence is not live yet. This band will use the same flexible encounter model with developmentally appropriate narration, story, memory, observation, and culture.",
+        steps: [],
+      },
+      {
+        key: "lower-primary",
+        title: "Years 1-2",
+        helper:
+          "The Years 1-2 MyLearna Classical cycle is in development. It will be released as its own two-year band rather than borrowing content from another age group.",
+        steps: [],
+      },
+      {
         key: "middle-primary",
         title: "Years 3-4 · Cycle A: The Ancient World",
         helper:
@@ -78,6 +92,27 @@ function buildClassicalHistoryAndCivilisationWorkspace(
               "The learner is developing understanding of how changes in food production contributed to permanent settlement and increasingly complex communities, and can communicate this understanding through narration, map work, and historical reasoning.",
           },
         ],
+      },
+      {
+        key: "upper-primary",
+        title: "Years 5-6",
+        helper:
+          "The Years 5-6 MyLearna Classical cycle is in development. Learners in this band are not automatically placed into the Years 3-4 sequence.",
+        steps: [],
+      },
+      {
+        key: "lower-secondary",
+        title: "Years 7-8",
+        helper:
+          "The Years 7-8 MyLearna Classical cycle is in development and will introduce a more dialectical level of comparison, source work, and reasoning.",
+        steps: [],
+      },
+      {
+        key: "years-9-10-consolidation",
+        title: "Years 9-10",
+        helper:
+          "The Years 9-10 MyLearna Classical cycle is in development and will use increasingly analytical and rhetorical responses.",
+        steps: [],
       },
     ],
     portfolioSupport: [
