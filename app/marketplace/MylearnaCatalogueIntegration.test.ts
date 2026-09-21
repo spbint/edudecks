@@ -11,6 +11,7 @@ const authCallback = readFileSync("app/auth/callback/page.tsx", "utf8");
 const settings = readFileSync("app/components/clean/CleanSettingsWorkspace.tsx", "utf8");
 const calendar = readFileSync("app/components/clean/CleanCalendarWorkspace.tsx", "utf8");
 const sessionEscape = readFileSync("lib/authSessionEscape.ts", "utf8");
+const profile = readFileSync("app/components/clean/CleanProfileWorkspace.tsx", "utf8");
 
 describe("first-party MyLearna Marketplace catalogue", () => {
   it("appears alongside Shopify without entering the cart flow", () => {
@@ -37,6 +38,11 @@ describe("first-party MyLearna Marketplace catalogue", () => {
     expect(settings).toContain("consumePendingMarketplaceDestination");
     expect(calendar).toContain("consumePendingMarketplaceDestination");
     expect(calendar).toContain('pendingMarketplaceDestination || "/my-day"');
+    expect(profile).toContain("consumePendingMarketplaceDestination");
+    expect(profile).toContain('destination === "/my-day"');
+    expect(profile).toContain(
+      "router.push(pendingMarketplaceDestination || destination)",
+    );
     expect(sessionEscape).toContain(
       '"mylearna.auth.pendingMarketplaceDestination"',
     );
