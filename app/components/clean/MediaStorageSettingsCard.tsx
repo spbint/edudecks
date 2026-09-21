@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
@@ -317,6 +318,14 @@ function MediaUsageSummary({ state }: { state: Extract<MediaStorageState, { stat
       <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
         Media storage follows your family’s learning year.
       </p>
+      <div>
+        <Link
+          href="/my-settings/media"
+          style={{ color: "#2563eb", fontWeight: 800, textDecoration: "none" }}
+        >
+          Manage media
+        </Link>
+      </div>
     </div>
   );
 }

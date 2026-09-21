@@ -70,6 +70,7 @@ describe("Media storage settings", () => {
     expect(screen.getByText("2026 learning year")).toBeTruthy();
     expect(screen.getByText((content) => content.includes("1 MB") && content.includes("4 MB"))).toBeTruthy();
     expect(screen.getByRole("progressbar", { name: "20% of media storage used" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Manage media" }).getAttribute("href")).toBe("/my-settings/media");
   });
 
   it.each([
