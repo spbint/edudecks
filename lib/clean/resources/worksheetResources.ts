@@ -2,21 +2,39 @@ import type { PathwaySubjectKey } from "@/lib/clean/pathways/pathwaySubjects";
 
 export type WorksheetResourceType = "worksheet-pdf" | "booklet-pdf" | "reading-pdf" | "reference-pdf";
 
-export function pathwayResourceAvailabilityLabel(
+export function normalizePathwayResourceType(
+  value: unknown,
+): WorksheetResourceType | null {
+  const resourceType = String(value ?? "").trim();
+  return (
+    ["worksheet-pdf", "booklet-pdf", "reading-pdf", "reference-pdf"] as const
+  ).includes(resourceType as WorksheetResourceType)
+    ? (resourceType as WorksheetResourceType)
+    : null;
+}
+
+export function pathwayResourceLabel(
   resourceType: WorksheetResourceType | null | undefined,
 ) {
   switch (resourceType) {
     case "booklet-pdf":
-      return "Booklet available";
+      return "Booklet";
     case "reading-pdf":
-      return "Reading available";
+      return "Reading";
     case "reference-pdf":
-      return "Reference available";
+      return "Reference";
     case "worksheet-pdf":
-      return "Worksheet available";
+      return "Worksheet";
     default:
       return null;
   }
+}
+
+export function pathwayResourceAvailabilityLabel(
+  resourceType: WorksheetResourceType | null | undefined,
+) {
+  const label = pathwayResourceLabel(resourceType);
+  return label ? `${label} available` : null;
 }
 
 export type WorksheetResource = {
