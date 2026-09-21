@@ -27,13 +27,17 @@ export async function GET() {
       "Years 3-4",
     ]);
 
-    for (const imageUrl of resource.pageImageUrls) {
-      const response = await fetch(imageUrl, { cache: "force-cache" });
-      if (!response.ok) {
-        throw new Error(`Could not load booklet page: ${response.status}`);
-      }
+    const pageBuffers = await Promise.all(
+      resource.pageImageUrls.map(async (imageUrl) => {
+        const response = await fetch(imageUrl, { cache: "force-cache" });
+        if (!response.ok) {
+          throw new Error(`Could not load booklet page: ${response.status}`);
+        }
+        return new Uint8Array(await response.arrayBuffer());
+      }),
+    );
 
-      const pageBytes = new Uint8Array(await response.arrayBuffer());
+    for (const pageBytes of pageBuffers) {
       const image = await pdf.embedPng(pageBytes);
       const page = pdf.addPage([image.width, image.height]);
       page.drawImage(image, {
