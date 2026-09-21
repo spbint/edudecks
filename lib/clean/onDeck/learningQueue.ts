@@ -16,6 +16,7 @@ import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
+import type { FamilyResourceType } from "@/lib/clean/resources/familyResources";
 import type { WorksheetResourceType } from "@/lib/clean/resources/worksheetResources";
 
 export type LearningQueueSourceType = "pathway_step" | "custom_learning";
@@ -59,7 +60,7 @@ export type LearningQueueItem = {
 
 export type CustomLearningResource = {
   id: string;
-  resourceType: "web_link" | "reference" | "file";
+  resourceType: FamilyResourceType;
   label: string | null;
   url: string | null;
   referenceText: string | null;
@@ -67,6 +68,10 @@ export type CustomLearningResource = {
   resourceFileName: string | null;
   resourceFilePath: string | null;
   resourceFileStatus: "pending" | "ready" | "deleted" | null;
+  marketplaceResourceId: string | null;
+  marketplaceExternalProductId: string | null;
+  marketplaceHandle: string | null;
+  marketplaceHref: string | null;
   position: number;
 };
 
@@ -97,7 +102,26 @@ export type LearningQueueItemRow = {
       resource_file_id?: string | null;
       family_resource_id?: string | null;
       resource_file?: { original_filename?: string | null; object_path?: string | null; status?: string | null } | null;
-      family_resource?: { id?: string | null; name?: string | null; url?: string | null; reference_text?: string | null; resource_file_id?: string | null; resource_file?: { original_filename?: string | null; object_path?: string | null; byte_size?: number | null; status?: string | null } | null } | null;
+      family_resource?: {
+        id?: string | null;
+        name?: string | null;
+        url?: string | null;
+        reference_text?: string | null;
+        resource_file_id?: string | null;
+        marketplace_resource_id?: string | null;
+        resource_file?: {
+          original_filename?: string | null;
+          object_path?: string | null;
+          byte_size?: number | null;
+          status?: string | null;
+        } | null;
+        marketplace_resource?: {
+          external_product_id?: string | null;
+          handle?: string | null;
+          metadata?: Record<string, unknown> | null;
+          is_active?: boolean | null;
+        } | null;
+      } | null;
       position?: number | null;
     }> | null;
   } | null;
@@ -140,8 +164,15 @@ function normalizePosition(value: unknown) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
 }
 
-function normalizeResourceType(value: unknown): "web_link" | "reference" | "file" {
-  return safe(value) === "web_link" ? "web_link" : safe(value) === "file" ? "file" : "reference";
+function normalizeResourceType(value: unknown): FamilyResourceType {
+  const type = safe(value);
+  return type === "web_link"
+    ? "web_link"
+    : type === "file"
+      ? "file"
+      : type === "catalogue"
+        ? "catalogue"
+        : "reference";
 }
 
 function normalizeSubjectKey(value: unknown): PathwaySubjectKey {
@@ -166,20 +197,41 @@ export function toLearningQueueItem(row: LearningQueueItemRow): LearningQueueIte
     .map((resource) => {
       const cupboard = resource.family_resource;
       const file = resource.resource_file ?? cupboard?.resource_file;
+      const marketplace = cupboard?.marketplace_resource;
+      const marketplaceMetadata =
+        marketplace?.metadata && typeof marketplace.metadata === "object"
+          ? marketplace.metadata
+          : null;
+      const marketplaceActive = marketplace?.is_active !== false;
       return ({
-      id: safe(resource.id),
-      resourceType: normalizeResourceType(resource.resource_type),
-      label: normalizeNullString(resource.label) || normalizeNullString(cupboard?.name),
-      url: normalizeNullString(resource.url) || normalizeNullString(cupboard?.url),
-      referenceText: normalizeNullString(resource.reference_text) || normalizeNullString(cupboard?.reference_text),
-      resourceFileId: normalizeNullString(resource.resource_file_id) || normalizeNullString(cupboard?.resource_file_id),
-      resourceFileName: normalizeNullString(file?.original_filename),
-      resourceFilePath: normalizeNullString(file?.object_path),
-      resourceFileStatus: ["pending", "ready", "deleted"].includes(safe(file?.status))
-        ? (safe(file?.status) as "pending" | "ready" | "deleted")
-        : null,
-      position: normalizePosition(resource.position),
-    }); })
+        id: safe(resource.id),
+        resourceType: normalizeResourceType(resource.resource_type),
+        label: normalizeNullString(resource.label) || normalizeNullString(cupboard?.name),
+        url: normalizeNullString(resource.url) || normalizeNullString(cupboard?.url),
+        referenceText:
+          normalizeNullString(resource.reference_text) ||
+          normalizeNullString(cupboard?.reference_text),
+        resourceFileId:
+          normalizeNullString(resource.resource_file_id) ||
+          normalizeNullString(cupboard?.resource_file_id),
+        resourceFileName: normalizeNullString(file?.original_filename),
+        resourceFilePath: normalizeNullString(file?.object_path),
+        resourceFileStatus: ["pending", "ready", "deleted"].includes(safe(file?.status))
+          ? (safe(file?.status) as "pending" | "ready" | "deleted")
+          : null,
+        marketplaceResourceId:
+          normalizeNullString(cupboard?.marketplace_resource_id),
+        marketplaceExternalProductId: marketplaceActive
+          ? normalizeNullString(marketplace?.external_product_id)
+          : null,
+        marketplaceHandle: marketplaceActive
+          ? normalizeNullString(marketplace?.handle)
+          : null,
+        marketplaceHref: marketplaceActive
+          ? normalizeNullString(marketplaceMetadata?.pdf_href)
+          : null,
+        position: normalizePosition(resource.position),
+      }); })
     .filter((resource) => resource.id && (resource.resourceType !== "file" || resource.resourceFileStatus === "ready"))
     .sort((left, right) => left.position - right.position || left.id.localeCompare(right.id));
   return {
