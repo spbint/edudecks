@@ -881,7 +881,19 @@ type MobileTodayContentProps = {
   buildItemCaptureHref: (item: CleanCalendarItem) => string;
   defaultCustomLearningLearnerId: string;
   resourceOptions: FamilyResource[];
-  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null }) => Promise<void>;
+  onCreateCustomLearning: (input: {
+    learnerId: string;
+    title: string;
+    learningArea: string | null;
+    note: string | null;
+    resource: {
+      resourceType: FamilyResourceType;
+      label: string | null;
+      value: string;
+      familyResource?: FamilyResource | null;
+      file?: File | null;
+    } | null;
+  }) => Promise<void>;
   onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource: (resourceId: string) => Promise<void>;
   onUploadPdf: (customLearningItemId: string, file: File) => Promise<void>;
