@@ -5,6 +5,10 @@ const source = readFileSync(
   "supabase/migrations/20260921113000_classical_marketplace_cupboard.sql",
   "utf8",
 );
+const hardeningSource = readFileSync(
+  "supabase/migrations/20260921122748_harden_classical_marketplace_cupboard_rpc.sql",
+  "utf8",
+);
 const hardening = readFileSync(
   "supabase/migrations/20260921123000_harden_classical_marketplace_cupboard_rpc.sql",
   "utf8",
@@ -49,6 +53,16 @@ describe("Classical Marketplace to Resource Cupboard migration", () => {
     expect(hardening).toContain("security invoker");
     expect(hardening).toContain("from public, anon");
     expect(hardening).toContain("to authenticated");
+  });
+
+  it("keeps the catalogue save RPC on invoker privileges with anonymous execution denied", () => {
+    expect(hardeningSource).toContain(
+      "alter function public.mylearna_save_marketplace_resource_to_cupboard(uuid, text)",
+    );
+    expect(hardeningSource).toContain("security invoker");
+    expect(hardeningSource).toContain("from public, anon");
+    expect(hardeningSource).toContain("to authenticated, service_role");
+    expect(hardeningSource).not.toContain("security definer");
   });
 
   it("keeps the future Family subscription entitlement identity in catalogue metadata", () => {
