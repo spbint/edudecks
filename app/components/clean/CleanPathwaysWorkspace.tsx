@@ -1458,13 +1458,22 @@ function PathwaysWorkspaceBody() {
 
   const selectedWorkspaceStageIndex = useMemo(() => {
     if (!selectedSubjectWorkspace) return -1;
-    return Math.max(
-      0,
-      selectedSubjectWorkspace.stages.findIndex(
-        (stage) => stage.key === selectedSubjectWorkspace.currentFocusStageKey,
-      ),
+    if (
+      selectedSubjectKey === "classical" &&
+      !recognisedLearnerFocusStageKey
+    ) {
+      return -1;
+    }
+
+    const currentStageIndex = selectedSubjectWorkspace.stages.findIndex(
+      (stage) => stage.key === selectedSubjectWorkspace.currentFocusStageKey,
     );
-  }, [selectedSubjectWorkspace]);
+    return currentStageIndex >= 0 ? currentStageIndex : 0;
+  }, [
+    recognisedLearnerFocusStageKey,
+    selectedSubjectKey,
+    selectedSubjectWorkspace,
+  ]);
   const selectedWorkspaceCurrentStage = useMemo(() => {
     if (!selectedSubjectWorkspace) return null;
     return selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex] || null;
@@ -4567,8 +4576,8 @@ function DetailedMathematicsStepCard({
     1;
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
   const canonicalStepKey = useMemo(
-    () => buildPathwayRegistryStepKey(step.title, step.id),
-    [step.id, step.title],
+    () => step.stepKey || buildPathwayRegistryStepKey(step.title, step.id),
+    [step.id, step.stepKey, step.title],
   );
   const canonicalPathwayStepId =
     statusPathwayStepId ||
