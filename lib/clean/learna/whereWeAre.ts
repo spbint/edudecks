@@ -23,6 +23,7 @@ import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
+import type { WorksheetResourceType } from "@/lib/clean/resources/worksheetResources";
 
 export type WhereWeAreSubjectSummary = {
   subjectKey: PathwaySubjectKey;
@@ -34,6 +35,7 @@ export type WhereWeAreSubjectSummary = {
   onDeckTitles: string[];
   recentLearningCount: number;
   worksheetAvailable: boolean;
+  resourceType: WorksheetResourceType | null;
   openStepHref: string | null;
 };
 
@@ -172,6 +174,7 @@ export function buildWhereWeAreSubjectSummaries(input: {
         subjectKey: subject.key,
       }),
       worksheetAvailable: Boolean(worksheetResource),
+      resourceType: worksheetResource?.resourceType || null,
       openStepHref: workingOn
         ? buildOnDeckStepHref(
             {
