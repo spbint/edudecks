@@ -36,12 +36,23 @@ describe("pending Marketplace auth destination", () => {
     expect(readPendingMarketplaceDestination()).toBe(destination);
   });
 
-  it("rejects unrelated, external, and unsafe destinations", () => {
+  it("clears stale Marketplace state when a later auth flow is unrelated or unsafe", () => {
+    rememberPendingMarketplaceDestination(
+      "/my-resources?add_marketplace=MYL-CLASSICAL-Y34-A-U1-E01",
+    );
+    expect(readPendingMarketplaceDestination()).not.toBeNull();
+
     rememberPendingMarketplaceDestination("/my-day");
     expect(readPendingMarketplaceDestination()).toBeNull();
 
+    rememberPendingMarketplaceDestination("/my-pathways?subjectKey=classical");
+    expect(readPendingMarketplaceDestination()).not.toBeNull();
+
     rememberPendingMarketplaceDestination("https://example.com/my-resources");
     expect(readPendingMarketplaceDestination()).toBeNull();
+
+    rememberPendingMarketplaceDestination("/my-pathways?subjectKey=classical");
+    expect(readPendingMarketplaceDestination()).not.toBeNull();
 
     rememberPendingMarketplaceDestination("//example.com/my-pathways");
     expect(readPendingMarketplaceDestination()).toBeNull();
