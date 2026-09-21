@@ -243,16 +243,6 @@ begin
     raise exception 'This MyLearna resource is not available.' using errcode = '23503';
   end if;
 
-  select id
-  into saved_id
-  from public.family_resources
-  where family_id = p_family_id
-    and marketplace_resource_id = catalogue_row.id;
-
-  if saved_id is not null then
-    return saved_id;
-  end if;
-
   insert into public.family_resources (
     family_id,
     resource_type,
@@ -267,7 +257,20 @@ begin
     catalogue_row.id,
     auth.uid()
   )
+  on conflict (family_id, marketplace_resource_id) do nothing
   returning id into saved_id;
+
+  if saved_id is null then
+    select id
+    into saved_id
+    from public.family_resources
+    where family_id = p_family_id
+      and marketplace_resource_id = catalogue_row.id;
+  end if;
+
+  if saved_id is null then
+    raise exception 'This MyLearna resource could not be saved.' using errcode = 'P0001';
+  end if;
 
   return saved_id;
 end;
