@@ -62,7 +62,13 @@ import {
   removeCustomLearningResource,
 } from "@/lib/clean/onDeck/client";
 import { isAllowedResourcePdf, openCustomLearningPdf, resourceFileSizeLabel, uploadCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
-import { attachFamilyResourceToCustomLearning, listFamilyResources, type FamilyResource } from "@/lib/clean/resources/familyResources";
+import {
+  attachFamilyResourceToCustomLearning,
+  familyResourceTypeLabel,
+  listFamilyResources,
+  type FamilyResource,
+  type FamilyResourceType,
+} from "@/lib/clean/resources/familyResources";
 import { pathwayResourceAvailabilityLabel } from "@/lib/clean/resources/worksheetResources";
 
 import {
@@ -291,7 +297,19 @@ function AddCustomLearningSection({
   resourceOptions?: FamilyResource[];
   defaultLearnerId: string;
   compact?: boolean;
-  onCreated: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null }) => Promise<void>;
+  onCreated: (input: {
+    learnerId: string;
+    title: string;
+    learningArea: string | null;
+    note: string | null;
+    resource: {
+      resourceType: FamilyResourceType;
+      label: string | null;
+      value: string;
+      familyResource?: FamilyResource | null;
+      file?: File | null;
+    } | null;
+  }) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [customLearnerId, setCustomLearnerId] = useState(defaultLearnerId);
@@ -344,7 +362,7 @@ function AddCustomLearningSection({
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Title<input required aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} style={input} placeholder="Read Chapter 4 — The Hobbit" autoFocus /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Learning area (optional)<input aria-label="Learning area" value={learningArea} onChange={(event) => setLearningArea(event.target.value)} list="clean-my-day-learning-areas" style={input} placeholder="English" /></label>
         <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Note (optional)<textarea aria-label="Note" value={note} onChange={(event) => setNote(event.target.value)} style={{ ...input, minHeight: 76, resize: "vertical" }} placeholder="A short note for this learning" /></label>
-        <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "grid", gap: 10 }}><legend style={{ padding: "0 4px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Resource (optional)</legend>{resourceOptions.length ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Choose from My Resource Cupboard<select aria-label="Choose from My Resource Cupboard" value={selectedResourceId} onChange={(event) => setSelectedResourceId(event.target.value)} style={input}><option value="">Add a new resource instead</option>{resourceOptions.map((resource) => <option key={resource.id} value={resource.id}>{resource.name} · {resource.resourceType === "file" ? "PDF" : resource.resourceType === "web_link" ? "Website" : "Reference"}</option>)}</select></label> : null}{!selectedResourceId ? <><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{resourceType === "web_link" ? "URL" : "Book, curriculum or resource"}<input aria-label={resourceType === "web_link" ? "URL" : "Book, curriculum or resource"} value={resourceValue} onChange={(event) => setResourceValue(event.target.value)} style={input} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "The Hobbit — Chapter 5"} /></label>{resourceType === "web_link" ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Label (optional)<input aria-label="Resource label" value={resourceLabel} onChange={(event) => setResourceLabel(event.target.value)} style={input} placeholder="Fractions lesson" /></label> : null}</> : null}</fieldset>
+        <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, display: "grid", gap: 10 }}><legend style={{ padding: "0 4px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Resource (optional)</legend>{resourceOptions.length ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Choose from My Resource Cupboard<select aria-label="Choose from My Resource Cupboard" value={selectedResourceId} onChange={(event) => setSelectedResourceId(event.target.value)} style={input}><option value="">Add a new resource instead</option>{resourceOptions.map((resource) => <option key={resource.id} value={resource.id}>{resource.name} · {familyResourceTypeLabel(resource.resourceType)}</option>)}</select></label> : null}{!selectedResourceId ? <><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 650 }}><input type="radio" name={compact ? "mobile-resource-type" : "resource-type"} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{resourceType === "web_link" ? "URL" : "Book, curriculum or resource"}<input aria-label={resourceType === "web_link" ? "URL" : "Book, curriculum or resource"} value={resourceValue} onChange={(event) => setResourceValue(event.target.value)} style={input} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "The Hobbit — Chapter 5"} /></label>{resourceType === "web_link" ? <label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Label (optional)<input aria-label="Resource label" value={resourceLabel} onChange={(event) => setResourceLabel(event.target.value)} style={input} placeholder="Fractions lesson" /></label> : null}</> : null}</fieldset>
         <button type="button" onClick={() => setResourceType("file")} style={{ ...secondaryButtonStyle, width: "fit-content" }}>PDF file</button>
         {resourceType === "file" ? <div style={{ display: "grid", gap: 6 }}><label style={{ display: "grid", gap: 6, color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Choose PDF<input type="file" accept="application/pdf,.pdf" onChange={(event) => setResourceFile(event.target.files?.[0] || null)} /></label>{resourceFile ? <span style={{ fontSize: 13, overflowWrap: "anywhere" }}>{resourceFile.name} · {resourceFileSizeLabel(resourceFile.size)}</span> : null}<span style={{ color: "#64748b", fontSize: 12 }}>PDF only · up to 25 MB</span></div> : null}
         {error ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div> : null}
@@ -392,7 +410,7 @@ function CustomResourceControls({
     <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary style={{ color: "#1d4ed8", cursor: "pointer", fontSize: 13, fontWeight: 800 }}>Resources</summary>
       <div style={{ display: "grid", gap: 8, paddingTop: 8 }}>
-        {item.resources.map((resource) => <div key={resource.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 13 }}><span style={{ overflowWrap: "anywhere" }}>{resource.resourceType === "file" ? resource.resourceFileName || resource.label || "PDF file" : resource.label || resource.referenceText || resource.url}</span><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{resource.resourceType === "file" && resource.resourceFilePath ? <button type="button" onClick={() => void openCustomLearningPdf(resource.resourceFilePath!)} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Open PDF</button> : null}<button type="button" onClick={() => void onRemoveResource(resource.id)} aria-label={`Remove ${resource.resourceType === "file" ? resource.resourceFileName || "PDF file" : "resource"}`} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Remove</button></div></div>)}
+        {item.resources.map((resource) => <div key={resource.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 13 }}><span style={{ overflowWrap: "anywhere" }}>{resource.resourceType === "file" ? resource.resourceFileName || resource.label || "PDF file" : resource.label || resource.referenceText || resource.url || (resource.resourceType === "catalogue" ? "MyLearna resource" : "Resource")}</span><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{resource.resourceType === "file" && resource.resourceFilePath ? <button type="button" onClick={() => void openCustomLearningPdf(resource.resourceFilePath!)} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Open PDF</button> : null}{resource.resourceType === "catalogue" && resource.marketplaceHref ? <a href={resource.marketplaceHref} target="_blank" rel="noopener noreferrer" style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px", textDecoration: "none" }}>Open booklet</a> : null}<button type="button" onClick={() => void onRemoveResource(resource.id)} aria-label={`Remove ${resource.resourceType === "file" ? resource.resourceFileName || "PDF file" : resource.resourceType === "catalogue" ? resource.label || "MyLearna resource" : "resource"}`} style={{ ...secondaryButtonStyle, minHeight: 36, padding: "6px 9px" }}>Remove</button></div></div>)}
         <form onSubmit={(event) => void add(event)} style={{ display: "grid", gap: 8, borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><label style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 13 }}><input type="radio" name={`resource-type-${item.id}`} checked={resourceType === "web_link"} onChange={() => setResourceType("web_link")} /> Web link</label><label style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 13 }}><input type="radio" name={`resource-type-${item.id}`} checked={resourceType === "reference"} onChange={() => setResourceType("reference")} /> Book / reference</label></div>
           <input aria-label={resourceType === "web_link" ? "Resource URL" : "Resource reference"} value={value} onChange={(event) => setValue(event.target.value)} placeholder={resourceType === "web_link" ? "https://example.com/lesson" : "Book or workbook reference"} style={inputStyle} />
@@ -863,7 +881,19 @@ type MobileTodayContentProps = {
   buildItemCaptureHref: (item: CleanCalendarItem) => string;
   defaultCustomLearningLearnerId: string;
   resourceOptions: FamilyResource[];
-  onCreateCustomLearning: (input: { learnerId: string; title: string; learningArea: string | null; note: string | null; resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null }) => Promise<void>;
+  onCreateCustomLearning: (input: {
+    learnerId: string;
+    title: string;
+    learningArea: string | null;
+    note: string | null;
+    resource: {
+      resourceType: FamilyResourceType;
+      label: string | null;
+      value: string;
+      familyResource?: FamilyResource | null;
+      file?: File | null;
+    } | null;
+  }) => Promise<void>;
   onAddResource: (input: { customLearningItemId: string; resourceType: "web_link" | "reference"; label: string | null; value: string }) => Promise<void>;
   onRemoveResource: (resourceId: string) => Promise<void>;
   onUploadPdf: (customLearningItemId: string, file: File) => Promise<void>;
@@ -1889,7 +1919,13 @@ function CleanDayWorkspaceBody() {
     title: string;
     learningArea: string | null;
     note: string | null;
-    resource: { resourceType: "web_link" | "reference" | "file"; label: string | null; value: string; familyResource?: FamilyResource | null; file?: File | null } | null;
+    resource: {
+      resourceType: FamilyResourceType;
+      label: string | null;
+      value: string;
+      familyResource?: FamilyResource | null;
+      file?: File | null;
+    } | null;
   }) {
     if (!workspace.profile) throw new Error("My Day is not ready for custom learning yet.");
     const textResource = input.resource?.resourceType === "web_link" || input.resource?.resourceType === "reference"
@@ -1903,9 +1939,12 @@ function CleanDayWorkspaceBody() {
       note: input.note,
       resource: null,
     });
-    const createdItems = textResource || (input.resource?.resourceType === "file" && input.resource.file)
-      ? await listLearningQueueItems(workspace.profile.id, input.learnerId)
-      : [];
+    const createdItems =
+      input.resource?.familyResource ||
+      textResource ||
+      (input.resource?.resourceType === "file" && input.resource.file)
+        ? await listLearningQueueItems(workspace.profile.id, input.learnerId)
+        : [];
     const createdItem = createdItems.find((item) => item.id === queueId);
     if (input.resource?.familyResource && createdItem?.customLearningItemId) {
       await attachFamilyResourceToCustomLearning({ familyId: workspace.profile.id, customLearningItemId: createdItem.customLearningItemId, resource: input.resource.familyResource });

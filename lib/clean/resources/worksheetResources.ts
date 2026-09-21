@@ -48,6 +48,7 @@ export type WorksheetResource = {
   pathwayStepTitle?: string;
   title: string;
   curriculumCode?: string;
+  marketplaceExternalProductId?: string;
   concept?: string;
   includesAnswerSheet?: boolean;
   regionalVariants?: string[];
