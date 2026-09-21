@@ -64,6 +64,20 @@ describe("resolvePathwayNextAction", () => {
     ).toMatchObject({ primary: "worksheet", secondary: ["capture-evidence"] });
   });
 
+  it("uses resource-aware guidance for a booklet action", () => {
+    expect(
+      resolvePathwayNextAction({
+        autoCheckStatus: null,
+        parentProgress: "Not checked yet",
+        availability: { ...allUnavailable, worksheet: true, "capture-evidence": true },
+        resourceLabel: "Booklet",
+      }),
+    ).toMatchObject({
+      primary: "worksheet",
+      supportingText: "Use the available booklet to work on this step.",
+    });
+  });
+
   it("does not create a dead primary action when no action is available", () => {
     expect(resolve({ availability: allUnavailable })).toEqual({
       primary: null,
