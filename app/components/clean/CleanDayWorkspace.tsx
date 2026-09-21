@@ -63,6 +63,8 @@ import {
 } from "@/lib/clean/onDeck/client";
 import { isAllowedResourcePdf, openCustomLearningPdf, resourceFileSizeLabel, uploadCustomLearningPdf } from "@/lib/clean/onDeck/resourceFiles";
 import { attachFamilyResourceToCustomLearning, listFamilyResources, type FamilyResource } from "@/lib/clean/resources/familyResources";
+import { pathwayResourceAvailabilityLabel } from "@/lib/clean/resources/worksheetResources";
+
 import {
   resolveOnDeckItem,
   LEARNING_QUEUE_PRIORITY_LABELS,
@@ -543,8 +545,10 @@ function OnDeckSection({
                     {selectedLearnerId ? null : (
                       <span style={blockMetaPillStyle}>{learnerLabel}</span>
                     )}
-                    {resolved.worksheetAvailable ? (
-                      <span style={blockMetaPillStyle}>Worksheet available</span>
+                    {resolved.resourceType ? (
+                      <span style={blockMetaPillStyle}>
+                        {pathwayResourceAvailabilityLabel(resolved.resourceType)}
+                      </span>
                     ) : null}
                     {!resolved.available ? (
                       <span style={blockMetaPillStyle}>Unavailable</span>
