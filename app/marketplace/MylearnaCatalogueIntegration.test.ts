@@ -7,6 +7,10 @@ const detail = readFileSync("app/marketplace/mylearna/[handle]/page.tsx", "utf8"
 const catalogue = readFileSync("lib/marketplace/mylearnaCatalog.ts", "utf8");
 const login = readFileSync("app/login/page.tsx", "utf8");
 const emailAuth = readFileSync("app/components/EmailAuthPage.tsx", "utf8");
+const authCallback = readFileSync("app/auth/callback/page.tsx", "utf8");
+const settings = readFileSync("app/components/clean/CleanSettingsWorkspace.tsx", "utf8");
+const calendar = readFileSync("app/components/clean/CleanCalendarWorkspace.tsx", "utf8");
+const sessionEscape = readFileSync("lib/authSessionEscape.ts", "utf8");
 
 describe("first-party MyLearna Marketplace catalogue", () => {
   it("appears alongside Shopify without entering the cart flow", () => {
@@ -17,15 +21,25 @@ describe("first-party MyLearna Marketplace catalogue", () => {
     expect(detail).not.toContain("useMarketplaceCart");
   });
 
-  it("preserves the Cupboard save destination through sign-in and Pathways", () => {
+  it("preserves Cupboard and Pathways destinations through sign-in and setup", () => {
     expect(detail).toContain('"/my-resources?add_marketplace="');
     expect(detail).toContain('const saveHref = \`/login?next=');
+    expect(detail).toContain("pathwaysLoginHref");
+    expect(detail).toContain("encodeURIComponent(resource.pathwayHref)");
     expect(detail).toContain("Save to My Resource Cupboard");
     expect(detail).toContain("Open in My Pathways");
     expect(login).toContain("normalizeAuthNextPath");
     expect(login).toContain("redirect(nextPath)");
+    expect(emailAuth).toContain("rememberPendingMarketplaceDestination");
     expect(emailAuth).toContain('nextPath.startsWith("/my-resources")');
     expect(emailAuth).toContain('"My Resource Cupboard"');
+    expect(authCallback).toContain("rememberPendingMarketplaceDestination");
+    expect(settings).toContain("consumePendingMarketplaceDestination");
+    expect(calendar).toContain("consumePendingMarketplaceDestination");
+    expect(calendar).toContain('pendingMarketplaceDestination || "/my-day"');
+    expect(sessionEscape).toContain(
+      '"mylearna.auth.pendingMarketplaceDestination"',
+    );
     expect(catalogue).toContain("pathwayHref:");
     expect(catalogue).toContain("MYL-CLASSICAL-Y34-A-U1-E01");
   });
