@@ -30,6 +30,7 @@ import type { Learner } from "@/lib/clean/learners/types";
 import {
   type PathwayProgressStatus,
   inferPathwayStageFromYearLevel,
+  tryInferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
   DETAILED_SUBJECT_CONFIGS,
@@ -698,7 +699,7 @@ function getWorkspaceDisplayedPathwayStatus(
   fromSavedEvidence: boolean;
   pathwayStepId: string | null;
 } {
-  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
   const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
     subjectKey,
     pathwayKey: workspace.key,
@@ -816,7 +817,7 @@ function getDetailedStepCanonicalPathwayStepId({
   stage: MathematicsDetailedStrandStage;
   step: MathematicsDetailedStrandStep;
 }) {
-  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
   return resolveCanonicalPathwayStepIdFromParts({
     subjectKey,
     pathwayKey: strand.key,
@@ -837,7 +838,7 @@ function getDetailedStepWorksheetResource({
   stage: MathematicsDetailedStrandStage;
   step: MathematicsDetailedStrandStep;
 }) {
-  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
   const pathwayStepId = getDetailedStepCanonicalPathwayStepId({
     subjectKey,
     strand,
@@ -1110,9 +1111,13 @@ function PathwaysWorkspaceBody() {
     missingLearningPeriodSetup ? "your first learning period" : null,
   ].filter(Boolean) as string[];
   const missingSetupSummary = formatMissingSetupItems(missingSetupItems);
-  const currentLearnerFocusStageKey = useMemo(
-    () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
+  const recognisedLearnerFocusStageKey = useMemo(
+    () => tryInferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
+  );
+  const currentLearnerFocusStageKey = useMemo(
+    () => recognisedLearnerFocusStageKey || inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
+    [recognisedLearnerFocusStageKey, selectedLearner?.yearLevel],
   );
 
   const selectedSubject =
@@ -1520,7 +1525,7 @@ function PathwaysWorkspaceBody() {
 
     const orderedSteps = selectedSubjectWorkspace.stages.flatMap((stage) =>
       stage.steps.map((step) => {
-        const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+        const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
         const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
           subjectKey: selectedSubjectKey,
           pathwayKey: selectedSubjectWorkspace.key,
@@ -1577,11 +1582,18 @@ function PathwaysWorkspaceBody() {
     numberPathwayRevealGroups?.currentLearningZone[0] || null;
   const selectedSubjectDefaultPathwayStepId = useMemo(() => {
     if (!selectedSubjectWorkspace) return "";
+    if (
+      selectedSubjectKey === "classical" &&
+      recognisedLearnerFocusStageKey !== "middle-primary"
+    ) {
+      return "";
+    }
     return getDefaultPathwayStepIdForWorkspace(
       selectedSubjectKey,
       selectedSubjectWorkspace,
     ) || "";
   }, [
+    recognisedLearnerFocusStageKey,
     selectedSubjectKey,
     selectedSubjectWorkspace,
   ]);
