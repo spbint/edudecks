@@ -31,6 +31,7 @@ export default async function MylearnaMarketplaceResourcePage({
     "/my-resources?add_marketplace=" +
     encodeURIComponent(resource.externalProductId) +
     "&source=marketplace";
+  const saveHref = `/login?next=${encodeURIComponent(cupboardHref)}`;
 
   return (
     <main className="marketplace-main">
@@ -55,7 +56,7 @@ export default async function MylearnaMarketplaceResourcePage({
           </div>
 
           <div className="marketplace-detail-form">
-            <Link className="marketplace-button" href={cupboardHref}>
+            <Link className="marketplace-button" href={saveHref}>
               Save to My Resource Cupboard
             </Link>
             <Link className="marketplace-button secondary" href={resource.pathwayHref}>
