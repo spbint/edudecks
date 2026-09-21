@@ -314,6 +314,7 @@ export default function CleanPathwayStepActionRow({
       {actionPlan.secondary.length ||
       (!manualComplete && onManualCompletionChange) ||
       (!resourceActionAlreadyRendered && worksheetResource) ||
+      Boolean(worksheetResource?.marketplaceExternalProductId) ||
       planHref ||
       onPutOnDeck ||
       onDeck ? (
@@ -322,6 +323,16 @@ export default function CleanPathwayStepActionRow({
           style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
         >
           {actionPlan.secondary.map((action) => renderAction(action))}
+          {worksheetResource?.marketplaceExternalProductId ? (
+            <Link
+              href={`/my-resources?add_marketplace=${encodeURIComponent(
+                worksheetResource.marketplaceExternalProductId,
+              )}&source=my-pathways`}
+              style={{ ...secondaryButtonStyle, minHeight: 44 }}
+            >
+              Save to My Resource Cupboard
+            </Link>
+          ) : null}
           {planHref ? (
             <Link
               href={planHref}
