@@ -81,12 +81,14 @@ describe("On Deck learning queue", () => {
     );
   });
 
-  it("allows current Mathematics and English pathway steps", () => {
+  it("allows current Mathematics, English, and Classical pathway steps", () => {
     const mathematicsStep = getPathwayStepsBySubject("mathematics")[0];
     const englishStep = getPathwayStepsBySubject("english")[0];
+    const classicalStep = getPathwayStepsBySubject("classical")[0];
 
     expect(isPathwayStepEligibleForOnDeck(mathematicsStep)).toBe(true);
     expect(isPathwayStepEligibleForOnDeck(englishStep)).toBe(true);
+    expect(isPathwayStepEligibleForOnDeck(classicalStep)).toBe(true);
   });
 
   it("does not allow in-development pathway subjects onto On Deck", () => {
@@ -105,6 +107,25 @@ describe("On Deck learning queue", () => {
     expect(resolved.subjectLabel).toBe("Mathematics");
     expect(resolved.href).toContain("/my-pathways?");
     expect(resolved.worksheetAvailable).toBe(true);
+  });
+
+  it("resolves the Classical booklet on On Deck with its resource type", () => {
+    const classicalStep = getPathwayStepsBySubject("classical")[0]!;
+    const resolved = resolveOnDeckItem(
+      item({
+        subjectKey: classicalStep.subjectKey,
+        strandKey: classicalStep.strandKey,
+        stageKey: classicalStep.stageKey,
+        stepKey: classicalStep.stepKey,
+        pathwayStepId: classicalStep.id,
+        displayTitle: classicalStep.stepTitle,
+      }),
+    );
+
+    expect(resolved.available).toBe(true);
+    expect(resolved.subjectLabel).toBe("MyLearna Classical");
+    expect(resolved.worksheetAvailable).toBe(true);
+    expect(resolved.resourceType).toBe("booklet-pdf");
   });
 
   it("renders stale or changed source identity as unavailable without substitution", () => {

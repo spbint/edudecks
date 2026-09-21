@@ -83,6 +83,9 @@ describe("desktop Pathways task-first hierarchy", () => {
     expect(detailedCard).toContain("const showStepActions = isOpen || isCurrentLearningStep");
     expect(detailedCard).toContain("{showStepActions ? (");
     expect(detailedCard).toContain("emphasizePrimary={isCurrentLearningStep}");
+    expect(workspaceSource).toContain("step.stepKey || buildPathwayRegistryStepKey(step.title, step.id)");
+    expect(workspaceSource).toContain('selectedSubjectKey === "classical"');
+    expect(workspaceSource).toContain('recognisedLearnerFocusStageKey !== "middle-primary"');
     expect(revealCard).toContain("worksheetResource && primary");
     expect(revealCard).toContain("Worksheet ready");
   });
@@ -128,7 +131,8 @@ describe("desktop Pathways task-first hierarchy", () => {
     expect(customerActionAvailabilitySource).toContain("CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE = false");
     expect(actionRowSource).toContain("\"check-understanding\": Boolean(customerAssessmentHref)");
     expect(actionRowSource).toContain("practise: Boolean(customerPracticeHref)");
-    expect(actionRowSource).toContain("worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource)");
+    expect(actionRowSource).toContain('worksheetResource?.resourceType === "booklet-pdf" || CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE');
+    expect(actionRowSource).toContain("resourceActionAlreadyRendered");
     expect(actionRowSource).toContain('return "Add to Portfolio"');
     expect(actionRowSource).not.toContain("View worksheet");
     expect(workspaceSource).not.toContain(">Open worksheet<");

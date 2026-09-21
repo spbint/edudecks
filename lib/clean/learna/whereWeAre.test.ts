@@ -18,6 +18,12 @@ const englishPrefixReStep = getPathwayStepById(
   "upper-elementary",
   "u001-prefix-re",
 )!;
+const classicalEncounterOneStep = getPathwayStepById(
+  "classical",
+  "history-and-civilisation",
+  "middle-primary",
+  "from-wandering-to-settlement",
+)!;
 
 function candidate(
   registryItem = mathematicsStep,
@@ -110,7 +116,7 @@ describe("Where We Are subject summaries", () => {
     const mathematics = summaries.find((summary) => summary.subjectKey === "mathematics");
     const english = summaries.find((summary) => summary.subjectKey === "english");
 
-    expect(summaries.map((summary) => summary.subjectKey)).toEqual(["mathematics", "english"]);
+    expect(summaries.map((summary) => summary.subjectKey)).toEqual(["mathematics", "english", "classical"]);
     expect(mathematics?.workingOn?.stepTitle).toBe("Read, write, order and compare numbers to 1000 and beyond");
     expect(mathematics?.upNext?.stepTitle).toBe("Understand hundreds, tens and ones");
     expect(english?.workingOn?.stepTitle).toBe("Prefix re-");
@@ -159,7 +165,7 @@ describe("Where We Are subject summaries", () => {
     expect(JSON.stringify(summaries)).not.toMatch(/mastery|percent|percentage|complete/i);
   });
 
-  it("shows worksheet availability only for real mapped current-step assets", () => {
+  it("shows resource availability only for real mapped current-step assets", () => {
     const mathematics = buildWhereWeAreSubjectSummaries({
       learnerId: "learner-a",
       currentCandidates: [candidate(mathematicsStep)],
@@ -172,9 +178,19 @@ describe("Where We Are subject summaries", () => {
       evidenceEntries: [],
       onDeckItems: [],
     }).find((summary) => summary.subjectKey === "english");
+    const classical = buildWhereWeAreSubjectSummaries({
+      learnerId: "learner-a",
+      currentCandidates: [candidate(classicalEncounterOneStep)],
+      evidenceEntries: [],
+      onDeckItems: [],
+    }).find((summary) => summary.subjectKey === "classical");
 
     expect(mathematics?.worksheetAvailable).toBe(true);
+    expect(mathematics?.resourceType).toBe("worksheet-pdf");
     expect(english?.worksheetAvailable).toBe(false);
+    expect(english?.resourceType).toBeNull();
+    expect(classical?.worksheetAvailable).toBe(true);
+    expect(classical?.resourceType).toBe("booklet-pdf");
   });
 
   it("does not invent current or next state for in-development subjects or empty learners", () => {
@@ -185,7 +201,7 @@ describe("Where We Are subject summaries", () => {
       onDeckItems: [],
     });
 
-    expect(summaries.map((summary) => summary.subjectKey)).toEqual(["mathematics", "english"]);
+    expect(summaries.map((summary) => summary.subjectKey)).toEqual(["mathematics", "english", "classical"]);
     expect(summaries.every((summary) => !summary.workingOn && !summary.upNext)).toBe(true);
     expect(getPathwayStepsBySubject("science").length).toBeGreaterThan(0);
     expect(summaries.some((summary) => summary.subjectKey === "science")).toBe(false);

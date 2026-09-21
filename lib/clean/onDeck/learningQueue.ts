@@ -15,9 +15,8 @@ import {
 import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
-import {
-  getWorksheetResourceForPathwayStep,
-} from "@/lib/clean/resources/mathWorksheetResources";
+import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
+import type { WorksheetResourceType } from "@/lib/clean/resources/worksheetResources";
 
 export type LearningQueueSourceType = "pathway_step" | "custom_learning";
 export type LearningQueuePriority = "must_do" | "flexible" | "extra";
@@ -118,6 +117,7 @@ export type OnDeckResolvedItem = {
   stageLabel: string | null;
   title: string;
   worksheetAvailable: boolean;
+  resourceType: WorksheetResourceType | null;
   href: string | null;
 };
 
@@ -281,6 +281,7 @@ export function resolveOnDeckItem(
       stageLabel: null,
       title: item.customTitle || item.displayTitle || "Custom learning",
       worksheetAvailable: false,
+      resourceType: null,
       href: null,
     };
   }
@@ -294,6 +295,7 @@ export function resolveOnDeckItem(
       stageLabel: null,
       title: "This learning step is no longer available.",
       worksheetAvailable: false,
+      resourceType: null,
       href: null,
     };
   }
@@ -305,8 +307,8 @@ export function resolveOnDeckItem(
     registryItem?.strandKey === item.strandKey &&
     registryItem?.stageKey === item.stageKey &&
     registryItem?.stepKey === item.stepKey;
-  const worksheetResource = available
-    ? getWorksheetResourceForPathwayStep({
+  const pathwayResource = available
+    ? getPathwayResourceForPathwayStep({
         pathwayStepId: item.pathwayStepId,
         stepKey: item.stepKey,
         subjectKey: item.subjectKey,
@@ -325,7 +327,8 @@ export function resolveOnDeckItem(
     title: available
       ? registryItem?.stepTitle || item.displayTitle || "Learning step"
       : "This learning step is no longer available.",
-    worksheetAvailable: Boolean(worksheetResource),
+    worksheetAvailable: Boolean(pathwayResource),
+    resourceType: pathwayResource?.resourceType || null,
     href: available ? buildOnDeckStepHref(item, pathname, registryItem?.legacyStepNumber) : null,
   };
 }

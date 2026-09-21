@@ -15,7 +15,7 @@ import {
   getAllPathwaySteps,
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
-import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
+import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
 
 export type ActionablePathwayRecommendation = {
   action: PathwayNextAction | null;
@@ -79,7 +79,7 @@ export function buildActionablePathwayRecommendation(input: {
   const customerPracticeAvailable = CUSTOMER_PATHWAY_PRACTICE_AVAILABLE
     ? Boolean(practice)
     : false;
-  const worksheet = getWorksheetResourceForPathwayStep({
+  const worksheet = getPathwayResourceForPathwayStep({
     pathwayStepId: step.id,
     stepKey: step.stepKey,
     subjectKey: step.subjectKey,
@@ -94,7 +94,7 @@ export function buildActionablePathwayRecommendation(input: {
       "check-understanding": customerAssessmentAvailable,
       practise: customerPracticeAvailable,
       "next-step": effectiveStatus === "Secure" && Boolean(nextStep),
-      worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheet),
+      worksheet: Boolean(worksheet) && (worksheet?.resourceType === "booklet-pdf" || CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE),
       "capture-evidence": true,
     },
   });

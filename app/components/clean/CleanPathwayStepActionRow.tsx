@@ -14,7 +14,10 @@ import {
   CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
 } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
-import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
+import {
+  pathwayResourceLabel,
+  type WorksheetResource,
+} from "@/lib/clean/resources/worksheetResources";
 
 type CleanPathwayStepActionRowProps = {
   captureHref: string;
@@ -89,6 +92,10 @@ function appendWorksheetEvidenceParams(
   params.set("worksheetTitle", worksheetResource.title);
   params.set("worksheetHref", worksheetResource.href);
   params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("pathwayResourceType", worksheetResource.resourceType);
+  params.set("pathwayResourceTitle", worksheetResource.title);
+  params.set("pathwayResourceHref", worksheetResource.href);
+  params.set("pathwayResourceFileName", worksheetResource.fileName);
   params.set("includeInPortfolio", "1");
   params.set("includeInReport", "1");
   return `${path}?${params.toString()}`;
@@ -112,7 +119,11 @@ function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefine
   return match?.[1]?.trim() || "Learning recorded";
 }
 
-function actionLabel(action: PathwayNextAction, primary: boolean) {
+function actionLabel(
+  action: PathwayNextAction,
+  primary: boolean,
+  resource?: WorksheetResource | null,
+) {
   switch (action) {
     case "check-understanding":
       return "Check understanding";
@@ -121,7 +132,9 @@ function actionLabel(action: PathwayNextAction, primary: boolean) {
     case "next-step":
       return "Next step";
     case "worksheet":
-      return "Download worksheet";
+      return resource?.resourceType === "booklet-pdf"
+        ? "Download booklet"
+        : "Download worksheet";
     case "capture-evidence":
       return "Add to Portfolio";
   }
@@ -172,10 +185,13 @@ export default function CleanPathwayStepActionRow({
       "check-understanding": Boolean(customerAssessmentHref),
       practise: Boolean(customerPracticeHref),
       "next-step": Boolean(nextStepHref),
-      worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource),
+      worksheet: Boolean(worksheetResource) && (worksheetResource?.resourceType === "booklet-pdf" || CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE),
       "capture-evidence": Boolean(captureHref),
     },
+    resourceLabel: pathwayResourceLabel(worksheetResource?.resourceType),
   });
+  const resourceActionAlreadyRendered =
+    actionPlan.primary === "worksheet" || actionPlan.secondary.includes("worksheet");
   const actionAnalyticsContext = {
     subjectKey,
     strandKey,
@@ -213,7 +229,7 @@ export default function CleanPathwayStepActionRow({
   const renderAction = (action: PathwayNextAction, primary = false) => {
     const href = actionHref[action];
     const isWorksheet = action === "worksheet";
-    const label = actionLabel(action, primary);
+    const label = actionLabel(action, primary, worksheetResource);
 
     if (isWorksheet) {
       return (
@@ -297,7 +313,7 @@ export default function CleanPathwayStepActionRow({
 
       {actionPlan.secondary.length ||
       (!manualComplete && onManualCompletionChange) ||
-      worksheetResource ||
+      (!resourceActionAlreadyRendered && worksheetResource) ||
       planHref ||
       onPutOnDeck ||
       onDeck ? (
@@ -379,13 +395,13 @@ export default function CleanPathwayStepActionRow({
               Mark complete
             </button>
           ) : null}
-          {worksheetResource ? (
+          {!resourceActionAlreadyRendered && worksheetResource ? (
             <a
               href={worksheetResource.href}
               download={worksheetResource.fileName}
               style={secondaryButtonStyle}
             >
-              Download worksheet
+              {actionLabel("worksheet", false, worksheetResource)}
             </a>
           ) : null}
         </div>

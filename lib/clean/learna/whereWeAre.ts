@@ -22,7 +22,8 @@ import {
 import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
-import { getWorksheetResourceForPathwayStep } from "@/lib/clean/resources/mathWorksheetResources";
+import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
+import type { WorksheetResourceType } from "@/lib/clean/resources/worksheetResources";
 
 export type WhereWeAreSubjectSummary = {
   subjectKey: PathwaySubjectKey;
@@ -34,6 +35,7 @@ export type WhereWeAreSubjectSummary = {
   onDeckTitles: string[];
   recentLearningCount: number;
   worksheetAvailable: boolean;
+  resourceType: WorksheetResourceType | null;
   openStepHref: string | null;
 };
 
@@ -149,7 +151,7 @@ export function buildWhereWeAreSubjectSummaries(input: {
       .map((item) => resolveOnDeckItem(item, input.pathwayPathname).title)
       .slice(0, 3);
     const worksheetResource = workingOn
-      ? getWorksheetResourceForPathwayStep({
+      ? getPathwayResourceForPathwayStep({
           pathwayStepId: workingOn.id,
           stepKey: workingOn.stepKey,
           subjectKey: workingOn.subjectKey,
@@ -172,6 +174,7 @@ export function buildWhereWeAreSubjectSummaries(input: {
         subjectKey: subject.key,
       }),
       worksheetAvailable: Boolean(worksheetResource),
+      resourceType: worksheetResource?.resourceType || null,
       openStepHref: workingOn
         ? buildOnDeckStepHref(
             {

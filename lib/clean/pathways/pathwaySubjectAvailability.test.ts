@@ -21,12 +21,15 @@ function subject(title: string) {
 }
 
 describe("customer pathway subject availability", () => {
-  it("keeps Mathematics and English selectable for live customer Pathways content", () => {
+  it("keeps Mathematics, English, and MyLearna Classical selectable for live customer Pathways content", () => {
     expect(
       isCustomerPathwaySubjectActive(subject("Mathematics"), DETAILED_SUBJECT_CONFIGS.mathematics),
     ).toBe(true);
     expect(
       isCustomerPathwaySubjectActive(subject("English"), DETAILED_SUBJECT_CONFIGS.english),
+    ).toBe(true);
+    expect(
+      isCustomerPathwaySubjectActive(subject("MyLearna Classical"), DETAILED_SUBJECT_CONFIGS.classical),
     ).toBe(true);
   });
 
@@ -57,7 +60,7 @@ describe("customer pathway subject availability", () => {
       .filter((option) => !option.selectable)
       .map((option) => option.subject.title);
 
-    expect(activeTitles).toEqual(["Mathematics", "English"]);
+    expect(activeTitles).toEqual(["Mathematics", "English", "MyLearna Classical"]);
     expect(futureDefinitions).toEqual([
       "Science",
       "Humanities & Social Sciences",

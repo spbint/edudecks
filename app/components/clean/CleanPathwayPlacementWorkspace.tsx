@@ -7,7 +7,7 @@ import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorks
 import V2LoadingState from "@/app/components/clean/design-v2/V2LoadingState";
 import { DETAILED_SUBJECT_CONFIGS } from "@/lib/clean/pathways/detailedSubjectConfigs";
 import type { Learner } from "@/lib/clean/learners/types";
-import { inferPathwayStageFromYearLevel } from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import { inferPathwayStageFromYearLevel, tryInferPathwayStageFromYearLevel } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
   getPathwayStepsByStrand,
   type PathwayStepRegistryItem,
@@ -227,12 +227,23 @@ function CleanPathwayPlacementWorkspaceBody() {
   const selectedStrand =
     strandOptions.find((strand) => strand.key === selectedStrandKey) || strandOptions[0] || null;
   const effectiveSelectedStrandKey = selectedStrand?.key || "";
+  const recognisedLearnerStageKey = tryInferPathwayStageFromYearLevel(
+    selectedLearner?.yearLevel,
+  );
+  const classicalBandAvailable =
+    selectedSubjectKey !== "classical" || recognisedLearnerStageKey === "middle-primary";
   const pathwaySteps = effectiveSelectedStrandKey
-    ? getPathwayStepsByStrand(selectedSubjectKey, effectiveSelectedStrandKey)
+    ? getPathwayStepsByStrand(selectedSubjectKey, effectiveSelectedStrandKey).filter(
+        (candidate) =>
+          selectedSubjectKey !== "classical" ||
+          (classicalBandAvailable && candidate.stageKey === recognisedLearnerStageKey),
+      )
     : [];
   const selectedPathwayStep =
     pathwaySteps.find((candidate) => candidate.id === selectedStepId) || null;
-  const gentleStartingStep = chooseGentleStartingStep(pathwaySteps, selectedLearner);
+  const gentleStartingStep = classicalBandAvailable
+    ? chooseGentleStartingStep(pathwaySteps, selectedLearner)
+    : null;
   const existingPlacement =
     selectedLearner && effectiveSelectedStrandKey
       ? readPathwayPlacement(
@@ -247,7 +258,7 @@ function CleanPathwayPlacementWorkspaceBody() {
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const canContinueLearner = Boolean(selectedLearner);
   const canContinueSubject = Boolean(selectedSubject);
-  const canContinueStrand = Boolean(selectedStrand);
+  const canContinueStrand = Boolean(selectedStrand && classicalBandAvailable);
   const canSavePlacement = Boolean(selectedLearner && selectedStrand && selectedPathwayStep);
   const selectedStepIndex = pathwaySteps.findIndex(
     (candidate) => candidate.id === (selectedPathwayStep?.id || selectedStepId),
@@ -515,14 +526,49 @@ function CleanPathwayPlacementWorkspaceBody() {
                     </div>
                   </div>
                 ) : null}
+                {!classicalBandAvailable ? (
+                  <div
+                    role="status"
+                    style={{
+                      border: "1px solid #fde68a",
+                      background: "#fffbeb",
+                      borderRadius: 14,
+                      padding: 14,
+                      color: "#92400e",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    MyLearna Classical is currently live for Years 3–4. Choose a Years 3–4
+                    learner to set a Classical starting point; other two-year bands will be
+                    added as their curriculum cycles are released.
+                  </div>
+                ) : null}
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button type="button" onClick={() => setStep("subject")} style={secondaryButtonStyle}>
                     Back
                   </button>
-                  <button type="button" onClick={showSuggestedStep} style={primaryButtonStyle}>
+                  <button
+                    type="button"
+                    disabled={!canContinueStrand}
+                    onClick={showSuggestedStep}
+                    style={{
+                      ...primaryButtonStyle,
+                      opacity: canContinueStrand ? 1 : 0.55,
+                      cursor: canContinueStrand ? "pointer" : "not-allowed",
+                    }}
+                  >
                     Show starting step
                   </button>
-                  <button type="button" onClick={openManualChoice} style={secondaryButtonStyle}>
+                  <button
+                    type="button"
+                    disabled={!canContinueStrand}
+                    onClick={openManualChoice}
+                    style={{
+                      ...secondaryButtonStyle,
+                      opacity: canContinueStrand ? 1 : 0.55,
+                      cursor: canContinueStrand ? "pointer" : "not-allowed",
+                    }}
+                  >
                     Choose a step manually
                   </button>
                 </div>

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
+import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
 
 const worksheetResource: MathWorksheetResource = {
   pathwayStepId: "mathematics:number-and-place-value:upper-elementary:step-1",
@@ -19,6 +20,21 @@ const worksheetResource: MathWorksheetResource = {
   fileName: "MYL-MATH-NPV-UE-S001-Use-Place-Value.pdf",
   href: "/resources/worksheets/maths/number-and-place-value/upper-elementary/MYL-MATH-NPV-UE-S001-Use-Place-Value.pdf",
   resourceType: "worksheet-pdf",
+};
+
+const bookletResource: WorksheetResource = {
+  pathwayStepId: "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+  stepKey: "from-wandering-to-settlement",
+  subjectKey: "classical",
+  strandKey: "history-and-civilisation",
+  stageKey: "middle-primary",
+  stageDisplay: "Years 3-4 · Cycle A: The Ancient World",
+  stepNumber: 1,
+  pathwayStepTitle: "Encounter 1 · From Wandering to Settlement",
+  title: "From Wandering to Settlement",
+  fileName: "MyLearna-Classical-Y3-4-Cycle-A-Encounter-1-From-Wandering-to-Settlement.pdf",
+  href: "/api/classical/booklets/y3-4-a-u1-e01",
+  resourceType: "booklet-pdf",
 };
 
 describe("CleanPathwayStepActionRow", () => {
@@ -50,6 +66,52 @@ describe("CleanPathwayStepActionRow", () => {
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
       "Add to Portfolio",
     );
+  });
+
+  it("shows a Classical booklet exactly once with the booklet label", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    expect(screen.getAllByRole("link", { name: "Download booklet" })).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Download booklet",
+    );
+  });
+
+  it("carries the Classical booklet type into the Portfolio capture handoff", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const href = screen.getByRole("link", { name: "Add to Portfolio" }).getAttribute("href") || "";
+    const url = new URL(href, "https://mylearna.test");
+
+    expect(url.searchParams.get("pathwayResourceType")).toBe("booklet-pdf");
+    expect(url.searchParams.get("pathwayResourceTitle")).toBe("From Wandering to Settlement");
+    expect(url.searchParams.get("pathwayResourceHref")).toBe(
+      "/api/classical/booklets/y3-4-a-u1-e01",
+    );
+    expect(url.searchParams.get("worksheetEvidence")).toBe("1");
   });
 
   it("keeps Mark complete separate from adding to Portfolio", () => {

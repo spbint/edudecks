@@ -22,6 +22,12 @@ import {
   ENGLISH_SUBJECT_OVERVIEW,
 } from "@/lib/clean/pathways/englishPathways";
 import {
+  CLASSICAL_DOMAIN_CARDS,
+  CLASSICAL_STRAND_WORKSPACE_BUILDERS,
+  CLASSICAL_SUBJECT_OVERVIEW,
+  DEFAULT_CLASSICAL_STRAND_KEY,
+} from "@/lib/clean/pathways/classicalPathways";
+import {
   DEFAULT_SCIENCE_STRAND_KEY,
   SCIENCE_DOMAIN_CARDS,
   SCIENCE_STRAND_WORKSPACE_BUILDERS,
@@ -110,6 +116,15 @@ export const DETAILED_SUBJECT_CONFIGS: Partial<
     overviewTitle: ENGLISH_SUBJECT_OVERVIEW.title,
     overviewDescription: ENGLISH_SUBJECT_OVERVIEW.description,
     overviewHelper: ENGLISH_SUBJECT_OVERVIEW.helper,
+  },
+  classical: {
+    defaultStrandKey: DEFAULT_CLASSICAL_STRAND_KEY,
+    domainCards: CLASSICAL_DOMAIN_CARDS,
+    workspaceBuilders: CLASSICAL_STRAND_WORKSPACE_BUILDERS,
+    overviewEyebrow: CLASSICAL_SUBJECT_OVERVIEW.eyebrow,
+    overviewTitle: CLASSICAL_SUBJECT_OVERVIEW.title,
+    overviewDescription: CLASSICAL_SUBJECT_OVERVIEW.description,
+    overviewHelper: CLASSICAL_SUBJECT_OVERVIEW.helper,
   },
   science: {
     defaultStrandKey: DEFAULT_SCIENCE_STRAND_KEY,

@@ -30,8 +30,28 @@ function attempt(pathwayStepId = stepTwo): CleanAssessmentAttempt {
 
 describe("current learning candidates", () => {
   it("uses the same canonical default-step resolver as Pathways for active subjects", () => {
-    expect(getDefaultCurrentPathwayStepIds("Year 4")).toContain(
+    const year4Defaults = getDefaultCurrentPathwayStepIds("Year 4");
+    expect(year4Defaults).toContain(
       "english::morphology-and-spelling::upper-elementary::u001-prefix-re",
+    );
+    expect(year4Defaults).toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+
+    expect(getDefaultCurrentPathwayStepIds("Year 2")).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+    expect(getDefaultCurrentPathwayStepIds("Year 6")).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+    expect(getDefaultCurrentPathwayStepIds(null)).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+    expect(getDefaultCurrentPathwayStepIds("")).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+    );
+    expect(getDefaultCurrentPathwayStepIds("unspecified")).not.toContain(
+      "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
     );
   });
 

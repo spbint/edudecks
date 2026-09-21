@@ -15,6 +15,12 @@ const numberStep = getPathwayStepById(
   "middle-primary",
   "estimate-and-check-reasonableness",
 );
+const classicalEncounterOneStep = getPathwayStepById(
+  "classical",
+  "history-and-civilisation",
+  "middle-primary",
+  "from-wandering-to-settlement",
+);
 
 function recommendationFor(
   parentProgress: Parameters<typeof buildActionablePathwayRecommendation>[0]["parentProgress"],
@@ -52,6 +58,24 @@ describe("My Learna actionable Pathways recommendation", () => {
 
     expect(recommendation.action).toBe(expectedAction);
     expect(recommendation.href).toContain("/my-pathways?");
+  });
+
+  it("recognises the Classical booklet as the ready action without enabling dormant worksheets globally", () => {
+    expect(classicalEncounterOneStep).not.toBeNull();
+
+    const recommendation = buildActionablePathwayRecommendation({
+      learnerId,
+      step: classicalEncounterOneStep!,
+      autoCheckStatus: null,
+      parentProgress: "Not checked yet",
+    });
+    const href = new URL(recommendation.href, "https://mylearna.test");
+
+    expect(recommendation.action).toBe("worksheet");
+    expect(pathwayRecommendationLabel(recommendation.action)).toBe("Open My Pathways");
+    expect(href.searchParams.get("subjectKey")).toBe("classical");
+    expect(href.searchParams.get("strandKey")).toBe("history-and-civilisation");
+    expect(href.searchParams.get("pathwayStepId")).toBe(classicalEncounterOneStep!.id);
   });
 
   it("uses the canonical resolver fallback instead of recommending unavailable Practice or assessment", () => {
