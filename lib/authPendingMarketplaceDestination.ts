@@ -15,9 +15,13 @@ export function rememberPendingMarketplaceDestination(
 ) {
   if (typeof window === "undefined") return;
   const normalized = normalizeAuthNextPath(candidate, "/");
-  if (!supportedMarketplaceDestination(normalized)) return;
 
   try {
+    if (!supportedMarketplaceDestination(normalized)) {
+      window.sessionStorage.removeItem(PENDING_MARKETPLACE_DESTINATION_KEY);
+      return;
+    }
+
     window.sessionStorage.setItem(
       PENDING_MARKETPLACE_DESTINATION_KEY,
       normalized,
