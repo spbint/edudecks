@@ -83,6 +83,9 @@ describe("desktop Pathways task-first hierarchy", () => {
     expect(detailedCard).toContain("const showStepActions = isOpen || isCurrentLearningStep");
     expect(detailedCard).toContain("{showStepActions ? (");
     expect(detailedCard).toContain("emphasizePrimary={isCurrentLearningStep}");
+    expect(workspaceSource).toContain("step.stepKey || buildPathwayRegistryStepKey(step.title, step.id)");
+    expect(workspaceSource).toContain('selectedSubjectKey === "classical"');
+    expect(workspaceSource).toContain('recognisedLearnerFocusStageKey !== "middle-primary"');
     expect(revealCard).toContain("worksheetResource && primary");
     expect(revealCard).toContain("Worksheet ready");
   });
