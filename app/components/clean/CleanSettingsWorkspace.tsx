@@ -30,6 +30,7 @@ import {
 import type { FamilyProfile } from "@/lib/clean/family/types";
 import { PAGE_INTRO_VIDEOS } from "@/lib/clean/pageIntroVideos";
 import { requestCoachStateRefresh } from "@/lib/clean/coach/coachRefresh";
+import { consumePendingMarketplaceDestination } from "@/lib/authPendingMarketplaceDestination";
 import {
   BRENT_COUNTRY_CODE,
   BRENT_REPORTING_HELPER_COPY,
@@ -764,6 +765,12 @@ function CleanSettingsWorkspaceBody() {
       if (guidanceSetupStatus === "active") {
         completeSetupStep("settings");
         router.push("/my-calendar");
+      } else if (!firstSetupMode) {
+        const pendingMarketplaceDestination =
+          consumePendingMarketplaceDestination();
+        if (pendingMarketplaceDestination) {
+          router.push(pendingMarketplaceDestination);
+        }
       }
     } catch (nextError) {
       setError(
