@@ -40,6 +40,7 @@ import {
   writeGuidedStartState,
 } from "@/app/components/clean/guidance/guidedMissions";
 import { getLearnerAbuseCeilingState } from "@/lib/clean/entitlements/freeGuardrails";
+import { consumePendingMarketplaceDestination } from "@/lib/authPendingMarketplaceDestination";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "auto",
@@ -214,6 +215,14 @@ function CleanProfileWorkspaceBody() {
       trackProductEvent("guided_start_step_completed", { mission: "guided-start-family-setup", step: "activation-choice", route: "/my-profile", presentation });
       trackProductEvent("guided_start_completed", { mission: "guided-start-family-setup", step: "complete", route: "/my-profile", presentation });
     }
+
+    if (destination === "/my-day") {
+      const pendingMarketplaceDestination =
+        consumePendingMarketplaceDestination();
+      router.push(pendingMarketplaceDestination || destination);
+      return;
+    }
+
     router.push(destination);
   }
 
