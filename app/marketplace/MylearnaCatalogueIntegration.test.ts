@@ -5,6 +5,8 @@ const home = readFileSync("app/marketplace/page.tsx", "utf8");
 const card = readFileSync("app/marketplace/MylearnaIncludedResourceCard.tsx", "utf8");
 const detail = readFileSync("app/marketplace/mylearna/[handle]/page.tsx", "utf8");
 const catalogue = readFileSync("lib/marketplace/mylearnaCatalog.ts", "utf8");
+const login = readFileSync("app/login/page.tsx", "utf8");
+const emailAuth = readFileSync("app/components/EmailAuthPage.tsx", "utf8");
 
 describe("first-party MyLearna Marketplace catalogue", () => {
   it("appears alongside Shopify without entering the cart flow", () => {
@@ -15,10 +17,15 @@ describe("first-party MyLearna Marketplace catalogue", () => {
     expect(detail).not.toContain("useMarketplaceCart");
   });
 
-  it("hands discovery into the authenticated Resource Cupboard and Pathways", () => {
+  it("preserves the Cupboard save destination through sign-in and Pathways", () => {
     expect(detail).toContain('"/my-resources?add_marketplace="');
+    expect(detail).toContain('const saveHref = \`/login?next=');
     expect(detail).toContain("Save to My Resource Cupboard");
     expect(detail).toContain("Open in My Pathways");
+    expect(login).toContain("normalizeAuthNextPath");
+    expect(login).toContain("redirect(nextPath)");
+    expect(emailAuth).toContain('nextPath.startsWith("/my-resources")');
+    expect(emailAuth).toContain('"My Resource Cupboard"');
     expect(catalogue).toContain("pathwayHref:");
     expect(catalogue).toContain("MYL-CLASSICAL-Y34-A-U1-E01");
   });
