@@ -14,7 +14,10 @@ import {
   CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
 } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
-import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
+import {
+  pathwayResourceLabel,
+  type WorksheetResource,
+} from "@/lib/clean/resources/worksheetResources";
 
 type CleanPathwayStepActionRowProps = {
   captureHref: string;
@@ -89,6 +92,10 @@ function appendWorksheetEvidenceParams(
   params.set("worksheetTitle", worksheetResource.title);
   params.set("worksheetHref", worksheetResource.href);
   params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("pathwayResourceType", worksheetResource.resourceType);
+  params.set("pathwayResourceTitle", worksheetResource.title);
+  params.set("pathwayResourceHref", worksheetResource.href);
+  params.set("pathwayResourceFileName", worksheetResource.fileName);
   params.set("includeInPortfolio", "1");
   params.set("includeInReport", "1");
   return `${path}?${params.toString()}`;
@@ -181,6 +188,7 @@ export default function CleanPathwayStepActionRow({
       worksheet: Boolean(worksheetResource) && (worksheetResource?.resourceType === "booklet-pdf" || CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE),
       "capture-evidence": Boolean(captureHref),
     },
+    resourceLabel: pathwayResourceLabel(worksheetResource?.resourceType),
   });
   const resourceActionAlreadyRendered =
     actionPlan.primary === "worksheet" || actionPlan.secondary.includes("worksheet");
