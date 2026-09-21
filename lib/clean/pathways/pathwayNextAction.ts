@@ -50,6 +50,7 @@ export function resolvePathwayNextAction(input: {
   autoCheckStatus: ParentProgressStatus | null;
   parentProgress: ParentProgressStatus;
   availability: PathwayNextActionAvailability;
+  resourceLabel?: string | null;
 }): PathwayNextActionPlan {
   const currentStatus = input.autoCheckStatus || input.parentProgress;
   let primary: PathwayNextAction | null;
