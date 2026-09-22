@@ -309,12 +309,7 @@ export default function CleanPathwayStepActionRow({
       </div>
 
       {bookletPreviewResource ? (
-        <a
-          href={bookletPreviewResource.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Open ${bookletPreviewResource.title} booklet`}
-          onClick={() => trackActionSelection("worksheet", false)}
+        <div
           data-pathway-booklet-preview="true"
           style={{
             width: "min(100%, 520px)",
@@ -327,7 +322,6 @@ export default function CleanPathwayStepActionRow({
             alignItems: "center",
             gap: 12,
             color: "#17204B",
-            textDecoration: "none",
             boxShadow: "0 6px 18px rgba(23, 32, 75, 0.06)",
             boxSizing: "border-box",
           }}
@@ -372,16 +366,13 @@ export default function CleanPathwayStepActionRow({
                 textTransform: "uppercase",
               }}
             >
-              Booklet
+              Booklet preview
             </span>
             <strong style={{ fontSize: 15, lineHeight: 1.3 }}>
               {bookletPreviewResource.title}
             </strong>
-            <span style={{ color: "#4F46E5", fontSize: 13, fontWeight: 800 }}>
-              Open booklet
-            </span>
           </span>
-        </a>
+        </div>
       ) : null}
 
       {actionPlan.primary ? (

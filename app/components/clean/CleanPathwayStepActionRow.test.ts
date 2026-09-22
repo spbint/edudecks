@@ -91,7 +91,7 @@ describe("CleanPathwayStepActionRow", () => {
     );
   });
 
-  it("renders the trusted booklet cover and opens the canonical resource", () => {
+  it("renders the trusted booklet cover as an informational preview", () => {
     render(
       React.createElement(CleanPathwayStepActionRow, {
         captureHref: "/my-capture?source=my-pathways",
@@ -100,21 +100,21 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    const preview = screen.getByRole("link", {
-      name: "Open From Wandering to Settlement booklet",
-    });
+    const preview = document.querySelector('[data-pathway-booklet-preview="true"]');
     const cover = screen.getByRole("img", {
       name: "Cover of From Wandering to Settlement booklet",
     });
 
-    expect(preview.getAttribute("href")).toBe(bookletResource.href);
-    expect(preview.getAttribute("target")).toBe("_blank");
-    expect(preview.getAttribute("data-pathway-booklet-preview")).toBe("true");
-    expect(preview.getAttribute("style")).toContain("flex-wrap: wrap");
+    expect(preview).toBeTruthy();
+    expect(preview?.tagName).toBe("DIV");
+    expect(preview?.closest("a")).toBeNull();
+    expect(preview?.getAttribute("style")).toContain("flex-wrap: wrap");
     expect(cover.getAttribute("src")).toBe(bookletResource.previewImageUrl);
-    expect(screen.getByText("Booklet")).toBeTruthy();
+    expect(screen.getByText("Booklet preview")).toBeTruthy();
     expect(screen.getByText(bookletResource.title)).toBeTruthy();
-    expect(screen.getByText("Open booklet")).toBeTruthy();
+    expect(
+      screen.queryByRole("link", { name: "Open From Wandering to Settlement booklet" }),
+    ).toBeNull();
     expect(screen.getByRole("link", { name: "Download booklet" }).getAttribute("href")).toBe(
       bookletResource.href,
     );
@@ -177,10 +177,14 @@ describe("CleanPathwayStepActionRow", () => {
       }),
     );
 
-    const preview = screen.getByRole("link", {
-      name: "Open A Different Registered Booklet booklet",
-    });
-    expect(preview.getAttribute("href")).toBe(futureBooklet.href);
+    const preview = document.querySelector('[data-pathway-booklet-preview="true"]');
+    expect(preview).toBeTruthy();
+    expect(preview?.closest("a")).toBeNull();
+    expect(screen.getByText("Booklet preview")).toBeTruthy();
+    expect(screen.getByText(futureBooklet.title)).toBeTruthy();
+    expect(
+      screen.queryByRole("link", { name: "Open A Different Registered Booklet booklet" }),
+    ).toBeNull();
     expect(
       screen
         .getByRole("img", { name: "Cover of A Different Registered Booklet booklet" })
