@@ -35,6 +35,7 @@ const bookletResource: WorksheetResource = {
   fileName: "MyLearna-Classical-Y3-4-Cycle-A-Encounter-1-From-Wandering-to-Settlement.pdf",
   href: "/api/classical/booklets/y3-4-a-u1-e01",
   resourceType: "booklet-pdf",
+  previewImageUrl: "https://cdn.shopify.com/encounter-one-cover.png",
   marketplaceExternalProductId: "MYL-CLASSICAL-Y34-A-U1-E01",
 };
 
@@ -88,6 +89,103 @@ describe("CleanPathwayStepActionRow", () => {
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
       "Download booklet",
     );
+  });
+
+  it("renders the trusted booklet cover and opens the canonical resource", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const preview = screen.getByRole("link", {
+      name: "Open From Wandering to Settlement booklet",
+    });
+    const cover = screen.getByRole("img", {
+      name: "Cover of From Wandering to Settlement booklet",
+    });
+
+    expect(preview.getAttribute("href")).toBe(bookletResource.href);
+    expect(preview.getAttribute("target")).toBe("_blank");
+    expect(preview.getAttribute("data-pathway-booklet-preview")).toBe("true");
+    expect(preview.getAttribute("style")).toContain("flex-wrap: wrap");
+    expect(cover.getAttribute("src")).toBe(bookletResource.previewImageUrl);
+    expect(screen.getByText("Booklet")).toBeTruthy();
+    expect(screen.getByText(bookletResource.title)).toBeTruthy();
+    expect(screen.getByText("Open booklet")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Download booklet" }).getAttribute("href")).toBe(
+      bookletResource.href,
+    );
+  });
+
+  it("does not render a booklet preview for an ordinary worksheet", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: worksheetResource.title,
+        worksheetResource: {
+          ...worksheetResource,
+          previewImageUrl: "https://cdn.shopify.com/worksheet-preview.png",
+        },
+      }),
+    );
+
+    expect(document.querySelector('[data-pathway-booklet-preview="true"]')).toBeNull();
+    expect(screen.getByRole("link", { name: "Download worksheet" })).toBeTruthy();
+  });
+
+  it("keeps Download booklet when an eligible booklet has no preview image", () => {
+    const resourceWithoutPreview = {
+      ...bookletResource,
+      previewImageUrl: undefined,
+    };
+
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: resourceWithoutPreview.title,
+        worksheetResource: resourceWithoutPreview,
+      }),
+    );
+
+    expect(document.querySelector('[data-pathway-booklet-preview="true"]')).toBeNull();
+    expect(screen.getByRole("link", { name: "Download booklet" }).getAttribute("href")).toBe(
+      resourceWithoutPreview.href,
+    );
+  });
+
+  it("renders a different booklet entirely from its resource metadata", () => {
+    const futureBooklet = {
+      ...bookletResource,
+      pathwayStepId:
+        "classical::history-and-civilisation::middle-primary::test-fixture-booklet",
+      stepKey: "test-fixture-booklet",
+      title: "A Different Registered Booklet",
+      href: "/api/classical/booklets/test-fixture-booklet",
+      fileName: "A-Different-Registered-Booklet.pdf",
+      previewImageUrl: "https://cdn.shopify.com/different-booklet-cover.png",
+      marketplaceExternalProductId: "TEST-FIXTURE-BOOKLET",
+    } satisfies WorksheetResource;
+
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: futureBooklet.title,
+        worksheetResource: futureBooklet,
+      }),
+    );
+
+    const preview = screen.getByRole("link", {
+      name: "Open A Different Registered Booklet booklet",
+    });
+    expect(preview.getAttribute("href")).toBe(futureBooklet.href);
+    expect(
+      screen
+        .getByRole("img", { name: "Cover of A Different Registered Booklet booklet" })
+        .getAttribute("src"),
+    ).toBe(futureBooklet.previewImageUrl);
   });
 
   it("links the Classical booklet to the same Marketplace catalogue item used by the Cupboard", () => {

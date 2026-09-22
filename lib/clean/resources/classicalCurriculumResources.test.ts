@@ -31,6 +31,9 @@ describe("MyLearna Classical resources", () => {
     expect(resource?.pageImageUrls).toEqual(
       MYLEARNA_CLASSICAL_ENCOUNTER_ONE.resource.pageImageUrls,
     );
+    expect(resource?.previewImageUrl).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.resource.pageImageUrls[0],
+    );
     expect(resource?.title).toBe(MYLEARNA_CLASSICAL_ENCOUNTER_ONE.title);
     expect(resource?.bigQuestion).toBe(
       MYLEARNA_CLASSICAL_ENCOUNTER_ONE.academic.bigQuestion,
