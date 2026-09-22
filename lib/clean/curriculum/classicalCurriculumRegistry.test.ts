@@ -61,6 +61,13 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(uniqueCount(CLASSICAL_CURRICULUM_REGISTRY.map((item) => item.pathway.pathwayStepId))).toBe(
       CLASSICAL_CURRICULUM_REGISTRY.length,
     );
+    expect(
+      uniqueCount(
+        CLASSICAL_CURRICULUM_REGISTRY.map((item) =>
+          item.distribution.externalProductId.toLowerCase(),
+        ),
+      ),
+    ).toBe(CLASSICAL_CURRICULUM_REGISTRY.length);
     const liveEncounters = CLASSICAL_CURRICULUM_REGISTRY.filter(
       (item) => item.releaseState === "live",
     );
@@ -135,5 +142,36 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(() => validateClassicalCurriculumRegistry([drifted])).toThrow(
       /pathwayStepId does not match its component identity/,
     );
+  });
+
+  it("rejects case-variant duplicate Marketplace external product IDs", () => {
+    const duplicateExternalProductId = {
+      ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E99",
+      encounterKey: "years-3-4-cycle-a-unit-1-encounter-99",
+      encounterNumber: 99,
+      pathway: {
+        ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway,
+        stepKey: "duplicate-external-product-id",
+        pathwayStepId:
+          "classical::history-and-civilisation::middle-primary::duplicate-external-product-id",
+      },
+      resource: {
+        ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE.resource,
+        bookletKey: "y3-4-a-u1-e99",
+      },
+      distribution: {
+        ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE.distribution,
+        externalProductId: "myl-classical-y34-a-u1-e01",
+        marketplaceHandle: "classical-y3-4-a-u1-e99-duplicate-product-id",
+      },
+    } as ClassicalEncounterDefinition;
+
+    expect(() =>
+      validateClassicalCurriculumRegistry([
+        MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
+        duplicateExternalProductId,
+      ]),
+    ).toThrow(/Duplicate Classical Marketplace external product ID/);
   });
 });

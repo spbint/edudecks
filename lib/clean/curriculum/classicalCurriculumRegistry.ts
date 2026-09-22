@@ -196,6 +196,7 @@ export function validateClassicalCurriculumRegistry(
   const encounterKeys = new Set<string>();
   const pathwayStepIds = new Set<string>();
   const bookletKeys = new Set<string>();
+  const externalProductIds = new Set<string>();
   const liveMarketplaceHandles = new Set<string>();
 
   for (const encounter of encounters) {
@@ -234,6 +235,11 @@ export function validateClassicalCurriculumRegistry(
       ["encounter key", encounter.encounterKey, encounterKeys],
       ["pathway step id", encounter.pathway.pathwayStepId, pathwayStepIds],
       ["booklet key", encounter.resource.bookletKey, bookletKeys],
+      [
+        "Marketplace external product ID",
+        encounter.distribution.externalProductId,
+        externalProductIds,
+      ],
     ];
 
     if (encounter.releaseState === "live") {
