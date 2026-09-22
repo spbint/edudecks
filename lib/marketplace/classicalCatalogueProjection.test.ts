@@ -184,7 +184,6 @@ describe("Classical catalogue SQL generator", () => {
     const result = spawnSync(
       process.execPath,
       [
-        "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
         "scripts/classical/generate-classical-catalogue-migration.mjs",
         "--code",
         MYLEARNA_CLASSICAL_ENCOUNTER_ONE.curriculumCode,
@@ -200,7 +199,6 @@ describe("Classical catalogue SQL generator", () => {
     const missing = spawnSync(
       process.execPath,
       [
-        "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
         "scripts/classical/generate-classical-catalogue-migration.mjs",
         "--code",
         "UNKNOWN",
