@@ -74,6 +74,13 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(
       uniqueCount(liveEncounters.map((item) => item.distribution.marketplaceHandle)),
     ).toBe(liveEncounters.length);
+    expect(
+      uniqueCount(
+        CLASSICAL_CURRICULUM_REGISTRY.map(
+          (item) => item.distribution.encounterBundleKey,
+        ),
+      ),
+    ).toBe(CLASSICAL_CURRICULUM_REGISTRY.length);
   });
 
   it("preserves all booklet and distribution identities", () => {
@@ -91,6 +98,7 @@ describe("MyLearna Classical curriculum registry", () => {
       marketplaceHandle: "classical-y3-4-a-u1-e01-from-wandering-to-settlement",
       accessModel: "family_included",
       entitlementKey: "family_subscription",
+      encounterBundleKey: "classical-y3-4-a-u1-e01",
       unitBundleKey: "classical-y3-4-a-u1",
       cycleBundleKey: "classical-y3-4-a",
       futurePhysicalPackSupported: true,
@@ -173,5 +181,37 @@ describe("MyLearna Classical curriculum registry", () => {
         duplicateExternalProductId,
       ]),
     ).toThrow(/Duplicate Classical Marketplace external product ID/);
+  });
+
+  it("rejects case-variant duplicate catalogue encounter bundle keys", () => {
+    const duplicateBundleKey = {
+      ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E98",
+      encounterKey: "years-3-4-cycle-a-unit-1-encounter-98",
+      encounterNumber: 98,
+      pathway: {
+        ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway,
+        stepKey: "duplicate-bundle-key",
+        pathwayStepId:
+          "classical::history-and-civilisation::middle-primary::duplicate-bundle-key",
+      },
+      resource: {
+        ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE.resource,
+        bookletKey: "y3-4-a-u1-e98",
+      },
+      distribution: {
+        ...MYLEARNA_CLASSICAL_ENCOUNTER_ONE.distribution,
+        externalProductId: "MYL-CLASSICAL-Y34-A-U1-E98",
+        marketplaceHandle: "classical-y3-4-a-u1-e98-duplicate-bundle-key",
+        encounterBundleKey: "CLASSICAL-Y3-4-A-U1-E01",
+      },
+    } as ClassicalEncounterDefinition;
+
+    expect(() =>
+      validateClassicalCurriculumRegistry([
+        MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
+        duplicateBundleKey,
+      ]),
+    ).toThrow(/Duplicate Classical catalogue encounter bundle key/);
   });
 });

@@ -1,4 +1,9 @@
-import { getLiveClassicalEncounters } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import {
+  CLASSICAL_CURRICULUM_REGISTRY,
+  getLiveClassicalEncounters,
+  type ClassicalEncounterDefinition,
+} from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { buildClassicalCatalogueProjection } from "@/lib/marketplace/classicalCatalogueProjection";
 
 export type MyLearnaMarketplaceResourceScope =
   | "encounter"
@@ -34,39 +39,49 @@ export type MyLearnaMarketplaceResource = {
   futurePhysicalPackSupported: boolean;
 };
 
+export function buildMylearnaMarketplaceResources(
+  encounters: readonly ClassicalEncounterDefinition[],
+): MyLearnaMarketplaceResource[] {
+  return getLiveClassicalEncounters(encounters).map((encounter) => {
+    const projection = buildClassicalCatalogueProjection(encounter);
+    return {
+      externalProductId: projection.external_product_id,
+      handle: projection.handle,
+      title: projection.title,
+      brand: projection.metadata.brand,
+      marketplaceArea: projection.marketplace_area,
+      collection: projection.primary_collection,
+      subcollection: projection.subcollection,
+      scope: projection.metadata.catalogue_kind,
+      resourceFormat: projection.resource_format,
+      coverImageUrl: projection.thumbnail_url || "",
+      description: encounter.distribution.description,
+      bigQuestion: projection.metadata.big_question,
+      bandLabel: encounter.hierarchy.bandLabel,
+      cycleLabel: encounter.hierarchy.cycleLabel,
+      unitLabel: encounter.hierarchy.unitLabel,
+      encounterLabel: encounter.hierarchy.encounterLabel,
+      pageCount: projection.metadata.page_count,
+      pdfHref: projection.metadata.pdf_href,
+      pathwayHref:
+        `/my-pathways?subjectKey=${encodeURIComponent(encounter.pathway.subjectKey)}` +
+        `&strandKey=${encodeURIComponent(encounter.pathway.strandKey)}` +
+        `&stageKey=${encodeURIComponent(encounter.pathway.stageKey)}` +
+        `&pathwayStepId=${encodeURIComponent(encounter.pathway.pathwayStepId)}` +
+        `&stepKey=${encodeURIComponent(encounter.pathway.stepKey)}`,
+      pathwayStepId: projection.metadata.pathway_step_id,
+      accessModel: projection.metadata.access_model,
+      entitlementKey: projection.metadata.entitlement_key,
+      unitBundleKey: projection.metadata.bundle_hierarchy.unit_key,
+      cycleBundleKey: projection.metadata.bundle_hierarchy.cycle_key,
+      futurePhysicalPackSupported:
+        projection.metadata.future_physical_pack_supported,
+    };
+  });
+}
+
 export const MYLEARNA_MARKETPLACE_RESOURCES: MyLearnaMarketplaceResource[] =
-  getLiveClassicalEncounters().map((encounter) => ({
-    externalProductId: encounter.distribution.externalProductId,
-    handle: encounter.distribution.marketplaceHandle,
-    title: encounter.title,
-    brand: "MyLearna Classical",
-    marketplaceArea: encounter.distribution.marketplaceArea,
-    collection: encounter.distribution.collection,
-    subcollection: encounter.distribution.subcollection,
-    scope: encounter.distribution.scope,
-    resourceFormat: encounter.resource.resourceType,
-    coverImageUrl: encounter.resource.pageImageUrls[0] || "",
-    description: encounter.distribution.description,
-    bigQuestion: encounter.academic.bigQuestion,
-    bandLabel: encounter.hierarchy.bandLabel,
-    cycleLabel: encounter.hierarchy.cycleLabel,
-    unitLabel: encounter.hierarchy.unitLabel,
-    encounterLabel: encounter.hierarchy.encounterLabel,
-    pageCount: encounter.resource.pageImageUrls.length,
-    pdfHref: encounter.resource.pdfHref,
-    pathwayHref:
-      `/my-pathways?subjectKey=${encodeURIComponent(encounter.pathway.subjectKey)}` +
-      `&strandKey=${encodeURIComponent(encounter.pathway.strandKey)}` +
-      `&stageKey=${encodeURIComponent(encounter.pathway.stageKey)}` +
-      `&pathwayStepId=${encodeURIComponent(encounter.pathway.pathwayStepId)}` +
-      `&stepKey=${encodeURIComponent(encounter.pathway.stepKey)}`,
-    pathwayStepId: encounter.pathway.pathwayStepId,
-    accessModel: encounter.distribution.accessModel,
-    entitlementKey: encounter.distribution.entitlementKey,
-    unitBundleKey: encounter.distribution.unitBundleKey,
-    cycleBundleKey: encounter.distribution.cycleBundleKey,
-    futurePhysicalPackSupported: encounter.distribution.futurePhysicalPackSupported,
-  }));
+  buildMylearnaMarketplaceResources(CLASSICAL_CURRICULUM_REGISTRY);
 
 export function getMylearnaMarketplaceResourceByHandle(handle: string) {
   const cleanHandle = String(handle ?? "").trim().toLowerCase();
