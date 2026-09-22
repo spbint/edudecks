@@ -192,6 +192,12 @@ export default function CleanPathwayStepActionRow({
   });
   const resourceActionAlreadyRendered =
     actionPlan.primary === "worksheet" || actionPlan.secondary.includes("worksheet");
+  const bookletPreviewResource =
+    worksheetResource?.resourceType === "booklet-pdf" &&
+    worksheetResource.previewImageUrl &&
+    worksheetResource.href
+      ? worksheetResource
+      : null;
   const actionAnalyticsContext = {
     subjectKey,
     strandKey,
@@ -301,6 +307,73 @@ export default function CleanPathwayStepActionRow({
           </span>
         ) : null}
       </div>
+
+      {bookletPreviewResource ? (
+        <div
+          data-pathway-booklet-preview="true"
+          style={{
+            width: "min(100%, 520px)",
+            border: "1px solid #D9D0FF",
+            borderRadius: 16,
+            background: "#FAF9FF",
+            padding: 12,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 12,
+            color: "#17204B",
+            boxShadow: "0 6px 18px rgba(23, 32, 75, 0.06)",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* The trusted Shopify CDN is already rendered directly by Marketplace. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bookletPreviewResource.previewImageUrl}
+            alt={`Cover of ${bookletPreviewResource.title} booklet`}
+            width={112}
+            height={158}
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+            }}
+            style={{
+              width: "clamp(82px, 28vw, 112px)",
+              height: "auto",
+              aspectRatio: "210 / 297",
+              objectFit: "contain",
+              border: "1px solid #E7EAF2",
+              borderRadius: 10,
+              background: "#FFFFFF",
+              boxShadow: "0 5px 14px rgba(23, 32, 75, 0.12)",
+              display: "block",
+              flex: "0 0 auto",
+            }}
+          />
+          <span
+            style={{
+              minWidth: 0,
+              flex: "1 1 150px",
+              display: "grid",
+              gap: 5,
+            }}
+          >
+            <span
+              style={{
+                color: "#6D5BD0",
+                fontSize: 11,
+                fontWeight: 850,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              Booklet preview
+            </span>
+            <strong style={{ fontSize: 15, lineHeight: 1.3 }}>
+              {bookletPreviewResource.title}
+            </strong>
+          </span>
+        </div>
+      ) : null}
 
       {actionPlan.primary ? (
         <div

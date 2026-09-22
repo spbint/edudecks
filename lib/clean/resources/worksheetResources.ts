@@ -56,6 +56,7 @@ export type WorksheetResource = {
   fileName: string;
   href: string;
   resourceType: WorksheetResourceType;
+  previewImageUrl?: string;
 };
 
 export type WorksheetStepContext = {

@@ -49,6 +49,7 @@ function toClassicalCurriculumResource(
     fileName: encounter.resource.fileName,
     href: encounter.resource.pdfHref,
     resourceType: encounter.resource.resourceType,
+    previewImageUrl: encounter.resource.pageImageUrls[0],
     pageImageUrls: [...encounter.resource.pageImageUrls],
   };
 }
