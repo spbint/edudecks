@@ -1,3 +1,4 @@
+import { getLiveClassicalEncounters } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import type { MathematicsDetailedStrandWorkspace } from "@/lib/clean/pathways/mathematicsDetailedStrands";
 import type { PathwayStageKey } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes";
@@ -24,6 +25,30 @@ export const CLASSICAL_DOMAIN_CARDS: SubjectStrandCard[] = [
     status: "first-detailed",
   },
 ];
+
+function buildClassicalEncounterSteps(strandKey: string, stageKey: string) {
+  return getLiveClassicalEncounters()
+    .filter(
+      (encounter) =>
+        encounter.pathway.strandKey === strandKey &&
+        encounter.pathway.stageKey === stageKey,
+    )
+    .sort((left, right) => left.encounterNumber - right.encounterNumber)
+    .map((encounter) => ({
+      id: encounter.encounterNumber,
+      stepKey: encounter.pathway.stepKey,
+      title: `${encounter.hierarchy.encounterLabel} · ${encounter.title}`,
+      meaning: encounter.academic.meaning,
+      skillFocus: encounter.academic.skillFocus,
+      learningIntention: encounter.academic.learningIntention,
+      successCriteria: [...encounter.academic.successCriteria],
+      practiceActivity: encounter.academic.practiceActivity,
+      evidenceExamples: [...encounter.academic.evidenceExamples],
+      assessmentCheck: encounter.academic.assessmentCheck,
+      nextStep: encounter.academic.nextStep,
+      reportLanguage: encounter.academic.reportLanguage,
+    }));
+}
 
 function buildClassicalHistoryAndCivilisationWorkspace(
   currentFocusStageKey: PathwayStageKey,
@@ -59,39 +84,7 @@ function buildClassicalHistoryAndCivilisationWorkspace(
         title: "Years 3-4 · Cycle A: The Ancient World",
         helper:
           "Cycle A begins with the first civilisations and moves through the Ancient Near East, Egypt, Greece, Greek thought, and Rome. Families can move at their own pace rather than following a fixed school-week timetable.",
-        steps: [
-          {
-            id: 1,
-            stepKey: "from-wandering-to-settlement",
-            title: "Encounter 1 · From Wandering to Settlement",
-            meaning:
-              "Understand how farming helped some communities remain in one place for longer and how food storage and surplus could support increasingly complex settlements.",
-            skillFocus:
-              "historical narration, cause and effect, early civilisation vocabulary, map orientation, and evidence-based explanation",
-            learningIntention:
-              "I am learning how farming helped some communities build more permanent settlements.",
-            successCriteria: [
-              "I can explain at least one relationship between agriculture and permanent settlement.",
-              "I can use key words such as agriculture, settlement, domesticate, and surplus accurately.",
-              "I can compare a moving community with a settled farming community.",
-              "I can narrate an important idea from the encounter in my own words.",
-            ],
-            practiceActivity:
-              "Use the MyLearna Classical Encounter 1 booklet. Read and discuss the learning pages, complete the compare-and-sort and map work, narrate the learning, then choose Level A or Level B writing and reasoning tasks.",
-            evidenceExamples: [
-              "a completed map or compare-and-sort activity",
-              "an oral or written narration",
-              "copywork, prepared dictation, or a reasoning paragraph",
-              "a photographed notebook page or parent discussion note",
-            ],
-            assessmentCheck:
-              "Can the learner explain how farming made permanent settlement more practical, using at least one accurate cause-and-effect relationship rather than only defining vocabulary?",
-            nextStep:
-              "Continue to Encounter 2: Rivers and Civilisation — why did so many early civilisations grow near rivers?",
-            reportLanguage:
-              "The learner is developing understanding of how changes in food production contributed to permanent settlement and increasingly complex communities, and can communicate this understanding through narration, map work, and historical reasoning.",
-          },
-        ],
+        steps: buildClassicalEncounterSteps("history-and-civilisation", "middle-primary"),
       },
       {
         key: "upper-primary",

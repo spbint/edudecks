@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import {
   MYLEARNA_CLASSICAL_ENCOUNTER_1_ID,
   MYLEARNA_CLASSICAL_RESOURCES,
@@ -27,5 +28,12 @@ describe("MyLearna Classical resources", () => {
     });
     expect(resource?.pageImageUrls).toHaveLength(10);
     expect(resource?.pageImageUrls.every((url) => url.startsWith("https://cdn.shopify.com/"))).toBe(true);
+    expect(resource?.pageImageUrls).toEqual(
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.resource.pageImageUrls,
+    );
+    expect(resource?.title).toBe(MYLEARNA_CLASSICAL_ENCOUNTER_ONE.title);
+    expect(resource?.bigQuestion).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.academic.bigQuestion,
+    );
   });
 });
