@@ -67,6 +67,7 @@ export type ClassicalEncounterDefinition = {
     scope: ClassicalMarketplaceScope;
     accessModel: ClassicalMarketplaceAccessModel;
     entitlementKey: ClassicalMarketplaceEntitlementKey;
+    encounterBundleKey: string;
     unitBundleKey: string;
     cycleBundleKey: string;
     futurePhysicalPackSupported: boolean;
@@ -170,6 +171,7 @@ const ENCOUNTER_ONE = {
     scope: "encounter",
     accessModel: "family_included",
     entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e01",
     unitBundleKey: "classical-y3-4-a-u1",
     cycleBundleKey: "classical-y3-4-a",
     futurePhysicalPackSupported: true,
@@ -197,6 +199,7 @@ export function validateClassicalCurriculumRegistry(
   const pathwayStepIds = new Set<string>();
   const bookletKeys = new Set<string>();
   const externalProductIds = new Set<string>();
+  const encounterBundleKeys = new Set<string>();
   const liveMarketplaceHandles = new Set<string>();
 
   for (const encounter of encounters) {
@@ -214,6 +217,7 @@ export function validateClassicalCurriculumRegistry(
       bookletKey: encounter.resource.bookletKey,
       externalProductId: encounter.distribution.externalProductId,
       marketplaceHandle: encounter.distribution.marketplaceHandle,
+      encounterBundleKey: encounter.distribution.encounterBundleKey,
       unitBundleKey: encounter.distribution.unitBundleKey,
       cycleBundleKey: encounter.distribution.cycleBundleKey,
     };
@@ -239,6 +243,11 @@ export function validateClassicalCurriculumRegistry(
         "Marketplace external product ID",
         encounter.distribution.externalProductId,
         externalProductIds,
+      ],
+      [
+        "catalogue encounter bundle key",
+        encounter.distribution.encounterBundleKey,
+        encounterBundleKeys,
       ],
     ];
 
@@ -288,8 +297,10 @@ const BY_BOOKLET_KEY = new Map(
   ),
 );
 
-export function getLiveClassicalEncounters() {
-  return CLASSICAL_CURRICULUM_REGISTRY.filter(
+export function getLiveClassicalEncounters(
+  encounters: readonly ClassicalEncounterDefinition[] = CLASSICAL_CURRICULUM_REGISTRY,
+) {
+  return encounters.filter(
     (encounter) => encounter.releaseState === "live",
   );
 }
@@ -321,6 +332,19 @@ export function getClassicalEncounterByMarketplaceHandle(handle: string) {
   return BY_MARKETPLACE_HANDLE.get(normalize(handle).toLowerCase()) ?? null;
 }
 
-export function getLiveClassicalEncounterByBookletKey(bookletKey: string) {
-  return BY_BOOKLET_KEY.get(normalize(bookletKey).toLowerCase()) ?? null;
+export function getLiveClassicalEncounterByBookletKey(
+  bookletKey: string,
+  encounters: readonly ClassicalEncounterDefinition[] = CLASSICAL_CURRICULUM_REGISTRY,
+) {
+  if (encounters === CLASSICAL_CURRICULUM_REGISTRY) {
+    return BY_BOOKLET_KEY.get(normalize(bookletKey).toLowerCase()) ?? null;
+  }
+  const normalizedBookletKey = normalize(bookletKey).toLowerCase();
+  return (
+    encounters.find(
+      (encounter) =>
+        encounter.releaseState === "live" &&
+        encounter.resource.bookletKey.toLowerCase() === normalizedBookletKey,
+    ) ?? null
+  );
 }

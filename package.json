@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "check:migrations": "node scripts/check-migration-filenames.mjs",
+    "classical:catalogue:sql": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/classical/generate-classical-catalogue-migration.mjs",
     "test": "vitest run"
   },
   "dependencies": {

@@ -5,6 +5,10 @@ const registryImport = "@/lib/clean/curriculum/classicalCurriculumRegistry";
 const pathways = readFileSync("lib/clean/pathways/classicalPathways.ts", "utf8");
 const resources = readFileSync("lib/clean/resources/classicalCurriculumResources.ts", "utf8");
 const catalogue = readFileSync("lib/marketplace/mylearnaCatalog.ts", "utf8");
+const projection = readFileSync(
+  "lib/marketplace/classicalCatalogueProjection.ts",
+  "utf8",
+);
 
 describe("Classical curriculum registry dependency direction", () => {
   it("keeps the canonical registry low-level", () => {
@@ -24,7 +28,11 @@ describe("Classical curriculum registry dependency direction", () => {
     }
     expect(pathways).toContain("encounter.academic.meaning");
     expect(resources).toContain("toClassicalCurriculumResource");
-    expect(catalogue).toContain("getLiveClassicalEncounters().map");
+    expect(catalogue).toContain("buildClassicalCatalogueProjection");
+    expect(catalogue).toContain("buildMylearnaMarketplaceResources");
+    expect(projection).toContain("ClassicalEncounterDefinition");
+    expect(projection).not.toContain("mylearnaCatalog");
+    expect(projection).not.toContain("Supabase");
     expect(catalogue).not.toContain("MYLEARNA_CLASSICAL_RESOURCES[0]");
   });
 
