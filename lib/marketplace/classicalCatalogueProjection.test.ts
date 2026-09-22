@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
@@ -207,6 +209,48 @@ describe("Classical catalogue SQL generator", () => {
     );
     expect(missing.status).toBe(1);
     expect(missing.stderr).toContain("Unknown Classical curriculum code");
+  });
+
+  it("transpiles canonical TypeScript instead of asking Node to import it", () => {
+    const script = readFileSync(
+      "scripts/classical/generate-classical-catalogue-migration.mjs",
+      "utf8",
+    );
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    expect(script).toContain('from "typescript"');
+    expect(script).toContain("ts.transpileModule");
+    expect(script).not.toMatch(/from\s+["'][^"']+\.ts["']/);
+    expect(packageJson.scripts["classical:catalogue:sql"]).toBe(
+      "node scripts/classical/generate-classical-catalogue-migration.mjs",
+    );
+  });
+
+  it("writes the same deterministic SQL only when --out is supplied", () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "classical-catalogue-test-"));
+    const outputPath = join(tempRoot, "catalogue.sql");
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [
+          "scripts/classical/generate-classical-catalogue-migration.mjs",
+          "--code",
+          MYLEARNA_CLASSICAL_ENCOUNTER_ONE.curriculumCode,
+          "--out",
+          outputPath,
+        ],
+        { cwd: process.cwd(), encoding: "utf8" },
+      );
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("Wrote deterministic SQL");
+      expect(readFileSync(outputPath, "utf8")).toBe(
+        generateClassicalCatalogueUpsertSql(MYLEARNA_CLASSICAL_ENCOUNTER_ONE),
+      );
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
   });
 });
 
