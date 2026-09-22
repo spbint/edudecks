@@ -154,6 +154,9 @@ describe("Classical catalogue SQL generator", () => {
     expect(first).toBe(second);
     expect(first).toContain("null,");
     expect(first).toContain("on conflict (source, external_product_id) do update");
+    expect(first).toContain(
+      "external_variant_id = excluded.external_variant_id",
+    );
     expect(first).toContain("metadata = excluded.metadata");
     expect(first.toLowerCase()).not.toContain("delete ");
     expect(first).not.toContain("family_resources");
@@ -231,6 +234,7 @@ describe("Classical catalogue release readiness", () => {
     const drifted = {
       ...changed,
       external_product_id: "WRONG-PRODUCT",
+      external_variant_id: "stale-variant-id",
       is_active: false,
       handle: "wrong-handle",
       thumbnail_url: "https://example.test/wrong-cover.png",
@@ -255,6 +259,7 @@ describe("Classical catalogue release readiness", () => {
       expect.arrayContaining([
         "handle",
         "external_product_id",
+        "external_variant_id",
         "thumbnail_url",
         "resource_format",
         "is_active",

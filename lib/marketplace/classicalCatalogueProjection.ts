@@ -170,6 +170,7 @@ values (
 )
 on conflict (source, external_product_id) do update
 set
+  external_variant_id = excluded.external_variant_id,
   handle = excluded.handle,
   title = excluded.title,
   thumbnail_url = excluded.thumbnail_url,
