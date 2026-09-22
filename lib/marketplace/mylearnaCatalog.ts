@@ -1,6 +1,4 @@
-import {
-  MYLEARNA_CLASSICAL_RESOURCES,
-} from "@/lib/clean/resources/classicalCurriculumResources";
+import { getLiveClassicalEncounters } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 
 export type MyLearnaMarketplaceResourceScope =
   | "encounter"
@@ -36,46 +34,39 @@ export type MyLearnaMarketplaceResource = {
   futurePhysicalPackSupported: boolean;
 };
 
-const encounterOne = MYLEARNA_CLASSICAL_RESOURCES[0];
-
-if (!encounterOne?.curriculumCode) {
-  throw new Error("MyLearna Classical Encounter 1 catalogue identity is missing.");
-}
-
-export const MYLEARNA_MARKETPLACE_RESOURCES: MyLearnaMarketplaceResource[] = [
-  {
-    externalProductId: encounterOne.curriculumCode,
-    handle: "classical-y3-4-a-u1-e01-from-wandering-to-settlement",
-    title: encounterOne.title,
+export const MYLEARNA_MARKETPLACE_RESOURCES: MyLearnaMarketplaceResource[] =
+  getLiveClassicalEncounters().map((encounter) => ({
+    externalProductId: encounter.distribution.externalProductId,
+    handle: encounter.distribution.marketplaceHandle,
+    title: encounter.title,
     brand: "MyLearna Classical",
-    marketplaceArea: "Curriculum",
-    collection: "MyLearna Classical",
-    subcollection: "Years 3–4 · Cycle A: The Ancient World",
-    scope: "encounter",
-    resourceFormat: encounterOne.resourceType,
-    coverImageUrl: encounterOne.pageImageUrls[0] || "",
-    description:
-      "A complete MyLearna Classical encounter exploring how farming helped some communities move toward more permanent settlement. The branded booklet combines knowledge, vocabulary, map work, narration, grammar, writing, reasoning and portfolio-ready evidence.",
-    bigQuestion: encounterOne.bigQuestion,
-    bandLabel: "Years 3–4",
-    cycleLabel: "Cycle A: The Ancient World",
-    unitLabel: "Unit 1: The First Civilisations",
-    encounterLabel: "Encounter 1",
-    pageCount: encounterOne.pageImageUrls.length,
-    pdfHref: encounterOne.href,
+    marketplaceArea: encounter.distribution.marketplaceArea,
+    collection: encounter.distribution.collection,
+    subcollection: encounter.distribution.subcollection,
+    scope: encounter.distribution.scope,
+    resourceFormat: encounter.resource.resourceType,
+    coverImageUrl: encounter.resource.pageImageUrls[0] || "",
+    description: encounter.distribution.description,
+    bigQuestion: encounter.academic.bigQuestion,
+    bandLabel: encounter.hierarchy.bandLabel,
+    cycleLabel: encounter.hierarchy.cycleLabel,
+    unitLabel: encounter.hierarchy.unitLabel,
+    encounterLabel: encounter.hierarchy.encounterLabel,
+    pageCount: encounter.resource.pageImageUrls.length,
+    pdfHref: encounter.resource.pdfHref,
     pathwayHref:
-      "/my-pathways?subjectKey=classical&strandKey=history-and-civilisation&stageKey=middle-primary&pathwayStepId=" +
-      encodeURIComponent(encounterOne.pathwayStepId) +
-      "&stepKey=" +
-      encodeURIComponent(encounterOne.stepKey),
-    pathwayStepId: encounterOne.pathwayStepId,
-    accessModel: "family_included",
-    entitlementKey: "family_subscription",
-    unitBundleKey: "classical-y3-4-a-u1",
-    cycleBundleKey: "classical-y3-4-a",
-    futurePhysicalPackSupported: true,
-  },
-];
+      `/my-pathways?subjectKey=${encodeURIComponent(encounter.pathway.subjectKey)}` +
+      `&strandKey=${encodeURIComponent(encounter.pathway.strandKey)}` +
+      `&stageKey=${encodeURIComponent(encounter.pathway.stageKey)}` +
+      `&pathwayStepId=${encodeURIComponent(encounter.pathway.pathwayStepId)}` +
+      `&stepKey=${encodeURIComponent(encounter.pathway.stepKey)}`,
+    pathwayStepId: encounter.pathway.pathwayStepId,
+    accessModel: encounter.distribution.accessModel,
+    entitlementKey: encounter.distribution.entitlementKey,
+    unitBundleKey: encounter.distribution.unitBundleKey,
+    cycleBundleKey: encounter.distribution.cycleBundleKey,
+    futurePhysicalPackSupported: encounter.distribution.futurePhysicalPackSupported,
+  }));
 
 export function getMylearnaMarketplaceResourceByHandle(handle: string) {
   const cleanHandle = String(handle ?? "").trim().toLowerCase();

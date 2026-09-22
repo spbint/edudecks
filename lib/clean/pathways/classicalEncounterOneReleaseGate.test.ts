@@ -6,8 +6,12 @@ const pathwaysSource = readFileSync(
   join(process.cwd(), "app/components/clean/CleanPathwaysWorkspace.tsx"),
   "utf8",
 );
+const bookletBuilderSource = readFileSync(
+  join(process.cwd(), "lib/clean/resources/classicalBookletPdf.server.ts"),
+  "utf8",
+);
 const bookletRouteSource = readFileSync(
-  join(process.cwd(), "app/api/classical/booklets/y3-4-a-u1-e01/route.ts"),
+  join(process.cwd(), "app/api/classical/booklets/[bookletKey]/route.ts"),
   "utf8",
 );
 
@@ -31,8 +35,14 @@ describe("MyLearna Classical Encounter 1 release gate", () => {
   });
 
   it("fetches booklet page assets concurrently and embeds them in source order", () => {
-    expect(bookletRouteSource).toContain("const pageBuffers = await Promise.all(");
-    expect(bookletRouteSource).toContain("resource.pageImageUrls.map(async (imageUrl)");
-    expect(bookletRouteSource).toContain("for (const pageBytes of pageBuffers)");
+    expect(bookletBuilderSource).toContain("const pageBuffers = await Promise.all(");
+    expect(bookletBuilderSource).toContain("encounter.resource.pageImageUrls.map(async (imageUrl)");
+    expect(bookletBuilderSource).toContain("for (const pageBytes of pageBuffers)");
+  });
+
+  it("resolves only trusted registry booklet keys through the scalable route", () => {
+    expect(bookletRouteSource).toContain("context.params");
+    expect(bookletRouteSource).toContain("buildClassicalBookletPdfResponse(bookletKey)");
+    expect(bookletRouteSource).not.toContain("searchParams");
   });
 });

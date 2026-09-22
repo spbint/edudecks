@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_MARKETPLACE_RESOURCES } from "@/lib/marketplace/mylearnaCatalog";
 
 const home = readFileSync("app/marketplace/page.tsx", "utf8");
 const card = readFileSync("app/marketplace/MylearnaIncludedResourceCard.tsx", "utf8");
@@ -52,7 +54,14 @@ describe("first-party MyLearna Marketplace catalogue", () => {
       '"mylearna.auth.pendingMarketplaceDestination"',
     );
     expect(catalogue).toContain("pathwayHref:");
-    expect(catalogue).toContain("MYL-CLASSICAL-Y34-A-U1-E01");
+    expect(MYLEARNA_MARKETPLACE_RESOURCES[0]).toMatchObject({
+      externalProductId: MYLEARNA_CLASSICAL_ENCOUNTER_ONE.distribution.externalProductId,
+      handle: MYLEARNA_CLASSICAL_ENCOUNTER_ONE.distribution.marketplaceHandle,
+      pathwayStepId: MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.pathwayStepId,
+      pdfHref: MYLEARNA_CLASSICAL_ENCOUNTER_ONE.resource.pdfHref,
+      accessModel: "family_included",
+      entitlementKey: "family_subscription",
+    });
   });
 
   it("models encounter, unit, cycle, and future physical-pack hierarchy", () => {

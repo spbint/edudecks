@@ -1,0 +1,50 @@
+import { describe, expect, it } from "vitest";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import {
+  MYLEARNA_MARKETPLACE_RESOURCES,
+  getMylearnaMarketplaceResourceByExternalProductId,
+  getMylearnaMarketplaceResourceByHandle,
+} from "@/lib/marketplace/mylearnaCatalog";
+
+describe("MyLearna Marketplace Classical adapter", () => {
+  it("projects Encounter 1 from the canonical registry without identity drift", () => {
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_ONE;
+    expect(MYLEARNA_MARKETPLACE_RESOURCES).toHaveLength(1);
+    expect(MYLEARNA_MARKETPLACE_RESOURCES[0]).toEqual({
+      externalProductId: encounter.distribution.externalProductId,
+      handle: encounter.distribution.marketplaceHandle,
+      title: encounter.title,
+      brand: "MyLearna Classical",
+      marketplaceArea: encounter.distribution.marketplaceArea,
+      collection: encounter.distribution.collection,
+      subcollection: encounter.distribution.subcollection,
+      scope: encounter.distribution.scope,
+      resourceFormat: encounter.resource.resourceType,
+      coverImageUrl: encounter.resource.pageImageUrls[0],
+      description: encounter.distribution.description,
+      bigQuestion: encounter.academic.bigQuestion,
+      bandLabel: encounter.hierarchy.bandLabel,
+      cycleLabel: encounter.hierarchy.cycleLabel,
+      unitLabel: encounter.hierarchy.unitLabel,
+      encounterLabel: encounter.hierarchy.encounterLabel,
+      pageCount: 10,
+      pdfHref: encounter.resource.pdfHref,
+      pathwayHref:
+        "/my-pathways?subjectKey=classical&strandKey=history-and-civilisation&stageKey=middle-primary&pathwayStepId=" +
+        encodeURIComponent(encounter.pathway.pathwayStepId) +
+        "&stepKey=from-wandering-to-settlement",
+      pathwayStepId: encounter.pathway.pathwayStepId,
+      accessModel: "family_included",
+      entitlementKey: "family_subscription",
+      unitBundleKey: "classical-y3-4-a-u1",
+      cycleBundleKey: "classical-y3-4-a",
+      futurePhysicalPackSupported: true,
+    });
+  });
+
+  it("resolves the same canonical catalogue item through both stable external keys", () => {
+    const item = MYLEARNA_MARKETPLACE_RESOURCES[0];
+    expect(getMylearnaMarketplaceResourceByHandle(item.handle)).toBe(item);
+    expect(getMylearnaMarketplaceResourceByExternalProductId(item.externalProductId)).toBe(item);
+  });
+});

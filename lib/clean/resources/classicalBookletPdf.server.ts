@@ -1,34 +1,21 @@
 import { PDFDocument } from "pdf-lib";
-import {
-  getClassicalCurriculumResourceByCode,
-} from "@/lib/clean/resources/classicalCurriculumResources";
+import { getLiveClassicalEncounterByBookletKey } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 
-export const runtime = "nodejs";
-export const revalidate = 86400;
-
-const RESOURCE_CODE = "MYL-CLASSICAL-Y34-A-U1-E01";
-
-export async function GET() {
-  const resource = getClassicalCurriculumResourceByCode(RESOURCE_CODE);
-  if (!resource) {
+export async function buildClassicalBookletPdfResponse(bookletKey: string) {
+  const encounter = getLiveClassicalEncounterByBookletKey(bookletKey);
+  if (!encounter) {
     return new Response("Classical booklet not found.", { status: 404 });
   }
 
   try {
     const pdf = await PDFDocument.create();
-    pdf.setTitle("MyLearna Classical - Encounter 1 - From Wandering to Settlement");
-    pdf.setAuthor("MyLearna");
-    pdf.setSubject("Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations");
-    pdf.setKeywords([
-      "MyLearna Classical",
-      "homeschool curriculum",
-      "ancient world",
-      "history",
-      "Years 3-4",
-    ]);
+    pdf.setTitle(encounter.resource.pdfMetadata.title);
+    pdf.setAuthor(encounter.resource.pdfMetadata.author);
+    pdf.setSubject(encounter.resource.pdfMetadata.subject);
+    pdf.setKeywords([...encounter.resource.pdfMetadata.keywords]);
 
     const pageBuffers = await Promise.all(
-      resource.pageImageUrls.map(async (imageUrl) => {
+      encounter.resource.pageImageUrls.map(async (imageUrl) => {
         const response = await fetch(imageUrl, { cache: "force-cache" });
         if (!response.ok) {
           throw new Error(`Could not load booklet page: ${response.status}`);
@@ -58,7 +45,7 @@ export async function GET() {
       status: 200,
       headers: {
         "content-type": "application/pdf",
-        "content-disposition": `attachment; filename="${resource.fileName}"`,
+        "content-disposition": `attachment; filename="${encounter.resource.fileName}"`,
         "cache-control": "public, max-age=3600, s-maxage=86400",
       },
     });
