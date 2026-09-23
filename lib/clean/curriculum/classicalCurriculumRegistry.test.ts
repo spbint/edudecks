@@ -101,13 +101,13 @@ describe("MyLearna Classical curriculum registry", () => {
   });
 
 
-  it("stages Encounter 5 with approved identity and assets while keeping it hidden until release", () => {
+  it("releases Encounter 5 with approved identity and assets", () => {
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE).toMatchObject({
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E05",
       encounterKey: "years-3-4-cycle-a-unit-1-encounter-5",
       encounterNumber: 5,
       title: "Trade, Travel and Exchange",
-      releaseState: "planned",
+      releaseState: "live",
       pathway: {
         subjectKey: "classical",
         strandKey: "history-and-civilisation",
@@ -143,8 +143,10 @@ describe("MyLearna Classical curriculum registry", () => {
       getClassicalEncounterByMarketplaceHandle(
         "classical-y3-4-a-u1-e05-trade-travel-and-exchange",
       ),
-    ).toBeNull();
-    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e05")).toBeNull();
+    ).toBe(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE);
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e05")).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
+    );
   });
 
   it("keeps all externally stable registry identities unique", () => {
