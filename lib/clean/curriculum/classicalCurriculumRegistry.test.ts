@@ -3,6 +3,7 @@ import {
   CLASSICAL_CURRICULUM_REGISTRY,
   MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
   MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
+  MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
   getClassicalEncounterByCurriculumCode,
   getClassicalEncounterByMarketplaceHandle,
   getClassicalEncounterByPathwayIdentity,
@@ -27,7 +28,7 @@ const EXPECTED_PAGES = [
 
 describe("MyLearna Classical curriculum registry", () => {
   it("contains Encounter 1 exactly once with its stable identity", () => {
-    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(2);
+    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(3);
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_ONE).toMatchObject({
       curriculumKey: "mylearna-classical",
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E01",
@@ -97,6 +98,53 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e02")).toBe(
       MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
     );
+  });
+
+
+  it("stages Encounter 5 with approved identity and assets while keeping it hidden until release", () => {
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE).toMatchObject({
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E05",
+      encounterKey: "years-3-4-cycle-a-unit-1-encounter-5",
+      encounterNumber: 5,
+      title: "Trade, Travel and Exchange",
+      releaseState: "planned",
+      pathway: {
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "trade-travel-and-exchange",
+        pathwayStepId:
+          "classical::history-and-civilisation::middle-primary::trade-travel-and-exchange",
+      },
+      resource: {
+        bookletKey: "y3-4-a-u1-e05",
+        pdfHref: "/api/classical/booklets/y3-4-a-u1-e05",
+        fileName:
+          "MyLearna-Classical-Y3-4-Cycle-A-Encounter-5-Trade-Travel-and-Exchange.pdf",
+      },
+      distribution: {
+        externalProductId: "MYL-CLASSICAL-Y34-A-U1-E05",
+        marketplaceHandle: "classical-y3-4-a-u1-e05-trade-travel-and-exchange",
+        encounterBundleKey: "classical-y3-4-a-u1-e05",
+        unitBundleKey: "classical-y3-4-a-u1",
+        cycleBundleKey: "classical-y3-4-a",
+      },
+    });
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.resource.pageImageUrls).toHaveLength(10);
+    expect(
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.resource.pageImageUrls.every((url) =>
+        url.startsWith("https://cdn.shopify.com/"),
+      ),
+    ).toBe(true);
+    expect(getClassicalEncounterByCurriculumCode("MYL-CLASSICAL-Y34-A-U1-E05")).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
+    );
+    expect(
+      getClassicalEncounterByMarketplaceHandle(
+        "classical-y3-4-a-u1-e05-trade-travel-and-exchange",
+      ),
+    ).toBeNull();
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e05")).toBeNull();
   });
 
   it("keeps all externally stable registry identities unique", () => {
