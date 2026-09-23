@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
   MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
+  MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
   getLiveClassicalEncounterByBookletKey,
   getLiveClassicalEncounters,
   type ClassicalEncounterDefinition,
@@ -183,6 +184,22 @@ describe("Classical catalogue SQL generator", () => {
     );
     expect(migration).toContain(
       "external_variant_id = excluded.external_variant_id",
+    );
+  });
+
+
+  it("keeps the Encounter 5 forward catalogue migration byte-for-byte aligned with the canonical projection", () => {
+    const migration = readFileSync(
+      "supabase/migrations/20260923112000_publish_classical_encounter_5_catalogue.sql",
+      "utf8",
+    );
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.releaseState).toBe("planned");
+    expect(migration).toBe(
+      generateClassicalCatalogueUpsertSql(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE),
+    );
+    expect(migration).toContain("MYL-CLASSICAL-Y34-A-U1-E05");
+    expect(migration).toContain(
+      "classical::history-and-civilisation::middle-primary::trade-travel-and-exchange",
     );
   });
 
