@@ -284,6 +284,115 @@ const ENCOUNTER_TWO = {
   },
 } as const satisfies ClassicalEncounterDefinition;
 
+
+const ENCOUNTER_FIVE = {
+  curriculumKey: "mylearna-classical",
+  curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E05",
+  encounterKey: "years-3-4-cycle-a-unit-1-encounter-5",
+  encounterNumber: 5,
+  title: "Trade, Travel and Exchange",
+  releaseState: "planned",
+  hierarchy: {
+    bandKey: "years-3-4",
+    bandLabel: "Years 3–4",
+    cycleKey: "a",
+    cycleLabel: "Cycle A: The Ancient World",
+    unitKey: "first-civilisations",
+    unitLabel: "Unit 1: The First Civilisations",
+    encounterLabel: "Encounter 5",
+  },
+  pathway: {
+    subjectKey: "classical",
+    strandKey: "history-and-civilisation",
+    stageKey: "middle-primary",
+    stepKey: "trade-travel-and-exchange",
+    pathwayStepId:
+      "classical::history-and-civilisation::middle-primary::trade-travel-and-exchange",
+  },
+  academic: {
+    bigQuestion: "How did goods, people and ideas connect early civilisations?",
+    coreConcept: "Trade, travel and exchange connected early civilisations",
+    meaning:
+      "Understand how exchange moved goods, people and ideas between early communities through land and water routes, and how historians use evidence to reason about those connections.",
+    skillFocus:
+      "historical narration, trade and route vocabulary, map interpretation, comparison, evidence-based inference, and balanced reasoning",
+    learningIntention:
+      "I am learning how trade, travel and exchange connected early civilisations.",
+    successCriteria: [
+      "I can explain why communities traded.",
+      "I can describe how goods travelled by land and water.",
+      "I can use words such as trade, route, cargo, trader, and exchange accurately.",
+      "I can explain how ideas and techniques could travel with people.",
+      "I can describe evidence before making a cautious historical inference.",
+    ],
+    practiceActivity:
+      "Use the MyLearna Classical Encounter 5 booklet. Read and discuss the learning pages, compare land and water routes, complete the trade-route map work, narrate the learning, then complete the grammar, writing and reasoning tasks.",
+    evidenceExamples: [
+      "a completed trade-route map",
+      "a land-route and water-route compare-and-sort activity",
+      "an oral or written narration",
+      "copywork, prepared dictation, a reasoning response, or a photographed booklet page",
+    ],
+    assessmentCheck:
+      "Can the learner explain how trade connected early communities by describing why people exchanged goods, how goods travelled, and how ideas could move with people, while recognising at least one challenge or limit?",
+    nextStep:
+      "Continue through Unit 1 by building on how exchange connected early civilisations and carried materials, techniques and ideas between places.",
+    reportLanguage:
+      "The learner is developing understanding of how exchange connected early societies through the movement of goods, people and ideas, and can use maps, vocabulary and evidence-based reasoning to explain those connections.",
+  },
+  resource: {
+    resourceType: "booklet-pdf",
+    bookletKey: "y3-4-a-u1-e05",
+    fileName:
+      "MyLearna-Classical-Y3-4-Cycle-A-Encounter-5-Trade-Travel-and-Exchange.pdf",
+    pdfHref: "/api/classical/booklets/y3-4-a-u1-e05",
+    pageImageUrls: [
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-01.png?v=1790163493",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-02.png?v=1790163502",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-03.png?v=1790163513",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-04.png?v=1790163522",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-05.png?v=1790163532",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-06.png?v=1790163543",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-07.png?v=1790163552",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-08.png?v=1790163561",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-09.png?v=1790163570",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e05-page-10.png?v=1790163580",
+    ],
+    includesAnswerGuidance: true,
+    pdfMetadata: {
+      title: "MyLearna Classical - Encounter 5 - Trade, Travel and Exchange",
+      author: "MyLearna",
+      subject: "Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations",
+      keywords: [
+        "MyLearna Classical",
+        "homeschool curriculum",
+        "ancient world",
+        "trade",
+        "travel",
+        "exchange",
+        "history",
+        "Years 3-4",
+      ],
+    },
+  },
+  distribution: {
+    externalProductId: "MYL-CLASSICAL-Y34-A-U1-E05",
+    marketplaceHandle: "classical-y3-4-a-u1-e05-trade-travel-and-exchange",
+    marketplaceArea: "Curriculum",
+    collection: "MyLearna Classical",
+    subcollection: "Years 3–4 · Cycle A: The Ancient World",
+    description:
+      "A complete MyLearna Classical encounter exploring how goods, people and ideas connected early civilisations. The branded booklet combines knowledge, illustrated vocabulary, land-and-water route comparison, map work, narration, grammar, writing, reasoning and portfolio-ready evidence.",
+    scope: "encounter",
+    accessModel: "family_included",
+    entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e05",
+    unitBundleKey: "classical-y3-4-a-u1",
+    cycleBundleKey: "classical-y3-4-a",
+    futurePhysicalPackSupported: true,
+  },
+} as const satisfies ClassicalEncounterDefinition;
+
 function normalize(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -375,7 +484,7 @@ export function validateClassicalCurriculumRegistry(
   }
 }
 
-const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO] as const satisfies readonly ClassicalEncounterDefinition[];
+const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO, ENCOUNTER_FIVE] as const satisfies readonly ClassicalEncounterDefinition[];
 validateClassicalCurriculumRegistry(definitions);
 
 export const CLASSICAL_CURRICULUM_REGISTRY: readonly ClassicalEncounterDefinition[] =
@@ -383,6 +492,7 @@ export const CLASSICAL_CURRICULUM_REGISTRY: readonly ClassicalEncounterDefinitio
 
 export const MYLEARNA_CLASSICAL_ENCOUNTER_ONE = ENCOUNTER_ONE;
 export const MYLEARNA_CLASSICAL_ENCOUNTER_TWO = ENCOUNTER_TWO;
+export const MYLEARNA_CLASSICAL_ENCOUNTER_FIVE = ENCOUNTER_FIVE;
 
 const BY_CURRICULUM_CODE = new Map(
   CLASSICAL_CURRICULUM_REGISTRY.map((encounter) => [
