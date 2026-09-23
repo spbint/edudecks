@@ -178,6 +178,112 @@ const ENCOUNTER_ONE = {
   },
 } as const satisfies ClassicalEncounterDefinition;
 
+
+const ENCOUNTER_TWO = {
+  curriculumKey: "mylearna-classical",
+  curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E02",
+  encounterKey: "years-3-4-cycle-a-unit-1-encounter-2",
+  encounterNumber: 2,
+  title: "Rivers and Civilisation",
+  releaseState: "planned",
+  hierarchy: {
+    bandKey: "years-3-4",
+    bandLabel: "Years 3–4",
+    cycleKey: "a",
+    cycleLabel: "Cycle A: The Ancient World",
+    unitKey: "first-civilisations",
+    unitLabel: "Unit 1: The First Civilisations",
+    encounterLabel: "Encounter 2",
+  },
+  pathway: {
+    subjectKey: "classical",
+    strandKey: "history-and-civilisation",
+    stageKey: "middle-primary",
+    stepKey: "rivers-and-civilisation",
+    pathwayStepId:
+      "classical::history-and-civilisation::middle-primary::rivers-and-civilisation",
+  },
+  academic: {
+    bigQuestion: "Why did so many early civilisations grow near rivers?",
+    coreConcept: "Rivers as foundations for early civilisations",
+    meaning:
+      "Understand how rivers provided water, fertile soil, food, transport and trade routes that helped settlements grow, while also creating challenges such as flooding and changing water levels.",
+    skillFocus:
+      "historical narration, cause and effect, river-civilisation vocabulary, map orientation, comparison, and evidence-based reasoning",
+    learningIntention:
+      "I am learning why many early civilisations grew near rivers.",
+    successCriteria: [
+      "I can explain at least two ways rivers helped early settlements grow.",
+      "I can use key words such as floodplain, irrigation, silt, and civilisation accurately.",
+      "I can locate major early river-civilisation regions on a map.",
+      "I can explain one advantage and one challenge of living near a river.",
+    ],
+    practiceActivity:
+      "Use the MyLearna Classical Encounter 2 booklet. Read and discuss the learning pages, sort river advantages and challenges, complete the river-civilisation map work, narrate the learning, then choose Level A or Level B writing and reasoning tasks.",
+    evidenceExamples: [
+      "a completed river-civilisation map",
+      "a river advantage and challenge compare-and-sort activity",
+      "an oral or written narration",
+      "copywork, prepared dictation, a reasoning response, or a photographed notebook page",
+    ],
+    assessmentCheck:
+      "Can the learner explain why rivers helped early civilisations grow by describing at least two benefits and one challenge, using accurate cause-and-effect reasoning rather than only recalling vocabulary?",
+    nextStep:
+      "Continue through Unit 1: The First Civilisations by building on how settlement, rivers, food production, movement, and trade shaped increasingly complex communities.",
+    reportLanguage:
+      "The learner is developing understanding of why many early civilisations grew near rivers and can explain how water, fertile land, transport and trade supported settlement growth while recognising challenges such as flooding.",
+  },
+  resource: {
+    resourceType: "booklet-pdf",
+    bookletKey: "y3-4-a-u1-e02",
+    fileName:
+      "MyLearna-Classical-Y3-4-Cycle-A-Encounter-2-Rivers-and-Civilisation.pdf",
+    pdfHref: "/api/classical/booklets/y3-4-a-u1-e02",
+    pageImageUrls: [
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-01.png?v=1790144115",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-02.png?v=1790144124",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-03.png?v=1790144136",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-04.png?v=1790144146",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-05.png?v=1790144155",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-06.png?v=1790144166",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-07.png?v=1790144177",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-08.png?v=1790144187",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-09.png?v=1790144199",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e02-page-10.png?v=1790144210",
+    ],
+    includesAnswerGuidance: true,
+    pdfMetadata: {
+      title: "MyLearna Classical - Encounter 2 - Rivers and Civilisation",
+      author: "MyLearna",
+      subject: "Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations",
+      keywords: [
+        "MyLearna Classical",
+        "homeschool curriculum",
+        "ancient world",
+        "river civilisations",
+        "history",
+        "Years 3-4",
+      ],
+    },
+  },
+  distribution: {
+    externalProductId: "MYL-CLASSICAL-Y34-A-U1-E02",
+    marketplaceHandle: "classical-y3-4-a-u1-e02-rivers-and-civilisation",
+    marketplaceArea: "Curriculum",
+    collection: "MyLearna Classical",
+    subcollection: "Years 3–4 · Cycle A: The Ancient World",
+    description:
+      "A complete MyLearna Classical encounter exploring why many early civilisations grew near rivers. The branded booklet combines knowledge, vocabulary, compare-and-sort work, map work, narration, grammar, writing, reasoning and portfolio-ready evidence.",
+    scope: "encounter",
+    accessModel: "family_included",
+    entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e02",
+    unitBundleKey: "classical-y3-4-a-u1",
+    cycleBundleKey: "classical-y3-4-a",
+    futurePhysicalPackSupported: true,
+  },
+} as const satisfies ClassicalEncounterDefinition;
+
 function normalize(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -269,13 +375,14 @@ export function validateClassicalCurriculumRegistry(
   }
 }
 
-const definitions = [ENCOUNTER_ONE] as const satisfies readonly ClassicalEncounterDefinition[];
+const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO] as const satisfies readonly ClassicalEncounterDefinition[];
 validateClassicalCurriculumRegistry(definitions);
 
 export const CLASSICAL_CURRICULUM_REGISTRY: readonly ClassicalEncounterDefinition[] =
   Object.freeze([...definitions]);
 
 export const MYLEARNA_CLASSICAL_ENCOUNTER_ONE = ENCOUNTER_ONE;
+export const MYLEARNA_CLASSICAL_ENCOUNTER_TWO = ENCOUNTER_TWO;
 
 const BY_CURRICULUM_CODE = new Map(
   CLASSICAL_CURRICULUM_REGISTRY.map((encounter) => [
