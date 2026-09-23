@@ -185,7 +185,7 @@ const ENCOUNTER_TWO = {
   encounterKey: "years-3-4-cycle-a-unit-1-encounter-2",
   encounterNumber: 2,
   title: "Rivers and Civilisation",
-  releaseState: "planned",
+  releaseState: "live",
   hierarchy: {
     bandKey: "years-3-4",
     bandLabel: "Years 3–4",

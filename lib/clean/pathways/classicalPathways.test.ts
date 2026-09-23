@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import { CLASSICAL_STRAND_WORKSPACE_BUILDERS } from "@/lib/clean/pathways/classicalPathways";
 import { getPathwayStepsByStrand } from "@/lib/clean/pathways/pathwayStepRegistry";
 
@@ -38,4 +38,36 @@ describe("MyLearna Classical pathways", () => {
     expect(step?.successCriteria).toEqual(canonical.academic.successCriteria);
     expect(step?.evidenceExamples).toEqual(canonical.academic.evidenceExamples);
   });
+
+  it("registers Encounter 2 on the Years 3-4 Ancient World pathway in sequence", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_TWO;
+
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        id: encounter.pathway.pathwayStepId,
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "rivers-and-civilisation",
+        stepTitle: "Encounter 2 · Rivers and Civilisation",
+      }),
+    );
+
+    const workspace =
+      CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const middlePrimary = workspace.stages.find((stage) => stage.key === "middle-primary");
+    expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+    ]);
+    expect(middlePrimary?.steps[1]).toMatchObject({
+      id: 2,
+      stepKey: encounter.pathway.stepKey,
+      meaning: encounter.academic.meaning,
+      learningIntention: encounter.academic.learningIntention,
+      assessmentCheck: encounter.academic.assessmentCheck,
+    });
+  });
+
 });
