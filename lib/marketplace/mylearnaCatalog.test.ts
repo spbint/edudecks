@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import {
   MYLEARNA_MARKETPLACE_RESOURCES,
   getMylearnaMarketplaceResourceByExternalProductId,
@@ -9,7 +9,7 @@ import {
 describe("MyLearna Marketplace Classical adapter", () => {
   it("projects Encounter 1 from the canonical registry without identity drift", () => {
     const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_ONE;
-    expect(MYLEARNA_MARKETPLACE_RESOURCES).toHaveLength(2);
+    expect(MYLEARNA_MARKETPLACE_RESOURCES).toHaveLength(3);
     expect(MYLEARNA_MARKETPLACE_RESOURCES[0]).toEqual({
       externalProductId: encounter.distribution.externalProductId,
       handle: encounter.distribution.marketplaceHandle,
@@ -77,5 +77,37 @@ describe("MyLearna Marketplace Classical adapter", () => {
       ),
     ).toBe(item);
   });
+
+
+  it("projects Encounter 5 into Marketplace with the canonical release identity", () => {
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_FIVE;
+    const item = getMylearnaMarketplaceResourceByHandle(
+      encounter.distribution.marketplaceHandle,
+    );
+
+    expect(item).toMatchObject({
+      externalProductId: "MYL-CLASSICAL-Y34-A-U1-E05",
+      handle: "classical-y3-4-a-u1-e05-trade-travel-and-exchange",
+      title: "Trade, Travel and Exchange",
+      scope: "encounter",
+      resourceFormat: "booklet-pdf",
+      coverImageUrl: encounter.resource.pageImageUrls[0],
+      pageCount: 10,
+      pdfHref: "/api/classical/booklets/y3-4-a-u1-e05",
+      pathwayStepId:
+        "classical::history-and-civilisation::middle-primary::trade-travel-and-exchange",
+      accessModel: "family_included",
+      entitlementKey: "family_subscription",
+      unitBundleKey: "classical-y3-4-a-u1",
+      cycleBundleKey: "classical-y3-4-a",
+      futurePhysicalPackSupported: true,
+    });
+    expect(
+      getMylearnaMarketplaceResourceByExternalProductId(
+        "MYL-CLASSICAL-Y34-A-U1-E05",
+      ),
+    ).toBe(item);
+  });
+
 
 });

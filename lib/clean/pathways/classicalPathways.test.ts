@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import { CLASSICAL_STRAND_WORKSPACE_BUILDERS } from "@/lib/clean/pathways/classicalPathways";
 import { getPathwayStepsByStrand } from "@/lib/clean/pathways/pathwayStepRegistry";
 
@@ -69,5 +69,39 @@ describe("MyLearna Classical pathways", () => {
       assessmentCheck: encounter.academic.assessmentCheck,
     });
   });
+
+
+  it("registers Encounter 5 on the Years 3-4 Ancient World pathway using its canonical identity", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_FIVE;
+
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        id: encounter.pathway.pathwayStepId,
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "trade-travel-and-exchange",
+        stepTitle: "Encounter 5 · Trade, Travel and Exchange",
+      }),
+    );
+
+    const workspace =
+      CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const middlePrimary = workspace.stages.find((stage) => stage.key === "middle-primary");
+    expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.pathway.stepKey,
+    ]);
+    expect(middlePrimary?.steps[2]).toMatchObject({
+      id: 5,
+      stepKey: encounter.pathway.stepKey,
+      meaning: encounter.academic.meaning,
+      learningIntention: encounter.academic.learningIntention,
+      assessmentCheck: encounter.academic.assessmentCheck,
+    });
+  });
+
 
 });

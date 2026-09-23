@@ -291,7 +291,7 @@ const ENCOUNTER_FIVE = {
   encounterKey: "years-3-4-cycle-a-unit-1-encounter-5",
   encounterNumber: 5,
   title: "Trade, Travel and Exchange",
-  releaseState: "planned",
+  releaseState: "live",
   hierarchy: {
     bandKey: "years-3-4",
     bandLabel: "Years 3–4",

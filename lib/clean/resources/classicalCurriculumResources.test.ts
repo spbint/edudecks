@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import {
   MYLEARNA_CLASSICAL_ENCOUNTER_1_ID,
   MYLEARNA_CLASSICAL_RESOURCES,
@@ -8,7 +8,7 @@ import {
 
 describe("MyLearna Classical resources", () => {
   it("maps Encounter 1 to the approved branded booklet", () => {
-    expect(MYLEARNA_CLASSICAL_RESOURCES).toHaveLength(2);
+    expect(MYLEARNA_CLASSICAL_RESOURCES).toHaveLength(3);
 
     const resource = getClassicalCurriculumResourceForPathwayStep({
       pathwayStepId: MYLEARNA_CLASSICAL_ENCOUNTER_1_ID,
@@ -63,5 +63,31 @@ describe("MyLearna Classical resources", () => {
     expect(resource?.pageImageUrls).toHaveLength(10);
     expect(resource?.previewImageUrl).toBe(encounter.resource.pageImageUrls[0]);
   });
+
+
+  it("maps Encounter 5 to the released Trade, Travel and Exchange booklet", () => {
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_FIVE;
+    const resource = getClassicalCurriculumResourceForPathwayStep({
+      pathwayStepId: encounter.pathway.pathwayStepId,
+      subjectKey: encounter.pathway.subjectKey,
+      strandKey: encounter.pathway.strandKey,
+      stageKey: encounter.pathway.stageKey,
+      stepKey: encounter.pathway.stepKey,
+    });
+
+    expect(resource).toMatchObject({
+      pathwayStepId: encounter.pathway.pathwayStepId,
+      resourceType: "booklet-pdf",
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E05",
+      href: "/api/classical/booklets/y3-4-a-u1-e05",
+      includesAnswerSheet: true,
+      encounterNumber: 5,
+      title: "Trade, Travel and Exchange",
+    });
+    expect(resource?.pageImageUrls).toEqual(encounter.resource.pageImageUrls);
+    expect(resource?.pageImageUrls).toHaveLength(10);
+    expect(resource?.previewImageUrl).toBe(encounter.resource.pageImageUrls[0]);
+  });
+
 
 });
