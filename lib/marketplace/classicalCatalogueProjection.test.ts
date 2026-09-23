@@ -173,7 +173,7 @@ describe("Classical catalogue SQL generator", () => {
       "supabase/migrations/20260923062000_publish_classical_encounter_2_catalogue.sql",
       "utf8",
     );
-    expect(MYLEARNA_CLASSICAL_ENCOUNTER_TWO.releaseState).toBe("planned");
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_TWO.releaseState).toBe("live");
     expect(migration).toBe(
       generateClassicalCatalogueUpsertSql(MYLEARNA_CLASSICAL_ENCOUNTER_TWO),
     );
