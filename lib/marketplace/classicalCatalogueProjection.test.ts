@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
+  MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
   getLiveClassicalEncounterByBookletKey,
   getLiveClassicalEncounters,
   type ClassicalEncounterDefinition,
@@ -165,6 +166,24 @@ describe("Classical catalogue SQL generator", () => {
     expect(first).not.toContain("storage.objects");
     expect(first.toLowerCase()).not.toContain("grant ");
     expect(first.toLowerCase()).not.toContain("policy ");
+  });
+
+  it("keeps the Encounter 2 forward catalogue migration byte-for-byte aligned with the canonical projection", () => {
+    const migration = readFileSync(
+      "supabase/migrations/20260923062000_publish_classical_encounter_2_catalogue.sql",
+      "utf8",
+    );
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_TWO.releaseState).toBe("planned");
+    expect(migration).toBe(
+      generateClassicalCatalogueUpsertSql(MYLEARNA_CLASSICAL_ENCOUNTER_TWO),
+    );
+    expect(migration).toContain("MYL-CLASSICAL-Y34-A-U1-E02");
+    expect(migration).toContain(
+      "classical::history-and-civilisation::middle-primary::rivers-and-civilisation",
+    );
+    expect(migration).toContain(
+      "external_variant_id = excluded.external_variant_id",
+    );
   });
 
   it("safely quotes apostrophes and preserves Unicode and JSON determinism", () => {
