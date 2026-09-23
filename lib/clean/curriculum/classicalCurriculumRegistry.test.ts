@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CLASSICAL_CURRICULUM_REGISTRY,
   MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
+  MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
   getClassicalEncounterByCurriculumCode,
   getClassicalEncounterByMarketplaceHandle,
   getClassicalEncounterByPathwayIdentity,
@@ -26,7 +27,7 @@ const EXPECTED_PAGES = [
 
 describe("MyLearna Classical curriculum registry", () => {
   it("contains Encounter 1 exactly once with its stable identity", () => {
-    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(1);
+    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(2);
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_ONE).toMatchObject({
       curriculumKey: "mylearna-classical",
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E01",
@@ -48,6 +49,52 @@ describe("MyLearna Classical curriculum registry", () => {
           "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
       },
     });
+  });
+
+  it("stages Encounter 2 with approved identity and assets while keeping it hidden until release", () => {
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_TWO).toMatchObject({
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E02",
+      encounterKey: "years-3-4-cycle-a-unit-1-encounter-2",
+      encounterNumber: 2,
+      title: "Rivers and Civilisation",
+      releaseState: "planned",
+      pathway: {
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "rivers-and-civilisation",
+        pathwayStepId:
+          "classical::history-and-civilisation::middle-primary::rivers-and-civilisation",
+      },
+      resource: {
+        bookletKey: "y3-4-a-u1-e02",
+        pdfHref: "/api/classical/booklets/y3-4-a-u1-e02",
+        fileName:
+          "MyLearna-Classical-Y3-4-Cycle-A-Encounter-2-Rivers-and-Civilisation.pdf",
+      },
+      distribution: {
+        externalProductId: "MYL-CLASSICAL-Y34-A-U1-E02",
+        marketplaceHandle: "classical-y3-4-a-u1-e02-rivers-and-civilisation",
+        encounterBundleKey: "classical-y3-4-a-u1-e02",
+        unitBundleKey: "classical-y3-4-a-u1",
+        cycleBundleKey: "classical-y3-4-a",
+      },
+    });
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_TWO.resource.pageImageUrls).toHaveLength(10);
+    expect(
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.resource.pageImageUrls.every((url) =>
+        url.startsWith("https://cdn.shopify.com/"),
+      ),
+    ).toBe(true);
+    expect(getClassicalEncounterByCurriculumCode("MYL-CLASSICAL-Y34-A-U1-E02")).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
+    );
+    expect(
+      getClassicalEncounterByMarketplaceHandle(
+        "classical-y3-4-a-u1-e02-rivers-and-civilisation",
+      ),
+    ).toBeNull();
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e02")).toBeNull();
   });
 
   it("keeps all externally stable registry identities unique", () => {
