@@ -193,7 +193,7 @@ describe("Classical catalogue SQL generator", () => {
 
   it("keeps the Encounter 3 forward catalogue migration byte-for-byte aligned with the canonical projection", () => {
     const migration = readFileSync("supabase/migrations/20260924063500_publish_classical_encounter_3_catalogue.sql", "utf8");
-    expect(MYLEARNA_CLASSICAL_ENCOUNTER_THREE.releaseState).toBe("planned");
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_THREE.releaseState).toBe("live");
     expect(migration).toBe(
       generateClassicalCatalogueUpsertSql(MYLEARNA_CLASSICAL_ENCOUNTER_THREE),
     );
@@ -202,7 +202,7 @@ describe("Classical catalogue SQL generator", () => {
 
   it("keeps the Encounter 4 forward catalogue migration byte-for-byte aligned with the canonical projection", () => {
     const migration = readFileSync("supabase/migrations/20260924064000_publish_classical_encounter_4_catalogue.sql", "utf8");
-    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.releaseState).toBe("planned");
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.releaseState).toBe("live");
     expect(migration).toBe(
       generateClassicalCatalogueUpsertSql(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR),
     );
