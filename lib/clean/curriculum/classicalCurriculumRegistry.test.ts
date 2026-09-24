@@ -3,6 +3,8 @@ import {
   CLASSICAL_CURRICULUM_REGISTRY,
   MYLEARNA_CLASSICAL_ENCOUNTER_ONE,
   MYLEARNA_CLASSICAL_ENCOUNTER_TWO,
+  MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
+  MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
   MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
   getClassicalEncounterByCurriculumCode,
   getClassicalEncounterByMarketplaceHandle,
@@ -28,7 +30,7 @@ const EXPECTED_PAGES = [
 
 describe("MyLearna Classical curriculum registry", () => {
   it("contains Encounter 1 exactly once with its stable identity", () => {
-    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(3);
+    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(5);
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_ONE).toMatchObject({
       curriculumKey: "mylearna-classical",
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E01",
@@ -100,6 +102,76 @@ describe("MyLearna Classical curriculum registry", () => {
     );
   });
 
+
+
+  it("stages Encounter 3 with approved identity and booklet assets while keeping it hidden until release", () => {
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_THREE).toMatchObject({
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E03",
+      encounterKey: "years-3-4-cycle-a-unit-1-encounter-3",
+      encounterNumber: 3,
+      title: "From Villages to Cities",
+      releaseState: "planned",
+      pathway: {
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "from-villages-to-cities",
+        pathwayStepId:
+          "classical::history-and-civilisation::middle-primary::from-villages-to-cities",
+      },
+      resource: {
+        bookletKey: "y3-4-a-u1-e03",
+        pdfHref: "/api/classical/booklets/y3-4-a-u1-e03",
+        fileName:
+          "MyLearna-Classical-Y3-4-Cycle-A-Encounter-3-From-Villages-to-Cities.pdf",
+      },
+      distribution: {
+        externalProductId: "MYL-CLASSICAL-Y34-A-U1-E03",
+        marketplaceHandle: "classical-y3-4-a-u1-e03-from-villages-to-cities",
+        encounterBundleKey: "classical-y3-4-a-u1-e03",
+      },
+    });
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_THREE.resource.pageImageUrls).toHaveLength(15);
+    expect(getClassicalEncounterByMarketplaceHandle(
+      "classical-y3-4-a-u1-e03-from-villages-to-cities",
+    )).toBeNull();
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e03")).toBeNull();
+  });
+
+
+  it("stages Encounter 4 with approved identity and booklet assets while keeping it hidden until release", () => {
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR).toMatchObject({
+      curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E04",
+      encounterKey: "years-3-4-cycle-a-unit-1-encounter-4",
+      encounterNumber: 4,
+      title: "Inventions and Ideas",
+      releaseState: "planned",
+      pathway: {
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "inventions-and-ideas",
+        pathwayStepId:
+          "classical::history-and-civilisation::middle-primary::inventions-and-ideas",
+      },
+      resource: {
+        bookletKey: "y3-4-a-u1-e04",
+        pdfHref: "/api/classical/booklets/y3-4-a-u1-e04",
+        fileName:
+          "MyLearna-Classical-Y3-4-Cycle-A-Encounter-4-Inventions-and-Ideas.pdf",
+      },
+      distribution: {
+        externalProductId: "MYL-CLASSICAL-Y34-A-U1-E04",
+        marketplaceHandle: "classical-y3-4-a-u1-e04-inventions-and-ideas",
+        encounterBundleKey: "classical-y3-4-a-u1-e04",
+      },
+    });
+    expect(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.resource.pageImageUrls).toHaveLength(16);
+    expect(getClassicalEncounterByMarketplaceHandle(
+      "classical-y3-4-a-u1-e04-inventions-and-ideas",
+    )).toBeNull();
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e04")).toBeNull();
+  });
 
   it("releases Encounter 5 with approved identity and assets", () => {
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_FIVE).toMatchObject({

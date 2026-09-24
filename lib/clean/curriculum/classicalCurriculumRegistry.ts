@@ -285,6 +285,236 @@ const ENCOUNTER_TWO = {
 } as const satisfies ClassicalEncounterDefinition;
 
 
+
+const ENCOUNTER_THREE = {
+  curriculumKey: "mylearna-classical",
+  curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E03",
+  encounterKey: "years-3-4-cycle-a-unit-1-encounter-3",
+  encounterNumber: 3,
+  title: "From Villages to Cities",
+  releaseState: "planned",
+  hierarchy: {
+    bandKey: "years-3-4",
+    bandLabel: "Years 3–4",
+    cycleKey: "a",
+    cycleLabel: "Cycle A: The Ancient World",
+    unitKey: "first-civilisations",
+    unitLabel: "Unit 1: The First Civilisations",
+    encounterLabel: "Encounter 3",
+  },
+  pathway: {
+    subjectKey: "classical",
+    strandKey: "history-and-civilisation",
+    stageKey: "middle-primary",
+    stepKey: "from-villages-to-cities",
+    pathwayStepId:
+      "classical::history-and-civilisation::middle-primary::from-villages-to-cities",
+  },
+  academic: {
+    bigQuestion: "What changes when a settlement grows into a city?",
+    coreConcept: "How growing settlements became increasingly complex early cities",
+    meaning:
+      "Understand how reliable food, population growth, specialised work, markets, infrastructure, leadership and shared institutions could make some settlements larger and more complex.",
+    skillFocus:
+      "historical narration, village-city comparison, early-city vocabulary, map orientation, evidence-based inference, cause and effect, and balanced reasoning",
+    learningIntention:
+      "I am learning how some settlements grew into increasingly complex cities.",
+    successCriteria: [
+      "I can explain why some settlements grew larger.",
+      "I can identify specialised work, trade or infrastructure in an early city.",
+      "I can use key early-city vocabulary accurately.",
+      "I can describe evidence historians use before making an inference.",
+      "I can give a reasoned view about advantages and challenges of city life.",
+    ],
+    practiceActivity:
+      "Use the MyLearna Classical Encounter 3 booklet. Read and discuss the learning pages, compare village and city features, complete the early-cities map work, examine archaeological evidence, narrate the learning, then complete the grammar and reasoning tasks.",
+    evidenceExamples: [
+      "a completed early-cities map",
+      "a village-or-city compare-and-sort activity",
+      "an oral or written narration",
+      "an evidence observation",
+      "a reasoning response or photographed notebook/activity page",
+    ],
+    assessmentCheck:
+      "Can the learner explain what changes as a settlement grows into a city, using relationships among population, specialised work, trade, infrastructure, organisation and evidence rather than only naming features?",
+    nextStep:
+      "Continue to Encounter 4: Inventions and Ideas — how did inventions and ideas help early civilisations solve problems and grow?",
+    reportLanguage:
+      "The learner is developing understanding of how some settlements grew into increasingly complex cities, and can explain the roles of specialised work, exchange, infrastructure, organisation and archaeological evidence.",
+  },
+  resource: {
+    resourceType: "booklet-pdf",
+    bookletKey: "y3-4-a-u1-e03",
+    fileName:
+      "MyLearna-Classical-Y3-4-Cycle-A-Encounter-3-From-Villages-to-Cities.pdf",
+    pdfHref: "/api/classical/booklets/y3-4-a-u1-e03",
+    pageImageUrls: [
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-01_2f43834e-75bb-478d-9006-02c54d7d1af6.png?v=1790231674",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-02_194154a4-d24f-4103-950a-acb4d3cbb4fd.png?v=1790231682",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-03_a187cdb1-c55c-44aa-8a89-f32a3b1732ef.png?v=1790231691",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-04_dc0bc944-01ab-4e4f-94cb-9514a1600a59.png?v=1790231700",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-05_318cfd39-b12e-4cb6-97d7-91570ddec110.png?v=1790231708",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-06_1348ec6a-fd76-4490-baa9-966555bac132.png?v=1790231862",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-07_d7290475-ac5a-4449-88f8-822f21b38c37.png?v=1790231900",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-08_abc5ba5c-3a55-4783-a237-f0986e9f7aa9.png?v=1790231909",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-09_82eefc64-5818-4e67-9981-841cdee85a34.png?v=1790231918",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-10_88ad3c83-204b-45a1-9ec2-30c109750d8a.png?v=1790231926",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-11.png?v=1790231935",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-12.png?v=1790231959",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-13.png?v=1790231968",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-14.png?v=1790231983",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e03-page-15.png?v=1790231991",
+    ],
+    includesAnswerGuidance: true,
+    pdfMetadata: {
+      title: "MyLearna Classical - Encounter 3 - From Villages to Cities",
+      author: "MyLearna",
+      subject: "Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations",
+      keywords: [
+        "MyLearna Classical",
+        "homeschool curriculum",
+        "ancient world",
+        "early cities",
+        "civilisation",
+        "history",
+        "Years 3-4",
+      ],
+    },
+  },
+  distribution: {
+    externalProductId: "MYL-CLASSICAL-Y34-A-U1-E03",
+    marketplaceHandle: "classical-y3-4-a-u1-e03-from-villages-to-cities",
+    marketplaceArea: "Curriculum",
+    collection: "MyLearna Classical",
+    subcollection: "Years 3–4 · Cycle A: The Ancient World",
+    description:
+      "A complete MyLearna Classical encounter exploring how some settlements grew into increasingly complex cities. The branded booklet combines knowledge, vocabulary, specialised work, markets, organisation, compare-and-sort work, map work, historical evidence, narration, grammar, reasoning and portfolio-ready evidence.",
+    scope: "encounter",
+    accessModel: "family_included",
+    entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e03",
+    unitBundleKey: "classical-y3-4-a-u1",
+    cycleBundleKey: "classical-y3-4-a",
+    futurePhysicalPackSupported: true,
+  },
+} as const satisfies ClassicalEncounterDefinition;
+
+
+const ENCOUNTER_FOUR = {
+  curriculumKey: "mylearna-classical",
+  curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E04",
+  encounterKey: "years-3-4-cycle-a-unit-1-encounter-4",
+  encounterNumber: 4,
+  title: "Inventions and Ideas",
+  releaseState: "planned",
+  hierarchy: {
+    bandKey: "years-3-4",
+    bandLabel: "Years 3–4",
+    cycleKey: "a",
+    cycleLabel: "Cycle A: The Ancient World",
+    unitKey: "first-civilisations",
+    unitLabel: "Unit 1: The First Civilisations",
+    encounterLabel: "Encounter 4",
+  },
+  pathway: {
+    subjectKey: "classical",
+    strandKey: "history-and-civilisation",
+    stageKey: "middle-primary",
+    stepKey: "inventions-and-ideas",
+    pathwayStepId:
+      "classical::history-and-civilisation::middle-primary::inventions-and-ideas",
+  },
+  academic: {
+    bigQuestion: "How did inventions and ideas help early civilisations solve problems and grow?",
+    coreConcept: "Tools, systems and shared ideas helped early societies solve practical problems",
+    meaning:
+      "Understand how writing, numbers, measurement, engineering, transport, water management, skilled making and shared knowledge helped early communities organise work, solve problems and preserve information.",
+    skillFocus:
+      "historical narration, problem-solution reasoning, technology vocabulary, systems thinking, evidence-based inference, comparison, and cautious claims about how ideas travel",
+    learningIntention:
+      "I am learning how inventions, systems and shared ideas helped early civilisations solve problems and grow.",
+    successCriteria: [
+      "I can explain how a tool or system solved a practical problem.",
+      "I can distinguish a physical object from a shared system or idea.",
+      "I can use vocabulary such as invention, innovation and engineering accurately.",
+      "I can describe evidence before making an inference.",
+      "I can explain that ideas may develop independently or travel between societies.",
+    ],
+    practiceActivity:
+      "Use the MyLearna Classical Encounter 4 booklet. Read and discuss the learning pages on writing, numbers, engineering, transport, water and skilled work; complete the problem-solution activity, examine evidence, narrate the learning, then complete the language and reasoning tasks.",
+    evidenceExamples: [
+      "a problem-solution activity",
+      "an oral or written narration",
+      "an evidence observation",
+      "a reasoning response",
+      "a photo of a notebook page or labelled diagram",
+    ],
+    assessmentCheck:
+      "Can the learner explain how early societies used tools, systems and shared knowledge to solve practical problems, while using accurate vocabulary and cautious evidence-based reasoning?",
+    nextStep:
+      "Continue to Encounter 5: Trade, Travel and Exchange — how did goods, people and ideas connect early civilisations?",
+    reportLanguage:
+      "The learner is developing understanding of how early societies used tools, writing, numbers, engineering and shared knowledge to solve practical problems, organise growing communities and preserve information.",
+  },
+  resource: {
+    resourceType: "booklet-pdf",
+    bookletKey: "y3-4-a-u1-e04",
+    fileName:
+      "MyLearna-Classical-Y3-4-Cycle-A-Encounter-4-Inventions-and-Ideas.pdf",
+    pdfHref: "/api/classical/booklets/y3-4-a-u1-e04",
+    pageImageUrls: [
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-01.png?v=1790232006",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-02.png?v=1790232013",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-03.png?v=1790232035",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-04.png?v=1790232056",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-05.png?v=1790232065",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-06.png?v=1790232081",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-07.png?v=1790232089",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-08.png?v=1790232098",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-09.png?v=1790232111",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-10.png?v=1790232119",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-11.png?v=1790232140",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-12.png?v=1790232150",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-13.png?v=1790232158",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-14.png?v=1790232166",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-15.png?v=1790232174",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e04-page-16.png?v=1790232183",
+    ],
+    includesAnswerGuidance: true,
+    pdfMetadata: {
+      title: "MyLearna Classical - Encounter 4 - Inventions and Ideas",
+      author: "MyLearna",
+      subject: "Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations",
+      keywords: [
+        "MyLearna Classical",
+        "homeschool curriculum",
+        "ancient world",
+        "inventions",
+        "engineering",
+        "technology",
+        "history",
+        "Years 3-4",
+      ],
+    },
+  },
+  distribution: {
+    externalProductId: "MYL-CLASSICAL-Y34-A-U1-E04",
+    marketplaceHandle: "classical-y3-4-a-u1-e04-inventions-and-ideas",
+    marketplaceArea: "Curriculum",
+    collection: "MyLearna Classical",
+    subcollection: "Years 3–4 · Cycle A: The Ancient World",
+    description:
+      "A complete MyLearna Classical encounter exploring how inventions, systems and shared ideas helped early civilisations solve problems. The booklet develops knowledge of writing, measurement, engineering, transport, water management, skilled work, evidence, narration, language and historical reasoning.",
+    scope: "encounter",
+    accessModel: "family_included",
+    entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e04",
+    unitBundleKey: "classical-y3-4-a-u1",
+    cycleBundleKey: "classical-y3-4-a",
+    futurePhysicalPackSupported: true,
+  },
+} as const satisfies ClassicalEncounterDefinition;
+
 const ENCOUNTER_FIVE = {
   curriculumKey: "mylearna-classical",
   curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E05",
@@ -484,7 +714,7 @@ export function validateClassicalCurriculumRegistry(
   }
 }
 
-const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO, ENCOUNTER_FIVE] as const satisfies readonly ClassicalEncounterDefinition[];
+const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO, ENCOUNTER_THREE, ENCOUNTER_FOUR, ENCOUNTER_FIVE] as const satisfies readonly ClassicalEncounterDefinition[];
 validateClassicalCurriculumRegistry(definitions);
 
 export const CLASSICAL_CURRICULUM_REGISTRY: readonly ClassicalEncounterDefinition[] =
@@ -492,6 +722,8 @@ export const CLASSICAL_CURRICULUM_REGISTRY: readonly ClassicalEncounterDefinitio
 
 export const MYLEARNA_CLASSICAL_ENCOUNTER_ONE = ENCOUNTER_ONE;
 export const MYLEARNA_CLASSICAL_ENCOUNTER_TWO = ENCOUNTER_TWO;
+export const MYLEARNA_CLASSICAL_ENCOUNTER_THREE = ENCOUNTER_THREE;
+export const MYLEARNA_CLASSICAL_ENCOUNTER_FOUR = ENCOUNTER_FOUR;
 export const MYLEARNA_CLASSICAL_ENCOUNTER_FIVE = ENCOUNTER_FIVE;
 
 const BY_CURRICULUM_CODE = new Map(
