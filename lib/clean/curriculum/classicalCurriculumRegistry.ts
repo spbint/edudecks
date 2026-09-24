@@ -292,7 +292,7 @@ const ENCOUNTER_THREE = {
   encounterKey: "years-3-4-cycle-a-unit-1-encounter-3",
   encounterNumber: 3,
   title: "From Villages to Cities",
-  releaseState: "planned",
+  releaseState: "live",
   hierarchy: {
     bandKey: "years-3-4",
     bandLabel: "Years 3–4",
@@ -406,7 +406,7 @@ const ENCOUNTER_FOUR = {
   encounterKey: "years-3-4-cycle-a-unit-1-encounter-4",
   encounterNumber: 4,
   title: "Inventions and Ideas",
-  releaseState: "planned",
+  releaseState: "live",
   hierarchy: {
     bandKey: "years-3-4",
     bandLabel: "Years 3–4",

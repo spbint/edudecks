@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_THREE, MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import {
   MYLEARNA_CLASSICAL_ENCOUNTER_1_ID,
   MYLEARNA_CLASSICAL_RESOURCES,
@@ -8,7 +8,7 @@ import {
 
 describe("MyLearna Classical resources", () => {
   it("maps Encounter 1 to the approved branded booklet", () => {
-    expect(MYLEARNA_CLASSICAL_RESOURCES).toHaveLength(3);
+    expect(MYLEARNA_CLASSICAL_RESOURCES).toHaveLength(5);
 
     const resource = getClassicalCurriculumResourceForPathwayStep({
       pathwayStepId: MYLEARNA_CLASSICAL_ENCOUNTER_1_ID,
@@ -87,6 +87,37 @@ describe("MyLearna Classical resources", () => {
     expect(resource?.pageImageUrls).toEqual(encounter.resource.pageImageUrls);
     expect(resource?.pageImageUrls).toHaveLength(10);
     expect(resource?.previewImageUrl).toBe(encounter.resource.pageImageUrls[0]);
+  });
+
+
+
+  it("maps Encounters 3 and 4 to their released approved booklets", () => {
+    const cases = [
+      [MYLEARNA_CLASSICAL_ENCOUNTER_THREE, "MYL-CLASSICAL-Y34-A-U1-E03", 15],
+      [MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, "MYL-CLASSICAL-Y34-A-U1-E04", 16],
+    ] as const;
+
+    for (const [encounter, curriculumCode, pageCount] of cases) {
+      const resource = getClassicalCurriculumResourceForPathwayStep({
+        pathwayStepId: encounter.pathway.pathwayStepId,
+        subjectKey: encounter.pathway.subjectKey,
+        strandKey: encounter.pathway.strandKey,
+        stageKey: encounter.pathway.stageKey,
+        stepKey: encounter.pathway.stepKey,
+      });
+      expect(resource).toMatchObject({
+        pathwayStepId: encounter.pathway.pathwayStepId,
+        resourceType: "booklet-pdf",
+        curriculumCode,
+        href: encounter.resource.pdfHref,
+        includesAnswerSheet: true,
+        encounterNumber: encounter.encounterNumber,
+        title: encounter.title,
+      });
+      expect(resource?.pageImageUrls).toEqual(encounter.resource.pageImageUrls);
+      expect(resource?.pageImageUrls).toHaveLength(pageCount);
+      expect(resource?.previewImageUrl).toBe(encounter.resource.pageImageUrls[0]);
+    }
   });
 
 

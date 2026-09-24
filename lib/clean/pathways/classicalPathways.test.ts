@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_THREE, MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import { CLASSICAL_STRAND_WORKSPACE_BUILDERS } from "@/lib/clean/pathways/classicalPathways";
 import { getPathwayStepsByStrand } from "@/lib/clean/pathways/pathwayStepRegistry";
 
@@ -92,15 +92,39 @@ describe("MyLearna Classical pathways", () => {
     expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
       MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
       MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.pathway.stepKey,
       MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.pathway.stepKey,
     ]);
-    expect(middlePrimary?.steps[2]).toMatchObject({
+    expect(middlePrimary?.steps[4]).toMatchObject({
       id: 5,
       stepKey: encounter.pathway.stepKey,
       meaning: encounter.academic.meaning,
       learningIntention: encounter.academic.learningIntention,
       assessmentCheck: encounter.academic.assessmentCheck,
     });
+  });
+
+
+
+  it("registers Encounters 3 and 4 in sequence on the Years 3-4 Ancient World pathway", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+
+    for (const encounter of [
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
+    ]) {
+      expect(steps).toContainEqual(
+        expect.objectContaining({
+          id: encounter.pathway.pathwayStepId,
+          subjectKey: "classical",
+          strandKey: "history-and-civilisation",
+          stageKey: "middle-primary",
+          stepKey: encounter.pathway.stepKey,
+          stepTitle: `${encounter.hierarchy.encounterLabel} · ${encounter.title}`,
+        }),
+      );
+    }
   });
 
 

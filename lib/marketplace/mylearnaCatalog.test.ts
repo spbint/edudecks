@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_THREE, MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import {
   MYLEARNA_MARKETPLACE_RESOURCES,
   getMylearnaMarketplaceResourceByExternalProductId,
@@ -9,7 +9,7 @@ import {
 describe("MyLearna Marketplace Classical adapter", () => {
   it("projects Encounter 1 from the canonical registry without identity drift", () => {
     const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_ONE;
-    expect(MYLEARNA_MARKETPLACE_RESOURCES).toHaveLength(3);
+    expect(MYLEARNA_MARKETPLACE_RESOURCES).toHaveLength(5);
     expect(MYLEARNA_MARKETPLACE_RESOURCES[0]).toEqual({
       externalProductId: encounter.distribution.externalProductId,
       handle: encounter.distribution.marketplaceHandle,
@@ -107,6 +107,41 @@ describe("MyLearna Marketplace Classical adapter", () => {
         "MYL-CLASSICAL-Y34-A-U1-E05",
       ),
     ).toBe(item);
+  });
+
+
+
+  it("projects Encounters 3 and 4 into Marketplace with canonical release identities", () => {
+    const encounters = [
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
+    ] as const;
+    for (const encounter of encounters) {
+      const item = getMylearnaMarketplaceResourceByHandle(
+        encounter.distribution.marketplaceHandle,
+      );
+      expect(item).toMatchObject({
+        externalProductId: encounter.distribution.externalProductId,
+        handle: encounter.distribution.marketplaceHandle,
+        title: encounter.title,
+        scope: "encounter",
+        resourceFormat: "booklet-pdf",
+        coverImageUrl: encounter.resource.pageImageUrls[0],
+        pageCount: encounter.resource.pageImageUrls.length,
+        pdfHref: encounter.resource.pdfHref,
+        pathwayStepId: encounter.pathway.pathwayStepId,
+        accessModel: "family_included",
+        entitlementKey: "family_subscription",
+        unitBundleKey: "classical-y3-4-a-u1",
+        cycleBundleKey: "classical-y3-4-a",
+        futurePhysicalPackSupported: true,
+      });
+      expect(
+        getMylearnaMarketplaceResourceByExternalProductId(
+          encounter.distribution.externalProductId,
+        ),
+      ).toBe(item);
+    }
   });
 
 

@@ -104,13 +104,13 @@ describe("MyLearna Classical curriculum registry", () => {
 
 
 
-  it("stages Encounter 3 with approved identity and booklet assets while keeping it hidden until release", () => {
+  it("releases Encounter 3 with approved identity and booklet assets", () => {
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_THREE).toMatchObject({
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E03",
       encounterKey: "years-3-4-cycle-a-unit-1-encounter-3",
       encounterNumber: 3,
       title: "From Villages to Cities",
-      releaseState: "planned",
+      releaseState: "live",
       pathway: {
         subjectKey: "classical",
         strandKey: "history-and-civilisation",
@@ -134,18 +134,20 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_THREE.resource.pageImageUrls).toHaveLength(15);
     expect(getClassicalEncounterByMarketplaceHandle(
       "classical-y3-4-a-u1-e03-from-villages-to-cities",
-    )).toBeNull();
-    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e03")).toBeNull();
+    )).toBe(MYLEARNA_CLASSICAL_ENCOUNTER_THREE);
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e03")).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
+    );
   });
 
 
-  it("stages Encounter 4 with approved identity and booklet assets while keeping it hidden until release", () => {
+  it("releases Encounter 4 with approved identity and booklet assets", () => {
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR).toMatchObject({
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E04",
       encounterKey: "years-3-4-cycle-a-unit-1-encounter-4",
       encounterNumber: 4,
       title: "Inventions and Ideas",
-      releaseState: "planned",
+      releaseState: "live",
       pathway: {
         subjectKey: "classical",
         strandKey: "history-and-civilisation",
@@ -169,8 +171,10 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.resource.pageImageUrls).toHaveLength(16);
     expect(getClassicalEncounterByMarketplaceHandle(
       "classical-y3-4-a-u1-e04-inventions-and-ideas",
-    )).toBeNull();
-    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e04")).toBeNull();
+    )).toBe(MYLEARNA_CLASSICAL_ENCOUNTER_FOUR);
+    expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e04")).toBe(
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
+    );
   });
 
   it("releases Encounter 5 with approved identity and assets", () => {
