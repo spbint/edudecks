@@ -220,7 +220,7 @@ export function ProgressTrendCard({
         </div>
       ) : (
         <div className="mt-5 rounded-[18px] border border-dashed border-slate-200 bg-white/80 px-4 py-5">
-          <div className={CARD_TITLE}>No progress signals yet</div>
+          <div className={CARD_TITLE}>Capture a few moments to start seeing progress</div>
           <div className={`mt-2 ${BODY_TEXT}`}>
             Capture a few learning moments to begin seeing the picture.
           </div>
