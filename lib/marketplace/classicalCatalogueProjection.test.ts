@@ -234,7 +234,7 @@ describe("Classical catalogue SQL generator", () => {
     ] as const;
     for (const [encounter, path] of cases) {
       const migration = readFileSync(path, "utf8");
-      expect(encounter.releaseState).toBe("planned");
+      expect(encounter.releaseState).toBe("live");
       expect(migration).toBe(generateClassicalCatalogueUpsertSql(encounter));
     }
   });
