@@ -6,6 +6,8 @@ import {
   MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
   MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
   MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
+  MYLEARNA_CLASSICAL_ENCOUNTER_SIX,
+  MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN,
   getClassicalEncounterByCurriculumCode,
   getClassicalEncounterByMarketplaceHandle,
   getClassicalEncounterByPathwayIdentity,
@@ -30,7 +32,7 @@ const EXPECTED_PAGES = [
 
 describe("MyLearna Classical curriculum registry", () => {
   it("contains Encounter 1 exactly once with its stable identity", () => {
-    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(5);
+    expect(CLASSICAL_CURRICULUM_REGISTRY).toHaveLength(7);
     expect(MYLEARNA_CLASSICAL_ENCOUNTER_ONE).toMatchObject({
       curriculumKey: "mylearna-classical",
       curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E01",
@@ -223,6 +225,25 @@ describe("MyLearna Classical curriculum registry", () => {
     expect(getLiveClassicalEncounterByBookletKey("y3-4-a-u1-e05")).toBe(
       MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
     );
+  });
+
+
+  it("stages Encounters 6 and 7 with approved identities and assets while keeping them hidden until release", () => {
+    const cases = [
+      [MYLEARNA_CLASSICAL_ENCOUNTER_SIX, "MYL-CLASSICAL-Y34-A-U1-E06", "y3-4-a-u1-e06", "classical-y3-4-a-u1-e06-beliefs-buildings-and-belonging"],
+      [MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN, "MYL-CLASSICAL-Y34-A-U1-E07", "y3-4-a-u1-e07", "classical-y3-4-a-u1-e07-rules-leaders-and-law"],
+    ] as const;
+
+    for (const [encounter, code, bookletKey, handle] of cases) {
+      expect(encounter.releaseState).toBe("planned");
+      expect(encounter.curriculumCode).toBe(code);
+      expect(encounter.resource.bookletKey).toBe(bookletKey);
+      expect(encounter.resource.pageImageUrls).toHaveLength(10);
+      expect(encounter.resource.pageImageUrls.every((url) => url.startsWith("https://cdn.shopify.com/"))).toBe(true);
+      expect(getClassicalEncounterByCurriculumCode(code)).toBe(encounter);
+      expect(getClassicalEncounterByMarketplaceHandle(handle)).toBeNull();
+      expect(getLiveClassicalEncounterByBookletKey(bookletKey)).toBeNull();
+    }
   });
 
   it("keeps all externally stable registry identities unique", () => {
