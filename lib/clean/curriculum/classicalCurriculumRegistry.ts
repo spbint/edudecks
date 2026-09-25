@@ -623,6 +623,233 @@ const ENCOUNTER_FIVE = {
   },
 } as const satisfies ClassicalEncounterDefinition;
 
+
+const ENCOUNTER_SIX = {
+  curriculumKey: "mylearna-classical",
+  curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E06",
+  encounterKey: "years-3-4-cycle-a-unit-1-encounter-6",
+  encounterNumber: 6,
+  title: "Beliefs, Buildings and Belonging",
+  releaseState: "planned",
+  hierarchy: {
+    bandKey: "years-3-4",
+    bandLabel: "Years 3–4",
+    cycleKey: "a",
+    cycleLabel: "Cycle A: The Ancient World",
+    unitKey: "first-civilisations",
+    unitLabel: "Unit 1: The First Civilisations",
+    encounterLabel: "Encounter 6",
+  },
+  pathway: {
+    subjectKey: "classical",
+    strandKey: "history-and-civilisation",
+    stageKey: "middle-primary",
+    stepKey: "beliefs-buildings-and-belonging",
+    pathwayStepId:
+      "classical::history-and-civilisation::middle-primary::beliefs-buildings-and-belonging",
+  },
+  academic: {
+    bigQuestion:
+      "How did beliefs and shared places help early communities understand the world and belong together?",
+    coreConcept:
+      "Beliefs, symbols and shared places helped early communities create meaning and belonging",
+    meaning:
+      "Understand how shared beliefs, stories, rituals, symbols and important places could help early communities explain the world, remember traditions and build belonging.",
+    skillFocus:
+      "historical narration, belief-and-place vocabulary, compare-and-contrast, map interpretation, observation, evidence-based inference, and cautious comparison",
+    learningIntention:
+      "I am learning how beliefs, symbols and shared places helped early communities create meaning and belonging.",
+    successCriteria: [
+      "I can explain why communities shared beliefs or stories.",
+      "I can compare homes, temples and shared places.",
+      "I can identify a symbol, ritual or special object.",
+      "I can use new vocabulary accurately.",
+      "I can describe what historians can learn from buildings or artefacts.",
+      "I can give a reasoned view about how shared places help belonging.",
+    ],
+    practiceActivity:
+      "Use the MyLearna Classical Encounter 6 booklet. Read and discuss the learning pages, compare homes, temples and shared places, complete the map work, narrate the learning, then complete the language and mastery tasks.",
+    evidenceExamples: [
+      "a compare-and-sort activity",
+      "completed map work",
+      "an oral or written narration",
+      "a labelled city or shared-place diagram",
+      "a photo of a completed booklet page",
+    ],
+    assessmentCheck:
+      "Can the learner explain how beliefs, stories, symbols and shared places helped early communities create meaning and belonging while using historical evidence cautiously?",
+    nextStep:
+      "Continue to Encounter 7: Rules, Leaders and Law — how did early communities organise rules, leadership and justice?",
+    reportLanguage:
+      "The learner is developing understanding of how beliefs, symbols and shared places helped early communities create meaning and belonging, and can compare different spaces and explain what historical evidence may suggest.",
+  },
+  resource: {
+    resourceType: "booklet-pdf",
+    bookletKey: "y3-4-a-u1-e06",
+    fileName:
+      "MyLearna-Classical-Y3-4-Cycle-A-Encounter-6-Beliefs-Buildings-and-Belonging.pdf",
+    pdfHref: "/api/classical/booklets/y3-4-a-u1-e06",
+    pageImageUrls: [
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-01.png?v=1790327780",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-02.png?v=1790327790",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-03.png?v=1790327800",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-04.png?v=1790327810",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-05.png?v=1790327819",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-06.png?v=1790327828",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-07.png?v=1790327837",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-08.png?v=1790327847",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-09.png?v=1790327856",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e06-page-10.png?v=1790327866",
+    ],
+    includesAnswerGuidance: true,
+    pdfMetadata: {
+      title: "MyLearna Classical - Encounter 6 - Beliefs, Buildings and Belonging",
+      author: "MyLearna",
+      subject: "Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations",
+      keywords: [
+        "MyLearna Classical",
+        "homeschool curriculum",
+        "ancient world",
+        "beliefs",
+        "symbols",
+        "shared places",
+        "history",
+        "Years 3-4",
+      ],
+    },
+  },
+  distribution: {
+    externalProductId: "MYL-CLASSICAL-Y34-A-U1-E06",
+    marketplaceHandle: "classical-y3-4-a-u1-e06-beliefs-buildings-and-belonging",
+    marketplaceArea: "Curriculum",
+    collection: "MyLearna Classical",
+    subcollection: "Years 3–4 · Cycle A: The Ancient World",
+    description:
+      "A complete MyLearna Classical encounter exploring how beliefs, symbols and shared places helped early communities create meaning and belonging. The branded booklet combines knowledge, comparison, map work, narration, historical evidence, language and portfolio-ready learning.",
+    scope: "encounter",
+    accessModel: "family_included",
+    entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e06",
+    unitBundleKey: "classical-y3-4-a-u1",
+    cycleBundleKey: "classical-y3-4-a",
+    futurePhysicalPackSupported: true,
+  },
+} as const satisfies ClassicalEncounterDefinition;
+
+
+const ENCOUNTER_SEVEN = {
+  curriculumKey: "mylearna-classical",
+  curriculumCode: "MYL-CLASSICAL-Y34-A-U1-E07",
+  encounterKey: "years-3-4-cycle-a-unit-1-encounter-7",
+  encounterNumber: 7,
+  title: "Rules, Leaders and Law",
+  releaseState: "planned",
+  hierarchy: {
+    bandKey: "years-3-4",
+    bandLabel: "Years 3–4",
+    cycleKey: "a",
+    cycleLabel: "Cycle A: The Ancient World",
+    unitKey: "first-civilisations",
+    unitLabel: "Unit 1: The First Civilisations",
+    encounterLabel: "Encounter 7",
+  },
+  pathway: {
+    subjectKey: "classical",
+    strandKey: "history-and-civilisation",
+    stageKey: "middle-primary",
+    stepKey: "rules-leaders-and-law",
+    pathwayStepId:
+      "classical::history-and-civilisation::middle-primary::rules-leaders-and-law",
+  },
+  academic: {
+    bigQuestion:
+      "How did early communities organise rules, leadership and justice?",
+    coreConcept:
+      "Rules, leadership and law helped early communities organise shared life",
+    meaning:
+      "Understand why early communities developed rules and forms of leadership, how spoken custom and written law could guide decisions, and how historians use evidence to investigate power, administration and justice.",
+    skillFocus:
+      "historical narration, leadership comparison, law-and-justice vocabulary, map interpretation, evidence-based inference, fairness reasoning, and cautious source analysis",
+    learningIntention:
+      "I am learning how rules, leadership and law helped early communities organise shared life.",
+    successCriteria: [
+      "I can explain why communities developed rules or leaders.",
+      "I can compare different kinds of leadership.",
+      "I can use words such as leader, rule, law and justice.",
+      "I can explain what written law can and cannot tell historians.",
+      "I can identify evidence connected with authority or administration.",
+      "I can give a reasoned view about fairness or decision-making.",
+    ],
+    practiceActivity:
+      "Use the MyLearna Classical Encounter 7 booklet. Read and discuss the learning pages, compare kinds of leadership, complete the rule-responsibility-decision activity and map-and-evidence work, narrate the learning, then complete the grammar and reasoning tasks.",
+    evidenceExamples: [
+      "a compare-and-sort activity",
+      "completed map and evidence work",
+      "an oral or written narration",
+      "a grammar or reasoning response",
+      "a photo of a completed booklet page",
+    ],
+    assessmentCheck:
+      "Can the learner explain why communities developed rules and leadership, compare forms of leadership, and use written and material evidence cautiously when reasoning about law, authority and fairness?",
+    nextStep:
+      "Continue through Cycle A: The Ancient World by building on how early communities organised power, shared rules and public life.",
+    reportLanguage:
+      "The learner is developing understanding of how rules, leadership and law helped early communities organise shared life, and can compare forms of leadership and use historical evidence cautiously.",
+  },
+  resource: {
+    resourceType: "booklet-pdf",
+    bookletKey: "y3-4-a-u1-e07",
+    fileName:
+      "MyLearna-Classical-Y3-4-Cycle-A-Encounter-7-Rules-Leaders-and-Law.pdf",
+    pdfHref: "/api/classical/booklets/y3-4-a-u1-e07",
+    pageImageUrls: [
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-01.png?v=1790327876",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-02.png?v=1790327884",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-03.png?v=1790327895",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-04.png?v=1790327906",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-05.png?v=1790327916",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-06.png?v=1790327924",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-07.png?v=1790327935",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-08.png?v=1790327944",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-09.png?v=1790327954",
+      "https://cdn.shopify.com/s/files/1/0888/9529/1710/files/mylearna-classical-y3-4-a-u1-e07-page-10.png?v=1790327967",
+    ],
+    includesAnswerGuidance: true,
+    pdfMetadata: {
+      title: "MyLearna Classical - Encounter 7 - Rules, Leaders and Law",
+      author: "MyLearna",
+      subject: "Years 3-4 · Cycle A: The Ancient World · Unit 1: The First Civilisations",
+      keywords: [
+        "MyLearna Classical",
+        "homeschool curriculum",
+        "ancient world",
+        "rules",
+        "leadership",
+        "law",
+        "justice",
+        "history",
+        "Years 3-4",
+      ],
+    },
+  },
+  distribution: {
+    externalProductId: "MYL-CLASSICAL-Y34-A-U1-E07",
+    marketplaceHandle: "classical-y3-4-a-u1-e07-rules-leaders-and-law",
+    marketplaceArea: "Curriculum",
+    collection: "MyLearna Classical",
+    subcollection: "Years 3–4 · Cycle A: The Ancient World",
+    description:
+      "A complete MyLearna Classical encounter exploring how early communities organised rules, leadership and justice. The branded booklet combines knowledge, leadership comparison, law and fairness, map and evidence work, narration, language, reasoning and portfolio-ready evidence.",
+    scope: "encounter",
+    accessModel: "family_included",
+    entitlementKey: "family_subscription",
+    encounterBundleKey: "classical-y3-4-a-u1-e07",
+    unitBundleKey: "classical-y3-4-a-u1",
+    cycleBundleKey: "classical-y3-4-a",
+    futurePhysicalPackSupported: true,
+  },
+} as const satisfies ClassicalEncounterDefinition;
+
 function normalize(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -714,7 +941,7 @@ export function validateClassicalCurriculumRegistry(
   }
 }
 
-const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO, ENCOUNTER_THREE, ENCOUNTER_FOUR, ENCOUNTER_FIVE] as const satisfies readonly ClassicalEncounterDefinition[];
+const definitions = [ENCOUNTER_ONE, ENCOUNTER_TWO, ENCOUNTER_THREE, ENCOUNTER_FOUR, ENCOUNTER_FIVE, ENCOUNTER_SIX, ENCOUNTER_SEVEN] as const satisfies readonly ClassicalEncounterDefinition[];
 validateClassicalCurriculumRegistry(definitions);
 
 export const CLASSICAL_CURRICULUM_REGISTRY: readonly ClassicalEncounterDefinition[] =
@@ -725,6 +952,8 @@ export const MYLEARNA_CLASSICAL_ENCOUNTER_TWO = ENCOUNTER_TWO;
 export const MYLEARNA_CLASSICAL_ENCOUNTER_THREE = ENCOUNTER_THREE;
 export const MYLEARNA_CLASSICAL_ENCOUNTER_FOUR = ENCOUNTER_FOUR;
 export const MYLEARNA_CLASSICAL_ENCOUNTER_FIVE = ENCOUNTER_FIVE;
+export const MYLEARNA_CLASSICAL_ENCOUNTER_SIX = ENCOUNTER_SIX;
+export const MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN = ENCOUNTER_SEVEN;
 
 const BY_CURRICULUM_CODE = new Map(
   CLASSICAL_CURRICULUM_REGISTRY.map((encounter) => [
