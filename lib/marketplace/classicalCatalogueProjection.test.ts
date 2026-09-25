@@ -9,6 +9,8 @@ import {
   MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
   MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
   MYLEARNA_CLASSICAL_ENCOUNTER_FIVE,
+  MYLEARNA_CLASSICAL_ENCOUNTER_SIX,
+  MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN,
   getLiveClassicalEncounterByBookletKey,
   getLiveClassicalEncounters,
   type ClassicalEncounterDefinition,
@@ -222,6 +224,19 @@ describe("Classical catalogue SQL generator", () => {
     expect(migration).toContain(
       "classical::history-and-civilisation::middle-primary::trade-travel-and-exchange",
     );
+  });
+
+
+  it("keeps the Encounter 6 and 7 forward catalogue migrations byte-for-byte aligned with the canonical projections", () => {
+    const cases = [
+      [MYLEARNA_CLASSICAL_ENCOUNTER_SIX, "supabase/migrations/20260925090000_publish_classical_encounter_6_catalogue.sql"],
+      [MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN, "supabase/migrations/20260925090500_publish_classical_encounter_7_catalogue.sql"],
+    ] as const;
+    for (const [encounter, path] of cases) {
+      const migration = readFileSync(path, "utf8");
+      expect(encounter.releaseState).toBe("planned");
+      expect(migration).toBe(generateClassicalCatalogueUpsertSql(encounter));
+    }
   });
 
   it("safely quotes apostrophes and preserves Unicode and JSON determinism", () => {
