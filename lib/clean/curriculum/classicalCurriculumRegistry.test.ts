@@ -228,21 +228,21 @@ describe("MyLearna Classical curriculum registry", () => {
   });
 
 
-  it("stages Encounters 6 and 7 with approved identities and assets while keeping them hidden until release", () => {
+  it("releases Encounters 6 and 7 with approved identities and assets", () => {
     const cases = [
       [MYLEARNA_CLASSICAL_ENCOUNTER_SIX, "MYL-CLASSICAL-Y34-A-U1-E06", "y3-4-a-u1-e06", "classical-y3-4-a-u1-e06-beliefs-buildings-and-belonging"],
       [MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN, "MYL-CLASSICAL-Y34-A-U1-E07", "y3-4-a-u1-e07", "classical-y3-4-a-u1-e07-rules-leaders-and-law"],
     ] as const;
 
     for (const [encounter, code, bookletKey, handle] of cases) {
-      expect(encounter.releaseState).toBe("planned");
+      expect(encounter.releaseState).toBe("live");
       expect(encounter.curriculumCode).toBe(code);
       expect(encounter.resource.bookletKey).toBe(bookletKey);
       expect(encounter.resource.pageImageUrls).toHaveLength(10);
       expect(encounter.resource.pageImageUrls.every((url) => url.startsWith("https://cdn.shopify.com/"))).toBe(true);
       expect(getClassicalEncounterByCurriculumCode(code)).toBe(encounter);
-      expect(getClassicalEncounterByMarketplaceHandle(handle)).toBeNull();
-      expect(getLiveClassicalEncounterByBookletKey(bookletKey)).toBeNull();
+      expect(getClassicalEncounterByMarketplaceHandle(handle)).toBe(encounter);
+      expect(getLiveClassicalEncounterByBookletKey(bookletKey)).toBe(encounter);
     }
   });
 

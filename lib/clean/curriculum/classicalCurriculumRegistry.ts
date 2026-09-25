@@ -630,7 +630,7 @@ const ENCOUNTER_SIX = {
   encounterKey: "years-3-4-cycle-a-unit-1-encounter-6",
   encounterNumber: 6,
   title: "Beliefs, Buildings and Belonging",
-  releaseState: "planned",
+  releaseState: "live",
   hierarchy: {
     bandKey: "years-3-4",
     bandLabel: "Years 3–4",
@@ -743,7 +743,7 @@ const ENCOUNTER_SEVEN = {
   encounterKey: "years-3-4-cycle-a-unit-1-encounter-7",
   encounterNumber: 7,
   title: "Rules, Leaders and Law",
-  releaseState: "planned",
+  releaseState: "live",
   hierarchy: {
     bandKey: "years-3-4",
     bandLabel: "Years 3–4",

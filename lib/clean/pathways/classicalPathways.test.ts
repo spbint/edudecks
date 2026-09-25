@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_THREE, MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_THREE, MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE, MYLEARNA_CLASSICAL_ENCOUNTER_SIX, MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
 import { CLASSICAL_STRAND_WORKSPACE_BUILDERS } from "@/lib/clean/pathways/classicalPathways";
 import { getPathwayStepsByStrand } from "@/lib/clean/pathways/pathwayStepRegistry";
 
@@ -95,6 +95,8 @@ describe("MyLearna Classical pathways", () => {
       MYLEARNA_CLASSICAL_ENCOUNTER_THREE.pathway.stepKey,
       MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.pathway.stepKey,
       MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SIX.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN.pathway.stepKey,
     ]);
     expect(middlePrimary?.steps[4]).toMatchObject({
       id: 5,
@@ -125,6 +127,40 @@ describe("MyLearna Classical pathways", () => {
         }),
       );
     }
+  });
+
+
+
+  it("registers Encounters 6 and 7 in sequence on the Years 3-4 Ancient World pathway", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+    for (const encounter of [
+      MYLEARNA_CLASSICAL_ENCOUNTER_SIX,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN,
+    ]) {
+      expect(steps).toContainEqual(
+        expect.objectContaining({
+          id: encounter.pathway.pathwayStepId,
+          subjectKey: "classical",
+          strandKey: "history-and-civilisation",
+          stageKey: "middle-primary",
+          stepKey: encounter.pathway.stepKey,
+          stepTitle: `${encounter.hierarchy.encounterLabel} · ${encounter.title}`,
+        }),
+      );
+    }
+
+    const workspace =
+      CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const middlePrimary = workspace.stages.find((stage) => stage.key === "middle-primary");
+    expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SIX.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN.pathway.stepKey,
+    ]);
   });
 
 
