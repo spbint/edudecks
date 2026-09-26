@@ -79,7 +79,7 @@ function toFamilyResource(row: Record<string, unknown>): FamilyResource {
     marketplaceThumbnailUrl: clean(marketplace?.thumbnail_url) || null,
     marketplaceResourceFormat: clean(marketplace?.resource_format) || null,
     marketplaceMetadata: metadata,
-    marketplaceHref: clean(metadata?.pdf_href) || null,
+    marketplaceHref: clean(metadata?.worksheet_href) || clean(metadata?.pdf_href) || null,
   };
 }
 
