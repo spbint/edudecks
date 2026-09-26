@@ -9,6 +9,7 @@ export type ResourceFactoryJobStatus =
   | "repairing"
   | "rendering"
   | "ready"
+  | "staged"
   | "published"
   | "promoted"
   | "failed";
@@ -34,6 +35,9 @@ export type ResourceFactoryGenerationSeed = {
   resourceType: ResourceFactoryType;
   difficulty: ResourceFactoryDifficulty;
   questionCount: number;
+  pathwayStepId?: string;
+  stageKey?: string;
+  stepKey?: string;
 };
 
 export type ResourceFactoryQuestion = {
@@ -56,6 +60,9 @@ export type ResourceFactoryWorksheetSpec = {
   skill: string;
   resourceType: ResourceFactoryType;
   difficulty: ResourceFactoryDifficulty;
+  pathwayStepId?: string;
+  stageKey?: string;
+  stepKey?: string;
   instructions: string;
   workedExample: {
     prompt: string;
