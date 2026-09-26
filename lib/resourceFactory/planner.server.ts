@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { listRecordedResourceFactoryIds } from "@/lib/resourceFactory/jobs.server";
 import { buildMathResourceFactoryPlan } from "@/lib/resourceFactory/planner";
 
 function clean(value: unknown) {
@@ -28,21 +29,29 @@ function createAdminClient() {
 
 export async function planNextMathResourceFactorySeeds(limit = 10) {
   const admin = createAdminClient();
-  const response = await admin
-    .from("marketplace_resources")
-    .select("external_product_id")
-    .eq("source", "mylearna_agent");
+  const [marketplaceResponse, recordedJobIds] = await Promise.all([
+    admin
+      .from("marketplace_resources")
+      .select("external_product_id")
+      .eq("source", "mylearna_agent"),
+    listRecordedResourceFactoryIds(),
+  ]);
 
-  if (response.error) {
+  if (marketplaceResponse.error) {
     throw new Error(
-      `Unable to inspect Resource Factory catalogue: ${response.error.message}`,
+      `Unable to inspect Resource Factory catalogue: ${marketplaceResponse.error.message}`,
     );
   }
 
-  return buildMathResourceFactoryPlan({
-    existingResourceIds: (response.data ?? []).map((row) =>
+  const existingResourceIds = new Set([
+    ...(marketplaceResponse.data ?? []).map((row) =>
       clean(row.external_product_id),
     ),
+    ...recordedJobIds,
+  ]);
+
+  return buildMathResourceFactoryPlan({
+    existingResourceIds,
     limit,
   });
 }
