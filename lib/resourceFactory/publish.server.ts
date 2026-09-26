@@ -38,6 +38,14 @@ function appUrl() {
   return (clean(process.env.MYLEARNA_APP_URL) || "https://www.mylearna.com").replace(/\/$/, "");
 }
 
+export function resourceFactoryAutoPublishEnabled() {
+  return clean(process.env.RESOURCE_FACTORY_AUTO_PUBLISH).toLowerCase() === "true";
+}
+
+export function resourceFactoryAutoPromoteEnabled() {
+  return clean(process.env.RESOURCE_FACTORY_AUTO_PROMOTE).toLowerCase() === "true";
+}
+
 async function uploadPdf(input: {
   path: string;
   bytes: Uint8Array;
@@ -61,6 +69,7 @@ export async function publishResourceFactoryRun(input: {
   qa: ResourceFactoryQaReport;
   worksheetPdf: Uint8Array;
   answerPdf: Uint8Array;
+  active?: boolean;
 }) {
   const safeSlug = input.spec.slug.replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "");
   const root = `resource-factory/${input.jobId}`;
@@ -75,11 +84,12 @@ export async function publishResourceFactoryRun(input: {
 
   const pinterestImageUrl =
     `${appUrl()}/api/resource-factory/pinterest/${encodeURIComponent(input.spec.slug)}`;
+  const active = input.active ?? resourceFactoryAutoPublishEnabled();
 
   const projection = buildResourceFactoryMarketplaceProjection({
     spec: input.spec,
     qa: input.qa,
-    active: true,
+    active,
     assets: {
       worksheetHref,
       answersHref,
@@ -102,9 +112,11 @@ export async function publishResourceFactoryRun(input: {
   return {
     marketplaceResourceId: response.data.id as string,
     handle: response.data.handle as string,
+    active,
     detailHref: `${appUrl()}/marketplace/worksheets/${encodeURIComponent(input.spec.slug)}`,
     worksheetHref,
     answersHref,
     pinterestImageUrl,
+    metadata: projection.metadata,
   };
 }
