@@ -189,6 +189,9 @@ export async function generateWorksheetSpecWithOpenAI(
       | "skill"
       | "resourceType"
       | "difficulty"
+      | "pathwayStepId"
+      | "stageKey"
+      | "stepKey"
       | "provenance"
     >
   >({
@@ -215,6 +218,9 @@ export async function generateWorksheetSpecWithOpenAI(
     skill: seed.skill,
     resourceType: seed.resourceType,
     difficulty: seed.difficulty,
+    pathwayStepId: seed.pathwayStepId,
+    stageKey: seed.stageKey,
+    stepKey: seed.stepKey,
     ...generated,
     provenance: {
       generator: modelName(),
