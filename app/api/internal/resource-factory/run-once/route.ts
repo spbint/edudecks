@@ -1,13 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import {
-  publishResourceFactoryRun,
-  resourceFactoryAutoPromoteEnabled,
-  resourceFactoryAutoPublishEnabled,
-} from "@/lib/resourceFactory/publish.server";
-import { createPinterestPinForResource } from "@/lib/resourceFactory/pinterest.server";
-import { runResourceFactorySeed } from "@/lib/resourceFactory/runner.server";
+import { processResourceFactorySeed } from "@/lib/resourceFactory/process.server";
 import type {
   ResourceFactoryDifficulty,
   ResourceFactoryGenerationSeed,
@@ -93,67 +87,8 @@ export async function POST(request: Request) {
     questionCount,
   };
 
-  const run = await runResourceFactorySeed(seed);
-  if (run.status !== "ready") {
-    return NextResponse.json(
-      {
-        status: run.status,
-        attempts: run.attempts,
-        resourceId: run.spec.resourceId,
-        qa: run.qa,
-      },
-      { status: 422 },
-    );
-  }
-
-  const active = resourceFactoryAutoPublishEnabled();
-  const published = await publishResourceFactoryRun({
-    jobId: crypto.randomUUID(),
-    spec: run.spec,
-    qa: run.qa,
-    worksheetPdf: run.worksheetPdf,
-    answerPdf: run.answerPdf,
-    active,
-  });
-
-  let promotion:
-    | { status: "skipped" }
-    | { status: "created"; pinId: string; pinLink: string }
-    | { status: "failed"; error: string } = { status: "skipped" };
-
-  if (active && resourceFactoryAutoPromoteEnabled()) {
-    try {
-      const pin = await createPinterestPinForResource({
-        detailHref: published.detailHref,
-        imageUrl: published.pinterestImageUrl,
-        title: run.spec.title,
-        metadata: published.metadata,
-      });
-      promotion = {
-        status: "created",
-        pinId: pin.pinId,
-        pinLink: pin.pinLink,
-      };
-    } catch (error) {
-      promotion = {
-        status: "failed",
-        error: error instanceof Error ? error.message : "Pinterest promotion failed.",
-      };
-    }
-  }
-
-  return NextResponse.json({
-    status: active ? "published" : "staged",
-    attempts: run.attempts,
-    resourceId: run.spec.resourceId,
-    title: run.spec.title,
-    qa: {
-      factualScore: run.qa.factualScore,
-      answerScore: run.qa.answerScore,
-      qualityScore: run.qa.qualityScore,
-      issueCount: run.qa.issues.length,
-    },
-    published,
-    promotion,
+  const result = await processResourceFactorySeed(seed);
+  return NextResponse.json(result, {
+    status: result.status === "qa_failed" ? 422 : 200,
   });
 }
