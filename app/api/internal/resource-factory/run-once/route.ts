@@ -1,7 +1,12 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { publishResourceFactoryRun } from "@/lib/resourceFactory/publish.server";
+import {
+  publishResourceFactoryRun,
+  resourceFactoryAutoPromoteEnabled,
+  resourceFactoryAutoPublishEnabled,
+} from "@/lib/resourceFactory/publish.server";
+import { createPinterestPinForResource } from "@/lib/resourceFactory/pinterest.server";
 import { runResourceFactorySeed } from "@/lib/resourceFactory/runner.server";
 import type {
   ResourceFactoryDifficulty,
@@ -74,7 +79,9 @@ export async function POST(request: Request) {
   }
 
   const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
-  const slug = slugify(clean(body.slug) || `${yearLevels[0]}-${skill}`) || `worksheet-${suffix.toLowerCase()}`;
+  const slug =
+    slugify(clean(body.slug) || `${yearLevels[0]}-${skill}`) ||
+    `worksheet-${suffix.toLowerCase()}`;
   const seed: ResourceFactoryGenerationSeed = {
     resourceId: clean(body.resourceId) || `MYL-AUTO-MATH-${suffix}`,
     slug,
@@ -99,16 +106,44 @@ export async function POST(request: Request) {
     );
   }
 
+  const active = resourceFactoryAutoPublishEnabled();
   const published = await publishResourceFactoryRun({
     jobId: crypto.randomUUID(),
     spec: run.spec,
     qa: run.qa,
     worksheetPdf: run.worksheetPdf,
     answerPdf: run.answerPdf,
+    active,
   });
 
+  let promotion:
+    | { status: "skipped" }
+    | { status: "created"; pinId: string; pinLink: string }
+    | { status: "failed"; error: string } = { status: "skipped" };
+
+  if (active && resourceFactoryAutoPromoteEnabled()) {
+    try {
+      const pin = await createPinterestPinForResource({
+        detailHref: published.detailHref,
+        imageUrl: published.pinterestImageUrl,
+        title: run.spec.title,
+        metadata: published.metadata,
+      });
+      promotion = {
+        status: "created",
+        pinId: pin.pinId,
+        pinLink: pin.pinLink,
+      };
+    } catch (error) {
+      promotion = {
+        status: "failed",
+        error: error instanceof Error ? error.message : "Pinterest promotion failed.",
+      };
+    }
+  }
+
   return NextResponse.json({
-    status: "published",
+    status: active ? "published" : "staged",
     attempts: run.attempts,
     resourceId: run.spec.resourceId,
     title: run.spec.title,
@@ -119,5 +154,6 @@ export async function POST(request: Request) {
       issueCount: run.qa.issues.length,
     },
     published,
+    promotion,
   });
 }
