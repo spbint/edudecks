@@ -15,7 +15,7 @@ export async function processResourceFactorySeed(
   const run = await runResourceFactorySeed(seed);
   if (run.status !== "ready") {
     return {
-      status: run.status as const,
+      status: run.status,
       attempts: run.attempts,
       resourceId: run.spec.resourceId,
       title: run.spec.title,
