@@ -23,7 +23,7 @@ coverage planner
   -> deterministic PDF renderer
   -> storage
   -> marketplace_resources
-  -> Pinterest promotion
+  -> Pinterest creative + Pin
   -> engagement metrics
   -> founder reviews winners / exceptions
 ```
@@ -62,6 +62,86 @@ pricing_state = free_testing
 
 Engagement determines what receives founder attention and later pricing/bundling.
 
+Agent resources are loaded server-side from `marketplace_resources` so the existing authenticated-only RLS policy does not have to be weakened for public discovery.
+
+Public resource landing pages live at:
+
+```text
+/marketplace/worksheets/[handle]
+```
+
+## Safe activation switches
+
+The smoke path is deliberately staged by default:
+
+```text
+RESOURCE_FACTORY_AUTO_PUBLISH=false
+RESOURCE_FACTORY_AUTO_PROMOTE=false
+```
+
+With both switches false, a secret-authorised run generates, QA-checks, renders, uploads and creates an inactive Marketplace row.
+
+After staging has been verified:
+
+```text
+RESOURCE_FACTORY_AUTO_PUBLISH=true
+```
+
+makes passing resources visible in Marketplace.
+
+Only after public resource pages and Pinterest credentials are verified:
+
+```text
+RESOURCE_FACTORY_AUTO_PROMOTE=true
+```
+
+allows the same run to create a Pinterest Pin.
+
+## Manual end-to-end smoke path
+
+A server-only internal endpoint exists at:
+
+```text
+POST /api/internal/resource-factory/run-once
+Authorization: Bearer <RESOURCE_FACTORY_RUN_SECRET>
+```
+
+Example body:
+
+```json
+{
+  "yearLevels": ["Year 4"],
+  "strand": "Number and place value",
+  "skill": "Use place value to read and compare whole numbers",
+  "resourceType": "practice",
+  "difficulty": "secure",
+  "questionCount": 16
+}
+```
+
+The endpoint:
+
+1. creates a structured worksheet specification;
+2. runs independent QA;
+3. retries failed QA up to the configured attempt limit;
+4. renders worksheet and answer PDFs;
+5. uploads the PDFs;
+6. upserts a `mylearna_agent` Marketplace row;
+7. publishes it only when auto-publish is enabled;
+8. creates a Pinterest Pin only when both auto-publish and auto-promote are enabled.
+
+## Pinterest creative
+
+Every active agent worksheet has a 1000 × 1500 image endpoint:
+
+```text
+/api/resource-factory/pinterest/[handle]
+```
+
+The image is generated from Marketplace metadata and links back to the worksheet landing page when used in Pinterest.
+
+The Pinterest adapter creates an image-url Pin using the configured board and access token.
+
 ## Activation architecture
 
 The intended production infrastructure is:
@@ -73,7 +153,7 @@ The intended production infrastructure is:
 - Pinterest API: create Pins after publish.
 - Founder dashboard: show factory state, failures, throughput and winners.
 
-Current Supabase guidance recommends Postgres-native Queues for durable background jobs and Cron for recurring scheduling. Activation must keep queue access server-only.
+Activation must keep queue access server-only.
 
 ## Proposed job states
 
@@ -104,24 +184,30 @@ Suggested first product families:
 
 Do not increase throughput until answer accuracy, storage, Marketplace rendering and retry behaviour have been observed in production-like testing.
 
-## Files in this slice
+## Current implementation slice
 
-- `lib/resourceFactory/types.ts`
-- `lib/resourceFactory/qa.ts`
-- `lib/resourceFactory/openai.server.ts`
-- `lib/resourceFactory/pdf.ts`
-- `lib/resourceFactory/marketplaceProjection.ts`
-- `lib/resourceFactory/resourceFactory.test.ts`
-- `docs/resource-factory/resource-factory-foundation.sql`
+- structured worksheet and QA types;
+- OpenAI generation and independent QA adapters;
+- deterministic worksheet and answer-key PDFs;
+- retrying pipeline runner;
+- Marketplace projection with `source = mylearna_agent`;
+- server-side Marketplace discovery and public worksheet detail pages;
+- staged/published activation flags;
+- dynamic 1000 × 1500 Pinterest image generation;
+- Pinterest Create Pin adapter;
+- secret-protected run-once smoke endpoint;
+- design-only SQL for factory jobs, artifacts, events and engagement metrics.
 
 ## Activation checklist
 
 1. Review and convert the SQL draft into a real Supabase migration using the repository's normal Supabase migration workflow.
 2. Enable `pgmq` and `pg_cron` only through reviewed migration/configuration.
-3. Create a private generated-resource Storage bucket/path and service-role-only write path.
-4. Add the worker endpoint/function and a secret stored server-side / in Vault.
-5. Run one resource end to end with Marketplace `is_active = false`.
-6. Verify QA, PDF, metadata and access.
-7. Turn on auto-publish for passing maths resources.
-8. Add Pinterest promotion only after Marketplace links are stable.
-9. Add founder metrics and pricing state transitions.
+3. Create the generated-resource Storage bucket and its server-only write policy.
+4. Configure `OPENAI_API_KEY`, Resource Factory model and run secret.
+5. Keep `RESOURCE_FACTORY_AUTO_PUBLISH=false`.
+6. Run one resource end to end and inspect the staged row, PDFs, QA metadata and visual.
+7. Set `RESOURCE_FACTORY_AUTO_PUBLISH=true` and verify the public Marketplace landing page.
+8. Configure Pinterest credentials and verify one manual Pin.
+9. Set `RESOURCE_FACTORY_AUTO_PROMOTE=true`.
+10. Add queue/cron workers and begin at 10 maths resources/day.
+11. Add founder metrics and pricing-state transitions.
