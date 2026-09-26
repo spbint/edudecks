@@ -64,7 +64,8 @@ export default async function AgentWorksheetMarketplacePage({
   const accessModel = clean(resource.metadata.access_model) || "free_testing";
   const isPaid = accessModel === "paid";
   const cupboardHref =
-    "/my-resources?add_marketplace=" +
+    "/my-resources?" +
+    (isPaid ? "buy_marketplace=" : "add_marketplace=") +
     encodeURIComponent(resource.externalProductId) +
     "&source=marketplace";
   const saveHref = `/login?next=${encodeURIComponent(cupboardHref)}`;
@@ -119,7 +120,7 @@ export default async function AgentWorksheetMarketplacePage({
 
           <div className="marketplace-detail-form">
             <Link className="marketplace-button" href={saveHref}>
-              {isPaid ? "Save after purchase" : "Save to My Resource Cupboard"}
+              {isPaid ? "Buy securely with Stripe" : "Save to My Resource Cupboard"}
             </Link>
 
             {!isPaid && worksheetHref ? (
