@@ -1,6 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
+import {
+  createResourceFactoryJob,
+  updateResourceFactoryJob,
+} from "@/lib/resourceFactory/jobs.server";
 import { planNextMathResourceFactorySeeds } from "@/lib/resourceFactory/planner.server";
 import { processResourceFactorySeed } from "@/lib/resourceFactory/process.server";
 
@@ -45,17 +49,67 @@ export async function POST(request: Request) {
 
   const results = [];
   for (const seed of seeds) {
+    const jobId = await createResourceFactoryJob(seed);
+    if (!jobId) {
+      results.push({
+        status: "skipped",
+        resourceId: seed.resourceId,
+        reason: "already_recorded",
+      });
+      continue;
+    }
+
     try {
-      results.push(await processResourceFactorySeed(seed));
+      await updateResourceFactoryJob({
+        jobId,
+        status: "generating",
+      });
+
+      const result = await processResourceFactorySeed(seed);
+      const jobStatus =
+        result.status === "published"
+          ? result.promotion.status === "created"
+            ? "promoted"
+            : "published"
+          : result.status === "staged"
+            ? "staged"
+            : "qa_failed";
+
+      await updateResourceFactoryJob({
+        jobId,
+        status: jobStatus,
+        attemptCount: result.attempts,
+        qaReport: result.qa,
+        marketplaceResourceId:
+          result.published?.marketplaceResourceId ?? null,
+        lastError:
+          result.promotion.status === "failed"
+            ? result.promotion.error
+            : null,
+      });
+
+      results.push({
+        ...result,
+        jobId,
+      });
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Resource Factory tick failed.";
+
+      await updateResourceFactoryJob({
+        jobId,
+        status: "failed",
+        lastError: message,
+      }).catch(() => undefined);
+
       results.push({
         status: "failed",
+        jobId,
         resourceId: seed.resourceId,
         skill: seed.skill,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Resource Factory tick failed.",
+        error: message,
       });
     }
   }
