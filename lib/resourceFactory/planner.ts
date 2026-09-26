@@ -18,6 +18,13 @@ export const RESOURCE_FACTORY_MATH_VARIANTS: readonly ResourceFactoryVariant[] =
   { resourceType: "challenge", difficulty: "challenge", questionCount: 12 },
 ];
 
+export const RESOURCE_FACTORY_PRIMARY_STAGE_KEYS = [
+  "lower-primary",
+  "middle-primary",
+  "upper-elementary",
+  "upper-primary",
+] as const;
+
 function slugify(value: unknown) {
   return String(value ?? "")
     .trim()
@@ -48,6 +55,7 @@ export function buildMathResourceFactoryPlan(input?: {
   existingResourceIds?: Iterable<string>;
   limit?: number;
   variants?: readonly ResourceFactoryVariant[];
+  stageKeys?: readonly string[];
 }): ResourceFactoryGenerationSeed[] {
   const existing = new Set(
     Array.from(input?.existingResourceIds ?? []).map((value) =>
@@ -57,18 +65,28 @@ export function buildMathResourceFactoryPlan(input?: {
   const variants = input?.variants?.length
     ? input.variants
     : RESOURCE_FACTORY_MATH_VARIANTS;
+  const stageKeys = new Set(
+    input?.stageKeys?.length
+      ? input.stageKeys
+      : RESOURCE_FACTORY_PRIMARY_STAGE_KEYS,
+  );
   const limit = Math.max(1, Math.min(100, input?.limit ?? 10));
   const seeds: ResourceFactoryGenerationSeed[] = [];
 
-  const steps = getPathwayStepsBySubject("mathematics").sort(
-    (left, right) =>
-      left.strandOrder - right.strandOrder ||
-      left.stageOrder - right.stageOrder ||
-      left.stepOrder - right.stepOrder,
-  );
+  const steps = getPathwayStepsBySubject("mathematics")
+    .filter((step) => stageKeys.has(step.stageKey))
+    .sort(
+      (left, right) =>
+        left.stageOrder - right.stageOrder ||
+        left.strandOrder - right.strandOrder ||
+        left.stepOrder - right.stepOrder,
+    );
 
-  for (const step of steps) {
-    for (const variant of variants) {
+  // Breadth first: publish one variant across many skills before producing
+  // second/third variants. This gives Pinterest and Marketplace traffic a
+  // wider set of concepts to test quickly.
+  for (const variant of variants) {
+    for (const step of steps) {
       const resourceId = buildResourceFactoryId({
         pathwayStepId: step.id,
         resourceType: variant.resourceType,
