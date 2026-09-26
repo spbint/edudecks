@@ -4,6 +4,7 @@
 
 create table if not exists public.resource_factory_jobs (
   id uuid primary key default gen_random_uuid(),
+  resource_id text not null unique,
   status text not null default 'planned',
   seed jsonb not null default '{}'::jsonb,
   spec jsonb,
@@ -24,6 +25,7 @@ create table if not exists public.resource_factory_jobs (
         'repairing',
         'rendering',
         'ready',
+        'staged',
         'published',
         'promoted',
         'failed'
