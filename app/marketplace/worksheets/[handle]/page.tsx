@@ -61,6 +61,22 @@ export default async function AgentWorksheetMarketplacePage({
   const skill = clean(resource.metadata.skill);
   const difficulty = clean(resource.metadata.difficulty);
   const pricingState = clean(resource.metadata.pricing_state);
+  const accessModel = clean(resource.metadata.access_model) || "free_testing";
+  const isPaid = accessModel === "paid";
+  const cupboardHref =
+    "/my-resources?add_marketplace=" +
+    encodeURIComponent(resource.externalProductId) +
+    "&source=marketplace";
+  const saveHref = `/login?next=${encodeURIComponent(cupboardHref)}`;
+
+  const badgeLabel =
+    pricingState === "free_testing"
+      ? "Free while we test it"
+      : accessModel === "family_included"
+        ? "Included with MyLearna Family"
+        : isPaid
+          ? "Paid resource"
+          : "MyLearna resource";
 
   return (
     <main className="marketplace-main">
@@ -79,7 +95,7 @@ export default async function AgentWorksheetMarketplacePage({
           <div className="marketplace-eyebrow">MyLearna Worksheet</div>
           <h1>{resource.title}</h1>
           <div className="marketplace-included-badge marketplace-included-badge-large">
-            {pricingState === "free_testing" ? "Free while we test it" : "MyLearna resource"}
+            {badgeLabel}
           </div>
 
           <p className="marketplace-detail-description">
@@ -102,19 +118,28 @@ export default async function AgentWorksheetMarketplacePage({
           </div>
 
           <div className="marketplace-detail-form">
-            {worksheetHref ? (
-              <Link className="marketplace-button" href={worksheetHref}>
+            <Link className="marketplace-button" href={saveHref}>
+              {isPaid ? "Save after purchase" : "Save to My Resource Cupboard"}
+            </Link>
+
+            {!isPaid && worksheetHref ? (
+              <Link className="marketplace-button secondary" href={worksheetHref}>
                 Open worksheet
               </Link>
             ) : null}
-            {answersHref ? (
+
+            {!isPaid && answersHref ? (
               <Link className="marketplace-button secondary" href={answersHref}>
                 Open answer key
               </Link>
             ) : null}
+
             <span className="marketplace-product-meta">
-              MyLearna is testing new resources free first, then expanding and pricing the
-              resources families use most.
+              {isPaid
+                ? "Paid resources can only enter My Resource Cupboard when your family has a current Marketplace entitlement."
+                : pricingState === "free_testing"
+                  ? "MyLearna is testing new resources free first, then expanding and pricing the resources families use most."
+                  : "Save this resource to My Resource Cupboard so it stays connected to your MyLearna learning workspace."}
             </span>
           </div>
         </div>
