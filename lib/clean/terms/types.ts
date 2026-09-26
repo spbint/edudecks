@@ -6,6 +6,9 @@ export type CleanAcademicYear = {
   jurisdictionCode: string | null;
   startsOn: string;
   endsOn: string;
+  timeZone: string | null;
+  timeZoneConfirmedAt: string | null;
+  isTimeZoneConfirmed: boolean;
   weekStart: "monday" | "sunday";
   notes: string | null;
   createdByUserId: string;
@@ -17,6 +20,8 @@ export type CleanAcademicYearInput = {
   title: string;
   startsOn: string;
   endsOn: string;
+  timeZone: string;
+  confirmTimeZone: boolean;
   countryCode?: string | null;
   jurisdictionCode?: string | null;
   weekStart?: "monday" | "sunday";

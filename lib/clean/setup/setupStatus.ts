@@ -78,6 +78,8 @@ export type CleanSetupNextAction = {
 
 export type CleanSetupRecordCounts = {
   learningYears: number;
+  currentLearningYears?: number;
+  futureLearningYears?: number;
   teachingPeriods: number;
   breaks: number;
   pathways: number;
@@ -262,7 +264,7 @@ export function deriveCleanSetupStatus({
   const hasFamilyProfile = Boolean(profile);
   const hasLearner = learners.length > 0;
   const hasLearningSettings = hasCleanLearningSettings(profile);
-  const hasLearningYear = counts.learningYears > 0;
+  const hasLearningYear = (counts.currentLearningYears ?? counts.learningYears) > 0;
   const hasTeachingPeriod = counts.teachingPeriods > 0;
   const hasWeeklyBlock = (counts.weeklyBlocks ?? 0) > 0;
   const hasPathway = counts.pathways > 0;
@@ -294,7 +296,11 @@ export function deriveCleanSetupStatus({
   } else if (!hasLearningYear) {
     nextAction = {
       type: "create-learning-year",
-      label: "Set up your learning year",
+      label: counts.learningYears > 0 && !(counts.futureLearningYears ?? 0)
+        ? "Set up your new learning year"
+        : counts.futureLearningYears
+          ? "Review your upcoming learning year"
+          : "Set up your learning year",
       href: "/my-calendar",
       category: "setup",
     };

@@ -38,7 +38,9 @@ describe("final Homeschool onboarding polish", () => {
   });
 
   it("uses native date constraints and realignment before defensive validation", () => {
-    expect(calendar).toContain("min={yearStartsOn}");
+    expect(calendar).toContain("min={addDays(yearStartsOn, 1)}");
+    expect(calendar).toContain("max={addDays(yearEndsOn, -1)}");
+    expect(calendar).toContain("if (nextStart >= yearEndsOn) setYearEndsOn(addDays(nextStart, 1))");
     expect(calendar).toContain("min={periodStartsOn}");
     expect(calendar).toContain("max={selectedAcademicYear?.endsOn}");
     expect(calendar).toContain("if (nextStart > periodEndsOn) setPeriodEndsOn(nextStart)");

@@ -13,7 +13,6 @@ import {
 } from "@/lib/billing/stripe.server";
 import { BILLING_AUTHORITY_ROLES, createBillingAdminClient } from "@/lib/billing/supabaseBilling.server";
 import {
-  familyBillingDateKey,
   FamilyBillingEligibilityError,
   resolveFamilyBillingMarket,
   type FamilyBillingProfile,
@@ -49,7 +48,7 @@ export type BillingCheckoutIntent = {
 export type BillingCheckoutRepository = {
   userCanInitiateBilling(familyId: string, userId: string): Promise<boolean>;
   getFamilyBillingProfile(familyId: string): Promise<FamilyBillingProfile | null>;
-  getCurrentAcademicYear(familyId: string, observedOn: string): Promise<BillingAcademicYear | null>;
+  getCurrentAcademicYear(familyId: string, at: Date): Promise<BillingAcademicYear | null>;
   hasCurrentExplicitMediaEntitlement(familyId: string, academicYearId: string): Promise<boolean>;
   findOpenCheckoutIntent(familyId: string, academicYearId: string): Promise<BillingCheckoutIntent | null>;
   findFamilyStripeCustomer(familyId: string): Promise<string | null>;
@@ -269,6 +268,7 @@ export async function createOneTimeMediaCheckout(input: {
   stripe: StripeCheckoutGateway;
   now?: Date;
 }) {
+  const now = input.now ?? new Date();
   const familyId = safe(input.familyId);
   if (!familyId || !isMediaProductKey(input.productKey)) {
     throw new BillingCheckoutRequestError(
@@ -299,7 +299,6 @@ export async function createOneTimeMediaCheckout(input: {
     );
   }
 
-  let observedOn: string;
   let trustedProduct: ReturnType<typeof getOneTimeMediaProduct>;
   try {
     const billingMarket = resolveFamilyBillingMarket(billingProfile);
@@ -310,14 +309,13 @@ export async function createOneTimeMediaCheckout(input: {
         "Media storage purchases are not available in your country yet.",
       );
     }
-    observedOn = familyBillingDateKey(billingProfile, input.now);
   } catch (error) {
     if (error instanceof FamilyBillingEligibilityError) {
       throw new BillingCheckoutRequestError(error.code, 409, error.message);
     }
     throw error;
   }
-  const academicYear = await input.repository.getCurrentAcademicYear(familyId, observedOn);
+  const academicYear = await input.repository.getCurrentAcademicYear(familyId, now);
   if (!academicYear) {
     throw new BillingCheckoutRequestError(
       "current_learning_year_required",
@@ -347,7 +345,6 @@ export async function createOneTimeMediaCheckout(input: {
     quotaBytes: trustedStripeProduct.quotaBytes,
     academicYearId: academicYear.id,
   };
-  const now = input.now ?? new Date();
   if (existing) {
     const resumed = await resolveExistingCheckout({
       repository: input.repository,
@@ -471,24 +468,19 @@ export function createSupabaseBillingCheckoutRepository() : BillingCheckoutRepos
         jurisdictionCode: safe(response.data.jurisdiction_code) || null,
       };
     },
-    async getCurrentAcademicYear(familyId, observedOn) {
-      const response = await db
-        .from("academic_years")
-        .select("id,starts_on,ends_on,title")
-        .eq("family_id", familyId)
-        .lte("starts_on", observedOn)
-        .gte("ends_on", observedOn)
-        .order("starts_on", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    async getCurrentAcademicYear(familyId, at) {
+      const response = await db.rpc("mylearna_resolve_current_academic_year", {
+        p_family_id: familyId,
+        p_at: at.toISOString(),
+      }).maybeSingle();
       if (response.error) throwDatabaseError(response.error, "Unable to resolve the current learning year.");
       if (!response.data) return null;
+      const row = response.data as Record<string, unknown>;
       return {
-        id: safe(response.data.id),
-        startsOn: safe(response.data.starts_on),
-        endsOn: safe(response.data.ends_on),
-        label: safe(response.data.title),
+        id: safe(row.id),
+        startsOn: safe(row.starts_on),
+        endsOn: safe(row.ends_on),
+        label: safe(row.title),
       };
     },
     async hasCurrentExplicitMediaEntitlement(familyId, academicYearId) {

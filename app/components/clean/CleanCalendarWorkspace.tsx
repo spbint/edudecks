@@ -98,6 +98,15 @@ import type {
   CleanLearningPeriodType,
 } from "@/lib/clean/terms/types";
 import {
+  browserTimeZoneSuggestion,
+  isValidIanaTimeZone,
+  LEARNING_YEAR_TIME_ZONE_OPTIONS,
+  learningYearsOverlap,
+  localDateKey,
+  resolveCurrentLearningYear,
+  suggestLearningYearTimeZone,
+} from "@/lib/clean/terms/learningYearAuthority";
+import {
   getBreakPeriods,
   getPeriodForDate,
   getTeachingPeriods,
@@ -1212,6 +1221,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
   const [yearEndsOn, setYearEndsOn] = useState(addDays(getWeekStart(), 83));
   const [yearCountryCode, setYearCountryCode] = useState("");
   const [yearJurisdictionCode, setYearJurisdictionCode] = useState("");
+  const [yearTimeZone, setYearTimeZone] = useState("");
   const [editingAcademicYearId, setEditingAcademicYearId] = useState<string | null>(null);
   const [pendingAcademicYearUpdate, setPendingAcademicYearUpdate] = useState<{
     id: string;
@@ -1489,7 +1499,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     () => getBreakPeriods(visibleLearningPeriods),
     [visibleLearningPeriods],
   );
-  const hasLearningYear = academicYears.length > 0;
+  const currentAcademicYear = useMemo(
+    () => resolveCurrentLearningYear(academicYears),
+    [academicYears],
+  );
+  const hasLearningYear = Boolean(currentAcademicYear);
   const hasRealLearningPeriod = learningTermsForSelectedYear.length > 0;
   const planningSetupPeriodCount = learningTermsForSelectedYear.length;
   const planningSetupBreakCount = breakPeriodsForSelectedYear.length;
@@ -1529,6 +1543,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     [breakPeriodsForSelectedYear],
   );
   const learningPeriodsSummary = useMemo(() => {
+    if (!hasLearningYear && academicYears.length) {
+      return "Your previous learning year has ended. Set up your new learning year to continue adding media.";
+    }
     if (!hasLearningYear) return "Set up your learning year to organise your calendar.";
     if (!hasExistingPlanningSetup && !planningSetupBreakCount) {
       return "Set up your first learning period to start planning.";
@@ -1548,6 +1565,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     return `${summaryParts.join(" - ")}.`;
   }, [
     activeLearningPeriod,
+    academicYears.length,
     currentBreakPeriod,
     hasExistingPlanningSetup,
     hasLearningYear,
@@ -1829,7 +1847,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     liveWeekView === "school" && (hasWeekendLiveItems || hasWeekendPreviewItems);
 
   const shouldShowYearComposer =
-    showYearComposer || !academicYears.length || Boolean(editingAcademicYearId);
+    showYearComposer || !hasLearningYear || Boolean(editingAcademicYearId);
   const shouldShowLearningPeriodComposer =
     showLearningPeriodComposer || !learningTermsForSelectedYear.length;
   const shouldShowTemplateComposer = showTemplateComposer || !masterTemplates.length;
@@ -1922,11 +1940,18 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setProgramSegments(segmentGroups.flat());
       setGenerationRuns(nextGenerationRuns);
 
-      setSelectedAcademicYearId((current) =>
-        current && nextAcademicYears.some((year) => year.id === current)
-          ? current
-          : nextAcademicYears[0]?.id ?? "",
-      );
+      const currentYear = resolveCurrentLearningYear(nextAcademicYears);
+      const today = new Date();
+      const nextFutureYear = nextAcademicYears.find((year) => {
+        if (!year.timeZone) return false;
+        const localToday = localDateKey(today, year.timeZone);
+        return Boolean(localToday && year.startsOn > localToday);
+      });
+      const fallbackYear = nextFutureYear ?? nextAcademicYears.at(-1) ?? null;
+      setSelectedAcademicYearId((current) => {
+        if (current && nextAcademicYears.some((year) => year.id === current)) return current;
+        return currentYear?.id ?? fallbackYear?.id ?? "";
+      });
 
       setSelectedTemplateId((current) =>
         current && nextMasterTemplates.some((template) => template.id === current)
@@ -2098,10 +2123,19 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     if (savedJurisdictionCode && !yearJurisdictionCode) {
       setYearJurisdictionCode(savedJurisdictionCode);
     }
+    if (!yearTimeZone) {
+      const suggestedTimeZone = suggestLearningYearTimeZone({
+        countryCode: savedCountryCode,
+        jurisdictionCode: savedJurisdictionCode,
+        browserTimeZone: browserTimeZoneSuggestion(),
+      });
+      if (suggestedTimeZone) setYearTimeZone(suggestedTimeZone);
+    }
   }, [
     workspace.profile,
     yearCountryCode,
     yearJurisdictionCode,
+    yearTimeZone,
   ]);
 
   useEffect(() => {
@@ -2409,6 +2443,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setYearEndsOn(year.endsOn);
     setYearCountryCode(year.countryCode ?? "");
     setYearJurisdictionCode(year.jurisdictionCode ?? "");
+    setYearTimeZone(year.timeZone ?? "");
     setPendingAcademicYearUpdate(null);
     setShowYearComposer(true);
     setMessage(null);
@@ -2424,6 +2459,7 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     setYearEndsOn(addDays(getWeekStart(), 83));
     setYearCountryCode("");
     setYearJurisdictionCode("");
+    setYearTimeZone("");
   }
 
   function closeLearningPeriodEditor() {
@@ -2579,10 +2615,26 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
       setMessage(null);
       return;
     }
+    if (!isValidIanaTimeZone(yearTimeZone)) {
+      setActionError("Choose and confirm a valid learning year timezone.");
+      setMessage(null);
+      return;
+    }
 
     const editingAcademicYear = editingAcademicYearId
       ? academicYears.find((year) => year.id === editingAcademicYearId) ?? null
       : null;
+    const overlappingYear = academicYears.find(
+      (year) => year.id !== editingAcademicYear?.id && learningYearsOverlap(
+        { startsOn: yearStartsOn, endsOn: yearEndsOn },
+        year,
+      ),
+    );
+    if (overlappingYear) {
+      setActionError(`These dates overlap ${overlappingYear.title}. Each calendar day can belong to only one learning year.`);
+      setMessage(null);
+      return;
+    }
 
     if (editingAcademicYear) {
       const input: CleanAcademicYearUpdate = {
@@ -2591,6 +2643,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         endsOn: yearEndsOn,
         countryCode: yearCountryCode || null,
         jurisdictionCode: yearJurisdictionCode || null,
+        timeZone: yearTimeZone,
+        confirmTimeZone: true,
       };
       const dateChanged =
         input.startsOn !== editingAcademicYear.startsOn || input.endsOn !== editingAcademicYear.endsOn;
@@ -2633,6 +2687,8 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
         endsOn: yearEndsOn,
         countryCode: yearCountryCode || null,
         jurisdictionCode: yearJurisdictionCode || null,
+        timeZone: yearTimeZone,
+        confirmTimeZone: true,
       });
 
       setSelectedAcademicYearId(created.id);
@@ -5096,6 +5152,33 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               </span>
                             ) : null}
                           </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <label htmlFor="learning-year-time-zone" style={{ color: "#334155", fontSize: 13, fontWeight: 800 }}>
+                              Learning year timezone
+                            </label>
+                            <input
+                              id="learning-year-time-zone"
+                              list="learning-year-time-zone-options"
+                              value={yearTimeZone}
+                              onChange={(event) => setYearTimeZone(event.target.value)}
+                              placeholder="Australia/Hobart"
+                              autoComplete="off"
+                              style={inputStyle}
+                            />
+                            <datalist id="learning-year-time-zone-options">
+                              {LEARNING_YEAR_TIME_ZONE_OPTIONS.map((timeZone) => (
+                                <option key={timeZone} value={timeZone} />
+                              ))}
+                            </datalist>
+                            <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
+                              Used to determine the start and end of this learning year. Saving confirms this timezone.
+                            </span>
+                            {editingAcademicYearId && !academicYears.find((year) => year.id === editingAcademicYearId)?.isTimeZoneConfirmed ? (
+                              <span style={{ color: "#9a3412", fontSize: 12, fontWeight: 700 }}>
+                                Suggested only — review and save to confirm.
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                         <div
                           style={{
@@ -5111,11 +5194,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                             <input
                               type="date"
                               value={yearStartsOn}
-                              max={yearEndsOn}
+                              max={addDays(yearEndsOn, -1)}
                               onChange={(event) => {
                                 const nextStart = event.target.value;
                                 setYearStartsOn(nextStart);
-                                if (nextStart > yearEndsOn) setYearEndsOn(nextStart);
+                                if (nextStart >= yearEndsOn) setYearEndsOn(addDays(nextStart, 1));
                               }}
                               style={inputStyle}
                             />
@@ -5123,9 +5206,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               selectedDate={yearStartsOn}
                               onSelectDate={(value) => {
                                 setYearStartsOn(value);
-                                if (value > yearEndsOn) setYearEndsOn(value);
+                                if (value >= yearEndsOn) setYearEndsOn(addDays(value, 1));
                               }}
-                              maxDate={yearEndsOn}
+                              maxDate={addDays(yearEndsOn, -1)}
                               mode="structural"
                               ariaLabel="Choose learning year start date"
                             />
@@ -5137,14 +5220,14 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                             <input
                               type="date"
                               value={yearEndsOn}
-                              min={yearStartsOn}
+                              min={addDays(yearStartsOn, 1)}
                               onChange={(event) => setYearEndsOn(event.target.value)}
                               style={inputStyle}
                             />
                             <CleanMiniCalendarNavigator
                               selectedDate={yearEndsOn}
                               onSelectDate={(value) => setYearEndsOn(value)}
-                              minDate={yearStartsOn}
+                              minDate={addDays(yearStartsOn, 1)}
                               mode="structural"
                               ariaLabel="Choose learning year end date"
                             />
@@ -5298,6 +5381,11 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
                               </div>
                               <div style={{ color: "#475569" }}>
                                 {formatWeekRangeLabel(year.startsOn, year.endsOn)}
+                              </div>
+                              <div style={{ color: year.isTimeZoneConfirmed ? "#475569" : "#9a3412", fontSize: 13 }}>
+                                {year.timeZone
+                                  ? `${year.timeZone}${year.isTimeZoneConfirmed ? " — confirmed" : " — confirmation required"}`
+                                  : "Learning year timezone required"}
                               </div>
                               <div style={{ color: "#64748b", fontSize: 13 }}>
                                 {yearLearningPeriods.length} learning period{yearLearningPeriods.length === 1 ? "" : "s"}

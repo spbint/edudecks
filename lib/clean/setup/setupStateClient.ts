@@ -22,6 +22,10 @@ import {
   type CleanSetupRecordCounts,
   type CleanSetupStatus,
 } from "@/lib/clean/setup/setupStatus";
+import {
+  localDateKey,
+  resolveCurrentLearningYear,
+} from "@/lib/clean/terms/learningYearAuthority";
 
 const ACTIVE_LEARNER_STORAGE_KEY = "mylearna.clean.activeLearnerByFamily.v1";
 
@@ -141,8 +145,17 @@ export async function loadCleanSetupStatus(
     ? hasAnyPathwayPlacementForLearner(activeLearner.id)
     : false;
   const teachingPeriods = getTeachingPeriods(learningPeriods);
+  const now = new Date();
+  const currentLearningYear = resolveCurrentLearningYear(academicYears, now);
+  const futureLearningYears = academicYears.filter((academicYear) => {
+    if (!academicYear.timeZone) return false;
+    const localToday = localDateKey(now, academicYear.timeZone);
+    return Boolean(localToday && academicYear.startsOn > localToday);
+  }).length;
   const counts: CleanSetupRecordCounts = {
     learningYears: academicYears.length,
+    currentLearningYears: currentLearningYear ? 1 : 0,
+    futureLearningYears,
     teachingPeriods: teachingPeriods.length,
     breaks: learningPeriods.length - teachingPeriods.length,
     pathways: hasPathway ? 1 : 0,

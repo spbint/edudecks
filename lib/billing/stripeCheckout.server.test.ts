@@ -113,7 +113,7 @@ describe("one-time Stripe media Checkout", () => {
     const result = await createOneTimeMediaCheckout(requestInput(repo));
 
     expect(result).toEqual({ checkoutUrl: "https://checkout.stripe.test/cs-1", checkoutIntentId: "intent-1" });
-    expect(repo.getCurrentAcademicYear).toHaveBeenCalledWith("family-1", "2027-09-01");
+    expect(repo.getCurrentAcademicYear).toHaveBeenCalledWith("family-1", new Date("2027-09-01T12:00:00.000Z"));
     expect(repo.createCheckoutIntent).toHaveBeenCalledWith(expect.objectContaining({
       productKey: "MEDIA_250",
       currency: "AUD",
@@ -170,14 +170,14 @@ describe("one-time Stripe media Checkout", () => {
     expect(absent.saveFamilyStripeCustomer).toHaveBeenCalledWith("family-1", "cus-created");
   });
 
-  it("uses the trusted family-local date to choose the current academic year", async () => {
+  it("passes the trusted instant to canonical Learning Year resolution", async () => {
     const repo = repository({
       getFamilyBillingProfile: vi.fn(async () => ({ countryCode: "AU", jurisdictionCode: "WA" })),
     });
     await createOneTimeMediaCheckout(requestInput(repo, {
       now: new Date("2027-01-01T13:30:00.000Z"),
     }));
-    expect(repo.getCurrentAcademicYear).toHaveBeenCalledWith("family-1", "2027-01-01");
+    expect(repo.getCurrentAcademicYear).toHaveBeenCalledWith("family-1", new Date("2027-01-01T13:30:00.000Z"));
   });
 
   it("resumes an existing same-product open Checkout without creating anything new", async () => {

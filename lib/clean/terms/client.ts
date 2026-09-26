@@ -27,6 +27,9 @@ type AcademicYearRow = {
   jurisdiction_code?: string | null;
   starts_on: string;
   ends_on: string;
+  time_zone?: string | null;
+  time_zone_confirmed_at?: string | null;
+  is_time_zone_confirmed?: boolean | null;
   week_start?: string | null;
   notes?: string | null;
   created_by_user_id: string;
@@ -114,6 +117,9 @@ function toCleanAcademicYear(row: AcademicYearRow): CleanAcademicYear {
     jurisdictionCode: normalizeNullString(row.jurisdiction_code),
     startsOn: safe(row.starts_on),
     endsOn: safe(row.ends_on),
+    timeZone: normalizeNullString(row.time_zone),
+    timeZoneConfirmedAt: normalizeNullString(row.time_zone_confirmed_at),
+    isTimeZoneConfirmed: row.is_time_zone_confirmed === true || Boolean(row.time_zone_confirmed_at),
     weekStart: normalizeWeekStart(row.week_start),
     notes: normalizeNullString(row.notes),
     createdByUserId: safe(row.created_by_user_id),
@@ -191,6 +197,12 @@ function sanitizeAcademicYearInput(
       "startsOn" in input && input.startsOn !== undefined ? safe(input.startsOn) || null : undefined,
     ends_on:
       "endsOn" in input && input.endsOn !== undefined ? safe(input.endsOn) || null : undefined,
+    time_zone:
+      "timeZone" in input && input.timeZone !== undefined ? normalizeNullString(input.timeZone) : undefined,
+    confirm_time_zone:
+      "confirmTimeZone" in input && input.confirmTimeZone !== undefined
+        ? input.confirmTimeZone === true
+        : undefined,
     week_start:
       "weekStart" in input && input.weekStart !== undefined
         ? normalizeWeekStart(input.weekStart)
@@ -261,7 +273,7 @@ export async function listCleanAcademicYears(
   let query = supabase
     .from("academic_years")
     .select(
-      "id,family_id,title,country_code,jurisdiction_code,starts_on,ends_on,week_start,notes,created_by_user_id,created_at,updated_at",
+      "id,family_id,title,country_code,jurisdiction_code,starts_on,ends_on,time_zone,time_zone_confirmed_at,week_start,notes,created_by_user_id,created_at,updated_at",
     )
     .eq("family_id", familyId)
     .order("starts_on", { ascending: true })
@@ -301,23 +313,22 @@ export async function createCleanAcademicYear(
     throw new Error("Start and end dates are required.");
   }
 
-  const response = await supabase
-    .from("academic_years")
-    .insert({
-      family_id: familyId,
-      title: payload.title,
-      country_code: payload.country_code ?? null,
-      jurisdiction_code: payload.jurisdiction_code ?? null,
-      starts_on: payload.starts_on,
-      ends_on: payload.ends_on,
-      week_start: payload.week_start ?? "monday",
-      notes: payload.notes ?? null,
-      created_by_user_id: currentUserId,
-    })
-    .select(
-      "id,family_id,title,country_code,jurisdiction_code,starts_on,ends_on,week_start,notes,created_by_user_id,created_at,updated_at",
-    )
-    .maybeSingle();
+  if (!safe(payload.time_zone) || payload.confirm_time_zone !== true) {
+    throw new Error("Choose and confirm a valid learning year timezone.");
+  }
+
+  const response = await supabase.rpc("mylearna_create_academic_year", {
+    p_family_id: familyId,
+    p_title: payload.title,
+    p_country_code: payload.country_code ?? null,
+    p_jurisdiction_code: payload.jurisdiction_code ?? null,
+    p_starts_on: payload.starts_on,
+    p_ends_on: payload.ends_on,
+    p_time_zone: payload.time_zone,
+    p_confirm_time_zone: true,
+    p_week_start: payload.week_start ?? "monday",
+    p_notes: payload.notes ?? null,
+  }).maybeSingle();
 
   if (response.error || !response.data) {
     throw new Error(
@@ -340,15 +351,29 @@ export async function updateCleanAcademicYear(
     Object.entries(sanitizeAcademicYearInput(input)).filter(([, value]) => value !== undefined),
   );
 
-  const response = await supabase
+  const existingResponse = await supabase
     .from("academic_years")
-    .update(payload)
+    .select("id,family_id,title,country_code,jurisdiction_code,starts_on,ends_on,time_zone,time_zone_confirmed_at,week_start,notes,created_by_user_id,created_at,updated_at")
     .eq("family_id", familyId)
     .eq("id", academicYearId)
-    .select(
-      "id,family_id,title,country_code,jurisdiction_code,starts_on,ends_on,week_start,notes,created_by_user_id,created_at,updated_at",
-    )
     .maybeSingle();
+  if (existingResponse.error || !existingResponse.data) {
+    throw new Error(normalizeCleanErrorMessage(existingResponse.error, "Learning year unavailable."));
+  }
+  const existing = existingResponse.data as AcademicYearRow;
+  const response = await supabase.rpc("mylearna_update_academic_year", {
+    p_family_id: familyId,
+    p_academic_year_id: academicYearId,
+    p_title: payload.title ?? existing.title,
+    p_country_code: payload.country_code !== undefined ? payload.country_code : existing.country_code ?? null,
+    p_jurisdiction_code: payload.jurisdiction_code !== undefined ? payload.jurisdiction_code : existing.jurisdiction_code ?? null,
+    p_starts_on: payload.starts_on ?? existing.starts_on,
+    p_ends_on: payload.ends_on ?? existing.ends_on,
+    p_time_zone: payload.time_zone ?? existing.time_zone,
+    p_confirm_time_zone: payload.confirm_time_zone ?? Boolean(existing.time_zone_confirmed_at),
+    p_week_start: payload.week_start ?? existing.week_start ?? "monday",
+    p_notes: payload.notes !== undefined ? payload.notes : existing.notes ?? null,
+  }).maybeSingle();
 
   if (response.error || !response.data) {
     throw new Error(
@@ -366,11 +391,10 @@ export async function deleteCleanAcademicYear(
   familyId: string,
   academicYearId: string,
 ) {
-  const response = await supabase
-    .from("academic_years")
-    .delete()
-    .eq("family_id", familyId)
-    .eq("id", academicYearId);
+  const response = await supabase.rpc("mylearna_delete_academic_year", {
+    p_family_id: familyId,
+    p_academic_year_id: academicYearId,
+  });
 
   if (response.error) {
     throw new Error(

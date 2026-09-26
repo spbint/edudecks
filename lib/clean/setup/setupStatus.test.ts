@@ -21,6 +21,9 @@ const academicYear: CleanAcademicYear = {
   jurisdictionCode: "TAS",
   startsOn: "2026-01-01",
   endsOn: "2026-12-31",
+  timeZone: "Australia/Hobart",
+  timeZoneConfirmedAt: "2025-12-01T00:00:00.000Z",
+  isTimeZoneConfirmed: true,
   weekStart: "monday",
   notes: null,
   createdByUserId: "user-1",
@@ -355,6 +358,27 @@ describe("My Day presentation state", () => {
       },
       hasPlannedItemsForSelectedDate: false,
     })).toBe("READY_FOR_FIRST_VALUE");
+  });
+
+  it("uses current-year truth instead of treating an ended year as current", () => {
+    const activeLearner = learner("learner-1", "Ari");
+    const status = deriveCleanSetupStatus({
+      profile,
+      learners: [activeLearner],
+      activeLearner,
+      counts: {
+        ...emptyCounts,
+        learningYears: 1,
+        currentLearningYears: 0,
+        futureLearningYears: 0,
+      },
+    });
+
+    expect(status.hasLearningYear).toBe(false);
+    expect(status.nextAction).toMatchObject({
+      type: "create-learning-year",
+      label: "Set up your new learning year",
+    });
   });
 
   it("recognises planning, evidence and populated-day milestones", () => {
