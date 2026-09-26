@@ -19,8 +19,16 @@ type OpenAIResponseEnvelope = {
   };
 };
 
-function modelName() {
-  return String(process.env.RESOURCE_FACTORY_OPENAI_MODEL || "gpt-5-mini").trim();
+function generatorModelName() {
+  return String(
+    process.env.RESOURCE_FACTORY_GENERATOR_MODEL || "gpt-5.6-luna",
+  ).trim();
+}
+
+function qaModelName() {
+  return String(
+    process.env.RESOURCE_FACTORY_QA_MODEL || "gpt-5.6-terra",
+  ).trim();
 }
 
 function apiKey() {
@@ -43,6 +51,7 @@ function extractOutputText(payload: OpenAIResponseEnvelope) {
 }
 
 async function callStructuredJson<T>(input: {
+  model: string;
   schemaName: string;
   schema: Record<string, unknown>;
   instructions: string;
@@ -55,7 +64,7 @@ async function callStructuredJson<T>(input: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: modelName(),
+      model: input.model,
       store: false,
       instructions: input.instructions,
       input: input.prompt,
@@ -195,6 +204,7 @@ export async function generateWorksheetSpecWithOpenAI(
       | "provenance"
     >
   >({
+    model: generatorModelName(),
     schemaName: "mylearna_resource_factory_worksheet",
     schema: worksheetSchema,
     instructions:
@@ -223,7 +233,7 @@ export async function generateWorksheetSpecWithOpenAI(
     stepKey: seed.stepKey,
     ...generated,
     provenance: {
-      generator: modelName(),
+      generator: generatorModelName(),
       generatedAt: new Date().toISOString(),
     },
   };
@@ -235,6 +245,7 @@ export async function qaWorksheetSpecWithOpenAI(
   const checked = await callStructuredJson<
     Omit<ResourceFactoryQaReport, "checkedAt" | "checker">
   >({
+    model: qaModelName(),
     schemaName: "mylearna_resource_factory_qa",
     schema: qaSchema,
     instructions:
@@ -248,6 +259,6 @@ export async function qaWorksheetSpecWithOpenAI(
   return {
     ...checked,
     checkedAt: new Date().toISOString(),
-    checker: modelName(),
+    checker: qaModelName(),
   };
 }
