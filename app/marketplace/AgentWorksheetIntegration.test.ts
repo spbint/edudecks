@@ -17,12 +17,23 @@ describe("Resource Factory Marketplace integration", () => {
     expect(loader).toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
-  it("surfaces agent worksheets on the Marketplace without replacing canonical curriculum", () => {
+  it("surfaces agent worksheets without replacing canonical curriculum", () => {
     expect(marketplace).toContain("MYLEARNA_MARKETPLACE_RESOURCES");
     expect(marketplace).toContain("listPublishedAgentMarketplaceResources");
     expect(marketplace).toContain("AgentWorksheetCard");
     expect(card).toContain("/marketplace/worksheets/");
-    expect(detail).toContain("Open worksheet");
-    expect(detail).toContain("Open answer key");
+  });
+
+  it("routes agent resources through the existing Resource Cupboard flow", () => {
+    expect(detail).toContain("add_marketplace=");
+    expect(detail).toContain("Save to My Resource Cupboard");
+    expect(detail).toContain("Save after purchase");
+  });
+
+  it("does not expose direct paid worksheet or answer links", () => {
+    expect(detail).toContain('const isPaid = accessModel === "paid"');
+    expect(detail).toContain("!isPaid && worksheetHref");
+    expect(detail).toContain("!isPaid && answersHref");
+    expect(detail).toContain("current Marketplace entitlement");
   });
 });
