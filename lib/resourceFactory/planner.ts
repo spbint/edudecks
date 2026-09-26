@@ -82,9 +82,6 @@ export function buildMathResourceFactoryPlan(input?: {
         left.stepOrder - right.stepOrder,
     );
 
-  // Breadth first: publish one variant across many skills before producing
-  // second/third variants. This gives Pinterest and Marketplace traffic a
-  // wider set of concepts to test quickly.
   for (const variant of variants) {
     for (const step of steps) {
       const resourceId = buildResourceFactoryId({
@@ -106,6 +103,9 @@ export function buildMathResourceFactoryPlan(input?: {
         resourceType: variant.resourceType,
         difficulty: variant.difficulty,
         questionCount: variant.questionCount,
+        pathwayStepId: step.id,
+        stageKey: step.stageKey,
+        stepKey: step.stepKey,
       });
 
       if (seeds.length >= limit) return seeds;
