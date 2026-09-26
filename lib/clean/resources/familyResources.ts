@@ -1,7 +1,7 @@
 import { getCurrentCleanUserId, normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { supabase } from "@/lib/supabaseClient";
 
-export type FamilyResourceType = "web_link" | "reference" | "file";
+export type FamilyResourceType = "web_link" | "reference" | "file" | "catalogue";
 
 export type FamilyResource = {
   id: string;
@@ -15,9 +15,16 @@ export type FamilyResource = {
   resourceFileName: string | null;
   resourceFilePath: string | null;
   byteSize: number | null;
+  marketplaceResourceId: string | null;
+  marketplaceExternalProductId: string | null;
+  marketplaceHandle: string | null;
+  marketplaceThumbnailUrl: string | null;
+  marketplaceResourceFormat: string | null;
+  marketplaceMetadata: Record<string, unknown> | null;
+  marketplaceHref: string | null;
 };
 
-const RESOURCE_SELECT = "id,family_id,resource_type,name,url,reference_text,note,resource_file_id,created_at,resource_file:family_resource_files(original_filename,object_path,byte_size,status)";
+const RESOURCE_SELECT = "id,family_id,resource_type,name,url,reference_text,note,resource_file_id,marketplace_resource_id,created_at,resource_file:family_resource_files(original_filename,object_path,byte_size,status),marketplace_resource:marketplace_resources(external_product_id,handle,title,thumbnail_url,resource_format,metadata,is_active)";
 
 function clean(value: unknown) { return String(value ?? "").trim(); }
 
@@ -36,17 +43,43 @@ export function normalizeFamilyWebUrl(value: string) {
 }
 
 function normalizeType(value: unknown): FamilyResourceType {
-  return clean(value) === "file" ? "file" : clean(value) === "web_link" ? "web_link" : "reference";
+  const type = clean(value);
+  return type === "file"
+    ? "file"
+    : type === "web_link"
+      ? "web_link"
+      : type === "catalogue"
+        ? "catalogue"
+        : "reference";
 }
 
 function toFamilyResource(row: Record<string, unknown>): FamilyResource {
   const file = (row.resource_file as Record<string, unknown> | null) ?? null;
+  const marketplace =
+    (row.marketplace_resource as Record<string, unknown> | null) ?? null;
+  const metadata =
+    marketplace?.metadata && typeof marketplace.metadata === "object"
+      ? (marketplace.metadata as Record<string, unknown>)
+      : null;
   return {
-    id: clean(row.id), familyId: clean(row.family_id), resourceType: normalizeType(row.resource_type),
-    name: clean(row.name), url: clean(row.url) || null, referenceText: clean(row.reference_text) || null,
-    note: clean(row.note) || null, resourceFileId: clean(row.resource_file_id) || null,
-    resourceFileName: clean(file?.original_filename) || null, resourceFilePath: clean(file?.object_path) || null,
+    id: clean(row.id),
+    familyId: clean(row.family_id),
+    resourceType: normalizeType(row.resource_type),
+    name: clean(row.name),
+    url: clean(row.url) || null,
+    referenceText: clean(row.reference_text) || null,
+    note: clean(row.note) || null,
+    resourceFileId: clean(row.resource_file_id) || null,
+    resourceFileName: clean(file?.original_filename) || null,
+    resourceFilePath: clean(file?.object_path) || null,
     byteSize: Number.isFinite(Number(file?.byte_size)) ? Number(file?.byte_size) : null,
+    marketplaceResourceId: clean(row.marketplace_resource_id) || null,
+    marketplaceExternalProductId: clean(marketplace?.external_product_id) || null,
+    marketplaceHandle: clean(marketplace?.handle) || null,
+    marketplaceThumbnailUrl: clean(marketplace?.thumbnail_url) || null,
+    marketplaceResourceFormat: clean(marketplace?.resource_format) || null,
+    marketplaceMetadata: metadata,
+    marketplaceHref: clean(metadata?.pdf_href) || null,
   };
 }
 
@@ -62,7 +95,7 @@ export async function listFamilyResources(familyId: string, options?: { search?:
   const search = clean(options?.search).toLowerCase();
   return ((response.data ?? []) as unknown as Array<Record<string, unknown>>)
     .map(toFamilyResource)
-    .filter((resource) => !search || `${resource.name} ${resource.url ?? ""} ${resource.referenceText ?? ""} ${resource.note ?? ""}`.toLowerCase().includes(search));
+    .filter((resource) => !search || `${resource.name} ${resource.url ?? ""} ${resource.referenceText ?? ""} ${resource.note ?? ""} ${resource.marketplaceExternalProductId ?? ""}`.toLowerCase().includes(search));
 }
 
 export async function createFamilyResource(input: {
@@ -113,11 +146,42 @@ export async function createUploadedPdfFamilyResource(input: { familyId: string;
   return toFamilyResource(response.data as unknown as Record<string, unknown>);
 }
 
+export async function saveMarketplaceResourceToCupboard(input: {
+  familyId: string;
+  externalProductId: string;
+}) {
+  const userId = await getCurrentCleanUserId();
+  if (!userId) throw new Error("You need to sign in before saving a Marketplace resource.");
+
+  const response = await supabase.rpc(
+    "mylearna_save_marketplace_resource_to_cupboard",
+    {
+      p_family_id: input.familyId,
+      p_external_product_id: clean(input.externalProductId),
+    },
+  );
+
+  if (response.error) {
+    throw resourceError(
+      response.error,
+      "We could not save this MyLearna resource to your Resource Cupboard.",
+    );
+  }
+
+  return clean(response.data) || null;
+}
+
 export async function removeFamilyResource(familyId: string, resourceId: string) {
   const response = await supabase.from("family_resources").delete().eq("family_id", familyId).eq("id", resourceId);
   if (response.error) throw resourceError(response.error, "This resource is still used by learning items, so it was kept.");
 }
 
 export function familyResourceTypeLabel(type: FamilyResourceType) {
-  return type === "web_link" ? "Website" : type === "file" ? "PDF" : "Book / curriculum / reference";
+  return type === "web_link"
+    ? "Website"
+    : type === "file"
+      ? "PDF"
+      : type === "catalogue"
+        ? "MyLearna resource"
+        : "Book / curriculum / reference";
 }

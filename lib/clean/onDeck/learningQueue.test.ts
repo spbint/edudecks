@@ -81,12 +81,14 @@ describe("On Deck learning queue", () => {
     );
   });
 
-  it("allows current Mathematics and English pathway steps", () => {
+  it("allows current Mathematics, English, and Classical pathway steps", () => {
     const mathematicsStep = getPathwayStepsBySubject("mathematics")[0];
     const englishStep = getPathwayStepsBySubject("english")[0];
+    const classicalStep = getPathwayStepsBySubject("classical")[0];
 
     expect(isPathwayStepEligibleForOnDeck(mathematicsStep)).toBe(true);
     expect(isPathwayStepEligibleForOnDeck(englishStep)).toBe(true);
+    expect(isPathwayStepEligibleForOnDeck(classicalStep)).toBe(true);
   });
 
   it("does not allow in-development pathway subjects onto On Deck", () => {
@@ -107,6 +109,25 @@ describe("On Deck learning queue", () => {
     expect(resolved.worksheetAvailable).toBe(true);
   });
 
+  it("resolves the Classical booklet on On Deck with its resource type", () => {
+    const classicalStep = getPathwayStepsBySubject("classical")[0]!;
+    const resolved = resolveOnDeckItem(
+      item({
+        subjectKey: classicalStep.subjectKey,
+        strandKey: classicalStep.strandKey,
+        stageKey: classicalStep.stageKey,
+        stepKey: classicalStep.stepKey,
+        pathwayStepId: classicalStep.id,
+        displayTitle: classicalStep.stepTitle,
+      }),
+    );
+
+    expect(resolved.available).toBe(true);
+    expect(resolved.subjectLabel).toBe("MyLearna Classical");
+    expect(resolved.worksheetAvailable).toBe(true);
+    expect(resolved.resourceType).toBe("booklet-pdf");
+  });
+
   it("renders stale or changed source identity as unavailable without substitution", () => {
     const resolved = resolveOnDeckItem(
       item({
@@ -118,6 +139,56 @@ describe("On Deck learning queue", () => {
     expect(resolved.available).toBe(false);
     expect(resolved.title).toBe("This learning step is no longer available.");
     expect(resolved.href).toBeNull();
+  });
+
+  it("retains a saved MyLearna catalogue resource when custom learning reaches On Deck", () => {
+    const normalized = toLearningQueueItem({
+      id: "queue-catalogue",
+      family_id: "family-a",
+      learner_id: "learner-a",
+      source_type: "custom_learning",
+      priority: "flexible",
+      custom_learning_item_id: "custom-a",
+      display_title: "Ancient World learning",
+      position: 0,
+      created_by_user_id: "user-a",
+      custom_learning_item: {
+        id: "custom-a",
+        title: "Ancient World learning",
+        learning_area: "MyLearna Classical",
+        custom_learning_resources: [
+          {
+            id: "custom-resource-a",
+            resource_type: "catalogue",
+            family_resource_id: "family-resource-a",
+            position: 0,
+            family_resource: {
+              id: "family-resource-a",
+              name: "From Wandering to Settlement",
+              marketplace_resource_id: "marketplace-a",
+              marketplace_resource: {
+                external_product_id: "MYL-CLASSICAL-Y34-A-U1-E01",
+                handle: "classical-y3-4-a-u1-e01-from-wandering-to-settlement",
+                metadata: {
+                  pdf_href: "/api/classical/booklets/y3-4-a-u1-e01",
+                },
+                is_active: true,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(normalized.resources).toHaveLength(1);
+    expect(normalized.resources[0]).toMatchObject({
+      resourceType: "catalogue",
+      label: "From Wandering to Settlement",
+      marketplaceResourceId: "marketplace-a",
+      marketplaceExternalProductId: "MYL-CLASSICAL-Y34-A-U1-E01",
+      marketplaceHandle: "classical-y3-4-a-u1-e01-from-wandering-to-settlement",
+      marketplaceHref: "/api/classical/booklets/y3-4-a-u1-e01",
+    });
   });
 
   it("resolves custom learning without inventing Pathways identity or resources", () => {

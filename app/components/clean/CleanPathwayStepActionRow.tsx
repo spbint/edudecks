@@ -14,7 +14,10 @@ import {
   CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE,
 } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
 import { trackPathwayAnalyticsEvent } from "@/lib/clean/pathways/pathwayAnalytics";
-import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
+import {
+  pathwayResourceLabel,
+  type WorksheetResource,
+} from "@/lib/clean/resources/worksheetResources";
 
 type CleanPathwayStepActionRowProps = {
   captureHref: string;
@@ -89,6 +92,10 @@ function appendWorksheetEvidenceParams(
   params.set("worksheetTitle", worksheetResource.title);
   params.set("worksheetHref", worksheetResource.href);
   params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("pathwayResourceType", worksheetResource.resourceType);
+  params.set("pathwayResourceTitle", worksheetResource.title);
+  params.set("pathwayResourceHref", worksheetResource.href);
+  params.set("pathwayResourceFileName", worksheetResource.fileName);
   params.set("includeInPortfolio", "1");
   params.set("includeInReport", "1");
   return `${path}?${params.toString()}`;
@@ -112,7 +119,11 @@ function latestEvidenceProgressLabel(entry: CleanEvidenceEntry | null | undefine
   return match?.[1]?.trim() || "Learning recorded";
 }
 
-function actionLabel(action: PathwayNextAction, primary: boolean) {
+function actionLabel(
+  action: PathwayNextAction,
+  primary: boolean,
+  resource?: WorksheetResource | null,
+) {
   switch (action) {
     case "check-understanding":
       return "Check understanding";
@@ -121,7 +132,9 @@ function actionLabel(action: PathwayNextAction, primary: boolean) {
     case "next-step":
       return "Next step";
     case "worksheet":
-      return "Download worksheet";
+      return resource?.resourceType === "booklet-pdf"
+        ? "Download booklet"
+        : "Download worksheet";
     case "capture-evidence":
       return "Add to Portfolio";
   }
@@ -172,10 +185,19 @@ export default function CleanPathwayStepActionRow({
       "check-understanding": Boolean(customerAssessmentHref),
       practise: Boolean(customerPracticeHref),
       "next-step": Boolean(nextStepHref),
-      worksheet: CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE && Boolean(worksheetResource),
+      worksheet: Boolean(worksheetResource) && (worksheetResource?.resourceType === "booklet-pdf" || CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE),
       "capture-evidence": Boolean(captureHref),
     },
+    resourceLabel: pathwayResourceLabel(worksheetResource?.resourceType),
   });
+  const resourceActionAlreadyRendered =
+    actionPlan.primary === "worksheet" || actionPlan.secondary.includes("worksheet");
+  const bookletPreviewResource =
+    worksheetResource?.resourceType === "booklet-pdf" &&
+    worksheetResource.previewImageUrl &&
+    worksheetResource.href
+      ? worksheetResource
+      : null;
   const actionAnalyticsContext = {
     subjectKey,
     strandKey,
@@ -213,7 +235,7 @@ export default function CleanPathwayStepActionRow({
   const renderAction = (action: PathwayNextAction, primary = false) => {
     const href = actionHref[action];
     const isWorksheet = action === "worksheet";
-    const label = actionLabel(action, primary);
+    const label = actionLabel(action, primary, worksheetResource);
 
     if (isWorksheet) {
       return (
@@ -286,6 +308,73 @@ export default function CleanPathwayStepActionRow({
         ) : null}
       </div>
 
+      {bookletPreviewResource ? (
+        <div
+          data-pathway-booklet-preview="true"
+          style={{
+            width: "min(100%, 520px)",
+            border: "1px solid #D9D0FF",
+            borderRadius: 16,
+            background: "#FAF9FF",
+            padding: 12,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 12,
+            color: "#17204B",
+            boxShadow: "0 6px 18px rgba(23, 32, 75, 0.06)",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* The trusted Shopify CDN is already rendered directly by Marketplace. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bookletPreviewResource.previewImageUrl}
+            alt={`Cover of ${bookletPreviewResource.title} booklet`}
+            width={112}
+            height={158}
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+            }}
+            style={{
+              width: "clamp(82px, 28vw, 112px)",
+              height: "auto",
+              aspectRatio: "210 / 297",
+              objectFit: "contain",
+              border: "1px solid #E7EAF2",
+              borderRadius: 10,
+              background: "#FFFFFF",
+              boxShadow: "0 5px 14px rgba(23, 32, 75, 0.12)",
+              display: "block",
+              flex: "0 0 auto",
+            }}
+          />
+          <span
+            style={{
+              minWidth: 0,
+              flex: "1 1 150px",
+              display: "grid",
+              gap: 5,
+            }}
+          >
+            <span
+              style={{
+                color: "#6D5BD0",
+                fontSize: 11,
+                fontWeight: 850,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              Booklet preview
+            </span>
+            <strong style={{ fontSize: 15, lineHeight: 1.3 }}>
+              {bookletPreviewResource.title}
+            </strong>
+          </span>
+        </div>
+      ) : null}
+
       {actionPlan.primary ? (
         <div
           className="mylearna-pathway-primary-action"
@@ -297,7 +386,8 @@ export default function CleanPathwayStepActionRow({
 
       {actionPlan.secondary.length ||
       (!manualComplete && onManualCompletionChange) ||
-      worksheetResource ||
+      (!resourceActionAlreadyRendered && worksheetResource) ||
+      Boolean(worksheetResource?.marketplaceExternalProductId) ||
       planHref ||
       onPutOnDeck ||
       onDeck ? (
@@ -306,6 +396,16 @@ export default function CleanPathwayStepActionRow({
           style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
         >
           {actionPlan.secondary.map((action) => renderAction(action))}
+          {worksheetResource?.marketplaceExternalProductId ? (
+            <Link
+              href={`/my-resources?add_marketplace=${encodeURIComponent(
+                worksheetResource.marketplaceExternalProductId,
+              )}&source=my-pathways`}
+              style={{ ...secondaryButtonStyle, minHeight: 44 }}
+            >
+              Save to My Resource Cupboard
+            </Link>
+          ) : null}
           {planHref ? (
             <Link
               href={planHref}
@@ -379,13 +479,13 @@ export default function CleanPathwayStepActionRow({
               Mark complete
             </button>
           ) : null}
-          {worksheetResource ? (
+          {!resourceActionAlreadyRendered && worksheetResource ? (
             <a
               href={worksheetResource.href}
               download={worksheetResource.fileName}
               style={secondaryButtonStyle}
             >
-              Download worksheet
+              {actionLabel("worksheet", false, worksheetResource)}
             </a>
           ) : null}
         </div>

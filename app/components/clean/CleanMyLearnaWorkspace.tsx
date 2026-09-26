@@ -54,6 +54,7 @@ import {
   buildWhereWeAreSubjectSummaries,
   type WhereWeAreSubjectSummary,
 } from "@/lib/clean/learna/whereWeAre";
+import { pathwayResourceAvailabilityLabel } from "@/lib/clean/resources/worksheetResources";
 import { trackProductEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const cardStyle: React.CSSProperties = {
@@ -333,9 +334,9 @@ function WhereWeAreSection({
                 <span style={{ padding: "7px 9px", borderRadius: 999, background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569", fontSize: 13, fontWeight: 750 }}>
                   {countLabel(summary.recentLearningCount, "recent learning record", "recent learning records")}
                 </span>
-                {summary.worksheetAvailable ? (
+                {summary.resourceType ? (
                   <span style={{ padding: "7px 9px", borderRadius: 999, background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontSize: 13, fontWeight: 800 }}>
-                    Worksheet available
+                    {pathwayResourceAvailabilityLabel(summary.resourceType)}
                   </span>
                 ) : null}
               </div>

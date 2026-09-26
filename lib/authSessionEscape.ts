@@ -26,6 +26,7 @@ const SESSION_ACCOUNT_SWITCH_KEYS = [
   "mylearna.auth.redirectTo",
   "mylearna.auth.next",
   "mylearna.auth.intendedRoute",
+  "mylearna.auth.pendingMarketplaceDestination",
 ];
 
 const FAMILY_IDENTITY_CACHE_KEYS = [

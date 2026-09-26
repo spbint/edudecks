@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import type { MathWorksheetResource } from "@/lib/clean/resources/mathWorksheetResources";
+import type { WorksheetResource } from "@/lib/clean/resources/worksheetResources";
 
 const worksheetResource: MathWorksheetResource = {
   pathwayStepId: "mathematics:number-and-place-value:upper-elementary:step-1",
@@ -19,6 +20,23 @@ const worksheetResource: MathWorksheetResource = {
   fileName: "MYL-MATH-NPV-UE-S001-Use-Place-Value.pdf",
   href: "/resources/worksheets/maths/number-and-place-value/upper-elementary/MYL-MATH-NPV-UE-S001-Use-Place-Value.pdf",
   resourceType: "worksheet-pdf",
+};
+
+const bookletResource: WorksheetResource = {
+  pathwayStepId: "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+  stepKey: "from-wandering-to-settlement",
+  subjectKey: "classical",
+  strandKey: "history-and-civilisation",
+  stageKey: "middle-primary",
+  stageDisplay: "Years 3-4 · Cycle A: The Ancient World",
+  stepNumber: 1,
+  pathwayStepTitle: "Encounter 1 · From Wandering to Settlement",
+  title: "From Wandering to Settlement",
+  fileName: "MyLearna-Classical-Y3-4-Cycle-A-Encounter-1-From-Wandering-to-Settlement.pdf",
+  href: "/api/classical/booklets/y3-4-a-u1-e01",
+  resourceType: "booklet-pdf",
+  previewImageUrl: "https://cdn.shopify.com/encounter-one-cover.png",
+  marketplaceExternalProductId: "MYL-CLASSICAL-Y34-A-U1-E01",
 };
 
 describe("CleanPathwayStepActionRow", () => {
@@ -50,6 +68,175 @@ describe("CleanPathwayStepActionRow", () => {
     expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
       "Add to Portfolio",
     );
+  });
+
+  it("shows a Classical booklet exactly once with the booklet label", () => {
+    const { container } = render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    expect(screen.getAllByRole("link", { name: "Download booklet" })).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: "Download worksheet" })).toBeNull();
+    expect(container.querySelector('[data-pathway-primary-action="true"]')?.textContent).toBe(
+      "Download booklet",
+    );
+  });
+
+  it("renders the trusted booklet cover as an informational preview", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const preview = document.querySelector('[data-pathway-booklet-preview="true"]');
+    const cover = screen.getByRole("img", {
+      name: "Cover of From Wandering to Settlement booklet",
+    });
+
+    expect(preview).toBeTruthy();
+    expect(preview?.tagName).toBe("DIV");
+    expect(preview?.closest("a")).toBeNull();
+    expect(preview?.getAttribute("style")).toContain("flex-wrap: wrap");
+    expect(cover.getAttribute("src")).toBe(bookletResource.previewImageUrl);
+    expect(screen.getByText("Booklet preview")).toBeTruthy();
+    expect(screen.getByText(bookletResource.title)).toBeTruthy();
+    expect(
+      screen.queryByRole("link", { name: "Open From Wandering to Settlement booklet" }),
+    ).toBeNull();
+    expect(screen.getByRole("link", { name: "Download booklet" }).getAttribute("href")).toBe(
+      bookletResource.href,
+    );
+  });
+
+  it("does not render a booklet preview for an ordinary worksheet", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: worksheetResource.title,
+        worksheetResource: {
+          ...worksheetResource,
+          previewImageUrl: "https://cdn.shopify.com/worksheet-preview.png",
+        },
+      }),
+    );
+
+    expect(document.querySelector('[data-pathway-booklet-preview="true"]')).toBeNull();
+    expect(screen.getByRole("link", { name: "Download worksheet" })).toBeTruthy();
+  });
+
+  it("keeps Download booklet when an eligible booklet has no preview image", () => {
+    const resourceWithoutPreview = {
+      ...bookletResource,
+      previewImageUrl: undefined,
+    };
+
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: resourceWithoutPreview.title,
+        worksheetResource: resourceWithoutPreview,
+      }),
+    );
+
+    expect(document.querySelector('[data-pathway-booklet-preview="true"]')).toBeNull();
+    expect(screen.getByRole("link", { name: "Download booklet" }).getAttribute("href")).toBe(
+      resourceWithoutPreview.href,
+    );
+  });
+
+  it("renders a different booklet entirely from its resource metadata", () => {
+    const futureBooklet = {
+      ...bookletResource,
+      pathwayStepId:
+        "classical::history-and-civilisation::middle-primary::test-fixture-booklet",
+      stepKey: "test-fixture-booklet",
+      title: "A Different Registered Booklet",
+      href: "/api/classical/booklets/test-fixture-booklet",
+      fileName: "A-Different-Registered-Booklet.pdf",
+      previewImageUrl: "https://cdn.shopify.com/different-booklet-cover.png",
+      marketplaceExternalProductId: "TEST-FIXTURE-BOOKLET",
+    } satisfies WorksheetResource;
+
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        stepTitle: futureBooklet.title,
+        worksheetResource: futureBooklet,
+      }),
+    );
+
+    const preview = document.querySelector('[data-pathway-booklet-preview="true"]');
+    expect(preview).toBeTruthy();
+    expect(preview?.closest("a")).toBeNull();
+    expect(screen.getByText("Booklet preview")).toBeTruthy();
+    expect(screen.getByText(futureBooklet.title)).toBeTruthy();
+    expect(
+      screen.queryByRole("link", { name: "Open A Different Registered Booklet booklet" }),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole("img", { name: "Cover of A Different Registered Booklet booklet" })
+        .getAttribute("src"),
+    ).toBe(futureBooklet.previewImageUrl);
+  });
+
+  it("links the Classical booklet to the same Marketplace catalogue item used by the Cupboard", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const save = screen.getByRole("link", { name: "Save to My Resource Cupboard" });
+    const url = new URL(save.getAttribute("href") || "", "https://mylearna.test");
+
+    expect(url.pathname).toBe("/my-resources");
+    expect(url.searchParams.get("add_marketplace")).toBe("MYL-CLASSICAL-Y34-A-U1-E01");
+    expect(url.searchParams.get("source")).toBe("my-pathways");
+  });
+
+  it("carries the Classical booklet type into the Portfolio capture handoff", () => {
+    render(
+      React.createElement(CleanPathwayStepActionRow, {
+        captureHref: "/my-capture?source=my-pathways",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        pathwayStepId: bookletResource.pathwayStepId,
+        stepKey: bookletResource.stepKey,
+        stepTitle: bookletResource.title,
+        worksheetResource: bookletResource,
+      }),
+    );
+
+    const href = screen.getByRole("link", { name: "Add to Portfolio" }).getAttribute("href") || "";
+    const url = new URL(href, "https://mylearna.test");
+
+    expect(url.searchParams.get("pathwayResourceType")).toBe("booklet-pdf");
+    expect(url.searchParams.get("pathwayResourceTitle")).toBe("From Wandering to Settlement");
+    expect(url.searchParams.get("pathwayResourceHref")).toBe(
+      "/api/classical/booklets/y3-4-a-u1-e01",
+    );
+    expect(url.searchParams.get("worksheetEvidence")).toBe("1");
   });
 
   it("keeps Mark complete separate from adding to Portfolio", () => {

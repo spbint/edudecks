@@ -30,6 +30,7 @@ import type { Learner } from "@/lib/clean/learners/types";
 import {
   type PathwayProgressStatus,
   inferPathwayStageFromYearLevel,
+  tryInferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
   DETAILED_SUBJECT_CONFIGS,
@@ -52,19 +53,16 @@ import {
   isCustomerPathwaySubjectActive,
 } from "@/lib/clean/pathways/pathwaySubjectAvailability";
 import { shouldShowPathwaysSetupGuidance } from "@/lib/clean/pathways/pathwaySetupGuidanceVisibility";
+import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayResources";
 import {
-  getWorksheetResourceForPathwayStep as getMathWorksheetResourceForPathwayStep,
-} from "@/lib/clean/resources/mathWorksheetResources";
-import { getEnglishWorksheetResourceForPathwayStep } from "@/lib/clean/resources/englishWorksheetResources";
-import type { WorksheetStepContext } from "@/lib/clean/resources/worksheetResources";
+  pathwayResourceLabel,
+  type WorksheetStepContext,
+} from "@/lib/clean/resources/worksheetResources";
 import { supabase } from "@/lib/supabaseClient";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 
 function getWorksheetResourceForPathwayStep(context: WorksheetStepContext) {
-  if (context.subjectKey === "english") {
-    return getEnglishWorksheetResourceForPathwayStep(context);
-  }
-  return getMathWorksheetResourceForPathwayStep(context);
+  return getPathwayResourceForPathwayStep(context);
 }
 import {
   buildUnifiedPathwayStepStateIndex,
@@ -644,6 +642,10 @@ function appendWorksheetEvidenceCaptureParams(
   params.set("worksheetTitle", worksheetResource.title);
   params.set("worksheetHref", worksheetResource.href);
   params.set("worksheetFileName", worksheetResource.fileName);
+  params.set("pathwayResourceType", worksheetResource.resourceType);
+  params.set("pathwayResourceTitle", worksheetResource.title);
+  params.set("pathwayResourceHref", worksheetResource.href);
+  params.set("pathwayResourceFileName", worksheetResource.fileName);
   params.set("includeInPortfolio", "1");
   params.set("includeInReport", "1");
   params.set("returnTo", returnTo);
@@ -704,7 +706,7 @@ function getWorkspaceDisplayedPathwayStatus(
   fromSavedEvidence: boolean;
   pathwayStepId: string | null;
 } {
-  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
   const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
     subjectKey,
     pathwayKey: workspace.key,
@@ -822,7 +824,7 @@ function getDetailedStepCanonicalPathwayStepId({
   stage: MathematicsDetailedStrandStage;
   step: MathematicsDetailedStrandStep;
 }) {
-  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
   return resolveCanonicalPathwayStepIdFromParts({
     subjectKey,
     pathwayKey: strand.key,
@@ -843,7 +845,7 @@ function getDetailedStepWorksheetResource({
   stage: MathematicsDetailedStrandStage;
   step: MathematicsDetailedStrandStep;
 }) {
-  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
   const pathwayStepId = getDetailedStepCanonicalPathwayStepId({
     subjectKey,
     strand,
@@ -922,6 +924,11 @@ function PathwaysWorkspaceBody() {
           ? strandParam || ""
           : persistedUiState.selectedStrandKeyBySubject?.science ||
             DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
+      classical:
+        initialSubjectKey === "classical" && queryStrandIsValid
+          ? strandParam || ""
+          : persistedUiState.selectedStrandKeyBySubject?.classical ||
+            DETAILED_SUBJECT_CONFIGS.classical?.defaultStrandKey || "",
       humanities:
         initialSubjectKey === "humanities" && queryStrandIsValid
           ? strandParam || ""
@@ -1111,9 +1118,13 @@ function PathwaysWorkspaceBody() {
     missingLearningPeriodSetup ? "your first learning period" : null,
   ].filter(Boolean) as string[];
   const missingSetupSummary = formatMissingSetupItems(missingSetupItems);
-  const currentLearnerFocusStageKey = useMemo(
-    () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
+  const recognisedLearnerFocusStageKey = useMemo(
+    () => tryInferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
+  );
+  const currentLearnerFocusStageKey = useMemo(
+    () => recognisedLearnerFocusStageKey || inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
+    [recognisedLearnerFocusStageKey, selectedLearner?.yearLevel],
   );
 
   const selectedSubject =
@@ -1447,13 +1458,22 @@ function PathwaysWorkspaceBody() {
 
   const selectedWorkspaceStageIndex = useMemo(() => {
     if (!selectedSubjectWorkspace) return -1;
-    return Math.max(
-      0,
-      selectedSubjectWorkspace.stages.findIndex(
-        (stage) => stage.key === selectedSubjectWorkspace.currentFocusStageKey,
-      ),
+    if (
+      selectedSubjectKey === "classical" &&
+      !recognisedLearnerFocusStageKey
+    ) {
+      return -1;
+    }
+
+    const currentStageIndex = selectedSubjectWorkspace.stages.findIndex(
+      (stage) => stage.key === selectedSubjectWorkspace.currentFocusStageKey,
     );
-  }, [selectedSubjectWorkspace]);
+    return currentStageIndex >= 0 ? currentStageIndex : 0;
+  }, [
+    recognisedLearnerFocusStageKey,
+    selectedSubjectKey,
+    selectedSubjectWorkspace,
+  ]);
   const selectedWorkspaceCurrentStage = useMemo(() => {
     if (!selectedSubjectWorkspace) return null;
     return selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex] || null;
@@ -1521,7 +1541,7 @@ function PathwaysWorkspaceBody() {
 
     const orderedSteps = selectedSubjectWorkspace.stages.flatMap((stage) =>
       stage.steps.map((step) => {
-        const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+        const stepKey = step.stepKey || buildPathwayRegistryStepKey(step.title, step.id);
         const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
           subjectKey: selectedSubjectKey,
           pathwayKey: selectedSubjectWorkspace.key,
@@ -1578,11 +1598,18 @@ function PathwaysWorkspaceBody() {
     numberPathwayRevealGroups?.currentLearningZone[0] || null;
   const selectedSubjectDefaultPathwayStepId = useMemo(() => {
     if (!selectedSubjectWorkspace) return "";
+    if (
+      selectedSubjectKey === "classical" &&
+      recognisedLearnerFocusStageKey !== "middle-primary"
+    ) {
+      return "";
+    }
     return getDefaultPathwayStepIdForWorkspace(
       selectedSubjectKey,
       selectedSubjectWorkspace,
     ) || "";
   }, [
+    recognisedLearnerFocusStageKey,
     selectedSubjectKey,
     selectedSubjectWorkspace,
   ]);
@@ -4549,8 +4576,8 @@ function DetailedMathematicsStepCard({
     1;
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
   const canonicalStepKey = useMemo(
-    () => buildPathwayRegistryStepKey(step.title, step.id),
-    [step.id, step.title],
+    () => step.stepKey || buildPathwayRegistryStepKey(step.title, step.id),
+    [step.id, step.stepKey, step.title],
   );
   const canonicalPathwayStepId =
     statusPathwayStepId ||
@@ -4714,7 +4741,11 @@ function DetailedMathematicsStepCard({
   const captureHref = worksheetResource
     ? appendWorksheetEvidenceCaptureParams(captureBaseHref, worksheetResource, captureReturnTo)
     : captureBaseHref;
-  const worksheetStatus = worksheetResource ? "Worksheet ready" : "No worksheet";
+  const pathwayResourceName =
+    pathwayResourceLabel(worksheetResource?.resourceType) || "Resource";
+  const worksheetStatus = worksheetResource
+    ? `${pathwayResourceName} ready`
+    : "No resource";
   const worksheetFileName = worksheetResource?.fileName || "";
   const isStepSecure =
     isUnifiedPathwayStepComplete(stepUnifiedState) ||
@@ -4977,7 +5008,7 @@ function DetailedMathematicsStepCard({
                 fontWeight: 650,
                 lineHeight: 1.3,
               }}
-              title={worksheetFileName || "No worksheet is available for this step yet."}
+              title={worksheetFileName || "No resource is available for this step yet."}
             >
               {worksheetStatus}
             </div>

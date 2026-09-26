@@ -1,5 +1,6 @@
 export type MathematicsDetailedStrandStep = {
   id: number;
+  stepKey?: string;
   title: string;
   meaning: string;
   skillFocus: string;

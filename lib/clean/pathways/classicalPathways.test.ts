@@ -1,0 +1,167 @@
+import { describe, expect, it } from "vitest";
+import { MYLEARNA_CLASSICAL_ENCOUNTER_ONE, MYLEARNA_CLASSICAL_ENCOUNTER_TWO, MYLEARNA_CLASSICAL_ENCOUNTER_THREE, MYLEARNA_CLASSICAL_ENCOUNTER_FOUR, MYLEARNA_CLASSICAL_ENCOUNTER_FIVE, MYLEARNA_CLASSICAL_ENCOUNTER_SIX, MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN } from "@/lib/clean/curriculum/classicalCurriculumRegistry";
+import { CLASSICAL_STRAND_WORKSPACE_BUILDERS } from "@/lib/clean/pathways/classicalPathways";
+import { getPathwayStepsByStrand } from "@/lib/clean/pathways/pathwayStepRegistry";
+
+describe("MyLearna Classical pathways", () => {
+  it("registers Encounter 1 on the Years 3-4 Ancient World pathway", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        id: "classical::history-and-civilisation::middle-primary::from-wandering-to-settlement",
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "from-wandering-to-settlement",
+        stepTitle: "Encounter 1 · From Wandering to Settlement",
+      }),
+    );
+  });
+
+  it("derives Encounter 1 academic content from the canonical definition", () => {
+    const workspace = CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const step = workspace.stages.find((stage) => stage.key === "middle-primary")?.steps[0];
+    const canonical = MYLEARNA_CLASSICAL_ENCOUNTER_ONE;
+
+    expect(step).toMatchObject({
+      id: canonical.encounterNumber,
+      stepKey: canonical.pathway.stepKey,
+      meaning: canonical.academic.meaning,
+      skillFocus: canonical.academic.skillFocus,
+      learningIntention: canonical.academic.learningIntention,
+      practiceActivity: canonical.academic.practiceActivity,
+      assessmentCheck: canonical.academic.assessmentCheck,
+      nextStep: canonical.academic.nextStep,
+      reportLanguage: canonical.academic.reportLanguage,
+    });
+    expect(step?.successCriteria).toEqual(canonical.academic.successCriteria);
+    expect(step?.evidenceExamples).toEqual(canonical.academic.evidenceExamples);
+  });
+
+  it("registers Encounter 2 on the Years 3-4 Ancient World pathway in sequence", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_TWO;
+
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        id: encounter.pathway.pathwayStepId,
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "rivers-and-civilisation",
+        stepTitle: "Encounter 2 · Rivers and Civilisation",
+      }),
+    );
+
+    const workspace =
+      CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const middlePrimary = workspace.stages.find((stage) => stage.key === "middle-primary");
+    expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+    ]);
+    expect(middlePrimary?.steps[1]).toMatchObject({
+      id: 2,
+      stepKey: encounter.pathway.stepKey,
+      meaning: encounter.academic.meaning,
+      learningIntention: encounter.academic.learningIntention,
+      assessmentCheck: encounter.academic.assessmentCheck,
+    });
+  });
+
+
+  it("registers Encounter 5 on the Years 3-4 Ancient World pathway using its canonical identity", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+    const encounter = MYLEARNA_CLASSICAL_ENCOUNTER_FIVE;
+
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        id: encounter.pathway.pathwayStepId,
+        subjectKey: "classical",
+        strandKey: "history-and-civilisation",
+        stageKey: "middle-primary",
+        stepKey: "trade-travel-and-exchange",
+        stepTitle: "Encounter 5 · Trade, Travel and Exchange",
+      }),
+    );
+
+    const workspace =
+      CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const middlePrimary = workspace.stages.find((stage) => stage.key === "middle-primary");
+    expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SIX.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN.pathway.stepKey,
+    ]);
+    expect(middlePrimary?.steps[4]).toMatchObject({
+      id: 5,
+      stepKey: encounter.pathway.stepKey,
+      meaning: encounter.academic.meaning,
+      learningIntention: encounter.academic.learningIntention,
+      assessmentCheck: encounter.academic.assessmentCheck,
+    });
+  });
+
+
+
+  it("registers Encounters 3 and 4 in sequence on the Years 3-4 Ancient World pathway", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+
+    for (const encounter of [
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR,
+    ]) {
+      expect(steps).toContainEqual(
+        expect.objectContaining({
+          id: encounter.pathway.pathwayStepId,
+          subjectKey: "classical",
+          strandKey: "history-and-civilisation",
+          stageKey: "middle-primary",
+          stepKey: encounter.pathway.stepKey,
+          stepTitle: `${encounter.hierarchy.encounterLabel} · ${encounter.title}`,
+        }),
+      );
+    }
+  });
+
+
+
+  it("registers Encounters 6 and 7 in sequence on the Years 3-4 Ancient World pathway", () => {
+    const steps = getPathwayStepsByStrand("classical", "history-and-civilisation");
+    for (const encounter of [
+      MYLEARNA_CLASSICAL_ENCOUNTER_SIX,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN,
+    ]) {
+      expect(steps).toContainEqual(
+        expect.objectContaining({
+          id: encounter.pathway.pathwayStepId,
+          subjectKey: "classical",
+          strandKey: "history-and-civilisation",
+          stageKey: "middle-primary",
+          stepKey: encounter.pathway.stepKey,
+          stepTitle: `${encounter.hierarchy.encounterLabel} · ${encounter.title}`,
+        }),
+      );
+    }
+
+    const workspace =
+      CLASSICAL_STRAND_WORKSPACE_BUILDERS["history-and-civilisation"]("middle-primary");
+    const middlePrimary = workspace.stages.find((stage) => stage.key === "middle-primary");
+    expect(middlePrimary?.steps.map((step) => step.stepKey)).toEqual([
+      MYLEARNA_CLASSICAL_ENCOUNTER_ONE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_TWO.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_THREE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FOUR.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_FIVE.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SIX.pathway.stepKey,
+      MYLEARNA_CLASSICAL_ENCOUNTER_SEVEN.pathway.stepKey,
+    ]);
+  });
+
+
+});

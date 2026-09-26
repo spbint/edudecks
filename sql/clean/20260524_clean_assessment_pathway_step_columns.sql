@@ -20,6 +20,7 @@ alter table if exists public.assessment_skill_statuses
     subject_key in (
       'mathematics',
       'english',
+      'classical',
       'science',
       'humanities',
       'technologies',

@@ -51,6 +51,7 @@ import type {
   CleanGenerationRun,
 } from "@/lib/clean/generation/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
+import { consumePendingMarketplaceDestination } from "@/lib/authPendingMarketplaceDestination";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCleanPlanningCacheKey,
@@ -2561,7 +2562,9 @@ function CleanCalendarWorkspaceBody({ planningOnly = false }: { planningOnly?: b
     if (setupStatus === "active") {
       completeSetupStep("calendar");
     }
-    router.push("/my-day");
+    const pendingMarketplaceDestination =
+      consumePendingMarketplaceDestination();
+    router.push(pendingMarketplaceDestination || "/my-day");
   }
 
   function addAnotherMasterBlock() {

@@ -78,6 +78,11 @@ import {
   captureRecoveryMessage,
   useCaptureNetworkHint,
 } from "@/lib/clean/evidence/captureNetworkStatus";
+import {
+  normalizePathwayResourceType,
+  pathwayResourceLabel,
+} from "@/lib/clean/resources/worksheetResources";
+
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -782,6 +787,16 @@ function CleanCaptureWorkspaceBody() {
   const learningFromLifeActive = capturePath === "life" && !worksheetEvidenceMode;
   const worksheetTitleFromQuery = safeQueryValue(searchParams.get("worksheetTitle"));
   const worksheetHrefFromQuery = safeQueryValue(searchParams.get("worksheetHref"));
+  const pathwayResourceTypeFromQuery =
+    normalizePathwayResourceType(searchParams.get("pathwayResourceType")) ||
+    (worksheetEvidenceMode ? "worksheet-pdf" : null);
+  const pathwayResourceName =
+    pathwayResourceLabel(pathwayResourceTypeFromQuery) || "Worksheet";
+  const pathwayResourceNoun = pathwayResourceName.toLowerCase();
+  const pathwayResourceTitleFromQuery =
+    safeQueryValue(searchParams.get("pathwayResourceTitle")) || worksheetTitleFromQuery;
+  const pathwayResourceHrefFromQuery =
+    safeQueryValue(searchParams.get("pathwayResourceHref")) || worksheetHrefFromQuery;
   const worksheetProgressFromQuery = safeQueryValue(searchParams.get("progressLevel"));
   const returnToFromQuery = safeQueryValue(searchParams.get("returnTo"));
   const observedOnFromQuery =
@@ -1750,13 +1765,15 @@ function CleanCaptureWorkspaceBody() {
     ) ?? null;
     const worksheetTitleSuggestion =
       worksheetEvidenceMode && nextPathwayContext
-        ? `${safeQueryValue(nextPathwayContext.stepTitle) || "Completed worksheet"} - worksheet evidence`
+        ? `${safeQueryValue(nextPathwayContext.stepTitle) || `Completed ${pathwayResourceNoun}`} - ${pathwayResourceNoun} evidence`
         : "";
     const worksheetWhatHappenedSuggestion =
       worksheetEvidenceMode && nextPathwayContext
         ? [
-            `Completed worksheet evidence for ${safeQueryValue(nextPathwayContext.pathwayLabel) || "this pathway"} / ${safeQueryValue(nextPathwayContext.stepTitle) || "this step"}.`,
-            worksheetTitleFromQuery ? `Worksheet: ${worksheetTitleFromQuery}.` : "",
+            `Completed ${pathwayResourceNoun} evidence for ${safeQueryValue(nextPathwayContext.pathwayLabel) || "this pathway"} / ${safeQueryValue(nextPathwayContext.stepTitle) || "this step"}.`,
+            pathwayResourceTitleFromQuery
+              ? `${pathwayResourceName}: ${pathwayResourceTitleFromQuery}.`
+              : "",
           ].filter(Boolean).join("\n")
         : "";
 
@@ -1839,6 +1856,11 @@ function CleanCaptureWorkspaceBody() {
     captureContextKey,
     curriculumContextFromQuery,
     pathwayContextFromQuery,
+    pathwayResourceHrefFromQuery,
+    pathwayResourceName,
+    pathwayResourceNoun,
+    pathwayResourceTitleFromQuery,
+    pathwayResourceTypeFromQuery,
     onDeckContextItem,
     onDeckContextLoading,
     entries,
@@ -3050,20 +3072,20 @@ function CleanCaptureWorkspaceBody() {
                         gap: 10,
                       }}
                     >
-                      <strong style={{ color: "#17204B" }}>Worksheet</strong>
-                      {worksheetTitleFromQuery ? (
+                      <strong style={{ color: "#17204B" }}>{pathwayResourceName}</strong>
+                      {pathwayResourceTitleFromQuery ? (
                         <span style={{ color: "#475569", lineHeight: 1.5 }}>
-                          {worksheetTitleFromQuery}
+                          {pathwayResourceTitleFromQuery}
                         </span>
                       ) : null}
-                      {worksheetHrefFromQuery ? (
+                      {pathwayResourceHrefFromQuery ? (
                         <Link
-                          href={worksheetHrefFromQuery}
+                          href={pathwayResourceHrefFromQuery}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "#6C4DF6", fontWeight: 800 }}
                         >
-                          Open worksheet
+                          Open {pathwayResourceNoun}
                         </Link>
                       ) : null}
                     </div>

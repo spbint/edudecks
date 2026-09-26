@@ -5,14 +5,16 @@ import { familyResourceTypeLabel, normalizeFamilyWebUrl } from "@/lib/clean/reso
 const migration = readFileSync("supabase/migrations/20260913032028_family_resource_cupboard.sql", "utf8");
 const quotaMigration = readFileSync("supabase/migrations/20260913041441_align_resource_cupboard_free_quota.sql", "utf8");
 const optionalReferenceMigration = readFileSync("supabase/migrations/20260913112513_make_reference_details_optional.sql", "utf8");
+const catalogueMigration = readFileSync("supabase/migrations/20260921113000_classical_marketplace_cupboard.sql", "utf8");
 const cupboardWorkspace = readFileSync("app/components/clean/CleanResourceCupboardWorkspace.tsx", "utf8");
 const featureFiles = `${readFileSync("lib/clean/onDeck/resourceFiles.ts", "utf8")}\n${readFileSync("lib/clean/onDeck/client.ts", "utf8")}`;
 
 describe("My Resource Cupboard foundation", () => {
-  it("keeps the three V1 resource kinds clear", () => {
+  it("keeps family-created and MyLearna resource kinds clear", () => {
     expect(familyResourceTypeLabel("web_link")).toBe("Website");
     expect(familyResourceTypeLabel("reference")).toBe("Book / curriculum / reference");
     expect(familyResourceTypeLabel("file")).toBe("PDF");
+    expect(familyResourceTypeLabel("catalogue")).toBe("MyLearna resource");
   });
 
   it("uses one family resource entity and association pointer", () => {
@@ -45,6 +47,18 @@ describe("My Resource Cupboard foundation", () => {
     expect(featureFiles).toContain("attachFamilyResourceToCustomLearning");
     expect(featureFiles).toContain("mylearna_reserve_resource_file_upload");
     expect(featureFiles).not.toContain("mylearna_reserve_evidence_attachment_upload");
+  });
+
+  it("references central Marketplace resources without copying them into family PDF storage", () => {
+    expect(catalogueMigration).toContain("add column if not exists marketplace_resource_id uuid");
+    expect(catalogueMigration).toContain("resource_type in ('web_link', 'reference', 'file', 'catalogue')");
+    expect(catalogueMigration).toContain("unique (family_id, marketplace_resource_id)");
+    expect(catalogueMigration).toContain("mylearna_save_marketplace_resource_to_cupboard");
+    expect(catalogueMigration).toContain("'MYL-CLASSICAL-Y34-A-U1-E01'");
+    expect(catalogueMigration).toContain("'family_subscription'");
+    expect(catalogueMigration).toContain("'family_included'");
+    expect(catalogueMigration).not.toContain("insert into public.family_resource_files");
+    expect(catalogueMigration).not.toContain("storage.objects");
   });
 
   it("normalizes friendly website addresses without accepting unsafe schemes", () => {
