@@ -18,8 +18,11 @@ export default function AgentWorksheetCard({
   resource: AgentMarketplaceResource;
 }) {
   const detailHref = `/marketplace/worksheets/${encodeURIComponent(resource.handle)}`;
+  const previewImageHref =
+    `/api/resource-factory/pinterest/${encodeURIComponent(resource.handle)}`;
   const yearLevels = arrayOfStrings(resource.metadata.year_levels);
   const pricingState = clean(resource.metadata.pricing_state);
+  const accessModel = clean(resource.metadata.access_model);
 
   return (
     <article className="marketplace-product-card marketplace-included-card">
@@ -28,11 +31,7 @@ export default function AgentWorksheetCard({
         href={detailHref}
         aria-label={`View ${resource.title}`}
       >
-        {resource.thumbnailUrl ? (
-          <img src={resource.thumbnailUrl} alt={resource.title} />
-        ) : (
-          <span aria-hidden="true" />
-        )}
+        <img src={previewImageHref} alt={`${resource.title} worksheet preview`} />
       </Link>
       <div className="marketplace-product-card-body">
         <div className="marketplace-product-meta">
@@ -42,7 +41,11 @@ export default function AgentWorksheetCard({
           <Link href={detailHref}>{resource.title}</Link>
         </h3>
         <div className="marketplace-included-badge">
-          {pricingState === "free_testing" ? "Free worksheet" : "MyLearna worksheet"}
+          {pricingState === "free_testing"
+            ? "Free worksheet"
+            : accessModel === "paid"
+              ? "Paid worksheet"
+              : "MyLearna worksheet"}
         </div>
       </div>
     </article>
