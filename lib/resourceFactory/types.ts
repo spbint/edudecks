@@ -115,7 +115,7 @@ export type ResourceFactoryAssets = {
   worksheetHref: string;
   answersHref: string;
   thumbnailUrl: string;
-  previewImageHref?: string;
+  previewImageHref: string;
   pinterestImageUrls: string[];
 };
 
