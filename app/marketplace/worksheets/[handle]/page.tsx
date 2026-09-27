@@ -91,7 +91,7 @@ export default async function AgentWorksheetMarketplacePage({
   const isPaid = accessModel === "paid";
   const paidPrice = isPaid ? priceLabel(resource.metadata) : "";
   const previewImageHref =
-    `/api/resource-factory/pinterest/${encodeURIComponent(resource.handle)}`;
+    `/api/resource-factory/preview/${encodeURIComponent(resource.handle)}`;
   const cupboardHref =
     "/my-resources?" +
     (isPaid ? "buy_marketplace=" : "add_marketplace=") +
