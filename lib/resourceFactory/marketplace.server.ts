@@ -14,6 +14,11 @@ export type AgentMarketplaceResource = {
   metadata: Record<string, unknown>;
 };
 
+export type AgentWorksheetPreviewData = {
+  resource: AgentMarketplaceResource;
+  spec: Record<string, unknown> | null;
+};
+
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -137,13 +142,39 @@ export async function getPublishedAgentMarketplaceResourceByHandle(
     });
     return null;
   }
-  if (!response.data) {
-    console.warn("Resource Factory Marketplace resource was not found.", {
-      handle: cleanHandle,
-      supabaseProjectRef: supabaseProjectRef(resolvedSupabaseUrl()),
-      vercelEnv: clean(process.env.VERCEL_ENV) || null,
-    });
-    return null;
-  }
+  if (!response.data) return null;
   return mapResource(response.data as unknown as Record<string, unknown>);
+}
+
+export async function getPublishedAgentWorksheetPreviewByHandle(
+  handle: string,
+): Promise<AgentWorksheetPreviewData | null> {
+  const resource = await getPublishedAgentMarketplaceResourceByHandle(handle);
+  if (!resource) return null;
+
+  const admin = createMarketplaceAdminClient();
+  if (!admin) return { resource, spec: null };
+
+  const job = await admin
+    .from("resource_factory_jobs")
+    .select("spec")
+    .eq("marketplace_resource_id", resource.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (job.error) {
+    console.error("Unable to load Resource Factory worksheet preview spec.", {
+      marketplaceResourceId: resource.id,
+      code: job.error.code,
+      message: job.error.message,
+    });
+    return { resource, spec: null };
+  }
+
+  const spec = job.data ? asRecord(job.data.spec) : {};
+  return {
+    resource,
+    spec: Object.keys(spec).length ? spec : null,
+  };
 }
