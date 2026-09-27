@@ -12,8 +12,13 @@ const pinterest = readFileSync(
   "app/api/resource-factory/pinterest/[handle]/route.ts",
   "utf8",
 );
-const worksheetPreview = readFileSync(
+const worksheetPreviewRoute = readFileSync(
   "app/api/resource-factory/preview/[handle]/route.ts",
+  "utf8",
+);
+const publisher = readFileSync("lib/resourceFactory/publish.server.ts", "utf8");
+const previewRenderer = readFileSync(
+  "lib/resourceFactory/pdfPreview.server.ts",
   "utf8",
 );
 
@@ -46,12 +51,22 @@ describe("Resource Factory Marketplace integration", () => {
     expect(detail).toContain("current Marketplace entitlement");
   });
 
-  it("uses actual worksheet-page PNG previews instead of marketing creatives", () => {
+  it("renders and persists the preview from page 1 of the actual worksheet PDF", () => {
+    expect(previewRenderer).toContain("PDFiumLibrary");
+    expect(previewRenderer).toContain("document.pages()");
+    expect(previewRenderer).toContain("firstPage.render");
+    expect(previewRenderer).toContain('import sharp from "sharp"');
+    expect(publisher).toContain("renderResourceFactoryWorksheetPreviewPng");
+    expect(publisher).toContain("worksheet_preview_png");
+    expect(publisher).toContain("-preview.png");
+  });
+
+  it("serves the stored preview PNG instead of rebuilding a worksheet image", () => {
+    expect(worksheetPreviewRoute).toContain("preview_image_href");
+    expect(worksheetPreviewRoute).toContain("NextResponse.redirect");
+    expect(worksheetPreviewRoute).not.toContain("ImageResponse");
     expect(detail).toContain("/api/resource-factory/preview/");
     expect(card).toContain("/api/resource-factory/preview/");
-    expect(worksheetPreview).toContain("getPublishedAgentWorksheetPreviewByHandle");
-    expect(worksheetPreview).toContain("MYLEARNA PREVIEW");
-    expect(worksheetPreview).not.toContain("Answer:");
     expect(pinterest).toContain('accessModel === "paid"');
   });
 
