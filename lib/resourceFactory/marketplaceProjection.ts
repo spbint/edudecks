@@ -22,7 +22,8 @@ export function buildResourceFactoryMarketplaceProjection(input: {
     external_variant_id: null,
     handle: spec.slug,
     title: spec.title,
-    thumbnail_url: assets.thumbnailUrl || DEFAULT_THUMBNAIL_URL,
+    thumbnail_url:
+      assets.previewImageHref || assets.thumbnailUrl || DEFAULT_THUMBNAIL_URL,
     marketplace_area: "Homeschool Resources",
     primary_collection: "Mathematics",
     subcollection: spec.strand,
@@ -44,6 +45,8 @@ export function buildResourceFactoryMarketplaceProjection(input: {
       step_key: spec.stepKey || null,
       worksheet_href: assets.worksheetHref,
       answers_href: assets.answersHref,
+      preview_image_href:
+        assets.previewImageHref || assets.thumbnailUrl || DEFAULT_THUMBNAIL_URL,
       pinterest_image_urls: assets.pinterestImageUrls,
       seo: spec.seo,
       pinterest: spec.pinterest,
