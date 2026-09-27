@@ -8,6 +8,10 @@ const detail = readFileSync(
   "app/marketplace/worksheets/[handle]/page.tsx",
   "utf8",
 );
+const pinterest = readFileSync(
+  "app/api/resource-factory/pinterest/[handle]/route.ts",
+  "utf8",
+);
 
 describe("Resource Factory Marketplace integration", () => {
   it("keeps agent catalogue reads server-side and limited to active resources", () => {
@@ -26,8 +30,9 @@ describe("Resource Factory Marketplace integration", () => {
 
   it("routes agent resources through the existing Resource Cupboard flow", () => {
     expect(detail).toContain("add_marketplace=");
+    expect(detail).toContain("buy_marketplace=");
     expect(detail).toContain("Save to My Resource Cupboard");
-    expect(detail).toContain("Save after purchase");
+    expect(detail).toContain("Buy securely with Stripe");
   });
 
   it("does not expose direct paid worksheet or answer links", () => {
@@ -35,5 +40,18 @@ describe("Resource Factory Marketplace integration", () => {
     expect(detail).toContain("!isPaid && worksheetHref");
     expect(detail).toContain("!isPaid && answersHref");
     expect(detail).toContain("current Marketplace entitlement");
+  });
+
+  it("uses Resource Factory-generated previews instead of a raw logo thumbnail", () => {
+    expect(detail).toContain("/api/resource-factory/pinterest/");
+    expect(card).toContain("/api/resource-factory/pinterest/");
+    expect(pinterest).toContain('accessModel === "paid"');
+    expect(pinterest).toContain("MYLEARNA HOMESCHOOL WORKSHEET");
+  });
+
+  it("does not reuse free SEO copy for paid resources", () => {
+    expect(detail).toContain("!isPaid || !/\\bfree\\b/i.test(description)");
+    expect(detail).toContain("priceLabel");
+    expect(detail).toContain("Paid resource ·");
   });
 });
