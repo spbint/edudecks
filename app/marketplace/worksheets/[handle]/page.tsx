@@ -16,17 +16,43 @@ function arrayOfStrings(value: unknown) {
     : [];
 }
 
-function metadataDescription(resource: Awaited<ReturnType<typeof getPublishedAgentMarketplaceResourceByHandle>>) {
+function isPaidResource(
+  resource: Awaited<ReturnType<typeof getPublishedAgentMarketplaceResourceByHandle>>,
+) {
+  return clean(resource?.metadata.access_model) === "paid";
+}
+
+function metadataDescription(
+  resource: Awaited<ReturnType<typeof getPublishedAgentMarketplaceResourceByHandle>>,
+) {
   if (!resource) return "";
+  const isPaid = isPaidResource(resource);
   const seo = resource.metadata.seo;
   if (seo && typeof seo === "object" && !Array.isArray(seo)) {
     const description = clean((seo as Record<string, unknown>).description);
-    if (description) return description;
+    if (description && (!isPaid || !/\bfree\b/i.test(description))) {
+      return description;
+    }
   }
   const skill = clean(resource.metadata.skill);
   return skill
     ? `A MyLearna homeschool worksheet for ${skill}.`
     : "A printable MyLearna homeschool worksheet.";
+}
+
+function priceLabel(metadata: Record<string, unknown>) {
+  const currency = clean(metadata.currency).toUpperCase();
+  const amountMinor = Number(metadata.price_minor);
+  if (!currency || !Number.isInteger(amountMinor) || amountMinor <= 0) return "";
+  try {
+    return new Intl.NumberFormat("en-AU", {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+    }).format(amountMinor / 100);
+  } catch {
+    return "";
+  }
 }
 
 export async function generateMetadata({
@@ -63,6 +89,9 @@ export default async function AgentWorksheetMarketplacePage({
   const pricingState = clean(resource.metadata.pricing_state);
   const accessModel = clean(resource.metadata.access_model) || "free_testing";
   const isPaid = accessModel === "paid";
+  const paidPrice = isPaid ? priceLabel(resource.metadata) : "";
+  const previewImageHref =
+    `/api/resource-factory/pinterest/${encodeURIComponent(resource.handle)}`;
   const cupboardHref =
     "/my-resources?" +
     (isPaid ? "buy_marketplace=" : "add_marketplace=") +
@@ -76,7 +105,9 @@ export default async function AgentWorksheetMarketplacePage({
       : accessModel === "family_included"
         ? "Included with MyLearna Family"
         : isPaid
-          ? "Paid resource"
+          ? paidPrice
+            ? `Paid resource · ${paidPrice}`
+            : "Paid resource"
           : "MyLearna resource";
 
   return (
@@ -84,11 +115,7 @@ export default async function AgentWorksheetMarketplacePage({
       <div className="marketplace-product-detail">
         <div className="marketplace-gallery" aria-label={`${resource.title} preview`}>
           <figure>
-            {resource.thumbnailUrl ? (
-              <img src={resource.thumbnailUrl} alt={resource.title} />
-            ) : (
-              <div className="marketplace-state">Preview coming soon.</div>
-            )}
+            <img src={previewImageHref} alt={`${resource.title} worksheet preview`} />
           </figure>
         </div>
 
@@ -120,7 +147,11 @@ export default async function AgentWorksheetMarketplacePage({
 
           <div className="marketplace-detail-form">
             <Link className="marketplace-button" href={saveHref}>
-              {isPaid ? "Buy securely with Stripe" : "Save to My Resource Cupboard"}
+              {isPaid
+                ? paidPrice
+                  ? `Buy securely with Stripe · ${paidPrice}`
+                  : "Buy securely with Stripe"
+                : "Save to My Resource Cupboard"}
             </Link>
 
             {!isPaid && worksheetHref ? (
