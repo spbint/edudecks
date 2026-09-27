@@ -12,12 +12,18 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+const MYLEARNA_HOMESCHOOL_SUPABASE_URL =
+  "https://jgllsqixpfypunnstinl.supabase.co";
+
 function createAdminClient() {
-  const url = clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const url =
+    clean(process.env.SUPABASE_URL) ||
+    clean(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+    MYLEARNA_HOMESCHOOL_SUPABASE_URL;
   const key = clean(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
   );
-  if (!url || !key) {
+  if (!key) {
     throw new Error("Resource Factory requires Supabase service-role configuration.");
   }
 
@@ -82,6 +88,8 @@ export async function publishResourceFactoryRun(input: {
     bytes: input.answerPdf,
   });
 
+  const previewImageUrl =
+    `${appUrl()}/api/resource-factory/preview/${encodeURIComponent(input.spec.slug)}`;
   const pinterestImageUrl =
     `${appUrl()}/api/resource-factory/pinterest/${encodeURIComponent(input.spec.slug)}`;
   const active = input.active ?? resourceFactoryAutoPublishEnabled();
@@ -93,7 +101,8 @@ export async function publishResourceFactoryRun(input: {
     assets: {
       worksheetHref,
       answersHref,
-      thumbnailUrl: pinterestImageUrl,
+      thumbnailUrl: previewImageUrl,
+      previewImageHref: previewImageUrl,
       pinterestImageUrls: [pinterestImageUrl],
     },
   });
@@ -116,6 +125,7 @@ export async function publishResourceFactoryRun(input: {
     detailHref: `${appUrl()}/marketplace/worksheets/${encodeURIComponent(input.spec.slug)}`,
     worksheetHref,
     answersHref,
+    previewImageUrl,
     pinterestImageUrl,
     metadata: projection.metadata,
   };
