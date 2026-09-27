@@ -26,18 +26,30 @@ function supabaseProjectRef(url: string) {
   }
 }
 
+const MYLEARNA_HOMESCHOOL_SUPABASE_URL =
+  "https://jgllsqixpfypunnstinl.supabase.co";
+
+function resolvedSupabaseUrl() {
+  return (
+    clean(process.env.SUPABASE_URL) ||
+    clean(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+    MYLEARNA_HOMESCHOOL_SUPABASE_URL
+  );
+}
+
 function createMarketplaceAdminClient() {
-  const url = clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const url = resolvedSupabaseUrl();
   const key = clean(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
   );
-  if (!url || !key) {
-    console.error("Resource Factory Marketplace Supabase configuration missing.", {
-      hasSupabaseUrl: Boolean(url),
-      hasServiceRoleKey: Boolean(key),
-      supabaseProjectRef: url ? supabaseProjectRef(url) : null,
-      vercelEnv: clean(process.env.VERCEL_ENV) || null,
-    });
+  if (!key) {
+    console.error(
+      "Resource Factory Marketplace Supabase service-role configuration missing.",
+      {
+        supabaseProjectRef: supabaseProjectRef(url),
+        vercelEnv: clean(process.env.VERCEL_ENV) || null,
+      },
+    );
     return null;
   }
 
@@ -120,9 +132,7 @@ export async function getPublishedAgentMarketplaceResourceByHandle(
       handle: cleanHandle,
       code: response.error.code,
       message: response.error.message,
-      supabaseProjectRef: supabaseProjectRef(
-        clean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      ),
+      supabaseProjectRef: supabaseProjectRef(resolvedSupabaseUrl()),
       vercelEnv: clean(process.env.VERCEL_ENV) || null,
     });
     return null;
@@ -130,9 +140,7 @@ export async function getPublishedAgentMarketplaceResourceByHandle(
   if (!response.data) {
     console.warn("Resource Factory Marketplace resource was not found.", {
       handle: cleanHandle,
-      supabaseProjectRef: supabaseProjectRef(
-        clean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      ),
+      supabaseProjectRef: supabaseProjectRef(resolvedSupabaseUrl()),
       vercelEnv: clean(process.env.VERCEL_ENV) || null,
     });
     return null;
