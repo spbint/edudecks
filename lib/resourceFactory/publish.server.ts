@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import { buildResourceFactoryMarketplaceProjection } from "@/lib/resourceFactory/marketplaceProjection";
+import { renderResourceFactoryWorksheetPreviewPng } from "@/lib/resourceFactory/pdfPreview.server";
 import type {
   ResourceFactoryQaReport,
   ResourceFactoryWorksheetSpec,
@@ -52,21 +53,77 @@ export function resourceFactoryAutoPromoteEnabled() {
   return clean(process.env.RESOURCE_FACTORY_AUTO_PROMOTE).toLowerCase() === "true";
 }
 
-async function uploadPdf(input: {
+async function uploadAsset(input: {
   path: string;
   bytes: Uint8Array;
+  contentType: "application/pdf" | "image/png";
 }) {
   const admin = createAdminClient();
   const bucket = bucketName();
   const upload = await admin.storage.from(bucket).upload(input.path, input.bytes, {
-    contentType: "application/pdf",
+    contentType: input.contentType,
     cacheControl: "3600",
     upsert: true,
   });
   if (upload.error) {
     throw new Error(`Resource Factory upload failed: ${upload.error.message}`);
   }
-  return admin.storage.from(bucket).getPublicUrl(input.path).data.publicUrl;
+
+  return {
+    objectPath: input.path,
+    href: admin.storage.from(bucket).getPublicUrl(input.path).data.publicUrl,
+    byteSize: input.bytes.byteLength,
+  };
+}
+
+async function persistArtifacts(input: {
+  jobId: string;
+  worksheet: { objectPath: string; byteSize: number };
+  answers: { objectPath: string; byteSize: number };
+  preview: { objectPath: string; byteSize: number };
+}) {
+  const admin = createAdminClient();
+  const kinds = ["worksheet_pdf", "answers_pdf", "worksheet_preview_png"];
+
+  const removed = await admin
+    .from("resource_factory_artifacts")
+    .delete()
+    .eq("job_id", input.jobId)
+    .in("artifact_kind", kinds);
+  if (removed.error) {
+    throw new Error(
+      `Resource Factory artifact cleanup failed: ${removed.error.message}`,
+    );
+  }
+
+  const inserted = await admin.from("resource_factory_artifacts").insert([
+    {
+      job_id: input.jobId,
+      artifact_kind: "worksheet_pdf",
+      object_path: input.worksheet.objectPath,
+      mime_type: "application/pdf",
+      byte_size: input.worksheet.byteSize,
+    },
+    {
+      job_id: input.jobId,
+      artifact_kind: "answers_pdf",
+      object_path: input.answers.objectPath,
+      mime_type: "application/pdf",
+      byte_size: input.answers.byteSize,
+    },
+    {
+      job_id: input.jobId,
+      artifact_kind: "worksheet_preview_png",
+      object_path: input.preview.objectPath,
+      mime_type: "image/png",
+      byte_size: input.preview.byteSize,
+    },
+  ]);
+  if (inserted.error) {
+    throw new Error(
+      `Resource Factory artifact write failed: ${inserted.error.message}`,
+    );
+  }
 }
 
 export async function publishResourceFactoryRun(input: {
@@ -77,19 +134,31 @@ export async function publishResourceFactoryRun(input: {
   answerPdf: Uint8Array;
   active?: boolean;
 }) {
-  const safeSlug = input.spec.slug.replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "");
+  const safeSlug = input.spec.slug
+    .replace(/[^a-z0-9-]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
   const root = `resource-factory/${input.jobId}`;
-  const worksheetHref = await uploadPdf({
+
+  const previewPng = await renderResourceFactoryWorksheetPreviewPng(
+    input.worksheetPdf,
+  );
+
+  const worksheet = await uploadAsset({
     path: `${root}/${safeSlug}.pdf`,
     bytes: input.worksheetPdf,
+    contentType: "application/pdf",
   });
-  const answersHref = await uploadPdf({
+  const answers = await uploadAsset({
     path: `${root}/${safeSlug}-answers.pdf`,
     bytes: input.answerPdf,
+    contentType: "application/pdf",
+  });
+  const preview = await uploadAsset({
+    path: `${root}/${safeSlug}-preview.png`,
+    bytes: previewPng,
+    contentType: "image/png",
   });
 
-  const previewImageUrl =
-    `${appUrl()}/api/resource-factory/preview/${encodeURIComponent(input.spec.slug)}`;
   const pinterestImageUrl =
     `${appUrl()}/api/resource-factory/pinterest/${encodeURIComponent(input.spec.slug)}`;
   const active = input.active ?? resourceFactoryAutoPublishEnabled();
@@ -99,10 +168,10 @@ export async function publishResourceFactoryRun(input: {
     qa: input.qa,
     active,
     assets: {
-      worksheetHref,
-      answersHref,
-      thumbnailUrl: previewImageUrl,
-      previewImageHref: previewImageUrl,
+      worksheetHref: worksheet.href,
+      answersHref: answers.href,
+      thumbnailUrl: preview.href,
+      previewImageHref: preview.href,
       pinterestImageUrls: [pinterestImageUrl],
     },
   });
@@ -115,17 +184,26 @@ export async function publishResourceFactoryRun(input: {
     .single();
 
   if (response.error) {
-    throw new Error(`Resource Factory Marketplace publish failed: ${response.error.message}`);
+    throw new Error(
+      `Resource Factory Marketplace publish failed: ${response.error.message}`,
+    );
   }
+
+  await persistArtifacts({
+    jobId: input.jobId,
+    worksheet,
+    answers,
+    preview,
+  });
 
   return {
     marketplaceResourceId: response.data.id as string,
     handle: response.data.handle as string,
     active,
     detailHref: `${appUrl()}/marketplace/worksheets/${encodeURIComponent(input.spec.slug)}`,
-    worksheetHref,
-    answersHref,
-    previewImageUrl,
+    worksheetHref: worksheet.href,
+    answersHref: answers.href,
+    previewImageUrl: preview.href,
     pinterestImageUrl,
     metadata: projection.metadata,
   };
