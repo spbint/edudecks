@@ -12,6 +12,10 @@ const pinterest = readFileSync(
   "app/api/resource-factory/pinterest/[handle]/route.ts",
   "utf8",
 );
+const worksheetPreview = readFileSync(
+  "app/api/resource-factory/preview/[handle]/route.ts",
+  "utf8",
+);
 
 describe("Resource Factory Marketplace integration", () => {
   it("keeps agent catalogue reads server-side and limited to active resources", () => {
@@ -42,11 +46,13 @@ describe("Resource Factory Marketplace integration", () => {
     expect(detail).toContain("current Marketplace entitlement");
   });
 
-  it("uses Resource Factory-generated previews instead of a raw logo thumbnail", () => {
-    expect(detail).toContain("/api/resource-factory/pinterest/");
-    expect(card).toContain("/api/resource-factory/pinterest/");
+  it("uses actual worksheet-page PNG previews instead of marketing creatives", () => {
+    expect(detail).toContain("/api/resource-factory/preview/");
+    expect(card).toContain("/api/resource-factory/preview/");
+    expect(worksheetPreview).toContain("getPublishedAgentWorksheetPreviewByHandle");
+    expect(worksheetPreview).toContain("MYLEARNA PREVIEW");
+    expect(worksheetPreview).not.toContain("Answer:");
     expect(pinterest).toContain('accessModel === "paid"');
-    expect(pinterest).toContain("MYLEARNA HOMESCHOOL WORKSHEET");
   });
 
   it("does not reuse free SEO copy for paid resources", () => {
