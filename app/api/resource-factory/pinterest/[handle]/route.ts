@@ -35,6 +35,13 @@ export async function GET(
   const yearLevels = arrayOfStrings(resource.metadata.year_levels);
   const skill = clean(resource.metadata.skill);
   const strand = resource.subcollection || clean(resource.metadata.strand);
+  const accessModel = clean(resource.metadata.access_model);
+  const badge =
+    accessModel === "paid"
+      ? "MYLEARNA HOMESCHOOL WORKSHEET"
+      : accessModel === "family_included"
+        ? "INCLUDED HOMESCHOOL WORKSHEET"
+        : "FREE HOMESCHOOL WORKSHEET";
 
   return new ImageResponse(
     h(
@@ -81,7 +88,7 @@ export async function GET(
               fontWeight: 700,
             },
           },
-          "FREE HOMESCHOOL WORKSHEET",
+          badge,
         ),
       ),
       h(
