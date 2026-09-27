@@ -18,12 +18,28 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function supabaseProjectRef(url: string) {
+  try {
+    return new URL(url).hostname.split(".")[0] || "unknown";
+  } catch {
+    return "invalid";
+  }
+}
+
 function createMarketplaceAdminClient() {
   const url = clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key = clean(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
   );
-  if (!url || !key) return null;
+  if (!url || !key) {
+    console.error("Resource Factory Marketplace Supabase configuration missing.", {
+      hasSupabaseUrl: Boolean(url),
+      hasServiceRoleKey: Boolean(key),
+      supabaseProjectRef: url ? supabaseProjectRef(url) : null,
+      vercelEnv: clean(process.env.VERCEL_ENV) || null,
+    });
+    return null;
+  }
 
   return createClient(url, key, {
     auth: {
@@ -99,6 +115,27 @@ export async function getPublishedAgentMarketplaceResourceByHandle(
     .eq("handle", cleanHandle)
     .maybeSingle();
 
-  if (response.error || !response.data) return null;
+  if (response.error) {
+    console.error("Resource Factory Marketplace resource lookup failed.", {
+      handle: cleanHandle,
+      code: response.error.code,
+      message: response.error.message,
+      supabaseProjectRef: supabaseProjectRef(
+        clean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      ),
+      vercelEnv: clean(process.env.VERCEL_ENV) || null,
+    });
+    return null;
+  }
+  if (!response.data) {
+    console.warn("Resource Factory Marketplace resource was not found.", {
+      handle: cleanHandle,
+      supabaseProjectRef: supabaseProjectRef(
+        clean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      ),
+      vercelEnv: clean(process.env.VERCEL_ENV) || null,
+    });
+    return null;
+  }
   return mapResource(response.data as unknown as Record<string, unknown>);
 }
