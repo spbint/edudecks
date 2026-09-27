@@ -19,7 +19,7 @@ export default function AgentWorksheetCard({
 }) {
   const detailHref = `/marketplace/worksheets/${encodeURIComponent(resource.handle)}`;
   const previewImageHref =
-    `/api/resource-factory/pinterest/${encodeURIComponent(resource.handle)}`;
+    `/api/resource-factory/preview/${encodeURIComponent(resource.handle)}`;
   const yearLevels = arrayOfStrings(resource.metadata.year_levels);
   const pricingState = clean(resource.metadata.pricing_state);
   const accessModel = clean(resource.metadata.access_model);
