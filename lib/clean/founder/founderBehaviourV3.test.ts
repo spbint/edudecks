@@ -104,6 +104,30 @@ describe("Founder Behaviour Intelligence v3", () => {
     expect(JSON.stringify(result.detailed)).not.toContain("private-single-actor");
   });
 
+  it("withholds a small matched conversion cohort even when its parent cohort is large enough", () => {
+    const captureActors = ["one", "two", "three", "four", "five"];
+    const result = build([
+      ...captureActors.map((id) => event(id, "capture_opened", 1)),
+      event("one", "portfolio_viewed_after_capture", 2),
+    ]);
+
+    expect(result.detailed.conversionObservations.find((item) => item.label === "Capture users also reaching Portfolio"))
+      .toMatchObject({ value: null, confidence: "insufficient" });
+    expect(result.detailed.conversionObservations.find((item) => item.label === "Capture users also reaching Portfolio")?.note)
+      .toBe("Matched cohort is below the minimum 5; count withheld. Parent cohort: 5.");
+  });
+
+  it("returns a conversion count only when both parent and matched cohorts meet the threshold", () => {
+    const captureActors = ["one", "two", "three", "four", "five"];
+    const result = build(captureActors.flatMap((id) => [
+      event(id, "capture_opened", 1),
+      event(id, "portfolio_viewed_after_capture", 2),
+    ]));
+
+    expect(result.detailed.conversionObservations.find((item) => item.label === "Capture users also reaching Portfolio"))
+      .toMatchObject({ value: 5, confidence: "directional", note: "Among 5 Capture actors." });
+  });
+
   it("applies internal exclusion to detailed aggregates", () => {
     const familyEvents = ["one", "two", "three", "four", "five"].map((id) => event(id, "daily_plan_viewed", 1));
     const result = build([

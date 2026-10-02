@@ -132,6 +132,37 @@ function thresholdedGrouped(
   return grouped(events, value).filter((group) => group.actors >= MIN_SAMPLE);
 }
 
+function thresholdedRelationshipCount(
+  label: string,
+  parentLabel: string,
+  parentActors: Set<string>,
+  matchedActors: Set<string>,
+): FounderMetricV3 {
+  const matchedCount = [...parentActors].filter((actor) => matchedActors.has(actor)).length;
+  if (parentActors.size < MIN_SAMPLE) {
+    return {
+      label,
+      value: null,
+      note: `Insufficient ${parentLabel} sample (${parentActors.size}; minimum ${MIN_SAMPLE}).`,
+      confidence: "insufficient",
+    };
+  }
+  if (matchedCount < MIN_SAMPLE) {
+    return {
+      label,
+      value: null,
+      note: `Matched cohort is below the minimum ${MIN_SAMPLE}; count withheld. Parent cohort: ${parentActors.size}.`,
+      confidence: "insufficient",
+    };
+  }
+  return {
+    label,
+    value: matchedCount,
+    note: `Among ${parentActors.size} ${parentLabel} actors.`,
+    confidence: "directional",
+  };
+}
+
 function feature(event: FounderProductEvent) {
   if (event.event === "daily_plan_viewed") return "My Day";
   if (event.event === "pathway_viewed") return "Pathways";
@@ -478,13 +509,13 @@ export function buildFounderBehaviourV3(input: {
         return null;
       }),
       conversionObservations: [
-        { label: "Capture users also reaching Portfolio", value: captureActors.size >= MIN_SAMPLE ? [...captureActors].filter((id) => portfolioActors.has(id)).length : null, note: captureActors.size >= MIN_SAMPLE ? `Among ${captureActors.size} Capture actors.` : `Insufficient Capture sample (${captureActors.size}; minimum ${MIN_SAMPLE}).`, confidence: captureActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
-        { label: "Portfolio users also reaching Reports", value: portfolioActors.size >= MIN_SAMPLE ? [...portfolioActors].filter((id) => reportActors.has(id)).length : null, note: portfolioActors.size >= MIN_SAMPLE ? `Among ${portfolioActors.size} Portfolio actors.` : `Insufficient Portfolio sample (${portfolioActors.size}; minimum ${MIN_SAMPLE}).`, confidence: portfolioActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
-        { label: "Capture actors saving evidence", value: captureActors.size >= MIN_SAMPLE ? [...captureActors].filter((id) => captureSaveActors.has(id)).length : null, note: captureActors.size >= MIN_SAMPLE ? `Among ${captureActors.size} Capture actors.` : `Insufficient Capture sample (${captureActors.size}; minimum ${MIN_SAMPLE}).`, confidence: captureActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
+        thresholdedRelationshipCount("Capture users also reaching Portfolio", "Capture", captureActors, portfolioActors),
+        thresholdedRelationshipCount("Portfolio users also reaching Reports", "Portfolio", portfolioActors, reportActors),
+        thresholdedRelationshipCount("Capture actors saving evidence", "Capture", captureActors, captureSaveActors),
       ],
       privacyNote: `Only anonymous aggregate categories with at least ${MIN_SAMPLE} actors are shown. Raw routes, identities, learner records and person-level activity are omitted.`,
     },
   };
 }
 
-export const founderBehaviourV3Internals = { MIN_SAMPLE, feature, paths, coarseArea, thresholdedGrouped };
+export const founderBehaviourV3Internals = { MIN_SAMPLE, feature, paths, coarseArea, thresholdedGrouped, thresholdedRelationshipCount };
