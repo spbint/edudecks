@@ -12,6 +12,7 @@ export type PublicTrafficSource =
 
 export type PublicAcquisitionEvent =
   | "public_session_source"
+  | "public_page_viewed"
   | "public_demo_started"
   | "public_report_viewed"
   | "public_report_downloaded"

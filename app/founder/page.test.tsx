@@ -4,16 +4,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireFounderAccessMock, loadFounderDashboardMock } = vi.hoisted(() => ({
+const { requireFounderAccessMock, loadFounderBehaviourV3Mock } = vi.hoisted(() => ({
   requireFounderAccessMock: vi.fn(),
-  loadFounderDashboardMock: vi.fn(),
+  loadFounderBehaviourV3Mock: vi.fn(),
 }));
 
 vi.mock("@/lib/clean/founder/founderAccess", () => ({
   requireFounderAccess: requireFounderAccessMock,
 }));
-vi.mock("@/lib/clean/founder/founderDashboard", () => ({
-  loadFounderDashboard: loadFounderDashboardMock,
+vi.mock("@/lib/clean/founder/founderBehaviourV3Server", () => ({
+  loadFounderBehaviourV3: loadFounderBehaviourV3Mock,
 }));
 
 import FounderDashboardV2 from "./FounderDashboardV2";
@@ -89,37 +89,60 @@ const data = {
   acquisitionToday: { Direct: 2, Google: 0, Pinterest: 0, Social: 0, Other: 0 },
 };
 
+const v3Data = {
+  generatedAt: "2026-08-21T08:00:00.000Z",
+  rangeDays: 30 as const,
+  includeInternal: false,
+  posthogAvailable: true,
+  summary: [{ label: "Product users", value: 3, note: "Anonymous aggregate.", confidence: "high" as const }],
+  signals: [],
+  funnel: [],
+  returning: [],
+  activation: [],
+  paths: [],
+  capture: [],
+  captureModes: [],
+  captureSources: [],
+  media: [],
+  attachmentSources: [],
+  mobile: [],
+  portfolioReports: [],
+  retention: [],
+  cohorts: [],
+  friction: [],
+  dataQuality: [{ label: "Identity stitching", detail: "Directional only.", confidence: "directional" as const }],
+};
+
 describe("Founder page", () => {
   afterEach(() => cleanup());
 
   beforeEach(() => {
     requireFounderAccessMock.mockReset();
-    loadFounderDashboardMock.mockReset();
+    loadFounderBehaviourV3Mock.mockReset();
     requireFounderAccessMock.mockResolvedValue({ id: "founder-user" });
-    loadFounderDashboardMock.mockResolvedValue(data);
+    loadFounderBehaviourV3Mock.mockResolvedValue(v3Data);
   });
 
   it("renders the behaviour-intelligence dashboard after the Founder server gate succeeds", async () => {
     render(await FounderPage());
 
     expect(requireFounderAccessMock).toHaveBeenCalledOnce();
-    expect(loadFounderDashboardMock).toHaveBeenCalledOnce();
-    expect(screen.getByRole("heading", { name: "MyLearna Founder" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Today at MyLearna" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "How families are behaving" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "What is changing over time?" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "People" })).toBeTruthy();
-    expect(screen.getAllByText("Example Family").length).toBeGreaterThan(0);
+    expect(loadFounderBehaviourV3Mock).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "Understand what families do next." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Founder summary" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Founder signals" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Data quality" })).toBeTruthy();
+    expect(document.body.textContent).not.toContain("family@example.com");
   });
 
   it("does not catch an unauthenticated redirect or ordinary-user denial", async () => {
     requireFounderAccessMock.mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
     await expect(FounderPage()).rejects.toThrow("NEXT_REDIRECT");
-    expect(loadFounderDashboardMock).not.toHaveBeenCalled();
+    expect(loadFounderBehaviourV3Mock).not.toHaveBeenCalled();
 
     requireFounderAccessMock.mockRejectedValueOnce(new Error("NEXT_NOT_FOUND"));
     await expect(FounderPage()).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(loadFounderDashboardMock).not.toHaveBeenCalled();
+    expect(loadFounderBehaviourV3Mock).not.toHaveBeenCalled();
   });
 
   it("adds who-level drill-downs and behaviour synthesis without exposing PostHog jargon", () => {

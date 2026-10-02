@@ -1,6 +1,9 @@
 type ProductAnalyticsProperties = Record<string, unknown>;
 
 export type ProductViewportCategory = "phone" | "tablet" | "laptop" | "desktop" | "unknown";
+export type ProductDisplayMode = "browser" | "standalone" | "unknown";
+
+export const PRODUCT_ANALYTICS_DISTINCT_ID_KEY = "mylearna.productAnalytics.distinctId";
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() ?? "";
 const POSTHOG_HOST = (process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() ?? "").replace(/\/+$/, "");
@@ -104,6 +107,11 @@ const SAFE_PROPERTY_KEYS = new Set([
   "attachmentCategory",
   "isJustCaptured",
   "reportEntrySource",
+  "displayMode",
+  "attachmentSource",
+  "permissionState",
+  "installOutcome",
+  "uploadDurationMs",
 ]);
 
 const UNSAFE_KEY_PATTERN =
@@ -125,6 +133,15 @@ export function getProductViewportCategory(
   if (width < 1024) return "tablet";
   if (width < 1440) return "laptop";
   return "desktop";
+}
+
+export function getProductDisplayMode(
+  matchMedia: ((query: string) => { matches: boolean }) | null =
+    isBrowser() && typeof window.matchMedia === "function" ? window.matchMedia.bind(window) : null,
+): ProductDisplayMode {
+  if (!matchMedia) return "unknown";
+  if (matchMedia("(display-mode: standalone)").matches) return "standalone";
+  return "browser";
 }
 
 export function sanitizeProductAnalyticsProperties(
@@ -154,15 +171,14 @@ export function sanitizeProductAnalyticsProperties(
 function getAnonymousDistinctId() {
   if (!isBrowser()) return "anonymous";
 
-  const storageKey = "mylearna.productAnalytics.distinctId";
-  const existing = window.localStorage.getItem(storageKey);
+  const existing = window.localStorage.getItem(PRODUCT_ANALYTICS_DISTINCT_ID_KEY);
   if (existing) return existing;
 
   const generated =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `anon-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  window.localStorage.setItem(storageKey, generated);
+  window.localStorage.setItem(PRODUCT_ANALYTICS_DISTINCT_ID_KEY, generated);
   return generated;
 }
 
@@ -220,9 +236,19 @@ export function trackCoreJourneyEvent(
     {
       ...properties,
       viewportCategory: getProductViewportCategory(),
+      displayMode: getProductDisplayMode(),
     },
     userId,
   );
+}
+
+export function resetProductAnalyticsIdentity() {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.removeItem(PRODUCT_ANALYTICS_DISTINCT_ID_KEY);
+  } catch {
+    // Analytics identity cleanup must never block sign-out.
+  }
 }
 
 export function identifyProductUser(userId: string | null | undefined, safeProperties: ProductAnalyticsProperties = {}) {

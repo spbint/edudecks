@@ -928,6 +928,8 @@ export default function CleanQuickCaptureWorkspace({ mode = "chronicle" }: Clean
   const attachmentControls = (
     <CleanEvidenceAttachmentControls
       attachments={attachments}
+      analyticsUserId={user?.id}
+      analyticsSourceSurface="quick_capture"
       disabled={submitting}
       uploadsDisabled={portfolioStoragePresentation.level === "full"}
       storageNotice={portfolioStoragePresentation.message}

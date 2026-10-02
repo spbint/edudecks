@@ -3815,6 +3815,8 @@ function CleanCaptureWorkspaceBody() {
                 {!worksheetEvidenceMode && !learningFromLifeActive ? (
                   <CleanEvidenceAttachmentControls
                     attachments={attachments}
+                    analyticsUserId={user?.id}
+                    analyticsSourceSurface={captureSourceSurface}
                     disabled={submitting}
                     uploadsDisabled={portfolioStoragePresentation.level === "full"}
                     storageNotice={portfolioStoragePresentation.message}
