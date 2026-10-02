@@ -111,6 +111,16 @@ const v3Data = {
   cohorts: [],
   friction: [],
   dataQuality: [{ label: "Identity stitching", detail: "Directional only.", confidence: "directional" as const }],
+  detailed: {
+    featureUsage: [{ label: "My Day", actors: 5, events: 12 }],
+    areaUsage: [],
+    entryBehaviour: [],
+    activityDistribution: [{ label: "5–19 actions", value: 5, note: "Anonymous product actors.", confidence: "high" as const }],
+    recentActivity: [],
+    deviceMix: [],
+    conversionObservations: [],
+    privacyNote: "Only anonymous aggregate categories are shown.",
+  },
 };
 
 describe("Founder page", () => {
@@ -132,7 +142,17 @@ describe("Founder page", () => {
     expect(screen.getByRole("heading", { name: "Founder summary" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Founder signals" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Data quality" })).toBeTruthy();
+    expect(screen.getByText("Detailed behavioural analytics")).toBeTruthy();
     expect(document.body.textContent).not.toContain("family@example.com");
+  });
+
+  it("expands privacy-safe detailed behavioural analytics without rendering identities", async () => {
+    render(await FounderPage());
+
+    fireEvent.click(screen.getByText("Detailed behavioural analytics"));
+    expect(screen.getByRole("heading", { name: "Aggregate feature usage" })).toBeTruthy();
+    expect(screen.getByText("5 actors · 12 events")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/family@example\.com|customer-1|founder-user/);
   });
 
   it("does not catch an unauthenticated redirect or ordinary-user denial", async () => {

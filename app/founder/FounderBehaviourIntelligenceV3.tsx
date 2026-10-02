@@ -76,6 +76,25 @@ export default function FounderBehaviourIntelligenceV3({ data }: { data: Founder
 
     <Section eyebrow="Trust before precision" title="Data quality" description="What can and cannot safely be concluded."><div className={styles.quality}>{data.dataQuality.map((item) => <article className={styles.qualityItem} key={item.label}><div className={styles.metricMeta}><strong>{item.label}</strong><Badge value={item.confidence} /></div><p>{item.detail}</p></article>)}</div></Section>
 
+    <details className={`${styles.section} ${styles.detailed}`}>
+      <summary>
+        <span><span className={styles.eyebrow}>Secondary exploration</span><strong>Detailed behavioural analytics</strong></span>
+        <span className={styles.note}>Privacy-safe aggregate drilldowns</span>
+      </summary>
+      <div className={styles.detailsBody}>
+        <p className={styles.privacyNote}>{data.detailed.privacyNote}</p>
+        <div className={styles.twoColumn}>
+          <div><h3>Aggregate feature usage</h3><Breakdown items={data.detailed.featureUsage} /></div>
+          <div><h3>Coarse area usage</h3><Breakdown items={data.detailed.areaUsage} /></div>
+          <div><h3>Entry behaviour</h3><Breakdown items={data.detailed.entryBehaviour} /></div>
+          <div><h3>Recent aggregate activity</h3><Breakdown items={data.detailed.recentActivity} /></div>
+          <div><h3>Activity distribution</h3><Metrics items={data.detailed.activityDistribution} /></div>
+          <div><h3>Coarse device mix</h3><Breakdown items={data.detailed.deviceMix} /></div>
+        </div>
+        <div className={styles.detailedConversions}><h3>Aggregate conversion observations</h3><Metrics items={data.detailed.conversionObservations} /></div>
+      </div>
+    </details>
+
     <footer className={styles.footer}>Generated {new Date(data.generatedAt).toLocaleString("en-AU", { timeZone: "Australia/Hobart" })} · No raw IDs, email addresses, IP addresses or precise locations are displayed.</footer>
   </div></main>;
 }

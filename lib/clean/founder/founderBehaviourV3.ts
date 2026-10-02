@@ -36,6 +36,17 @@ export type FounderCohortV3 = {
   confidence: FounderConfidence;
 };
 
+export type FounderDetailedAnalyticsV3 = {
+  featureUsage: FounderBreakdownV3[];
+  areaUsage: FounderBreakdownV3[];
+  entryBehaviour: FounderBreakdownV3[];
+  activityDistribution: FounderMetricV3[];
+  recentActivity: FounderBreakdownV3[];
+  deviceMix: FounderBreakdownV3[];
+  conversionObservations: FounderMetricV3[];
+  privacyNote: string;
+};
+
 export type FounderBehaviourV3 = {
   generatedAt: string;
   rangeDays: 7 | 30 | 90;
@@ -58,6 +69,7 @@ export type FounderBehaviourV3 = {
   cohorts: FounderCohortV3[];
   friction: FounderMetricV3[];
   dataQuality: Array<{ label: string; detail: string; confidence: FounderConfidence }>;
+  detailed: FounderDetailedAnalyticsV3;
 };
 
 const PUBLIC_EVENTS = new Set<FounderTrackedEventName>([
@@ -113,12 +125,43 @@ function grouped(events: FounderProductEvent[], value: (event: FounderProductEve
     .sort((left, right) => right.actors - left.actors || right.events - left.events);
 }
 
+function thresholdedGrouped(
+  events: FounderProductEvent[],
+  value: (event: FounderProductEvent) => string | null,
+): FounderBreakdownV3[] {
+  return grouped(events, value).filter((group) => group.actors >= MIN_SAMPLE);
+}
+
 function feature(event: FounderProductEvent) {
   if (event.event === "daily_plan_viewed") return "My Day";
   if (event.event === "pathway_viewed") return "Pathways";
   if (CAPTURE_OPEN.has(event.event) || CAPTURE_SAVE.has(event.event)) return "Capture";
   if (event.event === "portfolio_viewed" || event.event === "portfolio_viewed_after_capture") return "Portfolio";
   if (REPORT_EVENTS.has(event.event)) return "Reports";
+  return null;
+}
+
+function coarseArea(event: FounderProductEvent) {
+  const knownArea = event.area?.trim();
+  if (knownArea && ["My Day", "Pathways", "Capture", "Portfolio", "Reports", "Authentication", "Public"].includes(knownArea)) {
+    return knownArea;
+  }
+  const route = event.route?.toLowerCase() ?? "";
+  if (route.includes("my-day") || route.includes("daily")) return "My Day";
+  if (route.includes("pathway")) return "Pathways";
+  if (route.includes("capture") || route.includes("evidence")) return "Capture";
+  if (route.includes("portfolio")) return "Portfolio";
+  if (route.includes("report")) return "Reports";
+  if (route.includes("auth") || route.includes("login") || route.includes("signup")) return "Authentication";
+  return feature(event) ?? null;
+}
+
+function entryLabel(event: FounderProductEvent) {
+  if (event.event === "public_page_viewed" || event.event === "public_session_source") return "Public visit";
+  if (event.event === "public_demo_started") return "Demo started";
+  if (event.event === "public_signup_started") return "Signup started";
+  if (event.event.startsWith("auth_")) return "Authentication";
+  if (event.event === "product_signed_in") return "Product entry";
   return null;
 }
 
@@ -254,6 +297,21 @@ export function buildFounderBehaviourV3(input: {
   const topActorCount = Math.max(0, ...[...activeDays.keys()].map((id) => productEvents.filter((event) => event.userId === id).length));
   const topActorShare = productEvents.length ? topActorCount / productEvents.length : 0;
   const funnel = buildFunnel(events);
+  const recentCutoff = now.getTime() - Math.min(7, input.rangeDays) * 86400000;
+  const recentProductEvents = productEvents.filter((event) => Date.parse(event.occurredAt) >= recentCutoff);
+  const productEventCounts = new Map<string, number>();
+  for (const event of productEvents) {
+    productEventCounts.set(event.userId, (productEventCounts.get(event.userId) ?? 0) + 1);
+  }
+  const frequencyBands = new Map<string, Set<string>>([
+    ["1–4 actions", new Set<string>()],
+    ["5–19 actions", new Set<string>()],
+    ["20+ actions", new Set<string>()],
+  ]);
+  for (const [actor, count] of productEventCounts) {
+    const band = count >= 20 ? "20+ actions" : count >= 5 ? "5–19 actions" : "1–4 actions";
+    frequencyBands.get(band)!.add(actor);
+  }
 
   const signals: FounderSignalV3[] = [];
   if (publicActors.size >= MIN_SAMPLE && actors(signups).size / publicActors.size < 0.1) signals.push({
@@ -399,7 +457,34 @@ export function buildFounderBehaviourV3(input: {
       { label: "Missing activation milestones", detail: "Profile completion, learner creation and planning setup lack timestamped analytics events and are not invented.", confidence: "insufficient" },
       { label: "Sample policy", detail: `Cohort rates require at least ${MIN_SAMPLE} actors; smaller samples display insufficient data.`, confidence: "high" },
     ],
+    detailed: {
+      featureUsage: thresholdedGrouped(productEvents, feature),
+      areaUsage: thresholdedGrouped(productEvents, coarseArea),
+      entryBehaviour: thresholdedGrouped(events, entryLabel),
+      activityDistribution: [...frequencyBands].map(([label, bandActors]) => ({
+        label,
+        value: bandActors.size >= MIN_SAMPLE ? bandActors.size : null,
+        note: bandActors.size >= MIN_SAMPLE
+          ? "Anonymous product actors in this frequency band."
+          : `Insufficient sample (minimum ${MIN_SAMPLE}); count withheld.`,
+        confidence: bandActors.size >= MIN_SAMPLE ? "high" : "insufficient",
+      })),
+      recentActivity: thresholdedGrouped(recentProductEvents, feature),
+      deviceMix: thresholdedGrouped(productEvents, (event) => {
+        if (event.displayMode === "standalone") return "Standalone PWA";
+        if (event.viewportCategory === "phone") return "Phone browser";
+        if (event.viewportCategory === "tablet") return "Tablet browser";
+        if (event.viewportCategory === "desktop" || event.viewportCategory === "laptop") return "Desktop browser";
+        return null;
+      }),
+      conversionObservations: [
+        { label: "Capture users also reaching Portfolio", value: captureActors.size >= MIN_SAMPLE ? [...captureActors].filter((id) => portfolioActors.has(id)).length : null, note: captureActors.size >= MIN_SAMPLE ? `Among ${captureActors.size} Capture actors.` : `Insufficient Capture sample (${captureActors.size}; minimum ${MIN_SAMPLE}).`, confidence: captureActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
+        { label: "Portfolio users also reaching Reports", value: portfolioActors.size >= MIN_SAMPLE ? [...portfolioActors].filter((id) => reportActors.has(id)).length : null, note: portfolioActors.size >= MIN_SAMPLE ? `Among ${portfolioActors.size} Portfolio actors.` : `Insufficient Portfolio sample (${portfolioActors.size}; minimum ${MIN_SAMPLE}).`, confidence: portfolioActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
+        { label: "Capture actors saving evidence", value: captureActors.size >= MIN_SAMPLE ? [...captureActors].filter((id) => captureSaveActors.has(id)).length : null, note: captureActors.size >= MIN_SAMPLE ? `Among ${captureActors.size} Capture actors.` : `Insufficient Capture sample (${captureActors.size}; minimum ${MIN_SAMPLE}).`, confidence: captureActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
+      ],
+      privacyNote: `Only anonymous aggregate categories with at least ${MIN_SAMPLE} actors are shown. Raw routes, identities, learner records and person-level activity are omitted.`,
+    },
   };
 }
 
-export const founderBehaviourV3Internals = { MIN_SAMPLE, feature, paths };
+export const founderBehaviourV3Internals = { MIN_SAMPLE, feature, paths, coarseArea, thresholdedGrouped };

@@ -82,9 +82,36 @@ describe("Founder Behaviour Intelligence v3", () => {
   });
 
   it("surfaces data-quality warnings without raw identities", () => {
-    const result = build([event("private-auth-id", "capture_attachment_upload_failed", 1, { failureStage: "upload" })]);
+    const result = build([event("private-auth-id", "capture_attachment_upload_failed", 1, { failureStage: "upload", route: "/capture/private-auth-id" })]);
     expect(result.dataQuality.map((item) => item.label)).toContain("Standard pageviews missing");
     expect(JSON.stringify(result)).not.toContain("private-auth-id");
     expect(JSON.stringify(result)).not.toMatch(/private@example\.com|127\.0\.0\.1/);
+  });
+
+  it("returns privacy-safe detailed aggregates and withholds small groups", () => {
+    const result = build([
+      event("one", "daily_plan_viewed", 1),
+      event("two", "daily_plan_viewed", 1),
+      event("three", "daily_plan_viewed", 1),
+      event("four", "daily_plan_viewed", 1),
+      event("five", "daily_plan_viewed", 1),
+      event("private-single-actor", "pathway_viewed", 1, { route: "/pathways/private-single-actor" }),
+    ]);
+
+    expect(result.detailed.featureUsage).toContainEqual({ label: "My Day", actors: 5, events: 5 });
+    expect(result.detailed.featureUsage.some((item) => item.label === "Pathways")).toBe(false);
+    expect(result.detailed.activityDistribution.every((item) => item.value === null || item.value >= 5)).toBe(true);
+    expect(JSON.stringify(result.detailed)).not.toContain("private-single-actor");
+  });
+
+  it("applies internal exclusion to detailed aggregates", () => {
+    const familyEvents = ["one", "two", "three", "four", "five"].map((id) => event(id, "daily_plan_viewed", 1));
+    const result = build([
+      ...familyEvents,
+      event("internal", "daily_plan_viewed", 1),
+      event("internal", "daily_plan_viewed", 2),
+    ], new Set(["internal"]));
+
+    expect(result.detailed.featureUsage).toContainEqual({ label: "My Day", actors: 5, events: 5 });
   });
 });
