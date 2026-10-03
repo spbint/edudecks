@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
+  applyBoundaryEvidence,
+  bracketFromBranchRoute,
+  getAnchorEvidenceMode,
   getNumberOperationsAnchorSet,
+  getPlacementEvidencePolicy,
+  getProgressionEvidenceMode,
+  nextBoundaryTarget,
+  nextSearchTarget,
+  resolveInitialAnchorWithReserve,
   routeBranchAnchor,
   routeInitialAnchor,
-  resolveInitialAnchorWithReserve,
+  routeSearchCluster,
 } from "./numberOperationsAnchors";
 
 describe("Number Operations anchor routing", () => {
