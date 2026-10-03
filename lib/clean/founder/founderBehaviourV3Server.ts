@@ -1,5 +1,7 @@
 import { buildFounderBehaviourV3, type FounderBehaviourV3 } from "./founderBehaviourV3";
 import {
+  FOUNDER_ANALYTICS_INTERNAL_USER_IDS,
+  FOUNDER_ANALYTICS_SUSPICIOUS_USER_IDS,
   isFounderExcludedAccount,
   isFounderSuspiciousAccount,
   loadFounderCustomers,
@@ -23,16 +25,18 @@ export async function loadFounderBehaviourV3(
     loadFounderPostHogSnapshot(rangeDays),
     loadFounderCustomers(now, { includeInternal: true }),
   ]);
-  const internalUserIds = new Set(
-    directory.customers
+  const internalUserIds = new Set([
+    ...FOUNDER_ANALYTICS_INTERNAL_USER_IDS,
+    ...directory.customers
       .filter((customer) => isFounderExcludedAccount(customer.email))
       .map((customer) => customer.userId),
-  );
-  const suspiciousUserIds = new Set(
-    directory.customers
+  ]);
+  const suspiciousUserIds = new Set([
+    ...FOUNDER_ANALYTICS_SUSPICIOUS_USER_IDS,
+    ...directory.customers
       .filter((customer) => isFounderSuspiciousAccount(customer.email))
       .map((customer) => customer.userId),
-  );
+  ]);
 
   return buildFounderBehaviourV3({
     events: posthog.events,

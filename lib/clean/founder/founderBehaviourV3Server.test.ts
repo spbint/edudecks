@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./founderCustomers", () => ({
+  FOUNDER_ANALYTICS_INTERNAL_USER_IDS: [],
+  FOUNDER_ANALYTICS_SUSPICIOUS_USER_IDS: [],
   isFounderExcludedAccount: (email: unknown) => email === "founder-internal@example.invalid",
   isFounderSuspiciousAccount: (email: unknown) => email === "suspicious@example.invalid",
   loadFounderCustomers: mocks.loadFounderCustomers,

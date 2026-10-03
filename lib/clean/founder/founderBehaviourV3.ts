@@ -292,9 +292,18 @@ export function buildFounderBehaviourV3(input: {
   const internalIds = input.internalUserIds ?? new Set<string>();
   const suspiciousIds = input.suspiciousUserIds ?? new Set<string>();
   const includeSuspicious = input.includeSuspicious ?? true;
+  const personIdsFor = (userIds: Set<string>) => new Set(
+    input.events
+      .filter((event) => userIds.has(event.userId) && event.personId)
+      .map((event) => event.personId as string),
+  );
+  const internalPersonIds = personIdsFor(internalIds);
+  const suspiciousPersonIds = personIdsFor(suspiciousIds);
+  const belongsTo = (event: FounderProductEvent, userIds: Set<string>, personIds: Set<string>) =>
+    userIds.has(event.userId) || Boolean(event.personId && personIds.has(event.personId));
   const events = input.events.filter((event) =>
-    (input.includeInternal || !internalIds.has(event.userId))
-    && (includeSuspicious || !suspiciousIds.has(event.userId)),
+    (input.includeInternal || !belongsTo(event, internalIds, internalPersonIds))
+    && (includeSuspicious || !belongsTo(event, suspiciousIds, suspiciousPersonIds)),
   );
   const publicEvents = events.filter((event) => PUBLIC_EVENTS.has(event.event));
   const productEvents = events.filter((event) => PRODUCT_EVENTS.has(event.event));
@@ -491,7 +500,7 @@ export function buildFounderBehaviourV3(input: {
     dataQuality: [
       { label: "Standard pageviews missing", detail: "No reliable standard $pageview stream exists; v3 uses explicit public_page_viewed and app_page_viewed events.", confidence: "high" },
       { label: "Virtual traffic classification", detail: "$virt_traffic_type currently labels genuine product activity as Automation and is not used as the human filter.", confidence: "high" },
-      { label: "Identity stitching", detail: "Anonymous-to-authenticated relationships are directional unless PostHog has merged the actor through $identify.", confidence: "directional" },
+      { label: "Identity stitching", detail: "Anonymous-to-authenticated relationships are directional unless PostHog has merged the actor through $identify. Account exclusions follow PostHog person identity where that merge is available.", confidence: "directional" },
       { label: "Internal/test traffic", detail: input.includeInternal ? "Internal/test authenticated activity is included." : "Known internal/test authenticated IDs are excluded; anonymous internal browsing cannot be identified safely.", confidence: "directional" },
       { label: "Suspicious/unknown accounts", detail: includeSuspicious ? "Accounts flagged for review remain included; they are not assumed to be fake or internal." : "Accounts explicitly flagged for review are excluded from this comparison without deleting their data.", confidence: "high" },
       { label: "Camera source", detail: "Camera/library/file values describe the picker selected by the user; browsers may still offer another source and no image content or filename is collected.", confidence: "directional" },
