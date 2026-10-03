@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import {
+  applyBoundaryEvidence,
   bracketFromBranchRoute,
   getAnchorEvidenceMode,
   getNumberOperationsAnchorSet,
@@ -19,6 +20,7 @@ import {
   type NumberOperationsAnchorSet,
 } from "@/lib/clean/assessments/placement/numberOperationsAnchors";
 import {
+  NUMBER_OPERATIONS_BOUNDARY_CLUSTERS,
   NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
   NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
   NUMBER_OPERATIONS_SEARCH_CLUSTERS,
@@ -29,6 +31,11 @@ type RunnerStage =
   | { kind: "reserve"; pLevel: number }
   | { kind: "branch"; pLevel: number; direction: "down" | "up" }
   | { kind: "search"; pLevel: number; direction: "down" | "up" }
+  | {
+      kind: "boundary";
+      pLevel: number;
+      bracket: { lowerP: number; upperP: number };
+    }
   | {
       kind: "result";
       headline: string;
@@ -72,6 +79,11 @@ function getReserveItem(setKey: NumberOperationsAnchorSet["key"], pLevel: number
 function getSearchCluster(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
   const key = anchorClusterKey(setKey, pLevel) as keyof typeof NUMBER_OPERATIONS_SEARCH_CLUSTERS;
   return NUMBER_OPERATIONS_SEARCH_CLUSTERS[key] || null;
+}
+
+function getBoundaryCluster(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
+  const key = anchorClusterKey(setKey, pLevel) as keyof typeof NUMBER_OPERATIONS_BOUNDARY_CLUSTERS;
+  return NUMBER_OPERATIONS_BOUNDARY_CLUSTERS[key] || null;
 }
 
 function resultForUnavailableTarget(
@@ -218,11 +230,18 @@ export default function AssessmentAnchorPlacementRunner({
         pushHistory(
           `Branch evidence located P${route.lowerP}–P${route.upperP}.`,
         );
+
+        if (bracket && nextP && getBoundaryCluster(anchorSet.key, nextP)) {
+          pushHistory(`Boundary search continues at P${nextP}.`);
+          setStage({ kind: "boundary", pLevel: nextP, bracket });
+          return;
+        }
+
         setStage({
           kind: "result",
           headline: `Candidate neighbourhood: P${route.lowerP}–P${route.upperP}`,
           detail: nextP
-            ? `The next deterministic boundary target is P${nextP}. No placement is claimed until construct-diverse boundary evidence is collected.`
+            ? `The next deterministic boundary target is P${nextP}, but that boundary cluster is not executable yet.`
             : "The levels are adjacent. A construct-diverse boundary-confirmation set is required before any exact placement language.",
           bracket: { lowerP: route.lowerP, upperP: route.upperP },
         });
@@ -270,20 +289,25 @@ export default function AssessmentAnchorPlacementRunner({
       );
 
       if (route.kind === "bracket") {
-        const nextP = nextBoundaryTarget({
-          lowerP: route.lowerP,
-          upperP: route.upperP,
-        });
+        const bracket = { lowerP: route.lowerP, upperP: route.upperP };
+        const nextP = nextBoundaryTarget(bracket);
         pushHistory(
           `Search at P${stage.pLevel} located P${route.lowerP}–P${route.upperP}.`,
         );
+
+        if (nextP && getBoundaryCluster(anchorSet.key, nextP)) {
+          pushHistory(`Boundary search continues at P${nextP}.`);
+          setStage({ kind: "boundary", pLevel: nextP, bracket });
+          return;
+        }
+
         setStage({
           kind: "result",
           headline: `Candidate neighbourhood: P${route.lowerP}–P${route.upperP}`,
           detail: nextP
-            ? `Next boundary target: P${nextP}. Boundary confirmation is still required.`
+            ? `Next boundary target: P${nextP}, but that boundary cluster is not executable yet.`
             : "The levels are adjacent; boundary confirmation is required before placement.",
-          bracket: { lowerP: route.lowerP, upperP: route.upperP },
+          bracket,
         });
         return;
       }
@@ -327,6 +351,46 @@ export default function AssessmentAnchorPlacementRunner({
           direction: route.kind === "search-up" ? "up" : "down",
         });
       }
+    },
+    [anchorSet, pushHistory, stage],
+  );
+
+  const handleBoundaryComplete = useCallback(
+    (responses: MyLearnaAssessmentResponse[]) => {
+      if (stage.kind !== "boundary") return;
+      const supported = responses.filter((response) => response.correct).length >= 2;
+      const narrowed = applyBoundaryEvidence(
+        stage.bracket,
+        stage.pLevel,
+        supported,
+      );
+      pushHistory(
+        `P${stage.pLevel} boundary evidence was ${supported ? "supported" : "not sufficiently supported"}; bracket is now P${narrowed.lowerP}–P${narrowed.upperP}.`,
+      );
+
+      const nextP = nextBoundaryTarget(narrowed);
+      if (nextP) {
+        const items = getBoundaryCluster(anchorSet.key, nextP);
+        if (items) {
+          setStage({ kind: "boundary", pLevel: nextP, bracket: narrowed });
+          return;
+        }
+        setStage({
+          kind: "result",
+          headline: `Candidate neighbourhood: P${narrowed.lowerP}–P${narrowed.upperP}`,
+          detail: `Next boundary target P${nextP} is not executable yet. No exact placement is claimed.`,
+          bracket: narrowed,
+        });
+        return;
+      }
+
+      setStage({
+        kind: "result",
+        headline: `Adjacent candidate neighbourhood: P${narrowed.lowerP}–P${narrowed.upperP}`,
+        detail:
+          "The adaptive search has narrowed to adjacent progression levels. A final construct-diverse boundary-confirmation set is still required before exact placement language.",
+        bracket: narrowed,
+      });
     },
     [anchorSet, pushHistory, stage],
   );
@@ -380,6 +444,18 @@ export default function AssessmentAnchorPlacementRunner({
         items={[...items]}
         mode="placement"
         onComplete={handleSearchComplete}
+      />
+    ) : null;
+  } else if (stage.kind === "boundary") {
+    const items = getBoundaryCluster(anchorSet.key, stage.pLevel);
+    stageLabel = `Boundary search · P${stage.pLevel} within P${stage.bracket.lowerP}–P${stage.bracket.upperP}`;
+    player = items ? (
+      <AssessmentPlayerV1
+        key={`boundary-${anchorSet.key}-${stage.pLevel}-${stage.bracket.lowerP}-${stage.bracket.upperP}`}
+        title={`${anchorSet.label} · P${stage.pLevel} boundary probes`}
+        items={[...items]}
+        mode="placement"
+        onComplete={handleBoundaryComplete}
       />
     ) : null;
   }
