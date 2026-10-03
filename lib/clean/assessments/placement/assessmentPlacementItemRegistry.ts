@@ -15,6 +15,12 @@ import {
   CHANCE_P4_RESERVE_ITEM,
   CHANCE_SEARCH_CLUSTERS,
 } from "./chanceItems";
+import {
+  FRACTION_BOUNDARY_CLUSTERS,
+  FRACTION_EXECUTABLE_ANCHORS,
+  FRACTION_P6_RESERVE_ITEM,
+  FRACTION_SEARCH_CLUSTERS,
+} from "./fractionItems";
 
 export type AssessmentPlacementPoolKind = NumberOperationsPlacementPoolKind;
 
@@ -25,7 +31,8 @@ export type AssessmentPlacementItemRegistryEntry = {
   lane:
     | "number-operations"
     | "measurement-units"
-    | "chance";
+    | "chance"
+    | "fractions";
 };
 
 function clusterEntries(
@@ -80,6 +87,33 @@ const chanceEntries: AssessmentPlacementItemRegistryEntry[] = [
   ...chanceClusterEntries("boundary", CHANCE_BOUNDARY_CLUSTERS),
 ];
 
+function fractionClusterEntries(
+  poolKind: Exclude<AssessmentPlacementPoolKind, "reserve" | "confirmation">,
+  source: Record<string, readonly MyLearnaAssessmentItem[]>,
+): AssessmentPlacementItemRegistryEntry[] {
+  return Object.entries(source).flatMap(([poolKey, items]) =>
+    items.map((item) => ({
+      poolKind,
+      poolKey,
+      item,
+      lane: "fractions" as const,
+    })),
+  );
+}
+
+const fractionEntries: AssessmentPlacementItemRegistryEntry[] = [
+  ...fractionClusterEntries("anchor", FRACTION_EXECUTABLE_ANCHORS),
+  {
+    poolKind: "reserve",
+    poolKey: "interpreting-fractions-p6",
+    item: FRACTION_P6_RESERVE_ITEM,
+    lane: "fractions",
+  },
+  ...fractionClusterEntries("search", FRACTION_SEARCH_CLUSTERS),
+  ...fractionClusterEntries("boundary", FRACTION_BOUNDARY_CLUSTERS),
+];
+
+
 
 export const ASSESSMENT_PLACEMENT_ITEM_REGISTRY: AssessmentPlacementItemRegistryEntry[] = [
   ...NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.map((entry) => ({
@@ -88,6 +122,7 @@ export const ASSESSMENT_PLACEMENT_ITEM_REGISTRY: AssessmentPlacementItemRegistry
   })),
   ...measurementEntries,
   ...chanceEntries,
+  ...fractionEntries,
 ];
 
 const byId = new Map(
