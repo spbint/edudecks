@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import AssessmentPlacementResultCard from "@/app/components/clean/assessment-lab/AssessmentPlacementResultCard";
+import AssessmentNpvBandConfirmation from "@/app/components/clean/assessment-lab/AssessmentNpvBandConfirmation";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import {
   buildNumberOperationsSubElementAttemptTrace,
@@ -134,10 +135,12 @@ export default function AssessmentAnchorPlacementRunner({
   anchorSetKey,
   onResult,
   onAttemptTrace,
+  allowBandConfirmation = true,
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
   onResult?: (result: NumberOperationsPlacementResult | null) => void;
   onAttemptTrace?: (trace: NumberOperationsSubElementAttemptTrace) => void;
+  allowBandConfirmation?: boolean;
 }) {
   const anchorSet = useMemo(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
@@ -635,7 +638,20 @@ export default function AssessmentAnchorPlacementRunner({
 
       {stage.kind === "result" ? (
         stage.placementResult ? (
-          <AssessmentPlacementResultCard result={stage.placementResult} />
+          <>
+            <AssessmentPlacementResultCard result={stage.placementResult} />
+            {allowBandConfirmation &&
+            anchorSet.key === "number-place-value" &&
+            stage.placementResult.status === "candidate-band" &&
+            stage.placementResult.lowerP !== undefined &&
+            stage.placementResult.upperP !== undefined &&
+            stage.placementResult.upperP === stage.placementResult.lowerP + 1 ? (
+              <AssessmentNpvBandConfirmation
+                lowerP={stage.placementResult.lowerP}
+                upperP={stage.placementResult.upperP}
+              />
+            ) : null}
+          </>
         ) : (
           <div
             role="status"
