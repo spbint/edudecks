@@ -154,6 +154,7 @@ export default function AssessmentItemReviewLab() {
                 <option value="reserve">Reserve</option>
                 <option value="search">Search</option>
                 <option value="boundary">Boundary</option>
+                <option value="confirmation">Confirmation</option>
               </select>
             </label>
 
