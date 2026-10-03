@@ -83,6 +83,7 @@ function statusLabel(status: string) {
   if (status === "reuse-candidate") return "Reuse candidate";
   if (status === "implemented-draft") return "Implemented draft";
   if (status === "implemented-draft-accessibility-review") return "Implemented · accessibility review";
+  if (status === "implemented-draft-asset-review") return "Implemented · asset review";
   if (status === "new-hybrid-blueprint") return "New hybrid blueprint";
   if (status === "new-blueprint-currency-review") return "New · currency review";
   return "New blueprint";
