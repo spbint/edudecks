@@ -34,6 +34,24 @@ describe("Founder Behaviour Intelligence v3", () => {
     expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
   });
 
+  it("excludes anonymous aliases stitched to an internal PostHog person", () => {
+    const result = buildFounderBehaviourV3({
+      events: [
+        event("family", "daily_plan_viewed", 1, { personId: "person-family" }),
+        event("internal-auth", "daily_plan_viewed", 1, { personId: "person-internal" }),
+        event("internal-anon-alias", "capture_opened", 2, { personId: "person-internal" }),
+      ],
+      rangeDays: 30,
+      includeInternal: false,
+      internalUserIds: new Set(["internal-auth"]),
+      posthogAvailable: true,
+      now: new Date("2026-09-30T12:00:00.000Z"),
+    });
+
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(JSON.stringify(result)).not.toContain("internal-anon-alias");
+  });
+
   it("includes internal actors only when explicitly requested", () => {
     const events = [event("family", "daily_plan_viewed", 1), event("internal", "daily_plan_viewed", 1)];
     const result = buildFounderBehaviourV3({
@@ -86,6 +104,26 @@ describe("Founder Behaviour Intelligence v3", () => {
     expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
     expect(result.dataQuality.find((item) => item.label === "Suspicious/unknown accounts")?.detail)
       .toContain("excluded");
+  });
+
+  it("excludes suspicious aliases stitched to a reviewed PostHog person", () => {
+    const result = buildFounderBehaviourV3({
+      events: [
+        event("family", "daily_plan_viewed", 1, { personId: "person-family" }),
+        event("suspicious-auth", "daily_plan_viewed", 1, { personId: "person-suspicious" }),
+        event("suspicious-anon-alias", "capture_opened", 2, { personId: "person-suspicious" }),
+      ],
+      rangeDays: 30,
+      includeInternal: false,
+      includeSuspicious: false,
+      internalUserIds: new Set(),
+      suspiciousUserIds: new Set(["suspicious-auth"]),
+      posthogAvailable: true,
+      now: new Date("2026-09-30T12:00:00.000Z"),
+    });
+
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(JSON.stringify(result)).not.toContain("suspicious-anon-alias");
   });
 
   it("aggregates journey, Capture and ordered product paths", () => {
