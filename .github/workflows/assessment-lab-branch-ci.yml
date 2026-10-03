@@ -37,6 +37,7 @@ jobs:
           app/components/clean/assessment-lab/AssessmentItemReviewLab.test.tsx
           app/components/clean/assessment-lab/AssessmentNumeracySpineLab.test.tsx
           app/components/clean/assessment-lab/AssessmentMeasurementUnitsLab.test.tsx
+          app/components/clean/assessment-lab/AssessmentChanceLab.test.tsx
           app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard.test.tsx
           app/components/clean/assessment-lab/AssessmentNumberOperationsBaselineRunner.test.tsx
           lib/clean/assessments/mylearnaAssessScoring.test.ts
@@ -44,6 +45,9 @@ jobs:
           lib/clean/assessments/placement/assessmentPlacementItemRegistry.test.ts
           lib/clean/assessments/placement/assessmentPlacementItemQuality.test.ts
           lib/clean/assessments/placement/adaptiveProgressionRouting.test.ts
+          lib/clean/assessments/placement/chanceAnchors.test.ts
+          lib/clean/assessments/placement/chancePlacementResult.test.ts
+          lib/clean/assessments/placement/chanceRouteCoverage.test.ts
           lib/clean/assessments/placement/measurementUnitsAnchors.test.ts
           lib/clean/assessments/placement/measurementUnitsPlacementResult.test.ts
           lib/clean/assessments/placement/measurementUnitsRouteCoverage.test.ts
