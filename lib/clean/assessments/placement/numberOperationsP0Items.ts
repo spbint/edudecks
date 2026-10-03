@@ -105,6 +105,174 @@ function choiceItem(input: {
   };
 }
 
+
+export const NPV_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-npv-p01-a-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P01",
+    yearLevel: "Prep",
+    substrand: "Number and place value",
+    skillId: "npv-p1-small-quantity",
+    skillName: "Recognise a very small quantity",
+    prompt: "Which numeral matches the collection?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 3, arrangement: "dice", seed: 301, maxQuantity: 3 },
+      altText:
+        "A very small collection of counters. The quantity is intentionally not stated because recognising it is the task.",
+    },
+    options: [
+      { id: "a", label: "1" },
+      { id: "b", label: "2" },
+      { id: "c", label: "3" },
+      { id: "d", label: "4" },
+    ],
+    correctOptionIds: ["c"],
+    misconceptionTags: ["small-quantity-recognition-error"],
+    tags: [
+      "search-probe",
+      "number-place-value",
+      "p1",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+  choiceItem({
+    id: "myl-search-npv-p01-b-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P01",
+    yearLevel: "Prep",
+    substrand: "Number and place value",
+    skillId: "npv-p1-familiar-numeral",
+    skillName: "Identify a familiar number name and numeral",
+    prompt: "Which numeral is two?",
+    options: [
+      { id: "a", label: "1" },
+      { id: "b", label: "2" },
+      { id: "c", label: "5" },
+      { id: "d", label: "7" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["familiar-numeral-recognition-error"],
+    tags: ["search-probe", "number-place-value", "p1", "hybrid-routing-only"],
+  }),
+];
+
+export const COUNTING_P2_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-cnt-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P02",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p2-small-subitising",
+    skillName: "Recognise a small collection",
+    prompt: "How many counters are shown?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 5, arrangement: "five-frame", seed: 205, maxQuantity: 5 },
+      altText:
+        "A small organised collection of counters. The quantity is intentionally not stated because recognising it is the task.",
+    },
+    options: [
+      { id: "a", label: "3" },
+      { id: "b", label: "4" },
+      { id: "c", label: "5" },
+      { id: "d", label: "6" },
+    ],
+    correctOptionIds: ["c"],
+    misconceptionTags: ["small-collection-recognition-error"],
+    tags: [
+      "counting-processes",
+      "p2",
+      "cnt-p02-a",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+  choiceItem({
+    id: "myl-anchor-cnt-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P02",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p2-count-small-set",
+    skillName: "Count a very small visible collection",
+    prompt: "Which numeral matches the collection?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 3, arrangement: "scattered", seed: 203, maxQuantity: 3 },
+      altText:
+        "A very small scattered collection of counters. The quantity is intentionally not stated because counting it is the task.",
+    },
+    options: [
+      { id: "a", label: "2" },
+      { id: "b", label: "3" },
+      { id: "c", label: "4" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["one-to-one-counting-error"],
+    tags: [
+      "counting-processes",
+      "p2",
+      "cnt-p02-b",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+];
+
+export const ADDITIVE_P3_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-add-p03-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P03",
+    yearLevel: "Year 1",
+    substrand: "Additive strategies",
+    skillId: "add-p3-concealed-total",
+    skillName: "Solve an additive task with concealed quantities",
+    prompt: "5 counters are hidden under one cup and 3 counters are hidden under another. How many counters are there altogether?",
+    correctValue: "8",
+    misconceptionTags: ["concealed-quantity-addition-error"],
+    tags: ["additive-strategies", "p3", "add-p03-a", "hybrid-routing-only"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-add-p03-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P03",
+    yearLevel: "Year 1",
+    substrand: "Additive strategies",
+    skillId: "add-p3-second-concealed-total",
+    skillName: "Retain and combine two concealed quantities",
+    prompt: "4 counters are hidden in one box and 2 are hidden in another. How many counters are hidden altogether?",
+    correctValue: "6",
+    misconceptionTags: ["concealed-quantity-addition-error"],
+    tags: ["additive-strategies", "p3", "add-p03-b", "hybrid-routing-only"],
+  }),
+];
+
+export const MULTIPLICATIVE_P3_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-mul-p03-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P03",
+    yearLevel: "Year 2",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p3-concealed-equal-groups",
+    skillName: "Determine a total from concealed equal groups",
+    prompt: "There are 4 closed packs. Each pack has 5 markers inside. How many markers are there altogether?",
+    correctValue: "20",
+    misconceptionTags: ["composite-unit-total-error", "adds-group-count-to-group-size"],
+    tags: ["multiplicative-strategies", "p3", "mul-p03-a", "hybrid-routing-only"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-mul-p03-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P03",
+    yearLevel: "Year 2",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p3-second-concealed-equal-groups",
+    skillName: "Count using imagined composite units",
+    prompt: "There are 3 closed boxes. Each box has 6 objects inside. How many objects are there altogether?",
+    correctValue: "18",
+    misconceptionTags: ["composite-unit-total-error"],
+    tags: ["multiplicative-strategies", "p3", "mul-p03-b", "hybrid-routing-only"],
+  }),
+];
+
 export const NPV_P3_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   choiceItem({
     id: "myl-anchor-npv-p03-a-v1",
@@ -767,6 +935,7 @@ export const MONEY_P10_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 export const NUMBER_OPERATIONS_SEARCH_CLUSTERS = {
+  "number-place-value-p1": NPV_P1_SEARCH_ITEMS,
   "number-place-value-p2": NPV_P2_SEARCH_ITEMS,
   "number-place-value-p10": NPV_P10_SEARCH_ITEMS,
   "counting-processes-p8": COUNTING_P8_SEARCH_ITEMS,
@@ -1088,10 +1257,13 @@ export const NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS = {
   "number-place-value-p3": NPV_P3_ANCHOR_ITEMS,
   "number-place-value-p6": NPV_P6_ANCHOR_ITEMS,
   "number-place-value-p9": NPV_P9_ANCHOR_ITEMS,
+  "counting-processes-p2": COUNTING_P2_ANCHOR_ITEMS,
   "counting-processes-p5": COUNTING_P5_ANCHOR_ITEMS,
   "counting-processes-p7": COUNTING_P7_ANCHOR_ITEMS,
+  "additive-strategies-p3": ADDITIVE_P3_ANCHOR_ITEMS,
   "additive-strategies-p6": ADDITIVE_P6_ANCHOR_ITEMS,
   "additive-strategies-p9": ADDITIVE_P9_ANCHOR_ITEMS,
+  "multiplicative-strategies-p3": MULTIPLICATIVE_P3_ANCHOR_ITEMS,
   "multiplicative-strategies-p6": MULTIPLICATIVE_P6_ANCHOR_ITEMS,
   "multiplicative-strategies-p9": MULTIPLICATIVE_P9_ANCHOR_ITEMS,
   "understanding-money-p2": MONEY_P2_ANCHOR_ITEMS,
