@@ -351,6 +351,67 @@ export const ADDITIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 
+
+export const MONEY_P2_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-mon-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P02",
+    yearLevel: "Year 1",
+    substrand: "Understanding money",
+    skillId: "money-p2-face-value-order",
+    skillName: "Order money denominations by face value",
+    prompt: "Which list orders these money values from least to greatest?",
+    stimulus: {
+      type: "currency-tokens",
+      data: {
+        layout: "row",
+        tokens: [
+          { denomination: "$2" },
+          { denomination: "20c" },
+          { denomination: "$1" },
+          { denomination: "50c" },
+        ],
+      },
+      altText: "Money tokens shown in this order: $2, 20c, $1, 50c.",
+    },
+    options: [
+      { id: "a", label: "20c, 50c, $1, $2" },
+      { id: "b", label: "$2, $1, 50c, 20c" },
+      { id: "c", label: "20c, $1, 50c, $2" },
+      { id: "d", label: "50c, 20c, $1, $2" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["money-face-value-order-error", "dollars-cents-order-confusion"],
+    tags: ["understanding-money", "p2", "mon-p02-a", "currency-token-review"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-mon-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P02",
+    yearLevel: "Year 1",
+    substrand: "Understanding money",
+    skillId: "money-p2-count-denomination",
+    skillName: "Count money tokens with the same face value",
+    prompt: "How many 20c tokens are shown?",
+    correctValue: "3",
+    stimulus: {
+      type: "currency-tokens",
+      data: {
+        layout: "grid",
+        tokens: [
+          { denomination: "20c" },
+          { denomination: "$1" },
+          { denomination: "20c" },
+          { denomination: "50c" },
+          { denomination: "20c" },
+        ],
+      },
+      altText: "Money tokens shown in this order: 20c, $1, 20c, 50c, 20c.",
+    },
+    misconceptionTags: ["money-denomination-count-error"],
+    tags: ["understanding-money", "p2", "mon-p02-b", "currency-token-review"],
+  }),
+];
+
 export const MONEY_P5_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   choiceItem({
     id: "myl-anchor-mon-p05-a-v1",
@@ -818,6 +879,7 @@ export const NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS = {
   "additive-strategies-p9": ADDITIVE_P9_ANCHOR_ITEMS,
   "multiplicative-strategies-p6": MULTIPLICATIVE_P6_ANCHOR_ITEMS,
   "multiplicative-strategies-p9": MULTIPLICATIVE_P9_ANCHOR_ITEMS,
+  "understanding-money-p2": MONEY_P2_ANCHOR_ITEMS,
   "understanding-money-p5": MONEY_P5_ANCHOR_ITEMS,
   "understanding-money-p8": MONEY_P8_ANCHOR_ITEMS,
 } as const;
