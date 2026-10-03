@@ -144,6 +144,22 @@ describe("Number Operations anchor routing", () => {
     });
   });
 
+  it("continues clear branch evidence one progression level at a time toward endpoints", () => {
+    const npv = getNumberOperationsAnchorSet("number-place-value");
+    const counting = getNumberOperationsAnchorSet("counting-processes");
+    expect(npv).not.toBeNull();
+    expect(counting).not.toBeNull();
+    if (!npv || !counting) return;
+
+    expect(nextSearchTarget(npv, { kind: "search-down", fromP: 3 })).toBe(2);
+    expect(nextSearchTarget(npv, { kind: "search-down", fromP: 1 })).toBeNull();
+    expect(nextSearchTarget(npv, { kind: "search-up", fromP: 9 })).toBe(10);
+    expect(nextSearchTarget(npv, { kind: "search-up", fromP: 10 })).toBeNull();
+
+    expect(nextSearchTarget(counting, { kind: "search-up", fromP: 7 })).toBe(8);
+    expect(nextSearchTarget(counting, { kind: "search-up", fromP: 8 })).toBeNull();
+  });
+
   it("narrows a routing bracket without claiming placement", () => {
     const set = getNumberOperationsAnchorSet("number-place-value");
     expect(set).not.toBeNull();
