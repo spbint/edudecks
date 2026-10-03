@@ -33,6 +33,7 @@ jobs:
           app/components/clean/assessment-lab/AssessmentPlayerV1.test.ts
           app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner.test.tsx
           app/components/clean/assessment-lab/AssessmentPlacementResultCard.test.tsx
+          app/components/clean/assessment-lab/AssessmentItemReviewLab.test.tsx
           app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard.test.tsx
           app/components/clean/assessment-lab/AssessmentNumberOperationsBaselineRunner.test.tsx
           lib/clean/assessments/mylearnaAssessScoring.test.ts
