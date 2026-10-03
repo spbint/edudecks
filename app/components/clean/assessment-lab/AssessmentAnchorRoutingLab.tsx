@@ -2,9 +2,13 @@
 
 import React, { useMemo, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
-import { NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
+import {
+  NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
+  NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
+} from "@/lib/clean/assessments/placement/numberOperationsP0Items";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
+  resolveInitialAnchorWithReserve,
   routeBranchAnchor,
   routeInitialAnchor,
   type BinaryAnchorResult,
@@ -155,6 +159,7 @@ export default function AssessmentAnchorRoutingLab() {
   );
   const [selectedClusterKey, setSelectedClusterKey] = useState<string | null>("number-place-value-p3");
   const [initial, setInitial] = useState<[BinaryAnchorResult, BinaryAnchorResult]>([null, null]);
+  const [reserve, setReserve] = useState<BinaryAnchorResult>(null);
   const [branch, setBranch] = useState<[BinaryAnchorResult, BinaryAnchorResult]>([null, null]);
 
   const anchorSet = useMemo(
@@ -173,8 +178,11 @@ export default function AssessmentAnchorRoutingLab() {
         selectedClusterKey as keyof typeof NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS
       ] || null
     : null;
+  const reserveKey = `${selectedKey}-p${anchorSet.initialP}` as keyof typeof NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS;
+  const reserveItem = NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS[reserveKey] || null;
   const initialRoute = routeInitialAnchor(anchorSet, initial);
-  const branchRoute = routeBranchAnchor(anchorSet, initialRoute, branch);
+  const resolvedInitialRoute = resolveInitialAnchorWithReserve(anchorSet, initial, reserve);
+  const branchRoute = routeBranchAnchor(anchorSet, resolvedInitialRoute, branch);
 
   const reset = (key = selectedKey) => {
     setSelectedKey(key);
@@ -183,6 +191,7 @@ export default function AssessmentAnchorRoutingLab() {
     );
     setSelectedClusterKey(nextCluster || null);
     setInitial([null, null]);
+    setReserve(null);
     setBranch([null, null]);
   };
 
@@ -286,8 +295,27 @@ export default function AssessmentAnchorRoutingLab() {
             <ResultPicker label="Anchor item B" value={initial[1]} onChange={(value) => setInitial([initial[0], value])} />
           </div>
           <div role="status" style={{ borderLeft: "4px solid #6C4DF6", padding: "10px 14px", background: "#F3F0FF", color: "#17204B" }}>
-            <strong>{describeInitialRoute(initialRoute)}</strong>
+            <strong>{describeInitialRoute(resolvedInitialRoute)}</strong>
           </div>
+          {initialRoute.kind === "same-level-extra" ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <ResultPicker label="Reserve item C" value={reserve} onChange={setReserve} />
+              {reserveItem ? (
+                <details>
+                  <summary style={{ cursor: "pointer", color: "#5B3BE8", fontWeight: 850 }}>
+                    Run the reserve probe in the shared player
+                  </summary>
+                  <div style={{ marginTop: 12 }}>
+                    <AssessmentPlayerV1
+                      key={`${reserveKey}-reserve`}
+                      title={`${anchorSet.label} · reserve probe`}
+                      items={[reserveItem]}
+                    />
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <section style={card}>
