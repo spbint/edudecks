@@ -80,4 +80,37 @@ describe("AssessmentPlayerV1", () => {
     fireEvent.click(screen.getByRole("button", { name: "View summary" }));
     expect(screen.getByText("You answered 2 of 2 correctly.")).toBeTruthy();
   });
+
+  it("supports multi-select responses without collapsing them to radio buttons", () => {
+    const item = {
+      ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+      id: "multi-select-proof",
+      response: {
+        type: "multiple-choice" as const,
+        options: [
+          { id: "a", label: "A", value: "a" },
+          { id: "b", label: "B", value: "b" },
+          { id: "c", label: "C", value: "c" },
+        ],
+        correctOptionIds: ["a", "c"],
+      },
+    };
+
+    render(
+      React.createElement(AssessmentPlayerV1, {
+        title: "Multi-select proof",
+        items: [item],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+    expect(screen.getByText("Select every answer that applies")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "A" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "C" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+
+    expect(screen.getByText(item.feedback.correct)).toBeTruthy();
+  });
+
 });
