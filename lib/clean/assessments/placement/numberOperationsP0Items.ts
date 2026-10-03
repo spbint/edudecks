@@ -396,23 +396,29 @@ export const NPV_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 export const NPV_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
-  choiceItem({
+  orderingItem({
     id: "myl-anchor-npv-p09-a-v1",
     code: "MYL-MATH-PROG-NSA-NPV-P09",
     yearLevel: "Years 6–8",
     substrand: "Number and place value",
     skillId: "npv-p9-negative-order",
     skillName: "Order negative and positive numbers",
-    prompt: "Which list is ordered from smallest to largest?",
+    prompt: "Order these numbers from smallest to largest.",
     options: [
-      { id: "a", label: "-12, -2.5, 0, 4" },
-      { id: "b", label: "-2.5, -12, 0, 4" },
-      { id: "c", label: "0, -2.5, -12, 4" },
-      { id: "d", label: "4, 0, -2.5, -12" },
+      { id: "v-4", label: "4" },
+      { id: "v-neg-2-5", label: "-2.5" },
+      { id: "v-0", label: "0" },
+      { id: "v-neg-12", label: "-12" },
     ],
-    correctOptionIds: ["a"],
+    correctOptionIds: ["v-neg-12", "v-neg-2-5", "v-0", "v-4"],
     misconceptionTags: ["negative-number-order-error", "absolute-value-order-confusion"],
-    tags: ["number-place-value", "p9", "npv-p09-a", "adapted-existing-construct"],
+    tags: [
+      "number-place-value",
+      "p9",
+      "npv-p09-a",
+      "adapted-existing-construct",
+      "direct-ordering",
+    ],
   }),
   shortAnswerItem({
     id: "myl-anchor-npv-p09-b-v1",
