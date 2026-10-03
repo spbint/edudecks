@@ -94,7 +94,7 @@ export const NUMERACY_PROGRESSION_SUB_ELEMENTS: NumeracyProgressionSubElement[] 
     minP: 1,
     maxP: 9,
     sourcePages: [2, 8, 9],
-    implementation: "blueprint-next",
+    implementation: "adaptive-cross-strand-proof",
   },
   {
     key: "proportional-thinking",
