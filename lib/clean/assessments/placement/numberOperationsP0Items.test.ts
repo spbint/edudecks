@@ -52,17 +52,25 @@ describe("Number & Operations executable P0 anchor items", () => {
       "number-place-value-p5",
       "number-place-value-p7",
       "number-place-value-p8",
+      "counting-processes-p3",
+      "counting-processes-p4",
       "counting-processes-p6",
+      "additive-strategies-p4",
+      "additive-strategies-p5",
       "additive-strategies-p7",
       "additive-strategies-p8",
+      "multiplicative-strategies-p4",
+      "multiplicative-strategies-p5",
       "multiplicative-strategies-p7",
       "multiplicative-strategies-p8",
+      "understanding-money-p3",
+      "understanding-money-p4",
       "understanding-money-p6",
       "understanding-money-p7",
     ]);
     expect(
       Object.values(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS).flat(),
-    ).toHaveLength(33);
+    ).toHaveLength(57);
     expect(
       Object.values(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS)
         .flat()
@@ -75,15 +83,21 @@ describe("Number & Operations executable P0 anchor items", () => {
       "number-place-value-p1",
       "number-place-value-p2",
       "number-place-value-p10",
+      "counting-processes-p1",
       "counting-processes-p8",
+      "additive-strategies-p1",
+      "additive-strategies-p2",
       "additive-strategies-p10",
+      "multiplicative-strategies-p1",
+      "multiplicative-strategies-p2",
       "multiplicative-strategies-p10",
+      "understanding-money-p1",
       "understanding-money-p9",
       "understanding-money-p10",
     ]);
     expect(
       Object.values(NUMBER_OPERATIONS_SEARCH_CLUSTERS).flat(),
-    ).toHaveLength(16);
+    ).toHaveLength(28);
   });
 
   it("provides one reserve probe for every initial routing anchor", () => {
