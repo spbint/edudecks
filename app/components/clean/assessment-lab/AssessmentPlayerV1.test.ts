@@ -2,7 +2,7 @@
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import { MYLEARNA_ASSESS_DEMO_ITEMS } from "@/lib/clean/assessments/mylearnaAssessDemoItems";
 import { COUNTING_P5_ANCHOR_ITEMS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
@@ -111,6 +111,34 @@ describe("AssessmentPlayerV1", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
 
     expect(screen.getByText(item.feedback.correct)).toBeTruthy();
+  });
+
+
+  it("hides correctness and percentage feedback in placement mode", () => {
+    const onComplete = vi.fn();
+    render(
+      React.createElement(AssessmentPlayerV1, {
+        title: "Placement proof",
+        items: [COUNTING_P5_ANCHOR_ITEMS[0]],
+        mode: "placement",
+        onComplete,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
+      target: { value: "62" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+
+    expect(screen.getByText("Response recorded.")).toBeTruthy();
+    expect(screen.queryByText("Correct. 62 comes immediately before 63.")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "View summary" }));
+    expect(screen.getByText("Responses recorded for routing.")).toBeTruthy();
+    expect(screen.queryByText("100%")).toBeNull();
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete.mock.calls[0][0][0].correct).toBe(true);
   });
 
 });
