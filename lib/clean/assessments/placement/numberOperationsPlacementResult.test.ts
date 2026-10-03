@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildNpvCandidateBandResult,
   buildNpvEndpointResult,
+  buildNumberOperationsCandidateBandResult,
 } from "./numberOperationsPlacementResult";
 
 describe("Number Operations placement result model", () => {
@@ -39,6 +40,25 @@ describe("Number Operations placement result model", () => {
     expect(result.limitations).toContain(
       "Observed strategy evidence is not available in this unsupervised route.",
     );
+  });
+
+  it("builds useful candidate-band interpretation for non-NPV sub-elements", () => {
+    const result = buildNumberOperationsCandidateBandResult({
+      subElementKey: "multiplicative-strategies",
+      lowerP: 6,
+      upperP: 7,
+    });
+
+    expect(result).toMatchObject({
+      subElementLabel: "Multiplicative strategies",
+      status: "candidate-band",
+      lowerP: 6,
+      upperP: 7,
+      confidence: "provisional-moderate",
+    });
+    expect(result.interpretation).toMatch(/single-digit multiplication\/division/i);
+    expect(result.interpretation).toMatch(/inverse operations/i);
+    expect(result.typicalYearAlignment).toBeUndefined();
   });
 
   it("uses open-ended language at the top of the progression", () => {
