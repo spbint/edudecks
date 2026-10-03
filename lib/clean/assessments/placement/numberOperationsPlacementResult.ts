@@ -100,17 +100,68 @@ const LABELS: Record<NumberOperationsSubElementKey, string> = {
   "understanding-money": "Understanding money",
 };
 
-const NPV_TYPICAL_ALIGNMENT: Record<number, string> = {
-  1: "Prep",
-  2: "Prep",
-  3: "Prep",
-  4: "Years 1–2",
-  5: "Year 2",
-  6: "Year 3",
-  7: "Years 3–4",
-  8: "Years 4–5",
-  9: "Years 6–8",
-  10: "Years 9–10",
+const TYPICAL_ALIGNMENT: Record<
+  NumberOperationsSubElementKey,
+  Record<number, string>
+> = {
+  "number-place-value": {
+    1: "Prep",
+    2: "Prep",
+    3: "Prep",
+    4: "Years 1–2",
+    5: "Year 2",
+    6: "Year 3",
+    7: "Years 3–4",
+    8: "Years 4–5",
+    9: "Years 6–8",
+    10: "Years 9–10",
+  },
+  "counting-processes": {
+    1: "Prep",
+    2: "Prep",
+    3: "Prep",
+    4: "Prep–Year 1",
+    5: "Year 1",
+    6: "Years 1–3",
+    7: "Years 2–4",
+    8: "Years 4–6",
+  },
+  "additive-strategies": {
+    1: "Prep",
+    2: "Prep",
+    3: "Year 1",
+    4: "Year 1",
+    5: "Year 1",
+    6: "Years 1–2",
+    7: "Year 2",
+    8: "Years 3–5",
+    9: "Years 5–7",
+    10: "Years 7–8",
+  },
+  "multiplicative-strategies": {
+    1: "Prep",
+    2: "Year 1",
+    3: "Year 2",
+    4: "Year 2",
+    5: "Years 2–3",
+    6: "Years 4–5",
+    7: "Years 4–5",
+    8: "Year 6",
+    9: "Years 6–8",
+    10: "Years 7–10",
+  },
+  "understanding-money": {
+    1: "Prep–Year 1",
+    2: "Year 1",
+    3: "Years 1–2",
+    4: "Years 3–4",
+    5: "Year 4",
+    6: "Year 4",
+    7: "Years 4–6",
+    8: "Years 6–8",
+    9: "Years 8–9",
+    10: "Years 9–10",
+  },
 };
 
 function evidenceLimitations(extra: string[] = []) {
@@ -158,11 +209,14 @@ export function buildNumberOperationsCandidateBandResult(input: {
     limitations: evidenceLimitations(extra),
   };
 
-  if (input.subElementKey === "number-place-value") {
+  const alignment = TYPICAL_ALIGNMENT[input.subElementKey];
+  const lowerAlignment = alignment[input.lowerP];
+  const upperAlignment = alignment[input.upperP];
+  if (lowerAlignment || upperAlignment) {
     result.typicalYearAlignment =
-      NPV_TYPICAL_ALIGNMENT[input.lowerP] === NPV_TYPICAL_ALIGNMENT[input.upperP]
-        ? NPV_TYPICAL_ALIGNMENT[input.lowerP]
-        : `${NPV_TYPICAL_ALIGNMENT[input.lowerP] || "not mapped"} to ${NPV_TYPICAL_ALIGNMENT[input.upperP] || "not mapped"}`;
+      lowerAlignment === upperAlignment
+        ? lowerAlignment
+        : `${lowerAlignment || "not mapped"} to ${upperAlignment || "not mapped"}`;
   }
 
   return result;
@@ -205,9 +259,8 @@ export function buildNumberOperationsEndpointResult(input: {
     ],
   };
 
-  if (input.subElementKey === "number-place-value") {
-    result.typicalYearAlignment = NPV_TYPICAL_ALIGNMENT[input.pLevel];
-  }
+  result.typicalYearAlignment =
+    TYPICAL_ALIGNMENT[input.subElementKey][input.pLevel];
 
   return result;
 }
