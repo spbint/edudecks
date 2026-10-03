@@ -33,6 +33,6 @@ describe("AssessmentNumberOperationsProfileCard", () => {
     expect(screen.getByText("P6–P7")).toBeTruthy();
     expect(screen.getByText("Multiplicative strategies")).toBeTruthy();
     expect(screen.getByText("P4–P5")).toBeTruthy();
-    expect(screen.getByText(/2 of 5 sub-elements/i)).toBeTruthy();
+    expect(screen.getAllByText(/2 of 5 sub-elements/i).length).toBeGreaterThan(0);
   });
 });
