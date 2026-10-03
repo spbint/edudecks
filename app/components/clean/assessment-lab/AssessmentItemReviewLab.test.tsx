@@ -18,7 +18,7 @@ describe("AssessmentItemReviewLab", () => {
     render(React.createElement(AssessmentItemReviewLab));
 
     expect(screen.getByText("Trusted item & visual review")).toBeTruthy();
-    expect(screen.getByText("140 items in this view")).toBeTruthy();
+    expect(screen.getByText("165 items in this view")).toBeTruthy();
     expect(screen.getByLabelText("phone assessment preview")).toBeTruthy();
     expect(screen.getByTestId("mock-player").textContent).toContain("myl-");
   });
@@ -50,6 +50,19 @@ describe("AssessmentItemReviewLab", () => {
     expect(screen.getByText("20 items in this view")).toBeTruthy();
     expect(screen.getByTestId("mock-player").textContent).toContain(
       "myl-confirm-npv-",
+    );
+  });
+
+  it("can isolate the Measurement units cross-strand lane", () => {
+    render(React.createElement(AssessmentItemReviewLab));
+
+    fireEvent.change(screen.getByLabelText("Sub-element"), {
+      target: { value: "understanding-units-measurement" },
+    });
+
+    expect(screen.getByText("25 items in this view")).toBeTruthy();
+    expect(screen.getByTestId("mock-player").textContent).toContain(
+      "myl-",
     );
   });
 
