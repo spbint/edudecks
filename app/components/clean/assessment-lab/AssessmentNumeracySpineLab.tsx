@@ -58,7 +58,9 @@ export default function AssessmentNumeracySpineLab() {
           </h1>
           <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.65 }}>
             {summary.elementCount} source elements · {summary.subElementCount} sub-elements ·{" "}
-            {summary.implementedCount} adaptive first-slice lanes · {summary.blueprintNextCount} next lanes.
+            {summary.firstSliceCount} Number first-slice lanes ·{" "}
+            {summary.crossStrandProofCount} cross-strand adaptive proof ·{" "}
+            {summary.blueprintNextCount} next lanes.
           </p>
           <small style={{ color: "#64748B", lineHeight: 1.5 }}>
             Source: {NUMERACY_PROGRESSION_SOURCE.authority} ·{" "}
@@ -108,7 +110,9 @@ export default function AssessmentNumeracySpineLab() {
                       background:
                         item.implementation === "adaptive-first-slice"
                           ? "#F0FDF4"
-                          : "#FBFCFF",
+                          : item.implementation === "adaptive-cross-strand-proof"
+                            ? "#EEF4FF"
+                            : "#FBFCFF",
                     }}
                   >
                     <strong style={{ color: "#17204B" }}>{item.label}</strong>
@@ -120,7 +124,9 @@ export default function AssessmentNumeracySpineLab() {
                         color:
                           item.implementation === "adaptive-first-slice"
                             ? "#166534"
-                            : "#64748B",
+                            : item.implementation === "adaptive-cross-strand-proof"
+                              ? "#1D4ED8"
+                              : "#64748B",
                         fontSize: 12,
                         fontWeight: 900,
                         textTransform: "uppercase",
@@ -128,7 +134,9 @@ export default function AssessmentNumeracySpineLab() {
                     >
                       {item.implementation === "adaptive-first-slice"
                         ? "Adaptive first slice implemented"
-                        : "Blueprint next"}
+                        : item.implementation === "adaptive-cross-strand-proof"
+                          ? "Adaptive cross-strand proof implemented"
+                          : "Blueprint next"}
                     </span>
                     <small style={{ color: "#64748B" }}>
                       Source pages {item.sourcePages.join(", ")}
@@ -143,7 +151,7 @@ export default function AssessmentNumeracySpineLab() {
         <section style={{ ...card, background: "#FFFDF5" }}>
           <strong style={{ color: "#92400E" }}>Expansion rule</strong>
           <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
-            Do not mass-author the remaining nine lanes from their level labels alone. For each
+            Do not mass-author the remaining eight lanes from their level labels alone. For each
             sub-element, first audit the observable source indicators, classify direct versus
             observed/practical evidence, choose anchor levels, define trusted visual requirements,
             then author the smallest routing bank that can prove the engine.
