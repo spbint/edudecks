@@ -378,6 +378,100 @@ export const MULTIPLICATIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   }),
 ];
 
+
+export const NPV_P6_RESERVE_ITEM = shortAnswerItem({
+  id: "myl-anchor-npv-p06-c-v1",
+  code: "MYL-MATH-PROG-NSA-NPV-P06",
+  yearLevel: "Year 3",
+  substrand: "Number and place value",
+  skillId: "npv-p6-tenths-decimal",
+  skillName: "Represent tenths using decimal notation",
+  prompt: "Write three tenths as a decimal.",
+  correctValue: "0.3",
+  acceptableValues: ["0.3", ".3"],
+  misconceptionTags: ["tenths-decimal-notation-error"],
+  tags: ["number-place-value", "p6", "npv-p06-c", "reserve-probe"],
+});
+
+export const COUNTING_P5_RESERVE_ITEM = choiceItem({
+  id: "myl-anchor-cnt-p05-c-v1",
+  code: "MYL-MATH-PROG-NSA-CNT-P05",
+  yearLevel: "Year 1",
+  substrand: "Counting processes",
+  skillId: "counting-p5-zero",
+  skillName: "Use zero to represent no objects",
+  prompt: "Which numeral represents no objects?",
+  options: [
+    { id: "a", label: "0" },
+    { id: "b", label: "1" },
+    { id: "c", label: "10" },
+    { id: "d", label: "20" },
+  ],
+  correctOptionIds: ["a"],
+  misconceptionTags: ["zero-as-none-error"],
+  tags: ["counting-processes", "p5", "cnt-p05-c", "reserve-probe"],
+});
+
+export const ADDITIVE_P6_RESERVE_ITEM = choiceItem({
+  id: "myl-anchor-add-p06-c-v1",
+  code: "MYL-MATH-PROG-NSA-ADD-P06",
+  yearLevel: "Years 1–2",
+  substrand: "Additive strategies",
+  skillId: "add-p6-difference",
+  skillName: "Interpret subtraction as a difference",
+  prompt: "Which number sentence shows the difference between 8 and 3?",
+  options: [
+    { id: "a", label: "8 - 3 = 5" },
+    { id: "b", label: "8 + 3 = 11" },
+    { id: "c", label: "8 - 5 = 3 + 5" },
+    { id: "d", label: "3 - 8 = 5" },
+  ],
+  correctOptionIds: ["a"],
+  misconceptionTags: ["difference-vs-take-away-confusion"],
+  tags: ["additive-strategies", "p6", "add-p06-c", "reserve-probe"],
+});
+
+export const MULTIPLICATIVE_P6_RESERVE_ITEM = choiceItem({
+  id: "myl-anchor-mul-p06-c-v1",
+  code: "MYL-MATH-PROG-NSA-MUL-P06",
+  yearLevel: "Years 4–5",
+  substrand: "Multiplicative strategies",
+  skillId: "mul-p6-remainder",
+  skillName: "Interpret a remainder after grouping",
+  prompt: "26 counters are put into groups of 4. Which result is correct?",
+  options: [
+    { id: "a", label: "6 full groups with 2 counters left over" },
+    { id: "b", label: "7 full groups with 2 counters left over" },
+    { id: "c", label: "6 full groups with no counters left over" },
+    { id: "d", label: "5 full groups with 6 counters left over" },
+  ],
+  correctOptionIds: ["a"],
+  misconceptionTags: ["remainder-interpretation-error", "division-grouping-error"],
+  tags: ["multiplicative-strategies", "p6", "mul-p06-c", "reserve-probe"],
+});
+
+export const MONEY_P5_RESERVE_ITEM = shortAnswerItem({
+  id: "myl-anchor-mon-p05-c-v1",
+  code: "MYL-MATH-PROG-NSA-MON-P05",
+  yearLevel: "Year 4",
+  substrand: "Understanding money",
+  skillId: "money-p5-mixed-collection",
+  skillName: "Determine the value of a mixed money collection",
+  prompt: "A purse contains four $1 coins, three 20c coins and two 10c coins. What is the total value in dollars?",
+  correctValue: "4.80",
+  acceptableValues: ["4.80", "4.8", "$4.80", "$4.8"],
+  misconceptionTags: ["money-total-error", "dollars-cents-conversion-error"],
+  tags: ["understanding-money", "p5", "mon-p05-c", "reserve-probe"],
+});
+
+export const NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS = {
+  "number-place-value-p6": NPV_P6_RESERVE_ITEM,
+  "counting-processes-p5": COUNTING_P5_RESERVE_ITEM,
+  "additive-strategies-p6": ADDITIVE_P6_RESERVE_ITEM,
+  "multiplicative-strategies-p6": MULTIPLICATIVE_P6_RESERVE_ITEM,
+  "understanding-money-p5": MONEY_P5_RESERVE_ITEM,
+} as const;
+
 export const NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS = {
   "number-place-value-p3": NPV_P3_ANCHOR_ITEMS,
   "number-place-value-p6": NPV_P6_ANCHOR_ITEMS,
