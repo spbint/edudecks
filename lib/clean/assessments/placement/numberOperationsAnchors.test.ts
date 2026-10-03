@@ -59,6 +59,44 @@ describe("Number Operations anchor routing", () => {
     expect(npv && getAnchorEvidenceMode(npv, 3)).toBe("direct");
   });
 
+  it("allows hybrid digital evidence to route without pretending it proves an observed strategy", () => {
+    expect(
+      getPlacementEvidencePolicy({ evidenceMode: "hybrid-observed" }),
+    ).toMatchObject({
+      mayRoute: true,
+      maySupportExactPlacement: false,
+      confidenceCeiling: "routing-only",
+    });
+
+    expect(
+      getPlacementEvidencePolicy({
+        evidenceMode: "hybrid-observed",
+        observerVerified: true,
+      }),
+    ).toMatchObject({
+      mayRoute: true,
+      maySupportExactPlacement: true,
+      confidenceCeiling: "high-eligible",
+    });
+
+    expect(
+      getPlacementEvidencePolicy({ evidenceMode: "asset-review" }),
+    ).toMatchObject({
+      mayRoute: false,
+      maySupportExactPlacement: false,
+    });
+
+    expect(
+      getPlacementEvidencePolicy({
+        evidenceMode: "asset-review",
+        assetApproved: true,
+      }),
+    ).toMatchObject({
+      mayRoute: true,
+      maySupportExactPlacement: true,
+    });
+  });
+
   it("routes a clear initial anchor down, up, or to an extra same-level probe", () => {
     const set = getNumberOperationsAnchorSet("number-place-value");
     expect(set).not.toBeNull();
