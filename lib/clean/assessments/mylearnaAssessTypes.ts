@@ -107,6 +107,17 @@ export type CurrencyTokenStimulus = {
   layout?: "row" | "grid";
 };
 
+export type GraduatedScaleStimulus = {
+  min: number;
+  max: number;
+  majorStep: number;
+  subdivisions?: number;
+  marker: number;
+  unit: "kg" | "g" | "cm" | "mm" | "m" | "mL" | "L" | "°C";
+  orientation?: "horizontal" | "vertical";
+  labelMajorTicks?: boolean;
+};
+
 export type MyLearnaAssessmentStimulus =
   | { type: "none"; data?: Record<string, never>; altText?: string }
   | { type: "counter-set"; data: CounterSetStimulus; altText?: string }
@@ -116,6 +127,7 @@ export type MyLearnaAssessmentStimulus =
   | { type: "place-value-blocks"; data: PlaceValueBlocksStimulus; altText?: string }
   | { type: "fraction-bar"; data: FractionBarStimulus; altText?: string }
   | { type: "currency-tokens"; data: CurrencyTokenStimulus; altText?: string }
+  | { type: "graduated-scale"; data: GraduatedScaleStimulus; altText?: string }
   | { type: "shape-set"; data: ShapeSetStimulus; altText?: string }
   | { type: string; data: Record<string, unknown>; altText?: string };
 
