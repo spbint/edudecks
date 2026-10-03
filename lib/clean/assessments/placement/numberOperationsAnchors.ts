@@ -179,8 +179,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         role: "upper",
         sourcePages: [5],
         slots: [
-          slot("MYL-ANCHOR-CNT-P07-A", "A", "Continue a skip-count sequence by fives off the decade.", "numeric_entry", "number line optional", "new-blueprint"),
-          slot("MYL-ANCHOR-CNT-P07-B", "B", "Count a larger quantity in groups and add the residual.", "numeric_entry", "grouped counters / bundles", "new-blueprint"),
+          slot("MYL-ANCHOR-CNT-P07-A", "A", "Continue a skip-count sequence by fives off the decade.", "numeric_entry", "text-first / number line optional", "implemented-draft"),
+          slot("MYL-ANCHOR-CNT-P07-B", "B", "Count a larger quantity in groups and add the residual.", "numeric_entry", "grouped tens and ones representation", "implemented-draft"),
         ],
       },
     ],
