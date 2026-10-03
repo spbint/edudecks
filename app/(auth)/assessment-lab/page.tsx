@@ -22,6 +22,9 @@ export default async function AssessmentLabPage() {
           <Link href="/assessment-lab/placement-simulator" prefetch={false}>
             Open the Number & Operations anchor-routing simulator
           </Link>
+          <Link href="/assessment-lab/item-review" prefetch={false}>
+            Open the trusted item & visual review lab
+          </Link>
         </nav>
       ) : null}
       <AssessmentLabWorkspace />
