@@ -44,6 +44,7 @@ jobs:
           lib/clean/assessments/placement/numberOperationsPlacementResult.test.ts
           lib/clean/assessments/placement/numberOperationsProfile.test.ts
           lib/clean/assessments/placement/numberOperationsRecommendations.test.ts
+          lib/clean/assessments/placement/numberOperationsPracticeTargets.test.ts
           lib/clean/assessments/placement/numberOperationsEvidencePreview.test.ts
           lib/clean/assessments/placement/numberOperationsBaselineSnapshot.test.ts
           lib/clean/assessments/placement/numberOperationsAttemptTrace.test.ts
