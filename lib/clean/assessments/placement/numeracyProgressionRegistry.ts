@@ -28,6 +28,7 @@ export type NumeracyProgressionSubElement = {
   sourcePages: number[];
   implementation:
     | "adaptive-first-slice"
+    | "adaptive-cross-strand-proof"
     | "blueprint-next";
 };
 
@@ -129,7 +130,7 @@ export const NUMERACY_PROGRESSION_SUB_ELEMENTS: NumeracyProgressionSubElement[] 
     minP: 1,
     maxP: 10,
     sourcePages: [14, 15, 16],
-    implementation: "blueprint-next",
+    implementation: "adaptive-cross-strand-proof",
   },
   {
     key: "understanding-geometric-properties",
@@ -185,9 +186,13 @@ export function getNumeracyProgressionSubElement(
 }
 
 export function getNumeracyImplementationSummary() {
-  const implemented = NUMERACY_PROGRESSION_SUB_ELEMENTS.filter(
+  const firstSlice = NUMERACY_PROGRESSION_SUB_ELEMENTS.filter(
     (item) => item.implementation === "adaptive-first-slice",
   );
+  const crossStrandProof = NUMERACY_PROGRESSION_SUB_ELEMENTS.filter(
+    (item) => item.implementation === "adaptive-cross-strand-proof",
+  );
+  const implemented = [...firstSlice, ...crossStrandProof];
   const next = NUMERACY_PROGRESSION_SUB_ELEMENTS.filter(
     (item) => item.implementation === "blueprint-next",
   );
@@ -196,7 +201,11 @@ export function getNumeracyImplementationSummary() {
     elementCount: NUMERACY_PROGRESSION_ELEMENTS.length,
     subElementCount: NUMERACY_PROGRESSION_SUB_ELEMENTS.length,
     implementedCount: implemented.length,
+    firstSliceCount: firstSlice.length,
+    crossStrandProofCount: crossStrandProof.length,
     blueprintNextCount: next.length,
+    firstSlice,
+    crossStrandProof,
     implemented,
     next,
   };
