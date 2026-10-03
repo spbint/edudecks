@@ -2,7 +2,17 @@ import { createClient, type User } from "@supabase/supabase-js";
 
 const AUTH_PAGE_SIZE = 1000;
 const ROW_PAGE_SIZE = 1000;
-const FOUNDER_EMAIL = "sean@mylearna.com";
+export const FOUNDER_ANALYTICS_INTERNAL_EMAILS = [
+  "sean@mylearna.com",
+  "seanbint@live.com",
+  "sbint@channel.tas.edu.au",
+] as const;
+export const FOUNDER_ANALYTICS_SUSPICIOUS_EMAILS = [
+  "nikow54520@prorises.com",
+  "vatoh27112@mapsguy.com",
+  "vegal19298@mediseat.com",
+  "sodimin902@kikaga.com",
+] as const;
 export const FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS = [
   "mailinator.com",
   "codoteam.com",
@@ -14,15 +24,26 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/** Explicit, auditable exclusions for known development/synthetic accounts. */
+/** Explicit, auditable exclusions for confirmed Founder/internal and known synthetic accounts. */
 export function isFounderExcludedAccount(email: unknown) {
   const normalized = clean(email).toLowerCase();
   if (!normalized) return false;
-  if (normalized === FOUNDER_EMAIL) return true;
+  if (FOUNDER_ANALYTICS_INTERNAL_EMAILS.includes(
+    normalized as (typeof FOUNDER_ANALYTICS_INTERNAL_EMAILS)[number],
+  )) return true;
   const atIndex = normalized.lastIndexOf("@");
   if (atIndex <= 0) return false;
   return FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS.includes(
     normalized.slice(atIndex + 1) as (typeof FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS)[number],
+  );
+}
+
+/** Accounts worth comparing separately without declaring them internal or fake. */
+export function isFounderSuspiciousAccount(email: unknown) {
+  const normalized = clean(email).toLowerCase();
+  if (!normalized) return false;
+  return FOUNDER_ANALYTICS_SUSPICIOUS_EMAILS.includes(
+    normalized as (typeof FOUNDER_ANALYTICS_SUSPICIOUS_EMAILS)[number],
   );
 }
 

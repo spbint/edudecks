@@ -36,8 +36,8 @@ function Section({ eyebrow, title, description, children }: { eyebrow: string; t
   return <section className={styles.section}><div className={styles.sectionHeading}><div><span className={styles.eyebrow}>{eyebrow}</span><h2>{title}</h2></div><p>{description}</p></div>{children}</section>;
 }
 
-function query(range: number, includeInternal: boolean) {
-  return `/founder?range=${range}${includeInternal ? "&internal=include" : ""}`;
+function query(range: number, includeInternal: boolean, includeSuspicious: boolean) {
+  return `/founder?range=${range}${includeInternal ? "&internal=include" : ""}${includeSuspicious ? "" : "&suspicious=exclude"}`;
 }
 
 export default function FounderBehaviourIntelligenceV3({ data }: { data: FounderBehaviourV3 }) {
@@ -47,14 +47,15 @@ export default function FounderBehaviourIntelligenceV3({ data }: { data: Founder
       <h1>Understand what families do next.</h1>
       <p>Privacy-safe acquisition, activation, product behaviour, Capture, retention and friction intelligence. Counts are anonymous and caveated where identity or sample quality is weak.</p>
       <div className={styles.toolbar}>
-        <div className={styles.controlGroup}>{([7, 30, 90] as const).map((range) => <Link key={range} className={data.rangeDays === range ? styles.controlActive : styles.control} href={query(range, data.includeInternal)}>{range} days</Link>)}</div>
-        <div className={styles.controlGroup}><Link className={!data.includeInternal ? styles.controlActive : styles.control} href={query(data.rangeDays, false)}>Exclude internal/test</Link><Link className={data.includeInternal ? styles.controlActive : styles.control} href={query(data.rangeDays, true)}>Include internal/test</Link></div>
+        <div className={styles.controlGroup}>{([7, 30, 90] as const).map((range) => <Link key={range} className={data.rangeDays === range ? styles.controlActive : styles.control} href={query(range, data.includeInternal, data.includeSuspicious)}>{range} days</Link>)}</div>
+        <div className={styles.controlGroup}><Link className={!data.includeInternal ? styles.controlActive : styles.control} href={query(data.rangeDays, false, data.includeSuspicious)}>Exclude internal/test</Link><Link className={data.includeInternal ? styles.controlActive : styles.control} href={query(data.rangeDays, true, data.includeSuspicious)}>Include internal/test</Link></div>
+        <div className={styles.controlGroup}><Link className={data.includeSuspicious ? styles.controlActive : styles.control} href={query(data.rangeDays, data.includeInternal, true)}>Include suspicious/unknown</Link><Link className={!data.includeSuspicious ? styles.controlActive : styles.control} href={query(data.rangeDays, data.includeInternal, false)}>Exclude suspicious/unknown</Link></div>
       </div>
     </header>
 
     {!data.posthogAvailable ? <div className={styles.empty}>The private PostHog query connection is unavailable. No behavioural precision is implied.</div> : null}
 
-    <Section eyebrow="Executive behaviour summary" title="Founder summary" description={`Last ${data.rangeDays} days · ${data.includeInternal ? "internal/test included" : "internal/test excluded"}`}><div className={styles.summaryGrid}>{data.summary.map((metric) => <article className={styles.metric} key={metric.label}><span className={styles.eyebrow}>{metric.label}</span><strong>{value(metric)}</strong><div className={styles.metricMeta}><Badge value={metric.confidence} /></div><p>{metric.note}</p></article>)}</div></Section>
+    <Section eyebrow="Executive behaviour summary" title="Founder summary" description={`Last ${data.rangeDays} days · ${data.includeInternal ? "internal/test included" : "internal/test excluded"} · ${data.includeSuspicious ? "suspicious/unknown included" : "suspicious/unknown excluded"}`}><div className={styles.summaryGrid}>{data.summary.map((metric) => <article className={styles.metric} key={metric.label}><span className={styles.eyebrow}>{metric.label}</span><strong>{value(metric)}</strong><div className={styles.metricMeta}><Badge value={metric.confidence} /></div><p>{metric.note}</p></article>)}</div></Section>
 
     <Section eyebrow="Automatic interpretation" title="Founder signals" description="Evidence, caveat and a suggested investigation — never unsupported causation.">{data.signals.length ? <div className={styles.signalGrid}>{data.signals.map((signal) => <article className={styles.signal} key={`${signal.journey}-${signal.headline}`}><div className={styles.signalMeta}><span className={styles.eyebrow}>{signal.journey}</span><Badge value={signal.confidence} /></div><h3>{signal.headline}</h3><p>{signal.evidence}</p><small><strong>Investigate:</strong> {signal.investigation}</small></article>)}</div> : <div className={styles.empty}>No defensible signal meets the current evidence threshold.</div>}</Section>
 

@@ -51,6 +51,7 @@ export type FounderBehaviourV3 = {
   generatedAt: string;
   rangeDays: 7 | 30 | 90;
   includeInternal: boolean;
+  includeSuspicious: boolean;
   posthogAvailable: boolean;
   summary: FounderMetricV3[];
   signals: FounderSignalV3[];
@@ -281,13 +282,20 @@ export function buildFounderBehaviourV3(input: {
   events: FounderProductEvent[];
   rangeDays: 7 | 30 | 90;
   includeInternal: boolean;
+  includeSuspicious?: boolean;
   posthogAvailable: boolean;
   internalUserIds?: Set<string>;
+  suspiciousUserIds?: Set<string>;
   now?: Date;
 }): FounderBehaviourV3 {
   const now = input.now ?? new Date();
   const internalIds = input.internalUserIds ?? new Set<string>();
-  const events = input.includeInternal ? input.events : input.events.filter((event) => !internalIds.has(event.userId));
+  const suspiciousIds = input.suspiciousUserIds ?? new Set<string>();
+  const includeSuspicious = input.includeSuspicious ?? true;
+  const events = input.events.filter((event) =>
+    (input.includeInternal || !internalIds.has(event.userId))
+    && (includeSuspicious || !suspiciousIds.has(event.userId)),
+  );
   const publicEvents = events.filter((event) => PUBLIC_EVENTS.has(event.event));
   const productEvents = events.filter((event) => PRODUCT_EVENTS.has(event.event));
   const publicActors = actors(publicEvents);
@@ -392,6 +400,7 @@ export function buildFounderBehaviourV3(input: {
     generatedAt: now.toISOString(),
     rangeDays: input.rangeDays,
     includeInternal: input.includeInternal,
+    includeSuspicious,
     posthogAvailable: input.posthogAvailable,
     summary: [
       { label: "Public visitors", value: publicActors.size, note: "Anonymous public actors, not people or households.", confidence: "directional" },
@@ -484,6 +493,7 @@ export function buildFounderBehaviourV3(input: {
       { label: "Virtual traffic classification", detail: "$virt_traffic_type currently labels genuine product activity as Automation and is not used as the human filter.", confidence: "high" },
       { label: "Identity stitching", detail: "Anonymous-to-authenticated relationships are directional unless PostHog has merged the actor through $identify.", confidence: "directional" },
       { label: "Internal/test traffic", detail: input.includeInternal ? "Internal/test authenticated activity is included." : "Known internal/test authenticated IDs are excluded; anonymous internal browsing cannot be identified safely.", confidence: "directional" },
+      { label: "Suspicious/unknown accounts", detail: includeSuspicious ? "Accounts flagged for review remain included; they are not assumed to be fake or internal." : "Accounts explicitly flagged for review are excluded from this comparison without deleting their data.", confidence: "high" },
       { label: "Camera source", detail: "Camera/library/file values describe the picker selected by the user; browsers may still offer another source and no image content or filename is collected.", confidence: "directional" },
       { label: "Missing activation milestones", detail: "Profile completion, learner creation and planning setup lack timestamped analytics events and are not invented.", confidence: "insufficient" },
       { label: "Sample policy", detail: `Cohort rates require at least ${MIN_SAMPLE} actors; smaller samples display insufficient data.`, confidence: "high" },

@@ -1,10 +1,15 @@
 import { buildFounderBehaviourV3, type FounderBehaviourV3 } from "./founderBehaviourV3";
-import { isFounderExcludedAccount, loadFounderCustomers } from "./founderCustomers";
+import {
+  isFounderExcludedAccount,
+  isFounderSuspiciousAccount,
+  loadFounderCustomers,
+} from "./founderCustomers";
 import { loadFounderPostHogSnapshot } from "./founderPosthog";
 
 export type FounderBehaviourV3Options = {
   rangeDays?: 7 | 30 | 90;
   includeInternal?: boolean;
+  includeSuspicious?: boolean;
 };
 
 export async function loadFounderBehaviourV3(
@@ -13,6 +18,7 @@ export async function loadFounderBehaviourV3(
 ): Promise<FounderBehaviourV3> {
   const rangeDays = options.rangeDays ?? 30;
   const includeInternal = options.includeInternal ?? false;
+  const includeSuspicious = options.includeSuspicious ?? true;
   const [posthog, directory] = await Promise.all([
     loadFounderPostHogSnapshot(rangeDays),
     loadFounderCustomers(now, { includeInternal: true }),
@@ -22,12 +28,19 @@ export async function loadFounderBehaviourV3(
       .filter((customer) => isFounderExcludedAccount(customer.email))
       .map((customer) => customer.userId),
   );
+  const suspiciousUserIds = new Set(
+    directory.customers
+      .filter((customer) => isFounderSuspiciousAccount(customer.email))
+      .map((customer) => customer.userId),
+  );
 
   return buildFounderBehaviourV3({
     events: posthog.events,
     rangeDays,
     includeInternal,
+    includeSuspicious,
     internalUserIds,
+    suspiciousUserIds,
     posthogAvailable: posthog.available,
     now,
   });

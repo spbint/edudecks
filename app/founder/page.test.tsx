@@ -93,6 +93,7 @@ const v3Data = {
   generatedAt: "2026-08-21T08:00:00.000Z",
   rangeDays: 30 as const,
   includeInternal: false,
+  includeSuspicious: true,
   posthogAvailable: true,
   summary: [{ label: "Product users", value: 3, note: "Anonymous aggregate.", confidence: "high" as const }],
   signals: [],
@@ -153,6 +154,20 @@ describe("Founder page", () => {
     expect(screen.getByRole("heading", { name: "Aggregate feature usage" })).toBeTruthy();
     expect(screen.getByText("5 actors · 12 events")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/family@example\.com|customer-1|founder-user/);
+  });
+
+  it("passes range and both population filters through to the server loader", async () => {
+    render(await FounderPage({
+      searchParams: Promise.resolve({ range: "90", internal: "include", suspicious: "exclude" }),
+    }));
+
+    expect(loadFounderBehaviourV3Mock).toHaveBeenCalledWith({
+      rangeDays: 90,
+      includeInternal: true,
+      includeSuspicious: false,
+    });
+    expect(screen.getByText("Include suspicious/unknown")).toBeTruthy();
+    expect(screen.getByText("Exclude suspicious/unknown")).toBeTruthy();
   });
 
   it("does not catch an unauthenticated redirect or ordinary-user denial", async () => {
