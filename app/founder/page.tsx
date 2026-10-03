@@ -13,16 +13,17 @@ export const metadata: Metadata = {
 export default async function FounderPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ range?: string; internal?: string }>;
+  searchParams?: Promise<{ range?: string; internal?: string; suspicious?: string }>;
 } = {}) {
   await requireFounderAccess();
-  const params: { range?: string; internal?: string } = await (
+  const params: { range?: string; internal?: string; suspicious?: string } = await (
     searchParams ?? Promise.resolve({})
   );
   const rangeDays = params.range === "7" ? 7 : params.range === "90" ? 90 : 30;
   const data = await loadFounderBehaviourV3({
     rangeDays,
     includeInternal: params.internal === "include",
+    includeSuspicious: params.suspicious !== "exclude",
   });
   return <FounderBehaviourIntelligenceV3 data={data} />;
 }
