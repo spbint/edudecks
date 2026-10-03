@@ -29,7 +29,7 @@ describe("AssessmentItemReviewLab", () => {
     fireEvent.change(screen.getByLabelText("Pool"), {
       target: { value: "boundary" },
     });
-    expect(screen.getByText("57 items in this view")).toBeTruthy();
+    expect(screen.getByText("69 items in this view")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Search items"), {
       target: { value: "myl-boundary-npv-p05-b-v1" },
