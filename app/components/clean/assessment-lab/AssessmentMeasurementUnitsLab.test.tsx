@@ -63,13 +63,26 @@ describe("AssessmentMeasurementUnitsLab", () => {
     );
 
     expect(
-      screen.getByText("Candidate measurement neighbourhood: P3–P6"),
+      screen.getByRole("button", {
+        name: "Understanding units of measurement · P4 boundary probes",
+      }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Understanding units of measurement · P4 boundary probes",
+      }),
+    );
+
+    expect(
+      screen.getByText("Candidate measurement neighbourhood: P3–P4"),
     ).toBeTruthy();
     expect(
-      screen.getByText(/requires actual use of informal measurement units/i),
+      screen.getByText(/adaptive route has narrowed to adjacent progression levels/i),
     ).toBeTruthy();
     expect(
       screen.getByText(/high-confidence lower-level placement requires observed use/i),
     ).toBeTruthy();
+    expect(screen.getByText("Measurement routing trace")).toBeTruthy();
   });
 });
