@@ -4,6 +4,7 @@ export type AnchorItemStatus =
   | "new-blueprint"
   | "implemented-draft"
   | "implemented-draft-accessibility-review"
+  | "implemented-draft-asset-review"
   | "new-hybrid-blueprint"
   | "new-blueprint-currency-review";
 
@@ -358,8 +359,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         evidenceMode: "asset-review",
         sourcePages: [12],
         slots: [
-          slot("MYL-ANCHOR-MON-P02-A", "A", "Order Australian coins or notes by face value.", "ordering", "versioned Australian currency tokens", "new-blueprint-currency-review"),
-          slot("MYL-ANCHOR-MON-P02-B", "B", "Count the number of pieces sharing the same denomination.", "numeric_entry", "versioned Australian currency tokens", "new-blueprint-currency-review"),
+          slot("MYL-ANCHOR-MON-P02-A", "A", "Order Australian money denominations by face value.", "single_choice", "schematic denomination tokens", "implemented-draft-asset-review"),
+          slot("MYL-ANCHOR-MON-P02-B", "B", "Count the number of money tokens sharing the same denomination.", "numeric_entry", "schematic denomination tokens", "implemented-draft-asset-review"),
         ],
       },
       {
