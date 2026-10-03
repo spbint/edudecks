@@ -7,12 +7,12 @@ import {
 
 describe("cross-strand assessment placement item registry", () => {
   it("contains the Number first slice plus Measurement units proof with unique IDs", () => {
-    expect(ASSESSMENT_PLACEMENT_ITEM_REGISTRY).toHaveLength(180);
+    expect(ASSESSMENT_PLACEMENT_ITEM_REGISTRY).toHaveLength(203);
 
     const ids = ASSESSMENT_PLACEMENT_ITEM_REGISTRY.map(
       (entry) => entry.item.id,
     );
-    expect(new Set(ids).size).toBe(180);
+    expect(new Set(ids).size).toBe(203);
   });
 
   it("tracks both implemented lanes", () => {
@@ -26,6 +26,9 @@ describe("cross-strand assessment placement item registry", () => {
     expect(
       inventory.filter((item) => item.lane === "chance"),
     ).toHaveLength(15);
+    expect(
+      inventory.filter((item) => item.lane === "fractions"),
+    ).toHaveLength(23);
   });
 
   it("finds the trusted graduated-scale measurement item", () => {
@@ -55,6 +58,21 @@ describe("cross-strand assessment placement item registry", () => {
         version: 1,
         response: {
           type: "short-answer",
+        },
+      },
+    });
+  });
+
+  it("finds the fractional number-line anchor in the shared registry", () => {
+    expect(
+      getAssessmentPlacementItemById("myl-anchor-fra-p06-b-v1"),
+    ).toMatchObject({
+      lane: "fractions",
+      poolKind: "anchor",
+      poolKey: "interpreting-fractions-p6",
+      item: {
+        stimulus: {
+          type: "number-line",
         },
       },
     });
