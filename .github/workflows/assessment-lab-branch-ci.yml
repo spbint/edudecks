@@ -63,6 +63,7 @@ jobs:
           lib/clean/assessments/placement/numberOperationsRouteCoverage.test.ts
           lib/clean/assessments/placement/numberOperationsBaselineBudget.test.ts
           lib/clean/assessments/visualTemplates/CurrencyTokenVisual.test.tsx
+          lib/clean/assessments/visualTemplates/GraduatedScaleVisual.test.tsx
 
 
       - name: Build application
