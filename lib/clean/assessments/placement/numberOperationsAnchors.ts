@@ -8,7 +8,7 @@ export type AnchorItemStatus =
   | "new-blueprint-currency-review";
 
 export type AnchorItemSlot = {
-  slot: "A" | "B";
+  slot: "A" | "B" | "C";
   blueprintId: string;
   construct: string;
   responseType: string;
@@ -23,6 +23,7 @@ export type NumberOperationsAnchor = {
   role: "lower" | "initial" | "upper";
   sourcePages: number[];
   slots: [AnchorItemSlot, AnchorItemSlot];
+  reserveSlot?: AnchorItemSlot;
 };
 
 export type NumberOperationsAnchorSet = {
@@ -41,7 +42,7 @@ export type NumberOperationsAnchorSet = {
 
 const slot = (
   blueprintId: string,
-  slotName: "A" | "B",
+  slotName: "A" | "B" | "C",
   construct: string,
   responseType: string,
   trustedVisual: string,
@@ -100,6 +101,14 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "place-value-ops-rounding-gap-006",
           ),
         ],
+        reserveSlot: slot(
+          "MYL-ANCHOR-NPV-P06-C",
+          "C",
+          "Represent tenths using decimal notation.",
+          "numeric_entry",
+          "text-first / decimal place-value support optional",
+          "implemented-draft",
+        ),
       },
       {
         progressionId: "MYL-MATH-PROG-NSA-NPV-P09",
@@ -155,6 +164,14 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
           slot("MYL-ANCHOR-CNT-P05-A", "A", "Find the next or previous number from an arbitrary point within 1–100.", "numeric_entry", "text-first", "implemented-draft"),
           slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 from a deterministic visual collection.", "numeric_entry", "array renderer for v0; varied arrangements required in later boundary pool", "implemented-draft-accessibility-review"),
         ],
+        reserveSlot: slot(
+          "MYL-ANCHOR-CNT-P05-C",
+          "C",
+          "Use zero to denote that no objects are present.",
+          "single_choice",
+          "text-first",
+          "implemented-draft",
+        ),
       },
       {
         progressionId: "MYL-MATH-PROG-NSA-CNT-P07",
@@ -194,6 +211,14 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
           slot("MYL-ANCHOR-ADD-P06-A", "A", "Use a flexible strategy such as bridging to 10 within 20.", "single_choice", "text-first / part-part-whole optional", "implemented-draft"),
           slot("MYL-ANCHOR-ADD-P06-B", "B", "Use part-part-whole knowledge to solve a missing-addend problem.", "numeric_entry", "part-part-whole model optional", "implemented-draft"),
         ],
+        reserveSlot: slot(
+          "MYL-ANCHOR-ADD-P06-C",
+          "C",
+          "Interpret subtraction as a difference between two numbers.",
+          "single_choice",
+          "number line optional",
+          "implemented-draft",
+        ),
       },
       {
         progressionId: "MYL-MATH-PROG-NSA-ADD-P09",
@@ -257,6 +282,14 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "multiplication-division-fluency-sharing-004",
           ),
         ],
+        reserveSlot: slot(
+          "MYL-ANCHOR-MUL-P06-C",
+          "C",
+          "Interpret a remainder after grouping by a single-digit quantity.",
+          "single_choice",
+          "equal-groups context / counters optional",
+          "implemented-draft",
+        ),
       },
       {
         progressionId: "MYL-MATH-PROG-NSA-MUL-P09",
@@ -320,6 +353,14 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
           ),
           slot("MYL-ANCHOR-MON-P05-B", "B", "Determine the total value of a larger mixed collection of notes and coins.", "numeric_entry", "versioned Australian currency tokens", "new-blueprint-currency-review"),
         ],
+        reserveSlot: slot(
+          "MYL-ANCHOR-MON-P05-C",
+          "C",
+          "Determine the value of a mixed money collection from stated denominations.",
+          "numeric_entry",
+          "text-first money list",
+          "implemented-draft",
+        ),
       },
       {
         progressionId: "MYL-MATH-PROG-NSA-MON-P08",
