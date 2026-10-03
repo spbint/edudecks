@@ -3,6 +3,7 @@ import {
   ADDITIVE_P6_ANCHOR_ITEMS,
   ADDITIVE_P9_ANCHOR_ITEMS,
   COUNTING_P5_ANCHOR_ITEMS,
+  COUNTING_P7_ANCHOR_ITEMS,
   MULTIPLICATIVE_P6_ANCHOR_ITEMS,
   MULTIPLICATIVE_P9_ANCHOR_ITEMS,
   NPV_P3_ANCHOR_ITEMS,
@@ -19,6 +20,7 @@ describe("Number & Operations executable P0 anchor items", () => {
       "number-place-value-p6",
       "number-place-value-p9",
       "counting-processes-p5",
+      "counting-processes-p7",
       "additive-strategies-p6",
       "additive-strategies-p9",
       "multiplicative-strategies-p6",
@@ -26,7 +28,7 @@ describe("Number & Operations executable P0 anchor items", () => {
     ]);
 
     const all = Object.values(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).flat();
-    expect(all).toHaveLength(16);
+    expect(all).toHaveLength(18);
     expect(all.every((item) => item.status === "draft")).toBe(true);
   });
 
@@ -76,6 +78,12 @@ describe("Number & Operations executable P0 anchor items", () => {
     expect(collection.analytics?.tags).toContain(
       "visual-counting-separate-accessible-form-required",
     );
+  });
+
+  it("implements the direct Counting P7 upper anchor cluster", () => {
+    expect(COUNTING_P7_ANCHOR_ITEMS).toHaveLength(2);
+    expect(COUNTING_P7_ANCHOR_ITEMS[0].response.correctValue).toBe("28");
+    expect(COUNTING_P7_ANCHOR_ITEMS[1].response.correctValue).toBe("47");
   });
 
   it("implements the direct Additive and Multiplicative anchor clusters without the hybrid lower strategy anchors", () => {
