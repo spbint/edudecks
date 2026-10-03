@@ -1,0 +1,43 @@
+name: Assessment Lab Branch CI
+
+on:
+  push:
+    branches:
+      - feat/assessment-anchor-routing-lab
+
+jobs:
+  validate-assessment-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck application
+        run: npm run typecheck
+
+      - name: Typecheck tests
+        run: npm run typecheck:tests
+
+      - name: Run focused assessment tests
+        run: >
+          npx vitest run
+          app/components/clean/assessment-lab/AssessmentPlayerV1.test.ts
+          app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner.test.tsx
+          app/components/clean/assessment-lab/AssessmentPlacementResultCard.test.tsx
+          lib/clean/assessments/mylearnaAssessScoring.test.ts
+          lib/clean/assessments/placement/numberOperationsAnchors.test.ts
+          lib/clean/assessments/placement/numberOperationsP0Audit.test.ts
+          lib/clean/assessments/placement/numberOperationsP0Items.test.ts
+          lib/clean/assessments/placement/numberOperationsPlacementResult.test.ts
+          lib/clean/assessments/placement/numberOperationsRoutingFixtures.test.ts
+          lib/clean/assessments/visualTemplates/CurrencyTokenVisual.test.tsx
