@@ -5,7 +5,10 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import { MYLEARNA_ASSESS_DEMO_ITEMS } from "@/lib/clean/assessments/mylearnaAssessDemoItems";
-import { COUNTING_P5_ANCHOR_ITEMS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
+import {
+  COUNTING_P5_ANCHOR_ITEMS,
+  NPV_P8_BOUNDARY_ITEMS,
+} from "@/lib/clean/assessments/placement/numberOperationsP0Items";
 
 afterEach(() => cleanup());
 
@@ -115,6 +118,34 @@ describe("AssessmentPlayerV1", () => {
     expect(screen.getByText(item.feedback.correct)).toBeTruthy();
   });
 
+
+  it("supports direct ordering with tap and keyboard move controls", () => {
+    render(
+      React.createElement(AssessmentPlayerV1, {
+        title: "Ordering proof",
+        items: [NPV_P8_BOUNDARY_ITEMS[0]],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+
+    expect(screen.getByRole("group", { name: "Order these values" })).toBeTruthy();
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByText(/drag-and-drop is not required/i)).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move 1.375 up" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move 1.375 up" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move 1.4 up" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+
+    expect(screen.getByText("Correct.")).toBeTruthy();
+  });
 
   it("hides correctness and percentage feedback in placement mode", () => {
     const onComplete = vi.fn();
