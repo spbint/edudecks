@@ -2,6 +2,10 @@ import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
 } from "./numberOperationsPlacementResult";
+import {
+  getNumberOperationsPracticeTarget,
+  type NumberOperationsPracticeTarget,
+} from "./numberOperationsPracticeTargets";
 
 export type NumberOperationsRecommendationKind =
   | "practice-next-level"
@@ -17,7 +21,7 @@ export type NumberOperationsRecommendation = {
   title: string;
   rationale: string;
   recheckRecommended: boolean;
-  resourceLinkStatus: "not-yet-mapped";
+  practiceTarget: NumberOperationsPracticeTarget;
 };
 
 export function buildNumberOperationsRecommendation(
@@ -38,7 +42,10 @@ export function buildNumberOperationsRecommendation(
       rationale:
         "The electronic assessment located a useful learning neighbourhood, but this construct needs observed, practical or otherwise stronger evidence before MyLearna should treat the placement as high-confidence.",
       recheckRecommended: true,
-      resourceLinkStatus: "not-yet-mapped",
+      practiceTarget: getNumberOperationsPracticeTarget({
+        subElementKey: result.subElementKey,
+        targetP,
+      }),
     };
   }
 
@@ -53,7 +60,10 @@ export function buildNumberOperationsRecommendation(
         rationale:
           "The current evidence reaches the top of this Numeracy progression. The next learning decision should use the full Australian Curriculum Mathematics layer or another higher-resolution source rather than inventing a new P level.",
         recheckRecommended: false,
-        resourceLinkStatus: "not-yet-mapped",
+        practiceTarget: getNumberOperationsPracticeTarget({
+          subElementKey: result.subElementKey,
+          targetP: result.endpoint.pLevel,
+        }),
       };
     }
 
@@ -66,7 +76,10 @@ export function buildNumberOperationsRecommendation(
       rationale:
         "The current evidence sits at or below the lower end of this progression. Use practical, scaffolded learning and collect additional evidence before narrowing the placement.",
       recheckRecommended: true,
-      resourceLinkStatus: "not-yet-mapped",
+      practiceTarget: getNumberOperationsPracticeTarget({
+        subElementKey: result.subElementKey,
+        targetP: result.endpoint.pLevel,
+      }),
     };
   }
 
@@ -84,7 +97,10 @@ export function buildNumberOperationsRecommendation(
         ? `Evidence currently supports learning around P${result.lowerP}–P${result.upperP}. Target practice should concentrate on the P${result.upperP} construct, then re-check with fresh items rather than repeating the same questions.`
         : "Use the current evidence band to select the next learning target, then re-check with fresh evidence.",
     recheckRecommended: true,
-    resourceLinkStatus: "not-yet-mapped",
+    practiceTarget: getNumberOperationsPracticeTarget({
+      subElementKey: result.subElementKey,
+      targetP,
+    }),
   };
 }
 
