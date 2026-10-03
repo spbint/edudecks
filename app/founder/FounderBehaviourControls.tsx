@@ -19,7 +19,7 @@ function FilterLink({
   children: React.ReactNode;
   onNavigate: () => void;
 }) {
-  return <Link className={active ? styles.controlActive : styles.control} href={href} onClick={onNavigate}>{children}</Link>;
+  return <Link className={active ? styles.controlActive : styles.control} href={href} onClick={active ? undefined : onNavigate}>{children}</Link>;
 }
 
 export default function FounderBehaviourControls({
