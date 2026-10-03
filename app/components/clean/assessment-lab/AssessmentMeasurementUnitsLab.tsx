@@ -2,11 +2,17 @@
 
 import React, { useCallback, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
+import AssessmentPlacementResultCard from "@/app/components/clean/assessment-lab/AssessmentPlacementResultCard";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import {
   MEASUREMENT_UNITS_ANCHOR_SET,
   getMeasurementUnitsEvidenceMode,
 } from "@/lib/clean/assessments/placement/measurementUnitsAnchors";
+import {
+  buildMeasurementUnitsCandidateBandResult,
+  buildMeasurementUnitsEndpointResult,
+} from "@/lib/clean/assessments/placement/measurementUnitsPlacementResult";
+import type { AssessmentPlacementResultView } from "@/lib/clean/assessments/placement/assessmentPlacementResult";
 import {
   MEASUREMENT_UNITS_BOUNDARY_CLUSTERS,
   MEASUREMENT_UNITS_EXECUTABLE_ANCHORS,
@@ -41,6 +47,7 @@ type Stage =
       headline: string;
       detail: string;
       evidenceWarning?: string;
+      placementResult?: AssessmentPlacementResultView;
     };
 
 const card: React.CSSProperties = {
@@ -134,6 +141,10 @@ export default function AssessmentMeasurementUnitsLab() {
             ? "The adaptive route has narrowed to adjacent progression levels. This is an evidence band, not an averaged or psychometric level."
             : "The route has found a measurement neighbourhood, but a required boundary pool is not yet executable. No narrower result is inferred.",
         evidenceWarning: practicalWarning(bracket.lowerP, bracket.upperP),
+        placementResult: buildMeasurementUnitsCandidateBandResult({
+          lowerP: bracket.lowerP,
+          upperP: bracket.upperP,
+        }),
       });
     },
     [addTrace],
@@ -161,6 +172,10 @@ export default function AssessmentMeasurementUnitsLab() {
             "The adaptive route has reached the source progression endpoint. MyLearna does not invent a level outside the QCAA progression.",
           evidenceWarning:
             direction === "down" ? practicalWarning(fromP) : undefined,
+          placementResult: buildMeasurementUnitsEndpointResult({
+            relation: direction === "up" ? "at-least" : "below-or-around",
+            pLevel: fromP,
+          }),
         });
         return;
       }
@@ -296,6 +311,10 @@ export default function AssessmentMeasurementUnitsLab() {
             result.relation === "below-or-around"
               ? practicalWarning(result.pLevel)
               : undefined,
+          placementResult: buildMeasurementUnitsEndpointResult({
+            relation: result.relation,
+            pLevel: result.pLevel,
+          }),
         });
         return;
       }
@@ -478,13 +497,19 @@ export default function AssessmentMeasurementUnitsLab() {
         </section>
 
         {stage.kind === "result" ? (
-          <section style={card} role="status">
-            <strong style={{ color: "#17204B", fontSize: 20 }}>
-              {stage.headline}
-            </strong>
-            <span style={{ color: "#5B6478", lineHeight: 1.6 }}>
-              {stage.detail}
-            </span>
+          <section style={{ display: "grid", gap: 14 }}>
+            {stage.placementResult ? (
+              <AssessmentPlacementResultCard result={stage.placementResult} />
+            ) : (
+              <section style={card} role="status">
+                <strong style={{ color: "#17204B", fontSize: 20 }}>
+                  {stage.headline}
+                </strong>
+                <span style={{ color: "#5B6478", lineHeight: 1.6 }}>
+                  {stage.detail}
+                </span>
+              </section>
+            )}
             {stage.evidenceWarning ? (
               <div
                 style={{
