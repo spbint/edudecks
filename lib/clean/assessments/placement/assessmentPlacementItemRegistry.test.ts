@@ -7,12 +7,12 @@ import {
 
 describe("cross-strand assessment placement item registry", () => {
   it("contains the Number first slice plus Measurement units proof with unique IDs", () => {
-    expect(ASSESSMENT_PLACEMENT_ITEM_REGISTRY).toHaveLength(165);
+    expect(ASSESSMENT_PLACEMENT_ITEM_REGISTRY).toHaveLength(180);
 
     const ids = ASSESSMENT_PLACEMENT_ITEM_REGISTRY.map(
       (entry) => entry.item.id,
     );
-    expect(new Set(ids).size).toBe(165);
+    expect(new Set(ids).size).toBe(180);
   });
 
   it("tracks both implemented lanes", () => {
@@ -23,6 +23,9 @@ describe("cross-strand assessment placement item registry", () => {
     expect(
       inventory.filter((item) => item.lane === "measurement-units"),
     ).toHaveLength(25);
+    expect(
+      inventory.filter((item) => item.lane === "chance"),
+    ).toHaveLength(15);
   });
 
   it("finds the trusted graduated-scale measurement item", () => {
@@ -36,6 +39,22 @@ describe("cross-strand assessment placement item registry", () => {
         version: 1,
         stimulus: {
           type: "graduated-scale",
+        },
+      },
+    });
+  });
+
+  it("finds the upper Chance conditional-probability item", () => {
+    expect(
+      getAssessmentPlacementItemById("myl-anchor-cha-p06-a-v1"),
+    ).toMatchObject({
+      lane: "chance",
+      poolKind: "anchor",
+      poolKey: "understanding-chance-p6",
+      item: {
+        version: 1,
+        response: {
+          type: "short-answer",
         },
       },
     });
