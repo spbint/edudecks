@@ -151,7 +151,7 @@ export default function AssessmentNumeracySpineLab() {
         <section style={{ ...card, background: "#FFFDF5" }}>
           <strong style={{ color: "#92400E" }}>Expansion rule</strong>
           <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
-            Do not mass-author the remaining seven lanes from their level labels alone. For each
+            Do not mass-author the remaining six lanes from their level labels alone. For each
             sub-element, first audit the observable source indicators, classify direct versus
             observed/practical evidence, choose anchor levels, define trusted visual requirements,
             then author the smallest routing bank that can prove the engine.
