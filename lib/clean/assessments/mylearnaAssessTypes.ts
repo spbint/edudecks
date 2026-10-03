@@ -14,6 +14,7 @@ export type MyLearnaAssessmentTemplate =
   | "fraction-bar-choice"
   | "shape-set-choice"
   | "multiple-choice"
+  | "ordering"
   | "short-answer";
 
 export type CounterSetStimulus = {
@@ -141,7 +142,7 @@ export type MyLearnaAssessmentItem = {
   prompt: string;
   stimulus: MyLearnaAssessmentStimulus;
   response: {
-    type: "single-choice" | "multiple-choice" | "short-answer";
+    type: "single-choice" | "multiple-choice" | "ordering" | "short-answer";
     options?: Array<{
       id: string;
       label?: string;
