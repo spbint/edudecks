@@ -28,16 +28,16 @@ describe("complete numeracy progression registry", () => {
     expect(getNumeracyProgressionSubElement("interpreting-representing-data")?.maxP).toBe(8);
   });
 
-  it("marks the five Number & Operations lanes plus one Measurement cross-strand proof implemented", () => {
+  it("marks the five Number & Operations lanes plus Measurement and Chance cross-strand proofs implemented", () => {
     const summary = getNumeracyImplementationSummary();
 
     expect(summary).toMatchObject({
       elementCount: 3,
       subElementCount: 14,
-      implementedCount: 6,
+      implementedCount: 7,
       firstSliceCount: 5,
-      crossStrandProofCount: 1,
-      blueprintNextCount: 8,
+      crossStrandProofCount: 2,
+      blueprintNextCount: 7,
     });
     expect(summary.implemented.map((item) => item.key)).toEqual([
       "number-place-value",
@@ -46,9 +46,11 @@ describe("complete numeracy progression registry", () => {
       "multiplicative-strategies",
       "understanding-money",
       "understanding-units-measurement",
+      "understanding-chance",
     ]);
     expect(summary.crossStrandProof.map((item) => item.key)).toEqual([
       "understanding-units-measurement",
+      "understanding-chance",
     ]);
   });
 
