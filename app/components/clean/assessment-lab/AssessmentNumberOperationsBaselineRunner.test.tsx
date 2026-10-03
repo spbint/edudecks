@@ -64,6 +64,11 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
 
     expect(screen.getByText("A profile, not one averaged level")).toBeTruthy();
     expect(screen.getByText(/5 of 5 sub-elements/i)).toBeTruthy();
-    expect(screen.getAllByText("P5–P6")).toHaveLength(5);
+    expect(screen.getAllByText("P5–P6")).toHaveLength(10);
+    expect(screen.getByText("Assessment evidence preview")).toBeTruthy();
+    expect(screen.getByText("Not saved yet")).toBeTruthy();
+    expect(
+      screen.getByText(/can become Portfolio and report evidence after explicit parent confirmation/i),
+    ).toBeTruthy();
   });
 });
