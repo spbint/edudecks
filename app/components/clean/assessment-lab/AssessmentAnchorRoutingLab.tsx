@@ -10,6 +10,7 @@ import {
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
   bracketFromBranchRoute,
+  getAnchorEvidenceMode,
   nextBoundaryTarget,
   nextSearchTarget,
   resolveInitialAnchorWithReserve,
@@ -103,9 +104,25 @@ function AnchorCard({
             P{anchor.pLevel}
           </h3>
         </div>
-        <span style={{ color: "#64748B", fontSize: 12 }}>
-          Source pages {anchor.sourcePages.join(", ")}
-        </span>
+        <div style={{ display: "grid", gap: 3, justifyItems: "end" }}>
+          <span style={{ color: "#64748B", fontSize: 12 }}>
+            Source pages {anchor.sourcePages.join(", ")}
+          </span>
+          <span
+            style={{
+              color: anchor.evidenceMode === "direct" ? "#166534" : "#92400E",
+              fontSize: 11,
+              fontWeight: 900,
+              textTransform: "uppercase",
+            }}
+          >
+            {anchor.evidenceMode === "direct"
+              ? "Direct digital evidence"
+              : anchor.evidenceMode === "hybrid-observed"
+                ? "Hybrid · observation needed for high confidence"
+                : "Asset review required"}
+          </span>
+        </div>
       </div>
       {anchor.slots.map((item) => (
         <div
@@ -187,6 +204,13 @@ export default function AssessmentAnchorRoutingLab() {
   const initialRoute = routeInitialAnchor(anchorSet, initial);
   const resolvedInitialRoute = resolveInitialAnchorWithReserve(anchorSet, initial, reserve);
   const branchRoute = routeBranchAnchor(anchorSet, resolvedInitialRoute, branch);
+  const routedTargetP =
+    resolvedInitialRoute.kind === "up" || resolvedInitialRoute.kind === "down"
+      ? resolvedInitialRoute.targetP
+      : null;
+  const routedEvidenceMode = routedTargetP
+    ? getAnchorEvidenceMode(anchorSet, routedTargetP)
+    : null;
   const branchBracket = bracketFromBranchRoute(branchRoute);
   const nextBoundaryP = branchBracket ? nextBoundaryTarget(branchBracket) : null;
   const nextSearchP = nextSearchTarget(anchorSet, branchRoute);
@@ -310,6 +334,15 @@ export default function AssessmentAnchorRoutingLab() {
           <div role="status" style={{ borderLeft: "4px solid #6C4DF6", padding: "10px 14px", background: "#F3F0FF", color: "#17204B" }}>
             <strong>{describeInitialRoute(resolvedInitialRoute)}</strong>
           </div>
+          {routedEvidenceMode && routedEvidenceMode !== "direct" ? (
+            <div style={{ border: "1px solid #F5D08A", borderRadius: 12, padding: 12, background: "#FFFDF5", color: "#6B4F1D" }}>
+              <strong>
+                {routedEvidenceMode === "hybrid-observed"
+                  ? "This target needs observed evidence for a high-confidence exact placement."
+                  : "This target is blocked from production placement until its trusted asset set is approved."}
+              </strong>
+            </div>
+          ) : null}
           {initialRoute.kind === "same-level-extra" ? (
             <div style={{ display: "grid", gap: 10 }}>
               <ResultPicker label="Reserve item C" value={reserve} onChange={setReserve} />
