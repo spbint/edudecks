@@ -18,7 +18,7 @@ describe("AssessmentItemReviewLab", () => {
     render(React.createElement(AssessmentItemReviewLab));
 
     expect(screen.getByText("Trusted item & visual review")).toBeTruthy();
-    expect(screen.getByText("120 items in this view")).toBeTruthy();
+    expect(screen.getByText("140 items in this view")).toBeTruthy();
     expect(screen.getByLabelText("phone assessment preview")).toBeTruthy();
     expect(screen.getByTestId("mock-player").textContent).toContain("myl-");
   });
@@ -37,6 +37,19 @@ describe("AssessmentItemReviewLab", () => {
     expect(screen.getByText("1 item in this view")).toBeTruthy();
     expect(screen.getByTestId("mock-player").textContent).toBe(
       "myl-boundary-npv-p05-b-v1",
+    );
+  });
+
+  it("can isolate the fresh confirmation bank", () => {
+    render(React.createElement(AssessmentItemReviewLab));
+
+    fireEvent.change(screen.getByLabelText("Pool"), {
+      target: { value: "confirmation" },
+    });
+
+    expect(screen.getByText("20 items in this view")).toBeTruthy();
+    expect(screen.getByTestId("mock-player").textContent).toContain(
+      "myl-confirm-npv-",
     );
   });
 
