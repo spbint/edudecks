@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
   MyLearnaAssessmentItem,
   MyLearnaAssessmentResponse,
@@ -14,6 +14,8 @@ import { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates";
 type AssessmentPlayerV1Props = {
   title: string;
   items: MyLearnaAssessmentItem[];
+  mode?: "practice" | "placement";
+  onComplete?: (responses: MyLearnaAssessmentResponse[]) => void;
 };
 
 const shellStyle: React.CSSProperties = {
@@ -49,7 +51,12 @@ function AssessmentItemRenderer({ item }: { item: MyLearnaAssessmentItem }) {
   return <AssessmentStimulus stimulus={item.stimulus} />;
 }
 
-export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1Props) {
+export default function AssessmentPlayerV1({
+  title,
+  items,
+  mode = "practice",
+  onComplete,
+}: AssessmentPlayerV1Props) {
   const [started, setStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
@@ -66,6 +73,10 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
     currentIndex >= items.length - 1 &&
     items.length > 0;
 
+  useEffect(() => {
+    if (complete) onComplete?.(responses);
+  }, [complete, onComplete, responses]);
+
   if (!items.length) {
     return <section style={shellStyle}>No assessment items available.</section>;
   }
@@ -81,7 +92,9 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
             {title}
           </h2>
           <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
-            Internal proof of concept using structured items and deterministic visuals.
+            {mode === "placement"
+              ? "Placement-check mode records responses without showing correctness during the check."
+              : "Internal proof of concept using structured items and deterministic visuals."}
           </p>
         </div>
         <button
@@ -99,6 +112,22 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
   }
 
   if (complete) {
+    if (mode === "placement") {
+      return (
+        <section style={shellStyle}>
+          <span style={{ color: "#2F9D68", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+            Check complete
+          </span>
+          <h2 style={{ margin: 0, color: "#17204B", fontSize: "clamp(24px, 4vw, 34px)" }}>
+            Responses recorded for routing.
+          </h2>
+          <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
+            No percentage or correctness feedback is shown in placement mode.
+          </p>
+        </section>
+      );
+    }
+
     return (
       <section style={shellStyle}>
         <span style={{ color: "#2F9D68", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
@@ -242,25 +271,40 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
       )}
 
       {submittedResponse ? (
-        <div
-          role="status"
-          style={{
-            border: submittedResponse.correct ? "1px solid #bbf7d0" : "1px solid #fed7aa",
-            borderRadius: 18,
-            background: submittedResponse.correct ? "#f0fdf4" : "#fff7ed",
-            padding: 16,
-            display: "grid",
-            gap: 6,
-          }}
-        >
-          <strong style={{ color: submittedResponse.correct ? "#166534" : "#c2410c" }}>
-            {submittedResponse.correct ? currentItem.feedback.correct : currentItem.feedback.incorrect}
-          </strong>
-          {!submittedResponse.correct && currentItem.feedback.hint ? (
-            <span style={{ color: "#5B6478" }}>{currentItem.feedback.hint}</span>
-          ) : null}
-          {selectedFeedback ? <span style={{ color: "#5B6478" }}>{selectedFeedback}</span> : null}
-        </div>
+        mode === "placement" ? (
+          <div
+            role="status"
+            style={{
+              border: "1px solid #D9D0FF",
+              borderRadius: 18,
+              background: "#F8F5FF",
+              padding: 16,
+              color: "#17204B",
+            }}
+          >
+            <strong>Response recorded.</strong>
+          </div>
+        ) : (
+          <div
+            role="status"
+            style={{
+              border: submittedResponse.correct ? "1px solid #bbf7d0" : "1px solid #fed7aa",
+              borderRadius: 18,
+              background: submittedResponse.correct ? "#f0fdf4" : "#fff7ed",
+              padding: 16,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <strong style={{ color: submittedResponse.correct ? "#166534" : "#c2410c" }}>
+              {submittedResponse.correct ? currentItem.feedback.correct : currentItem.feedback.incorrect}
+            </strong>
+            {!submittedResponse.correct && currentItem.feedback.hint ? (
+              <span style={{ color: "#5B6478" }}>{currentItem.feedback.hint}</span>
+            ) : null}
+            {selectedFeedback ? <span style={{ color: "#5B6478" }}>{selectedFeedback}</span> : null}
+          </div>
+        )
       ) : null}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
