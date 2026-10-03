@@ -51,6 +51,28 @@ function AssessmentItemRenderer({ item }: { item: MyLearnaAssessmentItem }) {
   return <AssessmentStimulus stimulus={item.stimulus} />;
 }
 
+function initialOptionOrder(item: MyLearnaAssessmentItem | null | undefined) {
+  return item?.response.type === "ordering"
+    ? (item.response.options || []).map((option) => option.id)
+    : [];
+}
+
+function moveOrderedOption(
+  current: string[],
+  optionId: string,
+  direction: -1 | 1,
+) {
+  const index = current.indexOf(optionId);
+  if (index < 0) return current;
+  const nextIndex = index + direction;
+  if (nextIndex < 0 || nextIndex >= current.length) return current;
+
+  const next = [...current];
+  [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+  return next;
+}
+
+
 export default function AssessmentPlayerV1({
   title,
   items,
@@ -76,6 +98,13 @@ export default function AssessmentPlayerV1({
   useEffect(() => {
     if (complete) onComplete?.(responses);
   }, [complete, onComplete, responses]);
+
+  useEffect(() => {
+    if (!currentItem) return;
+    setSelectedOptionIds(initialOptionOrder(currentItem));
+    setTextValue("");
+    setSubmittedResponse(null);
+  }, [currentItem?.id]);
 
   if (!items.length) {
     return <section style={shellStyle}>No assessment items available.</section>;
@@ -157,7 +186,7 @@ export default function AssessmentPlayerV1({
             setCurrentIndex(0);
             setResponses([]);
             setSubmittedResponse(null);
-            setSelectedOptionIds([]);
+            setSelectedOptionIds(initialOptionOrder(items[0]));
             setTextValue("");
             itemStartedAt.current = Date.now();
           }}
@@ -176,7 +205,13 @@ export default function AssessmentPlayerV1({
   )?.feedback;
   const isShortAnswer = currentItem.response.type === "short-answer";
   const isMultiSelect = currentItem.response.type === "multiple-choice";
-  const responseReady = isShortAnswer ? Boolean(textValue.trim()) : Boolean(selectedOptionIds.length);
+  const isOrdering = currentItem.response.type === "ordering";
+  const responseReady = isShortAnswer
+    ? Boolean(textValue.trim())
+    : isOrdering
+      ? selectedOptionIds.length > 1 &&
+        selectedOptionIds.length === (currentItem.response.options || []).length
+      : Boolean(selectedOptionIds.length);
 
   return (
     <section style={shellStyle}>
@@ -223,6 +258,87 @@ export default function AssessmentPlayerV1({
             }}
           />
         </label>
+      ) : isOrdering ? (
+        <div
+          role="group"
+          aria-label="Order these values"
+          style={{ display: "grid", gap: 10 }}
+        >
+          <div style={{ color: "#5B6478", fontSize: 14, fontWeight: 800 }}>
+            Put the values in order. Use the move controls; drag-and-drop is not required.
+          </div>
+          {selectedOptionIds.map((optionId, index) => {
+            const option = currentItem.response.options?.find(
+              (candidate) => candidate.id === optionId,
+            );
+            if (!option) return null;
+            const label = option.label || String(option.value ?? "");
+            return (
+              <div
+                key={option.id}
+                style={{
+                  border: "1px solid #E7EAF2",
+                  borderRadius: 14,
+                  background: "#ffffff",
+                  padding: "10px 12px",
+                  display: "grid",
+                  gridTemplateColumns: "34px minmax(0, 1fr) auto",
+                  gap: 10,
+                  alignItems: "center",
+                }}
+              >
+                <strong
+                  aria-label={"Position " + (index + 1)}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 999,
+                    display: "grid",
+                    placeItems: "center",
+                    background: "#F3F0FF",
+                    color: "#5B3BE8",
+                  }}
+                >
+                  {index + 1}
+                </strong>
+                <span style={{ color: "#17204B", fontSize: 18, fontWeight: 850 }}>
+                  {label}
+                </span>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    aria-label={"Move " + label + " up"}
+                    disabled={Boolean(submittedResponse) || index === 0}
+                    onClick={() =>
+                      setSelectedOptionIds((current) =>
+                        moveOrderedOption(current, option.id, -1),
+                      )
+                    }
+                    style={secondaryButtonStyle}
+                  >
+                    Move up
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={"Move " + label + " down"}
+                    disabled={
+                      Boolean(submittedResponse) ||
+                      index === selectedOptionIds.length - 1
+                    }
+                    onClick={() =>
+                      setSelectedOptionIds((current) =>
+                        moveOrderedOption(current, option.id, 1),
+                      )
+                    }
+                    style={secondaryButtonStyle}
+                  >
+                    Move down
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <fieldset style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
           <legend style={{ color: "#5B6478", fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
