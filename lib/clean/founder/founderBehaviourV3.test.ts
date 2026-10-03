@@ -140,6 +140,20 @@ describe("Founder Behaviour Intelligence v3", () => {
     expect(result.paths.map((item) => item.label)).toContain("Capture → Portfolio");
   });
 
+  it("keeps public report consumption separate from authenticated product report usage", () => {
+    const result = build([
+      event("product-user", "daily_plan_viewed", 1),
+      event("public-reader", "public_report_viewed", 1),
+      event("public-downloader", "public_report_downloaded", 1),
+    ]);
+
+    expect(result.summary.find((item) => item.label === "Report users")?.value).toBe(0);
+    expect(result.activation.find((item) => item.label === "First Report")?.value).toBe(0);
+    expect(result.funnel.find((step) => step.label === "Report")?.actors).toBe(0);
+    expect(result.portfolioReports.find((item) => item.label === "Public report viewed")?.value).toBe(1);
+    expect(result.portfolioReports.find((item) => item.label === "Public report downloaded")?.value).toBe(1);
+  });
+
   it("calculates returning actors and first-value milestones", () => {
     const result = build([
       event("prospect", "public_page_viewed", 1),
