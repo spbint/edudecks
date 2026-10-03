@@ -2,17 +2,21 @@ import { createClient, type User } from "@supabase/supabase-js";
 
 const AUTH_PAGE_SIZE = 1000;
 const ROW_PAGE_SIZE = 1000;
-export const FOUNDER_ANALYTICS_INTERNAL_EMAILS = [
-  "sean@mylearna.com",
-  "seanbint@live.com",
-  "sbint@channel.tas.edu.au",
+export const FOUNDER_ANALYTICS_INTERNAL_ACCOUNTS = [
+  { email: "sean@mylearna.com", userId: "dd9b618d-96a9-4c83-bbcb-8fe0ee824ee7" },
+  { email: "seanbint@live.com", userId: "01c1ad61-7c74-4c6d-86a6-e9d31769b761" },
+  { email: "sbint@channel.tas.edu.au", userId: "4ac4d07f-0bc5-4f3d-9c4d-331966d8ada3" },
 ] as const;
-export const FOUNDER_ANALYTICS_SUSPICIOUS_EMAILS = [
-  "nikow54520@prorises.com",
-  "vatoh27112@mapsguy.com",
-  "vegal19298@mediseat.com",
-  "sodimin902@kikaga.com",
+export const FOUNDER_ANALYTICS_SUSPICIOUS_ACCOUNTS = [
+  { email: "nikow54520@prorises.com", userId: "5a36899d-e867-45fd-ac85-b0b23f556c00" },
+  { email: "vatoh27112@mapsguy.com", userId: "2bc5dc3b-bf3f-44a4-a9bd-a4f01bad81e5" },
+  { email: "vegal19298@mediseat.com", userId: "7e9f1ff7-9c42-4597-91a7-0dd47174f229" },
+  { email: "sodimin902@kikaga.com", userId: "b757c2bf-5bb4-4de5-b27c-1bc0df1a9398" },
 ] as const;
+export const FOUNDER_ANALYTICS_INTERNAL_EMAILS = FOUNDER_ANALYTICS_INTERNAL_ACCOUNTS.map((account) => account.email);
+export const FOUNDER_ANALYTICS_INTERNAL_USER_IDS = FOUNDER_ANALYTICS_INTERNAL_ACCOUNTS.map((account) => account.userId);
+export const FOUNDER_ANALYTICS_SUSPICIOUS_EMAILS = FOUNDER_ANALYTICS_SUSPICIOUS_ACCOUNTS.map((account) => account.email);
+export const FOUNDER_ANALYTICS_SUSPICIOUS_USER_IDS = FOUNDER_ANALYTICS_SUSPICIOUS_ACCOUNTS.map((account) => account.userId);
 export const FOUNDER_ANALYTICS_EXCLUDED_EMAIL_DOMAINS = [
   "mailinator.com",
   "codoteam.com",
