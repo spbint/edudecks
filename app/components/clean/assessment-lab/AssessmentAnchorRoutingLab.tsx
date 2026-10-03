@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
-import { COUNTING_P5_ANCHOR_ITEMS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
+import { NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
   routeBranchAnchor,
@@ -150,6 +150,7 @@ export default function AssessmentAnchorRoutingLab() {
   const [selectedKey, setSelectedKey] = useState<NumberOperationsAnchorSet["key"]>(
     NUMBER_OPERATIONS_ANCHOR_SETS[0].key,
   );
+  const [selectedClusterKey, setSelectedClusterKey] = useState<string | null>("number-place-value-p3");
   const [initial, setInitial] = useState<[BinaryAnchorResult, BinaryAnchorResult]>([null, null]);
   const [branch, setBranch] = useState<[BinaryAnchorResult, BinaryAnchorResult]>([null, null]);
 
@@ -157,11 +158,27 @@ export default function AssessmentAnchorRoutingLab() {
     () => NUMBER_OPERATIONS_ANCHOR_SETS.find((item) => item.key === selectedKey) || NUMBER_OPERATIONS_ANCHOR_SETS[0],
     [selectedKey],
   );
+  const executableClusters = useMemo(
+    () =>
+      Object.entries(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).filter(([key]) =>
+        key.startsWith(`${selectedKey}-`),
+      ),
+    [selectedKey],
+  );
+  const executableItems = selectedClusterKey
+    ? NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS[
+        selectedClusterKey as keyof typeof NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS
+      ] || null
+    : null;
   const initialRoute = routeInitialAnchor(anchorSet, initial);
   const branchRoute = routeBranchAnchor(anchorSet, initialRoute, branch);
 
   const reset = (key = selectedKey) => {
     setSelectedKey(key);
+    const nextCluster = Object.keys(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).find((candidate) =>
+      candidate.startsWith(`${key}-`),
+    );
+    setSelectedClusterKey(nextCluster || null);
     setInitial([null, null]);
     setBranch([null, null]);
   };
@@ -208,22 +225,56 @@ export default function AssessmentAnchorRoutingLab() {
           {anchorSet.anchors.map((anchor) => <AnchorCard key={anchor.progressionId} anchor={anchor} />)}
         </section>
 
-        {selectedKey === "counting-processes" ? (
+        {executableClusters.length ? (
           <section style={card}>
-            <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ display: "grid", gap: 10 }}>
               <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
                 Executable anchor prototype
               </span>
-              <h2 style={{ margin: 0, color: "#17204B" }}>Counting processes · P5 mini-cluster</h2>
+              <h2 style={{ margin: 0, color: "#17204B" }}>{anchorSet.label} · executable mini-cluster</h2>
               <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
-                These are the first two newly authored P0 anchor items running through the shared AssessmentPlayerV1.
-                They are draft lab items only. The visual-counting item still requires a separate accessible-form design
-                before any customer-facing use.
+                These draft anchor items run through the shared AssessmentPlayerV1. They are staff-lab items only,
+                not calibrated placement items. Hybrid early-strategy anchors and money anchors remain blueprint-only
+                until their observation/accessibility or currency-asset requirements are resolved.
               </p>
+              <label style={{ display: "grid", gap: 6, maxWidth: 460 }}>
+                <strong style={{ color: "#17204B" }}>Executable cluster</strong>
+                <select
+                  value={selectedClusterKey || ""}
+                  onChange={(event) => setSelectedClusterKey(event.target.value || null)}
+                  style={{
+                    minHeight: 44,
+                    border: "1px solid #CDD3E1",
+                    borderRadius: 12,
+                    padding: "8px 12px",
+                    background: "#ffffff",
+                    color: "#17204B",
+                    fontWeight: 750,
+                  }}
+                >
+                  {executableClusters.map(([key]) => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-            <AssessmentPlayerV1 title="Counting P5 anchor mini-cluster" items={COUNTING_P5_ANCHOR_ITEMS} />
+            {executableItems ? (
+              <AssessmentPlayerV1
+                key={selectedClusterKey}
+                title={`${anchorSet.label} · ${selectedClusterKey?.split("-p").pop()?.toUpperCase()} anchor mini-cluster`}
+                items={[...executableItems]}
+              />
+            ) : null}
           </section>
-        ) : null}
+        ) : (
+          <section style={{ ...card, background: "#FFFDF5" }}>
+            <strong style={{ color: "#92400E" }}>Blueprint only</strong>
+            <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
+              This sub-element does not yet have an executable anchor cluster in the lab. Its remaining anchors are
+              intentionally held until the relevant evidence-mode or trusted-asset dependency is resolved.
+            </p>
+          </section>
+        )}
 
         <section style={card}>
           <h2 style={{ margin: 0, color: "#17204B" }}>1 · Initial anchor P{anchorSet.initialP}</h2>
