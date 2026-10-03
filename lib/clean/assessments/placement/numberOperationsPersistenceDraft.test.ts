@@ -99,6 +99,61 @@ describe("Number Operations persistence draft", () => {
     });
   });
 
+  it("attaches exact item version and registry snapshot for canonical items", () => {
+    const result = buildNumberOperationsCandidateBandResult({
+      subElementKey: "number-place-value",
+      lowerP: 5,
+      upperP: 6,
+    });
+    const profile = buildNumberOperationsProfile([result]);
+    const trace = buildNumberOperationsSubElementAttemptTrace({
+      subElementKey: "number-place-value",
+      subElementLabel: "Number and place value",
+      stages: [
+        {
+          stage: "initial",
+          pLevel: 6,
+          responses: [
+            {
+              itemId: "myl-anchor-npv-p06-a-v1",
+              selectedOptionIds: [
+                "four-thousands-three-hundreds",
+                "three-thousands-thirteen-hundreds",
+                "forty-three-hundreds",
+              ],
+              correct: true,
+              skillId: "npv-p6-flexible-renaming",
+              misconceptionTags: [],
+            },
+          ],
+        },
+      ],
+      routeTrace: [],
+      result,
+    });
+    const snapshot = buildNumberOperationsBaselineSummarySnapshot({
+      profile,
+      subElementAttempts: [trace],
+      startedAt: "2026-10-03T08:00:00Z",
+      completedAt: "2026-10-03T08:02:00Z",
+    });
+
+    const draft = buildNumberOperationsBaselinePersistenceDraft(snapshot);
+    const row = draft.responses[0];
+
+    expect(row).toMatchObject({
+      itemId: "myl-anchor-npv-p06-a-v1",
+      itemVersion: 1,
+      itemPoolKind: "anchor",
+      itemPoolKey: "number-place-value-p6",
+    });
+    expect(row.itemSnapshot).toMatchObject({
+      id: "myl-anchor-npv-p06-a-v1",
+      version: 1,
+      prompt: "Select every representation equal to 4,300.",
+    });
+  });
+
   it("does not create any database identifiers or learner/family fields", () => {
     const snapshot = buildNumberOperationsBaselineSummarySnapshot({
       profile: buildNumberOperationsProfile([]),
