@@ -103,7 +103,9 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     const baselineSnapshot = buildNumberOperationsBaselineSummarySnapshot({
       profile: finalProfile,
       unresolvedSubElements: unresolved,
-      subElementAttempts: Object.values(tracesByKey),
+      subElementAttempts: Object.values(tracesByKey).filter(
+        (trace): trace is NumberOperationsSubElementAttemptTrace => Boolean(trace),
+      ),
       startedAt: startedAtRef.current,
       completedAt: completedAt || new Date().toISOString(),
     });
