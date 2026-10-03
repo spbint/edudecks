@@ -408,6 +408,19 @@ export function routeInitialAnchor(
   return { kind: "up", score: 2, targetP: anchorSet.upperP };
 }
 
+export function resolveInitialAnchorWithReserve(
+  anchorSet: NumberOperationsAnchorSet,
+  results: [BinaryAnchorResult, BinaryAnchorResult],
+  reserveResult: BinaryAnchorResult,
+): InitialAnchorRoute {
+  const initial = routeInitialAnchor(anchorSet, results);
+  if (initial.kind !== "same-level-extra" || reserveResult === null) return initial;
+
+  return reserveResult === 1
+    ? { kind: "up", score: 2, targetP: anchorSet.upperP }
+    : { kind: "down", score: 0, targetP: anchorSet.lowerP };
+}
+
 export type BranchAnchorRoute =
   | { kind: "awaiting" }
   | { kind: "search-down"; fromP: number }
