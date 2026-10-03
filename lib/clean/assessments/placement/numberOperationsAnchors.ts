@@ -559,6 +559,49 @@ export function nextSearchTarget(
   return null;
 }
 
+
+export type SearchClusterRoute =
+  | { kind: "awaiting" }
+  | { kind: "search-down"; fromP: number }
+  | { kind: "search-up"; fromP: number }
+  | { kind: "bracket"; lowerP: number; upperP: number }
+  | { kind: "endpoint"; relation: "below-or-around" | "at-least"; pLevel: number };
+
+export function routeSearchCluster(
+  anchorSet: NumberOperationsAnchorSet,
+  direction: "down" | "up",
+  pLevel: number,
+  results: [BinaryAnchorResult, BinaryAnchorResult],
+): SearchClusterRoute {
+  const score = scoreCluster(results);
+  if (score === null) return { kind: "awaiting" };
+
+  if (direction === "up") {
+    if (score === 2) {
+      return pLevel >= anchorSet.maxP
+        ? { kind: "endpoint", relation: "at-least", pLevel }
+        : { kind: "search-up", fromP: pLevel };
+    }
+    return {
+      kind: "bracket",
+      lowerP: Math.max(anchorSet.minP, pLevel - 1),
+      upperP: pLevel,
+    };
+  }
+
+  if (score === 0) {
+    return pLevel <= anchorSet.minP
+      ? { kind: "endpoint", relation: "below-or-around", pLevel }
+      : { kind: "search-down", fromP: pLevel };
+  }
+
+  return {
+    kind: "bracket",
+    lowerP: pLevel,
+    upperP: Math.min(anchorSet.maxP, pLevel + 1),
+  };
+}
+
 export type ProgressionBracket = {
   lowerP: number;
   upperP: number;
