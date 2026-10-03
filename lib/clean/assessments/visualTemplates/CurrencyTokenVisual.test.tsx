@@ -31,5 +31,12 @@ describe("CurrencyTokenVisual", () => {
         (node) => node.getAttribute("data-denomination"),
       ),
     ).toEqual(["20c", "$1", "20c", "50c", "20c"]);
+    const rendered = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid="currency-token"]'),
+    );
+    expect(rendered[0].querySelector("svg")?.getAttribute("width")).toBe("67");
+    expect(rendered[1].querySelector("svg")?.getAttribute("width")).toBe("59");
+    expect(rendered[3].querySelector("svg")?.getAttribute("width")).toBe("74");
+    expect(rendered[3].querySelector("polygon")).not.toBeNull();
   });
 });
