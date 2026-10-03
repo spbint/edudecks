@@ -5,9 +5,10 @@ import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/Assessment
 import AssessmentPlacementResultCard from "@/app/components/clean/assessment-lab/AssessmentPlacementResultCard";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import {
-  buildNpvCandidateBandResult,
-  buildNpvEndpointResult,
+  buildNumberOperationsCandidateBandResult,
+  buildNumberOperationsEndpointResult,
   type NumberOperationsPlacementResult,
+  type NumberOperationsSubElementKey,
 } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
 import {
   applyBoundaryEvidence,
@@ -163,25 +164,23 @@ export default function AssessmentAnchorPlacementRunner({
 
   const buildBandResult = useCallback(
     (lowerP: number, upperP: number) =>
-      anchorSet.key === "number-place-value"
-        ? buildNpvCandidateBandResult({
-            lowerP,
-            upperP,
-            evidenceLimitations: evidenceNotes,
-          })
-        : undefined,
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: anchorSet.key as NumberOperationsSubElementKey,
+        lowerP,
+        upperP,
+        evidenceLimitations: evidenceNotes,
+      }),
     [anchorSet.key, evidenceNotes],
   );
 
   const buildEndpointResult = useCallback(
     (relation: "below-or-around" | "at-least", pLevel: number) =>
-      anchorSet.key === "number-place-value"
-        ? buildNpvEndpointResult({
-            relation,
-            pLevel,
-            evidenceLimitations: evidenceNotes,
-          })
-        : undefined,
+      buildNumberOperationsEndpointResult({
+        subElementKey: anchorSet.key as NumberOperationsSubElementKey,
+        relation,
+        pLevel,
+        evidenceLimitations: evidenceNotes,
+      }),
     [anchorSet.key, evidenceNotes],
   );
 
