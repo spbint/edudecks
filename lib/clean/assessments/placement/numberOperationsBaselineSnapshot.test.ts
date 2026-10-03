@@ -4,6 +4,7 @@ import {
 } from "./numberOperationsPlacementResult";
 import { buildNumberOperationsProfile } from "./numberOperationsProfile";
 import { buildNumberOperationsBaselineSummarySnapshot } from "./numberOperationsBaselineSnapshot";
+import { buildNumberOperationsSubElementAttemptTrace } from "./numberOperationsAttemptTrace";
 
 describe("Number Operations baseline summary snapshot", () => {
   it("creates a complete versioned summary without pretending it fits the pathway-attempt table", () => {
@@ -25,8 +26,34 @@ describe("Number Operations baseline summary snapshot", () => {
       ),
     );
 
+    const numberResult = profile.results.find(
+      (result) => result.subElementKey === "number-place-value",
+    );
+    const numberTrace = buildNumberOperationsSubElementAttemptTrace({
+      subElementKey: "number-place-value",
+      subElementLabel: "Number and place value",
+      stages: [
+        {
+          stage: "initial",
+          pLevel: 6,
+          responses: [
+            {
+              itemId: "myl-anchor-npv-p06-a-v1",
+              selectedOptionIds: ["four-thousands-three-hundreds"],
+              correct: false,
+              skillId: "npv-p6-flexible-renaming",
+              misconceptionTags: ["flexible-renaming-error"],
+            },
+          ],
+        },
+      ],
+      routeTrace: ["Initial evidence routed down from P6 to P3."],
+      result: numberResult || null,
+    });
+
     const snapshot = buildNumberOperationsBaselineSummarySnapshot({
       profile,
+      subElementAttempts: [numberTrace],
       startedAt: "2026-10-03T08:00:00Z",
       completedAt: "2026-10-03T08:25:00Z",
     });
@@ -51,6 +78,10 @@ describe("Number Operations baseline summary snapshot", () => {
       updateAssessmentConfidenceAutomatically: false,
     });
     expect(snapshot.evidencePreview.requiresParentConfirmation).toBe(true);
+    expect(snapshot.subElementAttempts).toHaveLength(1);
+    expect(snapshot.subElementAttempts[0].stages[0].responses[0].itemId).toBe(
+      "myl-anchor-npv-p06-a-v1",
+    );
   });
 
   it("stays partial when any sub-element remains unresolved", () => {
