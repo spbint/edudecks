@@ -21,6 +21,7 @@ export type NumberOperationsAnchor = {
   progressionId: string;
   pLevel: number;
   role: "lower" | "initial" | "upper";
+  evidenceMode: "direct" | "hybrid-observed" | "asset-review";
   sourcePages: number[];
   slots: [AnchorItemSlot, AnchorItemSlot];
   reserveSlot?: AnchorItemSlot;
@@ -74,6 +75,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-NPV-P03",
         pLevel: 3,
         role: "lower",
+        evidenceMode: "direct",
         sourcePages: [2, 3],
         slots: [
           slot("MYL-ANCHOR-NPV-P03-A", "A", "Recognise and interpret a teen numeral.", "single_choice", "numeral cards", "implemented-draft"),
@@ -84,6 +86,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-NPV-P06",
         pLevel: 6,
         role: "initial",
+        evidenceMode: "direct",
         sourcePages: [3, 4],
         slots: [
           slot(
@@ -118,6 +121,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-NPV-P09",
         pLevel: 9,
         role: "upper",
+        evidenceMode: "direct",
         sourcePages: [3, 4],
         slots: [
           slot(
@@ -155,6 +159,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-CNT-P02",
         pLevel: 2,
         role: "lower",
+        evidenceMode: "hybrid-observed",
         sourcePages: [5],
         slots: [
           slot("MYL-ANCHOR-CNT-P02-A", "A", "Subitise a small collection up to about five.", "single_choice", "controlled dot set", "new-hybrid-blueprint"),
@@ -165,6 +170,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-CNT-P05",
         pLevel: 5,
         role: "initial",
+        evidenceMode: "direct",
         sourcePages: [5],
         slots: [
           slot("MYL-ANCHOR-CNT-P05-A", "A", "Find the next or previous number from an arbitrary point within 1–100.", "numeric_entry", "text-first", "implemented-draft"),
@@ -183,6 +189,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-CNT-P07",
         pLevel: 7,
         role: "upper",
+        evidenceMode: "direct",
         sourcePages: [5],
         slots: [
           slot("MYL-ANCHOR-CNT-P07-A", "A", "Continue a skip-count sequence by fives off the decade.", "numeric_entry", "text-first / number line optional", "implemented-draft"),
@@ -204,6 +211,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-ADD-P03",
         pLevel: 3,
         role: "lower",
+        evidenceMode: "hybrid-observed",
         sourcePages: [6],
         slots: [
           slot("MYL-ANCHOR-ADD-P03-A", "A", "Solve an additive situation after two small quantities are concealed.", "numeric_entry", "concealed counter groups", "new-hybrid-blueprint"),
@@ -214,6 +222,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-ADD-P06",
         pLevel: 6,
         role: "initial",
+        evidenceMode: "direct",
         sourcePages: [6],
         slots: [
           slot("MYL-ANCHOR-ADD-P06-A", "A", "Use a flexible strategy such as bridging to 10 within 20.", "single_choice", "text-first / part-part-whole optional", "implemented-draft"),
@@ -232,6 +241,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-ADD-P09",
         pLevel: 9,
         role: "upper",
+        evidenceMode: "direct",
         sourcePages: [6],
         slots: [
           slot(
@@ -261,6 +271,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-MUL-P03",
         pLevel: 3,
         role: "lower",
+        evidenceMode: "hybrid-observed",
         sourcePages: [7],
         slots: [
           slot("MYL-ANCHOR-MUL-P03-A", "A", "Determine a total from concealed equal groups using imagined composite units.", "numeric_entry", "composite-unit pack renderer", "new-hybrid-blueprint"),
@@ -271,6 +282,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-MUL-P06",
         pLevel: 6,
         role: "initial",
+        evidenceMode: "direct",
         sourcePages: [7, 8],
         slots: [
           slot(
@@ -305,6 +317,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-MUL-P09",
         pLevel: 9,
         role: "upper",
+        evidenceMode: "direct",
         sourcePages: [7, 8],
         slots: [
           slot(
@@ -342,6 +355,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-MON-P02",
         pLevel: 2,
         role: "lower",
+        evidenceMode: "asset-review",
         sourcePages: [12],
         slots: [
           slot("MYL-ANCHOR-MON-P02-A", "A", "Order Australian coins or notes by face value.", "ordering", "versioned Australian currency tokens", "new-blueprint-currency-review"),
@@ -352,6 +366,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-MON-P05",
         pLevel: 5,
         role: "initial",
+        evidenceMode: "direct",
         sourcePages: [12],
         slots: [
           slot(
@@ -378,6 +393,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         progressionId: "MYL-MATH-PROG-NSA-MON-P08",
         pLevel: 8,
         role: "upper",
+        evidenceMode: "direct",
         sourcePages: [13],
         slots: [
           slot(
@@ -395,6 +411,14 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
     ],
   },
 ];
+
+
+export function getAnchorEvidenceMode(
+  anchorSet: NumberOperationsAnchorSet,
+  pLevel: number,
+) {
+  return anchorSet.anchors.find((anchor) => anchor.pLevel === pLevel)?.evidenceMode || null;
+}
 
 export type BinaryAnchorResult = 0 | 1 | null;
 
