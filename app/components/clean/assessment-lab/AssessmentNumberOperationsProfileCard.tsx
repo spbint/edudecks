@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 import type { NumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";
 
@@ -146,11 +147,33 @@ export default function AssessmentNumberOperationsProfileCard({
               <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
                 {recommendation.rationale}
               </span>
-              {recommendation.resourceLinkStatus === "not-yet-mapped" ? (
-                <small style={{ color: "#64748B" }}>
-                  Resource/Pathways link not mapped yet.
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <Link
+                  href={recommendation.practiceTarget.href}
+                  prefetch={false}
+                  style={{
+                    border: "1px solid #CDD3E1",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    color: "#17204B",
+                    padding: "8px 11px",
+                    textDecoration: "none",
+                    fontSize: 13,
+                    fontWeight: 850,
+                    width: "fit-content",
+                  }}
+                >
+                  {recommendation.practiceTarget.label}
+                </Link>
+                <small style={{ color: "#64748B", lineHeight: 1.45 }}>
+                  {recommendation.practiceTarget.mappingConfidence === "broad-family"
+                    ? "Broad practice-family match · not an exact P-level equivalence."
+                    : "Pathways fallback · exact practice mapping not yet approved."}
                 </small>
-              ) : null}
+              </div>
+              <small style={{ color: "#64748B", lineHeight: 1.45 }}>
+                {recommendation.practiceTarget.note}
+              </small>
             </div>
           ))}
         </div>
