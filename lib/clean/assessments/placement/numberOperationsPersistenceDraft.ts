@@ -1,4 +1,8 @@
 import type { NumberOperationsBaselineSummarySnapshot } from "./numberOperationsBaselineSnapshot";
+import {
+  getNumberOperationsPlacementItemById,
+  type NumberOperationsPlacementPoolKind,
+} from "./numberOperationsItemRegistry";
 
 export type NumberOperationsBaselineAttemptPersistenceDraft = {
   schemaVersion: 1;
@@ -25,6 +29,10 @@ export type NumberOperationsBaselineResponsePersistenceDraft = {
   bracketLowerP: number | null;
   bracketUpperP: number | null;
   itemId: string;
+  itemVersion: number | null;
+  itemPoolKind: NumberOperationsPlacementPoolKind | null;
+  itemPoolKey: string | null;
+  itemSnapshot: Record<string, unknown> | null;
   itemOrder: number;
   selectedOptionIds: string[];
   responseValue: string | null;
@@ -39,6 +47,11 @@ export type NumberOperationsBaselinePersistenceDraft = {
   responses: NumberOperationsBaselineResponsePersistenceDraft[];
 };
 
+function snapshotItem(value: unknown) {
+  if (!value) return null;
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
 export function buildNumberOperationsBaselinePersistenceDraft(
   snapshot: NumberOperationsBaselineSummarySnapshot,
 ): NumberOperationsBaselinePersistenceDraft {
@@ -48,6 +61,7 @@ export function buildNumberOperationsBaselinePersistenceDraft(
     attempt.stages.flatMap((stage) =>
       stage.responses.map((response) => {
         itemOrder += 1;
+        const registryEntry = getNumberOperationsPlacementItemById(response.itemId);
         return {
           subElementKey: attempt.subElementKey,
           stageKind: stage.stage,
@@ -56,6 +70,10 @@ export function buildNumberOperationsBaselinePersistenceDraft(
           bracketLowerP: stage.bracket?.lowerP ?? null,
           bracketUpperP: stage.bracket?.upperP ?? null,
           itemId: response.itemId,
+          itemVersion: registryEntry?.item.version ?? null,
+          itemPoolKind: registryEntry?.poolKind ?? null,
+          itemPoolKey: registryEntry?.poolKey ?? null,
+          itemSnapshot: snapshotItem(registryEntry?.item),
           itemOrder,
           selectedOptionIds: [...response.selectedOptionIds],
           responseValue: response.responseValue ?? null,
