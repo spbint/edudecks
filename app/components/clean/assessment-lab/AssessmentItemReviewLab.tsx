@@ -280,7 +280,7 @@ export default function AssessmentItemReviewLab() {
                 <div>
                   <small style={{ color: "#64748B" }}>Misconception tags</small>
                   <div style={{ color: "#17204B", fontWeight: 800 }}>
-                    {selected.item.misconceptionTags.length
+                    {selected.item.misconceptionTags?.length
                       ? selected.item.misconceptionTags.join(", ")
                       : "None"}
                   </div>
