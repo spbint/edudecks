@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner";
+import AssessmentNumberOperationsBaselineRunner from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsBaselineRunner";
 import {
   NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
   NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
@@ -287,6 +288,22 @@ export default function AssessmentAnchorRoutingLab() {
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 14 }}>
           {anchorSet.anchors.map((anchor) => <AnchorCard key={anchor.progressionId} anchor={anchor} />)}
         </section>
+
+        <details style={{ ...card, background: "#F8F5FF" }}>
+          <summary
+            style={{
+              cursor: "pointer",
+              color: "#17204B",
+              fontWeight: 900,
+              fontSize: 18,
+            }}
+          >
+            Run the all-in-one Number & Operations baseline
+          </summary>
+          <div style={{ marginTop: 16 }}>
+            <AssessmentNumberOperationsBaselineRunner />
+          </div>
+        </details>
 
         <AssessmentAnchorPlacementRunner key={selectedKey} anchorSetKey={selectedKey} />
 
