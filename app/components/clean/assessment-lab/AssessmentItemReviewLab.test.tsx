@@ -18,7 +18,7 @@ describe("AssessmentItemReviewLab", () => {
     render(React.createElement(AssessmentItemReviewLab));
 
     expect(screen.getByText("Trusted item & visual review")).toBeTruthy();
-    expect(screen.getByText("165 items in this view")).toBeTruthy();
+    expect(screen.getByText("180 items in this view")).toBeTruthy();
     expect(screen.getByLabelText("phone assessment preview")).toBeTruthy();
     expect(screen.getByTestId("mock-player").textContent).toContain("myl-");
   });
@@ -29,7 +29,7 @@ describe("AssessmentItemReviewLab", () => {
     fireEvent.change(screen.getByLabelText("Pool"), {
       target: { value: "boundary" },
     });
-    expect(screen.getByText("69 items in this view")).toBeTruthy();
+    expect(screen.getByText("75 items in this view")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Search items"), {
       target: { value: "myl-boundary-npv-p05-b-v1" },
@@ -61,6 +61,19 @@ describe("AssessmentItemReviewLab", () => {
     });
 
     expect(screen.getByText("25 items in this view")).toBeTruthy();
+    expect(screen.getByTestId("mock-player").textContent).toContain(
+      "myl-",
+    );
+  });
+
+  it("can isolate the Understanding chance lane", () => {
+    render(React.createElement(AssessmentItemReviewLab));
+
+    fireEvent.change(screen.getByLabelText("Sub-element"), {
+      target: { value: "understanding-chance" },
+    });
+
+    expect(screen.getByText("15 items in this view")).toBeTruthy();
     expect(screen.getByTestId("mock-player").textContent).toContain(
       "myl-",
     );
