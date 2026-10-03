@@ -135,10 +135,12 @@ export default function AssessmentAnchorPlacementRunner({
 
   if (!anchorSet) return null;
 
-  const pushHistory = (entry: string) =>
-    setHistory((current) => [...current, entry]);
+  const pushHistory = useCallback(
+    (entry: string) => setHistory((current) => [...current, entry]),
+    [],
+  );
 
-  const advanceToBranch = (route: InitialAnchorRoute) => {
+  const advanceToBranch = useCallback((route: InitialAnchorRoute) => {
     if (route.kind !== "down" && route.kind !== "up") return;
     const items = getAnchorCluster(anchorSet.key, route.targetP);
     pushHistory(
@@ -153,7 +155,7 @@ export default function AssessmentAnchorPlacementRunner({
       pLevel: route.targetP,
       direction: route.kind,
     });
-  };
+  }, [anchorSet, pushHistory]);
 
   const handleInitialComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
@@ -184,7 +186,7 @@ export default function AssessmentAnchorPlacementRunner({
         advanceToBranch(route);
       }
     },
-    [anchorSet],
+    [anchorSet, advanceToBranch, pushHistory],
   );
 
   const handleReserveComplete = useCallback(
@@ -202,7 +204,7 @@ export default function AssessmentAnchorPlacementRunner({
       );
       advanceToBranch(route);
     },
-    [anchorSet, initialPair],
+    [anchorSet, advanceToBranch, initialPair, pushHistory],
   );
 
   const handleBranchComplete = useCallback(
@@ -254,7 +256,7 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, resolvedInitialRoute],
+    [anchorSet, pushHistory, resolvedInitialRoute],
   );
 
   const handleSearchComplete = useCallback(
@@ -327,7 +329,7 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, stage],
+    [anchorSet, pushHistory, stage],
   );
 
   let player = null;
