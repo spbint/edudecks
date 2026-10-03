@@ -221,6 +221,17 @@ export default function AssessmentAnchorRoutingLab() {
     ? NUMBER_OPERATIONS_SEARCH_CLUSTERS[searchClusterKey] || null
     : null;
 
+  const updateInitial = (next: [BinaryAnchorResult, BinaryAnchorResult]) => {
+    setInitial(next);
+    setReserve(null);
+    setBranch([null, null]);
+  };
+
+  const updateReserve = (value: BinaryAnchorResult) => {
+    setReserve(value);
+    setBranch([null, null]);
+  };
+
   const reset = (key = selectedKey) => {
     setSelectedKey(key);
     const nextCluster = Object.keys(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).find((candidate) =>
@@ -328,8 +339,8 @@ export default function AssessmentAnchorRoutingLab() {
         <section style={card}>
           <h2 style={{ margin: 0, color: "#17204B" }}>1 · Initial anchor P{anchorSet.initialP}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-            <ResultPicker label="Anchor item A" value={initial[0]} onChange={(value) => setInitial([value, initial[1]])} />
-            <ResultPicker label="Anchor item B" value={initial[1]} onChange={(value) => setInitial([initial[0], value])} />
+            <ResultPicker label="Anchor item A" value={initial[0]} onChange={(value) => updateInitial([value, initial[1]])} />
+            <ResultPicker label="Anchor item B" value={initial[1]} onChange={(value) => updateInitial([initial[0], value])} />
           </div>
           <div role="status" style={{ borderLeft: "4px solid #6C4DF6", padding: "10px 14px", background: "#F3F0FF", color: "#17204B" }}>
             <strong>{describeInitialRoute(resolvedInitialRoute)}</strong>
@@ -345,7 +356,7 @@ export default function AssessmentAnchorRoutingLab() {
           ) : null}
           {initialRoute.kind === "same-level-extra" ? (
             <div style={{ display: "grid", gap: 10 }}>
-              <ResultPicker label="Reserve item C" value={reserve} onChange={setReserve} />
+              <ResultPicker label="Reserve item C" value={reserve} onChange={updateReserve} />
               {reserveItem ? (
                 <details>
                   <summary style={{ cursor: "pointer", color: "#5B3BE8", fontWeight: 850 }}>
