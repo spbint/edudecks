@@ -1,6 +1,9 @@
 export type AnchorItemStatus =
   | "reuse-candidate"
+  | "reuse-audited"
   | "new-blueprint"
+  | "implemented-draft"
+  | "implemented-draft-accessibility-review"
   | "new-hybrid-blueprint"
   | "new-blueprint-currency-review";
 
@@ -68,8 +71,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         role: "lower",
         sourcePages: [2, 3],
         slots: [
-          slot("MYL-ANCHOR-NPV-P03-A", "A", "Recognise and interpret a teen numeral.", "single_choice", "numeral cards", "new-blueprint"),
-          slot("MYL-ANCHOR-NPV-P03-B", "B", "Represent a teen number as one ten and some more.", "single_choice or numeric_entry", "ten-frame + counters", "new-blueprint"),
+          slot("MYL-ANCHOR-NPV-P03-A", "A", "Recognise and interpret a teen numeral.", "single_choice", "numeral cards", "implemented-draft"),
+          slot("MYL-ANCHOR-NPV-P03-B", "B", "Represent a teen number as one ten and some more.", "single_choice or numeric_entry", "place-value blocks", "implemented-draft"),
         ],
       },
       {
@@ -84,7 +87,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Flexibly rename a four-digit number using equivalent place-value units.",
             "multi_select",
             "place-value table / exchange model",
-            "reuse-candidate",
+            "reuse-audited",
             "place-value-ops-flexible-renaming-003",
           ),
           slot(
@@ -93,7 +96,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Round a natural number to the nearest hundred.",
             "numeric_entry",
             "number line optional",
-            "reuse-candidate",
+            "reuse-audited",
             "place-value-ops-rounding-gap-006",
           ),
         ],
@@ -110,7 +113,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Order negative and positive values using number-line magnitude.",
             "ordering",
             "number line",
-            "reuse-candidate",
+            "reuse-audited",
             "integers-coordinates-properties-order-integers-001",
           ),
           slot(
@@ -119,7 +122,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Round a decimal to a specified number of decimal places.",
             "numeric_entry",
             "place-value table optional",
-            "reuse-candidate",
+            "reuse-audited",
             "approx-round-decimal-001",
           ),
         ],
@@ -149,8 +152,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         role: "initial",
         sourcePages: [5],
         slots: [
-          slot("MYL-ANCHOR-CNT-P05-A", "A", "Find the next or previous number from an arbitrary point within 1–100.", "numeric_entry", "text-first", "new-blueprint"),
-          slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 from a deterministic visual collection.", "numeric_entry", "array renderer for v0; varied arrangements required in later boundary pool", "new-blueprint"),
+          slot("MYL-ANCHOR-CNT-P05-A", "A", "Find the next or previous number from an arbitrary point within 1–100.", "numeric_entry", "text-first", "implemented-draft"),
+          slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 from a deterministic visual collection.", "numeric_entry", "array renderer for v0; varied arrangements required in later boundary pool", "implemented-draft-accessibility-review"),
         ],
       },
       {
@@ -188,8 +191,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         role: "initial",
         sourcePages: [6],
         slots: [
-          slot("MYL-ANCHOR-ADD-P06-A", "A", "Use a flexible strategy such as bridging to 10 within 20.", "numeric_entry + choose_reasoning", "part-part-whole / ten-frame optional", "new-blueprint"),
-          slot("MYL-ANCHOR-ADD-P06-B", "B", "Use part-part-whole knowledge to solve a missing-addend problem.", "numeric_entry", "part-part-whole model", "new-blueprint"),
+          slot("MYL-ANCHOR-ADD-P06-A", "A", "Use a flexible strategy such as bridging to 10 within 20.", "single_choice", "text-first / part-part-whole optional", "implemented-draft"),
+          slot("MYL-ANCHOR-ADD-P06-B", "B", "Use part-part-whole knowledge to solve a missing-addend problem.", "numeric_entry", "part-part-whole model optional", "implemented-draft"),
         ],
       },
       {
@@ -204,10 +207,10 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Add fractions with related denominators and use a common denominator.",
             "fraction_entry",
             "fraction bar optional",
-            "reuse-candidate",
+            "reuse-audited",
             "rational-ops-add-related-denominators-004",
           ),
-          slot("MYL-ANCHOR-ADD-P09-B", "B", "Add or subtract decimals using place value to three decimal places.", "numeric_entry", "place-value table optional", "new-blueprint"),
+          slot("MYL-ANCHOR-ADD-P09-B", "B", "Add or subtract decimals using place value to three decimal places.", "numeric_entry", "place-value table optional", "implemented-draft"),
         ],
       },
     ],
@@ -241,7 +244,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Use flexible single-digit multiplication in a multiplicative context.",
             "numeric_entry",
             "context card / array optional",
-            "reuse-candidate",
+            "reuse-audited",
             "multiplication-division-fluency-context-problem-011",
           ),
           slot(
@@ -250,7 +253,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Interpret and solve a single-digit equal-sharing division context.",
             "numeric_entry",
             "equal-sharing context / counters optional",
-            "reuse-candidate",
+            "reuse-audited",
             "multiplication-division-fluency-sharing-004",
           ),
         ],
@@ -267,7 +270,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Express a natural number as a product of prime factors using exponent form.",
             "short_symbolic",
             "factor tree optional",
-            "reuse-candidate",
+            "reuse-audited",
             "powers-roots-prime-powers-006",
           ),
           slot(
@@ -276,7 +279,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "Use multiplicative reasoning to calculate a fraction of a quantity.",
             "numeric_entry",
             "fraction bar optional",
-            "reuse-candidate",
+            "reuse-audited",
             "rational-ops-context-money-012",
           ),
         ],
