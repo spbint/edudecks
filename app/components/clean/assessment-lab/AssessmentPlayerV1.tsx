@@ -146,6 +146,7 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
     selectedOptionIds.includes(option.id),
   )?.feedback;
   const isShortAnswer = currentItem.response.type === "short-answer";
+  const isMultiSelect = currentItem.response.type === "multiple-choice";
   const responseReady = isShortAnswer ? Boolean(textValue.trim()) : Boolean(selectedOptionIds.length);
 
   return (
@@ -196,7 +197,7 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
       ) : (
         <fieldset style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
           <legend style={{ color: "#5B6478", fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-            Choose one answer
+            {isMultiSelect ? "Select every answer that applies" : "Choose one answer"}
           </legend>
           {currentItem.response.options?.map((option) => {
             const selected = selectedOptionIds.includes(option.id);
@@ -218,11 +219,19 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
                 }}
               >
                 <input
-                  type="radio"
+                  type={isMultiSelect ? "checkbox" : "radio"}
                   name={`answer-${currentItem.id}`}
                   checked={selected}
                   disabled={Boolean(submittedResponse)}
-                  onChange={() => setSelectedOptionIds([option.id])}
+                  onChange={() =>
+                    setSelectedOptionIds((current) =>
+                      isMultiSelect
+                        ? current.includes(option.id)
+                          ? current.filter((id) => id !== option.id)
+                          : [...current, option.id]
+                        : [option.id],
+                    )
+                  }
                   style={{ width: 20, height: 20, accentColor: "#6C4DF6" }}
                 />
                 {option.label}
