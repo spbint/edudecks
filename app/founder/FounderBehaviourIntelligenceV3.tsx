@@ -40,11 +40,11 @@ function Section({ eyebrow, title, description, children }: { eyebrow: string; t
 
 function FunnelRows({ items }: { items: FounderFunnelStepV3[] }) {
   if (!items.length) return <div className={styles.empty}>Insufficient observed activity in this window.</div>;
-  return <div className={styles.funnel}>{items.map((step) => <div className={styles.funnelRow} key={step.label}>
+  return <div className={styles.funnel}>{items.map((step, index) => <div className={styles.funnelRow} key={step.label}>
     <strong>{step.label}</strong>
     <span>{step.actors} actors</span>
     <span>{step.events} events</span>
-    <span>{step.progression === null ? "—" : `${P.format(step.progression)} progress`}</span>
+    <span>{index === 0 || step.progression === null ? "—" : `${P.format(step.progression)} progress`}</span>
     <Badge value={step.confidence} />
   </div>)}</div>;
 }
