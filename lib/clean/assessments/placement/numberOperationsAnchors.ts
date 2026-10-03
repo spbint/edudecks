@@ -34,6 +34,8 @@ export type NumberOperationsAnchorSet = {
     | "multiplicative-strategies"
     | "understanding-money";
   label: string;
+  minP: number;
+  maxP: number;
   lowerP: number;
   initialP: number;
   upperP: number;
@@ -62,6 +64,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
   {
     key: "number-place-value",
     label: "Number and place value",
+    minP: 1,
+    maxP: 10,
     lowerP: 3,
     initialP: 6,
     upperP: 9,
@@ -141,6 +145,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
   {
     key: "counting-processes",
     label: "Counting processes",
+    minP: 1,
+    maxP: 8,
     lowerP: 2,
     initialP: 5,
     upperP: 7,
@@ -188,6 +194,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
   {
     key: "additive-strategies",
     label: "Additive strategies",
+    minP: 1,
+    maxP: 10,
     lowerP: 3,
     initialP: 6,
     upperP: 9,
@@ -243,6 +251,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
   {
     key: "multiplicative-strategies",
     label: "Multiplicative strategies",
+    minP: 1,
+    maxP: 10,
     lowerP: 3,
     initialP: 6,
     upperP: 9,
@@ -322,6 +332,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
   {
     key: "understanding-money",
     label: "Understanding money",
+    minP: 1,
+    maxP: 10,
     lowerP: 2,
     initialP: 5,
     upperP: 8,
@@ -447,6 +459,20 @@ export function routeBranchAnchor(
   return { kind: "bracket", lowerP: anchorSet.lowerP, upperP: anchorSet.initialP };
 }
 
+
+
+export function nextSearchTarget(
+  anchorSet: NumberOperationsAnchorSet,
+  route: BranchAnchorRoute,
+) {
+  if (route.kind === "search-down") {
+    return route.fromP > anchorSet.minP ? route.fromP - 1 : null;
+  }
+  if (route.kind === "search-up") {
+    return route.fromP < anchorSet.maxP ? route.fromP + 1 : null;
+  }
+  return null;
+}
 
 export type ProgressionBracket = {
   lowerP: number;
