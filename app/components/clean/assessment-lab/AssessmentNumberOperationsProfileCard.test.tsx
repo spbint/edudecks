@@ -37,6 +37,14 @@ describe("AssessmentNumberOperationsProfileCard", () => {
     expect(screen.getByText("Recommended next learning actions")).toBeTruthy();
     expect(screen.getByText("Practise toward P7")).toBeTruthy();
     expect(screen.getByText("Practise toward P5")).toBeTruthy();
-    expect(screen.getAllByText("Resource/Pathways link not mapped yet.")).toHaveLength(2);
+    expect(
+      screen.getByRole("link", { name: "Practise place value and operations" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Practise multiplication and division" }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByText(/Broad practice-family match/i),
+    ).toHaveLength(2);
   });
 });
