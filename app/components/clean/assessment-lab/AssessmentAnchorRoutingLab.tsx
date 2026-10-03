@@ -1,0 +1,249 @@
+"use client";
+
+import React, { useMemo, useState } from "react";
+import {
+  NUMBER_OPERATIONS_ANCHOR_SETS,
+  routeBranchAnchor,
+  routeInitialAnchor,
+  type BinaryAnchorResult,
+  type NumberOperationsAnchorSet,
+} from "@/lib/clean/assessments/placement/numberOperationsAnchors";
+
+const card: React.CSSProperties = {
+  border: "1px solid #E1E6F0",
+  borderRadius: 18,
+  background: "#ffffff",
+  padding: 18,
+  display: "grid",
+  gap: 12,
+};
+
+const smallButton: React.CSSProperties = {
+  border: "1px solid #CDD3E1",
+  borderRadius: 10,
+  minHeight: 40,
+  padding: "8px 14px",
+  background: "#ffffff",
+  color: "#17204B",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+function ResultPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: BinaryAnchorResult;
+  onChange: (value: BinaryAnchorResult) => void;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <strong style={{ color: "#17204B", fontSize: 13 }}>{label}</strong>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {([
+          [1, "Correct"],
+          [0, "Incorrect"],
+          [null, "Clear"],
+        ] as const).map(([candidate, text]) => (
+          <button
+            key={text}
+            type="button"
+            onClick={() => onChange(candidate)}
+            aria-pressed={value === candidate}
+            style={{
+              ...smallButton,
+              borderColor: value === candidate ? "#6C4DF6" : "#CDD3E1",
+              background: value === candidate ? "#F3F0FF" : "#ffffff",
+              color: value === candidate ? "#4D31C5" : "#17204B",
+            }}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function statusLabel(status: string) {
+  if (status === "reuse-candidate") return "Reuse candidate";
+  if (status === "new-hybrid-blueprint") return "New hybrid blueprint";
+  if (status === "new-blueprint-currency-review") return "New · currency review";
+  return "New blueprint";
+}
+
+function AnchorCard({
+  anchor,
+}: {
+  anchor: NumberOperationsAnchorSet["anchors"][number];
+}) {
+  return (
+    <article style={card}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <span style={{ color: "#6C4DF6", fontWeight: 900, fontSize: 12, textTransform: "uppercase" }}>
+            {anchor.role} anchor
+          </span>
+          <h3 style={{ margin: "4px 0 0", color: "#17204B" }}>
+            P{anchor.pLevel}
+          </h3>
+        </div>
+        <span style={{ color: "#64748B", fontSize: 12 }}>
+          Source pages {anchor.sourcePages.join(", ")}
+        </span>
+      </div>
+      {anchor.slots.map((item) => (
+        <div
+          key={item.blueprintId}
+          style={{
+            border: "1px solid #E7EAF2",
+            borderRadius: 14,
+            padding: 12,
+            display: "grid",
+            gap: 5,
+            background: "#F8FAFC",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <strong style={{ color: "#17204B" }}>
+              {item.slot} · {item.construct}
+            </strong>
+            <span style={{ color: "#5B3BE8", fontSize: 12, fontWeight: 850 }}>
+              {statusLabel(item.status)}
+            </span>
+          </div>
+          <span style={{ color: "#5B6478", fontSize: 13 }}>
+            Response: {item.responseType} · Visual: {item.trustedVisual}
+          </span>
+          {item.existingItemId ? (
+            <code style={{ color: "#475569", fontSize: 12 }}>{item.existingItemId}</code>
+          ) : null}
+        </div>
+      ))}
+    </article>
+  );
+}
+
+function describeInitialRoute(route: ReturnType<typeof routeInitialAnchor>) {
+  if (route.kind === "awaiting") return "Enter both initial-anchor results.";
+  if (route.kind === "down") return `Route down to P${route.targetP}.`;
+  if (route.kind === "up") return `Route up to P${route.targetP}.`;
+  return `Mixed result at P${route.targetP}: add a third same-level probe before branching.`;
+}
+
+function describeBranchRoute(route: ReturnType<typeof routeBranchAnchor>) {
+  if (route.kind === "awaiting") return "Branch result not yet resolved.";
+  if (route.kind === "search-down") {
+    return `Evidence remains weak at P${route.fromP}: continue searching downward, subject to the endpoint rule.`;
+  }
+  if (route.kind === "search-up") {
+    return `Evidence remains strong at P${route.fromP}: continue searching upward, subject to the endpoint rule.`;
+  }
+  return `Neighbourhood located: P${route.lowerP}–P${route.upperP}. Next step is adjacent-level boundary confirmation, not a placement claim.`;
+}
+
+export default function AssessmentAnchorRoutingLab() {
+  const [selectedKey, setSelectedKey] = useState<NumberOperationsAnchorSet["key"]>(
+    NUMBER_OPERATIONS_ANCHOR_SETS[0].key,
+  );
+  const [initial, setInitial] = useState<[BinaryAnchorResult, BinaryAnchorResult]>([null, null]);
+  const [branch, setBranch] = useState<[BinaryAnchorResult, BinaryAnchorResult]>([null, null]);
+
+  const anchorSet = useMemo(
+    () => NUMBER_OPERATIONS_ANCHOR_SETS.find((item) => item.key === selectedKey) || NUMBER_OPERATIONS_ANCHOR_SETS[0],
+    [selectedKey],
+  );
+  const initialRoute = routeInitialAnchor(anchorSet, initial);
+  const branchRoute = routeBranchAnchor(anchorSet, initialRoute, branch);
+
+  const reset = (key = selectedKey) => {
+    setSelectedKey(key);
+    setInitial([null, null]);
+    setBranch([null, null]);
+  };
+
+  return (
+    <main style={{ minHeight: "100vh", background: "#F7F8FC", padding: "clamp(18px, 4vw, 42px)" }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gap: 20 }}>
+        <section style={{ ...card, padding: "clamp(20px, 4vw, 30px)" }}>
+          <span style={{ color: "#6C4DF6", fontWeight: 900, fontSize: 12, textTransform: "uppercase" }}>
+            Internal assessment lab · routing proof
+          </span>
+          <h1 style={{ margin: 0, color: "#17204B", fontSize: "clamp(30px, 5vw, 46px)" }}>
+            Number & Operations anchor routing
+          </h1>
+          <p style={{ margin: 0, maxWidth: 850, color: "#5B6478", lineHeight: 1.65 }}>
+            This is a staff-only deterministic routing simulator. It locates a candidate neighbourhood from
+            two-item anchor clusters. It does not save learner data, claim a progression level, or replace
+            adjacent-level boundary confirmation.
+          </p>
+
+          <label style={{ display: "grid", gap: 6, maxWidth: 460 }}>
+            <strong style={{ color: "#17204B" }}>Sub-element</strong>
+            <select
+              value={selectedKey}
+              onChange={(event) => reset(event.target.value as NumberOperationsAnchorSet["key"])}
+              style={{
+                minHeight: 44,
+                border: "1px solid #CDD3E1",
+                borderRadius: 12,
+                padding: "8px 12px",
+                background: "#ffffff",
+                color: "#17204B",
+                fontWeight: 750,
+              }}
+            >
+              {NUMBER_OPERATIONS_ANCHOR_SETS.map((item) => (
+                <option key={item.key} value={item.key}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+        </section>
+
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 14 }}>
+          {anchorSet.anchors.map((anchor) => <AnchorCard key={anchor.progressionId} anchor={anchor} />)}
+        </section>
+
+        <section style={card}>
+          <h2 style={{ margin: 0, color: "#17204B" }}>1 · Initial anchor P{anchorSet.initialP}</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+            <ResultPicker label="Anchor item A" value={initial[0]} onChange={(value) => setInitial([value, initial[1]])} />
+            <ResultPicker label="Anchor item B" value={initial[1]} onChange={(value) => setInitial([initial[0], value])} />
+          </div>
+          <div role="status" style={{ borderLeft: "4px solid #6C4DF6", padding: "10px 14px", background: "#F3F0FF", color: "#17204B" }}>
+            <strong>{describeInitialRoute(initialRoute)}</strong>
+          </div>
+        </section>
+
+        <section style={card}>
+          <h2 style={{ margin: 0, color: "#17204B" }}>2 · Branch anchor</h2>
+          <p style={{ margin: 0, color: "#5B6478" }}>
+            Enter branch results only after the initial cluster routes up or down. A 1/2 initial result requires
+            an extra same-level probe first.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+            <ResultPicker label="Branch item A" value={branch[0]} onChange={(value) => setBranch([value, branch[1]])} />
+            <ResultPicker label="Branch item B" value={branch[1]} onChange={(value) => setBranch([branch[0], value])} />
+          </div>
+          <div role="status" style={{ borderLeft: "4px solid #17204B", padding: "10px 14px", background: "#EEF2F7", color: "#17204B" }}>
+            <strong>{describeBranchRoute(branchRoute)}</strong>
+          </div>
+          <button type="button" onClick={() => reset()} style={{ ...smallButton, width: "fit-content" }}>
+            Reset simulator
+          </button>
+        </section>
+
+        <section style={{ ...card, background: "#FFFDF5" }}>
+          <strong style={{ color: "#92400E" }}>Guardrail</strong>
+          <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
+            Anchor performance only determines where to probe next. The production placement engine must gather
+            adjacent-level evidence from more than one construct or indicator family before reporting an
+            evidence-supported band or level.
+          </p>
+        </section>
+      </div>
+    </main>
+  );
+}
