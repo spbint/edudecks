@@ -70,5 +70,9 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     expect(
       screen.getByText(/can become Portfolio and report evidence after explicit parent confirmation/i),
     ).toBeTruthy();
+    expect(screen.getByText(/Baseline data handoff · schema v1/i)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Baseline data handoff · schema v1/i));
+    expect(screen.getByText(/not written to the existing pathway-scoped assessment_attempts table/i)).toBeTruthy();
+    expect(screen.getByText(/"pathwayAttemptCompatible": false/i)).toBeTruthy();
   });
 });
