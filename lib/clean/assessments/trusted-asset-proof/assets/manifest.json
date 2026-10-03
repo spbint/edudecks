@@ -1,0 +1,305 @@
+{
+  "title": "MyLearna Assess — Trusted Asset Proof",
+  "version": 1,
+  "createdAt": "2026-09-28",
+  "source": "Six newly authored technical fixtures; not a calibrated assessment or existing approved question bank.",
+  "items": [
+    {
+      "id": "MYL-ASSESS-PROOF-NUMBER-LINE-001",
+      "version": 1,
+      "kind": "number-line",
+      "title": "Number line",
+      "question": "What number does P mark?",
+      "alt": "A number line from 0 to 20. Labelled ticks are 0, 4, 8, 12, 16 and 20. There is one equally spaced tick between each pair of labelled ticks. P marks the tick immediately after 12.",
+      "options": [
+        {
+          "id": "A",
+          "label": "12"
+        },
+        {
+          "id": "B",
+          "label": "14"
+        },
+        {
+          "id": "C",
+          "label": "16"
+        },
+        {
+          "id": "D",
+          "label": "18"
+        }
+      ],
+      "correctOptionId": "B",
+      "hint": "Work out the size of one interval, then count on from 12.",
+      "explanation": "The equal intervals are worth 2. P is one interval after 12, so it marks 14.",
+      "reviewStatus": "technical-candidate",
+      "asset": {
+        "id": "myl-assess-number-line-v1",
+        "version": 1,
+        "width": 640,
+        "height": 300,
+        "svgPath": "assets/myl-assess-number-line-v1.svg",
+        "pngPath": "assets/myl-assess-number-line-v1.png",
+        "svgSha256": "8644c9044f9a2856085f20087c48d0ee681bdffd0ff8be07a4fcae70b62d2d6a",
+        "pngSha256": "f8006c0c1ffe477d1378d3fae2498de497d5dc6f48600ed54d74ec29be10f668",
+        "svgBytes": 5713,
+        "pngBytes": 15671
+      },
+      "checks": {
+        "tickCount": 11,
+        "stepValue": 2,
+        "markerValue": 14
+      }
+    },
+    {
+      "id": "MYL-ASSESS-PROOF-FRACTION-BAR-001",
+      "version": 1,
+      "kind": "fraction-bar",
+      "title": "Fraction bar",
+      "question": "What fraction of the whole bar is shaded?",
+      "alt": "One whole bar is divided into eight equal sections. Five sections have both shading and diagonal stripes. The other sections are unshaded.",
+      "options": [
+        {
+          "id": "A",
+          "label": "3/8"
+        },
+        {
+          "id": "B",
+          "label": "5/3"
+        },
+        {
+          "id": "C",
+          "label": "5/8"
+        },
+        {
+          "id": "D",
+          "label": "5/5"
+        }
+      ],
+      "correctOptionId": "C",
+      "hint": "Count the equal parts in the whole bar and the parts that are shaded.",
+      "explanation": "Five of the eight equal parts are shaded: 5/8.",
+      "reviewStatus": "technical-candidate",
+      "asset": {
+        "id": "myl-assess-fraction-bar-v1",
+        "version": 1,
+        "width": 640,
+        "height": 300,
+        "svgPath": "assets/myl-assess-fraction-bar-v1.svg",
+        "pngPath": "assets/myl-assess-fraction-bar-v1.png",
+        "svgSha256": "8349d07b76288df94d3babaec009b3255f68cdd2bb7ffa0ad3b28cd915447f5d",
+        "pngSha256": "81eb2fbb27ad9b91b9008831301c7b87d63c0844f6d1fd44dfaea58d00b6c7cc",
+        "svgBytes": 2234,
+        "pngBytes": 12654
+      },
+      "checks": {
+        "equalParts": 8,
+        "shadedParts": 5,
+        "cellWidth": 68
+      }
+    },
+    {
+      "id": "MYL-ASSESS-PROOF-CLOCK-001",
+      "version": 1,
+      "kind": "clock",
+      "title": "Analogue clock",
+      "question": "What time does the clock show?",
+      "alt": "A clock with numbers 1 to 12 and minute ticks. The longer hand points to 5. The shorter hand is between 3 and 4, a little less than halfway from 3 to 4.",
+      "options": [
+        {
+          "id": "A",
+          "label": "3:05"
+        },
+        {
+          "id": "B",
+          "label": "5:15"
+        },
+        {
+          "id": "C",
+          "label": "3:25"
+        },
+        {
+          "id": "D",
+          "label": "4:25"
+        }
+      ],
+      "correctOptionId": "C",
+      "hint": "Each number on the clock represents five minutes for the longer hand.",
+      "explanation": "The long hand shows 25 minutes. The hour hand is past 3 and before 4, so the time is 3:25.",
+      "reviewStatus": "technical-candidate",
+      "asset": {
+        "id": "myl-assess-clock-v1",
+        "version": 1,
+        "width": 640,
+        "height": 460,
+        "svgPath": "assets/myl-assess-clock-v1.svg",
+        "pngPath": "assets/myl-assess-clock-v1.png",
+        "svgSha256": "d5f4138e4f1f098f344f51b2d6eacbbde7b03869215a91d7cb8285f846d6b427",
+        "pngSha256": "9f51f5fe999490dec54d48c574020a58e88d153a9b06b288a857aa778216c74b",
+        "svgBytes": 13898,
+        "pngBytes": 76123
+      },
+      "checks": {
+        "minutes": 25,
+        "hour": 3,
+        "hourAngle": 102.5,
+        "minuteAngle": 150,
+        "minuteTicks": 60
+      }
+    },
+    {
+      "id": "MYL-ASSESS-PROOF-ARRAY-001",
+      "version": 1,
+      "kind": "array",
+      "title": "Array",
+      "question": "How many counters are there altogether?",
+      "alt": "Identical circular counters are arranged in three equal rows, with four counters in each row.",
+      "options": [
+        {
+          "id": "A",
+          "label": "7"
+        },
+        {
+          "id": "B",
+          "label": "10"
+        },
+        {
+          "id": "C",
+          "label": "12"
+        },
+        {
+          "id": "D",
+          "label": "16"
+        }
+      ],
+      "correctOptionId": "C",
+      "hint": "Find how many are in each row, then combine all the rows.",
+      "explanation": "There are 3 rows of 4 counters. 3 × 4 = 12.",
+      "reviewStatus": "technical-candidate",
+      "asset": {
+        "id": "myl-assess-array-v1",
+        "version": 1,
+        "width": 640,
+        "height": 324,
+        "svgPath": "assets/myl-assess-array-v1.svg",
+        "pngPath": "assets/myl-assess-array-v1.png",
+        "svgSha256": "df2e0c9a8e067a545d96cb8ba08dc848cb55fc0f93efa9e67c4d5d892a9b4c93",
+        "pngSha256": "51e40db47df4b9e5ad9fad019bca0667908e9eb23e77ea26387b4d7b7f3e6786",
+        "svgBytes": 1580,
+        "pngBytes": 18109
+      },
+      "checks": {
+        "rows": 3,
+        "columns": 4,
+        "count": 12
+      }
+    },
+    {
+      "id": "MYL-ASSESS-PROOF-MEASUREMENT-001",
+      "version": 1,
+      "kind": "measurement",
+      "title": "Measurement",
+      "question": "How long is the strip?",
+      "alt": "A ruler is labelled in centimetres from 0 to 12. The left end of a strip lines up with 2 cm. The right end lines up with 9 cm.",
+      "options": [
+        {
+          "id": "A",
+          "label": "2 cm"
+        },
+        {
+          "id": "B",
+          "label": "7 cm"
+        },
+        {
+          "id": "C",
+          "label": "9 cm"
+        },
+        {
+          "id": "D",
+          "label": "11 cm"
+        }
+      ],
+      "correctOptionId": "B",
+      "hint": "Find the difference between the two ruler readings.",
+      "explanation": "The strip spans from 2 cm to 9 cm. Its length is 9 − 2 = 7 cm. The screen itself is not a physical centimetre scale.",
+      "reviewStatus": "technical-candidate",
+      "asset": {
+        "id": "myl-assess-measurement-v1",
+        "version": 1,
+        "width": 640,
+        "height": 328,
+        "svgPath": "assets/myl-assess-measurement-v1.svg",
+        "pngPath": "assets/myl-assess-measurement-v1.png",
+        "svgSha256": "a60b89b2db660fb2a838d89db7baf3f65f9be1cdf8ece5247b31b4540ac72536",
+        "pngSha256": "c122c79f9a62a8f8a1675e52b2da74c3ac11857b3c3ea6a33925090fdbabe667",
+        "svgBytes": 10361,
+        "pngBytes": 22463
+      },
+      "checks": {
+        "startCm": 2,
+        "endCm": 9,
+        "lengthCm": 7,
+        "pixelsPerCm": 46
+      }
+    },
+    {
+      "id": "MYL-ASSESS-PROOF-GEOMETRY-001",
+      "version": 1,
+      "kind": "geometry",
+      "title": "Geometry",
+      "question": "Which description fits this triangle?",
+      "alt": "A triangle with one vertical side and one horizontal side meeting at the lower-left corner. A small square is drawn inside that corner. The third side slopes between the other two ends.",
+      "options": [
+        {
+          "id": "A",
+          "label": "Equilateral"
+        },
+        {
+          "id": "B",
+          "label": "Right-angled"
+        },
+        {
+          "id": "C",
+          "label": "Obtuse-angled"
+        },
+        {
+          "id": "D",
+          "label": "Acute-angled"
+        }
+      ],
+      "correctOptionId": "B",
+      "hint": "The small square marks a particular kind of angle.",
+      "explanation": "The vertical and horizontal sides meet at 90°. A triangle containing a 90° angle is right-angled.",
+      "reviewStatus": "technical-candidate",
+      "asset": {
+        "id": "myl-assess-geometry-v1",
+        "version": 1,
+        "width": 640,
+        "height": 360,
+        "svgPath": "assets/myl-assess-geometry-v1.svg",
+        "pngPath": "assets/myl-assess-geometry-v1.png",
+        "svgSha256": "39d1459cbb6d4bd37506d2a325bd5150ec2b828cad0d317403def3ad6a1c60be",
+        "pngSha256": "3f5d361d5dbd55eb78a4074f15d88e7cbb52c56514462e8db405d9f88c8ca953",
+        "svgBytes": 706,
+        "pngBytes": 6540
+      },
+      "checks": {
+        "vertices": [
+          [
+            156,
+            60
+          ],
+          [
+            156,
+            300
+          ],
+          [
+            476,
+            300
+          ]
+        ],
+        "rightAngleVertex": 1
+      }
+    }
+  ]
+}

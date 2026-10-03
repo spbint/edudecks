@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getTrustedAssetProofAccess } from "@/lib/clean/assessments/trusted-asset-proof/access.server";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import AssessmentLabWorkspace from "@/app/components/clean/assessment-lab/AssessmentLabWorkspace";
 
@@ -5,9 +7,17 @@ export const metadata = {
   title: "Assessment Lab | MyLearna",
 };
 
-export default function AssessmentLabPage() {
+export default async function AssessmentLabPage() {
+  const proofAccess = await getTrustedAssetProofAccess();
   return (
     <AssessmentAccessGate mode="lab">
+      {proofAccess.allowed ? (
+        <nav aria-label="Internal assessment proofs" style={{ padding: "16px 24px" }}>
+          <Link href="/assessment-lab/assets-proof" prefetch={false}>
+            Open the six-asset trusted-diagram proof
+          </Link>
+        </nav>
+      ) : null}
       <AssessmentLabWorkspace />
     </AssessmentAccessGate>
   );

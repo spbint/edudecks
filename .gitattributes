@@ -1,2 +1,40 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# MyLearna Assess trusted-asset proof: preserve verified source bytes.
+app/(auth)/assessment-lab/assets-proof/page.tsx text eol=lf
+app/(auth)/assessment-lab/page.tsx text eol=lf
+app/api/internal/assessment-lab/assets-proof/\[fileName\]/route.ts text eol=lf
+app/components/clean/assessment-lab/TrustedAssetProof.tsx text eol=lf
+docs/assessments/trusted-asset-proof.md text eol=lf
+lib/clean/assessments/trusted-asset-proof/access.server.ts text eol=lf
+lib/clean/assessments/trusted-asset-proof/assessment-proof.css text eol=lf
+lib/clean/assessments/trusted-asset-proof/assessment-proof.ts text eol=lf
+lib/clean/assessments/trusted-asset-proof/assetBytes.generated.json text eol=lf
+lib/clean/assessments/trusted-asset-proof/assets/manifest.json text eol=lf
+lib/clean/assessments/trusted-asset-proof/catalogue.server.ts text eol=lf
+lib/clean/assessments/trusted-asset-proof/environment.ts text eol=lf
+lib/clean/assessments/trusted-asset-proof/items.generated.json text eol=lf
+lib/clean/assessments/trusted-asset-proof/response.server.ts text eol=lf
+lib/clean/assessments/trusted-asset-proof/types.ts text eol=lf
+scripts/assessment-proof/http-harness.cjs text eol=lf
+scripts/assessment-proof/sync-assets.py text eol=lf
+scripts/assessment-proof/test-assets.py text eol=lf
+scripts/assessment-proof/test-browser.py text eol=lf
+scripts/assessment-proof/test-delivery.cjs text eol=lf
+scripts/assessment-proof/test-integration.cjs text eol=lf
+scripts/assessment-proof/test-loader.cjs text eol=lf
+scripts/assessment-proof/test-logic.cjs text eol=lf
+scripts/assessment-proof/tsconfig.json text eol=lf
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-array-v1.png -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-array-v1.svg -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-clock-v1.png -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-clock-v1.svg -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-fraction-bar-v1.png -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-fraction-bar-v1.svg -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-geometry-v1.png -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-geometry-v1.svg -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-measurement-v1.png -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-measurement-v1.svg -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-number-line-v1.png -text
+lib/clean/assessments/trusted-asset-proof/assets/myl-assess-number-line-v1.svg -text
