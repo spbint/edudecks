@@ -41,6 +41,12 @@ export function scoreAssessmentItem(
     correct = Boolean(actual) && expectedValues.some(
       (expected) => normalizeResponseValue(expected) === actual,
     );
+  } else if (item.response.type === "ordering") {
+    const expected = [...(item.response.correctOptionIds || [])];
+    const actual = [...selectedOptionIds];
+    correct =
+      expected.length === actual.length &&
+      expected.every((optionId, index) => optionId === actual[index]);
   } else {
     const expected = [...(item.response.correctOptionIds || [])].sort();
     const actual = [...selectedOptionIds].sort();
