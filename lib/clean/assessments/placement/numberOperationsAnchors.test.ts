@@ -211,6 +211,37 @@ describe("Number Operations anchor routing", () => {
     expect(nextSearchTarget(counting, { kind: "search-up", fromP: 8 })).toBeNull();
   });
 
+  it("routes endpoint-search clusters without turning mixed evidence into false precision", () => {
+    const npv = getNumberOperationsAnchorSet("number-place-value");
+    expect(npv).not.toBeNull();
+    if (!npv) return;
+
+    expect(routeSearchCluster(npv, "up", 10, [1, 1])).toEqual({
+      kind: "endpoint",
+      relation: "at-least",
+      pLevel: 10,
+    });
+    expect(routeSearchCluster(npv, "up", 10, [1, 0])).toEqual({
+      kind: "bracket",
+      lowerP: 9,
+      upperP: 10,
+    });
+    expect(routeSearchCluster(npv, "down", 2, [1, 1])).toEqual({
+      kind: "bracket",
+      lowerP: 2,
+      upperP: 3,
+    });
+    expect(routeSearchCluster(npv, "down", 2, [0, 0])).toEqual({
+      kind: "search-down",
+      fromP: 2,
+    });
+    expect(routeSearchCluster(npv, "down", 1, [0, 0])).toEqual({
+      kind: "endpoint",
+      relation: "below-or-around",
+      pLevel: 1,
+    });
+  });
+
   it("narrows a routing bracket without claiming placement", () => {
     const set = getNumberOperationsAnchorSet("number-place-value");
     expect(set).not.toBeNull();
