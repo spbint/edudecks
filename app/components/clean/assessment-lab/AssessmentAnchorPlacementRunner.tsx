@@ -99,7 +99,7 @@ function resultForUnavailableTarget(
   set: NumberOperationsAnchorSet,
   targetP: number,
 ): RunnerStage {
-  const evidenceMode = getAnchorEvidenceMode(set, targetP);
+  const evidenceMode = getProgressionEvidenceMode(set, targetP);
   if (evidenceMode === "hybrid-observed") {
     return {
       kind: "result",
