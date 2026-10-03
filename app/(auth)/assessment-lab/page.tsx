@@ -25,6 +25,9 @@ export default async function AssessmentLabPage() {
           <Link href="/assessment-lab/item-review" prefetch={false}>
             Open the trusted item & visual review lab
           </Link>
+          <Link href="/assessment-lab/numeracy-spine" prefetch={false}>
+            Open the complete numeracy progression spine
+          </Link>
         </nav>
       ) : null}
       <AssessmentLabWorkspace />
