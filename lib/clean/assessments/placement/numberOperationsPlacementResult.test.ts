@@ -58,7 +58,18 @@ describe("Number Operations placement result model", () => {
     });
     expect(result.interpretation).toMatch(/single-digit multiplication\/division/i);
     expect(result.interpretation).toMatch(/inverse operations/i);
-    expect(result.typicalYearAlignment).toBeUndefined();
+    expect(result.typicalYearAlignment).toBe("Years 4–5");
+  });
+
+  it("adds contextual year alignment to money evidence without turning it into the primary placement", () => {
+    const result = buildNumberOperationsCandidateBandResult({
+      subElementKey: "understanding-money",
+      lowerP: 7,
+      upperP: 8,
+    });
+
+    expect(result.typicalYearAlignment).toBe("Years 4–6 to Years 6–8");
+    expect(result.claim).toContain("between P7 and P8");
   });
 
   it("uses open-ended language at the top of the progression", () => {
