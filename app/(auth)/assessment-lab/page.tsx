@@ -12,9 +12,15 @@ export default async function AssessmentLabPage() {
   return (
     <AssessmentAccessGate mode="lab">
       {proofAccess.allowed ? (
-        <nav aria-label="Internal assessment proofs" style={{ padding: "16px 24px" }}>
+        <nav
+          aria-label="Internal assessment proofs"
+          style={{ padding: "16px 24px", display: "flex", gap: 18, flexWrap: "wrap" }}
+        >
           <Link href="/assessment-lab/assets-proof" prefetch={false}>
             Open the six-asset trusted-diagram proof
+          </Link>
+          <Link href="/assessment-lab/placement-simulator" prefetch={false}>
+            Open the Number & Operations anchor-routing simulator
           </Link>
         </nav>
       ) : null}
