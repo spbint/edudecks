@@ -91,11 +91,12 @@ describe("AssessmentAnchorPlacementRunner", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View summary" }));
 
+    expect(screen.getByText("P4–P5")).toBeTruthy();
     expect(
-      screen.getByText("Adjacent candidate neighbourhood: P4–P5"),
+      screen.getByText(/current assessment evidence is concentrated between P4 and P5/i),
     ).toBeTruthy();
     expect(
-      screen.getByText(/final construct-diverse boundary-confirmation set/i),
+      screen.getByText(/verify P5 across more than one construct/i),
     ).toBeTruthy();
     expect(screen.queryByText(/100%/)).toBeNull();
   });
