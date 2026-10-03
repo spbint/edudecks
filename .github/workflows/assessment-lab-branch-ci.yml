@@ -43,6 +43,7 @@ jobs:
           lib/clean/assessments/placement/numeracyProgressionRegistry.test.ts
           lib/clean/assessments/placement/adaptiveProgressionRouting.test.ts
           lib/clean/assessments/placement/measurementUnitsAnchors.test.ts
+          lib/clean/assessments/placement/measurementUnitsRouteCoverage.test.ts
           lib/clean/assessments/placement/numberOperationsAnchors.test.ts
           lib/clean/assessments/placement/numberOperationsP0Audit.test.ts
           lib/clean/assessments/placement/numberOperationsP0Items.test.ts
