@@ -350,6 +350,70 @@ export const ADDITIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   }),
 ];
 
+
+export const MONEY_P5_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-mon-p05-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P05",
+    yearLevel: "Year 4",
+    substrand: "Understanding money",
+    skillId: "money-p5-notation",
+    skillName: "Write dollars and cents in standard decimal notation",
+    prompt: "Which is the correct way to write 3 dollars and 7 cents?",
+    options: [
+      { id: "a", label: "$3.07" },
+      { id: "b", label: "$3.70" },
+      { id: "c", label: "$3.7" },
+      { id: "d", label: "$307" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["money-decimal-place-value-error", "cents-dollars-conversion-error"],
+    tags: ["understanding-money", "p5", "mon-p05-a", "adapted-existing-item"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-mon-p05-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P05",
+    yearLevel: "Year 4",
+    substrand: "Understanding money",
+    skillId: "money-p5-mixed-collection-total",
+    skillName: "Determine the total value of a mixed money collection",
+    prompt: "A collection has two $2 coins, three 50c coins and two 20c coins. What is the total value in dollars?",
+    correctValue: "5.90",
+    acceptableValues: ["5.90", "5.9", "$5.90", "$5.9"],
+    misconceptionTags: ["money-total-error", "dollars-cents-conversion-error"],
+    tags: ["understanding-money", "p5", "mon-p05-b", "text-first-before-currency-assets"],
+  }),
+];
+
+export const MONEY_P8_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-mon-p08-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P08",
+    yearLevel: "Years 6–8",
+    substrand: "Understanding money",
+    skillId: "money-p8-discount",
+    skillName: "Calculate a percentage discount and sale price",
+    prompt: "A $90 jacket is reduced by 20%. What is the sale price in dollars?",
+    correctValue: "72",
+    acceptableValues: ["72", "$72", "72.00", "$72.00"],
+    misconceptionTags: ["discount-vs-sale-price-error", "percentage-of-quantity-error"],
+    tags: ["understanding-money", "p8", "mon-p08-a", "adapted-existing-item"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-mon-p08-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P08",
+    yearLevel: "Years 6–8",
+    substrand: "Understanding money",
+    skillId: "money-p8-simple-interest",
+    skillName: "Calculate simple interest from a percentage rate",
+    prompt: "$500 is borrowed for 1 year at 6% simple interest. How many dollars of interest are charged?",
+    correctValue: "30",
+    acceptableValues: ["30", "$30", "30.00", "$30.00"],
+    misconceptionTags: ["simple-interest-error", "percentage-rate-error"],
+    tags: ["understanding-money", "p8", "mon-p08-b"],
+  }),
+];
+
 export const MULTIPLICATIVE_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   shortAnswerItem({
     id: "myl-anchor-mul-p06-a-v1",
@@ -515,4 +579,6 @@ export const NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS = {
   "additive-strategies-p9": ADDITIVE_P9_ANCHOR_ITEMS,
   "multiplicative-strategies-p6": MULTIPLICATIVE_P6_ANCHOR_ITEMS,
   "multiplicative-strategies-p9": MULTIPLICATIVE_P9_ANCHOR_ITEMS,
+  "understanding-money-p5": MONEY_P5_ANCHOR_ITEMS,
+  "understanding-money-p8": MONEY_P8_ANCHOR_ITEMS,
 } as const;
