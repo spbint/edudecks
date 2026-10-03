@@ -158,12 +158,23 @@ export const MEASUREMENT_UNITS_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
     yearLevel: "Years 3–5",
     skillId: "uom-p6-scale-calibration",
     skillName: "Interpret equal intervals on a metric scale",
-    prompt:
-      "A mass scale has 3 unlabelled marks between 2 kg and 3 kg, making 4 equal intervals. How many kilograms does each interval represent?",
-    correctValue: "0.25",
-    acceptableValues: ["0.25", "0.25 kg", ".25", ".25 kg"],
+    prompt: "What mass does the pointer show, in kilograms?",
+    correctValue: "2.25",
+    acceptableValues: ["2.25", "2.25 kg"],
+    stimulus: {
+      type: "graduated-scale",
+      data: {
+        min: 2,
+        max: 3,
+        majorStep: 1,
+        subdivisions: 4,
+        marker: 2.25,
+        unit: "kg",
+        orientation: "horizontal",
+      },
+    },
     misconceptionTags: ["scaled-instrument-interval-error"],
-    tags: ["p6", "scale-interpretation"],
+    tags: ["p6", "scale-interpretation", "trusted-deterministic-visual"],
   }),
   short({
     id: "myl-anchor-uom-p06-b-v1",
