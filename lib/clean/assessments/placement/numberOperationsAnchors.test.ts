@@ -77,7 +77,11 @@ describe("Number Operations anchor routing", () => {
     expect(npv && getProgressionEvidenceMode(npv, 2)).toBe("direct");
     expect(counting && getProgressionEvidenceMode(counting, 4)).toBe("hybrid-observed");
     expect(additive && getProgressionEvidenceMode(additive, 3)).toBe("hybrid-observed");
+    expect(additive && getProgressionEvidenceMode(additive, 5)).toBe("hybrid-observed");
+    expect(additive && getProgressionEvidenceMode(additive, 6)).toBe("direct");
     expect(multiplicative && getProgressionEvidenceMode(multiplicative, 3)).toBe("hybrid-observed");
+    expect(multiplicative && getProgressionEvidenceMode(multiplicative, 4)).toBe("hybrid-observed");
+    expect(multiplicative && getProgressionEvidenceMode(multiplicative, 5)).toBe("direct");
     expect(money && getProgressionEvidenceMode(money, 2)).toBe("asset-review");
     expect(money && getProgressionEvidenceMode(money, 5)).toBe("direct");
   });
