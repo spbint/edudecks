@@ -22,6 +22,23 @@ describe("MyLearna Assess V1 scoring", () => {
     });
   });
 
+  it("scores normalized short-answer responses", () => {
+    const item: MyLearnaAssessmentItem = {
+      ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+      id: "short-answer-proof",
+      template: "short-answer",
+      stimulus: { type: "none", data: {} },
+      response: {
+        type: "short-answer",
+        correctValue: "3500",
+        acceptableValues: ["3,500"],
+      },
+    };
+
+    expect(scoreAssessmentItem(item, [], 4, " 3,500 ").correct).toBe(true);
+    expect(scoreAssessmentItem(item, [], 4, "3499").correct).toBe(false);
+  });
+
   it("records misconception tags for incorrect responses", () => {
     const item = MYLEARNA_ASSESS_DEMO_ITEMS[0];
     const response = scoreAssessmentItem(item, ["a"]);
