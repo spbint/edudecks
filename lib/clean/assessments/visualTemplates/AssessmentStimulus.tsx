@@ -4,6 +4,7 @@ import type {
   CounterSetStimulus,
   CurrencyTokenStimulus,
   FractionBarStimulus,
+  GraduatedScaleStimulus,
   MyLearnaAssessmentStimulus,
   NumberLineStimulus,
   PlaceValueBlocksStimulus,
@@ -14,6 +15,7 @@ import { ArrayVisual } from "@/lib/clean/assessments/visualTemplates/ArrayVisual
 import { CounterSetVisual } from "@/lib/clean/assessments/visualTemplates/CounterSetVisual";
 import { CurrencyTokenVisual } from "@/lib/clean/assessments/visualTemplates/CurrencyTokenVisual";
 import { FractionBarVisual } from "@/lib/clean/assessments/visualTemplates/FractionBarVisual";
+import { GraduatedScaleVisual } from "@/lib/clean/assessments/visualTemplates/GraduatedScaleVisual";
 import { InvalidStimulus } from "@/lib/clean/assessments/visualTemplates/InvalidStimulus";
 import { NumberLineVisual } from "@/lib/clean/assessments/visualTemplates/NumberLineVisual";
 import { PlaceValueBlocksVisual } from "@/lib/clean/assessments/visualTemplates/PlaceValueBlocksVisual";
@@ -38,6 +40,8 @@ export function AssessmentStimulus({ stimulus }: { stimulus: MyLearnaAssessmentS
       return <FractionBarVisual data={stimulus.data as FractionBarStimulus} altText={stimulus.altText} />;
     case "currency-tokens":
       return <CurrencyTokenVisual data={stimulus.data as CurrencyTokenStimulus} altText={stimulus.altText} />;
+    case "graduated-scale":
+      return <GraduatedScaleVisual data={stimulus.data as GraduatedScaleStimulus} altText={stimulus.altText} />;
     case "shape-set":
       return <ShapeSetVisual data={stimulus.data as ShapeSetStimulus} altText={stimulus.altText} />;
     default:
