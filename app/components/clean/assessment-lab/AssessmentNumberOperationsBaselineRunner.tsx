@@ -18,6 +18,7 @@ import {
   buildNumberOperationsBaselineDraft,
   parseNumberOperationsBaselineDraft,
 } from "@/lib/clean/assessments/placement/numberOperationsBaselineDraft";
+import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/placement/numberOperationsBaselineBudget";
 
 const ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -105,6 +106,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
   ]);
 
   const currentKey = ORDER[currentIndex];
+  const budget = useMemo(() => getNumberOperationsBaselineBudget(), []);
   const profile = useMemo(
     () => buildNumberOperationsProfile(Object.values(resultsByKey)),
     [resultsByKey],
@@ -280,6 +282,23 @@ export default function AssessmentNumberOperationsBaselineRunner() {
           the final profile does not average the five continua into a single
           level.
         </p>
+        <div
+          style={{
+            border: "1px solid #D9D0FF",
+            borderRadius: 14,
+            background: "#F8F5FF",
+            padding: 12,
+            display: "grid",
+            gap: 4,
+          }}
+        >
+          <strong style={{ color: "#17204B" }}>Adaptive question budget</strong>
+          <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+            The current five-area route is bounded between {budget.minimumQuestions} and{" "}
+            {budget.maximumQuestions} questions. Strong or clearly weak evidence can
+            finish an area sooner; ambiguous evidence triggers reserve or boundary probes.
+          </span>
+        </div>
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
           Staff preview pause/resume: completed areas are saved only in this
           browser tab. If the tab closes mid-area, that current area starts
