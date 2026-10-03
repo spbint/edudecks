@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
+import { COUNTING_P5_ANCHOR_ITEMS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
   routeBranchAnchor,
@@ -205,6 +207,23 @@ export default function AssessmentAnchorRoutingLab() {
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 14 }}>
           {anchorSet.anchors.map((anchor) => <AnchorCard key={anchor.progressionId} anchor={anchor} />)}
         </section>
+
+        {selectedKey === "counting-processes" ? (
+          <section style={card}>
+            <div style={{ display: "grid", gap: 6 }}>
+              <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+                Executable anchor prototype
+              </span>
+              <h2 style={{ margin: 0, color: "#17204B" }}>Counting processes · P5 mini-cluster</h2>
+              <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
+                These are the first two newly authored P0 anchor items running through the shared AssessmentPlayerV1.
+                They are draft lab items only. The visual-counting item still requires a separate accessible-form design
+                before any customer-facing use.
+              </p>
+            </div>
+            <AssessmentPlayerV1 title="Counting P5 anchor mini-cluster" items={COUNTING_P5_ANCHOR_ITEMS} />
+          </section>
+        ) : null}
 
         <section style={card}>
           <h2 style={{ margin: 0, color: "#17204B" }}>1 · Initial anchor P{anchorSet.initialP}</h2>
