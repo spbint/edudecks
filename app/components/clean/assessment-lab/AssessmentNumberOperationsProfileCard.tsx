@@ -107,6 +107,56 @@ export default function AssessmentNumberOperationsProfileCard({
       </div>
 
       <div style={card}>
+        <strong style={{ color: "#17204B" }}>Recommended next learning actions</strong>
+        <div style={{ display: "grid", gap: 10 }}>
+          {profile.recommendations.map((recommendation) => (
+            <div
+              key={recommendation.subElementKey}
+              style={{
+                borderTop: "1px solid #EEF2F7",
+                paddingTop: 10,
+                display: "grid",
+                gap: 4,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <strong style={{ color: "#17204B" }}>
+                  {recommendation.subElementLabel}
+                </strong>
+                <span
+                  style={{
+                    color:
+                      recommendation.kind === "verify-with-observation"
+                        ? "#92400E"
+                        : "#6C4DF6",
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  {recommendation.title}
+                </span>
+              </div>
+              <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
+                {recommendation.rationale}
+              </span>
+              {recommendation.resourceLinkStatus === "not-yet-mapped" ? (
+                <small style={{ color: "#64748B" }}>
+                  Resource/Pathways link not mapped yet.
+                </small>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={card}>
         <strong style={{ color: "#17204B" }}>Coverage</strong>
         <span style={{ color: "#5B6478" }}>
           {profile.assessedSubElements} of {profile.expectedSubElements} sub-elements
