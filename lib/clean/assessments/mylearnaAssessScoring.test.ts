@@ -39,6 +39,32 @@ describe("MyLearna Assess V1 scoring", () => {
     expect(scoreAssessmentItem(item, [], 4, "3499").correct).toBe(false);
   });
 
+  it("scores ordering responses by exact sequence rather than set membership", () => {
+    const item: MyLearnaAssessmentItem = {
+      ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+      id: "ordering-proof-v1",
+      version: 1,
+      template: "ordering",
+      stimulus: { type: "none", data: {} },
+      response: {
+        type: "ordering",
+        options: [
+          { id: "three", label: "3", value: 3 },
+          { id: "one", label: "1", value: 1 },
+          { id: "two", label: "2", value: 2 },
+        ],
+        correctOptionIds: ["one", "two", "three"],
+      },
+    };
+
+    expect(
+      scoreAssessmentItem(item, ["one", "two", "three"], 5).correct,
+    ).toBe(true);
+    expect(
+      scoreAssessmentItem(item, ["three", "two", "one"], 5).correct,
+    ).toBe(false);
+  });
+
   it("records misconception tags for incorrect responses", () => {
     const item = MYLEARNA_ASSESS_DEMO_ITEMS[0];
     const response = scoreAssessmentItem(item, ["a"]);
