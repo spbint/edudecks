@@ -46,6 +46,19 @@ describe("Number Operations anchor routing", () => {
     ).toBe(false);
   });
 
+  it("marks lower anchors that cannot support unsupervised exact placement", () => {
+    const counting = getNumberOperationsAnchorSet("counting-processes");
+    const additive = getNumberOperationsAnchorSet("additive-strategies");
+    const multiplicative = getNumberOperationsAnchorSet("multiplicative-strategies");
+    const money = getNumberOperationsAnchorSet("understanding-money");
+    const npv = getNumberOperationsAnchorSet("number-place-value");
+    expect(counting && getAnchorEvidenceMode(counting, 2)).toBe("hybrid-observed");
+    expect(additive && getAnchorEvidenceMode(additive, 3)).toBe("hybrid-observed");
+    expect(multiplicative && getAnchorEvidenceMode(multiplicative, 3)).toBe("hybrid-observed");
+    expect(money && getAnchorEvidenceMode(money, 2)).toBe("asset-review");
+    expect(npv && getAnchorEvidenceMode(npv, 3)).toBe("direct");
+  });
+
   it("routes a clear initial anchor down, up, or to an extra same-level probe", () => {
     const set = getNumberOperationsAnchorSet("number-place-value");
     expect(set).not.toBeNull();
