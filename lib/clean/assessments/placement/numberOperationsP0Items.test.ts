@@ -6,6 +6,8 @@ import {
   COUNTING_P7_ANCHOR_ITEMS,
   MULTIPLICATIVE_P6_ANCHOR_ITEMS,
   MULTIPLICATIVE_P9_ANCHOR_ITEMS,
+  MONEY_P5_ANCHOR_ITEMS,
+  MONEY_P8_ANCHOR_ITEMS,
   NPV_P3_ANCHOR_ITEMS,
   NPV_P6_ANCHOR_ITEMS,
   NPV_P9_ANCHOR_ITEMS,
@@ -25,10 +27,12 @@ describe("Number & Operations executable P0 anchor items", () => {
       "additive-strategies-p9",
       "multiplicative-strategies-p6",
       "multiplicative-strategies-p9",
+      "understanding-money-p5",
+      "understanding-money-p8",
     ]);
 
     const all = Object.values(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).flat();
-    expect(all).toHaveLength(18);
+    expect(all).toHaveLength(22);
     expect(all.every((item) => item.status === "draft")).toBe(true);
   });
 
@@ -84,6 +88,15 @@ describe("Number & Operations executable P0 anchor items", () => {
     expect(COUNTING_P7_ANCHOR_ITEMS).toHaveLength(2);
     expect(COUNTING_P7_ANCHOR_ITEMS[0].response.correctValue).toBe("28");
     expect(COUNTING_P7_ANCHOR_ITEMS[1].response.correctValue).toBe("47");
+  });
+
+  it("implements Money P5 and P8 without waiting for denomination artwork", () => {
+    expect(MONEY_P5_ANCHOR_ITEMS).toHaveLength(2);
+    expect(MONEY_P8_ANCHOR_ITEMS).toHaveLength(2);
+    expect(MONEY_P5_ANCHOR_ITEMS[0].response.correctOptionIds).toEqual(["a"]);
+    expect(MONEY_P5_ANCHOR_ITEMS[1].response.correctValue).toBe("5.90");
+    expect(MONEY_P8_ANCHOR_ITEMS[0].response.correctValue).toBe("72");
+    expect(MONEY_P8_ANCHOR_ITEMS[1].response.correctValue).toBe("30");
   });
 
   it("implements the direct Additive and Multiplicative anchor clusters without the hybrid lower strategy anchors", () => {
