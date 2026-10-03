@@ -1,6 +1,7 @@
 import type {
   ArrayStimulus,
   CounterSetStimulus,
+  CurrencyTokenStimulus,
   FractionBarStimulus,
   NumberLineStimulus,
   PlaceValueBlocksStimulus,
@@ -56,6 +57,13 @@ export function describePlaceValueBlocks(data: PlaceValueBlocksStimulus) {
 
 export function describeFractionBar(data: FractionBarStimulus) {
   return `Fraction bar showing ${data.numerator} out of ${data.denominator} equal parts shaded.`;
+}
+
+export function describeCurrencyTokens(data: CurrencyTokenStimulus) {
+  if (!data.tokens.length) return "No money tokens are shown.";
+  return `Money tokens shown in this order: ${data.tokens
+    .map((token) => token.denomination)
+    .join(", ")}.`;
 }
 
 export function describeShapeSet(data: ShapeSetStimulus) {
