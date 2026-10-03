@@ -81,6 +81,9 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
   it("collects five independent area results into one profile", () => {
     render(React.createElement(AssessmentNumberOperationsBaselineRunner));
 
+    expect(screen.getByText("Adaptive question budget")).toBeTruthy();
+    expect(screen.getByText(/bounded between \d+ and \d+ questions/i)).toBeTruthy();
+
     const keys = [
       "number-place-value",
       "counting-processes",
