@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import AssessmentPlacementResultCard from "@/app/components/clean/assessment-lab/AssessmentPlacementResultCard";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
@@ -127,8 +127,10 @@ function resultForUnavailableTarget(
 
 export default function AssessmentAnchorPlacementRunner({
   anchorSetKey,
+  onResult,
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
+  onResult?: (result: NumberOperationsPlacementResult | null) => void;
 }) {
   const anchorSet = useMemo(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
@@ -146,6 +148,7 @@ export default function AssessmentAnchorPlacementRunner({
     useState<InitialAnchorRoute | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [evidenceNotes, setEvidenceNotes] = useState<string[]>([]);
+  const reportedResultKey = useRef<string | null>(null);
 
   const reset = useCallback(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
@@ -154,7 +157,18 @@ export default function AssessmentAnchorPlacementRunner({
     setResolvedInitialRoute(null);
     setHistory([]);
     setEvidenceNotes([]);
+    reportedResultKey.current = null;
   }, [anchorSetKey]);
+
+  useEffect(() => {
+    if (stage.kind !== "result" || !onResult) return;
+    const key = stage.placementResult
+      ? JSON.stringify(stage.placementResult)
+      : `${stage.headline}::${stage.detail}`;
+    if (reportedResultKey.current === key) return;
+    reportedResultKey.current = key;
+    onResult(stage.placementResult || null);
+  }, [onResult, stage]);
 
   const pushHistory = useCallback(
     (entry: string) => setHistory((current) => [...current, entry]),
