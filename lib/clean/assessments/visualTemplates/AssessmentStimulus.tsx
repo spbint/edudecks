@@ -20,6 +20,8 @@ import { TenFrameVisual } from "@/lib/clean/assessments/visualTemplates/TenFrame
 
 export function AssessmentStimulus({ stimulus }: { stimulus: MyLearnaAssessmentStimulus }) {
   switch (stimulus.type) {
+    case "none":
+      return null;
     case "counter-set":
       return <CounterSetVisual data={stimulus.data as CounterSetStimulus} altText={stimulus.altText} />;
     case "ten-frame":
