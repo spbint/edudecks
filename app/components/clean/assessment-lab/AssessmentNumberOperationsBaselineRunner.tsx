@@ -11,6 +11,7 @@ import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
 } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
+import type { NumberOperationsSubElementAttemptTrace } from "@/lib/clean/assessments/placement/numberOperationsAttemptTrace";
 
 const ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -43,6 +44,9 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     Partial<Record<NumberOperationsSubElementKey, NumberOperationsPlacementResult>>
   >({});
   const [unresolved, setUnresolved] = useState<NumberOperationsSubElementKey[]>([]);
+  const [tracesByKey, setTracesByKey] = useState<
+    Partial<Record<NumberOperationsSubElementKey, NumberOperationsSubElementAttemptTrace>>
+  >({});
   const [pendingResult, setPendingResult] = useState<
     NumberOperationsPlacementResult | null | undefined
   >(undefined);
@@ -60,6 +64,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     setCurrentIndex(0);
     setResultsByKey({});
     setUnresolved([]);
+    setTracesByKey({});
     setPendingResult(undefined);
     setComplete(false);
     setCompletedAt(null);
@@ -98,6 +103,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     const baselineSnapshot = buildNumberOperationsBaselineSummarySnapshot({
       profile: finalProfile,
       unresolvedSubElements: unresolved,
+      subElementAttempts: Object.values(tracesByKey),
       startedAt: startedAtRef.current,
       completedAt: completedAt || new Date().toISOString(),
     });
@@ -213,6 +219,12 @@ export default function AssessmentNumberOperationsBaselineRunner() {
         key={currentKey}
         anchorSetKey={currentKey}
         onResult={setPendingResult}
+        onAttemptTrace={(trace) =>
+          setTracesByKey((current) => ({
+            ...current,
+            [currentKey]: trace,
+          }))
+        }
       />
 
       {pendingResult !== undefined ? (
