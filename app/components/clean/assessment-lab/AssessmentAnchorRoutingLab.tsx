@@ -10,6 +10,7 @@ import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
   bracketFromBranchRoute,
   nextBoundaryTarget,
+  nextSearchTarget,
   resolveInitialAnchorWithReserve,
   routeBranchAnchor,
   routeInitialAnchor,
@@ -187,6 +188,7 @@ export default function AssessmentAnchorRoutingLab() {
   const branchRoute = routeBranchAnchor(anchorSet, resolvedInitialRoute, branch);
   const branchBracket = bracketFromBranchRoute(branchRoute);
   const nextBoundaryP = branchBracket ? nextBoundaryTarget(branchBracket) : null;
+  const nextSearchP = nextSearchTarget(anchorSet, branchRoute);
 
   const reset = (key = selectedKey) => {
     setSelectedKey(key);
@@ -335,6 +337,15 @@ export default function AssessmentAnchorRoutingLab() {
           <div role="status" style={{ borderLeft: "4px solid #17204B", padding: "10px 14px", background: "#EEF2F7", color: "#17204B" }}>
             <strong>{describeBranchRoute(branchRoute)}</strong>
           </div>
+          {nextSearchP ? (
+            <div style={{ border: "1px solid #D9D0FF", borderRadius: 14, padding: 14, background: "#F8F5FF" }}>
+              <strong style={{ color: "#17204B" }}>Continue search</strong>
+              <p style={{ margin: "6px 0 0", color: "#5B6478", lineHeight: 1.55 }}>
+                The next deterministic search target is P{nextSearchP}. This remains routing evidence only;
+                the result is not a placement claim.
+              </p>
+            </div>
+          ) : null}
           {branchBracket ? (
             <div style={{ border: "1px solid #D9D0FF", borderRadius: 14, padding: 14, background: "#F8F5FF" }}>
               <strong style={{ color: "#17204B" }}>Boundary search</strong>
