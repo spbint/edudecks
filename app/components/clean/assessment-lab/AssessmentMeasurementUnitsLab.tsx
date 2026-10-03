@@ -8,23 +8,32 @@ import {
   getMeasurementUnitsEvidenceMode,
 } from "@/lib/clean/assessments/placement/measurementUnitsAnchors";
 import {
+  MEASUREMENT_UNITS_BOUNDARY_CLUSTERS,
   MEASUREMENT_UNITS_EXECUTABLE_ANCHORS,
   MEASUREMENT_UNITS_P6_RESERVE_ITEM,
+  MEASUREMENT_UNITS_SEARCH_CLUSTERS,
 } from "@/lib/clean/assessments/placement/measurementUnitsItems";
 import {
+  applyAdaptiveBoundaryEvidence,
+  nextAdaptiveBoundaryTarget,
+  nextAdaptiveSearchTarget,
   resolveAdaptiveInitialWithReserve,
   routeAdaptiveBranch,
   routeAdaptiveInitial,
+  routeAdaptiveSearch,
   type AdaptiveBinaryResult,
   type AdaptiveInitialRoute,
+  type AdaptiveProgressionBracket,
 } from "@/lib/clean/assessments/placement/adaptiveProgressionRouting";
 
 type Stage =
   | { kind: "initial" }
   | { kind: "reserve"; initial: [AdaptiveBinaryResult, AdaptiveBinaryResult] }
+  | { kind: "branch"; route: AdaptiveInitialRoute; pLevel: number }
+  | { kind: "search"; direction: "down" | "up"; pLevel: number }
   | {
-      kind: "branch";
-      route: AdaptiveInitialRoute;
+      kind: "boundary";
+      bracket: AdaptiveProgressionBracket;
       pLevel: number;
     }
   | {
@@ -52,43 +61,172 @@ function pair(
   ];
 }
 
-function itemsAt(pLevel: number) {
+function poolKey(pLevel: number) {
+  return `understanding-units-measurement-p${pLevel}`;
+}
+
+function anchorItemsAt(pLevel: number) {
   return (
     MEASUREMENT_UNITS_EXECUTABLE_ANCHORS[
-      `understanding-units-measurement-p${pLevel}` as keyof typeof MEASUREMENT_UNITS_EXECUTABLE_ANCHORS
+      poolKey(pLevel) as keyof typeof MEASUREMENT_UNITS_EXECUTABLE_ANCHORS
     ] || null
   );
 }
 
+function searchItemsAt(pLevel: number) {
+  return (
+    MEASUREMENT_UNITS_SEARCH_CLUSTERS[
+      poolKey(pLevel) as keyof typeof MEASUREMENT_UNITS_SEARCH_CLUSTERS
+    ] || null
+  );
+}
+
+function boundaryItemsAt(pLevel: number) {
+  return (
+    MEASUREMENT_UNITS_BOUNDARY_CLUSTERS[
+      poolKey(pLevel) as keyof typeof MEASUREMENT_UNITS_BOUNDARY_CLUSTERS
+    ] || null
+  );
+}
+
+function practicalWarning(lowerP: number, upperP = lowerP) {
+  for (let p = lowerP; p <= upperP; p += 1) {
+    if (getMeasurementUnitsEvidenceMode(p) === "hybrid-practical") {
+      return "This result includes practical measurement constructs. Electronic responses can locate the learning neighbourhood, but high-confidence lower-level placement requires observed use of real measurement materials.";
+    }
+  }
+  return undefined;
+}
+
 export default function AssessmentMeasurementUnitsLab() {
   const [stage, setStage] = useState<Stage>({ kind: "initial" });
+  const [trace, setTrace] = useState<string[]>([]);
 
-  const reset = useCallback(() => setStage({ kind: "initial" }), []);
+  const addTrace = useCallback(
+    (message: string) => setTrace((current) => [...current, message]),
+    [],
+  );
 
-  const routeResolvedInitial = useCallback((route: AdaptiveInitialRoute) => {
-    if (route.kind !== "down" && route.kind !== "up") return;
-    setStage({
-      kind: "branch",
-      route,
-      pLevel: route.targetP,
-    });
+  const reset = useCallback(() => {
+    setStage({ kind: "initial" });
+    setTrace([]);
   }, []);
 
-  const handleInitial = useCallback((responses: MyLearnaAssessmentResponse[]) => {
-    const results = pair(responses);
-    const route = routeAdaptiveInitial(MEASUREMENT_UNITS_ANCHOR_SET, results);
+  const finishBracket = useCallback(
+    (bracket: AdaptiveProgressionBracket) => {
+      const nextP = nextAdaptiveBoundaryTarget(bracket);
+      if (nextP) {
+        const items = boundaryItemsAt(nextP);
+        if (items) {
+          addTrace(
+            `Boundary search continues at P${nextP} within P${bracket.lowerP}–P${bracket.upperP}.`,
+          );
+          setStage({ kind: "boundary", bracket, pLevel: nextP });
+          return;
+        }
+      }
 
-    if (route.kind === "same-level-extra") {
-      setStage({ kind: "reserve", initial: results });
-      return;
-    }
+      setStage({
+        kind: "result",
+        headline: `Candidate measurement neighbourhood: P${bracket.lowerP}–P${bracket.upperP}`,
+        detail:
+          bracket.upperP - bracket.lowerP === 1
+            ? "The adaptive route has narrowed to adjacent progression levels. This is an evidence band, not an averaged or psychometric level."
+            : "The route has found a measurement neighbourhood, but a required boundary pool is not yet executable. No narrower result is inferred.",
+        evidenceWarning: practicalWarning(bracket.lowerP, bracket.upperP),
+      });
+    },
+    [addTrace],
+  );
 
-    routeResolvedInitial(route);
-  }, [routeResolvedInitial]);
+  const continueSearch = useCallback(
+    (direction: "down" | "up", fromP: number) => {
+      const route =
+        direction === "down"
+          ? ({ kind: "search-down", fromP } as const)
+          : ({ kind: "search-up", fromP } as const);
+      const targetP = nextAdaptiveSearchTarget(
+        MEASUREMENT_UNITS_ANCHOR_SET,
+        route,
+      );
+
+      if (!targetP) {
+        setStage({
+          kind: "result",
+          headline:
+            direction === "up"
+              ? `Evidence reaches at least P${fromP}.`
+              : `Evidence is below or around P${fromP}.`,
+          detail:
+            "The adaptive route has reached the source progression endpoint. MyLearna does not invent a level outside the QCAA progression.",
+          evidenceWarning:
+            direction === "down" ? practicalWarning(fromP) : undefined,
+        });
+        return;
+      }
+
+      const items = searchItemsAt(targetP);
+      if (!items) {
+        setStage({
+          kind: "result",
+          headline: `Search target P${targetP} is not executable yet.`,
+          detail:
+            "The route stops safely because no score-bearing content exists for the next target.",
+          evidenceWarning:
+            direction === "down" ? practicalWarning(targetP) : undefined,
+        });
+        return;
+      }
+
+      addTrace(`Continue ${direction} to P${targetP}.`);
+      setStage({ kind: "search", direction, pLevel: targetP });
+    },
+    [addTrace],
+  );
+
+  const routeResolvedInitial = useCallback(
+    (route: AdaptiveInitialRoute) => {
+      if (route.kind !== "down" && route.kind !== "up") return;
+      addTrace(
+        `Initial P${MEASUREMENT_UNITS_ANCHOR_SET.initialP} evidence routed ${route.kind} to P${route.targetP}.`,
+      );
+      setStage({
+        kind: "branch",
+        route,
+        pLevel: route.targetP,
+      });
+    },
+    [addTrace],
+  );
+
+  const handleInitial = useCallback(
+    (responses: MyLearnaAssessmentResponse[]) => {
+      const results = pair(responses);
+      const route = routeAdaptiveInitial(
+        MEASUREMENT_UNITS_ANCHOR_SET,
+        results,
+      );
+
+      if (route.kind === "same-level-extra") {
+        addTrace("Initial P6 evidence was mixed; use reserve probe C.");
+        setStage({ kind: "reserve", initial: results });
+        return;
+      }
+
+      routeResolvedInitial(route);
+    },
+    [addTrace, routeResolvedInitial],
+  );
 
   const handleReserve = useCallback(
-    (responses: MyLearnaAssessmentResponse[], initial: [AdaptiveBinaryResult, AdaptiveBinaryResult]) => {
+    (
+      responses: MyLearnaAssessmentResponse[],
+      initial: [AdaptiveBinaryResult, AdaptiveBinaryResult],
+    ) => {
       const reserve: AdaptiveBinaryResult = responses[0]?.correct ? 1 : 0;
+      addTrace(
+        `P6 reserve probe was ${reserve ? "supported" : "not supported"}.`,
+      );
       routeResolvedInitial(
         resolveAdaptiveInitialWithReserve(
           MEASUREMENT_UNITS_ANCHOR_SET,
@@ -97,7 +235,7 @@ export default function AssessmentMeasurementUnitsLab() {
         ),
       );
     },
-    [routeResolvedInitial],
+    [addTrace, routeResolvedInitial],
   );
 
   const handleBranch = useCallback(
@@ -109,54 +247,110 @@ export default function AssessmentMeasurementUnitsLab() {
       );
 
       if (result.kind === "bracket") {
-        const lowerMode = getMeasurementUnitsEvidenceMode(result.lowerP);
-        setStage({
-          kind: "result",
-          headline: `Candidate measurement neighbourhood: P${result.lowerP}–P${result.upperP}`,
-          detail:
-            "The second-strand proof has located a progression neighbourhood. Adjacent-level search and confirmation content are the next build step; no exact measurement placement is claimed yet.",
-          ...(lowerMode === "hybrid-practical"
-            ? {
-                evidenceWarning:
-                  "This neighbourhood includes practical measurement constructs. Electronic responses may route the learner, but high-confidence lower-level placement requires observed use of measurement materials.",
-              }
-            : {}),
+        addTrace(
+          `Branch evidence located P${result.lowerP}–P${result.upperP}.`,
+        );
+        finishBracket({
+          lowerP: result.lowerP,
+          upperP: result.upperP,
         });
         return;
       }
 
       if (result.kind === "search-down" || result.kind === "search-up") {
-        const nextP =
-          result.kind === "search-down"
-            ? result.fromP - 1
-            : result.fromP + 1;
+        continueSearch(
+          result.kind === "search-down" ? "down" : "up",
+          result.fromP,
+        );
+      }
+    },
+    [addTrace, continueSearch, finishBracket],
+  );
+
+  const handleSearch = useCallback(
+    (
+      responses: MyLearnaAssessmentResponse[],
+      direction: "down" | "up",
+      pLevel: number,
+    ) => {
+      const result = routeAdaptiveSearch(
+        MEASUREMENT_UNITS_ANCHOR_SET,
+        direction,
+        pLevel,
+        pair(responses),
+      );
+      addTrace(
+        `P${pLevel} search evidence returned ${responses.filter((response) => response.correct).length}/${responses.length}.`,
+      );
+
+      if (result.kind === "endpoint") {
         setStage({
           kind: "result",
           headline:
-            result.kind === "search-down"
-              ? "Evidence remains below the lower anchor."
-              : "Evidence remains above the upper anchor.",
-          detail: `The deterministic next target is P${nextP}. That search cluster is intentionally not authored yet; this staff proof stops rather than inventing a result.`,
-          ...(result.kind === "search-down"
-            ? {
-                evidenceWarning:
-                  "Lower measurement levels are strongly practical. The next design step must include an observed/practical evidence mode rather than converting every source indicator into a click task.",
-              }
-            : {}),
+            result.relation === "at-least"
+              ? `Evidence reaches at least P${result.pLevel}.`
+              : `Evidence is below or around P${result.pLevel}.`,
+          detail:
+            "This is open-ended source-endpoint language, not a fabricated progression level.",
+          evidenceWarning:
+            result.relation === "below-or-around"
+              ? practicalWarning(result.pLevel)
+              : undefined,
         });
+        return;
+      }
+
+      if (result.kind === "bracket") {
+        finishBracket({
+          lowerP: result.lowerP,
+          upperP: result.upperP,
+        });
+        return;
+      }
+
+      if (result.kind === "search-down" || result.kind === "search-up") {
+        continueSearch(
+          result.kind === "search-down" ? "down" : "up",
+          result.fromP,
+        );
       }
     },
-    [],
+    [addTrace, continueSearch, finishBracket],
   );
 
-  let player = null;
+  const handleBoundary = useCallback(
+    (
+      responses: MyLearnaAssessmentResponse[],
+      bracket: AdaptiveProgressionBracket,
+      pLevel: number,
+    ) => {
+      const supported =
+        responses.filter((response) => response.correct).length >= 2;
+      const narrowed = applyAdaptiveBoundaryEvidence(
+        bracket,
+        pLevel,
+        supported,
+      );
+      addTrace(
+        `P${pLevel} boundary was ${supported ? "supported" : "not sufficiently supported"}; bracket is P${narrowed.lowerP}–P${narrowed.upperP}.`,
+      );
+      finishBracket(narrowed);
+    },
+    [addTrace, finishBracket],
+  );
+
+  let player: React.ReactNode = null;
 
   if (stage.kind === "initial") {
     player = (
       <AssessmentPlayerV1
         key="measurement-p6-initial"
         title="Understanding units of measurement · P6 initial anchor"
-        items={[...MEASUREMENT_UNITS_EXECUTABLE_ANCHORS["understanding-units-measurement-p6"]]}
+        items={[
+          ...MEASUREMENT_UNITS_EXECUTABLE_ANCHORS[
+            "understanding-units-measurement-p6"
+          ],
+        ]}
         mode="placement"
         onComplete={handleInitial}
       />
@@ -172,7 +366,7 @@ export default function AssessmentMeasurementUnitsLab() {
       />
     );
   } else if (stage.kind === "branch") {
-    const items = itemsAt(stage.pLevel);
+    const items = anchorItemsAt(stage.pLevel);
     player = items ? (
       <AssessmentPlayerV1
         key={`measurement-branch-p${stage.pLevel}`}
@@ -180,6 +374,32 @@ export default function AssessmentMeasurementUnitsLab() {
         items={[...items]}
         mode="placement"
         onComplete={(responses) => handleBranch(responses, stage.route)}
+      />
+    ) : null;
+  } else if (stage.kind === "search") {
+    const items = searchItemsAt(stage.pLevel);
+    player = items ? (
+      <AssessmentPlayerV1
+        key={`measurement-search-p${stage.pLevel}`}
+        title={`Understanding units of measurement · P${stage.pLevel} search cluster`}
+        items={[...items]}
+        mode="placement"
+        onComplete={(responses) =>
+          handleSearch(responses, stage.direction, stage.pLevel)
+        }
+      />
+    ) : null;
+  } else if (stage.kind === "boundary") {
+    const items = boundaryItemsAt(stage.pLevel);
+    player = items ? (
+      <AssessmentPlayerV1
+        key={`measurement-boundary-p${stage.pLevel}-${stage.bracket.lowerP}-${stage.bracket.upperP}`}
+        title={`Understanding units of measurement · P${stage.pLevel} boundary probes`}
+        items={[...items]}
+        mode="placement"
+        onComplete={(responses) =>
+          handleBoundary(responses, stage.bracket, stage.pLevel)
+        }
       />
     ) : null;
   }
@@ -221,9 +441,9 @@ export default function AssessmentMeasurementUnitsLab() {
             Understanding units of measurement
           </h1>
           <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.65 }}>
-            P3 / P6 / P9 anchor proof across a P1–P10 progression. P3 is
-            deliberately routing-only because the source requires actual use of
-            informal measurement units.
+            Full P1–P10 adaptive route using P3 / P6 / P9 anchors. P1–P4
+            electronic tasks are deliberately routing-only because the source
+            includes actual use of informal measurement materials.
           </p>
         </section>
 
@@ -286,6 +506,25 @@ export default function AssessmentMeasurementUnitsLab() {
         ) : (
           player
         )}
+
+        {trace.length ? (
+          <details style={card}>
+            <summary
+              style={{
+                cursor: "pointer",
+                color: "#17204B",
+                fontWeight: 850,
+              }}
+            >
+              Measurement routing trace
+            </summary>
+            <ol style={{ margin: "8px 0 0", color: "#5B6478", lineHeight: 1.6 }}>
+              {trace.map((entry, index) => (
+                <li key={entry + index}>{entry}</li>
+              ))}
+            </ol>
+          </details>
+        ) : null}
       </div>
     </main>
   );
