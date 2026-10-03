@@ -5,12 +5,14 @@ import {
   NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
   NUMBER_OPERATIONS_SEARCH_CLUSTERS,
 } from "./numberOperationsP0Items";
+import { NPV_CONFIRMATION_CLUSTERS } from "./numberOperationsNpvConfirmationItems";
 
 export type NumberOperationsPlacementPoolKind =
   | "anchor"
   | "reserve"
   | "search"
-  | "boundary";
+  | "boundary"
+  | "confirmation";
 
 export type NumberOperationsPlacementItemRegistryEntry = {
   poolKind: NumberOperationsPlacementPoolKind;
@@ -45,6 +47,21 @@ function reserveEntries() {
   );
 }
 
+function confirmationEntries() {
+  return Object.entries(NPV_CONFIRMATION_CLUSTERS).flatMap(
+    ([pLevel, items]) =>
+      items.map(
+        (item) =>
+          ({
+            poolKind: "confirmation",
+            poolKey: `number-place-value-p${pLevel}`,
+            item,
+          }) satisfies NumberOperationsPlacementItemRegistryEntry,
+      ),
+  );
+}
+
+
 export const NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY: NumberOperationsPlacementItemRegistryEntry[] =
   [
     ...entriesFromClusterMap(
@@ -54,6 +71,7 @@ export const NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY: NumberOperationsPlacemen
     ...reserveEntries(),
     ...entriesFromClusterMap("search", NUMBER_OPERATIONS_SEARCH_CLUSTERS),
     ...entriesFromClusterMap("boundary", NUMBER_OPERATIONS_BOUNDARY_CLUSTERS),
+    ...confirmationEntries(),
   ];
 
 const byId = new Map(
