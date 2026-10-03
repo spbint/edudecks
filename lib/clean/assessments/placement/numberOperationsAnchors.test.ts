@@ -4,6 +4,7 @@ import {
   getNumberOperationsAnchorSet,
   routeBranchAnchor,
   routeInitialAnchor,
+  resolveInitialAnchorWithReserve,
 } from "./numberOperationsAnchors";
 
 describe("Number Operations anchor routing", () => {
@@ -68,6 +69,40 @@ describe("Number Operations anchor routing", () => {
     expect(routeInitialAnchor(set, [1, null])).toEqual({
       kind: "awaiting",
       score: null,
+    });
+  });
+
+  it("uses a reserve probe only when the initial two-item cluster is mixed", () => {
+    const set = getNumberOperationsAnchorSet("number-place-value");
+    expect(set).not.toBeNull();
+    if (!set) return;
+
+    expect(resolveInitialAnchorWithReserve(set, [1, 0], null)).toEqual({
+      kind: "same-level-extra",
+      score: 1,
+      targetP: 6,
+    });
+    expect(resolveInitialAnchorWithReserve(set, [1, 0], 1)).toEqual({
+      kind: "up",
+      score: 2,
+      targetP: 9,
+    });
+    expect(resolveInitialAnchorWithReserve(set, [1, 0], 0)).toEqual({
+      kind: "down",
+      score: 0,
+      targetP: 3,
+    });
+
+    // Clear 0/2 and 2/2 clusters ignore the reserve probe.
+    expect(resolveInitialAnchorWithReserve(set, [1, 1], 0)).toEqual({
+      kind: "up",
+      score: 2,
+      targetP: 9,
+    });
+    expect(resolveInitialAnchorWithReserve(set, [0, 0], 1)).toEqual({
+      kind: "down",
+      score: 0,
+      targetP: 3,
     });
   });
 
