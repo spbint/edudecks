@@ -3,7 +3,9 @@
 import React, { useMemo, useState } from "react";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner";
 import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard";
+import AssessmentEvidencePreviewCard from "@/app/components/clean/assessment-lab/AssessmentEvidencePreviewCard";
 import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";
+import { buildNumberOperationsEvidencePreview } from "@/lib/clean/assessments/placement/numberOperationsEvidencePreview";
 import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
@@ -86,10 +88,12 @@ export default function AssessmentNumberOperationsBaselineRunner() {
   if (complete) {
     const finalResults = Object.values(resultsByKey);
     const finalProfile = buildNumberOperationsProfile(finalResults);
+    const evidencePreview = buildNumberOperationsEvidencePreview(finalProfile);
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
         <AssessmentNumberOperationsProfileCard profile={finalProfile} />
+        <AssessmentEvidencePreviewCard preview={evidencePreview} />
         {unresolved.length ? (
           <div style={{ ...panel, background: "#FFFDF5" }}>
             <strong style={{ color: "#92400E" }}>Evidence still unresolved</strong>
