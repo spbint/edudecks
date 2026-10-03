@@ -1,8 +1,10 @@
 import Link from "next/link";
 import FounderSignOutButton from "./FounderSignOutButton";
+import FounderBehaviourControls from "./FounderBehaviourControls";
 import type {
   FounderBehaviourV3,
   FounderConfidence,
+  FounderFunnelStepV3,
   FounderMetricV3,
 } from "@/lib/clean/founder/founderBehaviourV3";
 import styles from "./FounderBehaviourIntelligenceV3.module.css";
@@ -36,8 +38,24 @@ function Section({ eyebrow, title, description, children }: { eyebrow: string; t
   return <section className={styles.section}><div className={styles.sectionHeading}><div><span className={styles.eyebrow}>{eyebrow}</span><h2>{title}</h2></div><p>{description}</p></div>{children}</section>;
 }
 
-function query(range: number, includeInternal: boolean, includeSuspicious: boolean) {
-  return `/founder?range=${range}${includeInternal ? "&internal=include" : ""}${includeSuspicious ? "" : "&suspicious=exclude"}`;
+function FunnelRows({ items }: { items: FounderFunnelStepV3[] }) {
+  if (!items.length) return <div className={styles.empty}>Insufficient observed activity in this window.</div>;
+  return <div className={styles.funnel}>{items.map((step, index) => <div className={styles.funnelRow} key={step.label}>
+    <strong>{step.label}</strong>
+    <span>{step.actors} actors</span>
+    <span>{step.events} events</span>
+    <span>{index === 0 || step.progression === null ? "—" : `${P.format(step.progression)} progress`}</span>
+    <Badge value={step.confidence} />
+  </div>)}</div>;
+}
+
+function ProductMilestones({ items }: { items: FounderFunnelStepV3[] }) {
+  if (!items.length) return <div className={styles.empty}>Insufficient observed activity in this window.</div>;
+  return <div className={styles.milestoneGrid}>{items.map((step) => <article className={styles.milestone} key={step.label}>
+    <div className={styles.metricMeta}><span className={styles.eyebrow}>{step.label}</span><Badge value={step.confidence} /></div>
+    <strong>{N.format(step.actors)}</strong>
+    <p>{N.format(step.events)} events observed. Independent reach marker, not a required next step.</p>
+  </article>)}</div>;
 }
 
 export default function FounderBehaviourIntelligenceV3({ data }: { data: FounderBehaviourV3 }) {
@@ -46,11 +64,11 @@ export default function FounderBehaviourIntelligenceV3({ data }: { data: Founder
       <div className={styles.heroTop}><span className={styles.private}>Private Founder view · Behaviour Intelligence v3</span><div className={styles.controlGroup}><Link className={styles.back} href="/my-day">Return to MyLearna</Link><FounderSignOutButton /></div></div>
       <h1>Understand what families do next.</h1>
       <p>Privacy-safe acquisition, activation, product behaviour, Capture, retention and friction intelligence. Counts are anonymous and caveated where identity or sample quality is weak.</p>
-      <div className={styles.toolbar}>
-        <div className={styles.controlGroup}>{([7, 30, 90] as const).map((range) => <Link key={range} className={data.rangeDays === range ? styles.controlActive : styles.control} href={query(range, data.includeInternal, data.includeSuspicious)}>{range} days</Link>)}</div>
-        <div className={styles.controlGroup}><Link className={!data.includeInternal ? styles.controlActive : styles.control} href={query(data.rangeDays, false, data.includeSuspicious)}>Exclude internal/test</Link><Link className={data.includeInternal ? styles.controlActive : styles.control} href={query(data.rangeDays, true, data.includeSuspicious)}>Include internal/test</Link></div>
-        <div className={styles.controlGroup}><Link className={data.includeSuspicious ? styles.controlActive : styles.control} href={query(data.rangeDays, data.includeInternal, true)}>Include suspicious/unknown</Link><Link className={!data.includeSuspicious ? styles.controlActive : styles.control} href={query(data.rangeDays, data.includeInternal, false)}>Exclude suspicious/unknown</Link></div>
-      </div>
+      <FounderBehaviourControls
+        rangeDays={data.rangeDays}
+        includeInternal={data.includeInternal}
+        includeSuspicious={data.includeSuspicious}
+      />
     </header>
 
     {!data.posthogAvailable ? <div className={styles.empty}>The private PostHog query connection is unavailable. No behavioural precision is implied.</div> : null}
@@ -61,7 +79,11 @@ export default function FounderBehaviourIntelligenceV3({ data }: { data: Founder
 
     <div className={styles.twoColumn}><section className={styles.panel}><span className={styles.eyebrow}>Acquisition</span><h3>Returning visitor intelligence</h3><Metrics items={data.returning} /></section><section className={styles.panel}><span className={styles.eyebrow}>Activation</span><h3>Time to first value</h3><Metrics items={data.activation} /><p className={styles.note}>Profile, learner and planning setup timestamps are shown as missing instrumentation rather than inferred.</p></section></div>
 
-    <Section eyebrow="Cross-journey view" title="Journey funnel" description="Progression is actor-linked only. Public-to-auth steps remain directional when identity stitching is incomplete."><div className={styles.funnel}>{data.funnel.map((step) => <div className={styles.funnelRow} key={step.label}><strong>{step.label}</strong><span>{step.actors} actors</span><span>{step.events} events</span><span>{step.progression === null ? "—" : `${P.format(step.progression)} progress`}</span><Badge value={step.confidence} /></div>)}</div></Section>
+    <Section eyebrow="Acquisition" title="Acquisition funnel" description="Public intent steps only. Progression is actor-linked and remains directional where anonymous identities are not stitched."><FunnelRows items={data.funnel.filter((step) => ["Public visit", "Demo", "Start signup"].includes(step.label))} /></Section>
+
+    <Section eyebrow="Authentication" title="Authentication funnel" description="Email challenge and verification steps only. This describes authentication mechanics, not product activation."><FunnelRows items={data.funnel.filter((step) => ["Auth email submitted", "Challenge sent", "Verification started", "Verification succeeded", "Session ready"].includes(step.label))} /></Section>
+
+    <Section eyebrow="Product reach" title="Product milestones" description="Independent product reach markers. My Day, Pathways, Capture, Portfolio and Reports are not presented as a required sequence."><ProductMilestones items={data.funnel.filter((step) => ["Product entry", "My Day", "Pathways", "Capture", "Evidence saved", "Portfolio", "Report"].includes(step.label))} /></Section>
 
     <Section eyebrow="Behavioural sequences" title="Product paths" description="Feature-level transitions; repeated adjacent events are collapsed."><Breakdown items={data.paths} /></Section>
 
