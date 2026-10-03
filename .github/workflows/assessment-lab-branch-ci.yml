@@ -52,6 +52,7 @@ jobs:
           lib/clean/assessments/placement/numberOperationsAttemptTrace.test.ts
           lib/clean/assessments/placement/numberOperationsPersistenceDraft.test.ts
           lib/clean/assessments/placement/numberOperationsRoutingFixtures.test.ts
+          lib/clean/assessments/placement/numberOperationsRouteCoverage.test.ts
           lib/clean/assessments/visualTemplates/CurrencyTokenVisual.test.tsx
 
 
