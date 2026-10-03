@@ -46,16 +46,23 @@ describe("Number & Operations executable P0 anchor items", () => {
     expect(all.every((item) => item.status === "draft")).toBe(true);
   });
 
-  it("provides NPV boundary-search clusters for the P3-P6 and P6-P9 routing spans", () => {
+  it("provides direct boundary-search pools across the first Number & Operations slice", () => {
     expect(Object.keys(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS)).toEqual([
       "number-place-value-p4",
       "number-place-value-p5",
       "number-place-value-p7",
       "number-place-value-p8",
+      "counting-processes-p6",
+      "additive-strategies-p7",
+      "additive-strategies-p8",
+      "multiplicative-strategies-p7",
+      "multiplicative-strategies-p8",
+      "understanding-money-p6",
+      "understanding-money-p7",
     ]);
     expect(
       Object.values(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS).flat(),
-    ).toHaveLength(12);
+    ).toHaveLength(33);
     expect(
       Object.values(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS)
         .flat()
