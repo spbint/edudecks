@@ -9,6 +9,12 @@ import {
   MEASUREMENT_UNITS_P6_RESERVE_ITEM,
   MEASUREMENT_UNITS_SEARCH_CLUSTERS,
 } from "./measurementUnitsItems";
+import {
+  CHANCE_BOUNDARY_CLUSTERS,
+  CHANCE_EXECUTABLE_ANCHORS,
+  CHANCE_P4_RESERVE_ITEM,
+  CHANCE_SEARCH_CLUSTERS,
+} from "./chanceItems";
 
 export type AssessmentPlacementPoolKind = NumberOperationsPlacementPoolKind;
 
@@ -18,7 +24,8 @@ export type AssessmentPlacementItemRegistryEntry = {
   item: MyLearnaAssessmentItem;
   lane:
     | "number-operations"
-    | "measurement-units";
+    | "measurement-units"
+    | "chance";
 };
 
 function clusterEntries(
@@ -47,12 +54,40 @@ const measurementEntries: AssessmentPlacementItemRegistryEntry[] = [
   ...clusterEntries("boundary", MEASUREMENT_UNITS_BOUNDARY_CLUSTERS),
 ];
 
+function chanceClusterEntries(
+  poolKind: Exclude<AssessmentPlacementPoolKind, "reserve" | "confirmation">,
+  source: Record<string, readonly MyLearnaAssessmentItem[]>,
+): AssessmentPlacementItemRegistryEntry[] {
+  return Object.entries(source).flatMap(([poolKey, items]) =>
+    items.map((item) => ({
+      poolKind,
+      poolKey,
+      item,
+      lane: "chance" as const,
+    })),
+  );
+}
+
+const chanceEntries: AssessmentPlacementItemRegistryEntry[] = [
+  ...chanceClusterEntries("anchor", CHANCE_EXECUTABLE_ANCHORS),
+  {
+    poolKind: "reserve",
+    poolKey: "understanding-chance-p4",
+    item: CHANCE_P4_RESERVE_ITEM,
+    lane: "chance",
+  },
+  ...chanceClusterEntries("search", CHANCE_SEARCH_CLUSTERS),
+  ...chanceClusterEntries("boundary", CHANCE_BOUNDARY_CLUSTERS),
+];
+
+
 export const ASSESSMENT_PLACEMENT_ITEM_REGISTRY: AssessmentPlacementItemRegistryEntry[] = [
   ...NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.map((entry) => ({
     ...entry,
     lane: "number-operations" as const,
   })),
   ...measurementEntries,
+  ...chanceEntries,
 ];
 
 const byId = new Map(
