@@ -1,5 +1,6 @@
 import type { NumberOperationsProfile } from "./numberOperationsProfile";
 import type { NumberOperationsSubElementKey } from "./numberOperationsPlacementResult";
+import type { NumberOperationsSubElementAttemptTrace } from "./numberOperationsAttemptTrace";
 import {
   buildNumberOperationsEvidencePreview,
   type NumberOperationsEvidencePreview,
@@ -18,6 +19,7 @@ export type NumberOperationsBaselineSummarySnapshot = {
   assessedSubElements: number;
   expectedSubElements: number;
   unresolvedSubElements: NumberOperationsSubElementKey[];
+  subElementAttempts: NumberOperationsSubElementAttemptTrace[];
   profile: NumberOperationsProfile;
   evidencePreview: NumberOperationsEvidencePreview;
   persistencePolicy: {
@@ -41,6 +43,7 @@ function iso(value: string, field: string) {
 export function buildNumberOperationsBaselineSummarySnapshot(input: {
   profile: NumberOperationsProfile;
   unresolvedSubElements?: NumberOperationsSubElementKey[];
+  subElementAttempts?: NumberOperationsSubElementAttemptTrace[];
   startedAt: string;
   completedAt: string;
 }): NumberOperationsBaselineSummarySnapshot {
@@ -71,6 +74,7 @@ export function buildNumberOperationsBaselineSummarySnapshot(input: {
     assessedSubElements: input.profile.assessedSubElements,
     expectedSubElements: input.profile.expectedSubElements,
     unresolvedSubElements,
+    subElementAttempts: [...(input.subElementAttempts || [])],
     profile: input.profile,
     evidencePreview: buildNumberOperationsEvidencePreview(input.profile),
     persistencePolicy: {
