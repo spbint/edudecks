@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner";
 import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard";
 import AssessmentEvidencePreviewCard from "@/app/components/clean/assessment-lab/AssessmentEvidencePreviewCard";
@@ -13,6 +13,11 @@ import type {
   NumberOperationsSubElementKey,
 } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
 import type { NumberOperationsSubElementAttemptTrace } from "@/lib/clean/assessments/placement/numberOperationsAttemptTrace";
+import {
+  NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+  buildNumberOperationsBaselineDraft,
+  parseNumberOperationsBaselineDraft,
+} from "@/lib/clean/assessments/placement/numberOperationsBaselineDraft";
 
 const ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -53,7 +58,51 @@ export default function AssessmentNumberOperationsBaselineRunner() {
   >(undefined);
   const [complete, setComplete] = useState(false);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const startedAtRef = useRef(new Date().toISOString());
+
+  useEffect(() => {
+    const draft = parseNumberOperationsBaselineDraft(
+      window.sessionStorage.getItem(NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY),
+    );
+    if (draft) {
+      setCurrentIndex(draft.currentIndex);
+      setResultsByKey(draft.resultsByKey);
+      setUnresolved(draft.unresolvedSubElements);
+      setTracesByKey(draft.tracesByKey);
+      startedAtRef.current = draft.startedAt;
+    }
+    setDraftHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    if (complete) {
+      window.sessionStorage.removeItem(
+        NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+      );
+      return;
+    }
+
+    const draft = buildNumberOperationsBaselineDraft({
+      currentIndex,
+      resultsByKey,
+      unresolvedSubElements: unresolved,
+      tracesByKey,
+      startedAt: startedAtRef.current,
+    });
+    window.sessionStorage.setItem(
+      NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+      JSON.stringify(draft),
+    );
+  }, [
+    complete,
+    currentIndex,
+    draftHydrated,
+    resultsByKey,
+    tracesByKey,
+    unresolved,
+  ]);
 
   const currentKey = ORDER[currentIndex];
   const profile = useMemo(
@@ -70,6 +119,9 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     setComplete(false);
     setCompletedAt(null);
     startedAtRef.current = new Date().toISOString();
+    window.sessionStorage.removeItem(
+      NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+    );
   };
 
   const continueBaseline = () => {
@@ -228,6 +280,11 @@ export default function AssessmentNumberOperationsBaselineRunner() {
           the final profile does not average the five continua into a single
           level.
         </p>
+        <small style={{ color: "#64748B", lineHeight: 1.5 }}>
+          Staff preview pause/resume: completed areas are saved only in this
+          browser tab. If the tab closes mid-area, that current area starts
+          again; no learner or family data is stored.
+        </small>
         <div
           aria-label="Baseline progress"
           style={{
