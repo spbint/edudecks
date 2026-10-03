@@ -5,6 +5,7 @@ import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/Assessment
 import {
   NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
   NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
+  NUMBER_OPERATIONS_SEARCH_CLUSTERS,
 } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
@@ -189,6 +190,12 @@ export default function AssessmentAnchorRoutingLab() {
   const branchBracket = bracketFromBranchRoute(branchRoute);
   const nextBoundaryP = branchBracket ? nextBoundaryTarget(branchBracket) : null;
   const nextSearchP = nextSearchTarget(anchorSet, branchRoute);
+  const searchClusterKey = nextSearchP
+    ? (`${selectedKey}-p${nextSearchP}` as keyof typeof NUMBER_OPERATIONS_SEARCH_CLUSTERS)
+    : null;
+  const searchItems = searchClusterKey
+    ? NUMBER_OPERATIONS_SEARCH_CLUSTERS[searchClusterKey] || null
+    : null;
 
   const reset = (key = selectedKey) => {
     setSelectedKey(key);
@@ -338,12 +345,30 @@ export default function AssessmentAnchorRoutingLab() {
             <strong>{describeBranchRoute(branchRoute)}</strong>
           </div>
           {nextSearchP ? (
-            <div style={{ border: "1px solid #D9D0FF", borderRadius: 14, padding: 14, background: "#F8F5FF" }}>
+            <div style={{ border: "1px solid #D9D0FF", borderRadius: 14, padding: 14, background: "#F8F5FF", display: "grid", gap: 10 }}>
               <strong style={{ color: "#17204B" }}>Continue search</strong>
-              <p style={{ margin: "6px 0 0", color: "#5B6478", lineHeight: 1.55 }}>
+              <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.55 }}>
                 The next deterministic search target is P{nextSearchP}. This remains routing evidence only;
                 the result is not a placement claim.
               </p>
+              {searchItems ? (
+                <details>
+                  <summary style={{ cursor: "pointer", color: "#5B3BE8", fontWeight: 850 }}>
+                    Run the P{nextSearchP} search cluster
+                  </summary>
+                  <div style={{ marginTop: 12 }}>
+                    <AssessmentPlayerV1
+                      key={searchClusterKey}
+                      title={`${anchorSet.label} · P${nextSearchP} search cluster`}
+                      items={[...searchItems]}
+                    />
+                  </div>
+                </details>
+              ) : (
+                <span style={{ color: "#92400E", fontSize: 13, fontWeight: 800 }}>
+                  No executable search cluster yet. This step remains blueprint-only.
+                </span>
+              )}
             </div>
           ) : null}
           {branchBracket ? (
