@@ -55,9 +55,47 @@ describe("AssessmentAnchorPlacementRunner", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View summary" }));
 
-    expect(screen.getByText("Candidate neighbourhood: P3–P6")).toBeTruthy();
+    expect(screen.getByText(/Boundary search · P4 within P3–P6/)).toBeTruthy();
+    startCurrentCluster();
+
+    // Support P4 on two of three independent probes.
+    fireEvent.click(screen.getByRole("radio", { name: "108" }));
+    finishCurrentQuestion();
+
+    for (const label of [
+      "6 tens and 8 ones",
+      "68 ones",
+      "60 + 8",
+    ]) {
+      fireEvent.click(screen.getByRole("checkbox", { name: label }));
+    }
+    finishCurrentQuestion();
+
+    fireEvent.click(screen.getByRole("radio", { name: "38" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View summary" }));
+
+    expect(screen.getByText(/Boundary search · P5 within P4–P6/)).toBeTruthy();
+    startCurrentCluster();
+
+    // Deliberately fail the P5 probes so the bracket narrows to P4-P5.
+    fireEvent.click(screen.getByRole("radio", { name: "267" }));
+    finishCurrentQuestion();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "2 hundreds, 7 tens and 4 ones" }));
+    finishCurrentQuestion();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
+      target: { value: "870" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View summary" }));
+
     expect(
-      screen.getByText(/next deterministic boundary target is P4/i),
+      screen.getByText("Adjacent candidate neighbourhood: P4–P5"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/final construct-diverse boundary-confirmation set/i),
     ).toBeTruthy();
     expect(screen.queryByText(/100%/)).toBeNull();
   });
