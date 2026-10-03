@@ -84,7 +84,7 @@ const PRODUCT_EVENTS = new Set<FounderTrackedEventName>([
 ]);
 const CAPTURE_OPEN = new Set<FounderTrackedEventName>(["capture_opened", "quick_capture_opened"]);
 const CAPTURE_SAVE = new Set<FounderTrackedEventName>(["capture_save_succeeded", "quick_capture_saved", "evidence_created"]);
-const PRODUCT_PRODUCT_REPORT_EVENTS = new Set<FounderTrackedEventName>([
+const PRODUCT_REPORT_EVENTS = new Set<FounderTrackedEventName>([
   "report_previewed", "learning_record_pdf_generated",
 ]);
 const MIN_SAMPLE = 5;
