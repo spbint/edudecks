@@ -39,6 +39,70 @@ const NPV_SUMMARIES: Record<number, string> = {
   10: "interprets very large and very small numbers through powers and scientific notation",
 };
 
+const NUMBER_OPERATIONS_LEVEL_SUMMARIES: Record<
+  NumberOperationsPlacementResult["subElementKey"],
+  Record<number, string>
+> = {
+  "number-place-value": NPV_SUMMARIES,
+  "counting-processes": {
+    1: "recognises number words in early counting contexts and very small quantities",
+    2: "uses a stable count from one, subitises small collections and counts very small sets",
+    3: "uses one-to-one correspondence and cardinality while counting within 1–10",
+    4: "continues counting from a non-one start and keeps track of counted items",
+    5: "uses next/previous number knowledge within 1–100 and counts collections independently of arrangement",
+    6: "counts forward/backward beyond 100 and skip-counts in twos, fives and tens",
+    7: "counts efficiently in larger groups, including off-decade sequences and grouped quantities",
+    8: "counts flexibly with rational and negative numbers and applies abstract counting processes",
+  },
+  "additive-strategies": {
+    1: "describes adding-to and taking-away situations with small collections",
+    2: "represents and solves small additive situations with visible materials or drawings",
+    3: "mentally represents concealed quantities but still relies on counting from one",
+    4: "uses counting-on strategies for addition and missing-addend problems",
+    5: "uses counting-back/up strategies for subtraction and missing-subtrahend problems",
+    6: "uses flexible combinations, part-part-whole knowledge and difference thinking within 20",
+    7: "uses flexible two-digit additive strategies and inverse relationships",
+    8: "uses place value, partitioning and estimation with three-digit numbers and beyond",
+    9: "adds and subtracts decimals and fractions with related denominators",
+    10: "operates additively with rational numbers including integers and unrelated-denominator fractions",
+  },
+  "multiplicative-strategies": {
+    1: "forms and shares equal groups by dealing or grouping and counts by ones",
+    2: "uses visible groups or multiples in counting, sharing and grouping situations",
+    3: "uses imagined composite units for concealed equal groups",
+    4: "uses repeated abstract composite units through repeated addition or subtraction",
+    5: "coordinates composite units and represents multiplication/division with groups, arrays and symbols",
+    6: "uses flexible single-digit multiplication/division facts and interprets multiplicative contexts",
+    7: "uses inverse operations and distributive/partitioning strategies with multi-digit numbers",
+    8: "solves multi-step multiplicative situations with multi-digit natural numbers",
+    9: "works multiplicatively with rational numbers, prime factors, exponents and percentages",
+    10: "operates multiplicatively with decimals, scientific notation and complex rational-number models",
+  },
+  "understanding-money": {
+    1: "recognises money situations and identifies Australian denominations by face value",
+    2: "sorts and orders denominations by face value and counts pieces of the same denomination",
+    3: "counts small money collections and records whole-dollar or whole-cent values",
+    4: "recognises equivalent money values and represents the same amount in multiple ways",
+    5: "counts larger mixed collections and records dollars and cents in decimal notation",
+    6: "calculates totals and change and identifies profit/loss conditions",
+    7: "uses multiplicative money relationships for repeated purchases, splitting and simple budgets",
+    8: "uses percentages for discounts, GST, tax tables and simple interest",
+    9: "uses proportional strategies for best buys, payment plans, currency and percentage profit/loss",
+    10: "makes longer-term financial decisions involving compound interest, depreciation, loans and ongoing costs",
+  },
+};
+
+const NUMBER_OPERATIONS_LABELS: Record<
+  NumberOperationsPlacementResult["subElementKey"],
+  string
+> = {
+  "number-place-value": "Number and place value",
+  "counting-processes": "Counting processes",
+  "additive-strategies": "Additive strategies",
+  "multiplicative-strategies": "Multiplicative strategies",
+  "understanding-money": "Understanding money",
+};
+
 const NPV_TYPICAL_ALIGNMENT: Record<number, string> = {
   1: "Prep",
   2: "Prep",
@@ -52,7 +116,8 @@ const NPV_TYPICAL_ALIGNMENT: Record<number, string> = {
   10: "Years 9–10",
 };
 
-export function buildNpvCandidateBandResult(input: {
+export function buildNumberOperationsCandidateBandResult(input: {
+  subElementKey: NumberOperationsPlacementResult["subElementKey"];
   lowerP: number;
   upperP: number;
   evidenceLimitations?: string[];
@@ -61,48 +126,115 @@ export function buildNpvCandidateBandResult(input: {
     throw new Error("Placement band upper level must be greater than lower level.");
   }
 
+  const summaries = NUMBER_OPERATIONS_LEVEL_SUMMARIES[input.subElementKey];
   const lowerSummary =
-    NPV_SUMMARIES[input.lowerP] || `shows evidence around P${input.lowerP}`;
+    summaries[input.lowerP] || `shows evidence around P${input.lowerP}`;
   const upperSummary =
-    NPV_SUMMARIES[input.upperP] || `shows emerging evidence around P${input.upperP}`;
+    summaries[input.upperP] || `shows emerging evidence around P${input.upperP}`;
   const limitations = [
     "This is an evidence-supported staff-lab result, not a calibrated psychometric score.",
     "A progression band describes the strongest current evidence; it is not a whole-child year level.",
     ...(input.evidenceLimitations || []),
   ];
 
-  const confidence: NumberOperationsPlacementConfidence =
-    input.evidenceLimitations?.length ? "routing-only" : "provisional-moderate";
-
-  return {
+  const result: NumberOperationsPlacementResult = {
     frameworkId: "MYL-MATH-AU-NUMERACY-V9",
-    subElementKey: "number-place-value",
-    subElementLabel: "Number and place value",
+    subElementKey: input.subElementKey,
+    subElementLabel: NUMBER_OPERATIONS_LABELS[input.subElementKey],
     status: "candidate-band",
     lowerP: input.lowerP,
     upperP: input.upperP,
-    confidence,
+    confidence: input.evidenceLimitations?.length
+      ? "routing-only"
+      : "provisional-moderate",
     claim: `Current assessment evidence is concentrated between P${input.lowerP} and P${input.upperP}.`,
     interpretation:
       input.upperP - input.lowerP === 1
         ? `Evidence supports the P${input.lowerP} construct — ${lowerSummary} — while P${input.upperP} (${upperSummary}) is the next level requiring confirmation.`
         : `The adaptive assessment has localised the learner between P${input.lowerP} (${lowerSummary}) and P${input.upperP} (${upperSummary}). Further boundary evidence is required before narrowing the band.`,
-    typicalYearAlignment:
-      NPV_TYPICAL_ALIGNMENT[input.lowerP] === NPV_TYPICAL_ALIGNMENT[input.upperP]
-        ? NPV_TYPICAL_ALIGNMENT[input.lowerP]
-        : `${NPV_TYPICAL_ALIGNMENT[input.lowerP] || "not mapped"} to ${NPV_TYPICAL_ALIGNMENT[input.upperP] || "not mapped"}`,
     nextVerification:
       input.upperP - input.lowerP === 1
         ? `Verify P${input.upperP} across more than one construct/indicator family.`
         : `Continue adaptive boundary probing between P${input.lowerP} and P${input.upperP}.`,
     limitations,
   };
+
+  if (input.subElementKey === "number-place-value") {
+    result.typicalYearAlignment =
+      NPV_TYPICAL_ALIGNMENT[input.lowerP] === NPV_TYPICAL_ALIGNMENT[input.upperP]
+        ? NPV_TYPICAL_ALIGNMENT[input.lowerP]
+        : `${NPV_TYPICAL_ALIGNMENT[input.lowerP] || "not mapped"} to ${NPV_TYPICAL_ALIGNMENT[input.upperP] || "not mapped"}`;
+  }
+
+  return result;
+}
+
+export function buildNumberOperationsEndpointResult(input: {
+  subElementKey: NumberOperationsPlacementResult["subElementKey"];
+  relation: "below-or-around" | "at-least";
+  pLevel: number;
+  evidenceLimitations?: string[];
+}): NumberOperationsPlacementResult {
+  const summary =
+    NUMBER_OPERATIONS_LEVEL_SUMMARIES[input.subElementKey][input.pLevel] ||
+    `the P${input.pLevel} construct`;
+  const limitations = [
+    "This is open-ended endpoint language; MyLearna does not invent a progression level outside the source framework.",
+    "This is not yet a calibrated psychometric result.",
+    ...(input.evidenceLimitations || []),
+  ];
+
+  const result: NumberOperationsPlacementResult = {
+    frameworkId: "MYL-MATH-AU-NUMERACY-V9",
+    subElementKey: input.subElementKey,
+    subElementLabel: NUMBER_OPERATIONS_LABELS[input.subElementKey],
+    status: "endpoint",
+    endpoint: { relation: input.relation, pLevel: input.pLevel },
+    confidence: input.evidenceLimitations?.length
+      ? "routing-only"
+      : "provisional-moderate",
+    claim:
+      input.relation === "at-least"
+        ? `Current evidence reaches at least P${input.pLevel}.`
+        : `Current evidence is below or around P${input.pLevel}.`,
+    interpretation:
+      input.relation === "at-least"
+        ? `The learner demonstrates evidence consistent with ${summary}. The current source progression provides no higher level to test within this sub-element.`
+        : `The learner does not yet show consistent evidence above the lower end of the current progression around ${summary}.`,
+    nextVerification:
+      input.relation === "at-least"
+        ? "Use the full Australian Curriculum Mathematics layer or another evidence source if finer upper-end differentiation is required."
+        : "Use observed/targeted lower-level evidence before making a more precise statement.",
+    limitations,
+  };
+
+  if (input.subElementKey === "number-place-value") {
+    result.typicalYearAlignment = NPV_TYPICAL_ALIGNMENT[input.pLevel];
+  }
+
+  return result;
+}
+
+export function buildNpvCandidateBandResult(input: {
+  lowerP: number;
+  upperP: number;
+  evidenceLimitations?: string[];
+}) {
+  return buildNumberOperationsCandidateBandResult({
+    subElementKey: "number-place-value",
+    ...input,
+  });
 }
 
 export function buildNpvEndpointResult(input: {
   relation: "below-or-around" | "at-least";
   pLevel: number;
   evidenceLimitations?: string[];
+}) {
+  return buildNumberOperationsEndpointResult({
+    subElementKey: "number-place-value",
+    ...input,
+  });
 }): NumberOperationsPlacementResult {
   const summary =
     NPV_SUMMARIES[input.pLevel] || `the P${input.pLevel} construct`;
