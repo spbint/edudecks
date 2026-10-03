@@ -9,6 +9,7 @@ import {
   getAnchorEvidenceMode,
   getNumberOperationsAnchorSet,
   getPlacementEvidencePolicy,
+  getProgressionEvidenceMode,
   nextBoundaryTarget,
   nextSearchTarget,
   resolveInitialAnchorWithReserve,
@@ -137,6 +138,7 @@ export default function AssessmentAnchorPlacementRunner({
   const [resolvedInitialRoute, setResolvedInitialRoute] =
     useState<InitialAnchorRoute | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [evidenceNotes, setEvidenceNotes] = useState<string[]>([]);
 
   const reset = useCallback(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
@@ -144,6 +146,7 @@ export default function AssessmentAnchorPlacementRunner({
     setInitialPair(null);
     setResolvedInitialRoute(null);
     setHistory([]);
+    setEvidenceNotes([]);
   }, [anchorSetKey]);
 
   const pushHistory = useCallback(
@@ -151,9 +154,22 @@ export default function AssessmentAnchorPlacementRunner({
     [],
   );
 
+  const recordEvidenceLimit = useCallback(
+    (pLevel: number) => {
+      const evidenceMode = getProgressionEvidenceMode(anchorSet, pLevel);
+      if (evidenceMode === "direct") return;
+      const reason = getPlacementEvidencePolicy({ evidenceMode }).reason;
+      setEvidenceNotes((current) =>
+        current.includes(reason) ? current : [...current, reason],
+      );
+    },
+    [anchorSet],
+  );
+
   const advanceToBranch = useCallback((route: InitialAnchorRoute) => {
     if (route.kind !== "down" && route.kind !== "up") return;
     const items = getAnchorCluster(anchorSet.key, route.targetP);
+    recordEvidenceLimit(route.targetP);
     pushHistory(
       `Initial evidence routed ${route.kind} from P${anchorSet.initialP} to P${route.targetP}.`,
     );
@@ -166,7 +182,7 @@ export default function AssessmentAnchorPlacementRunner({
       pLevel: route.targetP,
       direction: route.kind,
     });
-  }, [anchorSet, pushHistory]);
+  }, [anchorSet, pushHistory, recordEvidenceLimit]);
 
   const handleInitialComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
@@ -260,6 +276,7 @@ export default function AssessmentAnchorPlacementRunner({
           return;
         }
         const items = getSearchCluster(anchorSet.key, targetP);
+        recordEvidenceLimit(targetP);
         pushHistory(
           `Branch evidence remained clear; continue ${route.kind === "search-up" ? "up" : "down"} to P${targetP}.`,
         );
@@ -274,7 +291,7 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, pushHistory, resolvedInitialRoute],
+    [anchorSet, pushHistory, recordEvidenceLimit, resolvedInitialRoute],
   );
 
   const handleSearchComplete = useCallback(
@@ -338,6 +355,7 @@ export default function AssessmentAnchorPlacementRunner({
           return;
         }
         const items = getSearchCluster(anchorSet.key, targetP);
+        recordEvidenceLimit(targetP);
         pushHistory(
           `Search remains clear; continue to P${targetP}.`,
         );
@@ -352,7 +370,7 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, pushHistory, stage],
+    [anchorSet, pushHistory, recordEvidenceLimit, stage],
   );
 
   const handleBoundaryComplete = useCallback(
@@ -511,6 +529,26 @@ export default function AssessmentAnchorPlacementRunner({
       ) : (
         player
       )}
+
+      {evidenceNotes.length ? (
+        <div
+          style={{
+            border: "1px solid #F5D08A",
+            borderRadius: 14,
+            background: "#FFFDF5",
+            padding: 14,
+            display: "grid",
+            gap: 6,
+          }}
+        >
+          <strong style={{ color: "#92400E" }}>Evidence ceiling</strong>
+          {evidenceNotes.map((note) => (
+            <span key={note} style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
+              {note}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {history.length ? (
         <details>
