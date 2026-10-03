@@ -7,6 +7,7 @@ import AssessmentEvidencePreviewCard from "@/app/components/clean/assessment-lab
 import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";
 import { buildNumberOperationsEvidencePreview } from "@/lib/clean/assessments/placement/numberOperationsEvidencePreview";
 import { buildNumberOperationsBaselineSummarySnapshot } from "@/lib/clean/assessments/placement/numberOperationsBaselineSnapshot";
+import { buildNumberOperationsBaselinePersistenceDraft } from "@/lib/clean/assessments/placement/numberOperationsPersistenceDraft";
 import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
@@ -109,6 +110,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
       startedAt: startedAtRef.current,
       completedAt: completedAt || new Date().toISOString(),
     });
+    const persistenceDraft =
+      buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot);
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
@@ -141,6 +144,33 @@ export default function AssessmentNumberOperationsBaselineRunner() {
               }}
             >
               {JSON.stringify(baselineSnapshot, null, 2)}
+            </pre>
+          </div>
+        </details>
+        <details style={panel}>
+          <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
+            Future persistence rows · {persistenceDraft.responses.length} response
+            {persistenceDraft.responses.length === 1 ? "" : "s"}
+          </summary>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+            <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
+              Read-only staff preview. No family ID, learner ID, database ID or user ID is created here.
+            </span>
+            <pre
+              style={{
+                margin: 0,
+                maxHeight: 360,
+                overflow: "auto",
+                borderRadius: 12,
+                background: "#0F172A",
+                color: "#E2E8F0",
+                padding: 14,
+                fontSize: 12,
+                lineHeight: 1.5,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {JSON.stringify(persistenceDraft, null, 2)}
             </pre>
           </div>
         </details>
