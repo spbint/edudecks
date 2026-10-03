@@ -4,32 +4,59 @@ import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildNumberOperationsCandidateBandResult } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
+import { buildNumberOperationsSubElementAttemptTrace } from "@/lib/clean/assessments/placement/numberOperationsAttemptTrace";
 
 vi.mock("./AssessmentAnchorPlacementRunner", () => ({
   default: ({
     anchorSetKey,
     onResult,
+    onAttemptTrace,
   }: {
     anchorSetKey: string;
     onResult?: (result: unknown) => void;
+    onAttemptTrace?: (trace: unknown) => void;
   }) =>
     React.createElement(
       "button",
       {
         type: "button",
-        onClick: () =>
-          onResult?.(
-            buildNumberOperationsCandidateBandResult({
-              subElementKey: anchorSetKey as
-                | "number-place-value"
-                | "counting-processes"
-                | "additive-strategies"
-                | "multiplicative-strategies"
-                | "understanding-money",
-              lowerP: 5,
-              upperP: 6,
+        onClick: () => {
+          const subElementKey = anchorSetKey as
+            | "number-place-value"
+            | "counting-processes"
+            | "additive-strategies"
+            | "multiplicative-strategies"
+            | "understanding-money";
+          const result = buildNumberOperationsCandidateBandResult({
+            subElementKey,
+            lowerP: 5,
+            upperP: 6,
+          });
+          onResult?.(result);
+          onAttemptTrace?.(
+            buildNumberOperationsSubElementAttemptTrace({
+              subElementKey,
+              subElementLabel: anchorSetKey,
+              stages: [
+                {
+                  stage: "initial",
+                  pLevel: 5,
+                  responses: [
+                    {
+                      itemId: `${anchorSetKey}-item`,
+                      selectedOptionIds: ["a"],
+                      correct: true,
+                      skillId: `${anchorSetKey}-skill`,
+                      misconceptionTags: [],
+                    },
+                  ],
+                },
+              ],
+              routeTrace: [],
+              result,
             }),
-          ),
+          );
+        },
       },
       `Complete ${anchorSetKey}`,
     ),
@@ -74,5 +101,10 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     fireEvent.click(screen.getByText(/Baseline data handoff · schema v1/i));
     expect(screen.getByText(/not written to the existing pathway-scoped assessment_attempts table/i)).toBeTruthy();
     expect(screen.getByText(/"pathwayAttemptCompatible": false/i)).toBeTruthy();
+    expect(screen.getByText(/Future persistence rows · 5 responses/i)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Future persistence rows · 5 responses/i));
+    expect(
+      screen.getByText(/No family ID, learner ID, database ID or user ID is created here/i),
+    ).toBeTruthy();
   });
 });
