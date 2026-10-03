@@ -16,8 +16,8 @@ describe("AssessmentNumeracySpineLab", () => {
     expect(screen.getAllByText("Adaptive first slice implemented")).toHaveLength(5);
     expect(
       screen.getAllByText("Adaptive cross-strand proof implemented"),
-    ).toHaveLength(2);
-    expect(screen.getAllByText("Blueprint next")).toHaveLength(7);
+    ).toHaveLength(3);
+    expect(screen.getAllByText("Blueprint next")).toHaveLength(6);
   });
 
   it("shows the three source elements", () => {
