@@ -59,6 +59,21 @@ describe("Number Operations anchor routing", () => {
     expect(npv && getAnchorEvidenceMode(npv, 3)).toBe("direct");
   });
 
+  it("extends evidence-mode guardrails beyond the three anchor levels", () => {
+    const npv = getNumberOperationsAnchorSet("number-place-value");
+    const counting = getNumberOperationsAnchorSet("counting-processes");
+    const additive = getNumberOperationsAnchorSet("additive-strategies");
+    const multiplicative = getNumberOperationsAnchorSet("multiplicative-strategies");
+    const money = getNumberOperationsAnchorSet("understanding-money");
+    expect(npv && getProgressionEvidenceMode(npv, 1)).toBe("hybrid-observed");
+    expect(npv && getProgressionEvidenceMode(npv, 2)).toBe("direct");
+    expect(counting && getProgressionEvidenceMode(counting, 4)).toBe("hybrid-observed");
+    expect(additive && getProgressionEvidenceMode(additive, 3)).toBe("hybrid-observed");
+    expect(multiplicative && getProgressionEvidenceMode(multiplicative, 3)).toBe("hybrid-observed");
+    expect(money && getProgressionEvidenceMode(money, 2)).toBe("asset-review");
+    expect(money && getProgressionEvidenceMode(money, 5)).toBe("direct");
+  });
+
   it("allows hybrid digital evidence to route without pretending it proves an observed strategy", () => {
     expect(
       getPlacementEvidencePolicy({ evidenceMode: "hybrid-observed" }),
