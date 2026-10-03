@@ -17,6 +17,7 @@ export type PlacementItemQualityIssue = {
     | "duplicate-option-id"
     | "invalid-correct-option"
     | "single-choice-answer-count"
+    | "ordering-answer-count"
     | "missing-visual-description"
     | "unversioned-id";
   message: string;
@@ -137,6 +138,16 @@ export function validatePlacementItem(
     issue(
       "invalid-correct-option",
       "Multi-select item must define at least one correct option ID.",
+    );
+  }
+
+  if (
+    item.response.type === "ordering" &&
+    correctIds.length !== options.length
+  ) {
+    issue(
+      "ordering-answer-count",
+      "Ordering item must define one correct ordered ID for every option.",
     );
   }
 
