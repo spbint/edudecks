@@ -420,6 +420,66 @@ export function getAnchorEvidenceMode(
   return anchorSet.anchors.find((anchor) => anchor.pLevel === pLevel)?.evidenceMode || null;
 }
 
+
+export type PlacementEvidencePolicy = {
+  mayRoute: boolean;
+  maySupportExactPlacement: boolean;
+  confidenceCeiling: "routing-only" | "moderate" | "high-eligible";
+  reason: string;
+};
+
+export function getPlacementEvidencePolicy(input: {
+  evidenceMode: NumberOperationsAnchor["evidenceMode"];
+  observerVerified?: boolean;
+  assetApproved?: boolean;
+}): PlacementEvidencePolicy {
+  if (input.evidenceMode === "hybrid-observed") {
+    if (input.observerVerified) {
+      return {
+        mayRoute: true,
+        maySupportExactPlacement: true,
+        confidenceCeiling: "high-eligible",
+        reason:
+          "Observed strategy evidence is present; exact placement still requires construct-diverse boundary confirmation.",
+      };
+    }
+    return {
+      mayRoute: true,
+      maySupportExactPlacement: false,
+      confidenceCeiling: "routing-only",
+      reason:
+        "Digital correctness can route the learner, but the source construct depends on observed strategy or behaviour.",
+    };
+  }
+
+  if (input.evidenceMode === "asset-review") {
+    if (input.assetApproved) {
+      return {
+        mayRoute: true,
+        maySupportExactPlacement: true,
+        confidenceCeiling: "high-eligible",
+        reason:
+          "The trusted score-bearing asset set is approved; normal boundary evidence rules still apply.",
+      };
+    }
+    return {
+      mayRoute: false,
+      maySupportExactPlacement: false,
+      confidenceCeiling: "routing-only",
+      reason:
+        "Production routing is blocked until the trusted score-bearing asset set is approved.",
+    };
+  }
+
+  return {
+    mayRoute: true,
+    maySupportExactPlacement: true,
+    confidenceCeiling: "high-eligible",
+    reason:
+      "Direct digital evidence is permitted, subject to item review, boundary confirmation and later calibration.",
+  };
+}
+
 export type BinaryAnchorResult = 0 | 1 | null;
 
 export type InitialAnchorRoute =
