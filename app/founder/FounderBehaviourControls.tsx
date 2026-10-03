@@ -5,7 +5,7 @@ import { useState } from "react";
 import styles from "./FounderBehaviourIntelligenceV3.module.css";
 
 function query(range: number, includeInternal: boolean, includeSuspicious: boolean) {
-  return `/founder?range=${range}${includeInternal ? "&internal=include" : ""}${includeSuspicious ? "" : "&suspicious=exclude"}`;
+  return `/founder?range=${range}${includeInternal ? "&internal=include" : ""}${includeSuspicious ? "&suspicious=include" : ""}`;
 }
 
 function FilterLink({
