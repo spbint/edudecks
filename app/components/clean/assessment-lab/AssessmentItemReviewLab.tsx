@@ -3,9 +3,9 @@
 import React, { useMemo, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import {
-  NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
-  type NumberOperationsPlacementPoolKind,
-} from "@/lib/clean/assessments/placement/numberOperationsItemRegistry";
+  ASSESSMENT_PLACEMENT_ITEM_REGISTRY,
+  type AssessmentPlacementPoolKind,
+} from "@/lib/clean/assessments/placement/assessmentPlacementItemRegistry";
 
 type ReviewFrame = "phone" | "tablet" | "desktop";
 
@@ -29,7 +29,7 @@ function subElementFromPoolKey(poolKey: string) {
 }
 
 export default function AssessmentItemReviewLab() {
-  const [poolKind, setPoolKind] = useState<"all" | NumberOperationsPlacementPoolKind>("all");
+  const [poolKind, setPoolKind] = useState<"all" | AssessmentPlacementPoolKind>("all");
   const [subElement, setSubElement] = useState("all");
   const [frame, setFrame] = useState<ReviewFrame>("phone");
   const [query, setQuery] = useState("");
@@ -38,7 +38,7 @@ export default function AssessmentItemReviewLab() {
     () =>
       Array.from(
         new Set(
-          NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.map((entry) =>
+          ASSESSMENT_PLACEMENT_ITEM_REGISTRY.map((entry) =>
             subElementFromPoolKey(entry.poolKey),
           ),
         ),
@@ -48,7 +48,7 @@ export default function AssessmentItemReviewLab() {
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter((entry) => {
+    return ASSESSMENT_PLACEMENT_ITEM_REGISTRY.filter((entry) => {
       if (poolKind !== "all" && entry.poolKind !== poolKind) return false;
       if (
         subElement !== "all" &&
@@ -68,7 +68,7 @@ export default function AssessmentItemReviewLab() {
   }, [poolKind, query, subElement]);
 
   const [selectedItemId, setSelectedItemId] = useState(
-    NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY[0]?.item.id || "",
+    ASSESSMENT_PLACEMENT_ITEM_REGISTRY[0]?.item.id || "",
   );
 
   const selected =
@@ -144,7 +144,7 @@ export default function AssessmentItemReviewLab() {
                   setPoolKind(
                     event.target.value as
                       | "all"
-                      | NumberOperationsPlacementPoolKind,
+                      | AssessmentPlacementPoolKind,
                   );
                   setSelectedItemId("");
                 }}
