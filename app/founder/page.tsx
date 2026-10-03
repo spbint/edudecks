@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import FounderDashboardV23 from "@/app/founder/FounderDashboardV23";
+import FounderBehaviourIntelligenceV3 from "@/app/founder/FounderBehaviourIntelligenceV3";
 import { requireFounderAccess } from "@/lib/clean/founder/founderAccess";
-import { loadFounderDashboard } from "@/lib/clean/founder/founderDashboard";
+import { loadFounderBehaviourV3 } from "@/lib/clean/founder/founderBehaviourV3Server";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +10,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-export default async function FounderPage() {
+export default async function FounderPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ range?: string; internal?: string }>;
+} = {}) {
   await requireFounderAccess();
-  const data = await loadFounderDashboard();
-  return <FounderDashboardV23 data={data} />;
+  const params: { range?: string; internal?: string } = await (
+    searchParams ?? Promise.resolve({})
+  );
+  const rangeDays = params.range === "7" ? 7 : params.range === "90" ? 90 : 30;
+  const data = await loadFounderBehaviourV3({
+    rangeDays,
+    includeInternal: params.internal === "include",
+  });
+  return <FounderBehaviourIntelligenceV3 data={data} />;
 }

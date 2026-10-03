@@ -34,11 +34,11 @@ export default function GoogleAnalyticsPageTracker() {
     if (!hasTrackedInitialView.current) {
       hasTrackedInitialView.current = true;
       trackPublicAcquisitionEvent("public_session_source", pathname);
-      return;
+    } else {
+      trackPageView(pathname);
     }
 
-    trackPageView(pathname);
-    trackPublicAcquisitionEvent("public_session_source", pathname);
+    trackPublicAcquisitionEvent("public_page_viewed", pathname);
   }, [pathname]);
 
   return null;

@@ -101,7 +101,10 @@ function validIso(value: string | null | undefined) {
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 }
 
-export async function loadFounderCustomers(now = new Date()): Promise<FounderCustomersSnapshot> {
+export async function loadFounderCustomers(
+  now = new Date(),
+  options: { includeInternal?: boolean } = {},
+): Promise<FounderCustomersSnapshot> {
   const admin = createFounderAdminClient();
   if (!admin) return { generatedAt: now.toISOString(), customers: [] };
 
@@ -132,7 +135,7 @@ export async function loadFounderCustomers(now = new Date()): Promise<FounderCus
   }
 
   const customers = users
-    .filter((user) => !isFounderExcludedAccount(user.email))
+    .filter((user) => options.includeInternal || !isFounderExcludedAccount(user.email))
     .map((user): FounderCustomerBase | null => {
       const joinedAt = validIso(user.created_at);
       if (!joinedAt) return null;

@@ -154,7 +154,7 @@ function emailLinkErrorMessage(error: unknown, mode: EmailAuthPageMode) {
       rawMessage.includes("user not found") ||
       rawMessage.includes("no user"))
   ) {
-    return "We couldn't find a MyLearna account for that email yet. Create your account first, or continue with your password if you already have one.";
+    return "If this email can sign in, a code will arrive shortly. Check spam or promotions, then request another code when the timer ends.";
   }
 
   if (
@@ -168,6 +168,12 @@ function emailLinkErrorMessage(error: unknown, mode: EmailAuthPageMode) {
   }
 
   return mapMagicLinkError(error);
+}
+
+function isAccountExistenceSensitiveError(error: unknown) {
+  const rawMessage = safe((error as { message?: unknown })?.message).toLowerCase();
+  const errorCode = safe((error as { code?: unknown })?.code).toLowerCase();
+  return errorCode === "user_not_found" || rawMessage.includes("user not found") || rawMessage.includes("no user");
 }
 
 function cardStyle(): React.CSSProperties {
@@ -302,6 +308,9 @@ function nextPathLabel(nextPath: string) {
 }
 
 async function resolveFirstAppPath(requestedNextPath: string) {
+  if (requestedNextPath === "/founder" || requestedNextPath.startsWith("/founder?")) {
+    return requestedNextPath;
+  }
   try {
     const familyState = await loadCleanFamilyProfile();
     if (!familyState.profile) {
@@ -502,8 +511,8 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     setEmail(storedEmail);
     setSaveState("code-entry");
     setAuthAction("email-link");
-    setStatusTitle("Check your email");
-    setMessage(`Enter the code we sent to ${maskedEmail(storedEmail)}.`);
+    setStatusTitle("Enter your sign-in code");
+    setMessage("We sent a six-digit code to your email.");
     const sentAt = Number(window.sessionStorage.getItem("mylearna.auth.sentAt") ?? 0);
     if (sentAt > 0) setResendRemainingMs(Math.max(0, MAGIC_LINK_CLIENT_RESEND_DELAY_MS - (Date.now() - sentAt)));
   }, [authUserLoading, defaultNextPath, emailDelivery, mode, nextPath, user]);
@@ -845,11 +854,28 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       trackAuthEvent("auth_challenge_sent", { journey: mode, challengeType: emailDelivery !== "magic-link" ? "otp_code" : "magic_link", route: window.location.pathname });
       setStatus(
         emailDelivery !== "magic-link" ? "code-entry" : "check-email",
-        emailDelivery !== "magic-link" ? "Check your email" : "Check your inbox",
-        emailDelivery !== "magic-link" ? `We sent a six-digit code to ${maskedEmail(safe(email).toLowerCase())}. Enter it below to continue.` : "Open the secure MyLearna link to continue. It may take a moment to arrive. Check spam or promotions if you do not see it.",
+        emailDelivery !== "magic-link" ? "Enter your sign-in code" : "Check your inbox",
+        emailDelivery !== "magic-link" ? "We sent a six-digit code to your email." : "Open the secure MyLearna link to continue. It may take a moment to arrive. Check spam or promotions if you do not see it.",
         "email-link",
       );
     } catch (error) {
+      if (mode === "login" && emailDelivery !== "magic-link" && isAccountExistenceSensitiveError(error)) {
+        const normalizedEmail = safe(email).toLowerCase();
+        setResendRemainingMs(MAGIC_LINK_CLIENT_RESEND_DELAY_MS);
+        setVerificationCode("");
+        window.sessionStorage.setItem("mylearna.auth.email", normalizedEmail);
+        window.sessionStorage.setItem("mylearna.auth.journey", mode);
+        window.sessionStorage.setItem("mylearna.auth.nextPath", nextPath);
+        window.sessionStorage.setItem("mylearna.auth.sentAt", String(Date.now()));
+        setStatus(
+          "code-entry",
+          "Enter your sign-in code",
+          "We sent a six-digit code to your email.",
+          "email-link",
+        );
+        trackAuthEvent("auth_challenge_send_failed", { journey: mode, challengeType: "otp_code", route: window.location.pathname, resultReason: "unknown" });
+        return;
+      }
       const retryAfterMs = getMagicLinkRetryAfterMs(error);
       const retryHint =
         retryAfterMs && retryAfterMs > 0
@@ -897,7 +923,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       setSaveState("code-entry");
       setAuthAction("email-link");
       setStatusTitle("We could not verify that code");
-      setMessage("That code was not recognised. Check it and try again.");
+      setMessage("That code is invalid or has expired. Check it, or request a new code when the timer ends.");
       trackAuthEvent("auth_verification_failed", { journey: mode, challengeType: "otp_code", route: window.location.pathname, resultReason: "invalid_code" });
     }
   }
@@ -910,7 +936,8 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   }
 
   const formLabel = isSignup ? "Secure email sign-in" : "Sign in";
-  const formTitle = isSignup ? "Open your private MyLearna space" : "Sign in to MyLearna";
+  const codeEntryActive = emailDelivery !== "magic-link" && saveState === "code-entry";
+  const formTitle = codeEntryActive ? "Enter your sign-in code" : isSignup ? "Open your private MyLearna space" : "Sign in to MyLearna";
   const magicFormText = isSignup
     ? "Enter your email and we’ll send a secure one-time link. There is no password to create, remember or reset."
     : "Enter your email and we'll send you a secure sign-in link. No password needed.";
@@ -934,7 +961,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     ? "We’ll send one secure email link. Open it to enter your private family space and follow the guided setup."
     : "We'll email you a secure sign-in link. Open it on this device if you can, and we'll bring you straight back into MyLearna.";
   const emailLinkSendingLabel = emailDelivery === "magic-link" ? "Sending sign-in link..." : "Sending code...";
-  const formText = emailDelivery === "magic-link" ? magicFormText : "Enter your email and we'll send you a secure one-time code.";
+  const formText = codeEntryActive ? "We sent a six-digit code to your email." : emailDelivery === "magic-link" ? magicFormText : "Enter your email and we'll send you a secure one-time code.";
   const introNotice = emailDelivery === "magic-link" ? magicIntroNotice : "No password needed. Enter the code from your email here in MyLearna.";
   const heroText = emailDelivery === "magic-link" ? magicHeroText : "Enter your email and we'll send a secure one-time code.";
   const heroMicrocopy = emailDelivery === "magic-link" ? magicHeroMicrocopy : "No password needed. Enter the code from your email here in MyLearna.";
@@ -1143,9 +1170,10 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         }}
         style={{ display: "grid", gap: 16 }}
       >
-        <div>
-          <label style={labelStyle()}>Email address</label>
+        {!codeEntryActive ? <div>
+          <label style={labelStyle()} htmlFor="mylearna-auth-email">Email address</label>
           <input
+            id="mylearna-auth-email"
             value={email}
             onChange={(event) => {
               setEmail(event.target.value);
@@ -1169,27 +1197,29 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
               Please enter a valid email address.
             </div>
           ) : null}
-        </div>
+        </div> : null}
 
         {statusCard}
 
         {emailDelivery !== "magic-link" && saveState === "code-entry" ? (
           <>
             <div>
-              <label style={labelStyle()} htmlFor="mylearna-email-code">Enter the code from your email</label>
+              <label style={labelStyle()} htmlFor="mylearna-email-code">Six-digit sign-in code</label>
               <input
                 id="mylearna-email-code"
                 value={verificationCode}
                 onChange={(event) => { setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6)); if (saveState === "code-entry" && message) setMessage(""); }}
                 inputMode="numeric"
+                pattern="[0-9]*"
                 autoComplete="one-time-code"
                 maxLength={6}
+                required
                 style={inputStyle(false)}
                 disabled={isBusy}
               />
             </div>
             <button type="submit" disabled={verificationCode.length !== 6 || isBusy} style={primaryButtonStyle(verificationCode.length !== 6 || isBusy)}>
-              {isBusy ? "Signing you in..." : "Continue"}
+              {isBusy ? "Verifying code..." : "Verify code"}
             </button>
             <button type="button" onClick={() => { setVerificationCode(""); setResendRemainingMs(0); ["mylearna.auth.email", "mylearna.auth.journey", "mylearna.auth.nextPath", "mylearna.auth.sentAt"].forEach((key) => window.sessionStorage.removeItem(key)); resetAuthAttempt(); clearFeedback(); }} style={{ border: "none", background: "transparent", color: "#2563eb", fontWeight: 800, cursor: "pointer" }}>
               Change email

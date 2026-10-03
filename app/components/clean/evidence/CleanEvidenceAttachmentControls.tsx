@@ -6,6 +6,8 @@ import {
   CLEAN_CAPTURE_IMAGE_ACCEPT,
 } from "@/lib/clean/evidence/attachmentPolicy";
 import type { CleanEvidenceAttachmentState } from "@/lib/clean/evidence/useCleanEvidenceAttachments";
+import type { CaptureSourceSurface } from "@/lib/clean/evidence/captureAnalytics";
+import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const visuallyHiddenFileInputStyle: React.CSSProperties = {
   position: "absolute",
@@ -41,6 +43,8 @@ type Props = {
   title?: string;
   storageNotice?: string | null;
   storageNoticeLevel?: "usage" | "near-limit" | "full";
+  analyticsUserId?: string | null;
+  analyticsSourceSurface?: CaptureSourceSurface;
 };
 
 export default function CleanEvidenceAttachmentControls({
@@ -52,11 +56,24 @@ export default function CleanEvidenceAttachmentControls({
   title = "Add evidence",
   storageNotice = null,
   storageNoticeLevel = "usage",
+  analyticsUserId,
+  analyticsSourceSurface = "general",
 }: Props) {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadControlsDisabled = disabled || uploadsDisabled;
+  const trackSource = (attachmentSource: "camera" | "photo_library" | "file_picker") => {
+    trackCoreJourneyEvent(
+      "capture_attachment_source_selected",
+      {
+        area: analyticsSourceSurface === "quick_capture" ? "quick_capture" : "my_capture",
+        sourceSurface: analyticsSourceSurface,
+        attachmentSource,
+      },
+      analyticsUserId,
+    );
+  };
 
   return (
     <fieldset
@@ -99,7 +116,10 @@ export default function CleanEvidenceAttachmentControls({
       >
         <button
           type="button"
-          onClick={() => cameraInputRef.current?.click()}
+          onClick={() => {
+            trackSource("camera");
+            cameraInputRef.current?.click();
+          }}
           disabled={uploadControlsDisabled}
           style={{ minHeight: compact ? 56 : 64, border: `1px solid ${cameraFirst ? "#6c4df6" : "#c4b5fd"}`, borderRadius: 12, background: cameraFirst ? "#6c4df6" : "#faf9ff", color: cameraFirst ? "#ffffff" : "#17204b", fontWeight: 800, cursor: uploadControlsDisabled ? "default" : "pointer", ...(cameraFirst ? { gridColumn: "1 / -1" } : {}) }}
         >
@@ -107,7 +127,10 @@ export default function CleanEvidenceAttachmentControls({
         </button>
         <button
           type="button"
-          onClick={() => libraryInputRef.current?.click()}
+          onClick={() => {
+            trackSource("photo_library");
+            libraryInputRef.current?.click();
+          }}
           disabled={uploadControlsDisabled}
           style={{ minHeight: compact ? 56 : 64, border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#17204b", fontWeight: 800, cursor: uploadControlsDisabled ? "default" : "pointer" }}
         >
@@ -122,6 +145,7 @@ export default function CleanEvidenceAttachmentControls({
             type="file"
             accept={CLEAN_CAPTURE_FILE_ACCEPT}
             disabled={uploadControlsDisabled}
+            onClick={() => trackSource("file_picker")}
             onChange={attachments.handleEvidenceFileChange}
             aria-label="Upload a file"
             style={visuallyHiddenFileInputStyle}

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { clearLocalSessionForAccountSwitch } from "@/lib/authSessionEscape";
+import { resetProductAnalyticsIdentity } from "@/lib/clean/analytics/productAnalytics";
 
 const FAMILY_SIGN_OUT_EVENT = "edudecks:auth-signed-out";
 const SIGN_OUT_TIMEOUT_MS = 4500;
@@ -127,6 +128,7 @@ function timeoutSignOut() {
 export async function completeFamilySignOut() {
   const signOutRequest = requestSupabaseSignOut();
   clearLocalSessionForAccountSwitch();
+  resetProductAnalyticsIdentity();
   resetAuthClientStateImmediately();
 
   if (typeof window === "undefined") {
