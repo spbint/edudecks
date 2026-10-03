@@ -42,7 +42,7 @@ describe("Understanding chance placement results", () => {
 
     expect(result.claim).toBe("Current evidence reaches at least P6.");
     expect(result.interpretation).toMatch(/no higher Understanding chance level/i);
-    expect(result.nextVerification).toMatch(/probability/statistics/i);
+    expect(result.nextVerification).toMatch(/probability\\/statistics/i);
   });
 
   it("rejects invalid candidate bands", () => {
