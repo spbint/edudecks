@@ -110,10 +110,11 @@ export default function AssessmentAnchorPlacementRunner({
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
 }) {
-  const anchorSet = useMemo(
-    () => getNumberOperationsAnchorSet(anchorSetKey),
-    [anchorSetKey],
-  );
+  const anchorSet = useMemo(() => {
+    const set = getNumberOperationsAnchorSet(anchorSetKey);
+    if (!set) throw new Error(`Unknown Number & Operations anchor set: ${anchorSetKey}`);
+    return set;
+  }, [anchorSetKey]);
   const [stage, setStage] = useState<RunnerStage>(() => ({
     kind: "initial",
     pLevel: getNumberOperationsAnchorSet(anchorSetKey)?.initialP || 1,
@@ -132,8 +133,6 @@ export default function AssessmentAnchorPlacementRunner({
     setResolvedInitialRoute(null);
     setHistory([]);
   }, [anchorSetKey]);
-
-  if (!anchorSet) return null;
 
   const pushHistory = useCallback(
     (entry: string) => setHistory((current) => [...current, entry]),
