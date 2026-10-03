@@ -21,7 +21,26 @@ describe("Number Operations recommendations", () => {
       targetP: 6,
       title: "Practise toward P6",
       recheckRecommended: true,
-      resourceLinkStatus: "not-yet-mapped",
+      practiceTarget: {
+        kind: "broad-practice-family",
+        moduleId: "number-place-value-operations-practice-module-v1",
+        mappingConfidence: "broad-family",
+      },
+    });
+  });
+
+  it("falls back to My Pathways when an exact or broad family match would be misleading", () => {
+    const result = buildNumberOperationsCandidateBandResult({
+      subElementKey: "counting-processes",
+      lowerP: 5,
+      upperP: 6,
+    });
+
+    expect(buildNumberOperationsRecommendation(result).practiceTarget).toMatchObject({
+      kind: "pathways-review",
+      href: "/my-pathways",
+      moduleId: null,
+      mappingConfidence: "fallback",
     });
   });
 
