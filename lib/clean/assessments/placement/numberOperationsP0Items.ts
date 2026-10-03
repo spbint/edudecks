@@ -1,121 +1,390 @@
 import type { MyLearnaAssessmentItem } from "@/lib/clean/assessments/mylearnaAssessTypes";
 
-/**
- * Executable P0 anchor items that have been authored directly in the new canonical model.
- *
- * These remain Assessment Lab only. They are not calibrated placement items and do not
- * enable customer assessments.
- */
-export const COUNTING_P5_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
-  {
-    id: "myl-anchor-cnt-p05-a-v1",
+const qCAA = (
+  code: string,
+  yearLevel: string,
+  substrand: string,
+): NonNullable<MyLearnaAssessmentItem["curriculum"]> => ({
+  country: "Australia",
+  jurisdiction: "QCAA Numeracy general capability",
+  yearLevel,
+  strand: "Number sense and algebra",
+  substrand,
+  code,
+});
+
+const noneStimulus = { type: "none" as const, data: {} };
+
+function shortAnswerItem(input: {
+  id: string;
+  code: string;
+  yearLevel: string;
+  substrand: string;
+  skillId: string;
+  skillName: string;
+  description?: string;
+  prompt: string;
+  correctValue: string;
+  acceptableValues?: string[];
+  misconceptionTags?: string[];
+  stimulus?: MyLearnaAssessmentItem["stimulus"];
+  tags: string[];
+}): MyLearnaAssessmentItem {
+  return {
+    id: input.id,
     version: 1,
     status: "draft",
-    curriculum: {
-      country: "Australia",
-      jurisdiction: "QCAA Numeracy general capability",
-      yearLevel: "Year 1",
-      strand: "Number sense and algebra",
-      substrand: "Counting processes",
-      code: "MYL-MATH-PROG-NSA-CNT-P05",
-    },
+    curriculum: qCAA(input.code, input.yearLevel, input.substrand),
     skill: {
-      id: "counting-processes-p5-next-previous",
-      name: "Determine the next or previous number within 1–100",
-      description:
-        "Samples the P5 counting-sequence indicator without supplying a number track.",
+      id: input.skillId,
+      name: input.skillName,
+      ...(input.description ? { description: input.description } : {}),
     },
-    misconceptionTags: [
-      "count-sequence-boundary-error",
-      "restarts-count-from-one",
-    ],
+    misconceptionTags: input.misconceptionTags || [],
     difficulty: 2,
     template: "short-answer",
-    prompt: "What number comes immediately before 63?",
-    stimulus: {
-      type: "none",
-      data: {},
-    },
+    prompt: input.prompt,
+    stimulus: input.stimulus || noneStimulus,
     response: {
       type: "short-answer",
-      correctValue: "62",
-      acceptableValues: ["62"],
+      correctValue: input.correctValue,
+      acceptableValues: input.acceptableValues || [input.correctValue],
     },
     feedback: {
-      correct: "Correct. 62 comes immediately before 63.",
-      incorrect: "Not quite. Think about the number immediately before 63.",
-      hint: "Count back by one from 63.",
+      correct: "Correct.",
+      incorrect: "Not quite.",
     },
     analytics: {
-      estimatedTimeSeconds: 20,
-      tags: [
-        "assessment-lab",
-        "p0-anchor",
-        "counting-processes",
-        "p5",
-        "cnt-p05-a",
-      ],
+      tags: ["assessment-lab", "p0-anchor", ...input.tags],
     },
-  },
-  {
-    id: "myl-anchor-cnt-p05-b-v1",
+  };
+}
+
+function choiceItem(input: {
+  id: string;
+  code: string;
+  yearLevel: string;
+  substrand: string;
+  skillId: string;
+  skillName: string;
+  prompt: string;
+  options: Array<{ id: string; label: string; value?: unknown }>;
+  correctOptionIds: string[];
+  multi?: boolean;
+  misconceptionTags?: string[];
+  stimulus?: MyLearnaAssessmentItem["stimulus"];
+  tags: string[];
+}): MyLearnaAssessmentItem {
+  return {
+    id: input.id,
     version: 1,
     status: "draft",
-    curriculum: {
-      country: "Australia",
-      jurisdiction: "QCAA Numeracy general capability",
-      yearLevel: "Year 1",
-      strand: "Number sense and algebra",
-      substrand: "Counting processes",
-      code: "MYL-MATH-PROG-NSA-CNT-P05",
-    },
-    skill: {
-      id: "counting-processes-p5-collection",
-      name: "Match a collection up to 20 to its numeral",
-      description:
-        "Samples the P5 collection-to-numeral indicator using a deterministic visual collection.",
-    },
-    misconceptionTags: [
-      "one-to-one-counting-error",
-      "collection-numeral-mismatch",
-    ],
+    curriculum: qCAA(input.code, input.yearLevel, input.substrand),
+    skill: { id: input.skillId, name: input.skillName },
+    misconceptionTags: input.misconceptionTags || [],
     difficulty: 2,
-    template: "short-answer",
+    template: "multiple-choice",
+    prompt: input.prompt,
+    stimulus: input.stimulus || noneStimulus,
+    response: {
+      type: input.multi ? "multiple-choice" : "single-choice",
+      options: input.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        value: option.value ?? option.label,
+      })),
+      correctOptionIds: input.correctOptionIds,
+    },
+    feedback: {
+      correct: "Correct.",
+      incorrect: "Not quite.",
+    },
+    analytics: {
+      tags: ["assessment-lab", "p0-anchor", ...input.tags],
+    },
+  };
+}
+
+export const NPV_P3_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-npv-p03-a-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P03",
+    yearLevel: "Prep",
+    substrand: "Number and place value",
+    skillId: "npv-p3-teen-numeral-recognition",
+    skillName: "Recognise and interpret teen numerals",
+    prompt: "Which numeral shows seventeen?",
+    options: [
+      { id: "a", label: "71" },
+      { id: "b", label: "17" },
+      { id: "c", label: "16" },
+      { id: "d", label: "27" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["teen-numeral-reversal", "digit-order-confusion"],
+    tags: ["number-place-value", "p3", "npv-p03-a"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-npv-p03-b-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P03",
+    yearLevel: "Prep",
+    substrand: "Number and place value",
+    skillId: "npv-p3-ten-and-some-more",
+    skillName: "Represent a teen number as one ten and some more",
+    prompt: "What number is shown?",
+    correctValue: "16",
+    stimulus: {
+      type: "place-value-blocks",
+      data: { tens: 1, ones: 6, layout: "grouped" },
+      altText: "Place-value blocks showing one ten and six ones.",
+    },
+    misconceptionTags: ["teen-number-structure-error"],
+    tags: ["number-place-value", "p3", "npv-p03-b"],
+  }),
+];
+
+export const NPV_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-npv-p06-a-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P06",
+    yearLevel: "Year 3",
+    substrand: "Number and place value",
+    skillId: "npv-p6-flexible-renaming",
+    skillName: "Flexibly rename a four-digit number",
+    prompt: "Select every representation equal to 4,300.",
+    options: [
+      { id: "four-thousands-three-hundreds", label: "4 thousands and 3 hundreds" },
+      { id: "three-thousands-thirteen-hundreds", label: "3 thousands and 13 hundreds" },
+      { id: "forty-three-hundreds", label: "43 hundreds" },
+      { id: "four-thousands-thirty-hundreds", label: "4 thousands and 30 hundreds" },
+      { id: "four-hundreds-three-tens", label: "4 hundreds and 3 tens" },
+    ],
+    correctOptionIds: [
+      "four-thousands-three-hundreds",
+      "three-thousands-thirteen-hundreds",
+      "forty-three-hundreds",
+    ],
+    multi: true,
+    misconceptionTags: ["flexible-renaming-error", "place-value-partitioning-error"],
+    tags: ["number-place-value", "p6", "npv-p06-a", "adapted-existing-item"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-npv-p06-b-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P06",
+    yearLevel: "Year 3",
+    substrand: "Number and place value",
+    skillId: "npv-p6-round-natural",
+    skillName: "Round a natural number to the nearest hundred",
+    prompt: "3,486 rounded to the nearest 100 is:",
+    correctValue: "3500",
+    acceptableValues: ["3500", "3,500"],
+    misconceptionTags: ["rounding-place-value-error"],
+    tags: ["number-place-value", "p6", "npv-p06-b", "adapted-existing-item"],
+  }),
+];
+
+export const NPV_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-npv-p09-a-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P09",
+    yearLevel: "Years 6–8",
+    substrand: "Number and place value",
+    skillId: "npv-p9-negative-order",
+    skillName: "Order negative and positive numbers",
+    prompt: "Which list is ordered from smallest to largest?",
+    options: [
+      { id: "a", label: "-12, -2.5, 0, 4" },
+      { id: "b", label: "-2.5, -12, 0, 4" },
+      { id: "c", label: "0, -2.5, -12, 4" },
+      { id: "d", label: "4, 0, -2.5, -12" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["negative-number-order-error", "absolute-value-order-confusion"],
+    tags: ["number-place-value", "p9", "npv-p09-a", "adapted-existing-construct"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-npv-p09-b-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P09",
+    yearLevel: "Years 6–8",
+    substrand: "Number and place value",
+    skillId: "npv-p9-round-decimal",
+    skillName: "Round a decimal to a specified number of decimal places",
+    prompt: "Round 63.487 to 2 decimal places.",
+    correctValue: "63.49",
+    misconceptionTags: ["decimal-rounding-error", "truncation-confusion"],
+    tags: ["number-place-value", "p9", "npv-p09-b", "adapted-existing-item"],
+  }),
+];
+
+export const COUNTING_P5_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-cnt-p05-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P05",
+    yearLevel: "Year 1",
+    substrand: "Counting processes",
+    skillId: "counting-processes-p5-next-previous",
+    skillName: "Determine the next or previous number within 1–100",
+    description: "Samples the P5 counting-sequence indicator without supplying a number track.",
+    prompt: "What number comes immediately before 63?",
+    correctValue: "62",
+    misconceptionTags: ["count-sequence-boundary-error", "restarts-count-from-one"],
+    tags: ["counting-processes", "p5", "cnt-p05-a"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-cnt-p05-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P05",
+    yearLevel: "Year 1",
+    substrand: "Counting processes",
+    skillId: "counting-processes-p5-collection",
+    skillName: "Match a collection up to 20 to its numeral",
+    description:
+      "Samples the P5 collection-to-numeral indicator using a deterministic visual collection.",
     prompt: "How many counters are shown?",
+    correctValue: "14",
     stimulus: {
       type: "array",
-      data: {
-        rows: 2,
-        columns: 7,
-        itemShape: "circle",
-      },
+      data: { rows: 2, columns: 7, itemShape: "circle" },
       altText:
         "A rectangular arrangement of identical counters. The quantity is intentionally not stated because counting the collection is the task.",
     },
-    response: {
-      type: "short-answer",
-      correctValue: "14",
-      acceptableValues: ["14"],
-    },
-    feedback: {
-      correct: "Correct. The collection contains 14 counters.",
-      incorrect: "Not quite. Count each counter exactly once.",
-      hint: "Keep track of each row as you count.",
-    },
-    analytics: {
-      estimatedTimeSeconds: 35,
-      tags: [
-        "assessment-lab",
-        "p0-anchor",
-        "counting-processes",
-        "p5",
-        "cnt-p05-b",
-        "visual-counting-separate-accessible-form-required",
-      ],
-    },
-  },
+    misconceptionTags: ["one-to-one-counting-error", "collection-numeral-mismatch"],
+    tags: [
+      "counting-processes",
+      "p5",
+      "cnt-p05-b",
+      "visual-counting-separate-accessible-form-required",
+    ],
+  }),
+];
+
+export const ADDITIVE_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-add-p06-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P06",
+    yearLevel: "Years 1–2",
+    substrand: "Additive strategies",
+    skillId: "add-p6-bridge-ten",
+    skillName: "Use a flexible bridge-to-10 strategy",
+    prompt: "Which working is an efficient way to calculate 8 + 6?",
+    options: [
+      { id: "a", label: "8 + 2 + 4 = 14" },
+      { id: "b", label: "8 + 6 = 86" },
+      { id: "c", label: "8 + 8 + 6 = 22" },
+      { id: "d", label: "10 + 8 = 18" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["bridge-to-ten-gap", "additive-strategy-error"],
+    tags: ["additive-strategies", "p6", "add-p06-a"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-add-p06-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P06",
+    yearLevel: "Years 1–2",
+    substrand: "Additive strategies",
+    skillId: "add-p6-part-part-whole",
+    skillName: "Use part-part-whole knowledge for a missing addend",
+    prompt: "Complete the number sentence: 6 + __ = 13",
+    correctValue: "7",
+    misconceptionTags: ["missing-addend-error", "part-part-whole-gap"],
+    tags: ["additive-strategies", "p6", "add-p06-b"],
+  }),
+];
+
+export const ADDITIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-add-p09-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P09",
+    yearLevel: "Years 5–7",
+    substrand: "Additive strategies",
+    skillId: "add-p9-related-denominator-fractions",
+    skillName: "Add fractions with related denominators",
+    prompt: "Calculate 1/4 + 3/8. Give your answer as a fraction.",
+    correctValue: "5/8",
+    misconceptionTags: ["fraction-common-denominator-error"],
+    tags: ["additive-strategies", "p9", "add-p09-a", "adapted-existing-item"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-add-p09-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P09",
+    yearLevel: "Years 5–7",
+    substrand: "Additive strategies",
+    skillId: "add-p9-decimal-addition",
+    skillName: "Add decimals using place-value partitioning",
+    prompt: "Calculate 2.375 + 0.48.",
+    correctValue: "2.855",
+    misconceptionTags: ["decimal-place-alignment-error"],
+    tags: ["additive-strategies", "p9", "add-p09-b"],
+  }),
+];
+
+export const MULTIPLICATIVE_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-mul-p06-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P06",
+    yearLevel: "Years 4–5",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p6-context-multiplication",
+    skillName: "Interpret and solve a single-digit multiplication context",
+    prompt: "A bookshelf has 8 shelves. Each shelf holds 9 books. How many books can it hold altogether?",
+    correctValue: "72",
+    misconceptionTags: ["multiplication-context-error", "times-table-fluency-gap"],
+    tags: ["multiplicative-strategies", "p6", "mul-p06-a", "adapted-existing-item"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-mul-p06-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P06",
+    yearLevel: "Years 4–5",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p6-sharing-division",
+    skillName: "Interpret and solve equal-sharing division",
+    prompt: "24 counters are shared equally between 6 learners. How many counters does each learner get?",
+    correctValue: "4",
+    misconceptionTags: ["division-sharing-grouping-confusion"],
+    tags: ["multiplicative-strategies", "p6", "mul-p06-b", "adapted-existing-item"],
+  }),
+];
+
+export const MULTIPLICATIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-anchor-mul-p09-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P09",
+    yearLevel: "Years 6–8",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p9-prime-powers",
+    skillName: "Express a number as a product of prime factors",
+    prompt: "Which expression writes 72 as a product of prime powers?",
+    options: [
+      { id: "a", label: "2³ × 3²" },
+      { id: "b", label: "2² × 3³" },
+      { id: "c", label: "6² × 2" },
+      { id: "d", label: "8 × 9" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["prime-factorisation-error", "exponent-notation-error"],
+    tags: ["multiplicative-strategies", "p9", "mul-p09-a", "adapted-existing-construct"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-mul-p09-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P09",
+    yearLevel: "Years 6–8",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p9-fraction-of-quantity",
+    skillName: "Calculate a fraction of a quantity multiplicatively",
+    prompt: "A learner spends 3/5 of $40 on supplies. How many dollars are spent?",
+    correctValue: "24",
+    acceptableValues: ["24", "$24", "24.00", "$24.00"],
+    misconceptionTags: ["fraction-of-quantity-error"],
+    tags: ["multiplicative-strategies", "p9", "mul-p09-b", "adapted-existing-item"],
+  }),
 ];
 
 export const NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS = {
+  "number-place-value-p3": NPV_P3_ANCHOR_ITEMS,
+  "number-place-value-p6": NPV_P6_ANCHOR_ITEMS,
+  "number-place-value-p9": NPV_P9_ANCHOR_ITEMS,
   "counting-processes-p5": COUNTING_P5_ANCHOR_ITEMS,
+  "additive-strategies-p6": ADDITIVE_P6_ANCHOR_ITEMS,
+  "additive-strategies-p9": ADDITIVE_P9_ANCHOR_ITEMS,
+  "multiplicative-strategies-p6": MULTIPLICATIVE_P6_ANCHOR_ITEMS,
+  "multiplicative-strategies-p9": MULTIPLICATIVE_P9_ANCHOR_ITEMS,
 } as const;
