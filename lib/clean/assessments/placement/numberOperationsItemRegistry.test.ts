@@ -7,12 +7,12 @@ import {
 
 describe("Number Operations placement item registry", () => {
   it("contains the full first-slice item estate with unique IDs", () => {
-    expect(NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY).toHaveLength(120);
+    expect(NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY).toHaveLength(140);
 
     const ids = NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.map(
       (entry) => entry.item.id,
     );
-    expect(new Set(ids).size).toBe(120);
+    expect(new Set(ids).size).toBe(140);
   });
 
   it("keeps every registry item versioned and draft-only", () => {
@@ -23,6 +23,16 @@ describe("Number Operations placement item registry", () => {
     expect(
       inventory.every((item) => item.curriculumCode?.startsWith("MYL-MATH-PROG-")),
     ).toBe(true);
+  });
+
+  it("includes fresh confirmation items in the same QA registry", () => {
+    const confirmation = getNumberOperationsPlacementItemById(
+      "myl-confirm-npv-p08-a-v1",
+    );
+    expect(confirmation).toMatchObject({
+      poolKind: "confirmation",
+      poolKey: "number-place-value-p8",
+    });
   });
 
   it("tracks where each item belongs", () => {
