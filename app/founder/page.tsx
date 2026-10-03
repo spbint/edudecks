@@ -23,7 +23,7 @@ export default async function FounderPage({
   const data = await loadFounderBehaviourV3({
     rangeDays,
     includeInternal: params.internal === "include",
-    includeSuspicious: params.suspicious !== "exclude",
+    includeSuspicious: params.suspicious === "include",
   });
   return <FounderBehaviourIntelligenceV3 data={data} />;
 }
