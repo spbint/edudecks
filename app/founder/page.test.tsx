@@ -97,7 +97,16 @@ const v3Data = {
   posthogAvailable: true,
   summary: [{ label: "Product users", value: 3, note: "Anonymous aggregate.", confidence: "high" as const }],
   signals: [],
-  funnel: [],
+  funnel: [
+    { label: "Public visit", actors: 10, events: 12, progression: null, dropOff: null, medianMinutes: null, confidence: "high" as const },
+    { label: "Demo", actors: 4, events: 4, progression: 0.4, dropOff: 0.6, medianMinutes: 3, confidence: "directional" as const },
+    { label: "Start signup", actors: 2, events: 2, progression: 0.5, dropOff: 0.5, medianMinutes: null, confidence: "insufficient" as const },
+    { label: "Auth email submitted", actors: 3, events: 3, progression: null, dropOff: null, medianMinutes: null, confidence: "high" as const },
+    { label: "Challenge sent", actors: 3, events: 3, progression: 1, dropOff: 0, medianMinutes: 1, confidence: "insufficient" as const },
+    { label: "Product entry", actors: 3, events: 6, progression: null, dropOff: null, medianMinutes: null, confidence: "high" as const },
+    { label: "Capture", actors: 2, events: 5, progression: null, dropOff: null, medianMinutes: null, confidence: "high" as const },
+    { label: "Portfolio", actors: 2, events: 3, progression: null, dropOff: null, medianMinutes: null, confidence: "high" as const },
+  ],
   returning: [],
   activation: [],
   paths: [],
@@ -142,6 +151,10 @@ describe("Founder page", () => {
     expect(screen.getByRole("heading", { name: "Understand what families do next." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Founder summary" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Founder signals" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Acquisition funnel" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Authentication funnel" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Product milestones" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Journey funnel" })).toBeNull();
     expect(screen.getByRole("heading", { name: "Data quality" })).toBeTruthy();
     expect(screen.getByText("Detailed behavioural analytics")).toBeTruthy();
     expect(document.body.textContent).not.toContain("family@example.com");
@@ -154,6 +167,14 @@ describe("Founder page", () => {
     expect(screen.getByRole("heading", { name: "Aggregate feature usage" })).toBeTruthy();
     expect(screen.getByText("5 actors · 12 events")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/family@example\.com|customer-1|founder-user/);
+  });
+
+  it("offers a one-click conservative Founder decision view", async () => {
+    render(await FounderPage());
+
+    const conservative = screen.getByRole("link", { name: "Conservative view" });
+    expect(conservative.getAttribute("href")).toBe("/founder?range=30&suspicious=exclude");
+    expect(screen.getByText(/Conservative view excludes confirmed internal\/test accounts/i)).toBeTruthy();
   });
 
   it("passes range and both population filters through to the server loader", async () => {
