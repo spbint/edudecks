@@ -53,6 +53,7 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
   const [started, setStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
+  const [textValue, setTextValue] = useState("");
   const [submittedResponse, setSubmittedResponse] = useState<MyLearnaAssessmentResponse | null>(null);
   const [responses, setResponses] = useState<MyLearnaAssessmentResponse[]>([]);
   const itemStartedAt = useRef(0);
@@ -128,6 +129,7 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
             setResponses([]);
             setSubmittedResponse(null);
             setSelectedOptionIds([]);
+            setTextValue("");
             itemStartedAt.current = Date.now();
           }}
           style={secondaryButtonStyle}
@@ -143,6 +145,8 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
   const selectedFeedback = currentItem.response.options?.find((option) =>
     selectedOptionIds.includes(option.id),
   )?.feedback;
+  const isShortAnswer = currentItem.response.type === "short-answer";
+  const responseReady = isShortAnswer ? Boolean(textValue.trim()) : Boolean(selectedOptionIds.length);
 
   return (
     <section style={shellStyle}>
@@ -167,42 +171,66 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
         <AssessmentItemRenderer item={currentItem} />
       </div>
 
-      <fieldset style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
-        <legend style={{ color: "#5B6478", fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-          Choose one answer
-        </legend>
-        {currentItem.response.options?.map((option) => {
-          const selected = selectedOptionIds.includes(option.id);
-          return (
-            <label
-              key={option.id}
-              style={{
-                border: selected ? "2px solid #6C4DF6" : "1px solid #E7EAF2",
-                borderRadius: 16,
-                background: selected ? "#F8F5FF" : "#ffffff",
-                padding: "14px 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                color: "#17204B",
-                fontSize: 18,
-                fontWeight: 850,
-                cursor: submittedResponse ? "default" : "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                name={`answer-${currentItem.id}`}
-                checked={selected}
-                disabled={Boolean(submittedResponse)}
-                onChange={() => setSelectedOptionIds([option.id])}
-                style={{ width: 20, height: 20, accentColor: "#6C4DF6" }}
-              />
-              {option.label}
-            </label>
-          );
-        })}
-      </fieldset>
+      {isShortAnswer ? (
+        <label style={{ display: "grid", gap: 8 }}>
+          <span style={{ color: "#5B6478", fontSize: 14, fontWeight: 800 }}>Enter your answer</span>
+          <input
+            aria-label="Answer"
+            value={textValue}
+            disabled={Boolean(submittedResponse)}
+            inputMode="decimal"
+            autoComplete="off"
+            onChange={(event) => setTextValue(event.target.value)}
+            style={{
+              minHeight: 52,
+              border: "1px solid #CDD3E1",
+              borderRadius: 14,
+              padding: "10px 14px",
+              color: "#17204B",
+              fontSize: 20,
+              fontWeight: 800,
+              background: submittedResponse ? "#F8FAFC" : "#ffffff",
+            }}
+          />
+        </label>
+      ) : (
+        <fieldset style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
+          <legend style={{ color: "#5B6478", fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
+            Choose one answer
+          </legend>
+          {currentItem.response.options?.map((option) => {
+            const selected = selectedOptionIds.includes(option.id);
+            return (
+              <label
+                key={option.id}
+                style={{
+                  border: selected ? "2px solid #6C4DF6" : "1px solid #E7EAF2",
+                  borderRadius: 16,
+                  background: selected ? "#F8F5FF" : "#ffffff",
+                  padding: "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  color: "#17204B",
+                  fontSize: 18,
+                  fontWeight: 850,
+                  cursor: submittedResponse ? "default" : "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name={`answer-${currentItem.id}`}
+                  checked={selected}
+                  disabled={Boolean(submittedResponse)}
+                  onChange={() => setSelectedOptionIds([option.id])}
+                  style={{ width: 20, height: 20, accentColor: "#6C4DF6" }}
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </fieldset>
+      )}
 
       {submittedResponse ? (
         <div
@@ -230,7 +258,7 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
         {!submittedResponse ? (
           <button
             type="button"
-            disabled={!selectedOptionIds.length}
+            disabled={!responseReady}
             onClick={() => {
               const response = scoreAssessmentItem(
                 currentItem,
@@ -239,14 +267,15 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
                   1,
                   Math.round((Date.now() - (itemStartedAt.current || Date.now())) / 1000),
                 ),
+                isShortAnswer ? textValue : undefined,
               );
               setSubmittedResponse(response);
               setResponses((current) => [...current.filter((item) => item.itemId !== response.itemId), response]);
             }}
             style={{
               ...primaryButtonStyle,
-              opacity: selectedOptionIds.length ? 1 : 0.55,
-              cursor: selectedOptionIds.length ? "pointer" : "not-allowed",
+              opacity: responseReady ? 1 : 0.55,
+              cursor: responseReady ? "pointer" : "not-allowed",
             }}
           >
             Check answer
@@ -257,6 +286,7 @@ export default function AssessmentPlayerV1({ title, items }: AssessmentPlayerV1P
             onClick={() => {
               setSubmittedResponse(null);
               setSelectedOptionIds([]);
+              setTextValue("");
               setCurrentIndex((current) => Math.min(items.length - 1, current + 1));
               itemStartedAt.current = Date.now();
             }}
