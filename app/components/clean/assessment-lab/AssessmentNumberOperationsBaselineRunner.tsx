@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner";
 import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard";
 import AssessmentEvidencePreviewCard from "@/app/components/clean/assessment-lab/AssessmentEvidencePreviewCard";
 import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";
 import { buildNumberOperationsEvidencePreview } from "@/lib/clean/assessments/placement/numberOperationsEvidencePreview";
+import { buildNumberOperationsBaselineSummarySnapshot } from "@/lib/clean/assessments/placement/numberOperationsBaselineSnapshot";
 import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
@@ -46,6 +47,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     NumberOperationsPlacementResult | null | undefined
   >(undefined);
   const [complete, setComplete] = useState(false);
+  const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const startedAtRef = useRef(new Date().toISOString());
 
   const currentKey = ORDER[currentIndex];
   const profile = useMemo(
@@ -59,6 +62,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     setUnresolved([]);
     setPendingResult(undefined);
     setComplete(false);
+    setCompletedAt(null);
+    startedAtRef.current = new Date().toISOString();
   };
 
   const continueBaseline = () => {
@@ -76,6 +81,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     }
 
     if (currentIndex >= ORDER.length - 1) {
+      setCompletedAt(new Date().toISOString());
       setComplete(true);
       setPendingResult(undefined);
       return;
@@ -89,11 +95,47 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     const finalResults = Object.values(resultsByKey);
     const finalProfile = buildNumberOperationsProfile(finalResults);
     const evidencePreview = buildNumberOperationsEvidencePreview(finalProfile);
+    const baselineSnapshot = buildNumberOperationsBaselineSummarySnapshot({
+      profile: finalProfile,
+      unresolvedSubElements: unresolved,
+      startedAt: startedAtRef.current,
+      completedAt: completedAt || new Date().toISOString(),
+    });
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
         <AssessmentNumberOperationsProfileCard profile={finalProfile} />
         <AssessmentEvidencePreviewCard preview={evidencePreview} />
+        <details style={panel}>
+          <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
+            Baseline data handoff · schema v{baselineSnapshot.schemaVersion}
+          </summary>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+            <strong style={{ color: "#17204B" }}>
+              {baselineSnapshot.status === "complete" ? "Complete baseline snapshot" : "Partial baseline snapshot"}
+            </strong>
+            <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
+              This versioned object is ready for future persistence work, but it is intentionally not written to
+              the existing pathway-scoped assessment_attempts table.
+            </span>
+            <pre
+              style={{
+                margin: 0,
+                maxHeight: 360,
+                overflow: "auto",
+                borderRadius: 12,
+                background: "#0F172A",
+                color: "#E2E8F0",
+                padding: 14,
+                fontSize: 12,
+                lineHeight: 1.5,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {JSON.stringify(baselineSnapshot, null, 2)}
+            </pre>
+          </div>
+        </details>
         {unresolved.length ? (
           <div style={{ ...panel, background: "#FFFDF5" }}>
             <strong style={{ color: "#92400E" }}>Evidence still unresolved</strong>
