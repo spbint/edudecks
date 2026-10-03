@@ -5,6 +5,11 @@ import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/Assessment
 import AssessmentPlacementResultCard from "@/app/components/clean/assessment-lab/AssessmentPlacementResultCard";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import {
+  buildNumberOperationsSubElementAttemptTrace,
+  type NumberOperationsAttemptStageRecord,
+  type NumberOperationsSubElementAttemptTrace,
+} from "@/lib/clean/assessments/placement/numberOperationsAttemptTrace";
+import {
   buildNumberOperationsCandidateBandResult,
   buildNumberOperationsEndpointResult,
   type NumberOperationsPlacementResult,
@@ -128,9 +133,11 @@ function resultForUnavailableTarget(
 export default function AssessmentAnchorPlacementRunner({
   anchorSetKey,
   onResult,
+  onAttemptTrace,
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
   onResult?: (result: NumberOperationsPlacementResult | null) => void;
+  onAttemptTrace?: (trace: NumberOperationsSubElementAttemptTrace) => void;
 }) {
   const anchorSet = useMemo(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
@@ -148,6 +155,7 @@ export default function AssessmentAnchorPlacementRunner({
     useState<InitialAnchorRoute | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [evidenceNotes, setEvidenceNotes] = useState<string[]>([]);
+  const [stageRecords, setStageRecords] = useState<NumberOperationsAttemptStageRecord[]>([]);
   const reportedResultKey = useRef<string | null>(null);
 
   const reset = useCallback(() => {
@@ -157,23 +165,43 @@ export default function AssessmentAnchorPlacementRunner({
     setResolvedInitialRoute(null);
     setHistory([]);
     setEvidenceNotes([]);
+    setStageRecords([]);
     reportedResultKey.current = null;
   }, [anchorSetKey]);
 
   useEffect(() => {
-    if (stage.kind !== "result" || !onResult) return;
+    if (stage.kind !== "result" || (!onResult && !onAttemptTrace)) return;
     const key = stage.placementResult
       ? JSON.stringify(stage.placementResult)
       : `${stage.headline}::${stage.detail}`;
     if (reportedResultKey.current === key) return;
     reportedResultKey.current = key;
-    onResult(stage.placementResult || null);
-  }, [onResult, stage]);
+    const result = stage.placementResult || null;
+    onResult?.(result);
+    onAttemptTrace?.(
+      buildNumberOperationsSubElementAttemptTrace({
+        subElementKey: anchorSet.key as NumberOperationsSubElementKey,
+        subElementLabel: anchorSet.label,
+        stages: stageRecords,
+        routeTrace: history,
+        evidenceLimitations: evidenceNotes,
+        result,
+      }),
+    );
+  }, [anchorSet.key, anchorSet.label, evidenceNotes, history, onAttemptTrace, onResult, stage, stageRecords]);
 
   const pushHistory = useCallback(
     (entry: string) => setHistory((current) => [...current, entry]),
     [],
   );
+
+  const recordStage = useCallback(
+    (record: NumberOperationsAttemptStageRecord) =>
+      setStageRecords((current) => [...current, record]),
+    [],
+  );
+
+
 
   const evidenceLimitationsForRange = useCallback(
     (lowerP: number, upperP: number) => {
@@ -248,6 +276,11 @@ export default function AssessmentAnchorPlacementRunner({
 
   const handleInitialComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
+      recordStage({
+        stage: "initial",
+        pLevel: anchorSet.initialP,
+        responses,
+      });
       const pair = pairFromResponses(responses);
       setInitialPair(pair);
       const route = routeInitialAnchor(anchorSet, pair);
@@ -275,12 +308,17 @@ export default function AssessmentAnchorPlacementRunner({
         advanceToBranch(route);
       }
     },
-    [anchorSet, advanceToBranch, pushHistory],
+    [anchorSet, advanceToBranch, pushHistory, recordStage],
   );
 
   const handleReserveComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
       if (!initialPair || !responses[0]) return;
+      recordStage({
+        stage: "reserve",
+        pLevel: anchorSet.initialP,
+        responses,
+      });
       const reserve: BinaryAnchorResult = responses[0].correct ? 1 : 0;
       const route = resolveInitialAnchorWithReserve(
         anchorSet,
@@ -293,12 +331,20 @@ export default function AssessmentAnchorPlacementRunner({
       );
       advanceToBranch(route);
     },
-    [anchorSet, advanceToBranch, initialPair, pushHistory],
+    [anchorSet, advanceToBranch, initialPair, pushHistory, recordStage],
   );
 
   const handleBranchComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
       if (!resolvedInitialRoute) return;
+      if (resolvedInitialRoute.kind === "down" || resolvedInitialRoute.kind === "up") {
+        recordStage({
+          stage: "branch",
+          pLevel: resolvedInitialRoute.targetP,
+          direction: resolvedInitialRoute.kind,
+          responses,
+        });
+      }
       const pair = pairFromResponses(responses);
       const route = routeBranchAnchor(anchorSet, resolvedInitialRoute, pair);
 
@@ -354,12 +400,18 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, buildBandResult, pushHistory, recordEvidenceLimit, resolvedInitialRoute],
+    [anchorSet, buildBandResult, pushHistory, recordEvidenceLimit, recordStage, resolvedInitialRoute],
   );
 
   const handleSearchComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
       if (stage.kind !== "search") return;
+      recordStage({
+        stage: "search",
+        pLevel: stage.pLevel,
+        direction: stage.direction,
+        responses,
+      });
       const pair = pairFromResponses(responses);
       const route = routeSearchCluster(
         anchorSet,
@@ -435,12 +487,18 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, buildBandResult, buildEndpointResult, pushHistory, recordEvidenceLimit, stage],
+    [anchorSet, buildBandResult, buildEndpointResult, pushHistory, recordEvidenceLimit, recordStage, stage],
   );
 
   const handleBoundaryComplete = useCallback(
     (responses: MyLearnaAssessmentResponse[]) => {
       if (stage.kind !== "boundary") return;
+      recordStage({
+        stage: "boundary",
+        pLevel: stage.pLevel,
+        bracket: stage.bracket,
+        responses,
+      });
       const supported = responses.filter((response) => response.correct).length >= 2;
       const narrowed = applyBoundaryEvidence(
         stage.bracket,
@@ -477,7 +535,7 @@ export default function AssessmentAnchorPlacementRunner({
         placementResult: buildBandResult(narrowed.lowerP, narrowed.upperP),
       });
     },
-    [anchorSet, buildBandResult, pushHistory, stage],
+    [anchorSet, buildBandResult, pushHistory, recordStage, stage],
   );
 
   let player = null;
