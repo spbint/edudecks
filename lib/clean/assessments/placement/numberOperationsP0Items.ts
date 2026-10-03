@@ -934,13 +934,234 @@ export const MONEY_P10_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
   }),
 ];
 
+
+export const COUNTING_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-cnt-p01-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P01",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "cnt-p1-number-word",
+    skillName: "Recognise a number word in an early counting context",
+    prompt: "Which word is a number word?",
+    options: [
+      { id: "a", label: "three" },
+      { id: "b", label: "blue" },
+      { id: "c", label: "jump" },
+      { id: "d", label: "table" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["early-number-word-recognition-error"],
+    tags: ["search-probe", "counting-processes", "p1", "hybrid-routing-only"],
+  }),
+  choiceItem({
+    id: "myl-search-cnt-p01-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P01",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "cnt-p1-subitise-three",
+    skillName: "Recognise a very small collection",
+    prompt: "Which numeral matches the collection?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 3, arrangement: "dice", seed: 101, maxQuantity: 3 },
+      altText:
+        "A very small collection of counters. The quantity is intentionally not stated because recognising it is the task.",
+    },
+    options: [
+      { id: "a", label: "1" },
+      { id: "b", label: "2" },
+      { id: "c", label: "3" },
+      { id: "d", label: "4" },
+    ],
+    correctOptionIds: ["c"],
+    misconceptionTags: ["early-subitising-error"],
+    tags: [
+      "search-probe",
+      "counting-processes",
+      "p1",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+];
+
+export const ADDITIVE_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-add-p01-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P01",
+    yearLevel: "Prep",
+    substrand: "Additive strategies",
+    skillId: "add-p1-adding-effect",
+    skillName: "Recognise the effect of adding to a collection",
+    prompt: "A collection has 3 counters. One counter is added. What happens to the collection?",
+    options: [
+      { id: "a", label: "It has more counters" },
+      { id: "b", label: "It has fewer counters" },
+      { id: "c", label: "It stays the same" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["adding-effect-error"],
+    tags: ["search-probe", "additive-strategies", "p1", "hybrid-routing-only"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-add-p01-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P01",
+    yearLevel: "Prep",
+    substrand: "Additive strategies",
+    skillId: "add-p1-combine-groups",
+    skillName: "Combine two very small groups",
+    prompt: "There are 2 counters in one group and 1 counter in another. How many counters are there altogether?",
+    correctValue: "3",
+    misconceptionTags: ["emergent-additive-total-error"],
+    tags: ["search-probe", "additive-strategies", "p1", "hybrid-routing-only"],
+  }),
+];
+
+export const ADDITIVE_P2_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-add-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P02",
+    yearLevel: "Prep",
+    substrand: "Additive strategies",
+    skillId: "add-p2-visible-combine",
+    skillName: "Combine two visible small collections",
+    prompt: "There are 3 red counters and 2 blue counters. How many counters are there altogether?",
+    correctValue: "5",
+    misconceptionTags: ["visible-additive-count-all-error"],
+    tags: ["search-probe", "additive-strategies", "p2", "hybrid-routing-only"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-add-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P02",
+    yearLevel: "Prep",
+    substrand: "Additive strategies",
+    skillId: "add-p2-visible-remove",
+    skillName: "Take away from a visible small collection",
+    prompt: "There are 7 counters. Two counters are taken away. How many counters remain?",
+    correctValue: "5",
+    misconceptionTags: ["visible-subtraction-count-all-error"],
+    tags: ["search-probe", "additive-strategies", "p2", "hybrid-routing-only"],
+  }),
+];
+
+export const MULTIPLICATIVE_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-mul-p01-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P01",
+    yearLevel: "Prep",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p1-equal-share",
+    skillName: "Share a very small collection equally",
+    prompt: "6 counters are shared equally between 2 people. How many counters does each person receive?",
+    correctValue: "3",
+    misconceptionTags: ["early-equal-sharing-error"],
+    tags: ["search-probe", "multiplicative-strategies", "p1", "hybrid-routing-only"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-mul-p01-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P01",
+    yearLevel: "Prep",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p1-equal-groups-total",
+    skillName: "Make equal groups and determine a total",
+    prompt: "There are 3 equal groups with 2 counters in each group. How many counters are there altogether?",
+    correctValue: "6",
+    misconceptionTags: ["early-equal-groups-error"],
+    tags: ["search-probe", "multiplicative-strategies", "p1", "hybrid-routing-only"],
+  }),
+];
+
+export const MULTIPLICATIVE_P2_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-mul-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P02",
+    yearLevel: "Year 1",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p2-visible-groups",
+    skillName: "Use visible equal groups",
+    prompt: "Four visible groups each contain 2 counters. How many counters are there altogether?",
+    correctValue: "8",
+    misconceptionTags: ["perceptual-multiple-error"],
+    tags: ["search-probe", "multiplicative-strategies", "p2", "hybrid-routing-only"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-mul-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P02",
+    yearLevel: "Year 1",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p2-visible-share",
+    skillName: "Use visible equal sharing",
+    prompt: "8 counters are shared equally between 4 people. How many counters does each person receive?",
+    correctValue: "2",
+    misconceptionTags: ["perceptual-sharing-error"],
+    tags: ["search-probe", "multiplicative-strategies", "p2", "hybrid-routing-only"],
+  }),
+];
+
+export const MONEY_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-mon-p01-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P01",
+    yearLevel: "Prep–Year 1",
+    substrand: "Understanding money",
+    skillId: "money-p1-money-situation",
+    skillName: "Recognise a situation that uses money",
+    prompt: "Which situation usually involves using money?",
+    options: [
+      { id: "a", label: "Buying a snack at a shop" },
+      { id: "b", label: "Looking at the weather" },
+      { id: "c", label: "Counting steps on a walk" },
+      { id: "d", label: "Reading a story" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["money-context-recognition-error"],
+    tags: ["search-probe", "understanding-money", "p1", "asset-review"],
+  }),
+  choiceItem({
+    id: "myl-search-mon-p01-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P01",
+    yearLevel: "Prep–Year 1",
+    substrand: "Understanding money",
+    skillId: "money-p1-face-value",
+    skillName: "Identify a money denomination by face value",
+    prompt: "Which money token has a face value of two dollars?",
+    stimulus: {
+      type: "currency-tokens",
+      data: {
+        layout: "row",
+        tokens: [
+          { denomination: "50c" },
+          { denomination: "$1" },
+          { denomination: "$2" },
+        ],
+      },
+      altText: "Money tokens shown in this order: 50c, $1, $2.",
+    },
+    options: [
+      { id: "a", label: "50c" },
+      { id: "b", label: "$1" },
+      { id: "c", label: "$2" },
+    ],
+    correctOptionIds: ["c"],
+    misconceptionTags: ["money-face-value-recognition-error"],
+    tags: ["search-probe", "understanding-money", "p1", "asset-review"],
+  }),
+];
+
 export const NUMBER_OPERATIONS_SEARCH_CLUSTERS = {
   "number-place-value-p1": NPV_P1_SEARCH_ITEMS,
   "number-place-value-p2": NPV_P2_SEARCH_ITEMS,
   "number-place-value-p10": NPV_P10_SEARCH_ITEMS,
+  "counting-processes-p1": COUNTING_P1_SEARCH_ITEMS,
   "counting-processes-p8": COUNTING_P8_SEARCH_ITEMS,
+  "additive-strategies-p1": ADDITIVE_P1_SEARCH_ITEMS,
+  "additive-strategies-p2": ADDITIVE_P2_SEARCH_ITEMS,
   "additive-strategies-p10": ADDITIVE_P10_SEARCH_ITEMS,
+  "multiplicative-strategies-p1": MULTIPLICATIVE_P1_SEARCH_ITEMS,
+  "multiplicative-strategies-p2": MULTIPLICATIVE_P2_SEARCH_ITEMS,
   "multiplicative-strategies-p10": MULTIPLICATIVE_P10_SEARCH_ITEMS,
+  "understanding-money-p1": MONEY_P1_SEARCH_ITEMS,
   "understanding-money-p9": MONEY_P9_SEARCH_ITEMS,
   "understanding-money-p10": MONEY_P10_SEARCH_ITEMS,
 } as const;
