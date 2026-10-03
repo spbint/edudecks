@@ -13,6 +13,7 @@ import {
   NPV_P9_ANCHOR_ITEMS,
   NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
   NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
+  NUMBER_OPERATIONS_SEARCH_CLUSTERS,
 } from "./numberOperationsP0Items";
 
 describe("Number & Operations executable P0 anchor items", () => {
@@ -34,6 +35,21 @@ describe("Number & Operations executable P0 anchor items", () => {
     const all = Object.values(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).flat();
     expect(all).toHaveLength(22);
     expect(all.every((item) => item.status === "draft")).toBe(true);
+  });
+
+  it("provides direct search clusters for the currently reachable non-hybrid endpoint searches", () => {
+    expect(Object.keys(NUMBER_OPERATIONS_SEARCH_CLUSTERS)).toEqual([
+      "number-place-value-p2",
+      "number-place-value-p10",
+      "counting-processes-p8",
+      "additive-strategies-p10",
+      "multiplicative-strategies-p10",
+      "understanding-money-p9",
+      "understanding-money-p10",
+    ]);
+    expect(
+      Object.values(NUMBER_OPERATIONS_SEARCH_CLUSTERS).flat(),
+    ).toHaveLength(14);
   });
 
   it("provides one reserve probe for every initial routing anchor", () => {
