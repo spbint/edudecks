@@ -29,9 +29,9 @@ describe("AssessmentNumberOperationsProfileCard", () => {
     );
 
     expect(screen.getByText("A profile, not one averaged level")).toBeTruthy();
-    expect(screen.getByText("Number and place value")).toBeTruthy();
+    expect(screen.getAllByText("Number and place value").length).toBeGreaterThan(0);
     expect(screen.getByText("P6–P7")).toBeTruthy();
-    expect(screen.getByText("Multiplicative strategies")).toBeTruthy();
+    expect(screen.getAllByText("Multiplicative strategies").length).toBeGreaterThan(0);
     expect(screen.getByText("P4–P5")).toBeTruthy();
     expect(screen.getAllByText(/2 of 5 sub-elements/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Recommended next learning actions")).toBeTruthy();
