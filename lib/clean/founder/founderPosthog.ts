@@ -70,6 +70,7 @@ export type FounderTrackedEventName = (typeof FOUNDER_EVENT_NAMES)[number];
 
 export type FounderProductEvent = {
   userId: string;
+  personId?: string | null;
   event: FounderTrackedEventName;
   occurredAt: string;
   route: string | null;
@@ -130,6 +131,7 @@ function parseQueryRows(payload: PostHogQueryResponse): FounderProductEvent[] {
   const columns = payload.columns.map((column) => clean(column));
   const indexes = {
     userId: columns.indexOf("distinct_id"),
+    personId: columns.indexOf("personId"),
     event: columns.indexOf("event"),
     occurredAt: columns.indexOf("timestamp"),
     route: columns.indexOf("route"),
@@ -169,6 +171,7 @@ function parseQueryRows(payload: PostHogQueryResponse): FounderProductEvent[] {
       if (!userId || !isTrackedEvent(event) || !Number.isFinite(Date.parse(occurredAt))) return null;
       return {
         userId,
+        personId: indexes.personId >= 0 ? clean(row[indexes.personId]) || null : null,
         event,
         occurredAt: new Date(occurredAt).toISOString(),
         route: indexes.route >= 0 ? clean(row[indexes.route]) || null : null,
@@ -209,7 +212,7 @@ export async function loadFounderPostHogSnapshot(lookbackDays = 30): Promise<Fou
     ? Math.max(1, Math.min(90, Math.floor(lookbackDays)))
     : 30;
   const eventList = FOUNDER_EVENT_NAMES.map(escapeSqlString).join(",");
-  const query = `SELECT distinct_id, event, timestamp, properties.route AS route, properties.area AS area, properties.authAttemptId AS authAttemptId, properties.journey AS journey, properties.challengeType AS challengeType, properties.requestedDestination AS requestedDestination, properties.browserContextCategory AS browserContextCategory, properties.resultReason AS resultReason, properties.callbackKind AS callbackKind, properties.attemptNumber AS attemptNumber, properties.elapsedTimeBand AS elapsedTimeBand, properties.viewportCategory AS viewportCategory, properties.displayMode AS displayMode, properties.sourceSurface AS sourceSurface, properties.captureMode AS captureMode, properties.attachmentSource AS attachmentSource, properties.attachmentCategory AS attachmentCategory, properties.failureStage AS failureStage, properties.onlineHint AS onlineHint, properties.public_source AS publicSource, properties.page_path AS pagePath, properties.includeInPortfolio AS includeInPortfolio, properties.includeInReport AS includeInReport, properties.hasAttachment AS hasAttachment, properties.isEdit AS isEdit\nFROM events\nWHERE timestamp >= now() - INTERVAL ${days} DAY\n  AND event IN (${eventList})\nORDER BY timestamp DESC\nLIMIT 20000`;
+  const query = `SELECT distinct_id, toString(person_id) AS personId, event, timestamp, properties.route AS route, properties.area AS area, properties.authAttemptId AS authAttemptId, properties.journey AS journey, properties.challengeType AS challengeType, properties.requestedDestination AS requestedDestination, properties.browserContextCategory AS browserContextCategory, properties.resultReason AS resultReason, properties.callbackKind AS callbackKind, properties.attemptNumber AS attemptNumber, properties.elapsedTimeBand AS elapsedTimeBand, properties.viewportCategory AS viewportCategory, properties.displayMode AS displayMode, properties.sourceSurface AS sourceSurface, properties.captureMode AS captureMode, properties.attachmentSource AS attachmentSource, properties.attachmentCategory AS attachmentCategory, properties.failureStage AS failureStage, properties.onlineHint AS onlineHint, properties.public_source AS publicSource, properties.page_path AS pagePath, properties.includeInPortfolio AS includeInPortfolio, properties.includeInReport AS includeInReport, properties.hasAttachment AS hasAttachment, properties.isEdit AS isEdit\nFROM events\nWHERE timestamp >= now() - INTERVAL ${days} DAY\n  AND event IN (${eventList})\nORDER BY timestamp DESC\nLIMIT 20000`;
 
   try {
     const response = await fetch(`${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/query/`, {
