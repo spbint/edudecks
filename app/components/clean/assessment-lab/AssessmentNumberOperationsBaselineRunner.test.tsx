@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildNumberOperationsCandidateBandResult } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
 import { buildNumberOperationsSubElementAttemptTrace } from "@/lib/clean/assessments/placement/numberOperationsAttemptTrace";
+import { NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY } from "@/lib/clean/assessments/placement/numberOperationsBaselineDraft";
 
 vi.mock("./AssessmentAnchorPlacementRunner", () => ({
   default: ({
@@ -64,7 +71,11 @@ vi.mock("./AssessmentAnchorPlacementRunner", () => ({
 
 import AssessmentNumberOperationsBaselineRunner from "./AssessmentNumberOperationsBaselineRunner";
 
-afterEach(() => cleanup());
+beforeEach(() => window.sessionStorage.clear());
+afterEach(() => {
+  cleanup();
+  window.sessionStorage.clear();
+});
 
 describe("AssessmentNumberOperationsBaselineRunner", () => {
   it("collects five independent area results into one profile", () => {
@@ -105,6 +116,46 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     fireEvent.click(screen.getByText(/Future persistence rows · 5 responses/i));
     expect(
       screen.getByText(/No family ID, learner ID, database ID or user ID is created here/i),
+    ).toBeTruthy();
+    expect(
+      window.sessionStorage.getItem(
+        NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+      ),
+    ).toBeNull();
+  });
+
+  it("resumes completed areas from browser-local session storage", async () => {
+    const first = render(
+      React.createElement(AssessmentNumberOperationsBaselineRunner),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Complete number-place-value" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Continue to next area" }),
+    );
+
+    await waitFor(() => {
+      const raw = window.sessionStorage.getItem(
+        NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+      );
+      expect(raw).toBeTruthy();
+      expect(JSON.parse(raw || "{}").currentIndex).toBe(1);
+    });
+
+    first.unmount();
+
+    render(React.createElement(AssessmentNumberOperationsBaselineRunner));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Complete counting-processes" }),
+      ).toBeTruthy();
+    });
+    expect(screen.getByText(/Area 2 of 5/i)).toBeTruthy();
+    expect(
+      screen.getByText(/completed areas are saved only in this browser tab/i),
     ).toBeTruthy();
   });
 });
