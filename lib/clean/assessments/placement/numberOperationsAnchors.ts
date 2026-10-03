@@ -447,6 +447,36 @@ export function routeBranchAnchor(
   return { kind: "bracket", lowerP: anchorSet.lowerP, upperP: anchorSet.initialP };
 }
 
+
+export type ProgressionBracket = {
+  lowerP: number;
+  upperP: number;
+};
+
+export function nextBoundaryTarget(bracket: ProgressionBracket) {
+  if (bracket.upperP - bracket.lowerP <= 1) return null;
+  return Math.floor((bracket.lowerP + bracket.upperP) / 2);
+}
+
+export function applyBoundaryEvidence(
+  bracket: ProgressionBracket,
+  targetP: number,
+  supported: boolean,
+): ProgressionBracket {
+  if (targetP <= bracket.lowerP || targetP >= bracket.upperP) {
+    throw new Error("Boundary target must sit strictly inside the current bracket.");
+  }
+  return supported
+    ? { lowerP: targetP, upperP: bracket.upperP }
+    : { lowerP: bracket.lowerP, upperP: targetP };
+}
+
+export function bracketFromBranchRoute(route: BranchAnchorRoute): ProgressionBracket | null {
+  return route.kind === "bracket"
+    ? { lowerP: route.lowerP, upperP: route.upperP }
+    : null;
+}
+
 export function getNumberOperationsAnchorSet(key: NumberOperationsAnchorSet["key"]) {
   return NUMBER_OPERATIONS_ANCHOR_SETS.find((anchorSet) => anchorSet.key === key) || null;
 }
