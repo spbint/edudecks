@@ -9,6 +9,7 @@ import {
   NPV_P6_ANCHOR_ITEMS,
   NPV_P9_ANCHOR_ITEMS,
   NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
+  NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
 } from "./numberOperationsP0Items";
 
 describe("Number & Operations executable P0 anchor items", () => {
@@ -27,6 +28,21 @@ describe("Number & Operations executable P0 anchor items", () => {
     const all = Object.values(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).flat();
     expect(all).toHaveLength(16);
     expect(all.every((item) => item.status === "draft")).toBe(true);
+  });
+
+  it("provides one reserve probe for every initial routing anchor", () => {
+    expect(Object.keys(NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS)).toEqual([
+      "number-place-value-p6",
+      "counting-processes-p5",
+      "additive-strategies-p6",
+      "multiplicative-strategies-p6",
+      "understanding-money-p5",
+    ]);
+    expect(
+      Object.values(NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS).every(
+        (item) => item.status === "draft",
+      ),
+    ).toBe(true);
   });
 
   it("preserves the Number and place value lower/mid/upper progression identities", () => {
