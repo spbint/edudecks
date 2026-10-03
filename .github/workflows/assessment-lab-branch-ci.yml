@@ -41,3 +41,7 @@ jobs:
           lib/clean/assessments/placement/numberOperationsProfile.test.ts
           lib/clean/assessments/placement/numberOperationsRoutingFixtures.test.ts
           lib/clean/assessments/visualTemplates/CurrencyTokenVisual.test.tsx
+
+
+      - name: Build application
+        run: npm run build
