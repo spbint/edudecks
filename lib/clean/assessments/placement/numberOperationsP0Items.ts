@@ -257,6 +257,39 @@ export const COUNTING_P5_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   }),
 ];
 
+
+export const COUNTING_P7_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-anchor-cnt-p07-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P07",
+    yearLevel: "Years 2–4",
+    substrand: "Counting processes",
+    skillId: "counting-p7-off-decade-fives",
+    skillName: "Continue a count by fives off the decade",
+    prompt: "Continue the sequence: 8, 13, 18, 23, __",
+    correctValue: "28",
+    misconceptionTags: ["skip-count-interval-error", "off-decade-counting-error"],
+    tags: ["counting-processes", "p7", "cnt-p07-a"],
+  }),
+  shortAnswerItem({
+    id: "myl-anchor-cnt-p07-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P07",
+    yearLevel: "Years 2–4",
+    substrand: "Counting processes",
+    skillId: "counting-p7-grouped-quantity",
+    skillName: "Count a grouped quantity and residual",
+    prompt: "What total quantity is represented?",
+    correctValue: "47",
+    stimulus: {
+      type: "place-value-blocks",
+      data: { tens: 4, ones: 7, layout: "grouped" },
+      altText: "A grouped representation showing four tens and seven ones.",
+    },
+    misconceptionTags: ["grouped-counting-error", "residual-counting-error"],
+    tags: ["counting-processes", "p7", "cnt-p07-b"],
+  }),
+];
+
 export const ADDITIVE_P6_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
   choiceItem({
     id: "myl-anchor-add-p06-a-v1",
@@ -477,6 +510,7 @@ export const NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS = {
   "number-place-value-p6": NPV_P6_ANCHOR_ITEMS,
   "number-place-value-p9": NPV_P9_ANCHOR_ITEMS,
   "counting-processes-p5": COUNTING_P5_ANCHOR_ITEMS,
+  "counting-processes-p7": COUNTING_P7_ANCHOR_ITEMS,
   "additive-strategies-p6": ADDITIVE_P6_ANCHOR_ITEMS,
   "additive-strategies-p9": ADDITIVE_P9_ANCHOR_ITEMS,
   "multiplicative-strategies-p6": MULTIPLICATIVE_P6_ANCHOR_ITEMS,
