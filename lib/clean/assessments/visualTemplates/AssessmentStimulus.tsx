@@ -2,6 +2,7 @@ import React from "react";
 import type {
   ArrayStimulus,
   CounterSetStimulus,
+  CurrencyTokenStimulus,
   FractionBarStimulus,
   MyLearnaAssessmentStimulus,
   NumberLineStimulus,
@@ -11,6 +12,7 @@ import type {
 } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import { ArrayVisual } from "@/lib/clean/assessments/visualTemplates/ArrayVisual";
 import { CounterSetVisual } from "@/lib/clean/assessments/visualTemplates/CounterSetVisual";
+import { CurrencyTokenVisual } from "@/lib/clean/assessments/visualTemplates/CurrencyTokenVisual";
 import { FractionBarVisual } from "@/lib/clean/assessments/visualTemplates/FractionBarVisual";
 import { InvalidStimulus } from "@/lib/clean/assessments/visualTemplates/InvalidStimulus";
 import { NumberLineVisual } from "@/lib/clean/assessments/visualTemplates/NumberLineVisual";
@@ -34,6 +36,8 @@ export function AssessmentStimulus({ stimulus }: { stimulus: MyLearnaAssessmentS
       return <PlaceValueBlocksVisual data={stimulus.data as PlaceValueBlocksStimulus} altText={stimulus.altText} />;
     case "fraction-bar":
       return <FractionBarVisual data={stimulus.data as FractionBarStimulus} altText={stimulus.altText} />;
+    case "currency-tokens":
+      return <CurrencyTokenVisual data={stimulus.data as CurrencyTokenStimulus} altText={stimulus.altText} />;
     case "shape-set":
       return <ShapeSetVisual data={stimulus.data as ShapeSetStimulus} altText={stimulus.altText} />;
     default:
