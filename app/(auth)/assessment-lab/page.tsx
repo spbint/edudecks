@@ -31,6 +31,9 @@ export default async function AssessmentLabPage() {
           <Link href="/assessment-lab/measurement-units" prefetch={false}>
             Open the Measurement units cross-strand proof
           </Link>
+          <Link href="/assessment-lab/chance" prefetch={false}>
+            Open the Understanding chance cross-strand proof
+          </Link>
         </nav>
       ) : null}
       <AssessmentLabWorkspace />
