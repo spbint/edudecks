@@ -166,7 +166,7 @@ export const NUMERACY_PROGRESSION_SUB_ELEMENTS: NumeracyProgressionSubElement[] 
     minP: 1,
     maxP: 6,
     sourcePages: [19, 20],
-    implementation: "blueprint-next",
+    implementation: "adaptive-cross-strand-proof",
   },
   {
     key: "interpreting-representing-data",
