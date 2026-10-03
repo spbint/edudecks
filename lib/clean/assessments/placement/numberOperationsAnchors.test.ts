@@ -12,7 +12,7 @@ describe("Number Operations anchor routing", () => {
 
     const anchors = NUMBER_OPERATIONS_ANCHOR_SETS.flatMap((set) => set.anchors);
     const slots = anchors.flatMap((anchor) => anchor.slots);
-    const reuse = slots.filter((slot) => slot.status === "reuse-candidate");
+    const reuse = slots.filter((slot) => slot.status.startsWith("reuse-"));
 
     expect(anchors).toHaveLength(15);
     expect(slots).toHaveLength(30);
