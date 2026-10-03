@@ -5,6 +5,7 @@ export type AnchorItemStatus =
   | "implemented-draft"
   | "implemented-draft-accessibility-review"
   | "implemented-draft-asset-review"
+  | "implemented-hybrid-routing-only"
   | "new-hybrid-blueprint"
   | "new-blueprint-currency-review";
 
@@ -163,8 +164,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         evidenceMode: "hybrid-observed",
         sourcePages: [5],
         slots: [
-          slot("MYL-ANCHOR-CNT-P02-A", "A", "Subitise a small collection up to about five.", "single_choice", "controlled dot set", "new-hybrid-blueprint"),
-          slot("MYL-ANCHOR-CNT-P02-B", "B", "Count a very small visible collection accurately.", "single_choice", "counter tokens", "new-hybrid-blueprint"),
+          slot("MYL-ANCHOR-CNT-P02-A", "A", "Subitise a small collection up to about five.", "single_choice", "controlled dot set", "implemented-hybrid-routing-only"),
+          slot("MYL-ANCHOR-CNT-P02-B", "B", "Count a very small visible collection accurately.", "single_choice", "counter tokens", "implemented-hybrid-routing-only"),
         ],
       },
       {
@@ -215,8 +216,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         evidenceMode: "hybrid-observed",
         sourcePages: [6],
         slots: [
-          slot("MYL-ANCHOR-ADD-P03-A", "A", "Solve an additive situation after two small quantities are concealed.", "numeric_entry", "concealed counter groups", "new-hybrid-blueprint"),
-          slot("MYL-ANCHOR-ADD-P03-B", "B", "Capture supporting process evidence for a concealed-quantity task.", "strategy_capture + numeric_entry", "concealed counter groups", "new-hybrid-blueprint"),
+          slot("MYL-ANCHOR-ADD-P03-A", "A", "Solve an additive situation after two small quantities are concealed.", "numeric_entry", "concealed quantity context", "implemented-hybrid-routing-only"),
+          slot("MYL-ANCHOR-ADD-P03-B", "B", "Sample a second concealed-quantity task; exact strategy still requires observation.", "numeric_entry", "concealed quantity context", "implemented-hybrid-routing-only"),
         ],
       },
       {
@@ -275,8 +276,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         evidenceMode: "hybrid-observed",
         sourcePages: [7],
         slots: [
-          slot("MYL-ANCHOR-MUL-P03-A", "A", "Determine a total from concealed equal groups using imagined composite units.", "numeric_entry", "composite-unit pack renderer", "new-hybrid-blueprint"),
-          slot("MYL-ANCHOR-MUL-P03-B", "B", "Use composite-unit counting when individual items are not visible.", "numeric_entry", "composite-unit pack renderer", "new-hybrid-blueprint"),
+          slot("MYL-ANCHOR-MUL-P03-A", "A", "Determine a total from concealed equal groups using imagined composite units.", "numeric_entry", "closed-pack context", "implemented-hybrid-routing-only"),
+          slot("MYL-ANCHOR-MUL-P03-B", "B", "Use composite-unit counting when individual items are not visible.", "numeric_entry", "closed-box context", "implemented-hybrid-routing-only"),
         ],
       },
       {
