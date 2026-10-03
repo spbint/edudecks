@@ -36,6 +36,7 @@ function hasGeneratedVisualDescription(item: MyLearnaAssessmentItem) {
     "place-value-blocks",
     "fraction-bar",
     "currency-tokens",
+    "graduated-scale",
     "shape-set",
   ].includes(item.stimulus.type);
 }
