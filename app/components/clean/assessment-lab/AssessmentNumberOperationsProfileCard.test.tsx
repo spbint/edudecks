@@ -34,5 +34,9 @@ describe("AssessmentNumberOperationsProfileCard", () => {
     expect(screen.getByText("Multiplicative strategies")).toBeTruthy();
     expect(screen.getByText("P4–P5")).toBeTruthy();
     expect(screen.getAllByText(/2 of 5 sub-elements/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Recommended next learning actions")).toBeTruthy();
+    expect(screen.getByText("Practise toward P7")).toBeTruthy();
+    expect(screen.getByText("Practise toward P5")).toBeTruthy();
+    expect(screen.getAllByText("Resource/Pathways link not mapped yet.")).toHaveLength(2);
   });
 });
