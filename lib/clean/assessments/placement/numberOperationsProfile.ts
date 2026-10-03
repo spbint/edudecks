@@ -2,6 +2,10 @@ import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
 } from "./numberOperationsPlacementResult";
+import {
+  buildNumberOperationsRecommendations,
+  type NumberOperationsRecommendation,
+} from "./numberOperationsRecommendations";
 
 const ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -25,6 +29,7 @@ export type NumberOperationsProfile = {
     subElementLabel: string;
     action: string;
   }>;
+  recommendations: NumberOperationsRecommendation[];
 };
 
 export function buildNumberOperationsProfile(
@@ -62,5 +67,6 @@ export function buildNumberOperationsProfile(
       subElementLabel: result.subElementLabel,
       action: result.nextVerification,
     })),
+    recommendations: buildNumberOperationsRecommendations(ordered),
   };
 }
