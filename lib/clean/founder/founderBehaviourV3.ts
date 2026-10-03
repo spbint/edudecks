@@ -84,9 +84,8 @@ const PRODUCT_EVENTS = new Set<FounderTrackedEventName>([
 ]);
 const CAPTURE_OPEN = new Set<FounderTrackedEventName>(["capture_opened", "quick_capture_opened"]);
 const CAPTURE_SAVE = new Set<FounderTrackedEventName>(["capture_save_succeeded", "quick_capture_saved", "evidence_created"]);
-const REPORT_EVENTS = new Set<FounderTrackedEventName>([
-  "report_previewed", "learning_record_pdf_generated", "daily_plan_pdf_downloaded", "weekly_plan_pdf_downloaded",
-  "public_report_viewed", "public_report_downloaded",
+const PRODUCT_PRODUCT_REPORT_EVENTS = new Set<FounderTrackedEventName>([
+  "report_previewed", "learning_record_pdf_generated",
 ]);
 const MIN_SAMPLE = 5;
 
@@ -169,7 +168,7 @@ function feature(event: FounderProductEvent) {
   if (event.event === "pathway_viewed") return "Pathways";
   if (CAPTURE_OPEN.has(event.event) || CAPTURE_SAVE.has(event.event)) return "Capture";
   if (event.event === "portfolio_viewed" || event.event === "portfolio_viewed_after_capture") return "Portfolio";
-  if (REPORT_EVENTS.has(event.event)) return "Reports";
+  if (PRODUCT_REPORT_EVENTS.has(event.event)) return "Reports";
   return null;
 }
 
@@ -240,7 +239,7 @@ function buildFunnel(events: FounderProductEvent[]): FounderFunnelStepV3[] {
     ["Capture", CAPTURE_OPEN],
     ["Evidence saved", CAPTURE_SAVE],
     ["Portfolio", new Set(["portfolio_viewed", "portfolio_viewed_after_capture"])],
-    ["Report", REPORT_EVENTS],
+    ["Report", PRODUCT_REPORT_EVENTS],
   ];
   return definitions.map(([label, names], index) => {
     const current = select(events, names);
@@ -315,7 +314,7 @@ export function buildFounderBehaviourV3(input: {
   const captureOpen = select(events, CAPTURE_OPEN);
   const captureSave = select(events, CAPTURE_SAVE);
   const portfolio = select(events, new Set(["portfolio_viewed", "portfolio_viewed_after_capture"]));
-  const reports = select(events, REPORT_EVENTS);
+  const reports = select(events, PRODUCT_REPORT_EVENTS);
   const phoneEvents = productEvents.filter((event) => event.viewportCategory === "phone");
   const pwaEvents = events.filter((event) => event.displayMode === "standalone" || event.event === "pwa_session_started");
   const activeDays = new Map<string, Set<string>>();
@@ -421,7 +420,7 @@ export function buildFounderBehaviourV3(input: {
       { label: "Activated families", value: captureSaveActors.size, note: "Conservatively defined as saving evidence.", confidence: "directional" },
       { label: "Capture users", value: captureActors.size, note: "Opened standard or Quick Capture.", confidence: "high" },
       { label: "Portfolio users", value: portfolioActors.size, note: "Viewed Portfolio.", confidence: "high" },
-      { label: "Report users", value: reportActors.size, note: "Previewed/generated/downloaded a report.", confidence: "high" },
+      { label: "Report users", value: reportActors.size, note: "Authenticated actors who previewed or generated a report.", confidence: "high" },
       { label: "7-day retained", value: retained7.size, note: "Product activity spanning at least seven days; directional, not a PostHog retention insight.", confidence: "directional" },
       { label: "Phone share", value: productEvents.length ? actors(phoneEvents).size / Math.max(1, productActors.size) : null, note: "Share of product actors with a phone-classified event.", confidence: productActors.size >= MIN_SAMPLE ? "directional" : "insufficient" },
       { label: "PWA share", value: productEvents.length ? actors(pwaEvents).size / Math.max(1, productActors.size) : null, note: "Standalone display mode only; phone browser is not PWA.", confidence: actors(pwaEvents).size ? "directional" : "insufficient" },
@@ -441,7 +440,7 @@ export function buildFounderBehaviourV3(input: {
       metric("First Capture open", captureOpen, "Standard or Quick Capture."),
       metric("First evidence save", captureSave, "Evidence/save events."),
       metric("First Portfolio", portfolio, "Portfolio view."),
-      metric("First Report", reports, "Preview or generated/downloaded output."),
+      metric("First Report", reports, "Authenticated report preview or learning-record PDF generation."),
     ],
     paths: paths(productEvents),
     capture: [
