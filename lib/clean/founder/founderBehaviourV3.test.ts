@@ -48,6 +48,46 @@ describe("Founder Behaviour Intelligence v3", () => {
     expect(result.dataQuality.find((item) => item.label === "Internal/test traffic")?.detail).toContain("included");
   });
 
+  it("keeps suspicious actors included by default", () => {
+    const result = buildFounderBehaviourV3({
+      events: [
+        event("family", "daily_plan_viewed", 1),
+        event("suspicious", "daily_plan_viewed", 1),
+      ],
+      rangeDays: 30,
+      includeInternal: false,
+      internalUserIds: new Set(),
+      suspiciousUserIds: new Set(["suspicious"]),
+      posthogAvailable: true,
+      now: new Date("2026-09-30T12:00:00.000Z"),
+    });
+
+    expect(result.includeSuspicious).toBe(true);
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(2);
+  });
+
+  it("can exclude suspicious actors without classifying them as internal", () => {
+    const result = buildFounderBehaviourV3({
+      events: [
+        event("family", "daily_plan_viewed", 1),
+        event("suspicious", "daily_plan_viewed", 1),
+        event("internal", "daily_plan_viewed", 1),
+      ],
+      rangeDays: 30,
+      includeInternal: false,
+      includeSuspicious: false,
+      internalUserIds: new Set(["internal"]),
+      suspiciousUserIds: new Set(["suspicious"]),
+      posthogAvailable: true,
+      now: new Date("2026-09-30T12:00:00.000Z"),
+    });
+
+    expect(result.includeSuspicious).toBe(false);
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(result.dataQuality.find((item) => item.label === "Suspicious/unknown accounts")?.detail)
+      .toContain("excluded");
+  });
+
   it("aggregates journey, Capture and ordered product paths", () => {
     const result = build([
       event("family", "daily_plan_viewed", 1),
