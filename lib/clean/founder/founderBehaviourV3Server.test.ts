@@ -46,8 +46,8 @@ describe("Founder Behaviour Intelligence v3 production data wiring", () => {
     expect(mocks.loadFounderPostHogSnapshot).toHaveBeenCalledWith(30);
     expect(mocks.loadFounderCustomers).toHaveBeenCalledWith(now, { includeInternal: true });
     expect(result.posthogAvailable).toBe(true);
-    expect(result.includeSuspicious).toBe(true);
-    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(2);
+    expect(result.includeSuspicious).toBe(false);
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
   });
 
   it("can include the suspicious review population for comparison without changing the clean default", async () => {
@@ -56,8 +56,8 @@ describe("Founder Behaviour Intelligence v3 production data wiring", () => {
       new Date("2026-10-03T00:00:00.000Z"),
     );
 
-    expect(result.includeSuspicious).toBe(false);
-    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(result.includeSuspicious).toBe(true);
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(2);
   });
 
   it("preserves the established unavailable-source fallback", async () => {
