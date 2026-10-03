@@ -60,6 +60,50 @@ function shortAnswerItem(input: {
   };
 }
 
+function orderingItem(input: {
+  id: string;
+  code: string;
+  yearLevel: string;
+  substrand: string;
+  skillId: string;
+  skillName: string;
+  prompt: string;
+  options: Array<{ id: string; label: string; value?: unknown }>;
+  correctOptionIds: string[];
+  misconceptionTags?: string[];
+  stimulus?: MyLearnaAssessmentItem["stimulus"];
+  tags: string[];
+}): MyLearnaAssessmentItem {
+  return {
+    id: input.id,
+    version: 1,
+    status: "draft",
+    curriculum: qCAA(input.code, input.yearLevel, input.substrand),
+    skill: { id: input.skillId, name: input.skillName },
+    misconceptionTags: input.misconceptionTags || [],
+    difficulty: 2,
+    template: "ordering",
+    prompt: input.prompt,
+    stimulus: input.stimulus || noneStimulus,
+    response: {
+      type: "ordering",
+      options: input.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        value: option.value ?? option.label,
+      })),
+      correctOptionIds: input.correctOptionIds,
+    },
+    feedback: {
+      correct: "Correct.",
+      incorrect: "Not quite.",
+    },
+    analytics: {
+      tags: ["assessment-lab", "p0-anchor", ...input.tags],
+    },
+  };
+}
+
 function choiceItem(input: {
   id: string;
   code: string;
@@ -1330,23 +1374,22 @@ export const NPV_P7_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 export const NPV_P8_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
-  choiceItem({
+  orderingItem({
     id: "myl-boundary-npv-p08-a-v1",
     code: "MYL-MATH-PROG-NSA-NPV-P08",
     yearLevel: "Years 4–5",
     substrand: "Number and place value",
     skillId: "npv-p8-order-decimals",
     skillName: "Order decimals expressed to unequal numbers of places",
-    prompt: "Which list is ordered from smallest to largest?",
+    prompt: "Order these numbers from smallest to largest.",
     options: [
-      { id: "a", label: "1.375, 1.4, 2.15" },
-      { id: "b", label: "1.4, 1.375, 2.15" },
-      { id: "c", label: "2.15, 1.4, 1.375" },
-      { id: "d", label: "1.375, 2.15, 1.4" },
+      { id: "v-2-15", label: "2.15" },
+      { id: "v-1-4", label: "1.4" },
+      { id: "v-1-375", label: "1.375" },
     ],
-    correctOptionIds: ["a"],
+    correctOptionIds: ["v-1-375", "v-1-4", "v-2-15"],
     misconceptionTags: ["unequal-decimal-place-order-error"],
-    tags: ["boundary-probe", "number-place-value", "p8"],
+    tags: ["boundary-probe", "number-place-value", "p8", "direct-ordering"],
   }),
   shortAnswerItem({
     id: "myl-boundary-npv-p08-b-v1",
