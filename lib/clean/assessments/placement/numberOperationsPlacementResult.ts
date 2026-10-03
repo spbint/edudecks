@@ -1,6 +1,12 @@
-export type NumberOperationsPlacementConfidence =
-  | "routing-only"
-  | "provisional-moderate";
+import type {
+  AssessmentPlacementConfidence,
+  AssessmentPlacementResultView,
+} from "./assessmentPlacementResult";
+
+export type NumberOperationsPlacementConfidence = Exclude<
+  AssessmentPlacementConfidence,
+  "confirmation-supported"
+>;
 
 export type NumberOperationsSubElementKey =
   | "number-place-value"
@@ -9,23 +15,13 @@ export type NumberOperationsSubElementKey =
   | "multiplicative-strategies"
   | "understanding-money";
 
-export type NumberOperationsPlacementResult = {
+export type NumberOperationsPlacementResult = Omit<
+  AssessmentPlacementResultView,
+  "frameworkId" | "subElementKey" | "confidence"
+> & {
   frameworkId: "MYL-MATH-AU-NUMERACY-V9";
   subElementKey: NumberOperationsSubElementKey;
-  subElementLabel: string;
-  status: "candidate-band" | "endpoint";
-  lowerP?: number;
-  upperP?: number;
-  endpoint?: {
-    relation: "below-or-around" | "at-least";
-    pLevel: number;
-  };
   confidence: NumberOperationsPlacementConfidence;
-  claim: string;
-  interpretation: string;
-  typicalYearAlignment?: string;
-  nextVerification: string;
-  limitations: string[];
 };
 
 const LEVEL_SUMMARIES: Record<
