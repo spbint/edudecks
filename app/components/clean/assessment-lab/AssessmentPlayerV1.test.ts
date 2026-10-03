@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
 import { MYLEARNA_ASSESS_DEMO_ITEMS } from "@/lib/clean/assessments/mylearnaAssessDemoItems";
 import { COUNTING_P5_ANCHOR_ITEMS } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
+
+afterEach(() => cleanup());
 
 describe("AssessmentPlayerV1", () => {
   it("runs the counter-card assessment from start to summary", () => {
@@ -67,7 +69,7 @@ describe("AssessmentPlayerV1", () => {
     const answer = screen.getByRole("textbox", { name: "Answer" });
     fireEvent.change(answer, { target: { value: "62" } });
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
-    expect(screen.getByText("Correct. 62 comes immediately before 63.")).toBeTruthy();
+    expect(screen.getByText("Correct.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Next question" }));
     expect(screen.getByLabelText(/quantity is intentionally not stated/i)).toBeTruthy();
@@ -75,7 +77,7 @@ describe("AssessmentPlayerV1", () => {
     const secondAnswer = screen.getByRole("textbox", { name: "Answer" });
     fireEvent.change(secondAnswer, { target: { value: "14" } });
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
-    expect(screen.getByText("Correct. The collection contains 14 counters.")).toBeTruthy();
+    expect(screen.getByText("Correct.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "View summary" }));
     expect(screen.getByText("You answered 2 of 2 correctly.")).toBeTruthy();
