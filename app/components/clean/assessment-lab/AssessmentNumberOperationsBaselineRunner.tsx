@@ -326,6 +326,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
       <AssessmentAnchorPlacementRunner
         key={currentKey}
         anchorSetKey={currentKey}
+        allowBandConfirmation={false}
         onResult={setPendingResult}
         onAttemptTrace={(trace) =>
           setTracesByKey((current) => ({
