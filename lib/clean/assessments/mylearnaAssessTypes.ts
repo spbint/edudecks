@@ -88,6 +88,24 @@ export type ShapeSetStimulus = {
   seed?: number;
 };
 
+export type CurrencyTokenStimulus = {
+  tokens: Array<{
+    denomination:
+      | "5c"
+      | "10c"
+      | "20c"
+      | "50c"
+      | "$1"
+      | "$2"
+      | "$5"
+      | "$10"
+      | "$20"
+      | "$50"
+      | "$100";
+  }>;
+  layout?: "row" | "grid";
+};
+
 export type MyLearnaAssessmentStimulus =
   | { type: "none"; data?: Record<string, never>; altText?: string }
   | { type: "counter-set"; data: CounterSetStimulus; altText?: string }
@@ -96,6 +114,7 @@ export type MyLearnaAssessmentStimulus =
   | { type: "array"; data: ArrayStimulus; altText?: string }
   | { type: "place-value-blocks"; data: PlaceValueBlocksStimulus; altText?: string }
   | { type: "fraction-bar"; data: FractionBarStimulus; altText?: string }
+  | { type: "currency-tokens"; data: CurrencyTokenStimulus; altText?: string }
   | { type: "shape-set"; data: ShapeSetStimulus; altText?: string }
   | { type: string; data: Record<string, unknown>; altText?: string };
 
