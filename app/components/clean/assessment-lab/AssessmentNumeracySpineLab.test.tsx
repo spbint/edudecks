@@ -14,7 +14,10 @@ describe("AssessmentNumeracySpineLab", () => {
     expect(screen.getByText("Complete numeracy progression spine")).toBeTruthy();
     expect(screen.getByText(/3 source elements · 14 sub-elements/i)).toBeTruthy();
     expect(screen.getAllByText("Adaptive first slice implemented")).toHaveLength(5);
-    expect(screen.getAllByText("Blueprint next")).toHaveLength(9);
+    expect(
+      screen.getAllByText("Adaptive cross-strand proof implemented"),
+    ).toHaveLength(1);
+    expect(screen.getAllByText("Blueprint next")).toHaveLength(8);
   });
 
   it("shows the three source elements", () => {
