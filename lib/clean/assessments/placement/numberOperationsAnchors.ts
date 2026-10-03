@@ -422,6 +422,32 @@ export function getAnchorEvidenceMode(
   return anchorSet.anchors.find((anchor) => anchor.pLevel === pLevel)?.evidenceMode || null;
 }
 
+export function getProgressionEvidenceMode(
+  anchorSet: NumberOperationsAnchorSet,
+  pLevel: number,
+): NumberOperationsAnchor["evidenceMode"] {
+  const anchorMode = getAnchorEvidenceMode(anchorSet, pLevel);
+  if (anchorMode) return anchorMode;
+
+  if (anchorSet.key === "number-place-value" && pLevel === 1) {
+    return "hybrid-observed";
+  }
+  if (anchorSet.key === "counting-processes" && pLevel <= 4) {
+    return "hybrid-observed";
+  }
+  if (anchorSet.key === "additive-strategies" && pLevel <= 3) {
+    return "hybrid-observed";
+  }
+  if (anchorSet.key === "multiplicative-strategies" && pLevel <= 3) {
+    return "hybrid-observed";
+  }
+  if (anchorSet.key === "understanding-money" && pLevel <= 2) {
+    return "asset-review";
+  }
+
+  return "direct";
+}
+
 
 export type PlacementEvidencePolicy = {
   mayRoute: boolean;
