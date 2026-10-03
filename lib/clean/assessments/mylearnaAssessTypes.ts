@@ -89,6 +89,7 @@ export type ShapeSetStimulus = {
 };
 
 export type MyLearnaAssessmentStimulus =
+  | { type: "none"; data?: Record<string, never>; altText?: string }
   | { type: "counter-set"; data: CounterSetStimulus; altText?: string }
   | { type: "ten-frame"; data: TenFrameStimulus; altText?: string }
   | { type: "number-line"; data: NumberLineStimulus; altText?: string }
@@ -130,6 +131,7 @@ export type MyLearnaAssessmentItem = {
     }>;
     correctOptionIds?: string[];
     correctValue?: unknown;
+    acceptableValues?: unknown[];
   };
   feedback: {
     correct: string;
@@ -145,6 +147,7 @@ export type MyLearnaAssessmentItem = {
 export type MyLearnaAssessmentResponse = {
   itemId: string;
   selectedOptionIds: string[];
+  responseValue?: string;
   correct: boolean;
   skillId: string;
   misconceptionTags: string[];
