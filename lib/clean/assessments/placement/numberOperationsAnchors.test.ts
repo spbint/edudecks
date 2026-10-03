@@ -144,6 +144,33 @@ describe("Number Operations anchor routing", () => {
     });
   });
 
+  it("narrows a routing bracket without claiming placement", () => {
+    const set = getNumberOperationsAnchorSet("number-place-value");
+    expect(set).not.toBeNull();
+    if (!set) return;
+
+    const initial = routeInitialAnchor(set, [0, 0]);
+    const branch = routeBranchAnchor(set, initial, [1, 1]);
+    const bracket = bracketFromBranchRoute(branch);
+    expect(bracket).toEqual({ lowerP: 3, upperP: 6 });
+    if (!bracket) return;
+
+    expect(nextBoundaryTarget(bracket)).toBe(4);
+    const supportedP4 = applyBoundaryEvidence(bracket, 4, true);
+    expect(supportedP4).toEqual({ lowerP: 4, upperP: 6 });
+    expect(nextBoundaryTarget(supportedP4)).toBe(5);
+
+    const unsupportedP5 = applyBoundaryEvidence(supportedP4, 5, false);
+    expect(unsupportedP5).toEqual({ lowerP: 4, upperP: 5 });
+    expect(nextBoundaryTarget(unsupportedP5)).toBeNull();
+  });
+
+  it("rejects a boundary target outside the current bracket", () => {
+    expect(() =>
+      applyBoundaryEvidence({ lowerP: 4, upperP: 6 }, 6, true),
+    ).toThrow(/strictly inside/i);
+  });
+
   it("never turns a mixed initial anchor into a placement bracket", () => {
     const counting = getNumberOperationsAnchorSet("counting-processes");
     expect(counting).not.toBeNull();
