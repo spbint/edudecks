@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  ADDITIVE_P3_ANCHOR_ITEMS,
   ADDITIVE_P6_ANCHOR_ITEMS,
   ADDITIVE_P9_ANCHOR_ITEMS,
+  COUNTING_P2_ANCHOR_ITEMS,
   COUNTING_P5_ANCHOR_ITEMS,
   COUNTING_P7_ANCHOR_ITEMS,
+  MULTIPLICATIVE_P3_ANCHOR_ITEMS,
   MULTIPLICATIVE_P6_ANCHOR_ITEMS,
   MULTIPLICATIVE_P9_ANCHOR_ITEMS,
   MONEY_P2_ANCHOR_ITEMS,
@@ -24,10 +27,13 @@ describe("Number & Operations executable P0 anchor items", () => {
       "number-place-value-p3",
       "number-place-value-p6",
       "number-place-value-p9",
+      "counting-processes-p2",
       "counting-processes-p5",
       "counting-processes-p7",
+      "additive-strategies-p3",
       "additive-strategies-p6",
       "additive-strategies-p9",
+      "multiplicative-strategies-p3",
       "multiplicative-strategies-p6",
       "multiplicative-strategies-p9",
       "understanding-money-p2",
@@ -36,7 +42,7 @@ describe("Number & Operations executable P0 anchor items", () => {
     ]);
 
     const all = Object.values(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).flat();
-    expect(all).toHaveLength(24);
+    expect(all).toHaveLength(30);
     expect(all.every((item) => item.status === "draft")).toBe(true);
   });
 
@@ -59,6 +65,7 @@ describe("Number & Operations executable P0 anchor items", () => {
 
   it("provides direct search clusters for the currently reachable non-hybrid endpoint searches", () => {
     expect(Object.keys(NUMBER_OPERATIONS_SEARCH_CLUSTERS)).toEqual([
+      "number-place-value-p1",
       "number-place-value-p2",
       "number-place-value-p10",
       "counting-processes-p8",
@@ -69,7 +76,7 @@ describe("Number & Operations executable P0 anchor items", () => {
     ]);
     expect(
       Object.values(NUMBER_OPERATIONS_SEARCH_CLUSTERS).flat(),
-    ).toHaveLength(14);
+    ).toHaveLength(16);
   });
 
   it("provides one reserve probe for every initial routing anchor", () => {
@@ -118,6 +125,18 @@ describe("Number & Operations executable P0 anchor items", () => {
     expect(collection.analytics?.tags).toContain(
       "visual-counting-separate-accessible-form-required",
     );
+  });
+
+  it("implements hybrid lower clusters for routing without upgrading their evidence ceiling", () => {
+    const allHybrid = [
+      ...COUNTING_P2_ANCHOR_ITEMS,
+      ...ADDITIVE_P3_ANCHOR_ITEMS,
+      ...MULTIPLICATIVE_P3_ANCHOR_ITEMS,
+    ];
+    expect(allHybrid).toHaveLength(6);
+    expect(
+      allHybrid.every((item) => item.analytics?.tags?.includes("hybrid-routing-only")),
+    ).toBe(true);
   });
 
   it("implements the direct Counting P7 upper anchor cluster", () => {
