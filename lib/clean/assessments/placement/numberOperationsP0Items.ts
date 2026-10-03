@@ -476,6 +476,245 @@ export const MULTIPLICATIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 
+
+export const NPV_P2_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-npv-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P02",
+    yearLevel: "Prep",
+    substrand: "Number and place value",
+    skillId: "npv-p2-numeral-recognition",
+    skillName: "Identify numerals within 1–10",
+    prompt: "Which numeral shows six?",
+    options: [
+      { id: "a", label: "9" },
+      { id: "b", label: "6" },
+      { id: "c", label: "5" },
+      { id: "d", label: "8" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["numeral-recognition-error", "six-nine-reversal"],
+    tags: ["search-probe", "number-place-value", "p2"],
+  }),
+  choiceItem({
+    id: "myl-search-npv-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P02",
+    yearLevel: "Prep",
+    substrand: "Number and place value",
+    skillId: "npv-p2-order-to-ten",
+    skillName: "Order numerals within 1–10",
+    prompt: "Which list is ordered from smallest to largest?",
+    options: [
+      { id: "a", label: "2, 5, 8" },
+      { id: "b", label: "8, 5, 2" },
+      { id: "c", label: "5, 2, 8" },
+      { id: "d", label: "2, 8, 5" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["numeral-order-error"],
+    tags: ["search-probe", "number-place-value", "p2"],
+  }),
+];
+
+export const NPV_P10_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-npv-p10-a-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P10",
+    yearLevel: "Years 9–10",
+    substrand: "Number and place value",
+    skillId: "npv-p10-large-number-scientific",
+    skillName: "Interpret very large numbers using powers of ten",
+    prompt: "Which expression represents seven billion?",
+    options: [
+      { id: "a", label: "7 × 10⁶" },
+      { id: "b", label: "7 × 10⁷" },
+      { id: "c", label: "7 × 10⁸" },
+      { id: "d", label: "7 × 10⁹" },
+    ],
+    correctOptionIds: ["d"],
+    misconceptionTags: ["scientific-notation-place-error"],
+    tags: ["search-probe", "number-place-value", "p10"],
+  }),
+  choiceItem({
+    id: "myl-search-npv-p10-b-v1",
+    code: "MYL-MATH-PROG-NSA-NPV-P10",
+    yearLevel: "Years 9–10",
+    substrand: "Number and place value",
+    skillId: "npv-p10-small-number-scientific",
+    skillName: "Interpret very small numbers using powers of ten",
+    prompt: "Which expression is equal to 0.000000001?",
+    options: [
+      { id: "a", label: "1 × 10⁻³" },
+      { id: "b", label: "1 × 10⁻⁶" },
+      { id: "c", label: "1 × 10⁻⁹" },
+      { id: "d", label: "1 × 10⁹" },
+    ],
+    correctOptionIds: ["c"],
+    misconceptionTags: ["negative-exponent-place-error"],
+    tags: ["search-probe", "number-place-value", "p10"],
+  }),
+];
+
+export const COUNTING_P8_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-cnt-p08-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P08",
+    yearLevel: "Years 4–6",
+    substrand: "Counting processes",
+    skillId: "counting-p8-rational-sequence",
+    skillName: "Count flexibly in rational numbers",
+    prompt: "Continue the sequence: 4, 3.7, 3.4, 3.1, __",
+    correctValue: "2.8",
+    misconceptionTags: ["decimal-counting-interval-error"],
+    tags: ["search-probe", "counting-processes", "p8"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-cnt-p08-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P08",
+    yearLevel: "Years 4–6",
+    substrand: "Counting processes",
+    skillId: "counting-p8-negative-sequence",
+    skillName: "Extend a count into negative numbers",
+    prompt: "Continue the sequence: 0, -1, -2, -3, __",
+    correctValue: "-4",
+    misconceptionTags: ["negative-counting-direction-error"],
+    tags: ["search-probe", "counting-processes", "p8"],
+  }),
+];
+
+export const ADDITIVE_P10_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-add-p10-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P10",
+    yearLevel: "Years 7–8",
+    substrand: "Additive strategies",
+    skillId: "add-p10-unrelated-denominator-fractions",
+    skillName: "Add fractions with unrelated denominators",
+    prompt: "Calculate 2/3 + 5/8. Give your answer as an improper fraction.",
+    correctValue: "31/24",
+    misconceptionTags: ["unrelated-denominator-addition-error"],
+    tags: ["search-probe", "additive-strategies", "p10"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-add-p10-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P10",
+    yearLevel: "Years 7–8",
+    substrand: "Additive strategies",
+    skillId: "add-p10-integer-addition",
+    skillName: "Add and subtract integers",
+    prompt: "Calculate -8 + 13 - 6.",
+    correctValue: "-1",
+    misconceptionTags: ["integer-addition-error"],
+    tags: ["search-probe", "additive-strategies", "p10"],
+  }),
+];
+
+export const MULTIPLICATIVE_P10_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-mul-p10-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P10",
+    yearLevel: "Years 7–10",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p10-decimal-scaling",
+    skillName: "Multiply decimals efficiently using place value",
+    prompt: "Calculate 0.461 × 200.",
+    correctValue: "92.2",
+    acceptableValues: ["92.2", "92.20"],
+    misconceptionTags: ["decimal-scaling-error"],
+    tags: ["search-probe", "multiplicative-strategies", "p10"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-mul-p10-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P10",
+    yearLevel: "Years 7–10",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p10-scientific-notation-product",
+    skillName: "Operate multiplicatively with scientific notation",
+    prompt: "Calculate (2.5 × 10^6) × (4 × 10^-3). Give the result as an ordinary number.",
+    correctValue: "10000",
+    acceptableValues: ["10000", "10,000"],
+    misconceptionTags: ["scientific-notation-multiplication-error"],
+    tags: ["search-probe", "multiplicative-strategies", "p10"],
+  }),
+];
+
+export const MONEY_P9_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  choiceItem({
+    id: "myl-search-mon-p09-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P09",
+    yearLevel: "Years 8–9",
+    substrand: "Understanding money",
+    skillId: "money-p9-best-buy",
+    skillName: "Use proportional reasoning to determine a best buy",
+    prompt: "Which is the better buy per 100 g?",
+    options: [
+      { id: "a", label: "750 g for $6.00" },
+      { id: "b", label: "1 kg for $7.50" },
+      { id: "c", label: "They cost the same per 100 g" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["unit-rate-comparison-error"],
+    tags: ["search-probe", "understanding-money", "p9"],
+  }),
+  shortAnswerItem({
+    id: "myl-search-mon-p09-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P09",
+    yearLevel: "Years 8–9",
+    substrand: "Understanding money",
+    skillId: "money-p9-profit-percentage",
+    skillName: "Calculate percentage profit",
+    prompt: "An item is bought for $80 and sold for $100. What percentage profit is made?",
+    correctValue: "25",
+    acceptableValues: ["25", "25%"],
+    misconceptionTags: ["percentage-profit-error"],
+    tags: ["search-probe", "understanding-money", "p9"],
+  }),
+];
+
+export const MONEY_P10_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
+  shortAnswerItem({
+    id: "myl-search-mon-p10-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P10",
+    yearLevel: "Years 9–10",
+    substrand: "Understanding money",
+    skillId: "money-p10-compound-interest",
+    skillName: "Reason about compound interest",
+    prompt: "$1,000 earns 10% interest each year for 2 years, compounded annually. What is the final balance in dollars?",
+    correctValue: "1210",
+    acceptableValues: ["1210", "$1210", "1210.00", "$1210.00"],
+    misconceptionTags: ["compound-vs-simple-interest-error"],
+    tags: ["search-probe", "understanding-money", "p10"],
+  }),
+  choiceItem({
+    id: "myl-search-mon-p10-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P10",
+    yearLevel: "Years 9–10",
+    substrand: "Understanding money",
+    skillId: "money-p10-financial-decision",
+    skillName: "Compare long-term financial choices",
+    prompt: "When comparing two car-purchase options, which information is most important for a full long-term comparison?",
+    options: [
+      { id: "a", label: "Only the advertised purchase price" },
+      { id: "b", label: "Purchase price, loan repayments, insurance, maintenance and depreciation" },
+      { id: "c", label: "Only the colour and model year" },
+      { id: "d", label: "Only the first monthly repayment" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["financial-decision-narrow-cost-error"],
+    tags: ["search-probe", "understanding-money", "p10"],
+  }),
+];
+
+export const NUMBER_OPERATIONS_SEARCH_CLUSTERS = {
+  "number-place-value-p2": NPV_P2_SEARCH_ITEMS,
+  "number-place-value-p10": NPV_P10_SEARCH_ITEMS,
+  "counting-processes-p8": COUNTING_P8_SEARCH_ITEMS,
+  "additive-strategies-p10": ADDITIVE_P10_SEARCH_ITEMS,
+  "multiplicative-strategies-p10": MULTIPLICATIVE_P10_SEARCH_ITEMS,
+  "understanding-money-p9": MONEY_P9_SEARCH_ITEMS,
+  "understanding-money-p10": MONEY_P10_SEARCH_ITEMS,
+} as const;
+
 export const NPV_P6_RESERVE_ITEM = shortAnswerItem({
   id: "myl-anchor-npv-p06-c-v1",
   code: "MYL-MATH-PROG-NSA-NPV-P06",
