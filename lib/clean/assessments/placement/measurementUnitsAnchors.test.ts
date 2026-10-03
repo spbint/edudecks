@@ -4,8 +4,10 @@ import {
   getMeasurementUnitsEvidenceMode,
 } from "./measurementUnitsAnchors";
 import {
+  MEASUREMENT_UNITS_BOUNDARY_CLUSTERS,
   MEASUREMENT_UNITS_EXECUTABLE_ANCHORS,
   MEASUREMENT_UNITS_P6_RESERVE_ITEM,
+  MEASUREMENT_UNITS_SEARCH_CLUSTERS,
 } from "./measurementUnitsItems";
 import {
   resolveAdaptiveInitialWithReserve,
@@ -46,6 +48,53 @@ describe("measurement-units adaptive anchor slice", () => {
     ]);
     expect(Object.values(MEASUREMENT_UNITS_EXECUTABLE_ANCHORS).flat()).toHaveLength(6);
     expect(MEASUREMENT_UNITS_P6_RESERVE_ITEM.status).toBe("draft");
+  });
+
+  it("completes the first adaptive measurement route inventory", () => {
+    expect(Object.keys(MEASUREMENT_UNITS_SEARCH_CLUSTERS)).toEqual([
+      "understanding-units-measurement-p1",
+      "understanding-units-measurement-p2",
+      "understanding-units-measurement-p10",
+    ]);
+    expect(Object.values(MEASUREMENT_UNITS_SEARCH_CLUSTERS).flat()).toHaveLength(6);
+
+    expect(Object.keys(MEASUREMENT_UNITS_BOUNDARY_CLUSTERS)).toEqual([
+      "understanding-units-measurement-p4",
+      "understanding-units-measurement-p5",
+      "understanding-units-measurement-p7",
+      "understanding-units-measurement-p8",
+    ]);
+    expect(Object.values(MEASUREMENT_UNITS_BOUNDARY_CLUSTERS).flat()).toHaveLength(12);
+  });
+
+  it("keeps P1-P4 electronic content explicitly routing-only", () => {
+    const earlyItems = [
+      ...MEASUREMENT_UNITS_SEARCH_CLUSTERS["understanding-units-measurement-p1"],
+      ...MEASUREMENT_UNITS_SEARCH_CLUSTERS["understanding-units-measurement-p2"],
+      ...MEASUREMENT_UNITS_EXECUTABLE_ANCHORS["understanding-units-measurement-p3"],
+      ...MEASUREMENT_UNITS_BOUNDARY_CLUSTERS["understanding-units-measurement-p4"],
+    ];
+
+    expect(
+      earlyItems.every((item) => item.analytics?.tags?.includes("routing-only")),
+    ).toBe(true);
+  });
+
+  it("uses direct digital evidence for the upper measurement boundary and endpoint pools", () => {
+    const upperItems = [
+      ...MEASUREMENT_UNITS_BOUNDARY_CLUSTERS["understanding-units-measurement-p7"],
+      ...MEASUREMENT_UNITS_BOUNDARY_CLUSTERS["understanding-units-measurement-p8"],
+      ...MEASUREMENT_UNITS_EXECUTABLE_ANCHORS["understanding-units-measurement-p9"],
+      ...MEASUREMENT_UNITS_SEARCH_CLUSTERS["understanding-units-measurement-p10"],
+    ];
+
+    expect(
+      upperItems.every((item) =>
+        item.analytics?.tags?.some((tag) =>
+          ["direct-digital", "formula-area", "formula-volume"].includes(tag),
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("uses the same generic reserve and branch rules as Number Operations", () => {
