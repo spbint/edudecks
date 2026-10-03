@@ -8,6 +8,8 @@ import {
 } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
+  bracketFromBranchRoute,
+  nextBoundaryTarget,
   resolveInitialAnchorWithReserve,
   routeBranchAnchor,
   routeInitialAnchor,
@@ -183,6 +185,8 @@ export default function AssessmentAnchorRoutingLab() {
   const initialRoute = routeInitialAnchor(anchorSet, initial);
   const resolvedInitialRoute = resolveInitialAnchorWithReserve(anchorSet, initial, reserve);
   const branchRoute = routeBranchAnchor(anchorSet, resolvedInitialRoute, branch);
+  const branchBracket = bracketFromBranchRoute(branchRoute);
+  const nextBoundaryP = branchBracket ? nextBoundaryTarget(branchBracket) : null;
 
   const reset = (key = selectedKey) => {
     setSelectedKey(key);
@@ -331,6 +335,17 @@ export default function AssessmentAnchorRoutingLab() {
           <div role="status" style={{ borderLeft: "4px solid #17204B", padding: "10px 14px", background: "#EEF2F7", color: "#17204B" }}>
             <strong>{describeBranchRoute(branchRoute)}</strong>
           </div>
+          {branchBracket ? (
+            <div style={{ border: "1px solid #D9D0FF", borderRadius: 14, padding: 14, background: "#F8F5FF" }}>
+              <strong style={{ color: "#17204B" }}>Boundary search</strong>
+              <p style={{ margin: "6px 0 0", color: "#5B6478", lineHeight: 1.55 }}>
+                Current bracket: P{branchBracket.lowerP}–P{branchBracket.upperP}.{" "}
+                {nextBoundaryP
+                  ? `The deterministic next probe target is P${nextBoundaryP}. Content for that adjacent-level search is authored only after the anchor layer is validated.`
+                  : "The bracket is already adjacent. The next step is a construct-diverse boundary-confirmation set, not an automatic level claim."}
+              </p>
+            </div>
+          ) : null}
           <button type="button" onClick={() => reset()} style={{ ...smallButton, width: "fit-content" }}>
             Reset simulator
           </button>
