@@ -13,7 +13,6 @@ import {
 import {
   applyBoundaryEvidence,
   bracketFromBranchRoute,
-  getAnchorEvidenceMode,
   getNumberOperationsAnchorSet,
   getPlacementEvidencePolicy,
   getProgressionEvidenceMode,
