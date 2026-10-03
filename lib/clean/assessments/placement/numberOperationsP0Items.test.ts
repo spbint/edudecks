@@ -12,6 +12,7 @@ import {
   NPV_P3_ANCHOR_ITEMS,
   NPV_P6_ANCHOR_ITEMS,
   NPV_P9_ANCHOR_ITEMS,
+  NUMBER_OPERATIONS_BOUNDARY_CLUSTERS,
   NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
   NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
   NUMBER_OPERATIONS_SEARCH_CLUSTERS,
@@ -37,6 +38,23 @@ describe("Number & Operations executable P0 anchor items", () => {
     const all = Object.values(NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS).flat();
     expect(all).toHaveLength(24);
     expect(all.every((item) => item.status === "draft")).toBe(true);
+  });
+
+  it("provides NPV boundary-search clusters for the P3-P6 and P6-P9 routing spans", () => {
+    expect(Object.keys(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS)).toEqual([
+      "number-place-value-p4",
+      "number-place-value-p5",
+      "number-place-value-p7",
+      "number-place-value-p8",
+    ]);
+    expect(
+      Object.values(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS).flat(),
+    ).toHaveLength(12);
+    expect(
+      Object.values(NUMBER_OPERATIONS_BOUNDARY_CLUSTERS)
+        .flat()
+        .every((item) => item.status === "draft"),
+    ).toBe(true);
   });
 
   it("provides direct search clusters for the currently reachable non-hybrid endpoint searches", () => {
