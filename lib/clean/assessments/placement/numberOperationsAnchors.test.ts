@@ -20,6 +20,31 @@ describe("Number Operations anchor routing", () => {
     expect(new Set(slots.map((slot) => slot.blueprintId)).size).toBe(30);
   });
 
+  it("uses source-aligned reuse candidates for the audited P6 anchors", () => {
+    const npv = getNumberOperationsAnchorSet("number-place-value");
+    const multiplicative = getNumberOperationsAnchorSet("multiplicative-strategies");
+    expect(npv).not.toBeNull();
+    expect(multiplicative).not.toBeNull();
+    if (!npv || !multiplicative) return;
+
+    const npvInitial = npv.anchors.find((item) => item.role === "initial");
+    expect(npvInitial?.slots.map((slot) => slot.existingItemId)).toEqual([
+      "place-value-ops-flexible-renaming-003",
+      "place-value-ops-rounding-gap-006",
+    ]);
+
+    const multiplicativeInitial = multiplicative.anchors.find((item) => item.role === "initial");
+    expect(multiplicativeInitial?.slots.map((slot) => slot.existingItemId)).toEqual([
+      "multiplication-division-fluency-context-problem-011",
+      "multiplication-division-fluency-sharing-004",
+    ]);
+    expect(
+      multiplicativeInitial?.slots.some(
+        (slot) => slot.existingItemId === "multiplication-division-fluency-inverse-working-009",
+      ),
+    ).toBe(false);
+  });
+
   it("routes a clear initial anchor down, up, or to an extra same-level probe", () => {
     const set = getNumberOperationsAnchorSet("number-place-value");
     expect(set).not.toBeNull();
