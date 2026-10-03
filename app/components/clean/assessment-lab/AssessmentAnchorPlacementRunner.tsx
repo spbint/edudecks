@@ -175,26 +175,45 @@ export default function AssessmentAnchorPlacementRunner({
     [],
   );
 
+  const evidenceLimitationsForRange = useCallback(
+    (lowerP: number, upperP: number) => {
+      const limitations = new Set<string>();
+      for (let pLevel = lowerP; pLevel <= upperP; pLevel += 1) {
+        const evidenceMode = getProgressionEvidenceMode(anchorSet, pLevel);
+        if (evidenceMode === "direct") continue;
+        limitations.add(getPlacementEvidencePolicy({ evidenceMode }).reason);
+      }
+      return Array.from(limitations);
+    },
+    [anchorSet],
+  );
+
   const buildBandResult = useCallback(
     (lowerP: number, upperP: number) =>
       buildNumberOperationsCandidateBandResult({
         subElementKey: anchorSet.key as NumberOperationsSubElementKey,
         lowerP,
         upperP,
-        evidenceLimitations: evidenceNotes,
+        evidenceLimitations: evidenceLimitationsForRange(lowerP, upperP),
       }),
-    [anchorSet.key, evidenceNotes],
+    [anchorSet.key, evidenceLimitationsForRange],
   );
 
   const buildEndpointResult = useCallback(
-    (relation: "below-or-around" | "at-least", pLevel: number) =>
-      buildNumberOperationsEndpointResult({
+    (relation: "below-or-around" | "at-least", pLevel: number) => {
+      const evidenceMode = getProgressionEvidenceMode(anchorSet, pLevel);
+      const evidenceLimitations =
+        evidenceMode === "direct"
+          ? []
+          : [getPlacementEvidencePolicy({ evidenceMode }).reason];
+      return buildNumberOperationsEndpointResult({
         subElementKey: anchorSet.key as NumberOperationsSubElementKey,
         relation,
         pLevel,
-        evidenceLimitations: evidenceNotes,
-      }),
-    [anchorSet.key, evidenceNotes],
+        evidenceLimitations,
+      });
+    },
+    [anchorSet],
   );
 
   const recordEvidenceLimit = useCallback(
