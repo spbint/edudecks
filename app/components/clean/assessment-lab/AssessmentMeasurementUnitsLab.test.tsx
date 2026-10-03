@@ -74,12 +74,11 @@ describe("AssessmentMeasurementUnitsLab", () => {
       }),
     );
 
+    expect(screen.getByText("P3–P4")).toBeTruthy();
     expect(
-      screen.getByText("Candidate measurement neighbourhood: P3–P4"),
+      screen.getByText(/current assessment evidence is concentrated between P3 and P4/i),
     ).toBeTruthy();
-    expect(
-      screen.getByText(/adaptive route has narrowed to adjacent progression levels/i),
-    ).toBeTruthy();
+    expect(screen.getByText("Routing evidence")).toBeTruthy();
     expect(
       screen.getByText(/high-confidence lower-level placement requires observed use/i),
     ).toBeTruthy();
