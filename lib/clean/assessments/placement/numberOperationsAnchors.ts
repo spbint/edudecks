@@ -150,7 +150,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         sourcePages: [5],
         slots: [
           slot("MYL-ANCHOR-CNT-P05-A", "A", "Find the next or previous number from an arbitrary point within 1–100.", "numeric_entry", "text-first", "new-blueprint"),
-          slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 independent of arrangement.", "numeric_entry", "counter-set renderer", "new-blueprint"),
+          slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 from a deterministic visual collection.", "numeric_entry", "array renderer for v0; varied arrangements required in later boundary pool", "new-blueprint"),
         ],
       },
       {
