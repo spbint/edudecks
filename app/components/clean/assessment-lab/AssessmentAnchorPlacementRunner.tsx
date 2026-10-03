@@ -2,7 +2,13 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-lab/AssessmentPlayerV1";
+import AssessmentPlacementResultCard from "@/app/components/clean/assessment-lab/AssessmentPlacementResultCard";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
+import {
+  buildNpvCandidateBandResult,
+  buildNpvEndpointResult,
+  type NumberOperationsPlacementResult,
+} from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
 import {
   applyBoundaryEvidence,
   bracketFromBranchRoute,
@@ -43,6 +49,7 @@ type RunnerStage =
       detail: string;
       bracket?: { lowerP: number; upperP: number };
       evidenceNote?: string;
+      placementResult?: NumberOperationsPlacementResult;
     };
 
 const shell: React.CSSProperties = {
@@ -154,6 +161,30 @@ export default function AssessmentAnchorPlacementRunner({
     [],
   );
 
+  const buildBandResult = useCallback(
+    (lowerP: number, upperP: number) =>
+      anchorSet.key === "number-place-value"
+        ? buildNpvCandidateBandResult({
+            lowerP,
+            upperP,
+            evidenceLimitations: evidenceNotes,
+          })
+        : undefined,
+    [anchorSet.key, evidenceNotes],
+  );
+
+  const buildEndpointResult = useCallback(
+    (relation: "below-or-around" | "at-least", pLevel: number) =>
+      anchorSet.key === "number-place-value"
+        ? buildNpvEndpointResult({
+            relation,
+            pLevel,
+            evidenceLimitations: evidenceNotes,
+          })
+        : undefined,
+    [anchorSet.key, evidenceNotes],
+  );
+
   const recordEvidenceLimit = useCallback(
     (pLevel: number) => {
       const evidenceMode = getProgressionEvidenceMode(anchorSet, pLevel);
@@ -260,6 +291,7 @@ export default function AssessmentAnchorPlacementRunner({
             ? `The next deterministic boundary target is P${nextP}, but that boundary cluster is not executable yet.`
             : "The levels are adjacent. A construct-diverse boundary-confirmation set is required before any exact placement language.",
           bracket: { lowerP: route.lowerP, upperP: route.upperP },
+          placementResult: buildBandResult(route.lowerP, route.upperP),
         });
         return;
       }
@@ -291,7 +323,7 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, pushHistory, recordEvidenceLimit, resolvedInitialRoute],
+    [anchorSet, buildBandResult, pushHistory, recordEvidenceLimit, resolvedInitialRoute],
   );
 
   const handleSearchComplete = useCallback(
@@ -325,6 +357,7 @@ export default function AssessmentAnchorPlacementRunner({
             ? `Next boundary target: P${nextP}, but that boundary cluster is not executable yet.`
             : "The levels are adjacent; boundary confirmation is required before placement.",
           bracket,
+          placementResult: buildBandResult(route.lowerP, route.upperP),
         });
         return;
       }
@@ -339,6 +372,7 @@ export default function AssessmentAnchorPlacementRunner({
               : `Evidence is below or around P${route.pLevel}.`,
           detail:
             "This is open-ended endpoint language, not a fabricated level beyond the source progression.",
+          placementResult: buildEndpointResult(route.relation, route.pLevel),
         });
         return;
       }
@@ -370,7 +404,7 @@ export default function AssessmentAnchorPlacementRunner({
         });
       }
     },
-    [anchorSet, pushHistory, recordEvidenceLimit, stage],
+    [anchorSet, buildBandResult, buildEndpointResult, pushHistory, recordEvidenceLimit, stage],
   );
 
   const handleBoundaryComplete = useCallback(
@@ -398,6 +432,7 @@ export default function AssessmentAnchorPlacementRunner({
           headline: `Candidate neighbourhood: P${narrowed.lowerP}–P${narrowed.upperP}`,
           detail: `Next boundary target P${nextP} is not executable yet. No exact placement is claimed.`,
           bracket: narrowed,
+          placementResult: buildBandResult(narrowed.lowerP, narrowed.upperP),
         });
         return;
       }
@@ -408,9 +443,10 @@ export default function AssessmentAnchorPlacementRunner({
         detail:
           "The adaptive search has narrowed to adjacent progression levels. A final construct-diverse boundary-confirmation set is still required before exact placement language.",
         bracket: narrowed,
+        placementResult: buildBandResult(narrowed.lowerP, narrowed.upperP),
       });
     },
-    [anchorSet, pushHistory, stage],
+    [anchorSet, buildBandResult, pushHistory, stage],
   );
 
   let player = null;
@@ -509,23 +545,27 @@ export default function AssessmentAnchorPlacementRunner({
       </div>
 
       {stage.kind === "result" ? (
-        <div
-          role="status"
-          style={{
-            border: "1px solid #D9D0FF",
-            borderRadius: 16,
-            background: "#ffffff",
-            padding: 16,
-            display: "grid",
-            gap: 8,
-          }}
-        >
-          <strong style={{ color: "#17204B", fontSize: 20 }}>{stage.headline}</strong>
-          <span style={{ color: "#5B6478", lineHeight: 1.6 }}>{stage.detail}</span>
-          {stage.evidenceNote ? (
-            <span style={{ color: "#92400E", lineHeight: 1.6 }}>{stage.evidenceNote}</span>
-          ) : null}
-        </div>
+        stage.placementResult ? (
+          <AssessmentPlacementResultCard result={stage.placementResult} />
+        ) : (
+          <div
+            role="status"
+            style={{
+              border: "1px solid #D9D0FF",
+              borderRadius: 16,
+              background: "#ffffff",
+              padding: 16,
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            <strong style={{ color: "#17204B", fontSize: 20 }}>{stage.headline}</strong>
+            <span style={{ color: "#5B6478", lineHeight: 1.6 }}>{stage.detail}</span>
+            {stage.evidenceNote ? (
+              <span style={{ color: "#92400E", lineHeight: 1.6 }}>{stage.evidenceNote}</span>
+            ) : null}
+          </div>
+        )
       ) : (
         player
       )}
