@@ -435,10 +435,10 @@ export function getProgressionEvidenceMode(
   if (anchorSet.key === "counting-processes" && pLevel <= 4) {
     return "hybrid-observed";
   }
-  if (anchorSet.key === "additive-strategies" && pLevel <= 3) {
+  if (anchorSet.key === "additive-strategies" && pLevel <= 5) {
     return "hybrid-observed";
   }
-  if (anchorSet.key === "multiplicative-strategies" && pLevel <= 3) {
+  if (anchorSet.key === "multiplicative-strategies" && pLevel <= 4) {
     return "hybrid-observed";
   }
   if (anchorSet.key === "understanding-money" && pLevel <= 2) {
