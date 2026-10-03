@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { NumberOperationsPlacementResult } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
+import type { AssessmentPlacementResultView } from "@/lib/clean/assessments/placement/assessmentPlacementResult";
 
 const section: React.CSSProperties = {
   border: "1px solid #E1E6F0",
@@ -15,7 +15,7 @@ const section: React.CSSProperties = {
 export default function AssessmentPlacementResultCard({
   result,
 }: {
-  result: NumberOperationsPlacementResult;
+  result: AssessmentPlacementResultView;
 }) {
   const band =
     result.status === "candidate-band" && result.lowerP && result.upperP
@@ -80,7 +80,9 @@ export default function AssessmentPlacementResultCard({
           >
             {result.confidence === "routing-only"
               ? "Routing evidence"
-              : "Provisional evidence band"}
+              : result.confidence === "confirmation-supported"
+                ? "Fresh confirmation supported"
+                : "Provisional evidence band"}
           </span>
         </div>
       </div>
