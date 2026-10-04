@@ -18,7 +18,7 @@ describe("Number & Operations My Pathways handoff", () => {
     expect(url.searchParams.get("subjectKey")).toBe("mathematics");
     expect(url.searchParams.get("stageKey")).toBe("years-9-10-consolidation");
     expect(url.searchParams.get("pathwayStepId")).toBe(handoff.pathwayStepId);
-    expect(url.searchParams.get("stepKey")).toBe(handoff.stepKey);
+    expect(url.searchParams.get("stepKey")).toBeNull();
   });
 
   it("keeps ambiguous counting targets at strand level", () => {
@@ -46,4 +46,26 @@ describe("Number & Operations My Pathways handoff", () => {
     expect(handoff.strandKey).toBe("operations-and-calculation");
     expect(handoff.mappingConfidence).toBe("source-guided-step");
   });
+});
+
+
+it("uses only query parameters that the live My Pathways workspace consumes", () => {
+  const handoff = buildNumberOperationsPathwaysHandoff({
+    subElementKey: "understanding-money",
+    targetP: 8,
+    learnerId: "learner-123",
+  });
+  const url = new URL(handoff.href, "https://mylearna.test");
+
+  expect([...url.searchParams.keys()].sort()).toEqual(
+    [
+      "learnerId",
+      "pathwayStepId",
+      "stageKey",
+      "strandKey",
+      "subjectKey",
+    ].sort(),
+  );
+  expect(url.searchParams.get("stepKey")).toBeNull();
+  expect(url.searchParams.get("openStep")).toBeNull();
 });
