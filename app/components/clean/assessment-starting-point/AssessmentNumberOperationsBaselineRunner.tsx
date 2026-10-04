@@ -164,6 +164,10 @@ export default function AssessmentNumberOperationsBaselineRunner({
     () => buildNumberOperationsProfile(Object.values(resultsByKey)),
     [resultsByKey],
   );
+  const completedAreaCount = Math.min(
+    order.length,
+    currentIndex + (pendingResult !== undefined ? 1 : 0),
+  );
   const responseCount = useMemo(
     () =>
       Object.values(tracesByKey).reduce(
@@ -539,7 +543,11 @@ export default function AssessmentNumberOperationsBaselineRunner({
           </Link>
         ) : null}
         <div
-          aria-label="Baseline progress"
+          role="progressbar"
+          aria-label="Starting-point areas completed"
+          aria-valuemin={0}
+          aria-valuemax={order.length}
+          aria-valuenow={completedAreaCount}
           style={{
             height: 8,
             background: "#EEF2F7",
@@ -549,7 +557,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
         >
           <div
             style={{
-              width: `${((currentIndex + 1) / order.length) * 100}%`,
+              width: `${(completedAreaCount / order.length) * 100}%`,
               height: "100%",
               background: "#6C4DF6",
             }}
