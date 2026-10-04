@@ -48,3 +48,39 @@ describe("Maths starting-point v1 scope language", () => {
     expect(pathways).toContain('"financial-and-real-world-mathematics"');
   });
 });
+
+
+it("offers a full picture or one focused Number & Operations area", () => {
+  const workspaceSource = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/MathsStartingPointWorkspace.tsx",
+    ),
+    "utf8",
+  );
+  const runnerSource = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(workspaceSource).toContain('searchParams.get("area")');
+  expect(workspaceSource).toContain("Full five-area picture");
+  for (const key of [
+    "number-place-value",
+    "counting-processes",
+    "additive-strategies",
+    "multiplicative-strategies",
+    "understanding-money",
+  ]) {
+    expect(workspaceSource).toContain(`key: "${key}"`);
+  }
+  expect(workspaceSource).toContain(
+    "subElementKeys={selectedArea ? [selectedArea.key] : undefined}",
+  );
+  expect(runnerSource).toContain("subElementKeys?: NumberOperationsSubElementKey[]");
+  expect(runnerSource).toContain("One focused Maths area");
+  expect(runnerSource).toContain("scopeStorageSuffix");
+});

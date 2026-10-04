@@ -26,7 +26,7 @@ import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/place
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 import { buildNumberOperationsUnresolvedGuidance } from "@/lib/clean/assessments/placement/numberOperationsUnresolvedGuidance";
 
-const ORDER: NumberOperationsSubElementKey[] = [
+const DEFAULT_ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
   "counting-processes",
   "additive-strategies",
@@ -56,12 +56,29 @@ export default function AssessmentNumberOperationsBaselineRunner({
   learnerName,
   mode = "staff-debug",
   userId,
+  subElementKeys,
 }: {
   learnerId?: string | null;
   learnerName?: string | null;
   mode?: "parent-preview" | "staff-debug";
   userId?: string | null;
+  subElementKeys?: NumberOperationsSubElementKey[];
 }) {
+  const requestedScopeKey = (subElementKeys || []).join("|");
+  const order = useMemo(() => {
+    const requested = requestedScopeKey
+      .split("|")
+      .filter(
+        (key): key is NumberOperationsSubElementKey =>
+          DEFAULT_ORDER.includes(key as NumberOperationsSubElementKey),
+      );
+    const unique = Array.from(new Set(requested));
+    return unique.length ? unique : DEFAULT_ORDER;
+  }, [requestedScopeKey]);
+  const isFullScope =
+    order.length === DEFAULT_ORDER.length &&
+    order.every((key, index) => key === DEFAULT_ORDER[index]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [resultsByKey, setResultsByKey] = useState<
     Partial<Record<NumberOperationsSubElementKey, NumberOperationsPlacementResult>>
@@ -79,9 +96,10 @@ export default function AssessmentNumberOperationsBaselineRunner({
   const startedAtRef = useRef(new Date().toISOString());
   const completionTrackedRef = useRef(false);
   const hydratedCompleteRef = useRef(false);
-  const draftStorageKey = learnerId
-    ? `${NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY}:${learnerId}`
-    : NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY;
+  const learnerStorageSuffix = learnerId ? `:${learnerId}` : "";
+  const scopeStorageSuffix = isFullScope ? "" : `:scope-${order.join("+")}`;
+  const draftStorageKey =
+    `${NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY}${learnerStorageSuffix}${scopeStorageSuffix}`;
 
   useEffect(() => {
     const draft = parseNumberOperationsBaselineDraft(
@@ -130,8 +148,12 @@ export default function AssessmentNumberOperationsBaselineRunner({
     draftStorageKey,
   ]);
 
-  const currentKey = ORDER[currentIndex];
+  const currentKey =
+    order[Math.min(currentIndex, order.length - 1)] || DEFAULT_ORDER[0];
   const budget = useMemo(() => getNumberOperationsBaselineBudget(), []);
+  const currentAreaBudget = budget.bySubElement.find(
+    (area) => area.key === currentKey,
+  );
   const pauseHref = useMemo(() => {
     const params = new URLSearchParams({ subjectKey: "mathematics" });
     const cleanLearnerId = String(learnerId ?? "").trim();
@@ -225,7 +247,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
       );
     }
 
-    if (currentIndex >= ORDER.length - 1) {
+    if (currentIndex >= order.length - 1) {
       setCompletedAt(new Date().toISOString());
       setComplete(true);
       setPendingResult(undefined);
@@ -446,7 +468,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
           {learnerName ? `${learnerName}'s Number & Operations check` : "Number & Operations baseline"}
         </h2>
         <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
-          Area {currentIndex + 1} of {ORDER.length}:{" "}
+          Area {currentIndex + 1} of {order.length}:{" "}
           <strong>{LABELS[currentKey]}</strong>. MyLearna adapts the questions to find a useful starting point in each area separately, so one strength never hides another place that needs support.
         </p>
         {mode === "staff-debug" ? (
@@ -480,19 +502,30 @@ export default function AssessmentNumberOperationsBaselineRunner({
               gap: 4,
             }}
           >
-            <strong style={{ color: "#17204B" }}>Five short Maths areas</strong>
+            <strong style={{ color: "#17204B" }}>
+              {order.length === 1 ? "One focused Maths area" : "Five short Maths areas"}
+            </strong>
             <span>
-              A fully electronic area uses {budget.bySubElement[currentIndex]?.minimumQuestions ?? 6}–{budget.bySubElement[currentIndex]?.maximumQuestions ?? 11} questions. MyLearna may stop sooner when practical or observed evidence is more trustworthy than another screen question.
+              A fully electronic area uses {currentAreaBudget?.minimumQuestions ?? 6}–{currentAreaBudget?.maximumQuestions ?? 11} questions. MyLearna may stop sooner when practical or observed evidence is more trustworthy than another screen question.
             </span>
-            <span>
-              MyLearna pauses between areas. You can leave after an area and return in this browser tab without losing the areas already completed.
-            </span>
+            {order.length > 1 ? (
+              <span>
+                MyLearna pauses between areas. You can leave after an area and return in this browser tab without losing the areas already completed.
+              </span>
+            ) : (
+              <span>
+                This focused check gives a useful result for this area only. It does not pretend to describe the learner&apos;s whole Number &amp; Operations profile.
+              </span>
+            )}
           </div>
         )}
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
           Progress and the completed starting-point profile stay in this browser tab for this learner during the staff preview, so recommended practice can return here. No family or learner assessment record is written to the database.
         </small>
-        {mode === "parent-preview" && currentIndex > 0 && pendingResult === undefined ? (
+        {mode === "parent-preview" &&
+        order.length > 1 &&
+        currentIndex > 0 &&
+        pendingResult === undefined ? (
           <Link
             href={pauseHref}
             style={{
@@ -516,7 +549,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
         >
           <div
             style={{
-              width: `${((currentIndex + 1) / ORDER.length) * 100}%`,
+              width: `${((currentIndex + 1) / order.length) * 100}%`,
               height: "100%",
               background: "#6C4DF6",
             }}
@@ -560,7 +593,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
               width: "fit-content",
             }}
           >
-            {currentIndex >= ORDER.length - 1
+            {currentIndex >= order.length - 1
               ? "See the starting-point profile"
               : "Continue to the next area"}
           </button>

@@ -122,11 +122,15 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     expect(
       screen.getByText(/No family ID, learner ID, database ID or user ID is created here/i),
     ).toBeTruthy();
-    expect(
-      window.sessionStorage.getItem(
-        NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
-      ),
-    ).toBeNull();
+    const completedRaw = window.sessionStorage.getItem(
+      NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+    );
+    expect(completedRaw).toBeTruthy();
+    expect(JSON.parse(completedRaw || "{}")).toMatchObject({
+      status: "complete",
+      currentIndex: 4,
+      tracesByKey: {},
+    });
   });
 
   it("resumes completed areas from browser-local session storage", async () => {
@@ -246,4 +250,50 @@ it("offers a learner-preserving pause point only between completed areas", () =>
   expect(source).toContain("Pause here and return to My Pathways");
   expect(source).toContain('subjectKey: "mathematics"');
   expect(source).toContain('params.set("learnerId", cleanLearnerId)');
+});
+
+
+it("can complete one focused area without forcing the other four areas", () => {
+  render(
+    React.createElement(AssessmentNumberOperationsBaselineRunner, {
+      subElementKeys: ["additive-strategies"],
+      mode: "parent-preview",
+      learnerId: "learner-focused",
+    }),
+  );
+
+  expect(screen.getByText(/Area 1 of 1/i)).toBeTruthy();
+  expect(screen.getByText("One focused Maths area")).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Complete additive-strategies" }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Complete number-place-value" }),
+  ).toBeNull();
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Complete additive-strategies" }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "See the starting-point profile" }),
+  );
+
+  expect(
+    screen.getByText("A clear starting point for what to do next"),
+  ).toBeTruthy();
+});
+
+it("namespaces focused-area browser drafts separately from the full five-area draft", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain('scopeStorageSuffix');
+  expect(source).toContain(':scope-');
+  expect(source).toContain('order.join("+")');
+  expect(source).toContain('isFullScope ? ""');
 });
