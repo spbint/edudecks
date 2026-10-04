@@ -230,3 +230,20 @@ it("never embeds a state-changing evidence gate inside a boolean boundary condit
     "if (blockUnapprovedProgressionLevel(nextP)) return",
   );
 });
+
+
+it("uses the explicit trusted-asset approval registry for asset-review levels", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("isNumberOperationsAssetApproved");
+  expect(source).toContain("assetApproved,");
+  expect(source).toContain(
+    "subElementKey: anchorSet.key as NumberOperationsSubElementKey",
+  );
+});

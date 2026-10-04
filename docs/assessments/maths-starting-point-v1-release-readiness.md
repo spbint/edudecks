@@ -52,6 +52,7 @@ Current behaviour:
 - no assessment record is written to Supabase
 - visual-dependent counting/subitising items expose a practical-observation alternative instead of forcing inaccessible electronic evidence
 - Money P1–P2 remain electronically blocked while their evidence mode is `asset-review`; having executable draft items does not bypass the evidence policy
+- trusted score-bearing assets are controlled by `numberOperationsAssetApprovals.ts`; Australian currency schematic v1 is explicitly `pending-review`, not implicitly approved
 - choosing that alternative leaves the area unresolved; it never manufactures a digital placement
 - parent presentation suppresses P-level/routing/debug language during the assessment
 - result leads with practical next action, not technical placement

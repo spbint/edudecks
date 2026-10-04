@@ -265,7 +265,14 @@ export default function AssessmentAnchorPlacementRunner({
   const blockUnapprovedProgressionLevel = useCallback(
     (pLevel: number) => {
       const evidenceMode = getProgressionEvidenceMode(anchorSet, pLevel);
-      const policy = getPlacementEvidencePolicy({ evidenceMode });
+      const assetApproved = isNumberOperationsAssetApproved({
+        subElementKey: anchorSet.key as NumberOperationsSubElementKey,
+        pLevel,
+      });
+      const policy = getPlacementEvidencePolicy({
+        evidenceMode,
+        assetApproved,
+      });
       if (policy.mayRoute) return false;
 
       recordEvidenceLimit(pLevel);
