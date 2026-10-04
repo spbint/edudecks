@@ -155,6 +155,66 @@ it("normalizes safe fraction spacing and common minus characters without changin
   };
 
   expect(scoreAssessmentItem(fractionItem, [], 4, " 5 / 8 ").correct).toBe(true);
+  expect(scoreAssessmentItem(fractionItem, [], 4, "10/16").correct).toBe(true);
   expect(scoreAssessmentItem(fractionItem, [], 4, "0.625").correct).toBe(false);
   expect(scoreAssessmentItem(negativeItem, [], 4, "−4").correct).toBe(true);
+});
+
+
+it("accepts numerically equivalent decimal forms without loosening text answers", () => {
+  const item: MyLearnaAssessmentItem = {
+    ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+    id: "numeric-equivalence-proof-v1",
+    version: 1,
+    template: "short-answer",
+    prompt: "How many items are there altogether?",
+    stimulus: { type: "none", data: {} },
+    response: {
+      type: "short-answer",
+      correctValue: "72",
+    },
+  };
+
+  expect(scoreAssessmentItem(item, [], 4, "72.0").correct).toBe(true);
+  expect(scoreAssessmentItem(item, [], 4, "072").correct).toBe(true);
+  expect(scoreAssessmentItem(item, [], 4, "72%").correct).toBe(false);
+  expect(scoreAssessmentItem(item, [], 4, "$72").correct).toBe(false);
+});
+
+it("accepts optional currency notation only in money contexts", () => {
+  const item: MyLearnaAssessmentItem = {
+    ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+    id: "currency-equivalence-proof-v1",
+    version: 1,
+    template: "short-answer",
+    prompt: "What is the total cost in dollars?",
+    stimulus: { type: "none", data: {} },
+    response: {
+      type: "short-answer",
+      correctValue: "7.45",
+    },
+  };
+
+  expect(scoreAssessmentItem(item, [], 4, "$7.45").correct).toBe(true);
+  expect(scoreAssessmentItem(item, [], 4, "7.450").correct).toBe(true);
+  expect(scoreAssessmentItem(item, [], 4, "$7.46").correct).toBe(false);
+});
+
+it("accepts an optional percent sign only when the item asks for a percentage", () => {
+  const item: MyLearnaAssessmentItem = {
+    ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+    id: "percent-equivalence-proof-v1",
+    version: 1,
+    template: "short-answer",
+    prompt: "What percentage profit is made?",
+    stimulus: { type: "none", data: {} },
+    response: {
+      type: "short-answer",
+      correctValue: "25",
+    },
+  };
+
+  expect(scoreAssessmentItem(item, [], 4, "25%").correct).toBe(true);
+  expect(scoreAssessmentItem(item, [], 4, "25.0").correct).toBe(true);
+  expect(scoreAssessmentItem(item, [], 4, "0.25").correct).toBe(false);
 });

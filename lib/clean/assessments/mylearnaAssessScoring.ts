@@ -27,6 +27,95 @@ function normalizeResponseValue(value: unknown) {
     .toLowerCase();
 }
 
+function parseFractionValue(value: string) {
+  const match = value.match(/^([+-]?\d+)\/([+-]?\d+)$/);
+  if (!match) return null;
+
+  const numerator = Number(match[1]);
+  const denominator = Number(match[2]);
+  if (!Number.isSafeInteger(numerator) || !Number.isSafeInteger(denominator) || denominator === 0) {
+    return null;
+  }
+
+  return { numerator, denominator };
+}
+
+function parseNumericValue(
+  value: string,
+  options: { allowCurrency: boolean; allowPercent: boolean },
+) {
+  let candidate = value;
+
+  if (candidate.startsWith("$")) {
+    if (!options.allowCurrency) return null;
+    candidate = candidate.slice(1).trim();
+  } else if (candidate.includes("$")) {
+    return null;
+  }
+
+  if (candidate.endsWith("%")) {
+    if (!options.allowPercent) return null;
+    candidate = candidate.slice(0, -1).trim();
+  } else if (candidate.includes("%")) {
+    return null;
+  }
+
+  if (
+    !/^[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:e[+-]?\d+)?$/i.test(
+      candidate,
+    )
+  ) {
+    return null;
+  }
+
+  const numeric = Number(candidate);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function shortAnswerEquivalent(
+  item: MyLearnaAssessmentItem,
+  actualRaw: unknown,
+  expectedRaw: unknown,
+) {
+  const actual = normalizeResponseValue(actualRaw);
+  const expected = normalizeResponseValue(expectedRaw);
+  if (!actual || !expected) return false;
+  if (actual === expected) return true;
+
+  const actualFraction = parseFractionValue(actual);
+  const expectedFraction = parseFractionValue(expected);
+  if (actualFraction && expectedFraction) {
+    return (
+      actualFraction.numerator * expectedFraction.denominator ===
+      expectedFraction.numerator * actualFraction.denominator
+    );
+  }
+
+  const prompt = normalizeResponseValue(item.prompt);
+  const allowCurrency =
+    /(?:\$|\bdollars?\b|\bcents?\b|\bmoney\b|\bcost\b|\bprice\b|\binterest\b|\bprofit\b|\bbalance\b|\bchange\b|\bbill\b|\bpurchase\b|\bsubscription\b)/.test(
+      prompt,
+    ) ||
+    expected.startsWith("$");
+  const allowPercent =
+    /(?:%|\bpercent(?:age)?\b)/.test(prompt) || expected.endsWith("%");
+
+  const actualNumeric = parseNumericValue(actual, {
+    allowCurrency,
+    allowPercent,
+  });
+  const expectedNumeric = parseNumericValue(expected, {
+    allowCurrency,
+    allowPercent,
+  });
+
+  return (
+    actualNumeric !== null &&
+    expectedNumeric !== null &&
+    actualNumeric === expectedNumeric
+  );
+}
+
 export function scoreAssessmentItem(
   item: MyLearnaAssessmentItem,
   selectedOptionIds: string[],
@@ -40,9 +129,8 @@ export function scoreAssessmentItem(
       item.response.correctValue,
       ...(item.response.acceptableValues || []),
     ].filter((value) => value !== undefined && value !== null);
-    const actual = normalizeResponseValue(responseValue);
-    correct = Boolean(actual) && expectedValues.some(
-      (expected) => normalizeResponseValue(expected) === actual,
+    correct = expectedValues.some((expected) =>
+      shortAnswerEquivalent(item, responseValue, expected),
     );
   } else if (item.response.type === "ordering") {
     const expected = [...(item.response.correctOptionIds || [])];
