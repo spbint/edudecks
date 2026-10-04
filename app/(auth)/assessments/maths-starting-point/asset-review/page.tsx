@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type React from "react";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import { CurrencyTokenVisual } from "@/lib/clean/assessments/visualTemplates/CurrencyTokenVisual";
 import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "@/lib/clean/assessments/placement/numberOperationsAssetApprovals";
