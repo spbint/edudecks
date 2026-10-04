@@ -39,25 +39,25 @@ describe("Founder Behaviour Intelligence v3 production data wiring", () => {
     });
   });
 
-  it("uses the established loaders, excludes internal activity, and keeps suspicious accounts by default", async () => {
+  it("uses the established loaders and excludes internal and suspicious review activity by default", async () => {
     const now = new Date("2026-10-03T00:00:00.000Z");
     const result = await loadFounderBehaviourV3({ rangeDays: 30 }, now);
 
     expect(mocks.loadFounderPostHogSnapshot).toHaveBeenCalledWith(30);
     expect(mocks.loadFounderCustomers).toHaveBeenCalledWith(now, { includeInternal: true });
     expect(result.posthogAvailable).toBe(true);
-    expect(result.includeSuspicious).toBe(true);
-    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(2);
+    expect(result.includeSuspicious).toBe(false);
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
   });
 
-  it("can exclude the suspicious review population without removing genuine actors", async () => {
+  it("can include the suspicious review population for comparison without changing the clean default", async () => {
     const result = await loadFounderBehaviourV3(
-      { rangeDays: 30, includeSuspicious: false },
+      { rangeDays: 30, includeSuspicious: true },
       new Date("2026-10-03T00:00:00.000Z"),
     );
 
-    expect(result.includeSuspicious).toBe(false);
-    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(result.includeSuspicious).toBe(true);
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(2);
   });
 
   it("preserves the established unavailable-source fallback", async () => {

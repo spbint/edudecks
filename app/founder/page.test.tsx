@@ -93,7 +93,7 @@ const v3Data = {
   generatedAt: "2026-08-21T08:00:00.000Z",
   rangeDays: 30 as const,
   includeInternal: false,
-  includeSuspicious: true,
+  includeSuspicious: false,
   posthogAvailable: true,
   summary: [{ label: "Product users", value: 3, note: "Anonymous aggregate.", confidence: "high" as const }],
   signals: [],
@@ -147,7 +147,7 @@ describe("Founder page", () => {
     render(await FounderPage());
 
     expect(requireFounderAccessMock).toHaveBeenCalledOnce();
-    expect(loadFounderBehaviourV3Mock).toHaveBeenCalledOnce();
+    expect(loadFounderBehaviourV3Mock).toHaveBeenCalledWith({ rangeDays: 30, includeInternal: false, includeSuspicious: false });
     expect(screen.getByRole("heading", { name: "Understand what families do next." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Founder summary" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Founder signals" })).toBeTruthy();
@@ -173,19 +173,19 @@ describe("Founder page", () => {
     render(await FounderPage());
 
     const conservative = screen.getByRole("link", { name: "Conservative view" });
-    expect(conservative.getAttribute("href")).toBe("/founder?range=30&suspicious=exclude");
+    expect(conservative.getAttribute("href")).toBe("/founder?range=30");
     expect(screen.getByText(/Conservative view excludes confirmed internal\/test accounts/i)).toBeTruthy();
   });
 
   it("passes range and both population filters through to the server loader", async () => {
     render(await FounderPage({
-      searchParams: Promise.resolve({ range: "90", internal: "include", suspicious: "exclude" }),
+      searchParams: Promise.resolve({ range: "90", internal: "include", suspicious: "include" }),
     }));
 
     expect(loadFounderBehaviourV3Mock).toHaveBeenCalledWith({
       rangeDays: 90,
       includeInternal: true,
-      includeSuspicious: false,
+      includeSuspicious: true,
     });
     expect(screen.getByText("Include suspicious/unknown")).toBeTruthy();
     expect(screen.getByText("Exclude suspicious/unknown")).toBeTruthy();
