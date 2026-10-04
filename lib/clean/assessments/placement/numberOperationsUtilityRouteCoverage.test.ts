@@ -6,20 +6,20 @@ import {
   getNumberOperationsPracticeTarget,
 } from "./numberOperationsPracticeTargets";
 
-const FIRST_SLICE = new Set([
+const FIRST_SLICE = new Set<string>([
   "number-place-value",
   "counting-processes",
   "additive-strategies",
   "multiplicative-strategies",
   "understanding-money",
-] as const);
+]);
 
 describe("Maths starting-point next-learning route coverage", () => {
   it("gives every first-slice progression level a non-legacy next-learning destination", () => {
     let checked = 0;
 
     for (const subElement of NUMERACY_PROGRESSION_SUB_ELEMENTS) {
-      if (!FIRST_SLICE.has(subElement.key as never)) continue;
+      if (!FIRST_SLICE.has(subElement.key)) continue;
 
       for (let pLevel = subElement.minP; pLevel <= subElement.maxP; pLevel += 1) {
         const target = getNumberOperationsPracticeTarget({
