@@ -184,6 +184,22 @@ export default function AssessmentNumberOperationsParentUtilityCard({
               <span style={{ color: "#4B5563", fontSize: 12, lineHeight: 1.5 }}>
                 {utility.startHere.recheckPlan.guidance}
               </span>
+              <strong style={{ color: "#475569", fontSize: 12 }}>
+                Fresh evidence to look for
+              </strong>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  color: "#4B5563",
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                }}
+              >
+                {utility.startHere.recheckPlan.evidenceToLookFor.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </div>
