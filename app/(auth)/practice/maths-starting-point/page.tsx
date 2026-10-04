@@ -12,7 +12,15 @@ export const metadata: Metadata = {
 export default function MathsStartingPointPracticePage() {
   return (
     <AssessmentAccessGate mode="lab">
-      <CleanNumberTargetedPracticeViewer experience="maths-starting-point" />
+      <main
+        style={{
+          minHeight: "100vh",
+          background: "#F7F8FC",
+          padding: "clamp(18px, 4vw, 42px)",
+        }}
+      >
+        <CleanNumberTargetedPracticeViewer experience="maths-starting-point" />
+      </main>
     </AssessmentAccessGate>
   );
 }

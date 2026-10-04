@@ -25,6 +25,8 @@ describe("Maths starting-point practice route contract", () => {
       'experience="maths-starting-point"',
     );
     expect(routeSource).not.toContain('mode="legacy"');
+    expect(routeSource).toContain('background: "#F7F8FC"');
+    expect(routeSource).toContain('padding: "clamp(18px, 4vw, 42px)"');
   });
 
   it("keeps starting-point section navigation on its dedicated practice route", () => {
@@ -38,4 +40,17 @@ describe("Maths starting-point practice route contract", () => {
       '!isMathsStartingPoint && exactStepAssessmentHref',
     );
   });
+});
+
+
+it("uses parent-readable starting-point provenance instead of raw sub-element keys", () => {
+  expect(viewerSource).toContain(
+    "Recommended from your Maths starting-point check",
+  );
+  expect(viewerSource).toContain(
+    '"additive-strategies": "Additive strategies"',
+  );
+  expect(viewerSource).toContain(
+    "startingPointSubElementLabel(sourceSubElement)",
+  );
 });

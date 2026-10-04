@@ -1986,6 +1986,19 @@ function buildProgressSummary(
   };
 }
 
+const STARTING_POINT_SUB_ELEMENT_LABELS: Record<string, string> = {
+  "number-place-value": "Number and place value",
+  "counting-processes": "Counting processes",
+  "additive-strategies": "Additive strategies",
+  "multiplicative-strategies": "Multiplicative strategies",
+  "understanding-money": "Understanding money",
+};
+
+function startingPointSubElementLabel(value: string) {
+  const safeValue = safe(value);
+  return STARTING_POINT_SUB_ELEMENT_LABELS[safeValue] || safeValue;
+}
+
 type SourcePracticeContext = {
   subjectKey: string;
   strandKey: string;
@@ -5242,9 +5255,21 @@ export default function CleanNumberTargetedPracticeViewer({
                     ...bodyTextStyle,
                   }}
                 >
-                  Recommended from assessment
-                  {sourceBank ? `: ${sourceBank.title}` : ""}
-                  {sourceSubElement ? `, ${sourceSubElement}` : ""}.
+                  {isMathsStartingPoint ? (
+                    <>
+                      Recommended from your Maths starting-point check
+                      {sourceSubElement
+                        ? `: ${startingPointSubElementLabel(sourceSubElement)}`
+                        : ""}
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Recommended from assessment
+                      {sourceBank ? `: ${sourceBank.title}` : ""}
+                      {sourceSubElement ? `, ${sourceSubElement}` : ""}.
+                    </>
+                  )}
                 </div>
               ) : null}
             </section>
