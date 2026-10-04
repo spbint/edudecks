@@ -5,6 +5,7 @@ import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-l
 import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard";
 import AssessmentNumberOperationsParentUtilityCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsParentUtilityCard";
 import AssessmentEvidencePreviewCard from "@/app/components/clean/assessment-lab/AssessmentEvidencePreviewCard";
+import AssessmentEvidenceConfirmationCard from "@/app/components/clean/assessment-lab/AssessmentEvidenceConfirmationCard";
 import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";
 import { buildNumberOperationsParentUtility } from "@/lib/clean/assessments/placement/numberOperationsParentUtility";
 import { buildNumberOperationsEvidencePreview } from "@/lib/clean/assessments/placement/numberOperationsEvidencePreview";
@@ -174,6 +175,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
       <section style={{ display: "grid", gap: 18 }}>
         <AssessmentNumberOperationsProfileCard profile={finalProfile} />
         <AssessmentEvidencePreviewCard preview={evidencePreview} />
+        <AssessmentEvidenceConfirmationCard preview={evidencePreview} />
         <details style={panel}>
           <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
             Baseline data handoff · schema v{baselineSnapshot.schemaVersion}
