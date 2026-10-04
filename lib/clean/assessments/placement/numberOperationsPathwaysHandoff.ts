@@ -16,7 +16,6 @@ export type NumberOperationsPathwaysHandoff = {
   href: string;
   mappingConfidence: "source-guided-step" | "strand-level";
   pathwayStepId: string | null;
-  stepKey: string | null;
   stageKey: string | null;
   stepTitle: string | null;
   note: string;
@@ -75,7 +74,6 @@ export function buildNumberOperationsPathwaysHandoff(input: {
   if (crosswalk?.confidence === "source-guided-step" && resolved) {
     params.set("stageKey", resolved.stageKey);
     params.set("pathwayStepId", resolved.id);
-    params.set("stepKey", resolved.stepKey);
     return {
       subjectKey: "mathematics",
       strandKey: strand.key,
@@ -83,7 +81,6 @@ export function buildNumberOperationsPathwaysHandoff(input: {
       href: `/my-pathways?${params.toString()}`,
       mappingConfidence: "source-guided-step",
       pathwayStepId: resolved.id,
-      stepKey: resolved.stepKey,
       stageKey: resolved.stageKey,
       stepTitle: resolved.stepTitle,
       note:
@@ -98,7 +95,6 @@ export function buildNumberOperationsPathwaysHandoff(input: {
     href: `/my-pathways?${params.toString()}`,
     mappingConfidence: "strand-level",
     pathwayStepId: null,
-    stepKey: null,
     stageKey: null,
     stepTitle: null,
     note:
