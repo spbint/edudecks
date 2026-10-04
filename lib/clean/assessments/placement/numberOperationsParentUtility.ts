@@ -109,11 +109,13 @@ function confidenceNote(result: NumberOperationsPlacementResult) {
 function areaFrom(
   result: NumberOperationsPlacementResult,
   recommendation: NumberOperationsRecommendation,
+  learnerId?: string | null,
 ): NumberOperationsParentUtilityArea {
   const state = stateFor(recommendation);
   const pathways = buildNumberOperationsPathwaysHandoff({
     subElementKey: result.subElementKey,
     targetP: recommendation.targetP,
+    learnerId,
   });
   return {
     subElementKey: result.subElementKey,
@@ -144,6 +146,7 @@ function areaFrom(
 
 export function buildNumberOperationsParentUtility(
   profile: NumberOperationsProfile,
+  options: { learnerId?: string | null } = {},
 ): NumberOperationsParentUtility {
   const recommendations = new Map(
     profile.recommendations.map((recommendation) => [
@@ -154,7 +157,9 @@ export function buildNumberOperationsParentUtility(
 
   const areas = profile.results.flatMap((result) => {
     const recommendation = recommendations.get(result.subElementKey);
-    return recommendation ? [areaFrom(result, recommendation)] : [];
+    return recommendation
+      ? [areaFrom(result, recommendation, options.learnerId)]
+      : [];
   });
 
   const ranked = profile.recommendations

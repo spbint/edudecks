@@ -48,7 +48,15 @@ const panel: React.CSSProperties = {
   gap: 14,
 };
 
-export default function AssessmentNumberOperationsBaselineRunner() {
+export default function AssessmentNumberOperationsBaselineRunner({
+  learnerId,
+  learnerName,
+  mode = "staff-debug",
+}: {
+  learnerId?: string | null;
+  learnerName?: string | null;
+  mode?: "parent-preview" | "staff-debug";
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [resultsByKey, setResultsByKey] = useState<
     Partial<Record<NumberOperationsSubElementKey, NumberOperationsPlacementResult>>
@@ -64,10 +72,13 @@ export default function AssessmentNumberOperationsBaselineRunner() {
   const [completedAt, setCompletedAt] = useState<string | null>(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const startedAtRef = useRef(new Date().toISOString());
+  const draftStorageKey = learnerId
+    ? `${NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY}:${learnerId}`
+    : NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY;
 
   useEffect(() => {
     const draft = parseNumberOperationsBaselineDraft(
-      window.sessionStorage.getItem(NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY),
+      window.sessionStorage.getItem(draftStorageKey),
     );
     if (draft) {
       setCurrentIndex(draft.currentIndex);
@@ -77,13 +88,13 @@ export default function AssessmentNumberOperationsBaselineRunner() {
       startedAtRef.current = draft.startedAt;
     }
     setDraftHydrated(true);
-  }, []);
+  }, [draftStorageKey]);
 
   useEffect(() => {
     if (!draftHydrated) return;
     if (complete) {
       window.sessionStorage.removeItem(
-        NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+        draftStorageKey,
       );
       return;
     }
@@ -96,7 +107,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
       startedAt: startedAtRef.current,
     });
     window.sessionStorage.setItem(
-      NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
+      draftStorageKey,
       JSON.stringify(draft),
     );
   }, [
@@ -106,6 +117,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
     resultsByKey,
     tracesByKey,
     unresolved,
+    draftStorageKey,
   ]);
 
   const currentKey = ORDER[currentIndex];
@@ -157,7 +169,9 @@ export default function AssessmentNumberOperationsBaselineRunner() {
   if (complete) {
     const finalResults = Object.values(resultsByKey);
     const finalProfile = buildNumberOperationsProfile(finalResults);
-    const parentUtility = buildNumberOperationsParentUtility(finalProfile);
+    const parentUtility = buildNumberOperationsParentUtility(finalProfile, {
+      learnerId,
+    });
     const evidencePreview = buildNumberOperationsEvidencePreview(finalProfile);
     const baselineSnapshot = buildNumberOperationsBaselineSummarySnapshot({
       profile: finalProfile,
@@ -173,10 +187,21 @@ export default function AssessmentNumberOperationsBaselineRunner() {
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
-        <AssessmentNumberOperationsProfileCard profile={finalProfile} />
-        <AssessmentEvidencePreviewCard preview={evidencePreview} />
+        <AssessmentNumberOperationsParentUtilityCard utility={parentUtility} />
         <AssessmentEvidenceConfirmationCard preview={evidencePreview} />
-        <details style={panel}>
+        {unresolved.length ? (
+          <div style={{ ...panel, background: "#FFFDF5" }}>
+            <strong style={{ color: "#92400E" }}>A few areas still need stronger evidence</strong>
+            <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
+              MyLearna has deliberately left {unresolved.map((key) => LABELS[key]).join(", ")} unresolved rather than guessing. Use the suggested practical learning and check again with fresh evidence later.
+            </p>
+          </div>
+        ) : null}
+        {mode === "staff-debug" ? (
+          <>
+            <AssessmentNumberOperationsProfileCard profile={finalProfile} />
+            <AssessmentEvidencePreviewCard preview={evidencePreview} />
+            <details style={panel}>
           <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
             Baseline data handoff · schema v{baselineSnapshot.schemaVersion}
           </summary>
@@ -232,17 +257,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
               {JSON.stringify(persistenceDraft, null, 2)}
             </pre>
           </div>
-        </details>
-        {unresolved.length ? (
-          <div style={{ ...panel, background: "#FFFDF5" }}>
-            <strong style={{ color: "#92400E" }}>Evidence still unresolved</strong>
-            <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
-              The baseline deliberately withheld a reportable result for{" "}
-              {unresolved.map((key) => LABELS[key]).join(", ")}. This is a valid
-              outcome when the current electronic item set cannot support a
-              defensible placement.
-            </p>
-          </div>
+            </details>
+          </>
         ) : null}
         <button
           type="button"
@@ -259,7 +275,7 @@ export default function AssessmentNumberOperationsBaselineRunner() {
             width: "fit-content",
           }}
         >
-          Restart Number & Operations baseline
+          Start this Maths check again
         </button>
       </section>
     );
@@ -276,38 +292,49 @@ export default function AssessmentNumberOperationsBaselineRunner() {
             textTransform: "uppercase",
           }}
         >
-          Staff all-in-one baseline proof
+          {mode === "parent-preview" ? "Adaptive Maths starting point" : "Staff all-in-one baseline proof"}
         </span>
         <h2 style={{ margin: 0, color: "#17204B" }}>
-          Number & Operations baseline
+          {learnerName ? `${learnerName}'s Number & Operations check` : "Number & Operations baseline"}
         </h2>
         <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
           Area {currentIndex + 1} of {ORDER.length}:{" "}
-          <strong>{LABELS[currentKey]}</strong>. Each area routes independently;
-          the final profile does not average the five continua into a single
-          level.
+          <strong>{LABELS[currentKey]}</strong>. MyLearna adapts the questions to find a useful starting point in each area separately, so one strength never hides another place that needs support.
         </p>
-        <div
-          style={{
-            border: "1px solid #D9D0FF",
-            borderRadius: 14,
-            background: "#F8F5FF",
-            padding: 12,
-            display: "grid",
-            gap: 4,
-          }}
-        >
-          <strong style={{ color: "#17204B" }}>Adaptive question budget</strong>
-          <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
-            The current five-area route is bounded between {budget.minimumQuestions} and{" "}
-            {budget.maximumQuestions} questions. Strong or clearly weak evidence can
-            finish an area sooner; ambiguous evidence triggers reserve or boundary probes.
-          </span>
-        </div>
+        {mode === "staff-debug" ? (
+          <div
+            style={{
+              border: "1px solid #D9D0FF",
+              borderRadius: 14,
+              background: "#F8F5FF",
+              padding: 12,
+              display: "grid",
+              gap: 4,
+            }}
+          >
+            <strong style={{ color: "#17204B" }}>Adaptive question budget</strong>
+            <span style={{ color: "#5B6478", lineHeight: 1.5 }}>
+              The current five-area route is bounded between {budget.minimumQuestions} and{" "}
+              {budget.maximumQuestions} questions. Strong or clearly weak evidence can
+              finish an area sooner; ambiguous evidence triggers reserve or boundary probes.
+            </span>
+          </div>
+        ) : (
+          <div
+            style={{
+              border: "1px solid #D9D0FF",
+              borderRadius: 14,
+              background: "#F8F5FF",
+              padding: 12,
+              color: "#5B6478",
+              lineHeight: 1.55,
+            }}
+          >
+            This check adapts as it goes. Clear evidence finishes an area sooner; mixed evidence triggers a few extra questions so MyLearna does not guess.
+          </div>
+        )}
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
-          Staff preview pause/resume: completed areas are saved only in this
-          browser tab. If the tab closes mid-area, that current area starts
-          again; no learner or family data is stored.
+          Progress in completed areas is kept only in this browser tab for this learner during the staff preview. No family or learner assessment record is written to the database.
         </small>
         <div
           aria-label="Baseline progress"
@@ -345,8 +372,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
         <div style={panel}>
           <strong style={{ color: "#17204B" }}>
             {pendingResult
-              ? "This area has a reportable staff-lab result."
-              : "This area is unresolved with the current electronic evidence."}
+              ? "MyLearna has enough evidence to guide the next learning action in this area."
+              : "MyLearna needs a practical or observed example before it can guide this area confidently."}
           </strong>
           <button
             type="button"
@@ -364,8 +391,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
             }}
           >
             {currentIndex >= ORDER.length - 1
-              ? "View Number & Operations profile"
-              : "Continue to next area"}
+              ? "See the starting-point profile"
+              : "Continue to the next area"}
           </button>
         </div>
       ) : null}

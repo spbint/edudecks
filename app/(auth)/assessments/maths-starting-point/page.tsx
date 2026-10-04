@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
-import AssessmentNumberOperationsBaselineRunner from "@/app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner";
+import MathsStartingPointWorkspace from "@/app/components/clean/assessment-starting-point/MathsStartingPointWorkspace";
 
 export const metadata: Metadata = {
   title: "Maths Starting Point | MyLearna",
@@ -71,7 +71,7 @@ export default function MathsStartingPointPage() {
               overall maths score.
             </p>
           </section>
-          <AssessmentNumberOperationsBaselineRunner />
+          <MathsStartingPointWorkspace />
         </div>
       </main>
     </AssessmentAccessGate>
