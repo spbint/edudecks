@@ -100,8 +100,8 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
       );
       const continueLabel =
         index === keys.length - 1
-          ? "View Number & Operations profile"
-          : "Continue to next area";
+          ? "See the starting-point profile"
+          : "Continue to the next area";
       fireEvent.click(screen.getByRole("button", { name: continueLabel }));
     }
 
@@ -160,7 +160,7 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     });
     expect(screen.getByText(/Area 2 of 5/i)).toBeTruthy();
     expect(
-      screen.getByText(/completed areas are saved only in this browser tab/i),
+      screen.getByText(/Progress and the completed starting-point profile stay in this browser tab/i),
     ).toBeTruthy();
   });
 });
