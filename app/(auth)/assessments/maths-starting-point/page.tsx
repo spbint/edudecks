@@ -3,9 +3,9 @@ import AssessmentAccessGate from "@/app/components/clean/assessment-lab/Assessme
 import MathsStartingPointWorkspace from "@/app/components/clean/assessment-starting-point/MathsStartingPointWorkspace";
 
 export const metadata: Metadata = {
-  title: "Maths Starting Point | MyLearna",
+  title: "Number & Operations Starting Point | MyLearna",
   description:
-    "A staff-gated preview of MyLearna's parent-facing Number and Operations starting-point utility.",
+    "A staff-gated preview of MyLearna's parent-facing Number & Operations starting-point utility.",
   robots: { index: false, follow: false },
 };
 
@@ -55,7 +55,7 @@ export default function MathsStartingPointPage() {
                 fontSize: "clamp(32px, 5vw, 48px)",
               }}
             >
-              Find a useful starting point in Maths
+              Find a useful starting point in Number & Operations
             </h1>
             <p
               style={{
