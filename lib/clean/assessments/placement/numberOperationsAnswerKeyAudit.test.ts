@@ -110,3 +110,49 @@ describe("Number & Operations answer-key audit", () => {
     }
   });
 });
+
+
+it("locks higher-risk choice and multi-select keys", () => {
+  const expected: Record<string, string[]> = {
+    "myl-anchor-npv-p06-a-v1": [
+      "four-thousands-three-hundreds",
+      "three-thousands-thirteen-hundreds",
+      "forty-three-hundreds",
+    ],
+    "myl-anchor-mon-p02-a-v1": ["a"],
+    "myl-anchor-mon-p05-a-v1": ["a"],
+    "myl-anchor-mul-p09-a-v1": ["a"],
+    "myl-search-npv-p10-a-v1": ["d"],
+    "myl-search-npv-p10-b-v1": ["c"],
+    "myl-search-mon-p09-a-v1": ["b"],
+    "myl-boundary-npv-p07-a-v1": ["b"],
+    "myl-boundary-npv-p07-b-v1": ["b"],
+    "myl-boundary-mon-p04-a-v1": ["a"],
+    "myl-boundary-mon-p04-b-v1": ["a", "b", "c"],
+    "myl-boundary-mon-p04-c-v1": ["b"],
+    "myl-boundary-mon-p06-c-v1": ["a"],
+    "myl-confirm-npv-p06-a-v1": [
+      "6k2h4t",
+      "62h4t",
+      "5k12h4t",
+    ],
+    "myl-confirm-npv-p07-a-v1": ["7-05"],
+    "myl-confirm-npv-p10-a-v1": ["8e9"],
+  };
+
+  const byId = new Map(
+    NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.map((entry) => [
+      entry.item.id,
+      entry.item,
+    ]),
+  );
+
+  for (const [itemId, correctOptionIds] of Object.entries(expected)) {
+    const item = byId.get(itemId);
+    expect(item, itemId).toBeTruthy();
+    expect(
+      item?.response.correctOptionIds,
+      itemId,
+    ).toEqual(correctOptionIds);
+  }
+});
