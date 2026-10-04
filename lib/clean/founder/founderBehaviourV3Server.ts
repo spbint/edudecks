@@ -37,6 +37,7 @@ export async function loadFounderBehaviourV3(
       .filter((customer) => isFounderSuspiciousAccount(customer.email))
       .map((customer) => customer.userId),
   ]);
+  const currentUserIds = new Set(directory.customers.map((customer) => customer.userId));
 
   return buildFounderBehaviourV3({
     events: posthog.events,
@@ -45,6 +46,7 @@ export async function loadFounderBehaviourV3(
     includeSuspicious,
     internalUserIds,
     suspiciousUserIds,
+    currentUserIds,
     posthogAvailable: posthog.available,
     now,
   });
