@@ -20,6 +20,9 @@ function normalizeResponseValue(value: unknown) {
   return String(value ?? "")
     .trim()
     .replace(/,/g, "")
+    .replace(/[−–]/g, "-")
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s*%\s*/g, "%")
     .replace(/\s+/g, " ")
     .toLowerCase();
 }
