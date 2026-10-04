@@ -164,3 +164,18 @@ it("does not offer evidence confirmation when the electronic check produced no r
     screen.queryByRole("checkbox", { name: "Include in My Portfolio" }),
   ).toBeNull();
 });
+
+
+it("uses starting-point language rather than placement jargon in parent evidence caveats", () => {
+  render(
+    React.createElement(AssessmentEvidenceConfirmationCard, {
+      preview,
+      presentation: "parent",
+    }),
+  );
+
+  expect(
+    screen.getByText(/stronger starting-point judgement/i),
+  ).toBeTruthy();
+  expect(screen.queryByText(/placement claim/i)).toBeNull();
+});
