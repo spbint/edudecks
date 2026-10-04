@@ -32,9 +32,9 @@ describe("Maths starting-point customer release readiness", () => {
 
   it("does not treat automatic Pathways mutation as a launch requirement", () => {
     expect(
-      getMathsStartingPointCustomerReleaseBlockers().some(
-        (blocker) => blocker.id === ("pathway-mutation" as never),
+      getMathsStartingPointCustomerReleaseBlockers().map((blocker) =>
+        String(blocker.id),
       ),
-    ).toBe(false);
+    ).not.toContain("pathway-mutation");
   });
 });
