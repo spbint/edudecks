@@ -105,6 +105,18 @@ The migration uses:
 
 The application client throws before touching Supabase while `persistenceEnabled` is false.
 
+## Customer-release blocker contract
+
+`numberOperationsCustomerReleaseReadiness.ts` computes the hard customer-release blockers from source-of-truth state. Customer launch currently remains blocked by:
+
+- customer visibility and navigation gates;
+- persistence not yet activated/smoke-tested;
+- evidence writing not yet authorised;
+- all 140 placement items remaining draft/review-only;
+- one trusted asset set (Australian currency schematic v1) remaining pending visual approval.
+
+Automatic Pathways mutation is intentionally **not** a customer-release requirement.
+
 ## Still intentionally not done
 
 These require an explicit release decision after staff QA:
