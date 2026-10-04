@@ -59,8 +59,6 @@ export default function MathsStartingPointWorkspace() {
         area: "maths_starting_point",
         featureArea: "assessment",
         subjectKey: "mathematics",
-        hasLearner: Boolean(activeLearner),
-        hasMultipleLearners: workspace.learners.length > 1,
         presentation: MATHS_STARTING_POINT_RELEASE.phase,
       },
       workspace.userId,
@@ -69,7 +67,6 @@ export default function MathsStartingPointWorkspace() {
     activeLearner?.id,
     loading,
     routeLearnerSyncPending,
-    workspace.learners.length,
     workspace.userId,
   ]);
 
