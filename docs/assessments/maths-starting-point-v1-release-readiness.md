@@ -6,9 +6,9 @@ Branch: `feat/maths-parent-starting-point-v1`
 
 ## Parent utility
 
-The intended parent loop is now implemented in the clean candidate:
+The intended parent loop is now implemented in the clean candidate for **Number & Operations**:
 
-**Find a starting point → explain each area → recommend learning → open practice/My Pathways → observe learning → recheck with fresh evidence**
+**My Pathways → Find a Number & Operations starting point → explain each area → recommend learning → open practice/My Pathways → return to the same learner profile → observe learning → recheck later with fresh evidence**
 
 The baseline keeps five areas separate:
 
@@ -48,14 +48,23 @@ Current behaviour:
 - noindex/nofollow
 - selected learner comes from the canonical family workspace
 - multiple learners can be switched using the existing active-learner context
-- in-progress browser draft is namespaced per learner
+- staff entry is available from covered Mathematics Pathways strands only: Number and place value, Operations and calculation, and Financial and real-world mathematics
+- the selected learner is preserved from My Pathways into the check, through targeted practice, and back to the same learner profile
+- in-progress browser state and the completed starting-point profile are namespaced per learner in the current tab
+- raw item-response traces are dropped from the completed browser-only state
 - no assessment record is written to Supabase
 - visual-dependent counting/subitising items expose a practical-observation alternative instead of forcing inaccessible electronic evidence
 - Money P1–P2 remain electronically blocked while their evidence mode is `asset-review`; having executable draft items does not bypass the evidence policy
 - trusted score-bearing assets are controlled by `numberOperationsAssetApprovals.ts`; Australian currency schematic v1 is explicitly `pending-review`, not implicitly approved
 - choosing that alternative leaves the area unresolved; it never manufactures a digital placement
+- unresolved areas provide area-specific practical-observation guidance and concrete evidence cues
+- the parent question burden is transparent: each area is bounded and the experience pauses between areas
 - parent presentation suppresses P-level/routing/debug language during the assessment
+- customer-facing copy says Number & Operations rather than implying that v1 assesses all Mathematics
 - result leads with practical next action, not technical placement
+- raw progression bands stay behind optional technical disclosure
+- zero-reportable-evidence runs cannot be confirmed into Portfolio/report evidence
+- Portfolio evidence is the natural default after acknowledgement; report availability is an explicit opt-in
 - targeted practice uses the dedicated staff-gated `/practice/maths-starting-point` lane rather than the legacy practice gate
 - practice section navigation preserves learner/source context and returns to the Maths starting-point utility
 
@@ -68,6 +77,8 @@ Privacy-safe first-party events:
 - `maths_starting_point_completed`
 - `maths_starting_point_next_action_selected`
 - `maths_starting_point_evidence_confirmation_previewed`
+- `maths_starting_point_practice_opened`
+- `maths_starting_point_practice_completed`
 
 No learner names, learner IDs, answers, free-text notes, item response content, correctness counts, progression bands, focus-area results or placement outcomes are sent in analytics properties. Analytics measure product use rather than child performance.
 
@@ -119,14 +130,20 @@ Automatic Pathways mutation is intentionally **not** a customer-release requirem
 
 ## Still intentionally not done
 
-These require an explicit release decision after staff QA:
+These require explicit, separate release decisions after staff QA:
 
-1. apply the baseline persistence migration to Supabase;
-2. enable baseline persistence;
-3. turn confirmed assessment results into Learning Chronicle evidence;
-4. expose “Find a starting point” in customer My Pathways;
-5. remove the staff-only access gate;
-6. enable customer visibility.
+1. apply the reviewed **persistence foundation** with authenticated table/RPC access still revoked;
+2. verify RLS, same-family learner isolation, immutable identity rules and rollback readiness;
+3. apply the separate **RPC activation** only for one controlled authenticated save/read smoke test;
+4. enable the application persistence gate only after that smoke test succeeds;
+5. turn confirmed starting-point results into Learning Chronicle / Portfolio / report-available evidence according to the parent choices;
+6. promote the accepted placement items out of draft/review status;
+7. approve the trusted Australian currency schematic asset set or keep Money P1–P2 electronically blocked;
+8. expose “Find a Number & Operations starting point” to customers in the covered My Pathways strands;
+9. remove the staff-only access gate for the approved customer surface;
+10. enable customer visibility.
+
+None of those actions should be bundled implicitly.
 
 None of those actions should be bundled implicitly.
 
@@ -135,22 +152,27 @@ None of those actions should be bundled implicitly.
 Before requesting the persistence/release decision:
 
 1. Sign in as authorised MyLearna staff.
-2. Open `/assessments/maths-starting-point` on the clean preview.
-3. Confirm the correct learner is shown.
-4. With multiple learners, switch learner and verify the baseline restarts/restores only that learner's browser draft.
-5. Complete a direct-evidence route.
-6. Confirm no P-level or routing jargon appears during the parent presentation.
-7. Complete a routing-only/observation-needed route.
-8. Confirm MyLearna says it needs a real-life example rather than inventing a placement.
-9. Complete all five areas.
-10. Confirm the result begins with “A clear starting point for what to do next”.
-11. Confirm the recommended My Pathways link preserves the selected learner.
-12. Confirm source-guided links open the intended canonical step and ambiguous mappings stay at strand level.
-13. Confirm recheck guidance asks for fresh evidence rather than repeating the same items immediately.
-14. Preview evidence confirmation and verify no database row is created.
-15. Check phone widths at 390px and 430px.
-16. Confirm no horizontal overflow, clipped controls or inaccessible answer targets.
-17. Confirm Production remains unchanged.
+2. Open My Pathways, choose Mathematics and a covered v1 strand, and confirm the staff-only **Find a starting point** card appears.
+3. Confirm the entry does **not** appear as a v1 action inside unrelated Mathematics strands such as Geometry or Measurement.
+4. Open the starting-point utility and confirm the correct learner is carried through from My Pathways.
+5. With multiple learners, switch learner and verify no other learner's browser-only state flashes or hydrates during the switch.
+6. Confirm the parent intro says **Number & Operations**, not all Mathematics.
+7. Complete a direct-evidence route and confirm no P-level/routing jargon appears during the parent presentation.
+8. Trigger a visual-dependent accessible-form item and choose **Use a practical observation instead**; confirm the area is left open rather than scored.
+9. Trigger a route toward Money P1–P2 and confirm the pending trusted-asset gate prevents electronic placement there.
+10. Complete an observation-needed/routing-only route and confirm the result provides a practical action plus concrete **What to notice** cues.
+11. Complete all five areas and confirm the result begins with **A clear starting point for what to do next**.
+12. Confirm the primary **Start here** card includes fresh-evidence cues and no visible raw P-band.
+13. Open optional technical details and confirm the progression band is available only there.
+14. Open recommended targeted practice; confirm it uses the dedicated starting-point practice lane, preserves learner context, and returns to the same completed learner profile.
+15. Confirm source-guided My Pathways links open the intended canonical step and ambiguous mappings stay at strand level.
+16. Confirm recheck guidance asks for fresh evidence/readiness rather than repeating the same items immediately.
+17. On a partial result, confirm unresolved-area guidance appears before evidence confirmation.
+18. On a zero-reportable-evidence result, confirm Portfolio/report confirmation is not offered at all.
+19. On a confirmable result, confirm Portfolio is selected by default, report availability is **not** selected by default, and no data is written in the staff preview.
+20. Check phone widths at 390px and 430px, including ordering controls, fraction entry, learner switching, result cards and practice return.
+21. Confirm no horizontal overflow, clipped controls or inaccessible answer targets.
+22. Confirm Production and Supabase remain unchanged.
 
 ## Decision point after acceptance
 
