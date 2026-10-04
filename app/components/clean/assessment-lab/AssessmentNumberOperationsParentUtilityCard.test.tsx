@@ -23,6 +23,15 @@ const area: NumberOperationsParentUtility["areas"][number] = {
   recheckRecommended: true,
   technicalBand: "P5–P6",
   confidenceNote: "Starting-point evidence.",
+  recheckPlan: {
+    subElementKey: "number-place-value",
+    trigger: "after-practice",
+    headline: "Recheck after a short run of successful practice",
+    guidance: "Use fresh items after the learner is starting to use the idea independently.",
+    evidenceToLookFor: ["independent place-value use"],
+    minimumFreshEvidence: 2,
+    repeatSameItemsImmediately: false,
+  },
 };
 
 const utility: NumberOperationsParentUtility = {
@@ -62,5 +71,6 @@ describe("AssessmentNumberOperationsParentUtilityCard", () => {
       "/my-pathways?subjectKey=mathematics&strandKey=number-and-place-value",
     );
     expect(screen.queryByText("P5–P6")).toBeNull();
+    expect(screen.getByText("Recheck after a short run of successful practice")).toBeTruthy();
   });
 });

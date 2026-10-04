@@ -212,6 +212,12 @@ export default function AssessmentNumberOperationsParentUtilityCard({
                 <span>Technical evidence band: {area.technicalBand}</span>
                 <span>{area.actionNote}</span>
                 <span>{area.pathwaysNote}</span>
+                <strong style={{ color: "#475569" }}>Fresh evidence to look for</strong>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {area.recheckPlan.evidenceToLookFor.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
               </div>
             </details>
           </article>

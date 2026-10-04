@@ -5,6 +5,7 @@ import type {
 } from "./numberOperationsRecommendations";
 import type { NumberOperationsPlacementResult } from "./numberOperationsPlacementResult";
 import { buildNumberOperationsPathwaysHandoff } from "./numberOperationsPathwaysHandoff";
+import { buildNumberOperationsRecheckPlan, type NumberOperationsRecheckPlan } from "./numberOperationsRecheckPlan";
 
 export type NumberOperationsParentAreaState =
   | "build-next"
@@ -28,6 +29,7 @@ export type NumberOperationsParentUtilityArea = {
   recheckRecommended: boolean;
   technicalBand: string;
   confidenceNote: string;
+  recheckPlan: NumberOperationsRecheckPlan;
 };
 
 export type NumberOperationsParentUtility = {
@@ -133,6 +135,10 @@ function areaFrom(
     recheckRecommended: recommendation.recheckRecommended,
     technicalBand: technicalBand(result),
     confidenceNote: confidenceNote(result),
+    recheckPlan: buildNumberOperationsRecheckPlan({
+      subElementKey: result.subElementKey,
+      state,
+    }),
   };
 }
 

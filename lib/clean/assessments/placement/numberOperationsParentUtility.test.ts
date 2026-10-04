@@ -28,6 +28,10 @@ describe("Number & Operations parent utility projection", () => {
       headline: "Ready to build on the next step",
       technicalBand: "P5–P6",
       recheckRecommended: true,
+      recheckPlan: {
+        trigger: "after-practice",
+        repeatSameItemsImmediately: false,
+      },
       pathwaysLabel: "Open Read, write, order and compare numbers to 1000 and beyond in My Pathways",
     });
     const pathwayUrl = new URL(
