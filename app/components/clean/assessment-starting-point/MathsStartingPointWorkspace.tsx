@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import AssessmentNumberOperationsBaselineRunner from "@/app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner";
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
@@ -20,6 +21,9 @@ const card: React.CSSProperties = {
 };
 
 export default function MathsStartingPointWorkspace() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const learnerParam = String(searchParams.get("learnerId") ?? "").trim();
   const {
     workspace,
     activeLearner,
@@ -28,6 +32,20 @@ export default function MathsStartingPointWorkspace() {
   } = useFamilyWorkspace();
 
   assertMathsStartingPointStaffPreviewSafety();
+
+  useEffect(() => {
+    if (!learnerParam) return;
+    if (activeLearner?.id === learnerParam) return;
+    const match = workspace.learners.find(
+      (learner) => learner.id === learnerParam,
+    );
+    if (match) setActiveLearner(match.id);
+  }, [
+    activeLearner?.id,
+    learnerParam,
+    setActiveLearner,
+    workspace.learners,
+  ]);
 
   useEffect(() => {
     if (loading) return;
@@ -104,7 +122,15 @@ export default function MathsStartingPointWorkspace() {
             <strong style={{ color: "#17204B" }}>Who is doing this check?</strong>
             <select
               value={activeLearner.id}
-              onChange={(event) => setActiveLearner(event.target.value)}
+              onChange={(event) => {
+                const nextLearnerId = event.target.value;
+                setActiveLearner(nextLearnerId);
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("learnerId", nextLearnerId);
+                router.replace(
+                  `/assessments/maths-starting-point?${params.toString()}`,
+                );
+              }}
               style={{
                 minHeight: 44,
                 border: "1px solid #CBD5E1",

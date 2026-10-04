@@ -83,8 +83,14 @@ export function getNumberOperationsPracticeTarget(input: {
   returnTo?: string;
 }): NumberOperationsPracticeTarget {
   const { subElementKey, targetP, learnerId } = input;
+  const cleanLearnerId = String(learnerId ?? "").trim();
+  const defaultReturnTo = cleanLearnerId
+    ? `/assessments/maths-starting-point?${new URLSearchParams({
+        learnerId: cleanLearnerId,
+      }).toString()}`
+    : "/assessments/maths-starting-point";
   const returnTo =
-    String(input.returnTo ?? "").trim() || "/assessments/maths-starting-point";
+    String(input.returnTo ?? "").trim() || defaultReturnTo;
 
   if (!targetP) {
     return pathwaysFallback(

@@ -117,7 +117,6 @@ function areaFrom(
     subElementKey: result.subElementKey,
     targetP: recommendation.targetP,
     learnerId,
-    returnTo: "/assessments/maths-starting-point",
   });
   const pathways = buildNumberOperationsPathwaysHandoff({
     subElementKey: result.subElementKey,

@@ -113,7 +113,7 @@ it("preserves learner context and returns targeted practice to the Maths startin
   expect(url.pathname).toBe("/practice/maths-starting-point");
   expect(url.searchParams.get("learnerId")).toBe("learner-123");
   expect(url.searchParams.get("returnTo")).toBe(
-    "/assessments/maths-starting-point",
+    "/assessments/maths-starting-point?learnerId=learner-123",
   );
   expect(target.href).not.toContain("/assessment-lab/");
 });
@@ -146,4 +146,17 @@ it("never sends starting-point broad practice through the legacy practice route"
     expect(target.href).not.toContain("/practice/number-targeted");
     expect(target.href).toContain("source=maths-starting-point");
   }
+});
+
+
+it("uses the plain starting-point return when no learner context is supplied", () => {
+  const target = getNumberOperationsPracticeTarget({
+    subElementKey: "additive-strategies",
+    targetP: 7,
+  });
+  const url = new URL(target.href, "https://mylearna.test");
+
+  expect(url.searchParams.get("returnTo")).toBe(
+    "/assessments/maths-starting-point",
+  );
 });
