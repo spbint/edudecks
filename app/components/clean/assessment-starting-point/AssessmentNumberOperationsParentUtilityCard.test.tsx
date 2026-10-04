@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import AssessmentNumberOperationsParentUtilityCard from "./AssessmentNumberOperationsParentUtilityCard";
 import type { NumberOperationsParentUtility } from "@/lib/clean/assessments/placement/numberOperationsParentUtility";
@@ -73,4 +73,30 @@ describe("AssessmentNumberOperationsParentUtilityCard", () => {
     expect(screen.queryByText("P5–P6")).toBeNull();
     expect(screen.getByText("Recheck after a short run of successful practice")).toBeTruthy();
   });
+});
+
+
+it("reports whether the parent chose practice or My Pathways", () => {
+  const selected: Array<[string, string]> = [];
+  render(
+    React.createElement(AssessmentNumberOperationsParentUtilityCard, {
+      utility,
+      onActionSelected: (area, destination) =>
+        selected.push([area, destination]),
+    }),
+  );
+
+  fireEvent.click(
+    screen.getByRole("link", { name: "Practise place value and operations" }),
+  );
+  fireEvent.click(
+    screen.getByRole("link", {
+      name: "Open Number and place value in My Pathways",
+    }),
+  );
+
+  expect(selected).toEqual([
+    ["number-place-value", "practice"],
+    ["number-place-value", "my_pathways"],
+  ]);
 });

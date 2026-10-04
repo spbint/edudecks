@@ -18,8 +18,13 @@ const panel: React.CSSProperties = {
 
 export default function AssessmentEvidenceConfirmationCard({
   preview,
+  onConfirmationPreviewed,
 }: {
   preview: NumberOperationsEvidencePreview;
+  onConfirmationPreviewed?: (choices: {
+    includeInPortfolio: boolean;
+    includeInReport: boolean;
+  }) => void;
 }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [includeInPortfolio, setIncludeInPortfolio] = useState(true);
@@ -38,6 +43,10 @@ export default function AssessmentEvidenceConfirmationCard({
         parentNote,
       }),
     );
+    onConfirmationPreviewed?.({
+      includeInPortfolio,
+      includeInReport,
+    });
   };
 
   return (

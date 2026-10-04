@@ -54,14 +54,30 @@ function stateLabel(area: NumberOperationsParentUtility["areas"][number]) {
   }
 }
 
-function areaActions(area: NumberOperationsParentUtility["areas"][number]) {
+function areaActions(
+  area: NumberOperationsParentUtility["areas"][number],
+  onActionSelected?: (
+    area: NumberOperationsParentUtility["areas"][number]["subElementKey"],
+    destination: "practice" | "my_pathways",
+  ) => void,
+) {
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <Link href={area.actionHref} prefetch={false} style={primaryLink}>
+      <Link
+        href={area.actionHref}
+        prefetch={false}
+        style={primaryLink}
+        onClick={() => onActionSelected?.(area.subElementKey, "practice")}
+      >
         {area.actionLabel}
       </Link>
       {area.pathwaysHref !== area.actionHref ? (
-        <Link href={area.pathwaysHref} prefetch={false} style={secondaryLink}>
+        <Link
+          href={area.pathwaysHref}
+          prefetch={false}
+          style={secondaryLink}
+          onClick={() => onActionSelected?.(area.subElementKey, "my_pathways")}
+        >
           {area.pathwaysLabel}
         </Link>
       ) : null}
@@ -71,8 +87,13 @@ function areaActions(area: NumberOperationsParentUtility["areas"][number]) {
 
 export default function AssessmentNumberOperationsParentUtilityCard({
   utility,
+  onActionSelected,
 }: {
   utility: NumberOperationsParentUtility;
+  onActionSelected?: (
+    area: NumberOperationsParentUtility["areas"][number]["subElementKey"],
+    destination: "practice" | "my_pathways",
+  ) => void;
 }) {
   return (
     <section
@@ -138,7 +159,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
           <span style={{ color: "#4B5563", lineHeight: 1.6 }}>
             {utility.startHere.explanation}
           </span>
-          {areaActions(utility.startHere)}
+          {areaActions(utility.startHere, onActionSelected)}
           {utility.startHere.recheckRecommended ? (
             <small style={{ color: "#4B5563", lineHeight: 1.5 }}>
               After some learning, check this area again with fresh evidence rather
@@ -185,7 +206,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {area.explanation}
             </span>
-            {areaActions(area)}
+            {areaActions(area, onActionSelected)}
             <details>
               <summary
                 style={{

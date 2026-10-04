@@ -1,9 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import AssessmentNumberOperationsBaselineRunner from "@/app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner";
+import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
+import {
+  MATHS_STARTING_POINT_RELEASE,
+  assertMathsStartingPointStaffPreviewSafety,
+} from "@/lib/clean/assessments/mathsStartingPointRelease";
 
 const card: React.CSSProperties = {
   border: "1px solid #DDE4EE",
@@ -21,6 +26,30 @@ export default function MathsStartingPointWorkspace() {
     loading,
     setActiveLearner,
   } = useFamilyWorkspace();
+
+  assertMathsStartingPointStaffPreviewSafety();
+
+  useEffect(() => {
+    if (loading) return;
+    trackCoreJourneyEvent(
+      "maths_starting_point_opened",
+      {
+        route: "/assessments/maths-starting-point",
+        area: "maths_starting_point",
+        featureArea: "assessment",
+        subjectKey: "mathematics",
+        hasLearner: Boolean(activeLearner),
+        hasMultipleLearners: workspace.learners.length > 1,
+        presentation: MATHS_STARTING_POINT_RELEASE.phase,
+      },
+      workspace.userId,
+    );
+  }, [
+    activeLearner?.id,
+    loading,
+    workspace.learners.length,
+    workspace.userId,
+  ]);
 
   if (loading) {
     return (
@@ -110,6 +139,7 @@ export default function MathsStartingPointWorkspace() {
         learnerId={activeLearner.id}
         learnerName={activeLearner.label}
         mode="parent-preview"
+        userId={workspace.userId}
       />
     </section>
   );

@@ -58,3 +58,30 @@ describe("AssessmentEvidenceConfirmationCard", () => {
     ).toBeTruthy();
   });
 });
+
+
+it("reports only the parent's Portfolio/report choices when confirmation is previewed", () => {
+  const choices: Array<{ includeInPortfolio: boolean; includeInReport: boolean }> = [];
+  render(
+    React.createElement(AssessmentEvidenceConfirmationCard, {
+      preview,
+      onConfirmationPreviewed: (value) => choices.push(value),
+    }),
+  );
+
+  fireEvent.click(
+    screen.getByRole("checkbox", {
+      name: /I understand this is a starting-point assessment result/i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Make available for reports" }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Preview confirmed evidence" }),
+  );
+
+  expect(choices).toEqual([
+    { includeInPortfolio: true, includeInReport: false },
+  ]);
+});

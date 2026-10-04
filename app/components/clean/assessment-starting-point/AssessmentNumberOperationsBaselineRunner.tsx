@@ -22,6 +22,7 @@ import {
   parseNumberOperationsBaselineDraft,
 } from "@/lib/clean/assessments/placement/numberOperationsBaselineDraft";
 import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/placement/numberOperationsBaselineBudget";
+import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 
 const ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -52,10 +53,12 @@ export default function AssessmentNumberOperationsBaselineRunner({
   learnerId,
   learnerName,
   mode = "staff-debug",
+  userId,
 }: {
   learnerId?: string | null;
   learnerName?: string | null;
   mode?: "parent-preview" | "staff-debug";
+  userId?: string | null;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [resultsByKey, setResultsByKey] = useState<
@@ -72,6 +75,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
   const [completedAt, setCompletedAt] = useState<string | null>(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const startedAtRef = useRef(new Date().toISOString());
+  const completionTrackedRef = useRef(false);
   const draftStorageKey = learnerId
     ? `${NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY}:${learnerId}`
     : NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY;
@@ -126,6 +130,44 @@ export default function AssessmentNumberOperationsBaselineRunner({
     () => buildNumberOperationsProfile(Object.values(resultsByKey)),
     [resultsByKey],
   );
+  const responseCount = useMemo(
+    () =>
+      Object.values(tracesByKey).reduce(
+        (total, trace) =>
+          total +
+          (trace?.stages.reduce(
+            (stageTotal, stage) => stageTotal + stage.responses.length,
+            0,
+          ) ?? 0),
+        0,
+      ),
+    [tracesByKey],
+  );
+
+  useEffect(() => {
+    if (!complete || completionTrackedRef.current) return;
+    completionTrackedRef.current = true;
+    trackCoreJourneyEvent(
+      "maths_starting_point_completed",
+      {
+        area: "maths_starting_point",
+        featureArea: "assessment",
+        subjectKey: "mathematics",
+        itemCount: responseCount,
+        hasEvidence: profile.assessedSubElements > 0,
+        outcome: unresolved.length ? "partial" : "complete",
+        presentation: mode,
+      },
+      userId,
+    );
+  }, [
+    complete,
+    mode,
+    profile.assessedSubElements,
+    responseCount,
+    unresolved.length,
+    userId,
+  ]);
 
   const reset = () => {
     setCurrentIndex(0);
@@ -136,12 +178,28 @@ export default function AssessmentNumberOperationsBaselineRunner({
     setComplete(false);
     setCompletedAt(null);
     startedAtRef.current = new Date().toISOString();
+    completionTrackedRef.current = false;
     window.sessionStorage.removeItem(
       NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
     );
   };
 
   const continueBaseline = () => {
+    if (pendingResult === undefined) return;
+
+    trackCoreJourneyEvent(
+      "maths_starting_point_area_resolved",
+      {
+        area: currentKey,
+        featureArea: "assessment",
+        subjectKey: "mathematics",
+        position: currentIndex + 1,
+        outcome: pendingResult ? "reportable" : "needs_observation",
+        presentation: mode,
+      },
+      userId,
+    );
+
     if (pendingResult) {
       setResultsByKey((current) => ({
         ...current,
@@ -151,8 +209,6 @@ export default function AssessmentNumberOperationsBaselineRunner({
       setUnresolved((current) =>
         current.includes(currentKey) ? current : [...current, currentKey],
       );
-    } else {
-      return;
     }
 
     if (currentIndex >= ORDER.length - 1) {
@@ -187,8 +243,40 @@ export default function AssessmentNumberOperationsBaselineRunner({
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
-        <AssessmentNumberOperationsParentUtilityCard utility={parentUtility} />
-        <AssessmentEvidenceConfirmationCard preview={evidencePreview} />
+        <AssessmentNumberOperationsParentUtilityCard
+          utility={parentUtility}
+          onActionSelected={(area, destination) =>
+            trackCoreJourneyEvent(
+              "maths_starting_point_next_action_selected",
+              {
+                area,
+                featureArea: "assessment",
+                subjectKey: "mathematics",
+                destination,
+                presentation: mode,
+              },
+              userId,
+            )
+          }
+        />
+        <AssessmentEvidenceConfirmationCard
+          preview={evidencePreview}
+          onConfirmationPreviewed={({ includeInPortfolio, includeInReport }) =>
+            trackCoreJourneyEvent(
+              "maths_starting_point_evidence_confirmation_previewed",
+              {
+                area: "maths_starting_point",
+                featureArea: "assessment",
+                subjectKey: "mathematics",
+                includeInPortfolio,
+                includeInReport,
+                hasEvidence: true,
+                presentation: mode,
+              },
+              userId,
+            )
+          }
+        />
         {unresolved.length ? (
           <div style={{ ...panel, background: "#FFFDF5" }}>
             <strong style={{ color: "#92400E" }}>A few areas still need stronger evidence</strong>
