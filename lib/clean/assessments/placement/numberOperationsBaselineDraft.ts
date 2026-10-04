@@ -5,7 +5,7 @@ import type {
 } from "./numberOperationsPlacementResult";
 
 export const NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY =
-  "mylearna:assessment-lab:number-operations-baseline-draft:v1";
+  "mylearna:maths-starting-point:number-operations-baseline-draft:v1";
 
 export type NumberOperationsBaselineDraft = {
   schema: "mylearna-number-operations-baseline-draft";

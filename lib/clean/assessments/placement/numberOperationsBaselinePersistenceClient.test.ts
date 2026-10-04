@@ -50,7 +50,7 @@ describe("Number & Operations baseline persistence client", () => {
               portfolioEligibleAfterConfirmation: true,
               reportEligibleAfterConfirmation: true,
             },
-            sourceRoute: "/assessment-lab/placement-simulator",
+            sourceRoute: "/assessments/maths-starting-point",
           },
           responses: [],
         },

@@ -18,7 +18,7 @@ export type NumberOperationsBaselineAttemptPersistenceDraft = {
   unresolvedSubElements: string[];
   profileSnapshot: NumberOperationsBaselineSummarySnapshot["profile"];
   evidencePreviewSnapshot: NumberOperationsBaselineSummarySnapshot["evidencePreview"];
-  sourceRoute: "/assessment-lab/placement-simulator";
+  sourceRoute: "/assessments/maths-starting-point";
 };
 
 export type NumberOperationsBaselineResponsePersistenceDraft = {
@@ -101,7 +101,7 @@ export function buildNumberOperationsBaselinePersistenceDraft(
       unresolvedSubElements: [...snapshot.unresolvedSubElements],
       profileSnapshot: snapshot.profile,
       evidencePreviewSnapshot: snapshot.evidencePreview,
-      sourceRoute: "/assessment-lab/placement-simulator",
+      sourceRoute: "/assessments/maths-starting-point",
     },
     responses,
   };

@@ -77,7 +77,7 @@ describe("Number Operations persistence draft", () => {
       status: "partial",
       assessedSubElements: 1,
       expectedSubElements: 5,
-      sourceRoute: "/assessment-lab/placement-simulator",
+      sourceRoute: "/assessments/maths-starting-point",
     });
     expect(draft.responses).toHaveLength(3);
     expect(draft.responses.map((response) => response.itemOrder)).toEqual([1, 2, 3]);
