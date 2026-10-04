@@ -294,3 +294,23 @@ it("offers a truthful practical-observation path for visual-dependent accessible
 
   expect(onUsePracticalObservation).toHaveBeenCalledTimes(1);
 });
+
+
+it("uses starting-point language for the accessible visual alternative", () => {
+  const visualItem = COUNTING_P5_ANCHOR_ITEMS[1];
+  render(
+    React.createElement(AssessmentPlayerV1, {
+      title: "Counting check",
+      items: [visualItem],
+      mode: "placement",
+      presentation: "parent",
+      onUsePracticalObservation: () => undefined,
+    }),
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
+  expect(
+    screen.getByText(/guess a starting point from evidence that is not accessible/i),
+  ).toBeTruthy();
+  expect(screen.queryByText(/guess a placement/i)).toBeNull();
+});
