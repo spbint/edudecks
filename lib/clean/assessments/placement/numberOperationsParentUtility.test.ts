@@ -44,6 +44,14 @@ describe("Number & Operations parent utility projection", () => {
     expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
     expect(pathwayUrl.searchParams.get("pathwayStepId")).not.toBeNull();
     expect(pathwayUrl.searchParams.get("learnerId")).toBe("learner-123");
+    const practiceUrl = new URL(
+      utility.areas[0]!.actionHref,
+      "https://mylearna.test",
+    );
+    expect(practiceUrl.searchParams.get("learnerId")).toBe("learner-123");
+    expect(practiceUrl.searchParams.get("returnTo")).toBe(
+      "/assessments/maths-starting-point",
+    );
     expect(utility.trustNote).toMatch(
       /not a grade, score, diagnosis or single maths level/i,
     );

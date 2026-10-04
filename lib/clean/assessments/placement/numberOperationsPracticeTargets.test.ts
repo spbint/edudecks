@@ -100,3 +100,32 @@ describe("Number Operations practice targets", () => {
     expect(target.href).toContain("sourceSubElement=additive-strategies");
   });
 });
+
+
+it("preserves learner context and returns targeted practice to the Maths starting-point utility", () => {
+  const target = getNumberOperationsPracticeTarget({
+    subElementKey: "additive-strategies",
+    targetP: 7,
+    learnerId: "learner-123",
+  });
+  const url = new URL(target.href, "https://mylearna.test");
+
+  expect(url.pathname).toBe("/practice/number-targeted");
+  expect(url.searchParams.get("learnerId")).toBe("learner-123");
+  expect(url.searchParams.get("returnTo")).toBe(
+    "/assessments/maths-starting-point",
+  );
+  expect(target.href).not.toContain("/assessment-lab/");
+});
+
+it("preserves learner context on My Pathways fallback targets", () => {
+  const target = getNumberOperationsPracticeTarget({
+    subElementKey: "counting-processes",
+    targetP: 8,
+    learnerId: "learner-123",
+  });
+  const url = new URL(target.href, "https://mylearna.test");
+
+  expect(url.pathname).toBe("/my-pathways");
+  expect(url.searchParams.get("learnerId")).toBe("learner-123");
+});

@@ -5,6 +5,7 @@ import type {
 } from "./numberOperationsRecommendations";
 import type { NumberOperationsPlacementResult } from "./numberOperationsPlacementResult";
 import { buildNumberOperationsPathwaysHandoff } from "./numberOperationsPathwaysHandoff";
+import { getNumberOperationsPracticeTarget } from "./numberOperationsPracticeTargets";
 import { buildNumberOperationsRecheckPlan, type NumberOperationsRecheckPlan } from "./numberOperationsRecheckPlan";
 
 export type NumberOperationsParentAreaState =
@@ -112,6 +113,12 @@ function areaFrom(
   learnerId?: string | null,
 ): NumberOperationsParentUtilityArea {
   const state = stateFor(recommendation);
+  const parentPracticeTarget = getNumberOperationsPracticeTarget({
+    subElementKey: result.subElementKey,
+    targetP: recommendation.targetP,
+    learnerId,
+    returnTo: "/assessments/maths-starting-point",
+  });
   const pathways = buildNumberOperationsPathwaysHandoff({
     subElementKey: result.subElementKey,
     targetP: recommendation.targetP,
@@ -126,9 +133,9 @@ function areaFrom(
     curriculumContext: result.typicalYearAlignment
       ? `Curriculum context: ${result.typicalYearAlignment}`
       : null,
-    actionLabel: recommendation.practiceTarget.label,
-    actionHref: recommendation.practiceTarget.href,
-    actionNote: recommendation.practiceTarget.note,
+    actionLabel: parentPracticeTarget.label,
+    actionHref: parentPracticeTarget.href,
+    actionNote: parentPracticeTarget.note,
     pathwaysLabel: pathways.stepTitle
       ? `Open ${pathways.stepTitle} in My Pathways`
       : `Open ${pathways.strandLabel} in My Pathways`,
