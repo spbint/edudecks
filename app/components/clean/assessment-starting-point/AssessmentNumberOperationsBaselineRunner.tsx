@@ -23,6 +23,7 @@ import {
 } from "@/lib/clean/assessments/placement/numberOperationsBaselineDraft";
 import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/placement/numberOperationsBaselineBudget";
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
+import { buildNumberOperationsUnresolvedGuidance } from "@/lib/clean/assessments/placement/numberOperationsUnresolvedGuidance";
 
 const ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -246,6 +247,8 @@ export default function AssessmentNumberOperationsBaselineRunner({
     });
     const persistenceDraft =
       buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot);
+    const unresolvedGuidance =
+      buildNumberOperationsUnresolvedGuidance(unresolved);
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
@@ -265,13 +268,57 @@ export default function AssessmentNumberOperationsBaselineRunner({
             )
           }
         />
-        {unresolved.length ? (
-          <div style={{ ...panel, background: "#FFFDF5" }}>
-            <strong style={{ color: "#92400E" }}>A few areas still need stronger evidence</strong>
-            <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
-              MyLearna has deliberately left {unresolved.map((key) => LABELS[key]).join(", ")} unresolved rather than guessing. Use the suggested practical learning and check again with fresh evidence later.
-            </p>
-          </div>
+        {unresolvedGuidance.length ? (
+          <section style={{ ...panel, background: "#FFFDF5", gap: 12 }}>
+            <div style={{ display: "grid", gap: 4 }}>
+              <strong style={{ color: "#92400E" }}>
+                A few areas need real-life evidence
+              </strong>
+              <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
+                MyLearna has left these areas open rather than guessing. Try one
+                simple observation when it fits naturally, then use fresh evidence
+                before making a stronger starting-point judgement.
+              </p>
+            </div>
+            {unresolvedGuidance.map((guidance) => (
+              <details
+                key={guidance.subElementKey}
+                style={{
+                  border: "1px solid #F5D08A",
+                  borderRadius: 12,
+                  background: "#FFFFFF",
+                  padding: "10px 12px",
+                }}
+              >
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    color: "#17204B",
+                    fontWeight: 850,
+                  }}
+                >
+                  {guidance.label}: {guidance.headline}
+                </summary>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                    marginTop: 8,
+                    color: "#4B5563",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <span>{guidance.tryThis}</span>
+                  <strong style={{ color: "#475569" }}>What to notice</strong>
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {guidance.evidenceToLookFor.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            ))}
+          </section>
         ) : null}
         <AssessmentEvidenceConfirmationCard
           preview={evidencePreview}

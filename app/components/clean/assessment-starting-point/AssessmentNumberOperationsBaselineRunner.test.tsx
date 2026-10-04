@@ -215,3 +215,19 @@ it("makes the bounded parent question load explicit without inventing a duration
   expect(source).toContain("MyLearna pauses between areas");
   expect(source).not.toMatch(/\b\d+\s*(?:minute|minutes|min)\b/i);
 });
+
+
+it("turns unresolved areas into concrete practical-observation guidance", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("buildNumberOperationsUnresolvedGuidance");
+  expect(source).toContain("A few areas need real-life evidence");
+  expect(source).toContain("What to notice");
+  expect(source).toContain("guidance.evidenceToLookFor.map");
+});
