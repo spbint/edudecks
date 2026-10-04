@@ -54,6 +54,57 @@ function stateLabel(area: NumberOperationsParentUtility["areas"][number]) {
   }
 }
 
+function observationPanel(
+  area: NumberOperationsParentUtility["areas"][number],
+) {
+  const guidance = area.observationGuidance;
+  if (!guidance) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #F5D08A",
+        borderRadius: 12,
+        background: "#FFFDF5",
+        padding: 12,
+        display: "grid",
+        gap: 6,
+      }}
+    >
+      <span
+        style={{
+          color: "#92400E",
+          fontSize: 12,
+          fontWeight: 900,
+          textTransform: "uppercase",
+        }}
+      >
+        Try this first
+      </span>
+      <strong style={{ color: "#17204B" }}>{guidance.headline}</strong>
+      <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
+        {guidance.tryThis}
+      </span>
+      <strong style={{ color: "#475569", fontSize: 12 }}>
+        What to notice
+      </strong>
+      <ul
+        style={{
+          margin: 0,
+          paddingLeft: 18,
+          color: "#4B5563",
+          fontSize: 12,
+          lineHeight: 1.5,
+        }}
+      >
+        {guidance.evidenceToLookFor.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function areaActions(
   area: NumberOperationsParentUtility["areas"][number],
   onActionSelected?: (
@@ -66,12 +117,20 @@ function areaActions(
       ? "my_pathways"
       : "practice";
 
+  const verifyFirst = area.state === "verify-in-learning";
+
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+    <div style={{ display: "grid", gap: 6 }}>
+      {verifyFirst ? (
+        <span style={{ color: "#64748B", fontSize: 12, fontWeight: 800 }}>
+          Learning options after the observation
+        </span>
+      ) : null}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       <Link
         href={area.actionHref}
         prefetch={false}
-        style={primaryLink}
+        style={verifyFirst ? secondaryLink : primaryLink}
         onClick={() =>
           onActionSelected?.(area.subElementKey, primaryDestination)
         }
@@ -88,6 +147,7 @@ function areaActions(
           {area.pathwaysLabel}
         </Link>
       ) : null}
+      </div>
     </div>
   );
 }
@@ -166,6 +226,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
           <span style={{ color: "#4B5563", lineHeight: 1.6 }}>
             {utility.startHere.explanation}
           </span>
+          {observationPanel(utility.startHere)}
           {areaActions(utility.startHere, onActionSelected)}
           {utility.startHere.recheckRecommended ? (
             <div
@@ -247,6 +308,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {area.explanation}
             </span>
+            {observationPanel(area)}
             {areaActions(area, onActionSelected)}
             <details>
               <summary

@@ -7,6 +7,10 @@ import type { NumberOperationsPlacementResult } from "./numberOperationsPlacemen
 import { buildNumberOperationsPathwaysHandoff } from "./numberOperationsPathwaysHandoff";
 import { getNumberOperationsPracticeTarget } from "./numberOperationsPracticeTargets";
 import { buildNumberOperationsRecheckPlan, type NumberOperationsRecheckPlan } from "./numberOperationsRecheckPlan";
+import {
+  getNumberOperationsUnresolvedGuidance,
+  type NumberOperationsUnresolvedGuidance,
+} from "./numberOperationsUnresolvedGuidance";
 
 export type NumberOperationsParentAreaState =
   | "build-next"
@@ -31,6 +35,7 @@ export type NumberOperationsParentUtilityArea = {
   technicalBand: string;
   confidenceNote: string;
   recheckPlan: NumberOperationsRecheckPlan;
+  observationGuidance: NumberOperationsUnresolvedGuidance | null;
 };
 
 export type NumberOperationsParentUtility = {
@@ -147,6 +152,10 @@ function areaFrom(
       subElementKey: result.subElementKey,
       state,
     }),
+    observationGuidance:
+      state === "verify-in-learning"
+        ? getNumberOperationsUnresolvedGuidance(result.subElementKey)
+        : null,
   };
 }
 

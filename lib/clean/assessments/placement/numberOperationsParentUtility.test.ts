@@ -81,7 +81,17 @@ describe("Number & Operations parent utility projection", () => {
       state: "verify-in-learning",
       headline: "Check this in everyday learning",
       pathwaysLabel: "Open Use counting strategies and known facts more efficiently in My Pathways",
+      observationGuidance: {
+        subElementKey: "additive-strategies",
+        headline: "Give one simple joining or difference story",
+      },
     });
+    expect(utility.startHere?.observationGuidance?.tryThis).toMatch(
+      /ask the learner to work it out in any way they choose/i,
+    );
+    expect(
+      utility.startHere?.observationGuidance?.evidenceToLookFor.length,
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it("uses foundation and extension language at progression endpoints", () => {

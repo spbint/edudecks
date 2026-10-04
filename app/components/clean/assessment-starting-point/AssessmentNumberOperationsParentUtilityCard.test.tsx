@@ -23,6 +23,7 @@ const area: NumberOperationsParentUtility["areas"][number] = {
   recheckRecommended: true,
   technicalBand: "P5–P6",
   confidenceNote: "Starting-point evidence.",
+  observationGuidance: null,
   recheckPlan: {
     subElementKey: "number-place-value",
     trigger: "after-practice",
@@ -184,4 +185,69 @@ it("keeps prototype and raw progression-band jargon out of the default parent re
 
   fireEvent.click(screen.getByText("Why MyLearna is suggesting this"));
   expect(screen.getByText("Technical evidence")).toBeTruthy();
+});
+
+
+it("leads routing-only evidence with practical observation before digital learning options", () => {
+  const verifyArea: NumberOperationsParentUtility["areas"][number] = {
+    ...area,
+    subElementKey: "additive-strategies",
+    label: "Additive strategies",
+    state: "verify-in-learning",
+    headline: "Check this in everyday learning",
+    actionLabel: "Review Operations and calculation in My Pathways",
+    actionHref:
+      "/my-pathways?subjectKey=mathematics&strandKey=operations-and-calculation",
+    pathwaysLabel: "Open Operations and calculation in My Pathways",
+    pathwaysHref:
+      "/my-pathways?subjectKey=mathematics&strandKey=operations-and-calculation",
+    observationGuidance: {
+      subElementKey: "additive-strategies",
+      label: "Additive strategies",
+      headline: "Give one simple joining or difference story",
+      tryThis:
+        "Use an everyday addition or subtraction situation and let the learner choose their own strategy.",
+      evidenceToLookFor: [
+        "whether the learner counts all, counts on/back, or uses known facts",
+        "whether part-whole or place-value ideas appear naturally",
+        "whether the learner can explain why the answer makes sense",
+      ],
+    },
+    recheckPlan: {
+      ...area.recheckPlan,
+      subElementKey: "additive-strategies",
+      trigger: "after-observation",
+      headline: "Check again after one or two real examples",
+    },
+  };
+  const verifyUtility: NumberOperationsParentUtility = {
+    ...utility,
+    assessedAreas: 1,
+    complete: false,
+    startHere: verifyArea,
+    areas: [verifyArea],
+  };
+
+  render(
+    React.createElement(AssessmentNumberOperationsParentUtilityCard, {
+      utility: verifyUtility,
+    }),
+  );
+
+  expect(screen.getByText("Try this first")).toBeTruthy();
+  expect(
+    screen.getByText("Give one simple joining or difference story"),
+  ).toBeTruthy();
+  expect(screen.getByText("What to notice")).toBeTruthy();
+  expect(
+    screen.getByText("Learning options after the observation"),
+  ).toBeTruthy();
+
+  const pathwaysLink = screen.getByRole("link", {
+    name: "Review Operations and calculation in My Pathways",
+  });
+  expect(pathwaysLink).toHaveStyle({
+    background: "#FFFFFF",
+    color: "#17204B",
+  });
 });
