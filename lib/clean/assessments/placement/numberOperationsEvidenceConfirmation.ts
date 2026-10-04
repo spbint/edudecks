@@ -54,6 +54,18 @@ export function buildNumberOperationsEvidenceConfirmationDraft(input: {
     throw new Error("This evidence preview does not require the expected confirmation gate.");
   }
 
+  if (
+    input.preview.assessedSubElements < 1 ||
+    !input.preview.resultBands.length ||
+    !input.preview.curriculumNodeIds.length ||
+    !input.preview.portfolioEligibleAfterConfirmation ||
+    !input.preview.reportEligibleAfterConfirmation
+  ) {
+    throw new Error(
+      "No reportable assessment evidence is available to confirm yet.",
+    );
+  }
+
   return {
     schema: "mylearna-number-operations-evidence-confirmation",
     schemaVersion: 1,

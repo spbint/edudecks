@@ -24,8 +24,8 @@ export type NumberOperationsEvidencePreview = {
     confidence: NumberOperationsPlacementResult["confidence"];
   }>;
   requiresParentConfirmation: true;
-  portfolioEligibleAfterConfirmation: true;
-  reportEligibleAfterConfirmation: true;
+  portfolioEligibleAfterConfirmation: boolean;
+  reportEligibleAfterConfirmation: boolean;
 };
 
 function bandLabel(result: NumberOperationsPlacementResult) {
@@ -101,6 +101,8 @@ export function buildNumberOperationsEvidencePreview(
     ? ` ${profile.routingOnlyCount} result${profile.routingOnlyCount === 1 ? "" : "s"} remain routing-only and need stronger or observed evidence before a higher-confidence statement.`
     : "";
 
+  const hasEvidence = profile.assessedSubElements > 0;
+
   return {
     kind: "mylearna-assessment-evidence-preview-v1",
     sourceType: "mylearna_assessment",
@@ -116,7 +118,7 @@ export function buildNumberOperationsEvidencePreview(
     curriculumNodeIds: profile.results.map(curriculumNodeId),
     resultBands: results,
     requiresParentConfirmation: true,
-    portfolioEligibleAfterConfirmation: true,
-    reportEligibleAfterConfirmation: true,
+    portfolioEligibleAfterConfirmation: hasEvidence,
+    reportEligibleAfterConfirmation: hasEvidence,
   };
 }

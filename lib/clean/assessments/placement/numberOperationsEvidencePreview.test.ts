@@ -77,3 +77,16 @@ describe("Number Operations evidence preview", () => {
     expect(preview).not.toHaveProperty("includeInReport");
   });
 });
+
+
+it("marks an all-unresolved profile as ineligible for Portfolio/report confirmation", () => {
+  const preview = buildNumberOperationsEvidencePreview(
+    buildNumberOperationsProfile([]),
+  );
+
+  expect(preview.assessedSubElements).toBe(0);
+  expect(preview.curriculumNodeIds).toEqual([]);
+  expect(preview.resultBands).toEqual([]);
+  expect(preview.portfolioEligibleAfterConfirmation).toBe(false);
+  expect(preview.reportEligibleAfterConfirmation).toBe(false);
+});

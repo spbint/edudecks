@@ -73,3 +73,19 @@ describe("Number & Operations evidence confirmation", () => {
     expect(draft.parentNote).toBeNull();
   });
 });
+
+
+it("rejects confirmation when every area remains unresolved", () => {
+  const emptyPreview = buildNumberOperationsEvidencePreview(
+    buildNumberOperationsProfile([]),
+  );
+
+  expect(() =>
+    buildNumberOperationsEvidenceConfirmationDraft({
+      preview: emptyPreview,
+      parentAcknowledgedStartingPoint: true,
+      includeInPortfolio: true,
+      includeInReport: false,
+    }),
+  ).toThrow(/No reportable assessment evidence is available/i);
+});

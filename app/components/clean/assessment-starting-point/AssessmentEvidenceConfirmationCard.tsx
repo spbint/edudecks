@@ -29,6 +29,12 @@ export default function AssessmentEvidenceConfirmationCard({
   }) => void;
 }) {
   const parentPresentation = presentation === "parent";
+  const hasConfirmableEvidence =
+    preview.assessedSubElements > 0 &&
+    preview.resultBands.length > 0 &&
+    preview.curriculumNodeIds.length > 0 &&
+    preview.portfolioEligibleAfterConfirmation &&
+    preview.reportEligibleAfterConfirmation;
   const [acknowledged, setAcknowledged] = useState(false);
   const [includeInPortfolio, setIncludeInPortfolio] = useState(true);
   const [includeInReport, setIncludeInReport] = useState(false);
@@ -51,6 +57,40 @@ export default function AssessmentEvidenceConfirmationCard({
       includeInReport,
     });
   };
+
+  if (!hasConfirmableEvidence) {
+    return (
+      <section
+        style={{
+          border: "1px solid #F5D08A",
+          borderRadius: 22,
+          background: "#FFFDF5",
+          padding: "clamp(18px, 4vw, 26px)",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <span
+          style={{
+            color: "#92400E",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+          }}
+        >
+          Learning evidence
+        </span>
+        <h3 style={{ margin: 0, color: "#17204B", fontSize: 24 }}>
+          Practical evidence comes next
+        </h3>
+        <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
+          This electronic check did not produce a reportable starting-point result.
+          MyLearna will not offer Portfolio or report confirmation until practical or
+          observed learning provides evidence worth keeping.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section

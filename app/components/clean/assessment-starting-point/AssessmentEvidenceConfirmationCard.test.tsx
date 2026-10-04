@@ -136,3 +136,31 @@ it("makes formal report inclusion an explicit opt-in", () => {
     screen.getByRole("checkbox", { name: "Make available for reports" }),
   ).not.toBeChecked();
 });
+
+
+it("does not offer evidence confirmation when the electronic check produced no reportable areas", () => {
+  const emptyPreview: NumberOperationsEvidencePreview = {
+    ...preview,
+    assessedSubElements: 0,
+    routingOnlySubElements: 0,
+    curriculumNodeIds: [],
+    resultBands: [],
+    portfolioEligibleAfterConfirmation: false,
+    reportEligibleAfterConfirmation: false,
+  };
+
+  render(
+    React.createElement(AssessmentEvidenceConfirmationCard, {
+      preview: emptyPreview,
+      presentation: "parent",
+    }),
+  );
+
+  expect(screen.getByText("Practical evidence comes next")).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Preview this evidence choice" }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole("checkbox", { name: "Include in My Portfolio" }),
+  ).toBeNull();
+});
