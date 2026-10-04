@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY } from "./numberOperationsItemRegistry";
+import { scoreAssessmentItem } from "@/lib/clean/assessments/mylearnaAssessScoring";
 
 function superscriptExponent(value: string) {
   const map: Record<string, string> = {
@@ -154,5 +155,34 @@ it("locks higher-risk choice and multi-select keys", () => {
       item?.response.correctOptionIds,
       itemId,
     ).toEqual(correctOptionIds);
+  }
+});
+
+
+it("scores parent-entered equivalent forms correctly on real placement items", () => {
+  const byId = new Map(
+    NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.map((entry) => [
+      entry.item.id,
+      entry.item,
+    ]),
+  );
+
+  const cases: Array<[string, string]> = [
+    ["myl-anchor-mon-p05-b-v1", "$5.90"],
+    ["myl-anchor-mon-p08-a-v1", "$72.00"],
+    ["myl-boundary-mon-p06-a-v1", "$7.45"],
+    ["myl-search-mon-p09-b-v1", "25%"],
+    ["myl-anchor-add-p09-a-v1", "10/16"],
+  ];
+
+  for (const [itemId, responseValue] of cases) {
+    const item = byId.get(itemId);
+    expect(item, itemId).toBeTruthy();
+    if (!item) continue;
+
+    expect(
+      scoreAssessmentItem(item, [], 1, responseValue).correct,
+      `${itemId}: ${responseValue}`,
+    ).toBe(true);
   }
 });
