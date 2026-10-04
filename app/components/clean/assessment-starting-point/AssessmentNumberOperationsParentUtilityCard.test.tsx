@@ -148,3 +148,19 @@ it("classifies a Pathways fallback primary action as My Pathways, not practice",
     ["counting-processes", "my_pathways"],
   ]);
 });
+
+
+it("keeps prototype and raw progression-band jargon out of the default parent result", () => {
+  render(
+    React.createElement(AssessmentNumberOperationsParentUtilityCard, {
+      utility,
+    }),
+  );
+
+  expect(screen.getByText("Maths starting point")).toBeTruthy();
+  expect(screen.queryByText("Parent utility prototype")).toBeNull();
+  expect(screen.queryByText(/Progression band:/)).toBeNull();
+
+  fireEvent.click(screen.getByText("Why MyLearna is suggesting this"));
+  expect(screen.getByText("Technical evidence")).toBeTruthy();
+});
