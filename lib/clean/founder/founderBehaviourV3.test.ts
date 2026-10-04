@@ -25,6 +25,26 @@ function build(events: FounderProductEvent[], internalUserIds = new Set<string>(
 }
 
 describe("Founder Behaviour Intelligence v3", () => {
+  it("excludes product telemetry from actors that no longer have a current account", () => {
+    const result = buildFounderBehaviourV3({
+      events: [
+        event("current-family", "daily_plan_viewed", 1),
+        event("deleted-actor", "daily_plan_viewed", 1),
+        event("deleted-actor", "public_page_viewed", 2),
+      ],
+      rangeDays: 30,
+      includeInternal: false,
+      currentUserIds: new Set(["current-family"]),
+      posthogAvailable: true,
+      now: new Date("2026-09-30T12:00:00.000Z"),
+    });
+
+    expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(result.summary.find((item) => item.label === "Public visitors")?.value).toBe(1);
+    expect(result.dataQuality.find((item) => item.label === "Current account verification")?.detail)
+      .toContain("1 historical or unmatched product actors");
+  });
+
   it("excludes internal actors by default", () => {
     const result = build([
       event("family", "daily_plan_viewed", 1),
