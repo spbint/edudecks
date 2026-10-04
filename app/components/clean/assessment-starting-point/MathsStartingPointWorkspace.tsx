@@ -33,22 +33,25 @@ export default function MathsStartingPointWorkspace() {
 
   assertMathsStartingPointStaffPreviewSafety();
 
+  const routeLearner = learnerParam
+    ? workspace.learners.find((learner) => learner.id === learnerParam) ?? null
+    : null;
+  const routeLearnerSyncPending = Boolean(
+    routeLearner && activeLearner?.id !== routeLearner.id,
+  );
+
   useEffect(() => {
-    if (!learnerParam) return;
-    if (activeLearner?.id === learnerParam) return;
-    const match = workspace.learners.find(
-      (learner) => learner.id === learnerParam,
-    );
-    if (match) setActiveLearner(match.id);
+    if (!routeLearner) return;
+    if (activeLearner?.id === routeLearner.id) return;
+    setActiveLearner(routeLearner.id);
   }, [
     activeLearner?.id,
-    learnerParam,
+    routeLearner,
     setActiveLearner,
-    workspace.learners,
   ]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || routeLearnerSyncPending) return;
     trackCoreJourneyEvent(
       "maths_starting_point_opened",
       {
@@ -65,6 +68,7 @@ export default function MathsStartingPointWorkspace() {
   }, [
     activeLearner?.id,
     loading,
+    routeLearnerSyncPending,
     workspace.learners.length,
     workspace.userId,
   ]);
@@ -73,6 +77,14 @@ export default function MathsStartingPointWorkspace() {
     return (
       <div style={card} role="status">
         Loading learner details...
+      </div>
+    );
+  }
+
+  if (routeLearnerSyncPending) {
+    return (
+      <div style={card} role="status">
+        Switching to the selected learner...
       </div>
     );
   }
@@ -124,7 +136,6 @@ export default function MathsStartingPointWorkspace() {
               value={activeLearner.id}
               onChange={(event) => {
                 const nextLearnerId = event.target.value;
-                setActiveLearner(nextLearnerId);
                 const params = new URLSearchParams(searchParams.toString());
                 params.set("learnerId", nextLearnerId);
                 router.replace(

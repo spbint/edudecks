@@ -17,7 +17,13 @@ describe("Maths starting-point learner route context", () => {
       "workspace.learners.find",
     );
     expect(source).toContain(
-      "if (match) setActiveLearner(match.id)",
+      "workspace.learners.find",
+    );
+    expect(source).toContain(
+      "setActiveLearner(routeLearner.id)",
+    );
+    expect(source).toContain(
+      "routeLearnerSyncPending",
     );
   });
 
@@ -30,4 +36,17 @@ describe("Maths starting-point learner route context", () => {
       '/assessments/maths-starting-point?',
     );
   });
+});
+
+
+it("does not mount learner-specific assessment state while route and workspace learner disagree", () => {
+  expect(source).toContain(
+    'if (routeLearnerSyncPending) {',
+  );
+  expect(source).toContain(
+    'Switching to the selected learner...',
+  );
+  expect(source).toContain(
+    'if (loading || routeLearnerSyncPending) return;',
+  );
 });
