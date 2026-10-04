@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import MathsStartingPointWorkspace from "@/app/components/clean/assessment-starting-point/MathsStartingPointWorkspace";
 
@@ -70,6 +71,18 @@ export default function MathsStartingPointPage() {
               then turns the result into practical next learning rather than one
               overall maths score.
             </p>
+            <Link
+              href="/assessments/maths-starting-point/asset-review"
+              style={{
+                width: "fit-content",
+                color: "#92400E",
+                fontSize: 13,
+                fontWeight: 800,
+                textDecoration: "none",
+              }}
+            >
+              Staff: review pending Australian currency schematic
+            </Link>
           </section>
           <MathsStartingPointWorkspace />
         </div>
