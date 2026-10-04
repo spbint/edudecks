@@ -28,14 +28,14 @@ describe("Number & Operations parent utility projection", () => {
       headline: "Ready to build on the next step",
       technicalBand: "P5–P6",
       recheckRecommended: true,
-      pathwaysLabel: "Open Number and place value in My Pathways",
+      pathwaysLabel: "Open Read, write, order and compare numbers to 1000 and beyond in My Pathways",
     });
     const pathwayUrl = new URL(
       utility.areas[0]!.pathwaysHref,
       "https://mylearna.test",
     );
     expect(pathwayUrl.searchParams.get("subjectKey")).toBe("mathematics");
-    expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");\n    expect(pathwayUrl.searchParams.get("pathwayStepId")).not.toBeNull();
     expect(utility.trustNote).toMatch(
       /not a grade, score, diagnosis or single maths level/i,
     );
@@ -64,7 +64,7 @@ describe("Number & Operations parent utility projection", () => {
       subElementKey: "additive-strategies",
       state: "verify-in-learning",
       headline: "Check this in everyday learning",
-      pathwaysLabel: "Open Operations and calculation in My Pathways",
+      pathwaysLabel: "Open Use counting strategies and known facts more efficiently in My Pathways",
     });
   });
 

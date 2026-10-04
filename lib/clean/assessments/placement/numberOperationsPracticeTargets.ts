@@ -42,11 +42,7 @@ function moduleTarget(
   };
 }
 
-function pathwaysFallback(
-  subElementKey: NumberOperationsSubElementKey,
-  note: string,
-): NumberOperationsPracticeTarget {
-  const handoff = buildNumberOperationsPathwaysHandoff({ subElementKey });
+function pathwaysFallback(\n  subElementKey: NumberOperationsSubElementKey,\n  targetP: number | null,\n  note: string,\n): NumberOperationsPracticeTarget {\n  const handoff = buildNumberOperationsPathwaysHandoff({ subElementKey, targetP });
   return {
     kind: "pathways-review",
     label: `Review ${handoff.strandLabel} in My Pathways`,
@@ -64,9 +60,7 @@ export function getNumberOperationsPracticeTarget(input: {
   const { subElementKey, targetP } = input;
 
   if (!targetP) {
-    return pathwaysFallback(
-      subElementKey,
-      "No progression target is available, so MyLearna should not invent a practice-module match.",
+    return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "No progression target is available, so MyLearna should not invent a practice-module match.",
     );
   }
 
@@ -80,16 +74,12 @@ export function getNumberOperationsPracticeTarget(input: {
         "This existing module directly covers place value, number structure, comparison, ordering and rounding. It is a broad family match rather than a one-to-one progression-level mapping.",
       );
     }
-    return pathwaysFallback(
-      subElementKey,
-      "The existing place-value module is not a clean age/construct match for this progression target, so use My Pathways rather than force-fit the module.",
+    return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "The existing place-value module is not a clean age/construct match for this progression target, so use My Pathways rather than force-fit the module.",
     );
   }
 
   if (subElementKey === "counting-processes") {
-    return pathwaysFallback(
-      subElementKey,
-      "Counting is distributed through step-specific pathway practice rather than one canonical counting module. Exact progression-to-step mapping still needs academic review.",
+    return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "Counting is distributed through step-specific pathway practice rather than one canonical counting module. Exact progression-to-step mapping still needs academic review.",
     );
   }
 
@@ -112,9 +102,7 @@ export function getNumberOperationsPracticeTarget(input: {
         "Later additive progression includes decimal and fraction operations, so the rational-operations module is the closest existing broad-family match.",
       );
     }
-    return pathwaysFallback(
-      subElementKey,
-      "The existing additive module does not cleanly represent the earlier observed-strategy progression levels.",
+    return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "The existing additive module does not cleanly represent the earlier observed-strategy progression levels.",
     );
   }
 
@@ -128,9 +116,7 @@ export function getNumberOperationsPracticeTarget(input: {
         "The existing multiplication/division fluency module is a broad-family match for equal groups, facts, division and increasingly flexible multiplicative strategies.",
       );
     }
-    return pathwaysFallback(
-      subElementKey,
-      "Later multiplicative progression mixes rational-number operations, factors, exponents and percentages, so one existing module would overstate the match.",
+    return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "Later multiplicative progression mixes rational-number operations, factors, exponents and percentages, so one existing module would overstate the match.",
     );
   }
 
@@ -153,14 +139,10 @@ export function getNumberOperationsPracticeTarget(input: {
         "Later money progression uses discounts, interest, percentage change and financial comparison; the percent/ratio/finance module is the closest existing broad-family match.",
       );
     }
-    return pathwaysFallback(
-      subElementKey,
-      "Early money progression depends on denomination recognition and concrete money experiences rather than the current broad practice modules.",
+    return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "Early money progression depends on denomination recognition and concrete money experiences rather than the current broad practice modules.",
     );
   }
 
-  return pathwaysFallback(
-    subElementKey,
-    "No reviewed practice-family mapping exists.",
+  return pathwaysFallback(\n      subElementKey,\n      targetP,\n      "No reviewed practice-family mapping exists.",
   );
 }

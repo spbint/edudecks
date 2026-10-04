@@ -1,4 +1,8 @@
 import type { NumberOperationsSubElementKey } from "./numberOperationsPlacementResult";
+import {
+  getNumberOperationsProgressionPathwayCrosswalkEntry,
+  resolveNumberOperationsCrosswalkStep,
+} from "./numberOperationsProgressionPathwayCrosswalk";
 
 export type NumberOperationsPathwaysStrandKey =
   | "number-and-place-value"
@@ -10,7 +14,11 @@ export type NumberOperationsPathwaysHandoff = {
   strandKey: NumberOperationsPathwaysStrandKey;
   strandLabel: string;
   href: string;
-  mappingConfidence: "strand-level";
+  mappingConfidence: "source-guided-step" | "strand-level";
+  pathwayStepId: string | null;
+  stepKey: string | null;
+  stageKey: string | null;
+  stepTitle: string | null;
   note: string;
 };
 
@@ -42,6 +50,7 @@ const STRAND_BY_SUB_ELEMENT: Record<
 
 export function buildNumberOperationsPathwaysHandoff(input: {
   subElementKey: NumberOperationsSubElementKey;
+  targetP?: number | null;
   learnerId?: string | null;
 }): NumberOperationsPathwaysHandoff {
   const strand = STRAND_BY_SUB_ELEMENT[input.subElementKey];
@@ -52,13 +61,47 @@ export function buildNumberOperationsPathwaysHandoff(input: {
   const learnerId = String(input.learnerId ?? "").trim();
   if (learnerId) params.set("learnerId", learnerId);
 
+  const crosswalk =
+    input.targetP != null
+      ? getNumberOperationsProgressionPathwayCrosswalkEntry(
+          input.subElementKey,
+          input.targetP,
+        )
+      : null;
+  const resolved = crosswalk
+    ? resolveNumberOperationsCrosswalkStep(crosswalk)
+    : null;
+
+  if (crosswalk?.confidence === "source-guided-step" && resolved) {
+    params.set("stageKey", resolved.stageKey);
+    params.set("pathwayStepId", resolved.id);
+    params.set("stepKey", resolved.stepKey);
+    return {
+      subjectKey: "mathematics",
+      strandKey: strand.key,
+      strandLabel: strand.label,
+      href: `/my-pathways?${params.toString()}`,
+      mappingConfidence: "source-guided-step",
+      pathwayStepId: resolved.id,
+      stepKey: resolved.stepKey,
+      stageKey: resolved.stageKey,
+      stepTitle: resolved.stepTitle,
+      note:
+        "This is a source-guided next-learning handoff grounded in the QCAA numeracy progression and the current MyLearna Pathways sequence. It is not a claim that the MyLearna step is equivalent to the whole progression level.",
+    };
+  }
+
   return {
     subjectKey: "mathematics",
     strandKey: strand.key,
     strandLabel: strand.label,
     href: `/my-pathways?${params.toString()}`,
     mappingConfidence: "strand-level",
+    pathwayStepId: null,
+    stepKey: null,
+    stageKey: null,
+    stepTitle: null,
     note:
-      "This handoff is approved at strand level only. MyLearna does not claim an exact progression-level-to-pathway-step match until that academic mapping is reviewed.",
+      "This handoff stays at strand level because a specific next-step mapping is not yet defensible enough. MyLearna does not invent an exact progression-level-to-pathway-step match.",
   };
 }
