@@ -213,7 +213,7 @@ it("makes the bounded parent question load explicit without inventing a duration
     "utf8",
   );
 
-  expect(source).toContain("Five short Maths areas");
+  expect(source).toContain("Five separate Maths areas");
   expect(source).toContain("budget.bySubElement[currentIndex]?.minimumQuestions");
   expect(source).toContain("budget.bySubElement[currentIndex]?.maximumQuestions");
   expect(source).toContain("MyLearna pauses between areas");
