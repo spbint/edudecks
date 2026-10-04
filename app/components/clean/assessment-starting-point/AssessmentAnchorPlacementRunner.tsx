@@ -383,15 +383,13 @@ export default function AssessmentAnchorPlacementRunner({
           `Branch evidence located P${route.lowerP}–P${route.upperP}.`,
         );
 
-        if (
-          bracket &&
-          nextP &&
-          !blockUnapprovedProgressionLevel(nextP) &&
-          getBoundaryCluster(anchorSet.key, nextP)
-        ) {
-          pushHistory(`Boundary search continues at P${nextP}.`);
-          setStage({ kind: "boundary", pLevel: nextP, bracket });
-          return;
+        if (bracket && nextP) {
+          if (blockUnapprovedProgressionLevel(nextP)) return;
+          if (getBoundaryCluster(anchorSet.key, nextP)) {
+            pushHistory(`Boundary search continues at P${nextP}.`);
+            setStage({ kind: "boundary", pLevel: nextP, bracket });
+            return;
+          }
         }
 
         setStage({
@@ -469,14 +467,13 @@ export default function AssessmentAnchorPlacementRunner({
           `Search at P${stage.pLevel} located P${route.lowerP}–P${route.upperP}.`,
         );
 
-        if (
-          nextP &&
-          !blockUnapprovedProgressionLevel(nextP) &&
-          getBoundaryCluster(anchorSet.key, nextP)
-        ) {
-          pushHistory(`Boundary search continues at P${nextP}.`);
-          setStage({ kind: "boundary", pLevel: nextP, bracket });
-          return;
+        if (nextP) {
+          if (blockUnapprovedProgressionLevel(nextP)) return;
+          if (getBoundaryCluster(anchorSet.key, nextP)) {
+            pushHistory(`Boundary search continues at P${nextP}.`);
+            setStage({ kind: "boundary", pLevel: nextP, bracket });
+            return;
+          }
         }
 
         setStage({
@@ -567,6 +564,7 @@ export default function AssessmentAnchorPlacementRunner({
 
       const nextP = nextBoundaryTarget(narrowed);
       if (nextP) {
+        if (blockUnapprovedProgressionLevel(nextP)) return;
         const items = getBoundaryCluster(anchorSet.key, nextP);
         if (items) {
           setStage({ kind: "boundary", pLevel: nextP, bracket: narrowed });
@@ -591,7 +589,14 @@ export default function AssessmentAnchorPlacementRunner({
         placementResult: buildBandResult(narrowed.lowerP, narrowed.upperP),
       });
     },
-    [anchorSet, buildBandResult, pushHistory, recordStage, stage],
+    [
+      anchorSet,
+      blockUnapprovedProgressionLevel,
+      buildBandResult,
+      pushHistory,
+      recordStage,
+      stage,
+    ],
   );
 
   const handlePracticalObservationAlternative = useCallback(() => {
