@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
@@ -48,6 +49,7 @@ import {
 } from "@/lib/clean/pathways/pathwayNavigationContext";
 import { buildPathwayCalendarHandoffHref } from "@/lib/clean/pathways/pathwayCalendarHandoff";
 import { CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
+import { canAccessAssessmentLab } from "@/lib/clean/assessments/assessmentPermissions";
 import {
   getPathwaySubjectAvailabilityOptions,
   isCustomerPathwaySubjectActive,
@@ -873,6 +875,8 @@ function getStepPassesWorksheetFilter(
 
 function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user: authUser, profile: authProfile, loading: authLoading } =
+    useAuthUser();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -880,6 +884,16 @@ function PathwaysWorkspaceBody() {
   const sourceFromQuery = searchParams.get("source") || "";
   const showPathwayEvidenceUpdatedBanner =
     Boolean(latestEvidenceIdFromQuery) && sourceFromQuery === "my-capture";
+  const canPreviewMathsStartingPoint =
+    !authLoading &&
+    canAccessAssessmentLab(
+      {
+        id: authUser?.id ?? null,
+        email: authUser?.email ?? null,
+        isAdmin: authProfile?.is_admin ?? false,
+      },
+      authProfile,
+    );
   const regionalStageContext =
     workspace.profile?.countryCode || workspace.profile?.jurisdictionCode || null;
   const persistedUiState = useMemo(() => readPersistedPathwaysUiState(), []);
@@ -3191,6 +3205,39 @@ function PathwaysWorkspaceBody() {
                     },
                   ]}
                 >
+                  {canPreviewMathsStartingPoint &&
+                  selectedSubjectKey === "mathematics" &&
+                  selectedLearner ? (
+                    <section
+                      style={{
+                        border: "1px solid #CFE3D5",
+                        borderRadius: 16,
+                        background: "#F7FCF8",
+                        padding: "14px 16px",
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={eyebrowStyle}>Staff preview · Maths starting point</div>
+                      <strong style={{ color: "#17204B", fontSize: 18 }}>
+                        Not sure where to begin?
+                      </strong>
+                      <span style={{ color: "#4B5563", lineHeight: 1.55, fontSize: 14 }}>
+                        Use MyLearna&apos;s adaptive Number &amp; Operations check to find
+                        a useful starting point for {selectedLearnerLabel} without turning
+                        the result into one overall Maths level.
+                      </span>
+                      <Link
+                        href={`/assessments/maths-starting-point?${new URLSearchParams({
+                          learnerId: selectedLearner.id,
+                        }).toString()}`}
+                        style={{ ...buttonStyle, width: "fit-content" }}
+                      >
+                        Find a starting point
+                      </Link>
+                    </section>
+                  ) : null}
+
                   {numberPathwayRevealGroups ? (
                     <NumberPathwayRevealPanel
                       groups={numberPathwayRevealGroups}
