@@ -67,9 +67,10 @@ export default function MathsStartingPointPage() {
                 fontSize: 16,
               }}
             >
-              MyLearna checks several parts of Number and Operations separately,
-              then turns the result into practical next learning rather than one
-              overall maths score.
+              Check one Number & Operations area when you have one immediate
+              question, or build a broader five-area starting picture over several
+              pauses. MyLearna keeps the areas separate and turns the evidence into
+              practical next learning rather than one overall maths score.
             </p>
             <Link
               href="/assessments/maths-starting-point/asset-review"
