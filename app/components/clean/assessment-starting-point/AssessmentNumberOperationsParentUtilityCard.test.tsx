@@ -74,6 +74,8 @@ describe("AssessmentNumberOperationsParentUtilityCard", () => {
     expect(
       screen.getByText("Recheck after a short run of successful practice"),
     ).toBeTruthy();
+    expect(screen.getByText("Fresh evidence to look for")).toBeTruthy();
+    expect(screen.getByText("independent place-value use")).toBeTruthy();
     expect(
       screen.getAllByText("Ready to build on the next step"),
     ).toHaveLength(1);
