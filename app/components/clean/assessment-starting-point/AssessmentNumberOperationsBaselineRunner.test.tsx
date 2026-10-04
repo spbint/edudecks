@@ -265,6 +265,11 @@ it("can complete one focused area without forcing the other four areas", () => {
   expect(screen.getByText(/Area 1 of 1/i)).toBeTruthy();
   expect(screen.getByText("One focused Maths area")).toBeTruthy();
   expect(
+    screen.getByRole("progressbar", {
+      name: "Starting-point areas completed",
+    }),
+  ).toHaveAttribute("aria-valuenow", "0");
+  expect(
     screen.getByRole("button", { name: "Complete additive-strategies" }),
   ).toBeTruthy();
   expect(
@@ -274,6 +279,11 @@ it("can complete one focused area without forcing the other four areas", () => {
   fireEvent.click(
     screen.getByRole("button", { name: "Complete additive-strategies" }),
   );
+  expect(
+    screen.getByRole("progressbar", {
+      name: "Starting-point areas completed",
+    }),
+  ).toHaveAttribute("aria-valuenow", "1");
   fireEvent.click(
     screen.getByRole("button", { name: "See the starting-point profile" }),
   );
