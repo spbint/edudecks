@@ -50,3 +50,19 @@ it("does not mount learner-specific assessment state while route and workspace l
     'if (loading || routeLearnerSyncPending) return;',
   );
 });
+
+
+it("provides a learner-preserving return to Mathematics Pathways", () => {
+  expect(source).toContain(
+    'subjectKey: "mathematics"',
+  );
+  expect(source).toContain(
+    "/my-pathways?",
+  );
+  expect(source).toContain(
+    "learnerId: activeLearner.id",
+  );
+  expect(source).toContain(
+    "Mathematics Pathways",
+  );
+});
