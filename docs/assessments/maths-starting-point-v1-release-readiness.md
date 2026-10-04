@@ -60,6 +60,7 @@ Current behaviour:
 - unresolved areas provide area-specific practical-observation guidance and concrete evidence cues
 - the parent question burden is transparent: each area is bounded and the experience pauses between areas
 - parent presentation suppresses P-level/routing/debug language during the assessment
+- learner age/year is not used to infer or alter placement; v1 routing remains evidence-led even when some opening questions feel easier or harder than expected
 - customer-facing copy says Number & Operations rather than implying that v1 assesses all Mathematics
 - result leads with practical next action, not technical placement
 - raw progression bands stay behind optional technical disclosure
