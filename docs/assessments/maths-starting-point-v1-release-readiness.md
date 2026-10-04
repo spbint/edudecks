@@ -67,9 +67,15 @@ No learner names, answers, free-text notes or item response content are sent in 
 
 ## Persistence boundary prepared but not applied
 
-Review-only SQL:
+Review-only foundation SQL:
 
 `sql/clean/20261004_number_operations_baseline_persistence_review.sql`
+
+Separate review-only activation SQL:
+
+`sql/clean/20261004_number_operations_baseline_persistence_activation_review.sql`
+
+The foundation explicitly revokes authenticated execution of the save RPC. The activation file is the only place that grants it. Therefore applying the schema foundation alone cannot turn on baseline saves.
 
 Dark client:
 
@@ -131,6 +137,6 @@ Before requesting the persistence/release decision:
 
 Only after the hosted staff acceptance passes should the next approval request be:
 
-> Apply the reviewed baseline persistence migration in a controlled staging/production sequence, run one authenticated save/read isolation smoke test, and keep customer visibility disabled.
+> Apply the reviewed baseline persistence foundation with authenticated RPC execution still revoked, verify RLS/isolation, then separately activate the save RPC for one authenticated save/read isolation smoke test while customer visibility remains disabled.
 
 Customer launch should be a separate approval after persistence is proven.

@@ -29,12 +29,17 @@ describe("Number & Operations baseline persistence review migration", () => {
     expect(source).toContain("Choose a learner from this family.");
   });
 
-  it("keeps writes authenticated, idempotent and atomic through one RPC", () => {
+  it("keeps the foundation dark while preserving idempotent atomic-save machinery", () => {
     expect(source).toContain("client_submission_id");
     expect(source).toContain("assessment_baseline_attempts_unique_submission");
     expect(source).toContain("mylearna_save_number_operations_baseline");
-    expect(source).toContain("grant execute on function public.mylearna_save_number_operations_baseline");
-    expect(source).toContain("to authenticated");
+    expect(source).toContain(
+      "revoke all on function public.mylearna_save_number_operations_baseline",
+    );
+    expect(source).toContain("from authenticated");
+    expect(source).not.toMatch(
+      /grant execute on function public\.mylearna_save_number_operations_baseline/,
+    );
   });
 
   it("ships as a review-only migration with rollback notes", () => {

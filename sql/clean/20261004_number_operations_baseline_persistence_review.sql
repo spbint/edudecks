@@ -1,7 +1,8 @@
 -- MyLearna Maths Starting Point v1 — Number & Operations baseline persistence.
 --
 -- DESIGN / REVIEW MIGRATION ONLY.
--- DO NOT APPLY until the maths starting-point persistence gate is explicitly approved.
+-- DO NOT APPLY until the maths starting-point persistence foundation is explicitly approved.
+-- Applying this file alone MUST NOT enable authenticated baseline writes.
 --
 -- This schema stores one multi-dimensional baseline attempt plus immutable item
 -- responses. It deliberately does NOT:
@@ -620,13 +621,15 @@ revoke all on function public.mylearna_save_number_operations_baseline(
   jsonb
 ) from anon;
 
-grant execute on function public.mylearna_save_number_operations_baseline(
+-- Foundation stays dark even if this review migration is later applied.
+-- Write activation is a separate, explicit migration/release decision.
+revoke all on function public.mylearna_save_number_operations_baseline(
   uuid,
   uuid,
   text,
   jsonb,
   jsonb
-) to authenticated;
+) from authenticated;
 
 -- Rollback (manual, only if no retained customer baseline data is required):
 --
