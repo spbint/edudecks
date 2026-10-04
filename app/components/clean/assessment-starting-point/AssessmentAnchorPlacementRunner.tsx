@@ -16,6 +16,7 @@ import {
   type NumberOperationsPlacementResult,
   type NumberOperationsSubElementKey,
 } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
+import { isNumberOperationsAssetApproved } from "@/lib/clean/assessments/placement/numberOperationsAssetApprovals";
 import {
   applyBoundaryEvidence,
   bracketFromBranchRoute,
