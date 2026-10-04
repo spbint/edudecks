@@ -35,6 +35,7 @@ describe("Founder Behaviour Intelligence v3 production data wiring", () => {
         { userId: "family", event: "daily_plan_viewed", occurredAt: "2026-10-02T01:00:00.000Z", route: "/my-day", area: "my-day" },
         { userId: "internal", event: "daily_plan_viewed", occurredAt: "2026-10-02T02:00:00.000Z", route: "/my-day", area: "my-day" },
         { userId: "suspicious", event: "daily_plan_viewed", occurredAt: "2026-10-02T03:00:00.000Z", route: "/my-day", area: "my-day" },
+        { userId: "deleted-account", event: "daily_plan_viewed", occurredAt: "2026-10-02T04:00:00.000Z", route: "/my-day", area: "my-day" },
       ],
     });
   });
@@ -48,6 +49,8 @@ describe("Founder Behaviour Intelligence v3 production data wiring", () => {
     expect(result.posthogAvailable).toBe(true);
     expect(result.includeSuspicious).toBe(false);
     expect(result.summary.find((item) => item.label === "Product users")?.value).toBe(1);
+    expect(result.dataQuality.find((item) => item.label === "Current account verification")?.detail)
+      .toContain("1 historical or unmatched product actors");
   });
 
   it("can include the suspicious review population for comparison without changing the clean default", async () => {
