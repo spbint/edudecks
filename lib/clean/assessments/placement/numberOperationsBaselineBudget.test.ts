@@ -6,8 +6,8 @@ describe("Number Operations baseline question budget", () => {
     const budget = getNumberOperationsBaselineBudget();
 
     expect(budget.areaCount).toBe(5);
-    expect(budget.minimumQuestions).toBeGreaterThanOrEqual(20);
-    expect(budget.maximumQuestions).toBeLessThanOrEqual(55);
+    expect(budget.minimumQuestions).toBe(30);
+    expect(budget.maximumQuestions).toBe(55);
     expect(budget.maximumQuestions).toBeGreaterThanOrEqual(
       budget.minimumQuestions,
     );
@@ -16,8 +16,16 @@ describe("Number Operations baseline question budget", () => {
 
   it("keeps every area within the single-area route budget", () => {
     for (const area of getNumberOperationsBaselineBudget().bySubElement) {
-      expect(area.minimumQuestions).toBeGreaterThanOrEqual(4);
-      expect(area.maximumQuestions).toBeLessThanOrEqual(11);
+      expect(area.minimumQuestions).toBe(6);
+      expect(area.maximumQuestions).toBe(11);
     }
   });
+});
+
+
+it("does not describe the full five-area electronic route as a quick quiz", () => {
+  const budget = getNumberOperationsBaselineBudget();
+
+  expect(budget.minimumQuestions).toBe(30);
+  expect(budget.maximumQuestions).toBe(55);
 });

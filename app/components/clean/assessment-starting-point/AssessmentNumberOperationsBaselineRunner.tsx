@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner";
 import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-starting-point/AssessmentNumberOperationsProfileCard";
@@ -131,6 +132,12 @@ export default function AssessmentNumberOperationsBaselineRunner({
 
   const currentKey = ORDER[currentIndex];
   const budget = useMemo(() => getNumberOperationsBaselineBudget(), []);
+  const pauseHref = useMemo(() => {
+    const params = new URLSearchParams({ subjectKey: "mathematics" });
+    const cleanLearnerId = String(learnerId ?? "").trim();
+    if (cleanLearnerId) params.set("learnerId", cleanLearnerId);
+    return `/my-pathways?${params.toString()}`;
+  }, [learnerId]);
   const profile = useMemo(
     () => buildNumberOperationsProfile(Object.values(resultsByKey)),
     [resultsByKey],
@@ -475,7 +482,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
           >
             <strong style={{ color: "#17204B" }}>Five short Maths areas</strong>
             <span>
-              Each area is bounded to {budget.bySubElement[currentIndex]?.minimumQuestions ?? 4}–{budget.bySubElement[currentIndex]?.maximumQuestions ?? 11} questions. Clear evidence finishes sooner; mixed evidence triggers a few extra questions so MyLearna does not guess.
+              A fully electronic area uses {budget.bySubElement[currentIndex]?.minimumQuestions ?? 6}–{budget.bySubElement[currentIndex]?.maximumQuestions ?? 11} questions. MyLearna may stop sooner when practical or observed evidence is more trustworthy than another screen question.
             </span>
             <span>
               MyLearna pauses between areas. You can leave after an area and return in this browser tab without losing the areas already completed.
@@ -485,6 +492,19 @@ export default function AssessmentNumberOperationsBaselineRunner({
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
           Progress and the completed starting-point profile stay in this browser tab for this learner during the staff preview, so recommended practice can return here. No family or learner assessment record is written to the database.
         </small>
+        {mode === "parent-preview" && currentIndex > 0 && pendingResult === undefined ? (
+          <Link
+            href={pauseHref}
+            style={{
+              width: "fit-content",
+              color: "#17204B",
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            Pause here and return to My Pathways
+          </Link>
+        ) : null}
         <div
           aria-label="Baseline progress"
           style={{

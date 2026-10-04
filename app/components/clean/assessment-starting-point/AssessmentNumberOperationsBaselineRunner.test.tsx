@@ -231,3 +231,19 @@ it("turns unresolved areas into concrete practical-observation guidance", () => 
   expect(source).toContain("What to notice");
   expect(source).toContain("guidance.evidenceToLookFor.map");
 });
+
+
+it("offers a learner-preserving pause point only between completed areas", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain('currentIndex > 0 && pendingResult === undefined');
+  expect(source).toContain("Pause here and return to My Pathways");
+  expect(source).toContain('subjectKey: "mathematics"');
+  expect(source).toContain('params.set("learnerId", cleanLearnerId)');
+});
