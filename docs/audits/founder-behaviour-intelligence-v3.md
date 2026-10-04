@@ -27,7 +27,7 @@ This private Founder surface uses server-side, bounded PostHog reads. It never r
 
 The existing `$identify` event safely supplies `$anon_distinct_id` to merge the browser's anonymous ID into the authenticated ID. Sign-out now clears the local analytics ID so account switching on a shared browser cannot continue the prior identity. The Founder UI treats anonymous-to-authenticated progression as directional unless the merged PostHog actor proves continuity.
 
-Known Founder and disposable test-account authenticated IDs are excluded by default using the existing server-side account classification. The Founder can include them with an explicit toggle. Anonymous internal browsing cannot be safely recognised and is disclosed as a limitation. `$virt_traffic_type` is not used as the human filter because current genuine MyLearna events are classified as Automation.
+Known Founder/internal authenticated IDs are excluded by default using the existing server-side account classification. The separately flagged disposable/review account group is also excluded from the default Founder decision view and can be explicitly included for comparison. Anonymous internal browsing cannot be safely recognised and is disclosed as a limitation. `$virt_traffic_type` is not used as the human filter because current genuine MyLearna events are classified as Automation.
 
 ## Data quality and sample policy
 
