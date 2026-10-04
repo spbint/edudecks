@@ -130,3 +130,31 @@ describe("MyLearna Assess V1 visibility", () => {
     expect(canUseAssessmentItem(publishedItem, null, null, "customer")).toBe(true);
   });
 });
+
+
+it("normalizes safe fraction spacing and common minus characters without changing answer form", () => {
+  const fractionItem: MyLearnaAssessmentItem = {
+    ...MYLEARNA_ASSESS_DEMO_ITEMS[0],
+    id: "fraction-format-proof-v1",
+    version: 1,
+    template: "short-answer",
+    stimulus: { type: "none", data: {} },
+    response: {
+      type: "short-answer",
+      correctValue: "5/8",
+    },
+  };
+
+  const negativeItem: MyLearnaAssessmentItem = {
+    ...fractionItem,
+    id: "negative-format-proof-v1",
+    response: {
+      type: "short-answer",
+      correctValue: "-4",
+    },
+  };
+
+  expect(scoreAssessmentItem(fractionItem, [], 4, " 5 / 8 ").correct).toBe(true);
+  expect(scoreAssessmentItem(fractionItem, [], 4, "0.625").correct).toBe(false);
+  expect(scoreAssessmentItem(negativeItem, [], 4, "−4").correct).toBe(true);
+});
