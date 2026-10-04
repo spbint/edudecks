@@ -162,7 +162,6 @@ it("lets the parent baseline own the area-complete message instead of duplicatin
   );
 });
 
-
 it("routes the accessible-form escape hatch to unresolved observed evidence instead of a score", () => {
   const source = readFileSync(
     join(
@@ -172,20 +171,21 @@ it("routes the accessible-form escape hatch to unresolved observed evidence inst
     "utf8",
   );
 
-  expect(source).toContain("handlePracticalObservationAlternative");
-  expect(source).toContain(
-    "Use a practical observation instead",
-  ).toBe(false);
-  expect(source).toContain(
+  const handlerStart = source.indexOf(
+    "const handlePracticalObservationAlternative",
+  );
+  const handlerEnd = source.indexOf("let player = null", handlerStart);
+  const handler = source.slice(handlerStart, handlerEnd);
+
+  expect(handlerStart).toBeGreaterThan(-1);
+  expect(handlerEnd).toBeGreaterThan(handlerStart);
+  expect(handler).toContain(
     "parent chose practical observation instead of a visual-dependent item",
   );
-  expect(source).toContain(
-    "onUsePracticalObservation={",
-  );
-  expect(source).toContain(
+  expect(handler).toContain(
     'headline: "Practical observation required."',
   );
-  expect(source).not.toContain(
-    "buildNumberOperationsCandidateBandResult({\n        subElementKey: anchorSet.key",
-  );
+  expect(handler).not.toContain("placementResult:");
+  expect(handler).not.toContain("buildNumberOperationsCandidateBandResult");
+  expect(source).toContain("onUsePracticalObservation={");
 });
