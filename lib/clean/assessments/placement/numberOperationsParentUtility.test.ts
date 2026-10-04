@@ -28,8 +28,17 @@ describe("Number & Operations parent utility projection", () => {
       headline: "Ready to build on the next step",
       technicalBand: "P5–P6",
       recheckRecommended: true,
+      pathwaysLabel: "Open Number and place value in My Pathways",
     });
-    expect(utility.trustNote).toMatch(/not a grade, score, diagnosis or single maths level/i);
+    const pathwayUrl = new URL(
+      utility.areas[0]!.pathwaysHref,
+      "https://mylearna.test",
+    );
+    expect(pathwayUrl.searchParams.get("subjectKey")).toBe("mathematics");
+    expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(utility.trustNote).toMatch(
+      /not a grade, score, diagnosis or single maths level/i,
+    );
   });
 
   it("prioritises evidence that needs practical verification before ordinary practice", () => {
@@ -55,6 +64,7 @@ describe("Number & Operations parent utility projection", () => {
       subElementKey: "additive-strategies",
       state: "verify-in-learning",
       headline: "Check this in everyday learning",
+      pathwaysLabel: "Open Operations and calculation in My Pathways",
     });
   });
 

@@ -1,4 +1,5 @@
 import type { NumberOperationsSubElementKey } from "./numberOperationsPlacementResult";
+import { buildNumberOperationsPathwaysHandoff } from "./numberOperationsPathwaysHandoff";
 
 export type NumberOperationsPracticeTarget = {
   kind: "broad-practice-family" | "pathways-review";
@@ -41,14 +42,18 @@ function moduleTarget(
   };
 }
 
-function pathwaysFallback(note: string): NumberOperationsPracticeTarget {
+function pathwaysFallback(
+  subElementKey: NumberOperationsSubElementKey,
+  note: string,
+): NumberOperationsPracticeTarget {
+  const handoff = buildNumberOperationsPathwaysHandoff({ subElementKey });
   return {
     kind: "pathways-review",
-    label: "Review the next step in My Pathways",
-    href: "/my-pathways",
+    label: `Review ${handoff.strandLabel} in My Pathways`,
+    href: handoff.href,
     moduleId: null,
     mappingConfidence: "fallback",
-    note,
+    note: `${note} ${handoff.note}`,
   };
 }
 
@@ -60,6 +65,7 @@ export function getNumberOperationsPracticeTarget(input: {
 
   if (!targetP) {
     return pathwaysFallback(
+      subElementKey,
       "No progression target is available, so MyLearna should not invent a practice-module match.",
     );
   }
@@ -75,12 +81,14 @@ export function getNumberOperationsPracticeTarget(input: {
       );
     }
     return pathwaysFallback(
+      subElementKey,
       "The existing place-value module is not a clean age/construct match for this progression target, so use My Pathways rather than force-fit the module.",
     );
   }
 
   if (subElementKey === "counting-processes") {
     return pathwaysFallback(
+      subElementKey,
       "Counting is distributed through step-specific pathway practice rather than one canonical counting module. Exact progression-to-step mapping still needs academic review.",
     );
   }
@@ -105,6 +113,7 @@ export function getNumberOperationsPracticeTarget(input: {
       );
     }
     return pathwaysFallback(
+      subElementKey,
       "The existing additive module does not cleanly represent the earlier observed-strategy progression levels.",
     );
   }
@@ -120,6 +129,7 @@ export function getNumberOperationsPracticeTarget(input: {
       );
     }
     return pathwaysFallback(
+      subElementKey,
       "Later multiplicative progression mixes rational-number operations, factors, exponents and percentages, so one existing module would overstate the match.",
     );
   }
@@ -144,9 +154,13 @@ export function getNumberOperationsPracticeTarget(input: {
       );
     }
     return pathwaysFallback(
+      subElementKey,
       "Early money progression depends on denomination recognition and concrete money experiences rather than the current broad practice modules.",
     );
   }
 
-  return pathwaysFallback("No reviewed practice-family mapping exists.");
+  return pathwaysFallback(
+    subElementKey,
+    "No reviewed practice-family mapping exists.",
+  );
 }

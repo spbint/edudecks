@@ -13,6 +13,34 @@ const innerCard: React.CSSProperties = {
   gap: 8,
 };
 
+const primaryLink: React.CSSProperties = {
+  border: "1px solid #166534",
+  borderRadius: 11,
+  background: "#166534",
+  color: "#FFFFFF",
+  minHeight: 44,
+  padding: "10px 14px",
+  width: "fit-content",
+  display: "inline-flex",
+  alignItems: "center",
+  textDecoration: "none",
+  fontWeight: 850,
+};
+
+const secondaryLink: React.CSSProperties = {
+  border: "1px solid #CBD5E1",
+  borderRadius: 11,
+  background: "#FFFFFF",
+  color: "#17204B",
+  minHeight: 42,
+  padding: "9px 12px",
+  width: "fit-content",
+  display: "inline-flex",
+  alignItems: "center",
+  textDecoration: "none",
+  fontWeight: 800,
+};
+
 function stateLabel(area: NumberOperationsParentUtility["areas"][number]) {
   switch (area.state) {
     case "verify-in-learning":
@@ -24,6 +52,21 @@ function stateLabel(area: NumberOperationsParentUtility["areas"][number]) {
     case "build-next":
       return "Next learning";
   }
+}
+
+function areaActions(area: NumberOperationsParentUtility["areas"][number]) {
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <Link href={area.actionHref} prefetch={false} style={primaryLink}>
+        {area.actionLabel}
+      </Link>
+      {area.pathwaysHref !== area.actionHref ? (
+        <Link href={area.pathwaysHref} prefetch={false} style={secondaryLink}>
+          {area.pathwaysLabel}
+        </Link>
+      ) : null}
+    </div>
+  );
 }
 
 export default function AssessmentNumberOperationsParentUtilityCard({
@@ -95,25 +138,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
           <span style={{ color: "#4B5563", lineHeight: 1.6 }}>
             {utility.startHere.explanation}
           </span>
-          <Link
-            href={utility.startHere.actionHref}
-            prefetch={false}
-            style={{
-              border: "1px solid #166534",
-              borderRadius: 11,
-              background: "#166534",
-              color: "#FFFFFF",
-              minHeight: 44,
-              padding: "10px 14px",
-              width: "fit-content",
-              display: "inline-flex",
-              alignItems: "center",
-              textDecoration: "none",
-              fontWeight: 850,
-            }}
-          >
-            {utility.startHere.actionLabel}
-          </Link>
+          {areaActions(utility.startHere)}
           {utility.startHere.recheckRecommended ? (
             <small style={{ color: "#4B5563", lineHeight: 1.5 }}>
               After some learning, check this area again with fresh evidence rather
@@ -160,17 +185,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {area.explanation}
             </span>
-            <Link
-              href={area.actionHref}
-              prefetch={false}
-              style={{
-                color: "#17204B",
-                fontWeight: 850,
-                width: "fit-content",
-              }}
-            >
-              {area.actionLabel}
-            </Link>
+            {areaActions(area)}
             <details>
               <summary
                 style={{
@@ -196,6 +211,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
                 {area.curriculumContext ? <span>{area.curriculumContext}</span> : null}
                 <span>Technical evidence band: {area.technicalBand}</span>
                 <span>{area.actionNote}</span>
+                <span>{area.pathwaysNote}</span>
               </div>
             </details>
           </article>

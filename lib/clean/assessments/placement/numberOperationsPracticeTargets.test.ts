@@ -35,44 +35,53 @@ describe("Number Operations practice targets", () => {
     });
   });
 
-  it("does not force-map counting or mixed later multiplicative constructs", () => {
-    expect(
-      getNumberOperationsPracticeTarget({
-        subElementKey: "counting-processes",
-        targetP: 6,
-      }),
-    ).toMatchObject({
+  it("uses a real strand-level My Pathways handoff when a practice module would mislead", () => {
+    const counting = getNumberOperationsPracticeTarget({
+      subElementKey: "counting-processes",
+      targetP: 6,
+    });
+    const countingUrl = new URL(counting.href, "https://mylearna.test");
+
+    expect(counting).toMatchObject({
       kind: "pathways-review",
-      href: "/my-pathways",
       moduleId: null,
       mappingConfidence: "fallback",
     });
+    expect(countingUrl.pathname).toBe("/my-pathways");
+    expect(countingUrl.searchParams.get("subjectKey")).toBe("mathematics");
+    expect(countingUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
 
-    expect(
-      getNumberOperationsPracticeTarget({
-        subElementKey: "multiplicative-strategies",
-        targetP: 9,
-      }),
-    ).toMatchObject({
-      kind: "pathways-review",
-      moduleId: null,
+    const laterMultiplicative = getNumberOperationsPracticeTarget({
+      subElementKey: "multiplicative-strategies",
+      targetP: 9,
     });
+    const operationsUrl = new URL(
+      laterMultiplicative.href,
+      "https://mylearna.test",
+    );
+    expect(operationsUrl.searchParams.get("strandKey")).toBe(
+      "operations-and-calculation",
+    );
   });
 
   it("keeps early place-value and money targets out of over-advanced modules", () => {
-    expect(
-      getNumberOperationsPracticeTarget({
-        subElementKey: "number-place-value",
-        targetP: 4,
-      }).kind,
-    ).toBe("pathways-review");
+    const number = getNumberOperationsPracticeTarget({
+      subElementKey: "number-place-value",
+      targetP: 4,
+    });
+    const money = getNumberOperationsPracticeTarget({
+      subElementKey: "understanding-money",
+      targetP: 2,
+    });
 
-    expect(
-      getNumberOperationsPracticeTarget({
-        subElementKey: "understanding-money",
-        targetP: 2,
-      }).kind,
-    ).toBe("pathways-review");
+    expect(number.kind).toBe("pathways-review");
+    expect(new URL(number.href, "https://mylearna.test").searchParams.get("strandKey")).toBe(
+      "number-and-place-value",
+    );
+    expect(money.kind).toBe("pathways-review");
+    expect(new URL(money.href, "https://mylearna.test").searchParams.get("strandKey")).toBe(
+      "financial-and-real-world-mathematics",
+    );
   });
 
   it("builds targeted-practice links with provenance metadata", () => {

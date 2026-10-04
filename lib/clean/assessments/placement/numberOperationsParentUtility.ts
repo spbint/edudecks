@@ -4,6 +4,7 @@ import type {
   NumberOperationsRecommendationKind,
 } from "./numberOperationsRecommendations";
 import type { NumberOperationsPlacementResult } from "./numberOperationsPlacementResult";
+import { buildNumberOperationsPathwaysHandoff } from "./numberOperationsPathwaysHandoff";
 
 export type NumberOperationsParentAreaState =
   | "build-next"
@@ -21,6 +22,9 @@ export type NumberOperationsParentUtilityArea = {
   actionLabel: string;
   actionHref: string;
   actionNote: string;
+  pathwaysLabel: string;
+  pathwaysHref: string;
+  pathwaysNote: string;
   recheckRecommended: boolean;
   technicalBand: string;
   confidenceNote: string;
@@ -105,6 +109,9 @@ function areaFrom(
   recommendation: NumberOperationsRecommendation,
 ): NumberOperationsParentUtilityArea {
   const state = stateFor(recommendation);
+  const pathways = buildNumberOperationsPathwaysHandoff({
+    subElementKey: result.subElementKey,
+  });
   return {
     subElementKey: result.subElementKey,
     label: result.subElementLabel,
@@ -117,6 +124,9 @@ function areaFrom(
     actionLabel: recommendation.practiceTarget.label,
     actionHref: recommendation.practiceTarget.href,
     actionNote: recommendation.practiceTarget.note,
+    pathwaysLabel: `Open ${pathways.strandLabel} in My Pathways`,
+    pathwaysHref: pathways.href,
+    pathwaysNote: pathways.note,
     recheckRecommended: recommendation.recheckRecommended,
     technicalBand: technicalBand(result),
     confidenceNote: confidenceNote(result),
