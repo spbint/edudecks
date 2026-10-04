@@ -131,7 +131,7 @@ export default function AssessmentEvidenceConfirmationCard({
             {preview.routingOnlySubElements} area
             {preview.routingOnlySubElements === 1 ? "" : "s"} helped MyLearna locate
             the next learning neighbourhood but still need practical or observed
-            evidence for a stronger placement claim.
+            evidence before MyLearna makes a stronger starting-point judgement.
           </span>
         </div>
       ) : null}
