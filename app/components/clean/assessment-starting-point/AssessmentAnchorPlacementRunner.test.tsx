@@ -212,3 +212,21 @@ it("enforces mayRoute before entering asset-review progression levels", () => {
     "setStage(resultForUnavailableTarget(anchorSet, pLevel))",
   );
 });
+
+
+it("never embeds a state-changing evidence gate inside a boolean boundary condition", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).not.toContain(
+    "!blockUnapprovedProgressionLevel",
+  );
+  expect(source).toContain(
+    "if (blockUnapprovedProgressionLevel(nextP)) return",
+  );
+});
