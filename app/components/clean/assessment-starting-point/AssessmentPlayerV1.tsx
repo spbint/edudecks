@@ -17,6 +17,7 @@ type AssessmentPlayerV1Props = {
   mode?: "practice" | "placement";
   presentation?: "staff" | "parent";
   autoStart?: boolean;
+  onUsePracticalObservation?: () => void;
   onComplete?: (responses: MyLearnaAssessmentResponse[]) => void;
 };
 
@@ -64,6 +65,16 @@ export function getShortAnswerInputMode(
   return numericLike ? "decimal" : "text";
 }
 
+export function requiresPracticalObservationAlternative(
+  item: MyLearnaAssessmentItem | null | undefined,
+) {
+  return Boolean(
+    item?.analytics?.tags?.some((tag) =>
+      tag.includes("accessible-form-required"),
+    ),
+  );
+}
+
 function initialOptionOrder(item: MyLearnaAssessmentItem | null | undefined) {
   return item?.response.type === "ordering"
     ? (item.response.options || []).map((option) => option.id)
@@ -92,6 +103,7 @@ export default function AssessmentPlayerV1({
   mode = "practice",
   presentation = "staff",
   autoStart = false,
+  onUsePracticalObservation,
   onComplete,
 }: AssessmentPlayerV1Props) {
   const parentPresentation = presentation === "parent";
@@ -265,6 +277,40 @@ export default function AssessmentPlayerV1({
         </h3>
         <AssessmentItemRenderer item={currentItem} />
       </div>
+
+      {parentPresentation &&
+      onUsePracticalObservation &&
+      requiresPracticalObservationAlternative(currentItem) ? (
+        <aside
+          style={{
+            border: "1px solid #F5D08A",
+            borderRadius: 16,
+            background: "#FFFDF5",
+            padding: 14,
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <strong style={{ color: "#92400E" }}>
+            This question depends on seeing a visual collection.
+          </strong>
+          <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
+            If that visual is not accessible for your learner, MyLearna can leave
+            this part open and use a practical observation instead. It will not
+            guess a placement from inaccessible evidence.
+          </span>
+          <button
+            type="button"
+            onClick={onUsePracticalObservation}
+            style={{
+              ...secondaryButtonStyle,
+              width: "fit-content",
+            }}
+          >
+            Use a practical observation instead
+          </button>
+        </aside>
+      ) : null}
 
       {isShortAnswer ? (
         <label style={{ display: "grid", gap: 8 }}>

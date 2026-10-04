@@ -161,3 +161,31 @@ it("lets the parent baseline own the area-complete message instead of duplicatin
     'stage.kind === "result" ? (\n        parentPresentation ? null',
   );
 });
+
+
+it("routes the accessible-form escape hatch to unresolved observed evidence instead of a score", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("handlePracticalObservationAlternative");
+  expect(source).toContain(
+    "Use a practical observation instead",
+  ).toBe(false);
+  expect(source).toContain(
+    "parent chose practical observation instead of a visual-dependent item",
+  );
+  expect(source).toContain(
+    "onUsePracticalObservation={",
+  );
+  expect(source).toContain(
+    'headline: "Practical observation required."',
+  );
+  expect(source).not.toContain(
+    "buildNumberOperationsCandidateBandResult({\n        subElementKey: anchorSet.key",
+  );
+});

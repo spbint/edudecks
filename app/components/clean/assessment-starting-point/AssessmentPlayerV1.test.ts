@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AssessmentPlayerV1, {
   getShortAnswerInputMode,
+  requiresPracticalObservationAlternative,
 } from "@/app/components/clean/assessment-starting-point/AssessmentPlayerV1";
 import { MYLEARNA_ASSESS_DEMO_ITEMS } from "@/lib/clean/assessments/mylearnaAssessDemoItems";
 import {
@@ -261,4 +262,35 @@ it("keeps ordering move controls on a wrapped full-width row for phone layouts",
   );
   expect(source).toContain('gridColumn: "1 / -1"');
   expect(source).toContain("flexWrap: \"wrap\"");
+});
+
+
+it("offers a truthful practical-observation path for visual-dependent accessible-form items", () => {
+  const onUsePracticalObservation = vi.fn();
+  const visualItem = COUNTING_P5_ANCHOR_ITEMS[1];
+
+  expect(requiresPracticalObservationAlternative(visualItem)).toBe(true);
+
+  render(
+    React.createElement(AssessmentPlayerV1, {
+      title: "Counting check",
+      items: [visualItem],
+      mode: "placement",
+      presentation: "parent",
+      onUsePracticalObservation,
+    }),
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
+  expect(
+    screen.getByText("This question depends on seeing a visual collection."),
+  ).toBeTruthy();
+
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Use a practical observation instead",
+    }),
+  );
+
+  expect(onUsePracticalObservation).toHaveBeenCalledTimes(1);
 });

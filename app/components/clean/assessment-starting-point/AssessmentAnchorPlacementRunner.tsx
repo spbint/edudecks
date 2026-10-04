@@ -544,6 +544,24 @@ export default function AssessmentAnchorPlacementRunner({
     [anchorSet, buildBandResult, pushHistory, recordStage, stage],
   );
 
+  const handlePracticalObservationAlternative = useCallback(() => {
+    const note =
+      "A visual-dependent electronic item was skipped because a practical observation is required for accessible evidence.";
+    setEvidenceNotes((current) =>
+      current.includes(note) ? current : [...current, note],
+    );
+    pushHistory(
+      `${anchorSet.label}: parent chose practical observation instead of a visual-dependent item.`,
+    );
+    setStage({
+      kind: "result",
+      headline: "Practical observation required.",
+      detail:
+        "The electronic check is leaving this area open rather than making a placement claim from evidence that is not accessible to the learner.",
+      evidenceNote: note,
+    });
+  }, [anchorSet.label, pushHistory]);
+
   let player = null;
   let stageLabel = "";
 
@@ -557,6 +575,11 @@ export default function AssessmentAnchorPlacementRunner({
         items={[...items]}
         mode="placement"
         presentation={parentPresentation ? "parent" : "staff"}
+        onUsePracticalObservation={
+          parentPresentation
+            ? handlePracticalObservationAlternative
+            : undefined
+        }
         onComplete={handleInitialComplete}
       />
     ) : null;
@@ -571,6 +594,11 @@ export default function AssessmentAnchorPlacementRunner({
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        onUsePracticalObservation={
+          parentPresentation
+            ? handlePracticalObservationAlternative
+            : undefined
+        }
         onComplete={handleReserveComplete}
       />
     ) : null;
@@ -585,6 +613,11 @@ export default function AssessmentAnchorPlacementRunner({
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        onUsePracticalObservation={
+          parentPresentation
+            ? handlePracticalObservationAlternative
+            : undefined
+        }
         onComplete={handleBranchComplete}
       />
     ) : null;
@@ -599,6 +632,11 @@ export default function AssessmentAnchorPlacementRunner({
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        onUsePracticalObservation={
+          parentPresentation
+            ? handlePracticalObservationAlternative
+            : undefined
+        }
         onComplete={handleSearchComplete}
       />
     ) : null;
@@ -613,6 +651,11 @@ export default function AssessmentAnchorPlacementRunner({
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        onUsePracticalObservation={
+          parentPresentation
+            ? handlePracticalObservationAlternative
+            : undefined
+        }
         onComplete={handleBoundaryComplete}
       />
     ) : null;

@@ -50,6 +50,8 @@ Current behaviour:
 - multiple learners can be switched using the existing active-learner context
 - in-progress browser draft is namespaced per learner
 - no assessment record is written to Supabase
+- visual-dependent counting/subitising items expose a practical-observation alternative instead of forcing inaccessible electronic evidence
+- choosing that alternative leaves the area unresolved; it never manufactures a digital placement
 - parent presentation suppresses P-level/routing/debug language during the assessment
 - result leads with practical next action, not technical placement
 - targeted practice uses the dedicated staff-gated `/practice/maths-starting-point` lane rather than the legacy practice gate
