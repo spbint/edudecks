@@ -123,7 +123,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
             letterSpacing: ".04em",
           }}
         >
-          Maths starting point
+          Number & Operations starting point
         </span>
         <h2
           style={{
