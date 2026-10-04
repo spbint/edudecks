@@ -265,6 +265,14 @@ export default function AssessmentNumberOperationsBaselineRunner({
             )
           }
         />
+        {unresolved.length ? (
+          <div style={{ ...panel, background: "#FFFDF5" }}>
+            <strong style={{ color: "#92400E" }}>A few areas still need stronger evidence</strong>
+            <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
+              MyLearna has deliberately left {unresolved.map((key) => LABELS[key]).join(", ")} unresolved rather than guessing. Use the suggested practical learning and check again with fresh evidence later.
+            </p>
+          </div>
+        ) : null}
         <AssessmentEvidenceConfirmationCard
           preview={evidencePreview}
           presentation={mode === "parent-preview" ? "parent" : "staff"}
@@ -277,21 +285,12 @@ export default function AssessmentNumberOperationsBaselineRunner({
                 subjectKey: "mathematics",
                 includeInPortfolio,
                 includeInReport,
-                hasEvidence: true,
                 presentation: mode,
               },
               userId,
             )
           }
         />
-        {unresolved.length ? (
-          <div style={{ ...panel, background: "#FFFDF5" }}>
-            <strong style={{ color: "#92400E" }}>A few areas still need stronger evidence</strong>
-            <p style={{ margin: 0, color: "#6B4F1D", lineHeight: 1.6 }}>
-              MyLearna has deliberately left {unresolved.map((key) => LABELS[key]).join(", ")} unresolved rather than guessing. Use the suggested practical learning and check again with fresh evidence later.
-            </p>
-          </div>
-        ) : null}
         {mode === "staff-debug" ? (
           <>
             <AssessmentNumberOperationsProfileCard profile={finalProfile} />
