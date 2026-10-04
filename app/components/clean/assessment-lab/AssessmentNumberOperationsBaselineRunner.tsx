@@ -2,9 +2,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner";
-import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard";\nimport AssessmentNumberOperationsParentUtilityCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsParentUtilityCard";
+import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard";
+import AssessmentNumberOperationsParentUtilityCard from "@/app/components/clean/assessment-lab/AssessmentNumberOperationsParentUtilityCard";
 import AssessmentEvidencePreviewCard from "@/app/components/clean/assessment-lab/AssessmentEvidencePreviewCard";
-import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";\nimport { buildNumberOperationsParentUtility } from "@/lib/clean/assessments/placement/numberOperationsParentUtility";
+import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/numberOperationsProfile";
+import { buildNumberOperationsParentUtility } from "@/lib/clean/assessments/placement/numberOperationsParentUtility";
 import { buildNumberOperationsEvidencePreview } from "@/lib/clean/assessments/placement/numberOperationsEvidencePreview";
 import { buildNumberOperationsBaselineSummarySnapshot } from "@/lib/clean/assessments/placement/numberOperationsBaselineSnapshot";
 import { buildNumberOperationsBaselinePersistenceDraft } from "@/lib/clean/assessments/placement/numberOperationsPersistenceDraft";
@@ -154,7 +156,8 @@ export default function AssessmentNumberOperationsBaselineRunner() {
   if (complete) {
     const finalResults = Object.values(resultsByKey);
     const finalProfile = buildNumberOperationsProfile(finalResults);
-    const parentUtility = buildNumberOperationsParentUtility(finalProfile);\n    const evidencePreview = buildNumberOperationsEvidencePreview(finalProfile);
+    const parentUtility = buildNumberOperationsParentUtility(finalProfile);
+    const evidencePreview = buildNumberOperationsEvidencePreview(finalProfile);
     const baselineSnapshot = buildNumberOperationsBaselineSummarySnapshot({
       profile: finalProfile,
       unresolvedSubElements: unresolved,
