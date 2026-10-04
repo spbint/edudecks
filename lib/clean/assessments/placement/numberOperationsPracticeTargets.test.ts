@@ -110,7 +110,7 @@ it("preserves learner context and returns targeted practice to the Maths startin
   });
   const url = new URL(target.href, "https://mylearna.test");
 
-  expect(url.pathname).toBe("/practice/number-targeted");
+  expect(url.pathname).toBe("/practice/maths-starting-point");
   expect(url.searchParams.get("learnerId")).toBe("learner-123");
   expect(url.searchParams.get("returnTo")).toBe(
     "/assessments/maths-starting-point",
@@ -128,4 +128,22 @@ it("preserves learner context on My Pathways fallback targets", () => {
 
   expect(url.pathname).toBe("/my-pathways");
   expect(url.searchParams.get("learnerId")).toBe("learner-123");
+});
+
+
+it("never sends starting-point broad practice through the legacy practice route", () => {
+  for (const input of [
+    { subElementKey: "number-place-value" as const, targetP: 7 },
+    { subElementKey: "additive-strategies" as const, targetP: 7 },
+    { subElementKey: "multiplicative-strategies" as const, targetP: 6 },
+    { subElementKey: "understanding-money" as const, targetP: 6 },
+  ]) {
+    const target = getNumberOperationsPracticeTarget({
+      ...input,
+      learnerId: "learner-123",
+    });
+    expect(target.href).toContain("/practice/maths-starting-point?");
+    expect(target.href).not.toContain("/practice/number-targeted");
+    expect(target.href).toContain("source=maths-starting-point");
+  }
 });

@@ -1992,10 +1992,13 @@ type SourcePracticeContext = {
   stageKey: string;
   pathwayStepId: string;
   stepKey: string;
+  source: string;
+  learnerId: string;
   sourceAssessmentBand: string;
   sourceProgressionStep: string;
   sourceSubElement: string;
   returnTo: string;
+  practiceRoute: string;
 };
 
 function buildSectionHref(
@@ -2025,6 +2028,14 @@ function buildSectionHref(
     params.set("stepKey", sourceContext.stepKey);
   }
 
+  if (sourceContext.source) {
+    params.set("source", sourceContext.source);
+  }
+
+  if (sourceContext.learnerId) {
+    params.set("learnerId", sourceContext.learnerId);
+  }
+
   if (sourceContext.sourceAssessmentBand) {
     params.set("sourceAssessmentBand", sourceContext.sourceAssessmentBand);
   }
@@ -2041,7 +2052,7 @@ function buildSectionHref(
     params.set("returnTo", sourceContext.returnTo);
   }
 
-  return `/practice/number-targeted?${params.toString()}`;
+  return `${sourceContext.practiceRoute}?${params.toString()}`;
 }
 
 function buildAssessmentHref(sourceContext: SourcePracticeContext) {
@@ -2065,6 +2076,10 @@ function buildAssessmentHref(sourceContext: SourcePracticeContext) {
 
   if (sourceContext.stepKey) {
     params.set("stepKey", sourceContext.stepKey);
+  }
+
+  if (sourceContext.learnerId) {
+    params.set("learnerId", sourceContext.learnerId);
   }
 
   if (sourceContext.sourceAssessmentBand) {
@@ -4667,8 +4682,20 @@ function MiniCheckSection({
   );
 }
 
-export default function CleanNumberTargetedPracticeViewer() {
+export type NumberTargetedPracticeExperience =
+  | "legacy"
+  | "maths-starting-point";
+
+export default function CleanNumberTargetedPracticeViewer({
+  experience = "legacy",
+}: {
+  experience?: NumberTargetedPracticeExperience;
+} = {}) {
   const { user } = useAuthUser();
+  const isMathsStartingPoint = experience === "maths-starting-point";
+  const practiceRoute = isMathsStartingPoint
+    ? "/practice/maths-starting-point"
+    : "/practice/number-targeted";
   const searchParams = useSearchParams();
   const [responses, setResponses] = useState<LocalPracticeResponseMap>({});
   const [stepPracticeDepth, setStepPracticeDepth] =
@@ -4752,11 +4779,16 @@ export default function CleanNumberTargetedPracticeViewer() {
     stageKey,
     pathwayStepId,
     stepKey,
+    source,
+    learnerId,
     sourceAssessmentBand,
     sourceProgressionStep,
     sourceSubElement,
     returnTo,
+    practiceRoute,
   };
+  const startingPointReturnHref =
+    returnTo || "/assessments/maths-starting-point";
   const pathwayAnalyticsContext = {
     subjectKey: exactStepPractice?.subjectKey ?? subjectKey,
     strandKey: exactStepPractice?.strandKey ?? strandKey,
@@ -4954,17 +4986,25 @@ export default function CleanNumberTargetedPracticeViewer() {
     <main style={shellStyle}>
       <div style={wrapStyle}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <Link
-            href={exactStepAssessmentHref || buildAssessmentHref(sourceContext)}
-            style={secondaryButtonStyle}
-          >
-            Return to assessment
-          </Link>
-          {returnTo ? (
-            <Link href={returnTo} style={secondaryButtonStyle}>
-              View pathway map
+          {isMathsStartingPoint ? (
+            <Link href={startingPointReturnHref} style={secondaryButtonStyle}>
+              Return to Maths starting point
             </Link>
-          ) : null}
+          ) : (
+            <>
+              <Link
+                href={exactStepAssessmentHref || buildAssessmentHref(sourceContext)}
+                style={secondaryButtonStyle}
+              >
+                Return to assessment
+              </Link>
+              {returnTo ? (
+                <Link href={returnTo} style={secondaryButtonStyle}>
+                  View pathway map
+                </Link>
+              ) : null}
+            </>
+          )}
         </div>
 
         {exactStepPractice ? (
@@ -5139,12 +5179,16 @@ export default function CleanNumberTargetedPracticeViewer() {
                   This practice stays on this device. Choose what helps next.
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {returnTo ? (
+                  {isMathsStartingPoint ? (
+                    <Link href={startingPointReturnHref} style={buttonStyle}>
+                      Return to Maths starting point
+                    </Link>
+                  ) : returnTo ? (
                     <Link href={returnTo} style={buttonStyle}>
                       Return to pathway step
                     </Link>
                   ) : null}
-                  {exactStepAssessmentHref ? (
+                  {!isMathsStartingPoint && exactStepAssessmentHref ? (
                     <Link href={exactStepAssessmentHref} style={secondaryButtonStyle}>
                       Check understanding
                     </Link>

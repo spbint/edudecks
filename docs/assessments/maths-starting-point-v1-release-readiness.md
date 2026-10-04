@@ -52,6 +52,8 @@ Current behaviour:
 - no assessment record is written to Supabase
 - parent presentation suppresses P-level/routing/debug language during the assessment
 - result leads with practical next action, not technical placement
+- targeted practice uses the dedicated staff-gated `/practice/maths-starting-point` lane rather than the legacy practice gate
+- practice section navigation preserves learner/source context and returns to the Maths starting-point utility
 
 ## Measurement
 

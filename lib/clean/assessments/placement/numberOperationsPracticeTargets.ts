@@ -19,6 +19,7 @@ function practiceHref(input: {
 }) {
   const params = new URLSearchParams({
     moduleId: input.moduleId,
+    source: "maths-starting-point",
     sourceAssessmentBand: `mylearna-au-numeracy-v9-p${input.targetP}`,
     sourceProgressionStep: `P${input.targetP}`,
     sourceSubElement: input.subElementKey,
@@ -26,7 +27,7 @@ function practiceHref(input: {
   });
   const learnerId = String(input.learnerId ?? "").trim();
   if (learnerId) params.set("learnerId", learnerId);
-  return `/practice/number-targeted?${params.toString()}`;
+  return `/practice/maths-starting-point?${params.toString()}`;
 }
 
 function moduleTarget(
