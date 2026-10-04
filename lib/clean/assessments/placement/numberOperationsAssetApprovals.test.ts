@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getNumberOperationsPlacementItemById } from "./numberOperationsItemRegistry";
 import {
   NUMBER_OPERATIONS_ASSET_APPROVALS,
   getNumberOperationsAssetApproval,
@@ -45,4 +46,21 @@ describe("Number & Operations trusted asset approvals", () => {
       }),
     ).toBe(false);
   });
+});
+
+
+it("scopes the pending currency approval only to real currency-token placement items", () => {
+  const approval = NUMBER_OPERATIONS_ASSET_APPROVALS.find(
+    (candidate) => candidate.id === "australian-currency-schematic-v1",
+  );
+  expect(approval).toBeTruthy();
+  if (!approval) return;
+
+  expect(approval.itemIds).toHaveLength(3);
+
+  for (const itemId of approval.itemIds) {
+    const entry = getNumberOperationsPlacementItemById(itemId);
+    expect(entry, itemId).not.toBeNull();
+    expect(entry?.item.stimulus.type, itemId).toBe("currency-tokens");
+  }
 });
