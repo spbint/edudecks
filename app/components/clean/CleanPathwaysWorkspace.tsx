@@ -172,6 +172,12 @@ const IN_DEVELOPMENT_PATHWAY_SUBJECT_OPTIONS = PATHWAY_SUBJECT_OPTIONS.filter(
   (option) => !option.selectable,
 );
 
+const MATHS_STARTING_POINT_STRANDS = new Set([
+  "number-and-place-value",
+  "operations-and-calculation",
+  "financial-and-real-world-mathematics",
+]);
+
 const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
 const PATHWAYS_INTERACTION_STORAGE_KEY = "mylearna:clean-pathways-interaction:v1";
 const PATHWAYS_MANUAL_COMPLETION_STORAGE_KEY =
@@ -3207,6 +3213,7 @@ function PathwaysWorkspaceBody() {
                 >
                   {canPreviewMathsStartingPoint &&
                   selectedSubjectKey === "mathematics" &&
+                  MATHS_STARTING_POINT_STRANDS.has(selectedSubjectWorkspace.key) &&
                   selectedLearner ? (
                     <section
                       style={{
@@ -3218,7 +3225,7 @@ function PathwaysWorkspaceBody() {
                         gap: 8,
                       }}
                     >
-                      <div style={eyebrowStyle}>Staff preview · Maths starting point</div>
+                      <div style={eyebrowStyle}>Staff preview · Number & Operations starting point</div>
                       <strong style={{ color: "#17204B", fontSize: 18 }}>
                         Not sure where to begin?
                       </strong>
