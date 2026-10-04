@@ -3,7 +3,9 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import AssessmentPlayerV1 from "@/app/components/clean/assessment-starting-point/AssessmentPlayerV1";
+import AssessmentPlayerV1, {
+  getShortAnswerInputMode,
+} from "@/app/components/clean/assessment-starting-point/AssessmentPlayerV1";
 import { MYLEARNA_ASSESS_DEMO_ITEMS } from "@/lib/clean/assessments/mylearnaAssessDemoItems";
 import {
   COUNTING_P5_ANCHOR_ITEMS,
@@ -174,4 +176,63 @@ describe("AssessmentPlayerV1", () => {
     expect(onComplete.mock.calls[0][0][0].correct).toBe(true);
   });
 
+});
+
+
+it("uses a text keyboard for symbolic fractions and a decimal keyboard for numeric answers", () => {
+  const numeric = {
+    ...COUNTING_P5_ANCHOR_ITEMS[0],
+    response: {
+      ...COUNTING_P5_ANCHOR_ITEMS[0].response,
+      type: "short-answer" as const,
+      correctValue: "62",
+    },
+  };
+  const fraction = {
+    ...COUNTING_P5_ANCHOR_ITEMS[0],
+    id: "fraction-input-proof",
+    response: {
+      type: "short-answer" as const,
+      correctValue: "5/8",
+      acceptableValues: ["5/8"],
+    },
+  };
+
+  expect(getShortAnswerInputMode(numeric)).toBe("decimal");
+  expect(getShortAnswerInputMode(fraction)).toBe("text");
+});
+
+it("uses parent language and advances placement questions with one Continue action", () => {
+  const onComplete = vi.fn();
+  render(
+    React.createElement(AssessmentPlayerV1, {
+      title: "Counting check",
+      items: COUNTING_P5_ANCHOR_ITEMS,
+      mode: "placement",
+      presentation: "parent",
+      onComplete,
+    }),
+  );
+
+  expect(screen.getByText("Maths check")).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Start this area" }),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
+    target: { value: "62" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+  expect(screen.getByText(/Question\s+2\s+of\s+2/)).toBeTruthy();
+  expect(screen.queryByText("Response recorded.")).toBeNull();
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
+    target: { value: "14" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+  expect(onComplete).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("button", { name: "View summary" })).toBeNull();
 });

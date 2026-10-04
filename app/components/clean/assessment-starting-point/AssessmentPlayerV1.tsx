@@ -15,6 +15,8 @@ type AssessmentPlayerV1Props = {
   title: string;
   items: MyLearnaAssessmentItem[];
   mode?: "practice" | "placement";
+  presentation?: "staff" | "parent";
+  autoStart?: boolean;
   onComplete?: (responses: MyLearnaAssessmentResponse[]) => void;
 };
 
@@ -51,6 +53,17 @@ function AssessmentItemRenderer({ item }: { item: MyLearnaAssessmentItem }) {
   return <AssessmentStimulus stimulus={item.stimulus} />;
 }
 
+export function getShortAnswerInputMode(
+  item: MyLearnaAssessmentItem | null | undefined,
+): React.HTMLAttributes<HTMLInputElement>["inputMode"] {
+  if (!item || item.response.type !== "short-answer") return undefined;
+  const canonical = String(item.response.correctValue ?? "").trim();
+  const numericLike = /^[-+]?(?:\d{1,3}(?:,\d{3})*|\d+)?(?:\.\d+)?$/.test(
+    canonical,
+  );
+  return numericLike ? "decimal" : "text";
+}
+
 function initialOptionOrder(item: MyLearnaAssessmentItem | null | undefined) {
   return item?.response.type === "ordering"
     ? (item.response.options || []).map((option) => option.id)
@@ -77,15 +90,18 @@ export default function AssessmentPlayerV1({
   title,
   items,
   mode = "practice",
+  presentation = "staff",
+  autoStart = false,
   onComplete,
 }: AssessmentPlayerV1Props) {
-  const [started, setStarted] = useState(false);
+  const parentPresentation = presentation === "parent";
+  const [started, setStarted] = useState(autoStart);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [textValue, setTextValue] = useState("");
   const [submittedResponse, setSubmittedResponse] = useState<MyLearnaAssessmentResponse | null>(null);
   const [responses, setResponses] = useState<MyLearnaAssessmentResponse[]>([]);
-  const itemStartedAt = useRef(0);
+  const itemStartedAt = useRef(autoStart ? Date.now() : 0);
   const currentItem = items[currentIndex] || null;
   const summary = useMemo(() => summarizeAssessmentAttempt(items, responses), [items, responses]);
   const complete =
@@ -96,8 +112,10 @@ export default function AssessmentPlayerV1({
     items.length > 0;
 
   useEffect(() => {
-    if (complete) onComplete?.(responses);
-  }, [complete, onComplete, responses]);
+    if (complete && !(parentPresentation && mode === "placement")) {
+      onComplete?.(responses);
+    }
+  }, [complete, mode, onComplete, parentPresentation, responses]);
 
   useEffect(() => {
     if (!currentItem) return;
@@ -115,15 +133,17 @@ export default function AssessmentPlayerV1({
       <section style={shellStyle}>
         <div style={{ display: "grid", gap: 8 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            MyLearna Assess V1
+            {parentPresentation ? "Maths check" : "MyLearna Assess V1"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 38px)" }}>
             {title}
           </h2>
           <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
-            {mode === "placement"
-              ? "Placement-check mode records responses without showing correctness during the check."
-              : "Internal proof of concept using structured items and deterministic visuals."}
+            {parentPresentation && mode === "placement"
+              ? "Answer these questions as naturally as possible. MyLearna uses them to decide whether it has enough evidence or needs to ask a little more."
+              : mode === "placement"
+                ? "Placement-check mode records responses without showing correctness during the check."
+                : "Internal proof of concept using structured items and deterministic visuals."}
           </p>
         </div>
         <button
@@ -134,7 +154,7 @@ export default function AssessmentPlayerV1({
           }}
           style={primaryButtonStyle}
         >
-          Start assessment
+          {parentPresentation ? "Start this area" : "Start assessment"}
         </button>
       </section>
     );
@@ -145,13 +165,17 @@ export default function AssessmentPlayerV1({
       return (
         <section style={shellStyle}>
           <span style={{ color: "#2F9D68", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            Check complete
+            {parentPresentation ? "This set is complete" : "Check complete"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B", fontSize: "clamp(24px, 4vw, 34px)" }}>
-            Responses recorded for routing.
+            {parentPresentation
+              ? "MyLearna is deciding what evidence is useful next."
+              : "Responses recorded for routing."}
           </h2>
           <p style={{ margin: 0, color: "#5B6478", lineHeight: 1.6 }}>
-            No percentage or correctness feedback is shown in placement mode.
+            {parentPresentation
+              ? "No score is shown because this check is finding a starting point, not giving a test mark."
+              : "No percentage or correctness feedback is shown in placement mode."}
           </p>
         </section>
       );
@@ -221,7 +245,9 @@ export default function AssessmentPlayerV1({
             Question {currentIndex + 1} of {items.length}
           </span>
           <strong style={{ color: "#17204B", fontSize: 18 }}>
-            You&apos;re checking: {currentItem.skill.name}
+            {parentPresentation
+              ? currentItem.skill.name
+              : <>You&apos;re checking: {currentItem.skill.name}</>}
           </strong>
         </div>
         <span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
@@ -243,7 +269,7 @@ export default function AssessmentPlayerV1({
             aria-label="Answer"
             value={textValue}
             disabled={Boolean(submittedResponse)}
-            inputMode="decimal"
+            inputMode={getShortAnswerInputMode(currentItem)}
             autoComplete="off"
             onChange={(event) => setTextValue(event.target.value)}
             style={{
@@ -388,18 +414,20 @@ export default function AssessmentPlayerV1({
 
       {submittedResponse ? (
         mode === "placement" ? (
-          <div
-            role="status"
-            style={{
-              border: "1px solid #D9D0FF",
-              borderRadius: 18,
-              background: "#F8F5FF",
-              padding: 16,
-              color: "#17204B",
-            }}
-          >
-            <strong>Response recorded.</strong>
-          </div>
+          parentPresentation ? null : (
+            <div
+              role="status"
+              style={{
+                border: "1px solid #D9D0FF",
+                borderRadius: 18,
+                background: "#F8F5FF",
+                padding: 16,
+                color: "#17204B",
+              }}
+            >
+              <strong>Response recorded.</strong>
+            </div>
+          )
         ) : (
           <div
             role="status"
@@ -438,8 +466,29 @@ export default function AssessmentPlayerV1({
                 ),
                 isShortAnswer ? textValue : undefined,
               );
+              const nextResponses = [
+                ...responses.filter((item) => item.itemId !== response.itemId),
+                response,
+              ];
+              setResponses(nextResponses);
+
+              if (parentPresentation && mode === "placement") {
+                if (currentIndex >= items.length - 1) {
+                  setSubmittedResponse(null);
+                  onComplete?.(nextResponses);
+                } else {
+                  setSubmittedResponse(null);
+                  setSelectedOptionIds([]);
+                  setTextValue("");
+                  setCurrentIndex((current) =>
+                    Math.min(items.length - 1, current + 1),
+                  );
+                  itemStartedAt.current = Date.now();
+                }
+                return;
+              }
+
               setSubmittedResponse(response);
-              setResponses((current) => [...current.filter((item) => item.itemId !== response.itemId), response]);
             }}
             style={{
               ...primaryButtonStyle,
@@ -447,7 +496,9 @@ export default function AssessmentPlayerV1({
               cursor: responseReady ? "pointer" : "not-allowed",
             }}
           >
-            Check answer
+            {parentPresentation && mode === "placement"
+              ? "Continue"
+              : "Check answer"}
           </button>
         ) : (
           <button

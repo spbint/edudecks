@@ -556,6 +556,7 @@ export default function AssessmentAnchorPlacementRunner({
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} initial anchor`}
         items={[...items]}
         mode="placement"
+        presentation={parentPresentation ? "parent" : "staff"}
         onComplete={handleInitialComplete}
       />
     ) : null;
@@ -568,6 +569,8 @@ export default function AssessmentAnchorPlacementRunner({
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} reserve probe`}
         items={[item]}
         mode="placement"
+        autoStart={parentPresentation}
+        presentation={parentPresentation ? "parent" : "staff"}
         onComplete={handleReserveComplete}
       />
     ) : null;
@@ -580,6 +583,8 @@ export default function AssessmentAnchorPlacementRunner({
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} branch anchor`}
         items={[...items]}
         mode="placement"
+        autoStart={parentPresentation}
+        presentation={parentPresentation ? "parent" : "staff"}
         onComplete={handleBranchComplete}
       />
     ) : null;
@@ -592,6 +597,8 @@ export default function AssessmentAnchorPlacementRunner({
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} search cluster`}
         items={[...items]}
         mode="placement"
+        autoStart={parentPresentation}
+        presentation={parentPresentation ? "parent" : "staff"}
         onComplete={handleSearchComplete}
       />
     ) : null;
@@ -604,6 +611,8 @@ export default function AssessmentAnchorPlacementRunner({
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} boundary probes`}
         items={[...items]}
         mode="placement"
+        autoStart={parentPresentation}
+        presentation={parentPresentation ? "parent" : "staff"}
         onComplete={handleBoundaryComplete}
       />
     ) : null;
