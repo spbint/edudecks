@@ -503,7 +503,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
             }}
           >
             <strong style={{ color: "#17204B" }}>
-              {order.length === 1 ? "One focused Maths area" : "Five short Maths areas"}
+              {order.length === 1 ? "One focused Maths area" : "Five separate Maths areas"}
             </strong>
             <span>
               A fully electronic area uses {currentAreaBudget?.minimumQuestions ?? 6}–{currentAreaBudget?.maximumQuestions ?? 11} questions. MyLearna may stop sooner when practical or observed evidence is more trustworthy than another screen question.
