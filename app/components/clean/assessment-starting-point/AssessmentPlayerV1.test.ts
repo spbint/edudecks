@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import React from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AssessmentPlayerV1, {
@@ -242,4 +244,21 @@ it("uses parent language and advances placement questions with one Continue acti
 
   expect(onComplete).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("button", { name: "View summary" })).toBeNull();
+});
+
+
+it("keeps ordering move controls on a wrapped full-width row for phone layouts", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentPlayerV1.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain(
+    'gridTemplateColumns: "34px minmax(0, 1fr)"',
+  );
+  expect(source).toContain('gridColumn: "1 / -1"');
+  expect(source).toContain("flexWrap: \"wrap\"");
 });

@@ -312,7 +312,7 @@ export default function AssessmentPlayerV1({
                   background: "#ffffff",
                   padding: "10px 12px",
                   display: "grid",
-                  gridTemplateColumns: "34px minmax(0, 1fr) auto",
+                  gridTemplateColumns: "34px minmax(0, 1fr)",
                   gap: 10,
                   alignItems: "center",
                 }}
@@ -334,7 +334,15 @@ export default function AssessmentPlayerV1({
                 <span style={{ color: "#17204B", fontSize: 18, fontWeight: 850 }}>
                   {label}
                 </span>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    display: "flex",
+                    gap: 6,
+                    flexWrap: "wrap",
+                    paddingLeft: 44,
+                  }}
+                >
                   <button
                     type="button"
                     aria-label={"Move " + label + " up"}

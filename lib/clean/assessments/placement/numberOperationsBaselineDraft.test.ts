@@ -70,6 +70,7 @@ describe("Number Operations baseline browser draft", () => {
       completedAt: "2026-10-03T08:20:00.000Z",
     });
     expect(parsed?.resultsByKey["number-place-value"]?.upperP).toBe(6);
+    expect(parsed?.tracesByKey).toEqual({});
   });
 
   it("uses a new storage namespace for the completion-aware contract", () => {

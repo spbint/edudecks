@@ -183,3 +183,18 @@ it("keeps a completed browser-only profile available for the practice-return loo
   );
   expect(source).toContain("hydratedCompleteRef.current");
 });
+
+
+it("drops raw response traces from the completed browser-only draft", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain(
+    "tracesByKey: complete ? {} : tracesByKey",
+  );
+});

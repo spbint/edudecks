@@ -109,7 +109,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
       currentIndex,
       resultsByKey,
       unresolvedSubElements: unresolved,
-      tracesByKey,
+      tracesByKey: complete ? {} : tracesByKey,
       startedAt: startedAtRef.current,
       completedAt: complete ? completedAt : null,
     });
