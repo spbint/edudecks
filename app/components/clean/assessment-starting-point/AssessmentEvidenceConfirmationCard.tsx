@@ -33,8 +33,7 @@ export default function AssessmentEvidenceConfirmationCard({
     preview.assessedSubElements > 0 &&
     preview.resultBands.length > 0 &&
     preview.curriculumNodeIds.length > 0 &&
-    preview.portfolioEligibleAfterConfirmation &&
-    preview.reportEligibleAfterConfirmation;
+    preview.portfolioEligibleAfterConfirmation;
   const [acknowledged, setAcknowledged] = useState(false);
   const [includeInPortfolio, setIncludeInPortfolio] = useState(true);
   const [includeInReport, setIncludeInReport] = useState(false);
@@ -177,6 +176,7 @@ export default function AssessmentEvidenceConfirmationCard({
           <input
             type="checkbox"
             checked={includeInReport}
+            disabled={!preview.reportEligibleAfterConfirmation}
             onChange={(event) => {
               setIncludeInReport(event.target.checked);
               setDraft(null);
@@ -184,6 +184,12 @@ export default function AssessmentEvidenceConfirmationCard({
           />
           Make available for reports
         </label>
+        {!preview.reportEligibleAfterConfirmation ? (
+          <small style={{ color: "#92400E", lineHeight: 1.5 }}>
+            Report use becomes available after the remaining routing-only evidence
+            has been verified with practical or observed learning.
+          </small>
+        ) : null}
       </div>
 
       <label style={{ ...panel }}>

@@ -89,3 +89,37 @@ it("rejects confirmation when every area remains unresolved", () => {
     }),
   ).toThrow(/No reportable assessment evidence is available/i);
 });
+
+
+it("allows Portfolio confirmation but rejects report inclusion for routing-only evidence", () => {
+  const routingOnlyPreview = buildNumberOperationsEvidencePreview(
+    buildNumberOperationsProfile([
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "additive-strategies",
+        lowerP: 2,
+        upperP: 3,
+        evidenceLimitations: [
+          "Observed strategy evidence is required before a stronger claim.",
+        ],
+      }),
+    ]),
+  );
+
+  const portfolioDraft = buildNumberOperationsEvidenceConfirmationDraft({
+    preview: routingOnlyPreview,
+    parentAcknowledgedStartingPoint: true,
+    includeInPortfolio: true,
+    includeInReport: false,
+  });
+  expect(portfolioDraft.includeInPortfolio).toBe(true);
+  expect(portfolioDraft.includeInReport).toBe(false);
+
+  expect(() =>
+    buildNumberOperationsEvidenceConfirmationDraft({
+      preview: routingOnlyPreview,
+      parentAcknowledgedStartingPoint: true,
+      includeInPortfolio: true,
+      includeInReport: true,
+    }),
+  ).toThrow(/stronger verification.*reports/i);
+});

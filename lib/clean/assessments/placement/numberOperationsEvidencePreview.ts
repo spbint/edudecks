@@ -119,6 +119,7 @@ export function buildNumberOperationsEvidencePreview(
     resultBands: results,
     requiresParentConfirmation: true,
     portfolioEligibleAfterConfirmation: hasEvidence,
-    reportEligibleAfterConfirmation: hasEvidence,
+    reportEligibleAfterConfirmation:
+      hasEvidence && profile.routingOnlyCount === 0,
   };
 }

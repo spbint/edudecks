@@ -58,11 +58,16 @@ export function buildNumberOperationsEvidenceConfirmationDraft(input: {
     input.preview.assessedSubElements < 1 ||
     !input.preview.resultBands.length ||
     !input.preview.curriculumNodeIds.length ||
-    !input.preview.portfolioEligibleAfterConfirmation ||
-    !input.preview.reportEligibleAfterConfirmation
+    !input.preview.portfolioEligibleAfterConfirmation
   ) {
     throw new Error(
       "No reportable assessment evidence is available to confirm yet.",
+    );
+  }
+
+  if (input.includeInReport && !input.preview.reportEligibleAfterConfirmation) {
+    throw new Error(
+      "This starting-point evidence still needs stronger verification before it can be made available for reports.",
     );
   }
 

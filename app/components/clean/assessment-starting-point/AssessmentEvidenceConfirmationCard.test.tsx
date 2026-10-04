@@ -179,3 +179,33 @@ it("uses starting-point language rather than placement jargon in parent evidence
   ).toBeTruthy();
   expect(screen.queryByText(/placement claim/i)).toBeNull();
 });
+
+
+it("keeps routing-only evidence eligible for Portfolio but disables report use until verification", () => {
+  const routingOnlyPreview: NumberOperationsEvidencePreview = {
+    ...preview,
+    routingOnlySubElements: 1,
+    portfolioEligibleAfterConfirmation: true,
+    reportEligibleAfterConfirmation: false,
+  };
+
+  render(
+    React.createElement(AssessmentEvidenceConfirmationCard, {
+      preview: routingOnlyPreview,
+      presentation: "parent",
+    }),
+  );
+
+  expect(
+    screen.getByRole("checkbox", { name: "Include in My Portfolio" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("checkbox", { name: "Make available for reports" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText(/Report use becomes available after the remaining routing-only evidence/i),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Preview this evidence choice" }),
+  ).toBeDisabled();
+});

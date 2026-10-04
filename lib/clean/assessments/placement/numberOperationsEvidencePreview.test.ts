@@ -36,7 +36,7 @@ describe("Number Operations evidence preview", () => {
       routingOnlySubElements: 1,
       requiresParentConfirmation: true,
       portfolioEligibleAfterConfirmation: true,
-      reportEligibleAfterConfirmation: true,
+      reportEligibleAfterConfirmation: false,
     });
     expect(preview.summary).toMatch(/separate progression bands/i);
     expect(preview.summary).toMatch(/routing-only/i);
@@ -89,4 +89,41 @@ it("marks an all-unresolved profile as ineligible for Portfolio/report confirmat
   expect(preview.resultBands).toEqual([]);
   expect(preview.portfolioEligibleAfterConfirmation).toBe(false);
   expect(preview.reportEligibleAfterConfirmation).toBe(false);
+});
+
+
+it("allows Portfolio retention but blocks report availability while any result is routing-only", () => {
+  const profile = buildNumberOperationsProfile([
+    buildNumberOperationsCandidateBandResult({
+      subElementKey: "additive-strategies",
+      lowerP: 2,
+      upperP: 3,
+      evidenceLimitations: [
+        "Observed strategy evidence is required before a stronger claim.",
+      ],
+    }),
+  ]);
+
+  const preview = buildNumberOperationsEvidencePreview(profile);
+
+  expect(preview.routingOnlySubElements).toBe(1);
+  expect(preview.portfolioEligibleAfterConfirmation).toBe(true);
+  expect(preview.reportEligibleAfterConfirmation).toBe(false);
+});
+
+
+it("allows report availability only when the retained evidence has no routing-only result", () => {
+  const profile = buildNumberOperationsProfile([
+    buildNumberOperationsCandidateBandResult({
+      subElementKey: "number-place-value",
+      lowerP: 5,
+      upperP: 6,
+    }),
+  ]);
+
+  const preview = buildNumberOperationsEvidencePreview(profile);
+
+  expect(preview.routingOnlySubElements).toBe(0);
+  expect(preview.portfolioEligibleAfterConfirmation).toBe(true);
+  expect(preview.reportEligibleAfterConfirmation).toBe(true);
 });
