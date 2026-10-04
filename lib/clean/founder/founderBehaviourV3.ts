@@ -285,11 +285,13 @@ export function buildFounderBehaviourV3(input: {
   posthogAvailable: boolean;
   internalUserIds?: Set<string>;
   suspiciousUserIds?: Set<string>;
+  currentUserIds?: Set<string>;
   now?: Date;
 }): FounderBehaviourV3 {
   const now = input.now ?? new Date();
   const internalIds = input.internalUserIds ?? new Set<string>();
   const suspiciousIds = input.suspiciousUserIds ?? new Set<string>();
+  const currentUserIds = input.currentUserIds ?? new Set<string>();
   const includeSuspicious = input.includeSuspicious ?? true;
   const personIdsFor = (userIds: Set<string>) => new Set(
     input.events
@@ -298,12 +300,25 @@ export function buildFounderBehaviourV3(input: {
   );
   const internalPersonIds = personIdsFor(internalIds);
   const suspiciousPersonIds = personIdsFor(suspiciousIds);
+  const currentPersonIds = personIdsFor(currentUserIds);
   const belongsTo = (event: FounderProductEvent, userIds: Set<string>, personIds: Set<string>) =>
     userIds.has(event.userId) || Boolean(event.personId && personIds.has(event.personId));
-  const events = input.events.filter((event) =>
+  const populationEvents = input.events.filter((event) =>
     (input.includeInternal || !belongsTo(event, internalIds, internalPersonIds))
     && (includeSuspicious || !belongsTo(event, suspiciousIds, suspiciousPersonIds)),
   );
+  const isPublicOrAuthEvent = (event: FounderProductEvent) =>
+    event.event.startsWith("public_") || event.event.startsWith("auth_");
+  const events = currentUserIds.size
+    ? populationEvents.filter((event) =>
+        isPublicOrAuthEvent(event) || belongsTo(event, currentUserIds, currentPersonIds),
+      )
+    : populationEvents;
+  const unmatchedProductActors = currentUserIds.size
+    ? actors(populationEvents.filter((event) =>
+        PRODUCT_EVENTS.has(event.event) && !belongsTo(event, currentUserIds, currentPersonIds),
+      )).size
+    : 0;
   const publicEvents = events.filter((event) => PUBLIC_EVENTS.has(event.event));
   const productEvents = events.filter((event) => PRODUCT_EVENTS.has(event.event));
   const publicActors = actors(publicEvents);
@@ -502,6 +517,7 @@ export function buildFounderBehaviourV3(input: {
       { label: "Identity stitching", detail: "Anonymous-to-authenticated relationships are directional unless PostHog has merged the actor through $identify. Account exclusions follow PostHog person identity where that merge is available.", confidence: "directional" },
       { label: "Internal/test traffic", detail: input.includeInternal ? "Internal/test authenticated activity is included." : "Known internal/test authenticated IDs are excluded; anonymous internal browsing cannot be identified safely.", confidence: "directional" },
       { label: "Suspicious/unknown accounts", detail: includeSuspicious ? "Accounts flagged for review remain included; they are not assumed to be fake or internal." : "Accounts explicitly flagged for review are excluded from this comparison without deleting their data.", confidence: "high" },
+      { label: "Current account verification", detail: currentUserIds.size ? `${unmatchedProductActors} historical or unmatched product actors are excluded from current-account product metrics.` : "Current-account verification was not supplied for this calculation.", confidence: currentUserIds.size ? "high" : "insufficient" },
       { label: "Camera source", detail: "Camera/library/file values describe the picker selected by the user; browsers may still offer another source and no image content or filename is collected.", confidence: "directional" },
       { label: "Missing activation milestones", detail: "Profile completion, learner creation and planning setup lack timestamped analytics events and are not invented.", confidence: "insufficient" },
       { label: "Sample policy", detail: `Cohort rates require at least ${MIN_SAMPLE} actors; smaller samples display insufficient data.`, confidence: "high" },
