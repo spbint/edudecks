@@ -76,6 +76,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
   const [draftHydrated, setDraftHydrated] = useState(false);
   const startedAtRef = useRef(new Date().toISOString());
   const completionTrackedRef = useRef(false);
+  const hydratedCompleteRef = useRef(false);
   const draftStorageKey = learnerId
     ? `${NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY}:${learnerId}`
     : NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY;
@@ -90,25 +91,27 @@ export default function AssessmentNumberOperationsBaselineRunner({
       setUnresolved(draft.unresolvedSubElements);
       setTracesByKey(draft.tracesByKey);
       startedAtRef.current = draft.startedAt;
+      if (draft.status === "complete") {
+        hydratedCompleteRef.current = true;
+        setCompletedAt(draft.completedAt);
+        setComplete(true);
+      }
     }
     setDraftHydrated(true);
   }, [draftStorageKey]);
 
   useEffect(() => {
     if (!draftHydrated) return;
-    if (complete) {
-      window.sessionStorage.removeItem(
-        draftStorageKey,
-      );
-      return;
-    }
+    if (complete && !completedAt) return;
 
     const draft = buildNumberOperationsBaselineDraft({
+      status: complete ? "complete" : "in_progress",
       currentIndex,
       resultsByKey,
       unresolvedSubElements: unresolved,
       tracesByKey,
       startedAt: startedAtRef.current,
+      completedAt: complete ? completedAt : null,
     });
     window.sessionStorage.setItem(
       draftStorageKey,
@@ -116,6 +119,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
     );
   }, [
     complete,
+    completedAt,
     currentIndex,
     draftHydrated,
     resultsByKey,
@@ -145,7 +149,13 @@ export default function AssessmentNumberOperationsBaselineRunner({
   );
 
   useEffect(() => {
-    if (!complete || completionTrackedRef.current) return;
+    if (
+      !complete ||
+      completionTrackedRef.current ||
+      hydratedCompleteRef.current
+    ) {
+      return;
+    }
     completionTrackedRef.current = true;
     trackCoreJourneyEvent(
       "maths_starting_point_completed",
@@ -179,6 +189,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
     setCompletedAt(null);
     startedAtRef.current = new Date().toISOString();
     completionTrackedRef.current = false;
+    hydratedCompleteRef.current = false;
     window.sessionStorage.removeItem(draftStorageKey);
   };
 
@@ -421,7 +432,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
           </div>
         )}
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
-          Progress in completed areas is kept only in this browser tab for this learner during the staff preview. No family or learner assessment record is written to the database.
+          Progress and the completed starting-point profile stay in this browser tab for this learner during the staff preview, so recommended practice can return here. No family or learner assessment record is written to the database.
         </small>
         <div
           aria-label="Baseline progress"

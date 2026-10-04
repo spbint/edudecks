@@ -162,3 +162,22 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     ).toBeTruthy();
   });
 });
+
+
+it("keeps a completed browser-only profile available for the practice-return loop", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain('draft.status === "complete"');
+  expect(source).toContain('setComplete(true)');
+  expect(source).toContain('status: complete ? "complete" : "in_progress"');
+  expect(source).not.toContain(
+    "if (complete) {\n      window.sessionStorage.removeItem",
+  );
+  expect(source).toContain("hydratedCompleteRef.current");
+});
