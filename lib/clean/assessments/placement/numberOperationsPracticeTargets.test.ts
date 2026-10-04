@@ -49,7 +49,8 @@ describe("Number Operations practice targets", () => {
     });
     expect(countingUrl.pathname).toBe("/my-pathways");
     expect(countingUrl.searchParams.get("subjectKey")).toBe("mathematics");
-    expect(countingUrl.searchParams.get("strandKey")).toBe("number-and-place-value");\n    expect(countingUrl.searchParams.get("pathwayStepId")).toBeNull();
+    expect(countingUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(countingUrl.searchParams.get("pathwayStepId")).toBeNull();
 
     const laterMultiplicative = getNumberOperationsPracticeTarget({
       subElementKey: "multiplicative-strategies",
@@ -59,7 +60,10 @@ describe("Number Operations practice targets", () => {
       laterMultiplicative.href,
       "https://mylearna.test",
     );
-    expect(operationsUrl.searchParams.get("strandKey")).toBe(\n      "operations-and-calculation",\n    );\n    expect(operationsUrl.searchParams.get("pathwayStepId")).not.toBeNull();
+    expect(operationsUrl.searchParams.get("strandKey")).toBe(
+      "operations-and-calculation",
+    );
+    expect(operationsUrl.searchParams.get("pathwayStepId")).not.toBeNull();
   });
 
   it("keeps early place-value and money targets out of over-advanced modules", () => {

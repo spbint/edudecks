@@ -109,7 +109,10 @@ function areaFrom(
   recommendation: NumberOperationsRecommendation,
 ): NumberOperationsParentUtilityArea {
   const state = stateFor(recommendation);
-  const pathways = buildNumberOperationsPathwaysHandoff({\n    subElementKey: result.subElementKey,\n    targetP: recommendation.targetP,\n  });
+  const pathways = buildNumberOperationsPathwaysHandoff({
+    subElementKey: result.subElementKey,
+    targetP: recommendation.targetP,
+  });
   return {
     subElementKey: result.subElementKey,
     label: result.subElementLabel,
@@ -122,7 +125,9 @@ function areaFrom(
     actionLabel: recommendation.practiceTarget.label,
     actionHref: recommendation.practiceTarget.href,
     actionNote: recommendation.practiceTarget.note,
-    pathwaysLabel: pathways.stepTitle\n      ? `Open ${pathways.stepTitle} in My Pathways`\n      : `Open ${pathways.strandLabel} in My Pathways`,
+    pathwaysLabel: pathways.stepTitle
+      ? `Open ${pathways.stepTitle} in My Pathways`
+      : `Open ${pathways.strandLabel} in My Pathways`,
     pathwaysHref: pathways.href,
     pathwaysNote: pathways.note,
     recheckRecommended: recommendation.recheckRecommended,

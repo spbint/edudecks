@@ -35,7 +35,8 @@ describe("Number & Operations parent utility projection", () => {
       "https://mylearna.test",
     );
     expect(pathwayUrl.searchParams.get("subjectKey")).toBe("mathematics");
-    expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");\n    expect(pathwayUrl.searchParams.get("pathwayStepId")).not.toBeNull();
+    expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(pathwayUrl.searchParams.get("pathwayStepId")).not.toBeNull();
     expect(utility.trustNote).toMatch(
       /not a grade, score, diagnosis or single maths level/i,
     );
