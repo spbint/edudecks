@@ -480,6 +480,13 @@ export default function AssessmentNumberOperationsBaselineRunner({
           Area {currentIndex + 1} of {order.length}:{" "}
           <strong>{LABELS[currentKey]}</strong>. MyLearna adapts the questions to find a useful starting point in each area separately, so one strength never hides another place that needs support.
         </p>
+        {mode === "parent-preview" ? (
+          <small style={{ color: "#64748B", lineHeight: 1.5 }}>
+            Some questions may feel unusually easy or hard. That is expected:
+            MyLearna moves up or down from the evidence rather than assuming a
+            level from the learner&apos;s age or year.
+          </small>
+        ) : null}
         {mode === "staff-debug" ? (
           <div
             style={{
