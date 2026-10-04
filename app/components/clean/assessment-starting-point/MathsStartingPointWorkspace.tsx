@@ -169,6 +169,20 @@ export default function MathsStartingPointWorkspace() {
         <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
           Results and next-step links in this preview stay attached to the selected learner context. The assessment itself is still not written to the database.
         </span>
+        <Link
+          href={`/my-pathways?${new URLSearchParams({
+            learnerId: activeLearner.id,
+            subjectKey: "mathematics",
+          }).toString()}`}
+          style={{
+            width: "fit-content",
+            color: "#17204B",
+            fontWeight: 800,
+            textDecoration: "none",
+          }}
+        >
+          ← Back to {activeLearner.label}&apos;s Mathematics Pathways
+        </Link>
       </div>
 
       <AssessmentNumberOperationsBaselineRunner
