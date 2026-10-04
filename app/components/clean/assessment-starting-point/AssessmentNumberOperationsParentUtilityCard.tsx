@@ -123,7 +123,7 @@ export default function AssessmentNumberOperationsParentUtilityCard({
             letterSpacing: ".04em",
           }}
         >
-          Parent utility prototype
+          Maths starting point
         </span>
         <h2
           style={{
@@ -255,7 +255,20 @@ export default function AssessmentNumberOperationsParentUtilityCard({
               >
                 <span>{area.confidenceNote}</span>
                 {area.curriculumContext ? <span>{area.curriculumContext}</span> : null}
-                <span>Technical evidence band: {area.technicalBand}</span>
+                <details>
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      color: "#64748B",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Technical evidence
+                  </summary>
+                  <span style={{ display: "block", marginTop: 4 }}>
+                    Progression band: {area.technicalBand}
+                  </span>
+                </details>
                 <span>{area.actionNote}</span>
                 <span>{area.pathwaysNote}</span>
                 <strong style={{ color: "#475569" }}>Fresh evidence to look for</strong>
