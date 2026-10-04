@@ -31,7 +31,7 @@ export default function AssessmentEvidenceConfirmationCard({
   const parentPresentation = presentation === "parent";
   const [acknowledged, setAcknowledged] = useState(false);
   const [includeInPortfolio, setIncludeInPortfolio] = useState(true);
-  const [includeInReport, setIncludeInReport] = useState(true);
+  const [includeInReport, setIncludeInReport] = useState(false);
   const [parentNote, setParentNote] = useState("");
   const [draft, setDraft] =
     useState<NumberOperationsEvidenceConfirmationDraft | null>(null);
