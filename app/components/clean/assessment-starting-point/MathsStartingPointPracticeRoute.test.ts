@@ -54,3 +54,19 @@ it("uses parent-readable starting-point provenance instead of raw sub-element ke
     "startingPointSubElementLabel(sourceSubElement)",
   );
 });
+
+
+it("tracks only safe starting-point practice lifecycle metadata", () => {
+  expect(viewerSource).toContain(
+    '"maths_starting_point_practice_opened"',
+  );
+  expect(viewerSource).toContain(
+    '"maths_starting_point_practice_completed"',
+  );
+  expect(viewerSource).toContain(
+    'source: "maths-starting-point"',
+  );
+  expect(viewerSource).not.toContain(
+    'trackCoreJourneyEvent("maths_starting_point_practice_completed", { answer',
+  );
+});

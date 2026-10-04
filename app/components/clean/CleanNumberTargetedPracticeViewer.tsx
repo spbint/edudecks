@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
+import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 import CleanContentIssueReportButton, {
   type ContentIssueReportContext,
 } from "@/app/components/clean/CleanContentIssueReportButton";
@@ -4718,6 +4719,8 @@ export default function CleanNumberTargetedPracticeViewer({
   const [practiceCompleted, setPracticeCompleted] = useState(false);
   const practiceStartedTrackedRef = useRef(false);
   const practiceCompletionTrackedRef = useRef(false);
+  const startingPointOpenKeysRef = useRef<Set<string>>(new Set());
+  const startingPointCompletionKeysRef = useRef<Set<string>>(new Set());
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const subjectKey = safe(searchParams.get("subjectKey"));
@@ -4811,6 +4814,25 @@ export default function CleanNumberTargetedPracticeViewer({
     taskCount: exactStepPracticeTasks.length,
   };
   function completeExactStepPractice() {
+    if (isMathsStartingPoint) {
+      const completionKey = `exact:${requestedModuleId || exactStepPractice?.key || "practice"}:${stepPracticeDepth}`;
+      if (!startingPointCompletionKeysRef.current.has(completionKey)) {
+        startingPointCompletionKeysRef.current.add(completionKey);
+        trackCoreJourneyEvent(
+          "maths_starting_point_practice_completed",
+          {
+            area: sourceSubElement || "maths_starting_point",
+            featureArea: "practice",
+            subjectKey: "mathematics",
+            source: "maths-starting-point",
+            taskCount: exactStepPracticeTasks.length,
+            completionSource: "focused_practice",
+          },
+          user?.id,
+        );
+      }
+    }
+
     if (source === "my-pathways" && !practiceCompletionTrackedRef.current) {
       trackPathwayAnalyticsEvent("pathway_practice_completed", pathwayAnalyticsContext, user?.id);
       practiceCompletionTrackedRef.current = true;
@@ -4833,6 +4855,70 @@ export default function CleanNumberTargetedPracticeViewer({
   const unsupportedModule = requestedModuleId && !practiceModule;
   const selectedSectionTasks = selectedSection?.tasks ?? [];
   const miniCheckTasks = practiceModule?.miniCheck ?? [];
+
+  useEffect(() => {
+    if (!isMathsStartingPoint) return;
+    const openKey = `${requestedModuleId || "module"}:${requestedSectionId || "overview"}`;
+    if (startingPointOpenKeysRef.current.has(openKey)) return;
+    startingPointOpenKeysRef.current.add(openKey);
+
+    trackCoreJourneyEvent(
+      "maths_starting_point_practice_opened",
+      {
+        area: sourceSubElement || "maths_starting_point",
+        featureArea: "practice",
+        subjectKey: "mathematics",
+        source: "maths-starting-point",
+        taskCount: selectedSectionTasks.length || exactStepPracticeTasks.length,
+      },
+      user?.id,
+    );
+  }, [
+    exactStepPracticeTasks.length,
+    isMathsStartingPoint,
+    requestedModuleId,
+    requestedSectionId,
+    selectedSectionTasks.length,
+    sourceSubElement,
+    user?.id,
+  ]);
+
+  useEffect(() => {
+    if (!isMathsStartingPoint || !selectedSection || !selectedSectionTasks.length) {
+      return;
+    }
+    const allChecked = selectedSectionTasks.every(
+      (task) => responses[task.id]?.checked,
+    );
+    if (!allChecked) return;
+
+    const completionKey = `section:${requestedModuleId}:${selectedSection.id}`;
+    if (startingPointCompletionKeysRef.current.has(completionKey)) return;
+    startingPointCompletionKeysRef.current.add(completionKey);
+
+    const summary = buildProgressSummary(selectedSectionTasks, responses);
+    trackCoreJourneyEvent(
+      "maths_starting_point_practice_completed",
+      {
+        area: sourceSubElement || "maths_starting_point",
+        featureArea: "practice",
+        subjectKey: "mathematics",
+        source: "maths-starting-point",
+        taskCount: summary.totalCount,
+        correctCount: summary.correctCount,
+        completionSource: "recommended_section",
+      },
+      user?.id,
+    );
+  }, [
+    isMathsStartingPoint,
+    requestedModuleId,
+    responses,
+    selectedSection,
+    selectedSectionTasks,
+    sourceSubElement,
+    user?.id,
+  ]);
 
   function buildPracticeIssueContext(
     mode: "practice" | "summary",

@@ -160,3 +160,18 @@ it("uses the plain starting-point return when no learner context is supplied", (
     "/assessments/maths-starting-point",
   );
 });
+
+
+it("names a source-guided Pathways fallback with the actual recommended step", () => {
+  const target = getNumberOperationsPracticeTarget({
+    subElementKey: "number-place-value",
+    targetP: 4,
+    learnerId: "learner-123",
+  });
+
+  expect(target.kind).toBe("pathways-review");
+  expect(target.label).toBe(
+    "Open Understand that ten ones make one ten in My Pathways",
+  );
+  expect(target.href).toContain("pathwayStepId=");
+});

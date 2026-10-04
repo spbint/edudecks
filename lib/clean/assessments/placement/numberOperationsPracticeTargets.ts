@@ -68,7 +68,9 @@ function pathwaysFallback(
   });
   return {
     kind: "pathways-review",
-    label: `Review ${handoff.strandLabel} in My Pathways`,
+    label: handoff.stepTitle
+      ? `Open ${handoff.stepTitle} in My Pathways`
+      : `Review ${handoff.strandLabel} in My Pathways`,
     href: handoff.href,
     moduleId: null,
     mappingConfidence: "fallback",
