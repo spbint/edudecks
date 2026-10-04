@@ -74,9 +74,9 @@ it("reports only the parent's Portfolio/report choices when confirmation is prev
       name: /I understand this is a starting-point assessment result/i,
     }),
   );
-  fireEvent.click(
+  expect(
     screen.getByRole("checkbox", { name: "Make available for reports" }),
-  );
+  ).not.toBeChecked();
   fireEvent.click(
     screen.getByRole("button", { name: "Preview confirmed evidence" }),
   );
@@ -118,4 +118,21 @@ it("uses parent language without exposing persistence/debug terminology", () => 
     screen.getByText(/Nothing has been saved in this staff preview/i),
   ).toBeTruthy();
   expect(screen.queryByText("View confirmation payload")).toBeNull();
+});
+
+
+it("makes formal report inclusion an explicit opt-in", () => {
+  render(
+    React.createElement(AssessmentEvidenceConfirmationCard, {
+      preview,
+      presentation: "parent",
+    }),
+  );
+
+  expect(
+    screen.getByRole("checkbox", { name: "Include in My Portfolio" }),
+  ).toBeChecked();
+  expect(
+    screen.getByRole("checkbox", { name: "Make available for reports" }),
+  ).not.toBeChecked();
 });
