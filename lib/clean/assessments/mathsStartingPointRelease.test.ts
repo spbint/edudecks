@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MATHS_STARTING_POINT_RELEASE,
+  assertMathsStartingPointPersistenceEnabled,
   assertMathsStartingPointStaffPreviewSafety,
 } from "./mathsStartingPointRelease";
 
@@ -15,5 +16,8 @@ describe("Maths starting-point release gate", () => {
       customerNavigationEnabled: false,
     });
     expect(assertMathsStartingPointStaffPreviewSafety()).toBe(true);
+    expect(() => assertMathsStartingPointPersistenceEnabled()).toThrow(
+      /persistence is disabled/i,
+    );
   });
 });

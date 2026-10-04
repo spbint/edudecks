@@ -26,3 +26,12 @@ export function assertMathsStartingPointStaffPreviewSafety() {
   }
   return true;
 }
+
+export function assertMathsStartingPointPersistenceEnabled() {
+  if (!MATHS_STARTING_POINT_RELEASE.persistenceEnabled) {
+    throw new Error(
+      "Maths starting-point persistence is disabled until the reviewed migration is explicitly approved and applied.",
+    );
+  }
+  return true;
+}
