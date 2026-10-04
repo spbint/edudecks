@@ -285,7 +285,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         pLevel: 6,
         role: "initial",
         evidenceMode: "direct",
-        sourcePages: [7, 8],
+        sourcePages: [7],
         slots: [
           slot(
             "MYL-ANCHOR-MUL-P06-A",
@@ -320,7 +320,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         pLevel: 9,
         role: "upper",
         evidenceMode: "direct",
-        sourcePages: [7, 8],
+        sourcePages: [7],
         slots: [
           slot(
             "MYL-ANCHOR-MUL-P09-A",
@@ -358,7 +358,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         pLevel: 2,
         role: "lower",
         evidenceMode: "asset-review",
-        sourcePages: [12],
+        sourcePages: [13],
         slots: [
           slot("MYL-ANCHOR-MON-P02-A", "A", "Order Australian money denominations by face value.", "single_choice", "schematic denomination tokens", "implemented-draft-asset-review"),
           slot("MYL-ANCHOR-MON-P02-B", "B", "Count the number of money tokens sharing the same denomination.", "numeric_entry", "schematic denomination tokens", "implemented-draft-asset-review"),
@@ -369,7 +369,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         pLevel: 5,
         role: "initial",
         evidenceMode: "direct",
-        sourcePages: [12],
+        sourcePages: [13],
         slots: [
           slot(
             "MYL-ANCHOR-MON-P05-A",

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getNumeracyProgressionSubElement } from "./numeracyProgressionRegistry";
 import {
   NUMBER_OPERATIONS_ANCHOR_SETS,
   applyBoundaryEvidence,
@@ -16,6 +17,23 @@ import {
 } from "./numberOperationsAnchors";
 
 describe("Number Operations anchor routing", () => {
+  it("keeps every anchor source page inside the canonical progression source pages", () => {
+    for (const set of NUMBER_OPERATIONS_ANCHOR_SETS) {
+      const source = getNumeracyProgressionSubElement(set.key);
+      expect(source, set.key).not.toBeNull();
+      if (!source) continue;
+
+      for (const anchor of set.anchors) {
+        for (const page of anchor.sourcePages) {
+          expect(
+            source.sourcePages,
+            `${set.key} P${anchor.pLevel} page ${page}`,
+          ).toContain(page);
+        }
+      }
+    }
+  });
+
   it("keeps the P0 catalogue complete and explicit", () => {
     expect(NUMBER_OPERATIONS_ANCHOR_SETS).toHaveLength(5);
 

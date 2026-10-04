@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getNumeracyProgressionSubElement } from "./numeracyProgressionRegistry";
 import {
   NUMBER_OPERATIONS_CROSSWALK_SOURCE,
   NUMBER_OPERATIONS_PROGRESSION_PATHWAY_CROSSWALK,
@@ -7,6 +8,21 @@ import {
 } from "./numberOperationsProgressionPathwayCrosswalk";
 
 describe("Number & Operations progression-to-Pathways crosswalk", () => {
+  it("keeps every crosswalk source page inside the canonical progression source pages", () => {
+    for (const entry of NUMBER_OPERATIONS_PROGRESSION_PATHWAY_CROSSWALK) {
+      const source = getNumeracyProgressionSubElement(entry.subElementKey);
+      expect(source, entry.subElementKey).not.toBeNull();
+      if (!source) continue;
+
+      for (const page of entry.sourcePages) {
+        expect(
+          source.sourcePages,
+          `${entry.subElementKey} P${entry.pLevel} page ${page}`,
+        ).toContain(page);
+      }
+    }
+  });
+
   it("covers all 48 levels in the five first-slice continua", () => {
     expect(NUMBER_OPERATIONS_PROGRESSION_PATHWAY_CROSSWALK).toHaveLength(48);
     expect(

@@ -61,13 +61,20 @@ function areaActions(
     destination: "practice" | "my_pathways",
   ) => void,
 ) {
+  const primaryDestination =
+    area.actionHref.startsWith("/my-pathways")
+      ? "my_pathways"
+      : "practice";
+
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       <Link
         href={area.actionHref}
         prefetch={false}
         style={primaryLink}
-        onClick={() => onActionSelected?.(area.subElementKey, "practice")}
+        onClick={() =>
+          onActionSelected?.(area.subElementKey, primaryDestination)
+        }
       >
         {area.actionLabel}
       </Link>
@@ -161,10 +168,23 @@ export default function AssessmentNumberOperationsParentUtilityCard({
           </span>
           {areaActions(utility.startHere, onActionSelected)}
           {utility.startHere.recheckRecommended ? (
-            <small style={{ color: "#4B5563", lineHeight: 1.5 }}>
-              After some learning, check this area again with fresh evidence rather
-              than repeating the same questions.
-            </small>
+            <div
+              style={{
+                border: "1px solid #DCE8DF",
+                borderRadius: 12,
+                background: "#FAFFFB",
+                padding: 11,
+                display: "grid",
+                gap: 4,
+              }}
+            >
+              <strong style={{ color: "#17204B", fontSize: 13 }}>
+                {utility.startHere.recheckPlan.headline}
+              </strong>
+              <span style={{ color: "#4B5563", fontSize: 12, lineHeight: 1.5 }}>
+                {utility.startHere.recheckPlan.guidance}
+              </span>
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -176,7 +196,12 @@ export default function AssessmentNumberOperationsParentUtilityCard({
           gap: 12,
         }}
       >
-        {utility.areas.map((area) => (
+        {utility.areas
+          .filter(
+            (area) =>
+              area.subElementKey !== utility.startHere?.subElementKey,
+          )
+          .map((area) => (
           <article key={area.subElementKey} style={innerCard}>
             <div
               style={{

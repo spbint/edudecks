@@ -41,7 +41,7 @@ const utility: NumberOperationsParentUtility = {
   expectedAreas: 5,
   complete: true,
   startHere: area,
-  areas: [],
+  areas: [area],
   trustNote:
     "This is a starting-point profile, not a grade, score, diagnosis or single maths level.",
 };
@@ -71,7 +71,12 @@ describe("AssessmentNumberOperationsParentUtilityCard", () => {
       "/my-pathways?subjectKey=mathematics&strandKey=number-and-place-value",
     );
     expect(screen.queryByText("P5–P6")).toBeNull();
-    expect(screen.getByText("Recheck after a short run of successful practice")).toBeTruthy();
+    expect(
+      screen.getByText("Recheck after a short run of successful practice"),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByText("Ready to build on the next step"),
+    ).toHaveLength(1);
   });
 });
 
@@ -98,5 +103,48 @@ it("reports whether the parent chose practice or My Pathways", () => {
   expect(selected).toEqual([
     ["number-place-value", "practice"],
     ["number-place-value", "my_pathways"],
+  ]);
+});
+
+
+it("classifies a Pathways fallback primary action as My Pathways, not practice", () => {
+  const selected: Array<[string, string]> = [];
+  const fallbackArea: NumberOperationsParentUtility["areas"][number] = {
+    ...area,
+    subElementKey: "counting-processes",
+    label: "Counting processes",
+    actionLabel: "Review Number and place value in My Pathways",
+    actionHref:
+      "/my-pathways?subjectKey=mathematics&strandKey=number-and-place-value",
+    pathwaysLabel: "Open Number and place value in My Pathways",
+    pathwaysHref:
+      "/my-pathways?subjectKey=mathematics&strandKey=number-and-place-value",
+    recheckPlan: {
+      ...area.recheckPlan,
+      subElementKey: "counting-processes",
+    },
+  };
+  const fallbackUtility: NumberOperationsParentUtility = {
+    ...utility,
+    startHere: fallbackArea,
+    areas: [fallbackArea],
+  };
+
+  render(
+    React.createElement(AssessmentNumberOperationsParentUtilityCard, {
+      utility: fallbackUtility,
+      onActionSelected: (subElementKey, destination) =>
+        selected.push([subElementKey, destination]),
+    }),
+  );
+
+  fireEvent.click(
+    screen.getByRole("link", {
+      name: "Review Number and place value in My Pathways",
+    }),
+  );
+
+  expect(selected).toEqual([
+    ["counting-processes", "my_pathways"],
   ]);
 });
