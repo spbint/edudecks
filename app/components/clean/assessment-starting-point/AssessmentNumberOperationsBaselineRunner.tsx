@@ -199,6 +199,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
         subjectKey: "mathematics",
         itemCount: responseCount,
         presentation: mode,
+        viewType: order.length === 1 ? "focused" : "full",
       },
       userId,
     );
@@ -236,6 +237,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
         subjectKey: "mathematics",
         position: currentIndex + 1,
         presentation: mode,
+        viewType: order.length === 1 ? "focused" : "full",
       },
       userId,
     );
@@ -296,6 +298,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
                 subjectKey: "mathematics",
                 destination,
                 presentation: mode,
+                viewType: order.length === 1 ? "focused" : "full",
               },
               userId,
             )
@@ -366,6 +369,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
                 includeInPortfolio,
                 includeInReport,
                 presentation: mode,
+                viewType: order.length === 1 ? "focused" : "full",
               },
               userId,
             )

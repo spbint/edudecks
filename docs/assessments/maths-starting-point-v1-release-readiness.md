@@ -70,6 +70,8 @@ Current behaviour:
 
 ## Measurement
 
+Privacy-safe first-party events use `viewType: full | focused` to measure which parent workflow is useful without sending the selected Maths area.
+
 Privacy-safe first-party events:
 
 - `maths_starting_point_opened`

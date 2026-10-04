@@ -77,11 +77,13 @@ export default function MathsStartingPointWorkspace() {
         featureArea: "assessment",
         subjectKey: "mathematics",
         presentation: MATHS_STARTING_POINT_RELEASE.phase,
+        viewType: selectedArea ? "focused" : "full",
       },
       workspace.userId,
     );
   }, [
     activeLearner?.id,
+    areaParam,
     loading,
     routeLearnerSyncPending,
     workspace.userId,
