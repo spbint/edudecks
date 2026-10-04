@@ -101,3 +101,21 @@ describe("AssessmentAnchorPlacementRunner", () => {
     expect(screen.queryByText(/100%/)).toBeNull();
   });
 });
+
+
+describe("parent presentation", () => {
+  it("keeps adaptive routing language and P-level detail out of the parent shell", () => {
+    render(
+      React.createElement(AssessmentAnchorPlacementRunner, {
+        anchorSetKey: "number-place-value",
+        presentation: "parent",
+        allowBandConfirmation: false,
+      }),
+    );
+
+    expect(screen.getByText("Adaptive Maths check")).toBeTruthy();
+    expect(screen.queryByText("Automatic routing proof")).toBeNull();
+    expect(screen.queryByText(/Initial anchor · P/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Restart this area" })).toBeTruthy();
+  });
+});

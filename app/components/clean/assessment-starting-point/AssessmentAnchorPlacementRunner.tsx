@@ -136,12 +136,15 @@ export default function AssessmentAnchorPlacementRunner({
   onResult,
   onAttemptTrace,
   allowBandConfirmation = true,
+  presentation = "staff",
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
   onResult?: (result: NumberOperationsPlacementResult | null) => void;
   onAttemptTrace?: (trace: NumberOperationsSubElementAttemptTrace) => void;
   allowBandConfirmation?: boolean;
+  presentation?: "parent" | "staff";
 }) {
+  const parentPresentation = presentation === "parent";
   const anchorSet = useMemo(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
     if (!set) throw new Error(`Unknown Number & Operations anchor set: ${anchorSetKey}`);
@@ -550,7 +553,7 @@ export default function AssessmentAnchorPlacementRunner({
     player = items ? (
       <AssessmentPlayerV1
         key={`initial-${anchorSet.key}-${stage.pLevel}`}
-        title={`${anchorSet.label} · P${stage.pLevel} initial anchor`}
+        title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} initial anchor`}
         items={[...items]}
         mode="placement"
         onComplete={handleInitialComplete}
@@ -562,7 +565,7 @@ export default function AssessmentAnchorPlacementRunner({
     player = item ? (
       <AssessmentPlayerV1
         key={`reserve-${anchorSet.key}-${stage.pLevel}`}
-        title={`${anchorSet.label} · P${stage.pLevel} reserve probe`}
+        title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} reserve probe`}
         items={[item]}
         mode="placement"
         onComplete={handleReserveComplete}
@@ -574,7 +577,7 @@ export default function AssessmentAnchorPlacementRunner({
     player = items ? (
       <AssessmentPlayerV1
         key={`branch-${anchorSet.key}-${stage.pLevel}`}
-        title={`${anchorSet.label} · P${stage.pLevel} branch anchor`}
+        title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} branch anchor`}
         items={[...items]}
         mode="placement"
         onComplete={handleBranchComplete}
@@ -586,7 +589,7 @@ export default function AssessmentAnchorPlacementRunner({
     player = items ? (
       <AssessmentPlayerV1
         key={`search-${anchorSet.key}-${stage.pLevel}`}
-        title={`${anchorSet.label} · P${stage.pLevel} search cluster`}
+        title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} search cluster`}
         items={[...items]}
         mode="placement"
         onComplete={handleSearchComplete}
@@ -598,7 +601,7 @@ export default function AssessmentAnchorPlacementRunner({
     player = items ? (
       <AssessmentPlayerV1
         key={`boundary-${anchorSet.key}-${stage.pLevel}-${stage.bracket.lowerP}-${stage.bracket.upperP}`}
-        title={`${anchorSet.label} · P${stage.pLevel} boundary probes`}
+        title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} boundary probes`}
         items={[...items]}
         mode="placement"
         onComplete={handleBoundaryComplete}
@@ -611,11 +614,15 @@ export default function AssessmentAnchorPlacementRunner({
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            Automatic routing proof
+            {parentPresentation ? "Adaptive Maths check" : "Automatic routing proof"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B" }}>{anchorSet.label}</h2>
           {stage.kind !== "result" ? (
-            <strong style={{ color: "#5B6478" }}>{stageLabel}</strong>
+            <strong style={{ color: "#5B6478" }}>
+              {parentPresentation
+                ? "Answer the questions as naturally as possible. MyLearna will ask a few more only when it needs clearer evidence."
+                : stageLabel}
+            </strong>
           ) : null}
         </div>
         <button
@@ -632,15 +639,39 @@ export default function AssessmentAnchorPlacementRunner({
             cursor: "pointer",
           }}
         >
-          Restart route
+          {parentPresentation ? "Restart this area" : "Restart route"}
         </button>
       </div>
 
       {stage.kind === "result" ? (
         stage.placementResult ? (
           <>
-            <AssessmentPlacementResultCard result={stage.placementResult} />
-            {allowBandConfirmation &&
+            {parentPresentation ? (
+              <div
+                role="status"
+                style={{
+                  border: "1px solid #CFE3D5",
+                  borderRadius: 16,
+                  background: "#F0FDF4",
+                  padding: 16,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <strong style={{ color: "#166534", fontSize: 20 }}>
+                  MyLearna has enough evidence for this area
+                </strong>
+                <span style={{ color: "#4B5563", lineHeight: 1.6 }}>
+                  {stage.placementResult.interpretation}
+                </span>
+                <small style={{ color: "#64748B", lineHeight: 1.5 }}>
+                  The full starting-point profile will combine this with the other Maths areas before suggesting what to do next.
+                </small>
+              </div>
+            ) : (
+              <AssessmentPlacementResultCard result={stage.placementResult} />
+            )}
+            {!parentPresentation && allowBandConfirmation &&
             anchorSet.key === "number-place-value" &&
             stage.placementResult.status === "candidate-band" &&
             stage.placementResult.lowerP !== undefined &&
@@ -664,9 +695,17 @@ export default function AssessmentAnchorPlacementRunner({
               gap: 8,
             }}
           >
-            <strong style={{ color: "#17204B", fontSize: 20 }}>{stage.headline}</strong>
-            <span style={{ color: "#5B6478", lineHeight: 1.6 }}>{stage.detail}</span>
-            {stage.evidenceNote ? (
+            <strong style={{ color: "#17204B", fontSize: 20 }}>
+              {parentPresentation
+                ? "MyLearna needs a real-life example for this area"
+                : stage.headline}
+            </strong>
+            <span style={{ color: "#5B6478", lineHeight: 1.6 }}>
+              {parentPresentation
+                ? "The electronic questions have located a useful learning neighbourhood, but this idea is better confirmed by watching it in practical learning. MyLearna will keep this area open rather than guess."
+                : stage.detail}
+            </span>
+            {!parentPresentation && stage.evidenceNote ? (
               <span style={{ color: "#92400E", lineHeight: 1.6 }}>{stage.evidenceNote}</span>
             ) : null}
           </div>
@@ -675,7 +714,7 @@ export default function AssessmentAnchorPlacementRunner({
         player
       )}
 
-      {evidenceNotes.length ? (
+      {!parentPresentation && evidenceNotes.length ? (
         <div
           style={{
             border: "1px solid #F5D08A",
@@ -695,7 +734,7 @@ export default function AssessmentAnchorPlacementRunner({
         </div>
       ) : null}
 
-      {history.length ? (
+      {!parentPresentation && history.length ? (
         <details>
           <summary style={{ cursor: "pointer", color: "#5B3BE8", fontWeight: 850 }}>
             Routing trace

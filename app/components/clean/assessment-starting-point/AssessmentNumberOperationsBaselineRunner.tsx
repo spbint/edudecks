@@ -359,6 +359,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
         key={currentKey}
         anchorSetKey={currentKey}
         allowBandConfirmation={false}
+        presentation={mode === "parent-preview" ? "parent" : "staff"}
         onResult={setPendingResult}
         onAttemptTrace={(trace) =>
           setTracesByKey((current) => ({
