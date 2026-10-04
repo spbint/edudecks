@@ -422,9 +422,17 @@ export default function AssessmentNumberOperationsBaselineRunner({
               padding: 12,
               color: "#5B6478",
               lineHeight: 1.55,
+              display: "grid",
+              gap: 4,
             }}
           >
-            This check adapts as it goes. Clear evidence finishes an area sooner; mixed evidence triggers a few extra questions so MyLearna does not guess.
+            <strong style={{ color: "#17204B" }}>Five short Maths areas</strong>
+            <span>
+              Each area is bounded to {budget.bySubElement[currentIndex]?.minimumQuestions ?? 4}–{budget.bySubElement[currentIndex]?.maximumQuestions ?? 11} questions. Clear evidence finishes sooner; mixed evidence triggers a few extra questions so MyLearna does not guess.
+            </span>
+            <span>
+              MyLearna pauses between areas. You can leave after an area and return in this browser tab without losing the areas already completed.
+            </span>
           </div>
         )}
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
