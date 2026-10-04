@@ -32,6 +32,15 @@ describe("Number & Operations baseline persistence activation split", () => {
   it("puts the authenticated execute grant only in the explicit activation file", () => {
     expect(activation).toContain("DESIGN / REVIEW ACTIVATION ONLY");
     expect(activation).toContain("DO NOT APPLY with the foundation migration");
+    expect(activation).toContain(
+      "grant select on public.assessment_baseline_attempts to authenticated",
+    );
+    expect(activation).toContain(
+      "grant select on public.assessment_baseline_responses to authenticated",
+    );
+    expect(activation).not.toMatch(
+      /grant (insert|update|delete).*assessment_baseline_/i,
+    );
     expect(activation).toMatch(
       /grant execute on function public\.mylearna_save_number_operations_baseline/,
     );

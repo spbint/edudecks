@@ -33,6 +33,9 @@ begin
 end;
 $$;
 
+grant select on public.assessment_baseline_attempts to authenticated;
+grant select on public.assessment_baseline_responses to authenticated;
+
 grant execute on function public.mylearna_save_number_operations_baseline(
   uuid,
   uuid,
@@ -46,3 +49,5 @@ grant execute on function public.mylearna_save_number_operations_baseline(
 -- revoke all on function public.mylearna_save_number_operations_baseline(
 --   uuid, uuid, text, jsonb, jsonb
 -- ) from authenticated;
+-- revoke all on public.assessment_baseline_attempts from authenticated;
+-- revoke all on public.assessment_baseline_responses from authenticated;

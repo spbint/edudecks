@@ -75,7 +75,7 @@ Separate review-only activation SQL:
 
 `sql/clean/20261004_number_operations_baseline_persistence_activation_review.sql`
 
-The foundation explicitly revokes authenticated execution of the save RPC. The activation file is the only place that grants it. Therefore applying the schema foundation alone cannot turn on baseline saves.
+The foundation explicitly revokes authenticated access to both new tables and revokes execution of the save RPC. The save RPC is SECURITY DEFINER but performs explicit auth, family-membership and learner-family checks. The activation file grants only read access to the tables plus execution of the controlled atomic save RPC — never direct table writes. Therefore applying the schema foundation alone cannot turn on baseline saves.
 
 Dark client:
 
@@ -91,8 +91,9 @@ The migration uses:
 - clean family RLS
 - same-family learner checks
 - immutable attempt/response identity guards
+- RPC-only customer writes (no direct authenticated table DML)
 - one atomic save RPC
-- client submission idempotency
+- concurrency-safe client submission idempotency
 - family/learner/attempt consistency validation
 - no service-role customer write path
 

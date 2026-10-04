@@ -51,6 +51,19 @@ create table if not exists public.assessment_baseline_attempts (
     check (mode = 'diagnostic'),
   constraint assessment_baseline_attempts_status_check
     check (status in ('complete', 'partial')),
+  constraint assessment_baseline_attempts_source_route_check
+    check (source_route = '/assessments/maths-starting-point'),
+  constraint assessment_baseline_attempts_unresolved_check
+    check (
+      cardinality(unresolved_sub_elements) <= 5
+      and unresolved_sub_elements <@ array[
+        'number-place-value',
+        'counting-processes',
+        'additive-strategies',
+        'multiplicative-strategies',
+        'understanding-money'
+      ]::text[]
+    ),
   constraint assessment_baseline_attempts_assessed_count_check
     check (
       assessed_sub_elements >= 0
@@ -60,9 +73,9 @@ create table if not exists public.assessment_baseline_attempts (
   constraint assessment_baseline_attempts_completed_after_started_check
     check (completed_at >= started_at),
   constraint assessment_baseline_attempts_profile_object_check
-    check (jsonb_typeof(profile_snapshot) = 'object'),
+    check (coalesce(jsonb_typeof(profile_snapshot), '') = 'object'),
   constraint assessment_baseline_attempts_evidence_object_check
-    check (jsonb_typeof(evidence_preview_snapshot) = 'object'),
+    check (coalesce(jsonb_typeof(evidence_preview_snapshot), '') = 'object'),
   constraint assessment_baseline_attempts_unique_submission
     unique (family_id, learner_id, client_submission_id)
 );
@@ -110,7 +123,11 @@ create table if not exists public.assessment_baseline_responses (
       stage_kind in ('initial', 'reserve', 'branch', 'search', 'boundary')
     ),
   constraint assessment_baseline_responses_progression_level_check
-    check (progression_level between 1 and 10),
+    check (
+      (sub_element_key = 'counting-processes' and progression_level between 1 and 8)
+      or
+      (sub_element_key <> 'counting-processes' and progression_level between 1 and 10)
+    ),
   constraint assessment_baseline_responses_direction_check
     check (stage_direction is null or stage_direction in ('down', 'up')),
   constraint assessment_baseline_responses_bracket_check
@@ -138,11 +155,11 @@ create table if not exists public.assessment_baseline_responses (
   constraint assessment_baseline_responses_item_order_check
     check (item_order >= 1),
   constraint assessment_baseline_responses_selected_options_array_check
-    check (jsonb_typeof(selected_option_ids) = 'array'),
+    check (coalesce(jsonb_typeof(selected_option_ids), '') = 'array'),
   constraint assessment_baseline_responses_misconceptions_array_check
-    check (jsonb_typeof(misconception_tags) = 'array'),
+    check (coalesce(jsonb_typeof(misconception_tags), '') = 'array'),
   constraint assessment_baseline_responses_item_snapshot_object_check
-    check (jsonb_typeof(item_snapshot) = 'object'),
+    check (coalesce(jsonb_typeof(item_snapshot), '') = 'object'),
   constraint assessment_baseline_responses_time_check
     check (time_spent_seconds is null or time_spent_seconds >= 0),
   constraint assessment_baseline_responses_attempt_item_unique
@@ -184,13 +201,11 @@ alter table public.assessment_baseline_responses enable row level security;
 
 revoke all on public.assessment_baseline_attempts from public;
 revoke all on public.assessment_baseline_attempts from anon;
-grant select, insert, update, delete
-  on public.assessment_baseline_attempts to authenticated;
+revoke all on public.assessment_baseline_attempts from authenticated;
 
 revoke all on public.assessment_baseline_responses from public;
 revoke all on public.assessment_baseline_responses from anon;
-grant select, insert, update, delete
-  on public.assessment_baseline_responses to authenticated;
+revoke all on public.assessment_baseline_responses from authenticated;
 
 drop policy if exists "maths baseline attempts select own family"
   on public.assessment_baseline_attempts;
@@ -224,32 +239,6 @@ with check (
       and learner.family_id = public.assessment_baseline_attempts.family_id
   )
 );
-
-drop policy if exists "maths baseline attempts update own family"
-  on public.assessment_baseline_attempts;
-create policy "maths baseline attempts update own family"
-on public.assessment_baseline_attempts
-for update
-to authenticated
-using (public.is_family_member(family_id))
-with check (
-  public.is_family_member(family_id)
-  and created_by_user_id = (select auth.uid())
-  and exists (
-    select 1
-    from public.learners learner
-    where learner.id = learner_id
-      and learner.family_id = public.assessment_baseline_attempts.family_id
-  )
-);
-
-drop policy if exists "maths baseline attempts delete own family"
-  on public.assessment_baseline_attempts;
-create policy "maths baseline attempts delete own family"
-on public.assessment_baseline_attempts
-for delete
-to authenticated
-using (public.is_family_member(family_id));
 
 drop policy if exists "maths baseline responses select own family"
   on public.assessment_baseline_responses;
@@ -298,33 +287,6 @@ with check (
       and attempt.created_by_user_id = (select auth.uid())
   )
 );
-
-drop policy if exists "maths baseline responses update own family"
-  on public.assessment_baseline_responses;
-create policy "maths baseline responses update own family"
-on public.assessment_baseline_responses
-for update
-to authenticated
-using (public.is_family_member(family_id))
-with check (
-  public.is_family_member(family_id)
-  and created_by_user_id = (select auth.uid())
-  and exists (
-    select 1
-    from public.assessment_baseline_attempts attempt
-    where attempt.id = baseline_attempt_id
-      and attempt.family_id = public.assessment_baseline_responses.family_id
-      and attempt.learner_id = public.assessment_baseline_responses.learner_id
-  )
-);
-
-drop policy if exists "maths baseline responses delete own family"
-  on public.assessment_baseline_responses;
-create policy "maths baseline responses delete own family"
-on public.assessment_baseline_responses
-for delete
-to authenticated
-using (public.is_family_member(family_id));
 
 create or replace function public.mylearna_validate_assessment_baseline_attempt()
 returns trigger
@@ -448,8 +410,9 @@ create or replace function public.mylearna_save_number_operations_baseline(
 )
 returns uuid
 language plpgsql
+security definer
 set search_path = public
-as $$
+as $
 declare
   v_user_id uuid := auth.uid();
   v_attempt_id uuid;
@@ -488,17 +451,6 @@ begin
   if jsonb_typeof(p_responses) <> 'array' then
     raise exception 'Baseline responses payload must be an array.'
       using errcode = '22023';
-  end if;
-
-  select attempt.id
-  into v_attempt_id
-  from public.assessment_baseline_attempts attempt
-  where attempt.family_id = p_family_id
-    and attempt.learner_id = p_learner_id
-    and attempt.client_submission_id = p_client_submission_id;
-
-  if v_attempt_id is not null then
-    return v_attempt_id;
   end if;
 
   insert into public.assessment_baseline_attempts (
@@ -545,12 +497,50 @@ begin
     (p_attempt->>'completedAt')::timestamptz,
     v_user_id
   )
+  on conflict (family_id, learner_id, client_submission_id)
+  do nothing
   returning id into v_attempt_id;
+
+  if v_attempt_id is null then
+    select attempt.id
+    into v_attempt_id
+    from public.assessment_baseline_attempts attempt
+    where attempt.family_id = p_family_id
+      and attempt.learner_id = p_learner_id
+      and attempt.client_submission_id = p_client_submission_id;
+
+    if v_attempt_id is null then
+      raise exception 'Baseline save could not resolve its idempotent attempt.'
+        using errcode = '40001';
+    end if;
+
+    return v_attempt_id;
+  end if;
 
   for v_response in
     select value
     from jsonb_array_elements(p_responses)
   loop
+    if coalesce(jsonb_typeof(v_response), '') <> 'object' then
+      raise exception 'Each baseline response must be an object.'
+        using errcode = '22023';
+    end if;
+
+    if coalesce(jsonb_typeof(v_response->'selectedOptionIds'), '') <> 'array' then
+      raise exception 'selectedOptionIds must be an array.'
+        using errcode = '22023';
+    end if;
+
+    if coalesce(jsonb_typeof(v_response->'misconceptionTags'), '') <> 'array' then
+      raise exception 'misconceptionTags must be an array.'
+        using errcode = '22023';
+    end if;
+
+    if coalesce(jsonb_typeof(v_response->'itemSnapshot'), '') <> 'object' then
+      raise exception 'A versioned item snapshot is required.'
+        using errcode = '22023';
+    end if;
+
     insert into public.assessment_baseline_responses (
       baseline_attempt_id,
       family_id,
@@ -590,13 +580,13 @@ begin
       nullif(v_response->>'itemPoolKind', ''),
       nullif(v_response->>'itemPoolKey', ''),
       (v_response->>'itemOrder')::integer,
-      coalesce(v_response->'selectedOptionIds', '[]'::jsonb),
+      v_response->'selectedOptionIds',
       nullif(v_response->>'responseValue', ''),
       (v_response->>'correct')::boolean,
       v_response->>'skillId',
-      coalesce(v_response->'misconceptionTags', '[]'::jsonb),
+      v_response->'misconceptionTags',
       nullif(v_response->>'timeSpentSeconds', '')::integer,
-      coalesce(v_response->'itemSnapshot', '{}'::jsonb),
+      v_response->'itemSnapshot',
       v_user_id
     );
   end loop;

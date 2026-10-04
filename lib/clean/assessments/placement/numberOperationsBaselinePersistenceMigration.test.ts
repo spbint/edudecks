@@ -27,6 +27,12 @@ describe("Number & Operations baseline persistence review migration", () => {
     expect(source).toContain("learner.family_id = public.assessment_baseline_attempts.family_id");
     expect(source).toContain("learner.family_id = public.assessment_baseline_responses.family_id");
     expect(source).toContain("Choose a learner from this family.");
+    expect(source).toContain(
+      "source_route = '/assessments/maths-starting-point'",
+    );
+    expect(source).toContain(
+      "sub_element_key = 'counting-processes' and progression_level between 1 and 8",
+    );
   });
 
   it("keeps the foundation dark while preserving idempotent atomic-save machinery", () => {
@@ -39,6 +45,19 @@ describe("Number & Operations baseline persistence review migration", () => {
     expect(source).toContain("from authenticated");
     expect(source).not.toMatch(
       /grant execute on function public\.mylearna_save_number_operations_baseline/,
+    );
+    expect(source).toContain(
+      "revoke all on public.assessment_baseline_attempts from authenticated",
+    );
+    expect(source).toContain(
+      "revoke all on public.assessment_baseline_responses from authenticated",
+    );
+    expect(source).not.toMatch(
+      /grant (select|insert|update|delete).*assessment_baseline_/i,
+    );
+    expect(source).toContain("security definer");
+    expect(source).toContain(
+      "on conflict (family_id, learner_id, client_submission_id)",
     );
   });
 
