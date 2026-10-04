@@ -55,7 +55,7 @@ function shortAnswerItem(input: {
       incorrect: "Not quite.",
     },
     analytics: {
-      tags: ["assessment-lab", "p0-anchor", ...input.tags],
+      tags: ["maths-starting-point", "p0-anchor", ...input.tags],
     },
   };
 }
@@ -99,7 +99,7 @@ function orderingItem(input: {
       incorrect: "Not quite.",
     },
     analytics: {
-      tags: ["assessment-lab", "p0-anchor", ...input.tags],
+      tags: ["maths-starting-point", "p0-anchor", ...input.tags],
     },
   };
 }
@@ -144,7 +144,7 @@ function choiceItem(input: {
       incorrect: "Not quite.",
     },
     analytics: {
-      tags: ["assessment-lab", "p0-anchor", ...input.tags],
+      tags: ["maths-starting-point", "p0-anchor", ...input.tags],
     },
   };
 }

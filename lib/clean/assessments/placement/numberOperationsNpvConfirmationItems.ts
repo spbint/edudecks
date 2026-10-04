@@ -47,7 +47,7 @@ function short(input: {
     feedback: { correct: "Correct.", incorrect: "Not quite." },
     analytics: {
       tags: [
-        "assessment-lab",
+        "maths-starting-point",
         "confirmation",
         "number-place-value",
         `p${input.p}`,
@@ -94,7 +94,7 @@ function choice(input: {
     feedback: { correct: "Correct.", incorrect: "Not quite." },
     analytics: {
       tags: [
-        "assessment-lab",
+        "maths-starting-point",
         "confirmation",
         "number-place-value",
         `p${input.p}`,
@@ -139,7 +139,7 @@ function ordering(input: {
     feedback: { correct: "Correct.", incorrect: "Not quite." },
     analytics: {
       tags: [
-        "assessment-lab",
+        "maths-starting-point",
         "confirmation",
         "number-place-value",
         `p${input.p}`,
