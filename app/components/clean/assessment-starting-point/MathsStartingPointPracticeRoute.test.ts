@@ -70,3 +70,13 @@ it("tracks only safe starting-point practice lifecycle metadata", () => {
     'trackCoreJourneyEvent("maths_starting_point_practice_completed", { answer',
   );
 });
+
+
+it("does not send learner performance or focus-area outcomes to product analytics", () => {
+  expect(viewerSource).not.toContain(
+    'correctCount: summary.correctCount',
+  );
+  expect(viewerSource).not.toContain(
+    'area: sourceSubElement || "maths_starting_point"',
+  );
+});

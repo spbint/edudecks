@@ -164,8 +164,6 @@ export default function AssessmentNumberOperationsBaselineRunner({
         featureArea: "assessment",
         subjectKey: "mathematics",
         itemCount: responseCount,
-        hasEvidence: profile.assessedSubElements > 0,
-        outcome: unresolved.length ? "partial" : "complete",
         presentation: mode,
       },
       userId,
@@ -199,11 +197,10 @@ export default function AssessmentNumberOperationsBaselineRunner({
     trackCoreJourneyEvent(
       "maths_starting_point_area_resolved",
       {
-        area: currentKey,
+        area: "maths_starting_point",
         featureArea: "assessment",
         subjectKey: "mathematics",
         position: currentIndex + 1,
-        outcome: pendingResult ? "reportable" : "needs_observation",
         presentation: mode,
       },
       userId,
@@ -254,11 +251,11 @@ export default function AssessmentNumberOperationsBaselineRunner({
       <section style={{ display: "grid", gap: 18 }}>
         <AssessmentNumberOperationsParentUtilityCard
           utility={parentUtility}
-          onActionSelected={(area, destination) =>
+          onActionSelected={(_area, destination) =>
             trackCoreJourneyEvent(
               "maths_starting_point_next_action_selected",
               {
-                area,
+                area: "maths_starting_point",
                 featureArea: "assessment",
                 subjectKey: "mathematics",
                 destination,

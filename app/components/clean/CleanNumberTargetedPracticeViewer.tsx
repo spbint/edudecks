@@ -4821,7 +4821,7 @@ export default function CleanNumberTargetedPracticeViewer({
         trackCoreJourneyEvent(
           "maths_starting_point_practice_completed",
           {
-            area: sourceSubElement || "maths_starting_point",
+            area: "maths_starting_point",
             featureArea: "practice",
             subjectKey: "mathematics",
             source: "maths-starting-point",
@@ -4865,7 +4865,7 @@ export default function CleanNumberTargetedPracticeViewer({
     trackCoreJourneyEvent(
       "maths_starting_point_practice_opened",
       {
-        area: sourceSubElement || "maths_starting_point",
+        area: "maths_starting_point",
         featureArea: "practice",
         subjectKey: "mathematics",
         source: "maths-starting-point",
@@ -4900,12 +4900,11 @@ export default function CleanNumberTargetedPracticeViewer({
     trackCoreJourneyEvent(
       "maths_starting_point_practice_completed",
       {
-        area: sourceSubElement || "maths_starting_point",
+        area: "maths_starting_point",
         featureArea: "practice",
         subjectKey: "mathematics",
         source: "maths-starting-point",
         taskCount: summary.totalCount,
-        correctCount: summary.correctCount,
         completionSource: "recommended_section",
       },
       user?.id,

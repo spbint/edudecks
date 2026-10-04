@@ -65,7 +65,7 @@ Privacy-safe first-party events:
 - `maths_starting_point_next_action_selected`
 - `maths_starting_point_evidence_confirmation_previewed`
 
-No learner names, answers, free-text notes or item response content are sent in analytics properties.
+No learner names, learner IDs, answers, free-text notes, item response content, correctness counts, progression bands, focus-area results or placement outcomes are sent in analytics properties. Analytics measure product use rather than child performance.
 
 ## Persistence boundary prepared but not applied
 
