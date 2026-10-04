@@ -176,7 +176,7 @@ it("keeps prototype and raw progression-band jargon out of the default parent re
     }),
   );
 
-  expect(screen.getByText("Maths starting point")).toBeTruthy();
+  expect(screen.getByText("Number & Operations starting point")).toBeTruthy();
   expect(screen.queryByText("Parent utility prototype")).toBeNull();
   expect(screen.queryByText(/Progression band:/)).toBeNull();
 
