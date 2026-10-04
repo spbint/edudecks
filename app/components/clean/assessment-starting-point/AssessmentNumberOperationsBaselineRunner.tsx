@@ -206,6 +206,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
   }, [
     complete,
     mode,
+    order.length,
     profile.assessedSubElements,
     responseCount,
     unresolved.length,
