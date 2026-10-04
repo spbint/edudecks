@@ -41,6 +41,8 @@ jobs:
           app/components/clean/assessment-lab/AssessmentFractionsLab.test.tsx
           app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard.test.tsx
           app/components/clean/assessment-lab/AssessmentNumberOperationsBaselineRunner.test.tsx
+          app/components/clean/assessment-lab/AssessmentNumberOperationsParentUtilityCard.test.tsx
+          app/components/clean/assessment-lab/AssessmentEvidenceConfirmationCard.test.tsx
           lib/clean/assessments/mylearnaAssessScoring.test.ts
           lib/clean/assessments/placement/numeracyProgressionRegistry.test.ts
           lib/clean/assessments/placement/assessmentPlacementItemRegistry.test.ts
@@ -66,6 +68,12 @@ jobs:
           lib/clean/assessments/placement/numberOperationsProfile.test.ts
           lib/clean/assessments/placement/numberOperationsRecommendations.test.ts
           lib/clean/assessments/placement/numberOperationsPracticeTargets.test.ts
+          lib/clean/assessments/placement/legacyNumberAssessmentEstate.test.ts
+          lib/clean/assessments/placement/numberOperationsParentUtility.test.ts
+          lib/clean/assessments/placement/numberOperationsPathwaysHandoff.test.ts
+          lib/clean/assessments/placement/numberOperationsProgressionPathwayCrosswalk.test.ts
+          lib/clean/assessments/placement/numberOperationsRecheckPlan.test.ts
+          lib/clean/assessments/placement/numberOperationsEvidenceConfirmation.test.ts
           lib/clean/assessments/placement/numberOperationsEvidencePreview.test.ts
           lib/clean/assessments/placement/numberOperationsBaselineSnapshot.test.ts
           lib/clean/assessments/placement/numberOperationsBaselineDraft.test.ts
