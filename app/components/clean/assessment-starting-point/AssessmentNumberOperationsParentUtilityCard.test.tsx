@@ -151,9 +151,28 @@ it("classifies a Pathways fallback primary action as My Pathways, not practice",
 
 
 it("keeps prototype and raw progression-band jargon out of the default parent result", () => {
+  const secondaryArea: NumberOperationsParentUtility["areas"][number] = {
+    ...area,
+    subElementKey: "additive-strategies",
+    label: "Additive strategies",
+    actionLabel: "Practise additive strategies",
+    actionHref: "/practice/maths-starting-point?moduleId=additive",
+    pathwaysLabel: "Open Operations and calculation in My Pathways",
+    pathwaysHref:
+      "/my-pathways?subjectKey=mathematics&strandKey=operations-and-calculation",
+    recheckPlan: {
+      ...area.recheckPlan,
+      subElementKey: "additive-strategies",
+    },
+  };
+  const resultUtility: NumberOperationsParentUtility = {
+    ...utility,
+    areas: [area, secondaryArea],
+  };
+
   render(
     React.createElement(AssessmentNumberOperationsParentUtilityCard, {
-      utility,
+      utility: resultUtility,
     }),
   );
 
