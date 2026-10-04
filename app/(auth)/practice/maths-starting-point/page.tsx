@@ -3,9 +3,9 @@ import AssessmentAccessGate from "@/app/components/clean/assessment-lab/Assessme
 import CleanNumberTargetedPracticeViewer from "@/app/components/clean/CleanNumberTargetedPracticeViewer";
 
 export const metadata: Metadata = {
-  title: "Maths Starting Point Practice | MyLearna",
+  title: "Number & Operations Starting Point Practice | MyLearna",
   description:
-    "Staff-gated preview of targeted practice recommended by the MyLearna Maths starting-point utility.",
+    "Staff-gated preview of targeted practice recommended by the MyLearna Number & Operations starting-point utility.",
   robots: { index: false, follow: false },
 };
 
