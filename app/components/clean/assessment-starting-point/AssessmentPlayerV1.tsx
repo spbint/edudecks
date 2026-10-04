@@ -55,7 +55,7 @@ function AssessmentItemRenderer({ item }: { item: MyLearnaAssessmentItem }) {
 
 export function getShortAnswerInputMode(
   item: MyLearnaAssessmentItem | null | undefined,
-): React.HTMLAttributes<HTMLInputElement>["inputMode"] {
+): React.InputHTMLAttributes<HTMLInputElement>["inputMode"] {
   if (!item || item.response.type !== "short-answer") return undefined;
   const canonical = String(item.response.correctValue ?? "").trim();
   const numericLike = /^[-+]?(?:\d{1,3}(?:,\d{3})*|\d+)?(?:\.\d+)?$/.test(
@@ -242,17 +242,21 @@ export default function AssessmentPlayerV1({
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            Question {currentIndex + 1} of {items.length}
-          </span>
-          <strong style={{ color: "#17204B", fontSize: 18 }}>
             {parentPresentation
-              ? currentItem.skill.name
-              : <>You&apos;re checking: {currentItem.skill.name}</>}
-          </strong>
+              ? "Maths question"
+              : `Question ${currentIndex + 1} of ${items.length}`}
+          </span>
+          {!parentPresentation ? (
+            <strong style={{ color: "#17204B", fontSize: 18 }}>
+              You&apos;re checking: {currentItem.skill.name}
+            </strong>
+          ) : null}
         </div>
-        <span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
-          {responses.length} of {items.length} complete
-        </span>
+        {!parentPresentation ? (
+          <span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+            {responses.length} of {items.length} complete
+          </span>
+        ) : null}
       </div>
 
       <div style={{ display: "grid", gap: 14 }}>

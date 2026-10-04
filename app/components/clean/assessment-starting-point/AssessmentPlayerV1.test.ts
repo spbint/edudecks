@@ -220,12 +220,19 @@ it("uses parent language and advances placement questions with one Continue acti
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
 
+  expect(screen.getByText("Maths question")).toBeTruthy();
+  expect(screen.queryByText(/Question\s+1\s+of\s+2/)).toBeNull();
+  expect(
+    screen.queryByText(/Determine the next or previous number/i),
+  ).toBeNull();
+
   fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
     target: { value: "62" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-  expect(screen.getByText(/Question\s+2\s+of\s+2/)).toBeTruthy();
+  expect(screen.getByText("Maths question")).toBeTruthy();
+  expect(screen.queryByText(/Question\s+2\s+of\s+2/)).toBeNull();
   expect(screen.queryByText("Response recorded.")).toBeNull();
 
   fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
