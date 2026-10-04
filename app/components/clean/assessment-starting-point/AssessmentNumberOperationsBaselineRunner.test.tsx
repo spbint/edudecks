@@ -307,3 +307,19 @@ it("namespaces focused-area browser drafts separately from the full five-area dr
   expect(source).toContain('order.join("+")');
   expect(source).toContain('isFullScope ? ""');
 });
+
+
+it("explains adaptive difficulty without implying year-based placement", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("Some questions may feel unusually easy or hard");
+  expect(source).toContain(
+    "rather than assuming a level from the learner&apos;s age or year",
+  );
+});
