@@ -84,6 +84,7 @@ export default function MathsStartingPointWorkspace() {
   }, [
     activeLearner?.id,
     areaParam,
+    selectedArea,
     loading,
     routeLearnerSyncPending,
     workspace.userId,
