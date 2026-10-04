@@ -66,3 +66,10 @@ it("provides a learner-preserving return to Mathematics Pathways", () => {
     "Mathematics Pathways",
   );
 });
+
+
+it("keeps starting-point open analytics free of family-composition properties", () => {
+  expect(source).not.toContain("hasMultipleLearners");
+  expect(source).not.toContain("hasLearner:");
+  expect(source).toContain('"maths_starting_point_opened"');
+});
