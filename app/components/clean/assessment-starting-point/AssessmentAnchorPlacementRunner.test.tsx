@@ -189,3 +189,26 @@ it("routes the accessible-form escape hatch to unresolved observed evidence inst
   expect(handler).not.toContain("buildNumberOperationsCandidateBandResult");
   expect(source).toContain("onUsePracticalObservation={");
 });
+
+
+it("enforces mayRoute before entering asset-review progression levels", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("blockUnapprovedProgressionLevel");
+  expect(source).toContain("if (policy.mayRoute) return false");
+  expect(source).toContain(
+    "if (blockUnapprovedProgressionLevel(route.targetP)) return",
+  );
+  expect(source).toContain(
+    "if (blockUnapprovedProgressionLevel(targetP)) return",
+  );
+  expect(source).toContain(
+    "setStage(resultForUnavailableTarget(anchorSet, pLevel))",
+  );
+});

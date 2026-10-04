@@ -1166,7 +1166,7 @@ export const MONEY_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
     ],
     correctOptionIds: ["a"],
     misconceptionTags: ["money-context-recognition-error"],
-    tags: ["search-probe", "understanding-money", "p1", "asset-review"],
+    tags: ["search-probe", "understanding-money", "p1"],
   }),
   choiceItem({
     id: "myl-search-mon-p01-b-v1",

@@ -323,3 +323,36 @@ describe("Number Operations anchor routing", () => {
     expect(routeBranchAnchor(counting, mixed, [1, 1])).toEqual({ kind: "awaiting" });
   });
 });
+
+
+it("blocks Money P1–P2 from electronic routing until asset review is explicitly approved", () => {
+  const money = getNumberOperationsAnchorSet("understanding-money");
+  expect(money).not.toBeNull();
+  if (!money) return;
+
+  for (const pLevel of [1, 2]) {
+    const evidenceMode = getProgressionEvidenceMode(money, pLevel);
+    expect(evidenceMode).toBe("asset-review");
+    expect(
+      getPlacementEvidencePolicy({ evidenceMode }),
+    ).toMatchObject({
+      mayRoute: false,
+      maySupportExactPlacement: false,
+    });
+    expect(
+      getPlacementEvidencePolicy({
+        evidenceMode,
+        assetApproved: true,
+      }),
+    ).toMatchObject({
+      mayRoute: true,
+      maySupportExactPlacement: true,
+    });
+  }
+
+  expect(
+    getPlacementEvidencePolicy({
+      evidenceMode: getProgressionEvidenceMode(money, 5),
+    }).mayRoute,
+  ).toBe(true);
+});

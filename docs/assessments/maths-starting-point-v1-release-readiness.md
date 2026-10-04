@@ -51,6 +51,7 @@ Current behaviour:
 - in-progress browser draft is namespaced per learner
 - no assessment record is written to Supabase
 - visual-dependent counting/subitising items expose a practical-observation alternative instead of forcing inaccessible electronic evidence
+- Money P1–P2 remain electronically blocked while their evidence mode is `asset-review`; having executable draft items does not bypass the evidence policy
 - choosing that alternative leaves the area unresolved; it never manufactures a digital placement
 - parent presentation suppresses P-level/routing/debug language during the assessment
 - result leads with practical next action, not technical placement
