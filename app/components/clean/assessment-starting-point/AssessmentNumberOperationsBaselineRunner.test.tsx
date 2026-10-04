@@ -198,3 +198,20 @@ it("drops raw response traces from the completed browser-only draft", () => {
     "tracesByKey: complete ? {} : tracesByKey",
   );
 });
+
+
+it("makes the bounded parent question load explicit without inventing a duration", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("Five short Maths areas");
+  expect(source).toContain("budget.bySubElement[currentIndex]?.minimumQuestions");
+  expect(source).toContain("budget.bySubElement[currentIndex]?.maximumQuestions");
+  expect(source).toContain("MyLearna pauses between areas");
+  expect(source).not.toMatch(/\b\d+\s*(?:minute|minutes|min)\b/i);
+});
