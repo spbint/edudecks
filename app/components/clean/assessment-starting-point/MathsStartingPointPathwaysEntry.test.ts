@@ -19,9 +19,21 @@ describe("Maths starting-point My Pathways entry", () => {
   });
 
   it("links the selected learner into the staff-only Maths starting-point utility", () => {
-    expect(source).toContain("Staff preview · Maths starting point");
+    expect(source).toContain("Staff preview · Number & Operations starting point");
     expect(source).toContain("Find a starting point");
     expect(source).toContain("/assessments/maths-starting-point?");
     expect(source).toContain("learnerId: selectedLearner.id");
   });
+});
+
+
+it("shows the entry only in the three Mathematics strands actually covered by v1", () => {
+  expect(source).toContain("MATHS_STARTING_POINT_STRANDS");
+  expect(source).toContain('"number-and-place-value"');
+  expect(source).toContain('"operations-and-calculation"');
+  expect(source).toContain('"financial-and-real-world-mathematics"');
+  expect(source).toContain(
+    "MATHS_STARTING_POINT_STRANDS.has(selectedSubjectWorkspace.key)",
+  );
+  expect(source).not.toContain('"geometry-spatial-reasoning",\n]);');
 });
