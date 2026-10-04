@@ -85,3 +85,37 @@ it("reports only the parent's Portfolio/report choices when confirmation is prev
     { includeInPortfolio: true, includeInReport: false },
   ]);
 });
+
+
+it("uses parent language without exposing persistence/debug terminology", () => {
+  render(
+    React.createElement(AssessmentEvidenceConfirmationCard, {
+      preview,
+      presentation: "parent",
+    }),
+  );
+
+  expect(screen.getByText("Learning evidence")).toBeTruthy();
+  expect(
+    screen.getByText(
+      "I understand this is a starting point, not a grade or permanent level.",
+    ),
+  ).toBeTruthy();
+  expect(screen.queryByText("Parent confirmation prototype")).toBeNull();
+  expect(screen.queryByText(/persistence boundary/i)).toBeNull();
+
+  fireEvent.click(
+    screen.getByRole("checkbox", {
+      name: /I understand this is a starting point/i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Preview this evidence choice" }),
+  );
+
+  expect(screen.getByText("Evidence choice previewed")).toBeTruthy();
+  expect(
+    screen.getByText(/Nothing has been saved in this staff preview/i),
+  ).toBeTruthy();
+  expect(screen.queryByText("View confirmation payload")).toBeNull();
+});

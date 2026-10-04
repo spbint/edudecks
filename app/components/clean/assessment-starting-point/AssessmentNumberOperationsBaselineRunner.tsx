@@ -179,9 +179,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
     setCompletedAt(null);
     startedAtRef.current = new Date().toISOString();
     completionTrackedRef.current = false;
-    window.sessionStorage.removeItem(
-      NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
-    );
+    window.sessionStorage.removeItem(draftStorageKey);
   };
 
   const continueBaseline = () => {
@@ -261,6 +259,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
         />
         <AssessmentEvidenceConfirmationCard
           preview={evidencePreview}
+          presentation={mode === "parent-preview" ? "parent" : "staff"}
           onConfirmationPreviewed={({ includeInPortfolio, includeInReport }) =>
             trackCoreJourneyEvent(
               "maths_starting_point_evidence_confirmation_previewed",
@@ -489,8 +488,11 @@ export default function AssessmentNumberOperationsBaselineRunner({
       {profile.assessedSubElements ? (
         <small style={{ color: "#64748B" }}>
           {profile.assessedSubElements} prior area
-          {profile.assessedSubElements === 1 ? "" : "s"} currently have a
-          reportable result in this run.
+          {profile.assessedSubElements === 1 ? "" : "s"} currently have a{" "}
+          {mode === "parent-preview"
+            ? "usable starting point"
+            : "reportable result"}{" "}
+          in this run.
         </small>
       ) : null}
     </section>

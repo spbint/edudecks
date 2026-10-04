@@ -146,3 +146,18 @@ it("keeps the first parent cluster deliberate but auto-starts internal adaptive 
     expect(block, stage).toContain("autoStart={parentPresentation}");
   }
 });
+
+
+it("lets the parent baseline own the area-complete message instead of duplicating it inside routing", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain(
+    'stage.kind === "result" ? (\n        parentPresentation ? null',
+  );
+});

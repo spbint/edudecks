@@ -653,7 +653,7 @@ export default function AssessmentAnchorPlacementRunner({
       </div>
 
       {stage.kind === "result" ? (
-        stage.placementResult ? (
+        parentPresentation ? null : stage.placementResult ? (
           <>
             {parentPresentation ? (
               <div
