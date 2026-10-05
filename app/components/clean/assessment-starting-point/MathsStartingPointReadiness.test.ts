@@ -27,3 +27,15 @@ describe("Maths starting-point readiness route", () => {
     expect(source).toContain("MATHS_STARTING_POINT_RELEASE");
   });
 });
+
+
+it("names the hosted/mobile acceptance blockers and links directly to both staff review surfaces", () => {
+  expect(source).toContain("Hosted parent-flow acceptance");
+  expect(source).toContain("Mobile parent-flow acceptance");
+  expect(source).toContain(
+    '/assessments/maths-starting-point/asset-review',
+  );
+  expect(source).toContain(
+    '/assessments/maths-starting-point/item-review',
+  );
+});
