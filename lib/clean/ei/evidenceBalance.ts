@@ -1,3 +1,4 @@
+import { EI_V1_POLICY } from "@/lib/clean/ei/policy";
 import type {
   EiEvidenceBalanceState,
   EiEvidenceConfidence,
@@ -25,14 +26,21 @@ function getConfidence(
   directionalEvidenceGroupCount: number,
   directionalSourceKindCount: number,
 ): EiEvidenceConfidence {
+  const policy = EI_V1_POLICY.evidenceBalance;
+
   if (
-    directionalEvidenceGroupCount >= 3 &&
-    directionalSourceKindCount >= 2
+    directionalEvidenceGroupCount >=
+      policy.highConfidenceMinimumDirectionalGroups &&
+    directionalSourceKindCount >=
+      policy.highConfidenceMinimumDirectionalSourceKinds
   ) {
     return "high";
   }
 
-  if (directionalEvidenceGroupCount >= 2) {
+  if (
+    directionalEvidenceGroupCount >=
+    policy.minimumDirectionalGroupsForSignal
+  ) {
     return "moderate";
   }
 
@@ -43,13 +51,25 @@ function getSignalBand(
   directionalEvidenceGroupCount: number,
   supportRatio: number | null,
 ): EiEvidenceSignalBand {
-  if (directionalEvidenceGroupCount < 2 || supportRatio === null) {
+  const policy = EI_V1_POLICY.evidenceBalance;
+
+  if (
+    directionalEvidenceGroupCount <
+      policy.minimumDirectionalGroupsForSignal ||
+    supportRatio === null
+  ) {
     return "not_enough_evidence";
   }
 
-  if (supportRatio < 0.35) return "needs_attention";
-  if (supportRatio < 0.6) return "mixed";
-  if (supportRatio < 0.8) return "promising";
+  if (supportRatio < policy.needsAttentionUpperExclusive) {
+    return "needs_attention";
+  }
+
+  if (supportRatio < policy.mixedUpperExclusive) return "mixed";
+  if (supportRatio < policy.promisingUpperExclusive) {
+    return "promising";
+  }
+
   return "strong_signal";
 }
 
@@ -156,7 +176,10 @@ export function buildEiEvidenceBalanceState(
 
   const reasons: string[] = [];
 
-  if (directionalEvidenceGroupCount < 2) {
+  if (
+    directionalEvidenceGroupCount <
+    EI_V1_POLICY.evidenceBalance.minimumDirectionalGroupsForSignal
+  ) {
     reasons.push(
       "Fewer than two independent directional evidence groups are available, so the engine will not make a strong learner-state claim.",
     );
@@ -164,7 +187,9 @@ export function buildEiEvidenceBalanceState(
 
   if (
     directionalEvidenceGroupCount > 0 &&
-    directionalSourceKindCount < 2
+    directionalSourceKindCount <
+      EI_V1_POLICY.evidenceBalance
+        .highConfidenceMinimumDirectionalSourceKinds
   ) {
     reasons.push(
       "Directional evidence currently comes from only one source type; corroboration from another source would increase trust.",
@@ -196,6 +221,8 @@ export function buildEiEvidenceBalanceState(
   }
 
   return {
+    engineVersion: EI_V1_POLICY.evidenceBalanceEngineVersion,
+    policyVersion: EI_V1_POLICY.policyVersion,
     competencyId: first.competencyId,
     learnerId: first.learnerId,
     eventCount: scopedEvents.length,
