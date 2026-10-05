@@ -127,7 +127,7 @@ export function getNumberOperationsPracticeTarget(input: {
     return pathwaysFallback(
       subElementKey,
       targetP,
-      "Counting is distributed through step-specific pathway practice rather than one canonical counting module. Exact progression-to-step mapping still needs academic review.",
+      "Counting is distributed through step-specific pathway practice rather than one canonical counting module. MyLearna uses the reviewed progression-to-Pathways crosswalk when a specific step is defensible and otherwise stays at strand level.",
       learnerId,
     );
   }
