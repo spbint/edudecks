@@ -34,6 +34,8 @@ const BLOCKER_LABELS: Record<string, string> = {
   "customer-navigation": "Customer My Pathways navigation",
   persistence: "Baseline persistence",
   "evidence-write": "Evidence write",
+  "hosted-acceptance": "Hosted parent-flow acceptance",
+  "mobile-acceptance": "Mobile parent-flow acceptance",
   "draft-items": "Placement item release state",
   "pending-trusted-assets": "Trusted asset approval",
 };
@@ -102,6 +104,16 @@ export default function MathsStartingPointReadinessPage() {
                 }}
               >
                 Review pending currency asset
+              </Link>
+              <Link
+                href="/assessments/maths-starting-point/item-review"
+                style={{
+                  color: "#17204B",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Review placement items
               </Link>
             </div>
           </section>
