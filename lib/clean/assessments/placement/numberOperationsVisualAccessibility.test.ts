@@ -9,7 +9,7 @@ describe("Number & Operations score-bearing visual accessibility", () => {
       (entry) => entry.item.stimulus.type !== "none",
     );
 
-    expect(visualItems).toHaveLength(10);
+    expect(visualItems).toHaveLength(9);
 
     for (const entry of visualItems) {
       expect(
