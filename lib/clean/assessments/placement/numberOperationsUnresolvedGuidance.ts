@@ -17,11 +17,11 @@ const GUIDANCE: Record<
     label: "Number and place value",
     headline: "Use a familiar number in a practical context",
     tryThis:
-      "Choose a number that makes sense for the learner and ask them to read it, build or draw it, compare it with another number, or explain another way to represent the same value.",
+      "Choose one or two familiar numbers that suit the learner. Ask them to name or read the number, show what it means with objects or a drawing if helpful, and explain which of two numbers represents more or less.",
     evidenceToLookFor: [
-      "whether the learner reads the number without digit-order confusion",
-      "whether place value is used when explaining or renaming the number",
-      "whether comparisons are explained from value rather than appearance",
+      "whether the numeral or number name is recognised accurately",
+      "whether the learner connects the numeral with the quantity or value it represents",
+      "whether useful grouping, tens or place-value ideas appear naturally when the numbers are large enough",
     ],
   },
   "counting-processes": {
@@ -56,8 +56,8 @@ const GUIDANCE: Record<
       "Make equal groups with real objects, or share a collection equally, and ask the learner to work out the total or amount in each group without prescribing multiplication or division.",
     evidenceToLookFor: [
       "whether equal groups are recognised as one repeated unit",
-      "whether the learner chooses multiplication, division, skip counting, or repeated addition appropriately",
-      "whether known facts or inverse relationships are used independently",
+      "whether the learner uses sharing, grouping, skip counting or repeated addition in a way that fits the task",
+      "whether a known fact or repeated-unit idea is used independently when the learner is ready",
     ],
   },
   "understanding-money": {
@@ -67,9 +67,9 @@ const GUIDANCE: Record<
     tryThis:
       "Use real or familiar money, price labels, or a simple family shopping example. Ask the learner to recognise values, compare costs, make a total, or explain a choice that suits their current experience.",
     evidenceToLookFor: [
-      "whether money values and denominations are recognised accurately",
-      "whether dollars and cents are combined or compared meaningfully",
-      "whether totals, change, value, or budgeting choices can be explained",
+      "whether familiar money values and denominations are recognised accurately",
+      "whether the learner compares or combines money values meaningfully for their current experience",
+      "whether a simple value, total or choice can be explained in their own words",
     ],
   },
 };
