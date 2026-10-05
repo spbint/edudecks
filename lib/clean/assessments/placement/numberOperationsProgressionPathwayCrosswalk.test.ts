@@ -46,19 +46,15 @@ describe("Number & Operations progression-to-Pathways crosswalk", () => {
     }
   });
 
-  it("keeps deliberately ambiguous later counting levels at strand level", () => {
-    expect(
-      getNumberOperationsProgressionPathwayCrosswalkEntry(
-        "counting-processes",
-        7,
-      ),
-    ).toMatchObject({ confidence: "strand-level", target: null });
-    expect(
-      getNumberOperationsProgressionPathwayCrosswalkEntry(
-        "counting-processes",
-        8,
-      ),
-    ).toMatchObject({ confidence: "strand-level", target: null });
+  it("keeps counting levels with mixed or distributed constructs at strand level", () => {
+    for (const pLevel of [1, 7, 8]) {
+      expect(
+        getNumberOperationsProgressionPathwayCrosswalkEntry(
+          "counting-processes",
+          pLevel,
+        ),
+      ).toMatchObject({ confidence: "strand-level", target: null });
+    }
   });
 
   it("keeps source-guided mappings explicit about their limitation", () => {
