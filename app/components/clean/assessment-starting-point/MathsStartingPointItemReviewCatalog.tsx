@@ -23,7 +23,9 @@ type ReviewFilter =
   | "visual"
   | "observation"
   | "accessibility"
-  | "asset";
+  | "asset"
+  | "ordering"
+  | "symbolic";
 
 function areaFor(entry: NumberOperationsPlacementItemRegistryEntry) {
   return (
@@ -56,9 +58,19 @@ function matchesReviewFilter(
   if (filter === "accessibility") {
     return hasTagFragment(entry, "accessible-form-required");
   }
+  if (filter === "ordering") {
+    return entry.item.response.type === "ordering";
+  }
+  if (filter === "symbolic") {
+    return (
+      entry.item.response.type === "short-answer" &&
+      String(entry.item.response.correctValue ?? "").includes("/")
+    );
+  }
   return (
     hasTagFragment(entry, "asset-review") ||
-    hasTagFragment(entry, "currency-review")
+    hasTagFragment(entry, "currency-review") ||
+    hasTagFragment(entry, "currency-token-review")
   );
 }
 
@@ -103,6 +115,33 @@ export default function MathsStartingPointItemReviewCatalog() {
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [query, setQuery] = useState("");
 
+  const reviewCounts = useMemo(() => {
+    const entries = NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY;
+    return {
+      visual: entries.filter((entry) => entry.item.stimulus.type !== "none").length,
+      observation: entries.filter((entry) =>
+        hasTagFragment(entry, "hybrid-routing-only"),
+      ).length,
+      accessibility: entries.filter((entry) =>
+        hasTagFragment(entry, "accessible-form-required"),
+      ).length,
+      asset: entries.filter(
+        (entry) =>
+          hasTagFragment(entry, "asset-review") ||
+          hasTagFragment(entry, "currency-review") ||
+          hasTagFragment(entry, "currency-token-review"),
+      ).length,
+      ordering: entries.filter(
+        (entry) => entry.item.response.type === "ordering",
+      ).length,
+      symbolic: entries.filter(
+        (entry) =>
+          entry.item.response.type === "short-answer" &&
+          String(entry.item.response.correctValue ?? "").includes("/"),
+      ).length,
+    };
+  }, []);
+
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
 
@@ -141,6 +180,31 @@ export default function MathsStartingPointItemReviewCatalog() {
         <strong style={{ color: "#17204B", fontSize: 18 }}>
           Review {rows.length} of {NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length} items
         </strong>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {[
+            ["Visual", reviewCounts.visual],
+            ["Observation-limited", reviewCounts.observation],
+            ["Accessible alternative", reviewCounts.accessibility],
+            ["Asset review", reviewCounts.asset],
+            ["Ordering", reviewCounts.ordering],
+            ["Symbolic answer", reviewCounts.symbolic],
+          ].map(([label, count]) => (
+            <span
+              key={String(label)}
+              style={{
+                border: "1px solid #DDE4EE",
+                borderRadius: 999,
+                background: "#F8FAFC",
+                color: "#475569",
+                padding: "4px 8px",
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              {label}: {count}
+            </span>
+          ))}
+        </div>
         <div
           style={{
             display: "grid",
@@ -206,6 +270,8 @@ export default function MathsStartingPointItemReviewCatalog() {
               <option value="observation">Observation-limited</option>
               <option value="accessibility">Accessibility review</option>
               <option value="asset">Asset review</option>
+              <option value="ordering">Ordering interaction</option>
+              <option value="symbolic">Symbolic short answer</option>
             </select>
           </label>
 
@@ -267,12 +333,17 @@ export default function MathsStartingPointItemReviewCatalog() {
                   {entry.item.prompt}
                 </span>
                 <small style={{ color: "#64748B" }}>
-                  {entry.item.curriculum?.code || "No curriculum code"} · pool {entry.poolKey}
+                  {entry.item.curriculum?.code || "No curriculum code"} · {entry.item.yearLevel} · pool {entry.poolKey}
                 </small>
               </div>
 
               {entry.item.stimulus.type !== "none" ? (
-                <AssessmentStimulus stimulus={entry.item.stimulus} />
+                <div style={{ display: "grid", gap: 6 }}>
+                  <AssessmentStimulus stimulus={entry.item.stimulus} />
+                  <small style={{ color: "#64748B", lineHeight: 1.5 }}>
+                    Alt text: {entry.item.stimulus.altText || "—"}
+                  </small>
+                </div>
               ) : null}
 
               {entry.item.response.options?.length ? (
