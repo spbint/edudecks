@@ -121,3 +121,31 @@ describe("Number & Operations parent utility projection", () => {
     ).toMatchObject({ state: "extend", headline: "Ready for extension" });
   });
 });
+
+
+it("returns focused practice to the same learner and focused area", () => {
+  const profile = buildNumberOperationsProfile(
+    [
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "additive-strategies",
+        lowerP: 6,
+        upperP: 7,
+      }),
+    ],
+    { expectedSubElementKeys: ["additive-strategies"] },
+  );
+
+  const utility = buildNumberOperationsParentUtility(profile, {
+    learnerId: "learner-123",
+  });
+  const practiceUrl = new URL(
+    utility.areas[0]!.actionHref,
+    "https://mylearna.test",
+  );
+
+  expect(practiceUrl.pathname).toBe("/practice/maths-starting-point");
+  expect(practiceUrl.searchParams.get("learnerId")).toBe("learner-123");
+  expect(practiceUrl.searchParams.get("returnTo")).toBe(
+    "/assessments/maths-starting-point?learnerId=learner-123&area=additive-strategies",
+  );
+});
