@@ -176,7 +176,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         sourcePages: [5],
         slots: [
           slot("MYL-ANCHOR-CNT-P05-A", "A", "Find the next or previous number from an arbitrary point within 1–100.", "numeric_entry", "text-first", "implemented-draft"),
-          slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 from a deterministic visual collection.", "numeric_entry", "array renderer for v0; varied arrangements required in later boundary pool", "implemented-draft-accessibility-review"),
+          slot("MYL-ANCHOR-CNT-P05-B", "B", "Match a numeral to a collection up to 20 from a deterministic visual collection.", "numeric_entry", "controlled scattered counter set; varied arrangements required in later boundary pool", "implemented-draft-accessibility-review"),
         ],
         reserveSlot: slot(
           "MYL-ANCHOR-CNT-P05-C",
