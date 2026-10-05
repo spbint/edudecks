@@ -183,6 +183,7 @@ const MATHS_STARTING_POINT_FOCUSED_AREAS: Record<
   Array<{
     area:
       | "number-place-value"
+      | "counting-processes"
       | "additive-strategies"
       | "multiplicative-strategies"
       | "understanding-money";
