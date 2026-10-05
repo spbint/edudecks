@@ -21,6 +21,19 @@ describe("Number & Operations My Pathways handoff", () => {
     expect(url.searchParams.get("stepKey")).toBeNull();
   });
 
+  it("keeps mixed Counting P1 evidence at strand level instead of inventing one exact step", () => {
+    const handoff = buildNumberOperationsPathwaysHandoff({
+      subElementKey: "counting-processes",
+      targetP: 1,
+    });
+    const url = new URL(handoff.href, "https://mylearna.test");
+
+    expect(handoff.mappingConfidence).toBe("strand-level");
+    expect(handoff.pathwayStepId).toBeNull();
+    expect(url.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(url.searchParams.get("pathwayStepId")).toBeNull();
+  });
+
   it("keeps ambiguous counting targets at strand level", () => {
     const handoff = buildNumberOperationsPathwaysHandoff({
       subElementKey: "counting-processes",
