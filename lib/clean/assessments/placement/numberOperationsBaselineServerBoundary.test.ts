@@ -26,6 +26,9 @@ describe("Maths starting-point server-only save boundary", () => {
     expect(routeSource).toContain(
       "buildTrustedNumberOperationsBaselinePersistenceDraft",
     );
+    expect(routeSource).toContain('.from("profiles")');
+    expect(routeSource).toContain('"is_admin"');
+    expect(routeSource).toContain("!MATHS_STARTING_POINT_RELEASE.customerVisible");
     expect(routeSource).toContain('.from("family_members")');
     expect(routeSource).toContain('.from("learners")');
     expect(routeSource).toContain("p_actor_user_id: user.id");
@@ -40,4 +43,12 @@ describe("Maths starting-point server-only save boundary", () => {
       'supabase.rpc("mylearna_save_number_operations_baseline"',
     );
   });
+});
+
+
+it("keeps persistence staff-only while customer visibility is off", () => {
+  expect(routeSource).toContain(
+    "Maths starting-point persistence is currently limited to authorised staff preview.",
+  );
+  expect(routeSource).toContain("status: 403");
 });
