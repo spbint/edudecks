@@ -5,6 +5,9 @@ import {
   NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
 } from "./numberOperationsItemRegistry";
 import { auditNumberOperationsPlacementItems } from "./numberOperationsItemQuality";
+import {
+  getNumberOperationsItemReviewFlags,
+} from "./numberOperationsItemReviewFlags";
 
 export type NumberOperationsItemReviewSummary = {
   totalItems: number;
@@ -15,6 +18,8 @@ export type NumberOperationsItemReviewSummary = {
   routingOnlyItems: number;
   accessibilityAlternativeItems: number;
   pendingTrustedAssetItems: number;
+  attentionCustomerItems: number;
+  routineCustomerItems: number;
   customerVisualItems: number;
   customerTextFirstItems: number;
   customerVisualTypeCounts: Record<string, number>;
@@ -48,6 +53,11 @@ export function getNumberOperationsItemReviewSummary(): NumberOperationsItemRevi
     }
   }
 
+  const attentionCustomerItems =
+    NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.filter(
+      (entry) => getNumberOperationsItemReviewFlags(entry).length > 0,
+    ).length;
+
   for (const entry of NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY) {
     const stimulusType = entry.item.stimulus.type;
     if (stimulusType !== "none") {
@@ -75,6 +85,10 @@ export function getNumberOperationsItemReviewSummary(): NumberOperationsItemRevi
         (entry) => entry.item.id === itemId,
       ),
     ).length,
+    attentionCustomerItems,
+    routineCustomerItems:
+      NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length -
+      attentionCustomerItems,
     customerVisualItems,
     customerTextFirstItems:
       NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length -

@@ -6,7 +6,10 @@ import {
   NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
   type NumberOperationsPlacementPoolKind,
 } from "@/lib/clean/assessments/placement/numberOperationsItemRegistry";
-import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "@/lib/clean/assessments/placement/numberOperationsAssetApprovals";
+import {
+  getNumberOperationsItemReviewFlags,
+  numberOperationsItemReviewFlagLabel,
+} from "@/lib/clean/assessments/placement/numberOperationsItemReviewFlags";
 
 const AREA_LABELS: Record<string, string> = {
   "number-place-value": "Number & place value",
@@ -24,27 +27,6 @@ function parsePoolKey(poolKey: string) {
     area: match?.[1] || "",
     pLevel: match ? Number(match[2]) : null,
   };
-}
-
-function reviewFlags(itemId: string, tags: string[] = []) {
-  const flags: string[] = [];
-  if (tags.some((tag) => tag.includes("hybrid-routing-only"))) {
-    flags.push("Routing-only evidence");
-  }
-  if (tags.some((tag) => tag.includes("accessible-form-required"))) {
-    flags.push("Practical observation alternative required");
-  }
-  const asset = NUMBER_OPERATIONS_ASSET_APPROVALS.find((approval) =>
-    approval.itemIds.includes(itemId),
-  );
-  if (asset?.status !== undefined) {
-    flags.push(
-      asset.status === "approved"
-        ? "Trusted asset approved"
-        : "Trusted asset pending review",
-    );
-  }
-  return flags;
 }
 
 const panel: React.CSSProperties = {
@@ -72,10 +54,7 @@ export default function MathsStartingPointItemReview() {
       if (poolKind !== "all" && entry.poolKind !== poolKind) return false;
       if (pLevel !== "all" && String(parsed.pLevel ?? "") !== pLevel) return false;
       if (status !== "all" && entry.item.status !== status) return false;
-      const flags = reviewFlags(
-        entry.item.id,
-        entry.item.analytics?.tags || [],
-      );
+      const flags = getNumberOperationsItemReviewFlags(entry);
       if (attentionOnly && !flags.length) return false;
       if (
         q &&
@@ -205,10 +184,7 @@ export default function MathsStartingPointItemReview() {
 
       {rows.map((entry) => {
         const parsed = parsePoolKey(entry.poolKey);
-        const flags = reviewFlags(
-          entry.item.id,
-          entry.item.analytics?.tags || [],
-        );
+        const flags = getNumberOperationsItemReviewFlags(entry);
 
         return (
           <article key={entry.item.id} style={panel}>
@@ -291,7 +267,7 @@ export default function MathsStartingPointItemReview() {
                       fontWeight: 800,
                     }}
                   >
-                    {flag}
+                    {numberOperationsItemReviewFlagLabel(flag)}
                   </span>
                 ))}
               </div>

@@ -201,6 +201,8 @@ export default function MathsStartingPointReadinessPage() {
                 ["Routing-only items", String(itemReview.routingOnlyItems)],
                 ["Accessibility alternatives", String(itemReview.accessibilityAlternativeItems)],
                 ["Pending-asset items", String(itemReview.pendingTrustedAssetItems)],
+                ["Needs-attention customer items", String(itemReview.attentionCustomerItems)],
+                ["Routine-review customer items", String(itemReview.routineCustomerItems)],
                 ["Score-bearing visual items", String(itemReview.customerVisualItems)],
                 ["Text-first customer items", String(itemReview.customerTextFirstItems)],
               ].map(([label, value]) => (
