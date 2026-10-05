@@ -121,3 +121,31 @@ it("detects short-answer template/response mismatches", () => {
     ]),
   );
 });
+
+
+it("keeps structural quality independent from normal release lifecycle status", () => {
+  const source = NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY[0];
+  expect(source).toBeTruthy();
+  if (!source) return;
+
+  for (const status of ["draft", "review", "approved", "published"] as const) {
+    const issues = validatePlacementItem({
+      ...source,
+      item: { ...source.item, status },
+    });
+    expect(
+      issues.some((issue) => issue.code === "invalid-status"),
+      status,
+    ).toBe(false);
+  }
+
+  const retiredIssues = validatePlacementItem({
+    ...source,
+    item: { ...source.item, status: "retired" },
+  });
+  expect(retiredIssues).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ code: "invalid-status" }),
+    ]),
+  );
+});

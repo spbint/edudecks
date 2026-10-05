@@ -64,10 +64,10 @@ export function validatePlacementItem(
     issue("invalid-version", "Item version must be a positive integer.");
   }
 
-  if (item.status !== "draft") {
+  if (item.status === "retired") {
     issue(
       "invalid-status",
-      "First-slice placement items must remain draft until the release gate is passed.",
+      "Retired items must not remain in the active placement registry.",
     );
   }
 
