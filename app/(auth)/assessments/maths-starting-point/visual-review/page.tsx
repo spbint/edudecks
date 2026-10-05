@@ -65,23 +65,26 @@ export default function MathsStartingPointVisualReviewPage() {
             </h1>
             <p style={{ margin: 0, color: "#4B5563", lineHeight: 1.6 }}>
               Review all {visualItems.length} visual-dependent customer-route items
-              in a strict 390px phone frame. This page is read-only and does not
+              at both 390px and 430px phone widths. This page is read-only and does not
               approve assets or publish items.
             </p>
           </section>
 
-          {visualItems.map((entry) => {
+          {visualItems.flatMap((entry) => {
             const flags = getNumberOperationsItemReviewFlags(entry);
-            return (
+            return ([390, 430] as const).map((frameWidth) => (
               <article
-                key={entry.item.id}
+                key={`${entry.item.id}-${frameWidth}`}
                 style={{
                   ...panel,
                   width: "100%",
-                  maxWidth: 390,
+                  maxWidth: frameWidth,
                   margin: "0 auto",
                 }}
               >
+                <small style={{ color: "#64748B", fontWeight: 800 }}>
+                  {frameWidth}px phone review frame
+                </small>
                 <div style={{ display: "grid", gap: 3 }}>
                   <strong style={{ color: "#17204B" }}>{entry.item.id}</strong>
                   <span style={{ color: "#64748B", fontSize: 12 }}>
@@ -138,7 +141,7 @@ export default function MathsStartingPointVisualReviewPage() {
                   </div>
                 ) : null}
               </article>
-            );
+            ));
           })}
 
           <section
