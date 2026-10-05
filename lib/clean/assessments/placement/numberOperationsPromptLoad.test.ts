@@ -8,7 +8,7 @@ function wordCount(value: string) {
 describe("Number & Operations early prompt language load", () => {
   it("keeps Prep/Year 1 prompts concise in the first placement slice", () => {
     const early = NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter((entry) =>
-      /^(Prep|Prep–Year 1|Year 1)$/.test(entry.item.yearLevel),
+      /^(Prep|Prep–Year 1|Year 1)$/.test(entry.item.curriculum?.yearLevel || ""),
     );
 
     expect(early.length).toBeGreaterThan(0);
