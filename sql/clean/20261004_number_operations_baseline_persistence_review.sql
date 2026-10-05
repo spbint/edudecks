@@ -82,6 +82,25 @@ create table if not exists public.assessment_baseline_attempts (
       assessed_sub_elements >= 0
       and assessed_sub_elements <= expected_sub_elements
     ),
+  constraint assessment_baseline_attempts_scope_resolution_check
+    check (
+      assessed_sub_elements + cardinality(unresolved_sub_elements) =
+        expected_sub_elements
+    ),
+  constraint assessment_baseline_attempts_status_resolution_check
+    check (
+      (
+        status = 'complete'
+        and cardinality(unresolved_sub_elements) = 0
+        and assessed_sub_elements = expected_sub_elements
+      )
+      or
+      (
+        status = 'partial'
+        and cardinality(unresolved_sub_elements) > 0
+        and assessed_sub_elements < expected_sub_elements
+      )
+    ),
   constraint assessment_baseline_attempts_completed_after_started_check
     check (completed_at >= started_at),
   constraint assessment_baseline_attempts_profile_object_check
@@ -325,6 +344,14 @@ begin
     from unnest(new.scope_sub_elements) as scoped(value)
   ) then
     raise exception 'Baseline attempt scope must not contain duplicates.'
+      using errcode = '22023';
+  end if;
+
+  if cardinality(new.unresolved_sub_elements) <> (
+    select count(distinct unresolved.value)
+    from unnest(new.unresolved_sub_elements) as unresolved(value)
+  ) then
+    raise exception 'Baseline unresolved areas must not contain duplicates.'
       using errcode = '22023';
   end if;
 
@@ -588,6 +615,24 @@ begin
     where not ((p_attempt->'scopeSubElements') ? unresolved.value)
   ) then
     raise exception 'unresolvedSubElements must stay inside scopeSubElements.'
+      using errcode = '22023';
+  end if;
+
+  if (
+    select count(*)
+    from jsonb_array_elements_text(p_attempt->'unresolvedSubElements')
+  ) <> (
+    select count(distinct unresolved.value)
+    from jsonb_array_elements_text(p_attempt->'unresolvedSubElements') as unresolved(value)
+  ) then
+    raise exception 'unresolvedSubElements must not contain duplicates.'
+      using errcode = '22023';
+  end if;
+
+  if (p_attempt->>'assessedSubElements')::integer +
+       jsonb_array_length(p_attempt->'unresolvedSubElements') <>
+       (p_attempt->>'expectedSubElements')::integer then
+    raise exception 'Every requested scope area must be assessed or unresolved.'
       using errcode = '22023';
   end if;
 
