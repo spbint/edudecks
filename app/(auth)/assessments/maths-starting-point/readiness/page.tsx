@@ -120,6 +120,16 @@ export default function MathsStartingPointReadinessPage() {
               >
                 Review placement items
               </Link>
+              <Link
+                href="/assessments/maths-starting-point/visual-review"
+                style={{
+                  color: "#17204B",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Review all 10 score-bearing visuals
+              </Link>
             </div>
           </section>
 
