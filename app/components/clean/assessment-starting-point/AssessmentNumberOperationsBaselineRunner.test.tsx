@@ -341,3 +341,24 @@ it("keeps unresolved observation capture attached to the same learner and focuse
   expect(source).toContain('if (order.length === 1 && order[0]) params.set("area", order[0])');
   expect(source).toContain('if (cleanLearnerId) params.set("learnerId", cleanLearnerId)');
 });
+
+
+it("builds focused profiles against the requested scope rather than the full five-area contract", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain(
+    "expectedSubElementKeys: order",
+  );
+  expect(source).not.toContain(
+    "buildNumberOperationsProfile(Object.values(resultsByKey))",
+  );
+  expect(source).not.toContain(
+    "buildNumberOperationsProfile(finalResults);",
+  );
+});
