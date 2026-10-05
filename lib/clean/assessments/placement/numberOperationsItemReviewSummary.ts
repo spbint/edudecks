@@ -15,6 +15,9 @@ export type NumberOperationsItemReviewSummary = {
   routingOnlyItems: number;
   accessibilityAlternativeItems: number;
   pendingTrustedAssetItems: number;
+  customerVisualItems: number;
+  customerTextFirstItems: number;
+  customerVisualTypeCounts: Record<string, number>;
   cleanStructuralItems: number;
 };
 
@@ -28,6 +31,7 @@ export function getNumberOperationsItemReviewSummary(): NumberOperationsItemRevi
   );
 
   const statusCounts: Record<string, number> = {};
+  const customerVisualTypeCounts: Record<string, number> = {};
   let routingOnlyItems = 0;
   let accessibilityAlternativeItems = 0;
 
@@ -44,6 +48,19 @@ export function getNumberOperationsItemReviewSummary(): NumberOperationsItemRevi
     }
   }
 
+  for (const entry of NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY) {
+    const stimulusType = entry.item.stimulus.type;
+    if (stimulusType !== "none") {
+      customerVisualTypeCounts[stimulusType] =
+        (customerVisualTypeCounts[stimulusType] || 0) + 1;
+    }
+  }
+
+  const customerVisualItems = Object.values(customerVisualTypeCounts).reduce(
+    (total, count) => total + count,
+    0,
+  );
+
   return {
     totalItems: NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length,
     customerRouteItems: NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length,
@@ -54,10 +71,15 @@ export function getNumberOperationsItemReviewSummary(): NumberOperationsItemRevi
     routingOnlyItems,
     accessibilityAlternativeItems,
     pendingTrustedAssetItems: Array.from(pendingAssetItemIds).filter((itemId) =>
-      NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.some(
+      NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.some(
         (entry) => entry.item.id === itemId,
       ),
     ).length,
+    customerVisualItems,
+    customerTextFirstItems:
+      NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length -
+      customerVisualItems,
+    customerVisualTypeCounts,
     cleanStructuralItems:
       NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length - issueItemIds.size,
   };

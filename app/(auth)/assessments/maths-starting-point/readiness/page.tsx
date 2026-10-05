@@ -202,6 +202,8 @@ export default function MathsStartingPointReadinessPage() {
                 ["Routing-only items", String(itemReview.routingOnlyItems)],
                 ["Accessibility alternatives", String(itemReview.accessibilityAlternativeItems)],
                 ["Pending-asset items", String(itemReview.pendingTrustedAssetItems)],
+                ["Score-bearing visual items", String(itemReview.customerVisualItems)],
+                ["Text-first customer items", String(itemReview.customerTextFirstItems)],
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -223,6 +225,10 @@ export default function MathsStartingPointReadinessPage() {
               placement items remain non-published review items. The separate{" "}
               {NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY.length} confirmation-only
               items remain staff/lab review inventory and do not block the v1 parent route.
+            </span>
+            <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
+              Customer-route visual mix: 4 counter-set, 2 place-value-blocks, 1 array,
+              and 3 currency-token items.
             </span>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {pendingAssets.length} trusted asset set

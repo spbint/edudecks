@@ -16,5 +16,13 @@ describe("Number & Operations item review summary", () => {
     expect(summary.routingOnlyItems).toBe(33);
     expect(summary.accessibilityAlternativeItems).toBe(5);
     expect(summary.pendingTrustedAssetItems).toBe(3);
+    expect(summary.customerVisualItems).toBe(10);
+    expect(summary.customerTextFirstItems).toBe(110);
+    expect(summary.customerVisualTypeCounts).toEqual({
+      "place-value-blocks": 2,
+      array: 1,
+      "currency-tokens": 3,
+      "counter-set": 4,
+    });
   });
 });
