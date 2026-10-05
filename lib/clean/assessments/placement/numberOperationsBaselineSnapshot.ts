@@ -83,7 +83,9 @@ export function buildNumberOperationsBaselineSummarySnapshot(input: {
     persistencePolicy: {
       pathwayAttemptCompatible: false,
       reason:
-        "The current assessment_attempts model requires one pathway_step_id/stage/step, while the Number & Operations baseline spans multiple independent progression sub-elements.",
+        input.profile.expectedSubElements === 1
+          ? "This focused starting-point check is scoped to a Numeracy progression area rather than one canonical My Pathways step, so it must not be written as a pathway-step assessment attempt."
+          : "The current assessment_attempts model requires one pathway_step_id/stage/step, while the Number & Operations baseline spans multiple independent progression sub-elements.",
       saveFormalEvidenceAutomatically: false,
       parentConfirmationRequiredForEvidence: true,
       updatePathwayStatusAutomatically: false,
