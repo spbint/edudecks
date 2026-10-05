@@ -157,3 +157,24 @@ it("preserves focused scope in a confirmed evidence intent", () => {
   expect(draft.resultBands).toHaveLength(1);
   expect(draft.resultBands[0]?.subElementKey).toBe("understanding-money");
 });
+
+
+it("keeps raw assessment responses out of the Portfolio/report confirmation payload", () => {
+  const draft = buildNumberOperationsEvidenceConfirmationDraft({
+    preview: preview(),
+    parentAcknowledgedStartingPoint: true,
+    includeInPortfolio: true,
+    includeInReport: false,
+    parentNote: "Observed confidently during normal learning.",
+  });
+
+  const serialized = JSON.stringify(draft);
+
+  expect(serialized).not.toContain("selectedOptionIds");
+  expect(serialized).not.toContain("responseValue");
+  expect(serialized).not.toContain("misconceptionTags");
+  expect(serialized).not.toContain("timeSpentSeconds");
+  expect(serialized).not.toContain('"correct"');
+  expect(serialized).toContain("curriculumNodeIds");
+  expect(serialized).toContain("resultBands");
+});
