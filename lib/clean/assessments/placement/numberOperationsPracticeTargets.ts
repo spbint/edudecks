@@ -178,7 +178,7 @@ export function getNumberOperationsPracticeTarget(input: {
     return pathwaysFallback(
       subElementKey,
       targetP,
-      "Later multiplicative progression mixes rational-number operations, factors, exponents and percentages, so one existing module would overstate the match.",
+      "Later multiplicative progression mixes rational-number operations, factors, exponents and scientific notation, so one existing module would overstate the match.",
       learnerId,
     );
   }
