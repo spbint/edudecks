@@ -59,7 +59,8 @@ export function getShortAnswerInputMode(
 ): React.InputHTMLAttributes<HTMLInputElement>["inputMode"] {
   if (!item || item.response.type !== "short-answer") return undefined;
   const canonical = String(item.response.correctValue ?? "").trim();
-  const numericLike = /^[-+]?(?:\d{1,3}(?:,\d{3})*|\d+)?(?:\.\d+)?$/.test(
+  if (/^[+-]/.test(canonical)) return "text";
+  const numericLike = /^(?:\d{1,3}(?:,\d{3})*|\d+)?(?:\.\d+)?$/.test(
     canonical,
   );
   return numericLike ? "decimal" : "text";

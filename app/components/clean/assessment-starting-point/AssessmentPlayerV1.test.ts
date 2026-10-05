@@ -314,3 +314,18 @@ it("uses starting-point language for the accessible visual alternative", () => {
   ).toBeTruthy();
   expect(screen.queryByText(/guess a placement/i)).toBeNull();
 });
+
+
+it("uses a full text keyboard for negative answers so mobile users can enter the minus sign", () => {
+  const negative = {
+    ...COUNTING_P5_ANCHOR_ITEMS[0],
+    id: "negative-input-proof",
+    response: {
+      type: "short-answer" as const,
+      correctValue: "-4",
+      acceptableValues: ["-4"],
+    },
+  };
+
+  expect(getShortAnswerInputMode(negative)).toBe("text");
+});
