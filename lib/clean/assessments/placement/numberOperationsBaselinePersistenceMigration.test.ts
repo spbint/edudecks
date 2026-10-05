@@ -28,6 +28,15 @@ describe("Number & Operations baseline persistence review migration", () => {
     expect(source).toContain("learner.family_id = public.assessment_baseline_responses.family_id");
     expect(source).toContain("Choose a learner from this family.");
     expect(source).toContain(
+      "new.sub_element_key = any(attempt.scope_sub_elements)",
+    );
+    expect(source).toContain(
+      "Baseline response does not match its attempt scope.",
+    );
+    expect(source).toContain(
+      "Baseline attempt scope must not contain duplicates.",
+    );
+    expect(source).toContain(
       "source_route = '/assessments/maths-starting-point'",
     );
     expect(source).toContain("scope_sub_elements text[]");
