@@ -72,6 +72,23 @@ describe("Number Operations placement result model", () => {
     expect(result.claim).toContain("between P7 and P8");
   });
 
+  it("keeps money interpretations within the constructs actually sampled", () => {
+    const lowerBand = buildNumberOperationsCandidateBandResult({
+      subElementKey: "understanding-money",
+      lowerP: 7,
+      upperP: 8,
+    });
+    const upperBand = buildNumberOperationsCandidateBandResult({
+      subElementKey: "understanding-money",
+      lowerP: 8,
+      upperP: 9,
+    });
+
+    expect(lowerBand.interpretation).toMatch(/subscription costs/i);
+    expect(lowerBand.interpretation).toMatch(/discounts and simple interest/i);
+    expect(upperBand.interpretation).toMatch(/best buys and percentage profit\/loss/i);
+  });
+
   it("uses open-ended language at the top of the progression", () => {
     const result = buildNpvEndpointResult({
       relation: "at-least",
