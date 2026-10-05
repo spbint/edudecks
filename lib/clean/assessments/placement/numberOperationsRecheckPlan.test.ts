@@ -29,6 +29,40 @@ describe("Number & Operations recheck plans", () => {
     expect(plan.guidance).not.toMatch(/days|weeks/i);
   });
 
+  it("keeps early recheck evidence developmentally bounded", () => {
+    const earlyMoney = buildNumberOperationsRecheckPlan({
+      subElementKey: "understanding-money",
+      state: "verify-in-learning",
+      targetP: 2,
+    });
+    const earlyCounting = buildNumberOperationsRecheckPlan({
+      subElementKey: "counting-processes",
+      state: "verify-in-learning",
+      targetP: 1,
+    });
+
+    expect(earlyMoney.evidenceToLookFor.join(" ")).toMatch(/face value/i);
+    expect(earlyMoney.evidenceToLookFor.join(" ")).not.toMatch(
+      /discount|budget|percentage|interest/i,
+    );
+    expect(earlyCounting.evidenceToLookFor.join(" ")).toMatch(/number words|very small quantities/i);
+    expect(earlyCounting.evidenceToLookFor.join(" ")).not.toMatch(
+      /rational|negative|large quantities/i,
+    );
+  });
+
+  it("uses later evidence language only when the progression target warrants it", () => {
+    const laterMultiplicative = buildNumberOperationsRecheckPlan({
+      subElementKey: "multiplicative-strategies",
+      state: "build-next",
+      targetP: 9,
+    });
+
+    expect(laterMultiplicative.evidenceToLookFor.join(" ")).toMatch(
+      /inverse|distributive|factors|exponents|rational/i,
+    );
+  });
+
   it("does not encourage repeated testing at the extension endpoint", () => {
     const plan = buildNumberOperationsRecheckPlan({
       subElementKey: "multiplicative-strategies",
