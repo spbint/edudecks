@@ -84,6 +84,19 @@ export default function MathsStartingPointPage() {
             >
               Staff: review pending Australian currency schematic
             </Link>
+            <Link
+              href="/assessments/maths-starting-point/item-review"
+              style={{
+                width: "fit-content",
+                color: "#17204B",
+                fontSize: 13,
+                fontWeight: 800,
+                textDecoration: "none",
+              }}
+            >
+              Staff: review all placement items
+            </Link>
+
           </section>
           <MathsStartingPointWorkspace />
         </div>
