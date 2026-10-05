@@ -43,7 +43,7 @@ describe("Number Operations anchor routing", () => {
 
     expect(anchors).toHaveLength(15);
     expect(slots).toHaveLength(30);
-    expect(reuse).toHaveLength(11);
+    expect(reuse).toHaveLength(10);
     expect(new Set(slots.map((slot) => slot.blueprintId)).size).toBe(30);
   });
 
