@@ -11,7 +11,6 @@ import {
 import {
   NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY,
   NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
-  NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
 } from "@/lib/clean/assessments/placement/numberOperationsItemRegistry";
 import {
   getNumberOperationsItemReviewSummary,
