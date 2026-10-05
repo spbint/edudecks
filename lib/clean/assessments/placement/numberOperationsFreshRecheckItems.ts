@@ -113,6 +113,168 @@ export type NumberOperationsFreshRecheckCluster = {
   note: string;
 };
 
+const COUNTING_P1_RECHECK_ITEMS = [
+  choiceItem({
+    id: "myl-recheck-cnt-p01-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P01",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p1-recheck-number-word",
+    skillName: "Recognise a number word in an early counting context",
+    prompt: "Which word is a number word?",
+    options: [
+      { id: "a", label: "five" },
+      { id: "b", label: "green" },
+      { id: "c", label: "skip" },
+      { id: "d", label: "window" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["early-number-word-recognition-error"],
+    tags: ["counting-processes", "p1", "hybrid-routing-only"],
+  }),
+  choiceItem({
+    id: "myl-recheck-cnt-p01-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P01",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p1-recheck-subitise",
+    skillName: "Subitise a very small collection",
+    prompt: "Which numeral matches the collection?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 2, arrangement: "dice", seed: 112, maxQuantity: 3 },
+      altText:
+        "A very small collection of counters. The quantity is intentionally not stated because recognising it is the task.",
+    },
+    options: [
+      { id: "a", label: "1" },
+      { id: "b", label: "2" },
+      { id: "c", label: "3" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["early-subitising-error"],
+    tags: [
+      "counting-processes",
+      "p1",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+] as const;
+
+const COUNTING_P3_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-cnt-p03-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P03",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p3-recheck-after",
+    skillName: "Determine the number after a given number within 1–10",
+    prompt: "What number comes after 7?",
+    correctValue: "8",
+    misconceptionTags: ["early-before-after-error"],
+    tags: ["counting-processes", "p3", "hybrid-routing-only"],
+  }),
+  shortItem({
+    id: "myl-recheck-cnt-p03-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P03",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p3-recheck-before",
+    skillName: "Determine the number before a given number within 1–10",
+    prompt: "What number comes before 8?",
+    correctValue: "7",
+    misconceptionTags: ["early-before-after-error"],
+    tags: ["counting-processes", "p3", "hybrid-routing-only"],
+  }),
+] as const;
+
+const COUNTING_P4_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-cnt-p04-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P04",
+    yearLevel: "Prep–Year 1",
+    substrand: "Counting processes",
+    skillId: "counting-p4-recheck-continue",
+    skillName: "Continue counting from a number other than one",
+    prompt: "Continue the count: 4, 5, 6, __",
+    correctValue: "7",
+    misconceptionTags: ["continue-count-nonone-error"],
+    tags: ["counting-processes", "p4", "hybrid-routing-only"],
+  }),
+  choiceItem({
+    id: "myl-recheck-cnt-p04-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P04",
+    yearLevel: "Prep–Year 1",
+    substrand: "Counting processes",
+    skillId: "counting-p4-recheck-object-type",
+    skillName: "Treat equal counts as the same quantity across different objects",
+    prompt: "Which statement is true?",
+    options: [
+      { id: "a", label: "6 buttons and 6 books represent the same quantity" },
+      { id: "b", label: "6 buttons is always more than 6 books" },
+      { id: "c", label: "The kind of object changes what the number 6 means" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["count-object-type-dependence-error"],
+    tags: ["counting-processes", "p4", "hybrid-routing-only"],
+  }),
+] as const;
+
+const COUNTING_P6_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-cnt-p06-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P06",
+    yearLevel: "Years 1–3",
+    substrand: "Counting processes",
+    skillId: "counting-p6-recheck-beyond-100",
+    skillName: "Continue counting beyond 100",
+    prompt: "Continue the count: 298, 299, 300, __",
+    correctValue: "301",
+    misconceptionTags: ["count-sequence-boundary-error"],
+    tags: ["counting-processes", "p6"],
+  }),
+  shortItem({
+    id: "myl-recheck-cnt-p06-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P06",
+    yearLevel: "Years 1–3",
+    substrand: "Counting processes",
+    skillId: "counting-p6-recheck-twos",
+    skillName: "Count by twos from zero",
+    prompt: "Continue the sequence: 0, 2, 4, 6, __",
+    correctValue: "8",
+    misconceptionTags: ["skip-count-interval-error"],
+    tags: ["counting-processes", "p6"],
+  }),
+] as const;
+
+const COUNTING_P8_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-cnt-p08-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P08",
+    yearLevel: "Years 4–6",
+    substrand: "Counting processes",
+    skillId: "counting-p8-recheck-rational",
+    skillName: "Count flexibly in rational numbers",
+    prompt: "Continue the sequence: 5, 4.5, 4, 3.5, __",
+    correctValue: "3",
+    misconceptionTags: ["decimal-counting-interval-error"],
+    tags: ["counting-processes", "p8"],
+  }),
+  shortItem({
+    id: "myl-recheck-cnt-p08-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P08",
+    yearLevel: "Years 4–6",
+    substrand: "Counting processes",
+    skillId: "counting-p8-recheck-outcomes",
+    skillName: "Systematically quantify possible outcomes",
+    prompt: "A shirt comes in 4 colours and 3 sizes. How many different colour-and-size combinations are possible?",
+    correctValue: "12",
+    misconceptionTags: ["abstract-counting-outcomes-error"],
+    tags: ["counting-processes", "p8"],
+  }),
+] as const;
+
 const COUNTING_P2_RECHECK_ITEMS = [
   choiceItem({
     id: "myl-recheck-cnt-p02-a-v1",
@@ -660,11 +822,35 @@ export const NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS: NumberOperationsFreshRech
   ...NPV_RECHECK_CLUSTERS,
   {
     subElementKey: "counting-processes",
+    pLevel: 1,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P1_RECHECK_ITEMS,
+    note:
+      "Fresh P1 Counting evidence spans number-word recognition and pre-counting subitising; digital evidence remains routing-only.",
+  },
+  {
+    subElementKey: "counting-processes",
     pLevel: 2,
     source: "fresh-recheck-draft",
     items: COUNTING_P2_RECHECK_ITEMS,
     note:
       "Fresh lower-anchor Counting evidence. Strategy-dependent digital correctness remains routing-only.",
+  },
+  {
+    subElementKey: "counting-processes",
+    pLevel: 3,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P3_RECHECK_ITEMS,
+    note:
+      "Fresh P3 Counting evidence for before/after sequence knowledge; strategy-dependent evidence remains routing-only.",
+  },
+  {
+    subElementKey: "counting-processes",
+    pLevel: 4,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P4_RECHECK_ITEMS,
+    note:
+      "Fresh P4 Counting evidence for continuing from non-one starts and count invariance; digital evidence remains routing-only.",
   },
   {
     subElementKey: "counting-processes",
@@ -677,11 +863,27 @@ export const NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS: NumberOperationsFreshRech
   },
   {
     subElementKey: "counting-processes",
+    pLevel: 6,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P6_RECHECK_ITEMS,
+    note:
+      "Fresh P6 Counting evidence across counting beyond 100 and skip counting.",
+  },
+  {
+    subElementKey: "counting-processes",
     pLevel: 7,
     source: "fresh-recheck-draft",
     items: COUNTING_P7_RECHECK_ITEMS,
     note:
       "Fresh upper-anchor Counting evidence across off-decade counting and grouped quantities.",
+  },
+  {
+    subElementKey: "counting-processes",
+    pLevel: 8,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P8_RECHECK_ITEMS,
+    note:
+      "Fresh P8 Counting evidence spans rational-number counting and abstract quantification.",
   },
   {
     subElementKey: "additive-strategies",
