@@ -55,6 +55,7 @@ const panel: React.CSSProperties = {
 
 export default function AssessmentNumberOperationsBaselineRunner({
   familyId,
+  familyStorageMode,
   learnerId,
   learnerName,
   mode = "staff-debug",
@@ -62,6 +63,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
   subElementKeys,
 }: {
   familyId?: string | null;
+  familyStorageMode?: "database" | "local";
   learnerId?: string | null;
   learnerName?: string | null;
   mode?: "parent-preview" | "staff-debug";
@@ -313,6 +315,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
       mode === "parent-preview" &&
       MATHS_STARTING_POINT_RELEASE.persistenceEnabled &&
       !MATHS_STARTING_POINT_RELEASE.customerVisible &&
+      familyStorageMode === "database" &&
       Boolean(String(familyId ?? "").trim()) &&
       Boolean(String(learnerId ?? "").trim());
 

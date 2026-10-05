@@ -387,6 +387,8 @@ it("keeps the persistence smoke control staff-only, idempotent and tied to canon
   expect(source).toContain("maths-start-");
   expect(source).toContain("Run staff persistence smoke");
   expect(workspaceSource).toContain("familyId={workspace.profile.id}");
+  expect(workspaceSource).toContain("familyStorageMode={workspace.storageMode}");
+  expect(source).toContain('familyStorageMode === "database"');
   expect(source).toContain("familyId: String(familyId)");
   expect(source).toContain("learnerId: String(learnerId)");
 });
