@@ -1,6 +1,6 @@
 export type EiProduct = "homeschool" | "campus";
 
-export type EiTenantKind = "family" | "organisation";
+export type EiTenantKind = "family" | "school" | "organisation";
 
 export type EiEventType =
   | "assessment_response"
@@ -44,6 +44,7 @@ export type EiLearningEvent = {
   occurredAt: string;
   signal: EiLearningSignal;
   provenance: {
+    originType?: string | null;
     originTable?: string | null;
     originRecordId?: string | null;
     adapterVersion: string;
@@ -65,7 +66,9 @@ export type EiEvidenceBalanceState = {
   learnerId: string;
   eventCount: number;
   evidenceGroupCount: number;
+  directionalEvidenceGroupCount: number;
   sourceKindCount: number;
+  directionalSourceKindCount: number;
   supportRatio: number | null;
   confidence: EiEvidenceConfidence;
   signalBand: EiEvidenceSignalBand;
