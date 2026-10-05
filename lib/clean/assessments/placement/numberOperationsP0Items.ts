@@ -466,10 +466,15 @@ export const COUNTING_P5_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
     prompt: "How many counters are shown?",
     correctValue: "14",
     stimulus: {
-      type: "array",
-      data: { rows: 2, columns: 7, itemShape: "circle" },
+      type: "counter-set",
+      data: {
+        quantity: 14,
+        arrangement: "scattered",
+        seed: 514,
+        maxQuantity: 20,
+      },
       altText:
-        "A rectangular arrangement of identical counters. The quantity is intentionally not stated because counting the collection is the task.",
+        "A scattered collection of identical counters. The quantity is intentionally not stated because counting the collection is the task.",
     },
     misconceptionTags: ["one-to-one-counting-error", "collection-numeral-mismatch"],
     tags: [
