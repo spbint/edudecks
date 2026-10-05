@@ -81,9 +81,9 @@ const LEVEL_SUMMARIES: Record<
     4: "recognises equivalent money values and represents the same amount in multiple ways",
     5: "counts larger mixed collections and records dollars and cents in decimal notation",
     6: "calculates totals and change and identifies profit/loss conditions",
-    7: "uses multiplicative money relationships for repeated purchases, splitting and simple budgets",
-    8: "uses percentages for discounts, GST, tax tables and simple interest",
-    9: "uses proportional strategies for best buys, payment plans, currency and percentage profit/loss",
+    7: "uses multiplicative money relationships for repeated purchases, bill splitting and subscription costs",
+    8: "uses percentages for discounts and simple interest",
+    9: "uses proportional strategies for best buys and percentage profit/loss",
     10: "makes longer-term financial decisions involving compound interest, depreciation, loans and ongoing costs",
   },
 };
