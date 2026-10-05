@@ -207,3 +207,15 @@ Only after the hosted staff acceptance passes should the next approval request b
 > Apply the reviewed baseline persistence foundation with authenticated RPC execution still revoked, verify RLS/isolation, then separately activate the save RPC for one authenticated save/read isolation smoke test while customer visibility remains disabled.
 
 Customer launch should be a separate approval after persistence is proven.
+
+
+## Staff-only draft persistence smoke
+
+Before any customer release:
+
+- customer visibility remains `false`;
+- persistence may be temporarily enabled only after the foundation + activation SQL is approved/applied;
+- the save route re-validates admin preview access before accepting draft placement items;
+- trusted server replay may use non-published items only while customer visibility is `false`;
+- when customer visibility becomes `true`, server replay automatically requires published items;
+- the browser payload is never written directly; canonical item metadata and scoring are rebuilt server-side before the RPC.
