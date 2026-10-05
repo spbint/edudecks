@@ -5,6 +5,7 @@ import {
   buildScatteredPoints,
   clampInteger,
   numberOrFallback,
+  seededUnit,
 } from "@/lib/clean/assessments/visualTemplates/visualUtils";
 
 function buildCounterPoints(data: CounterSetStimulus) {
