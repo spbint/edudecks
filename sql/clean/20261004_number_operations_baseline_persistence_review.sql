@@ -525,6 +525,81 @@ begin
       using errcode = '22023';
   end if;
 
+  if coalesce(
+    jsonb_typeof(p_attempt->'profileSnapshot'->'expectedSubElementKeys'),
+    ''
+  ) <> 'array' then
+    raise exception 'profileSnapshot.expectedSubElementKeys must be an array.'
+      using errcode = '22023';
+  end if;
+
+  if (p_attempt->'profileSnapshot'->'expectedSubElementKeys') <>
+     (p_attempt->'scopeSubElements') then
+    raise exception 'profileSnapshot scope must match scopeSubElements.'
+      using errcode = '22023';
+  end if;
+
+  if nullif(p_attempt->'profileSnapshot'->>'expectedSubElements', '')::integer <>
+     (p_attempt->>'expectedSubElements')::integer then
+    raise exception 'profileSnapshot expectedSubElements must match the attempt.'
+      using errcode = '22023';
+  end if;
+
+  if nullif(p_attempt->'profileSnapshot'->>'assessedSubElements', '')::integer <>
+     (p_attempt->>'assessedSubElements')::integer then
+    raise exception 'profileSnapshot assessedSubElements must match the attempt.'
+      using errcode = '22023';
+  end if;
+
+  if coalesce(
+    jsonb_typeof(p_attempt->'evidencePreviewSnapshot'->'scopeSubElements'),
+    ''
+  ) <> 'array' then
+    raise exception 'evidencePreviewSnapshot.scopeSubElements must be an array.'
+      using errcode = '22023';
+  end if;
+
+  if (p_attempt->'evidencePreviewSnapshot'->'scopeSubElements') <>
+     (p_attempt->'scopeSubElements') then
+    raise exception 'evidencePreviewSnapshot scope must match scopeSubElements.'
+      using errcode = '22023';
+  end if;
+
+  if nullif(p_attempt->'evidencePreviewSnapshot'->>'expectedSubElements', '')::integer <>
+     (p_attempt->>'expectedSubElements')::integer then
+    raise exception 'evidencePreviewSnapshot expectedSubElements must match the attempt.'
+      using errcode = '22023';
+  end if;
+
+  if nullif(p_attempt->'evidencePreviewSnapshot'->>'assessedSubElements', '')::integer <>
+     (p_attempt->>'assessedSubElements')::integer then
+    raise exception 'evidencePreviewSnapshot assessedSubElements must match the attempt.'
+      using errcode = '22023';
+  end if;
+
+  if coalesce(jsonb_typeof(p_attempt->'unresolvedSubElements'), '') <> 'array' then
+    raise exception 'unresolvedSubElements must be an array.'
+      using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements_text(p_attempt->'unresolvedSubElements') as unresolved(value)
+    where not ((p_attempt->'scopeSubElements') ? unresolved.value)
+  ) then
+    raise exception 'unresolvedSubElements must stay inside scopeSubElements.'
+      using errcode = '22023';
+  end if;
+
+  if p_attempt->>'status' = 'complete' and (
+    (p_attempt->>'assessedSubElements')::integer <>
+      (p_attempt->>'expectedSubElements')::integer
+    or jsonb_array_length(p_attempt->'unresolvedSubElements') <> 0
+  ) then
+    raise exception 'A complete baseline must cover its full requested scope.'
+      using errcode = '22023';
+  end if;
+
   insert into public.assessment_baseline_attempts (
     family_id,
     learner_id,
