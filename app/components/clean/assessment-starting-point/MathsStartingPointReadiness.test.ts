@@ -35,6 +35,10 @@ it("shows the fresh-recheck gate and derives visual mix from the live review sum
   expect(source).toContain("freshRecheckFormsApproved");
   expect(source).toContain("customerVisualTypeCounts");
   expect(source).toContain("visualMix");
+  expect(source).toContain("getNumberOperationsFreshRecheckCoverage");
+  expect(source).toContain("Levels with alternate evidence");
+  expect(source).toContain("Levels still missing");
+  expect(source).toContain("Alternate draft items");
   expect(source).not.toContain("1 array");
 });
 
