@@ -22,14 +22,17 @@ function parseTimestamp(value: string) {
 }
 
 function getConfidence(
-  evidenceGroupCount: number,
-  sourceKindCount: number,
+  directionalEvidenceGroupCount: number,
+  directionalSourceKindCount: number,
 ): EiEvidenceConfidence {
-  if (evidenceGroupCount >= 3 && sourceKindCount >= 2) {
+  if (
+    directionalEvidenceGroupCount >= 3 &&
+    directionalSourceKindCount >= 2
+  ) {
     return "high";
   }
 
-  if (evidenceGroupCount >= 2) {
+  if (directionalEvidenceGroupCount >= 2) {
     return "moderate";
   }
 
@@ -37,10 +40,10 @@ function getConfidence(
 }
 
 function getSignalBand(
-  evidenceGroupCount: number,
+  directionalEvidenceGroupCount: number,
   supportRatio: number | null,
 ): EiEvidenceSignalBand {
-  if (evidenceGroupCount < 2 || supportRatio === null) {
+  if (directionalEvidenceGroupCount < 2 || supportRatio === null) {
     return "not_enough_evidence";
   }
 
@@ -50,30 +53,40 @@ function getSignalBand(
   return "strong_signal";
 }
 
-function buildEvidenceGroupScores(events: EiLearningEvent[]) {
+function buildEvidenceGroups(events: EiLearningEvent[]) {
   const groups = new Map<
     string,
     {
       weightedPolarity: number;
-      totalWeight: number;
+      directionalWeight: number;
     }
   >();
 
   events.forEach((event) => {
-    const weight = STRENGTH_WEIGHTS[event.signal.strength];
     const current = groups.get(event.evidenceGroupId) ?? {
       weightedPolarity: 0,
-      totalWeight: 0,
+      directionalWeight: 0,
     };
 
-    current.weightedPolarity += event.signal.polarity * weight;
-    current.totalWeight += weight;
+    if (event.signal.polarity !== 0) {
+      const weight = STRENGTH_WEIGHTS[event.signal.strength];
+      current.weightedPolarity += event.signal.polarity * weight;
+      current.directionalWeight += weight;
+    }
+
     groups.set(event.evidenceGroupId, current);
   });
 
-  return [...groups.values()]
-    .filter((group) => group.totalWeight > 0)
-    .map((group) => clamp(group.weightedPolarity / group.totalWeight, -1, 1));
+  return [...groups.values()].map((group) => ({
+    score:
+      group.directionalWeight > 0
+        ? clamp(
+            group.weightedPolarity / group.directionalWeight,
+            -1,
+            1,
+          )
+        : null,
+  }));
 }
 
 /**
@@ -82,6 +95,10 @@ function buildEvidenceGroupScores(events: EiLearningEvent[]) {
  * It is not a mastery probability and it must not update formal learner status.
  * Events from one assessment/session are collapsed into one evidence group so a
  * long test cannot masquerade as repeated independent evidence.
+ *
+ * Non-directional events (for example, "evidence exists" without a judgement)
+ * remain visible in the evidence count, but they do not manufacture support or
+ * contradiction.
  */
 export function buildEiEvidenceBalanceState(
   events: EiLearningEvent[],
@@ -97,24 +114,41 @@ export function buildEiEvidenceBalanceState(
 
   if (!scopedEvents.length) return null;
 
-  const groupScores = buildEvidenceGroupScores(scopedEvents);
-  const evidenceGroupCount = groupScores.length;
-  const sourceKindCount = new Set(scopedEvents.map((event) => event.sourceKind)).size;
+  const groups = buildEvidenceGroups(scopedEvents);
+  const directionalScores = groups
+    .map((group) => group.score)
+    .filter((score): score is number => score !== null);
+  const evidenceGroupCount = groups.length;
+  const directionalEvidenceGroupCount = directionalScores.length;
+  const sourceKindCount = new Set(
+    scopedEvents.map((event) => event.sourceKind),
+  ).size;
+  const directionalSourceKindCount = new Set(
+    scopedEvents
+      .filter((event) => event.signal.polarity !== 0)
+      .map((event) => event.sourceKind),
+  ).size;
 
   const supportRatio =
-    evidenceGroupCount === 0
+    directionalEvidenceGroupCount === 0
       ? null
       : clamp(
-          (groupScores.reduce((sum, score) => sum + score, 0) /
-            evidenceGroupCount +
+          (directionalScores.reduce((sum, score) => sum + score, 0) /
+            directionalEvidenceGroupCount +
             1) /
             2,
           0,
           1,
         );
 
-  const confidence = getConfidence(evidenceGroupCount, sourceKindCount);
-  const signalBand = getSignalBand(evidenceGroupCount, supportRatio);
+  const confidence = getConfidence(
+    directionalEvidenceGroupCount,
+    directionalSourceKindCount,
+  );
+  const signalBand = getSignalBand(
+    directionalEvidenceGroupCount,
+    supportRatio,
+  );
   const latestTimestamp = scopedEvents.reduce(
     (latest, event) => Math.max(latest, parseTimestamp(event.occurredAt)),
     0,
@@ -122,27 +156,42 @@ export function buildEiEvidenceBalanceState(
 
   const reasons: string[] = [];
 
-  if (evidenceGroupCount < 2) {
+  if (directionalEvidenceGroupCount < 2) {
     reasons.push(
-      "Fewer than two independent evidence groups are available, so the engine will not make a strong learner-state claim.",
+      "Fewer than two independent directional evidence groups are available, so the engine will not make a strong learner-state claim.",
     );
   }
 
-  if (sourceKindCount < 2) {
+  if (
+    directionalEvidenceGroupCount > 0 &&
+    directionalSourceKindCount < 2
+  ) {
     reasons.push(
-      "Evidence currently comes from only one source type; corroboration from another source would increase trust.",
+      "Directional evidence currently comes from only one source type; corroboration from another source would increase trust.",
+    );
+  }
+
+  if (evidenceGroupCount > directionalEvidenceGroupCount) {
+    reasons.push(
+      "Some learning records are non-directional: they show that evidence exists but do not by themselves assert success or difficulty.",
     );
   }
 
   if (signalBand === "needs_attention") {
-    reasons.push("The current evidence balance contains more contradiction than support.");
+    reasons.push(
+      "The current directional evidence balance contains more contradiction than support.",
+    );
   } else if (signalBand === "mixed") {
-    reasons.push("The available evidence is mixed and should be reviewed before acting.");
+    reasons.push(
+      "The available directional evidence is mixed and should be reviewed before acting.",
+    );
   } else if (signalBand === "promising") {
-    reasons.push("The evidence balance is positive but should still be corroborated.");
+    reasons.push(
+      "The directional evidence balance is positive but should still be corroborated.",
+    );
   } else if (signalBand === "strong_signal") {
     reasons.push(
-      "The evidence balance is strongly positive, but this remains an advisory signal rather than a formal judgement.",
+      "The directional evidence balance is strongly positive, but this remains an advisory signal rather than a formal judgement.",
     );
   }
 
@@ -151,12 +200,16 @@ export function buildEiEvidenceBalanceState(
     learnerId: first.learnerId,
     eventCount: scopedEvents.length,
     evidenceGroupCount,
+    directionalEvidenceGroupCount,
     sourceKindCount,
+    directionalSourceKindCount,
     supportRatio,
     confidence,
     signalBand,
     latestEvidenceAt:
-      latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null,
+      latestTimestamp > 0
+        ? new Date(latestTimestamp).toISOString()
+        : null,
     advisoryOnly: true,
     reasons,
   };
