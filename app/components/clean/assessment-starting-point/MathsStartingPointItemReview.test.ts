@@ -44,3 +44,11 @@ it("can narrow the review queue to items with explicit trust flags", () => {
   expect(viewer).toContain("Needs attention only");
   expect(viewer).toContain("attentionOnly && !flags.length");
 });
+
+
+it("defaults human review to the 120 customer-route items and keeps confirmation-only items optional", () => {
+  expect(viewer).toContain("NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY");
+  expect(viewer).toContain("includeConfirmationItems");
+  expect(viewer).toContain("Include 20 confirmation-only lab items");
+  expect(viewer).toContain('"customer-route"');
+});

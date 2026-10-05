@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates/AssessmentStimulus";
 import {
+  NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
   NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
   type NumberOperationsPlacementPoolKind,
 } from "@/lib/clean/assessments/placement/numberOperationsItemRegistry";
@@ -44,11 +45,17 @@ export default function MathsStartingPointItemReview() {
   const [pLevel, setPLevel] = useState("all");
   const [status, setStatus] = useState("all");
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [includeConfirmationItems, setIncludeConfirmationItems] =
+    useState(false);
   const [query, setQuery] = useState("");
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter((entry) => {
+    const source = includeConfirmationItems
+      ? NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY
+      : NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY;
+
+    return source.filter((entry) => {
       const parsed = parsePoolKey(entry.poolKey);
       if (area !== "all" && parsed.area !== area) return false;
       if (poolKind !== "all" && entry.poolKind !== poolKind) return false;
@@ -72,7 +79,15 @@ export default function MathsStartingPointItemReview() {
       }
       return true;
     });
-  }, [area, attentionOnly, pLevel, poolKind, query, status]);
+  }, [
+    area,
+    attentionOnly,
+    includeConfirmationItems,
+    pLevel,
+    poolKind,
+    query,
+    status,
+  ]);
 
   const distinctPLevels = Array.from(
     new Set(
@@ -167,6 +182,24 @@ export default function MathsStartingPointItemReview() {
             />
             <strong>Needs attention only</strong>
           </label>
+          <label
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              alignSelf: "end",
+              minHeight: 44,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeConfirmationItems}
+              onChange={(event) =>
+                setIncludeConfirmationItems(event.target.checked)
+              }
+            />
+            <strong>Include 20 confirmation-only lab items</strong>
+          </label>
           <label style={{ display: "grid", gap: 5 }}>
             <strong>Search</strong>
             <input
@@ -178,7 +211,11 @@ export default function MathsStartingPointItemReview() {
         </div>
 
         <strong style={{ color: "#17204B" }}>
-          Showing {rows.length} of {NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length} items
+          Showing {rows.length} of{" "}
+          {includeConfirmationItems
+            ? NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length
+            : NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length}{" "}
+          {includeConfirmationItems ? "registry" : "customer-route"} items
         </strong>
       </section>
 
