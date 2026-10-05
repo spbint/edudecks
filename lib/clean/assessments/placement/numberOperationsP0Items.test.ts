@@ -213,7 +213,7 @@ describe("Number & Operations executable P0 anchor items", () => {
     expect(MULTIPLICATIVE_P6_ANCHOR_ITEMS).toHaveLength(2);
     expect(MULTIPLICATIVE_P9_ANCHOR_ITEMS).toHaveLength(2);
 
-    expect(ADDITIVE_P6_ANCHOR_ITEMS[1].response.correctValue).toBe("7");
+    expect(ADDITIVE_P6_ANCHOR_ITEMS[1].response.correctOptionIds).toEqual(["a"]);
     expect(ADDITIVE_P9_ANCHOR_ITEMS[0].response.correctValue).toBe("5/8");
     expect(MULTIPLICATIVE_P6_ANCHOR_ITEMS[1].response.correctValue).toBe("4");
     expect(MULTIPLICATIVE_P9_ANCHOR_ITEMS[1].response.correctValue).toBe("24");
