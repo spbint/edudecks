@@ -194,6 +194,10 @@ const MATHS_STARTING_POINT_FOCUSED_AREAS: Record<
       area: "number-place-value",
       label: "Check Number & place value",
     },
+    {
+      area: "counting-processes",
+      label: "Check Counting",
+    },
   ],
   "operations-and-calculation": [
     {
@@ -3265,9 +3269,10 @@ function PathwaysWorkspaceBody() {
                         Not sure where to begin?
                       </strong>
                       <span style={{ color: "#4B5563", lineHeight: 1.55, fontSize: 14 }}>
-                        Use MyLearna&apos;s adaptive Number &amp; Operations check to find
-                        a useful starting point for {selectedLearnerLabel} without turning
-                        the result into one overall Maths level.
+                        Use a focused 6–11 question check for one area, or the full
+                        five-area picture when you need a broader starting point for{" "}
+                        {selectedLearnerLabel}. The full check uses 30–55 questions
+                        and can be paused between areas.
                       </span>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                         {(MATHS_STARTING_POINT_FOCUSED_AREAS[

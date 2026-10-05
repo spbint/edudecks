@@ -54,3 +54,15 @@ it("maps the three live Number & Operations strands to relevant focused checks",
   expect(source).toContain('area: "understanding-money"');
   expect(source).toContain("area: focus.area");
 });
+
+
+it("offers Counting as a focused Number & place value starting-point check", () => {
+  expect(source).toContain('area: "counting-processes"');
+  expect(source).toContain('label: "Check Counting"');
+});
+
+it("makes the focused-vs-full question burden explicit in My Pathways", () => {
+  expect(source).toContain("focused 6–11 question check");
+  expect(source).toContain("full check uses 30–55 questions");
+  expect(source).toContain("can be paused between areas");
+});
