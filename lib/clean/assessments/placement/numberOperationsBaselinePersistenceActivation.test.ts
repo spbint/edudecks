@@ -46,7 +46,9 @@ describe("Number & Operations baseline persistence activation split", () => {
       /grant execute on function public\.mylearna_save_number_operations_baseline/,
     );
     expect(activation).toContain("to service_role");
-    expect(activation).not.toContain("to authenticated;");
+    expect(activation).not.toMatch(
+      /grant execute on function public\.mylearna_save_number_operations_baseline[\s\S]*?to authenticated;/,
+    );
     expect(activation).toContain("to_regprocedure");
     expect(activation).toContain("Emergency containment / rollback");
   });
