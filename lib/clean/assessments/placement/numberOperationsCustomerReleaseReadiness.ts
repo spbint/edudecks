@@ -12,6 +12,7 @@ export type MathsStartingPointCustomerReleaseBlocker = {
     | "evidence-write"
     | "hosted-acceptance"
     | "mobile-acceptance"
+    | "fresh-recheck-evidence"
     | "draft-items"
     | "pending-trusted-assets";
   message: string;
@@ -63,6 +64,14 @@ export function getMathsStartingPointCustomerReleaseBlockers(): MathsStartingPoi
       id: "mobile-acceptance",
       message:
         "The 390px/430px parent-flow mobile rehearsal has not been accepted.",
+    });
+  }
+
+  if (!MATHS_STARTING_POINT_RELEASE.freshRecheckFormsApproved) {
+    blockers.push({
+      id: "fresh-recheck-evidence",
+      message:
+        "Fresh alternate assessment evidence for later rechecks has not yet been accepted across the customer-route areas.",
     });
   }
 
