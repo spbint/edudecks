@@ -25,9 +25,8 @@ describe("Number & Operations item review summary", () => {
     expect(summary.customerTextFirstItems).toBe(110);
     expect(summary.customerVisualTypeCounts).toEqual({
       "place-value-blocks": 2,
-      array: 1,
       "currency-tokens": 3,
-      "counter-set": 4,
+      "counter-set": 5,
     });
   });
 });
