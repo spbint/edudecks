@@ -348,10 +348,16 @@ export const NPV_P3_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
     stimulus: {
       type: "place-value-blocks",
       data: { tens: 1, ones: 6, layout: "grouped" },
-      altText: "Place-value blocks showing one ten and six ones.",
+      altText:
+        "A grouped place-value representation. The exact quantities are intentionally not stated because interpreting the representation is the task.",
     },
     misconceptionTags: ["teen-number-structure-error"],
-    tags: ["number-place-value", "p3", "npv-p03-b"],
+    tags: [
+      "number-place-value",
+      "p3",
+      "npv-p03-b",
+      "separate-accessible-form-required",
+    ],
   }),
 ];
 
@@ -501,10 +507,16 @@ export const COUNTING_P7_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
     stimulus: {
       type: "place-value-blocks",
       data: { tens: 4, ones: 7, layout: "grouped" },
-      altText: "A grouped representation showing four tens and seven ones.",
+      altText:
+        "A grouped place-value representation with tens and ones. The exact quantities are intentionally not stated because interpreting the total is the task.",
     },
     misconceptionTags: ["grouped-counting-error", "residual-counting-error"],
-    tags: ["counting-processes", "p7", "cnt-p07-b"],
+    tags: [
+      "counting-processes",
+      "p7",
+      "cnt-p07-b",
+      "separate-accessible-form-required",
+    ],
   }),
 ];
 
