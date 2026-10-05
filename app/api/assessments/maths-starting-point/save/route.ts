@@ -108,6 +108,31 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!MATHS_STARTING_POINT_RELEASE.customerVisible) {
+    const staffProfile = await admin
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (staffProfile.error) {
+      return NextResponse.json(
+        { ok: false, error: "Could not verify preview access." },
+        { status: 500 },
+      );
+    }
+    if (!staffProfile.data?.is_admin) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Maths starting-point persistence is currently limited to authorised staff preview.",
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   const membership = await admin
     .from("family_members")
     .select("id,role")
