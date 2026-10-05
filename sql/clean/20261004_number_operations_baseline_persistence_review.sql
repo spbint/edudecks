@@ -28,6 +28,13 @@ create table if not exists public.assessment_baseline_attempts (
   source_route text not null,
   assessed_sub_elements integer not null default 0,
   expected_sub_elements integer not null default 5,
+  scope_sub_elements text[] not null default array[
+    'number-place-value',
+    'counting-processes',
+    'additive-strategies',
+    'multiplicative-strategies',
+    'understanding-money'
+  ]::text[],
   unresolved_sub_elements text[] not null default '{}'::text[],
   profile_snapshot jsonb not null default '{}'::jsonb,
   evidence_preview_snapshot jsonb not null default '{}'::jsonb,
@@ -53,10 +60,11 @@ create table if not exists public.assessment_baseline_attempts (
     check (status in ('complete', 'partial')),
   constraint assessment_baseline_attempts_source_route_check
     check (source_route = '/assessments/maths-starting-point'),
-  constraint assessment_baseline_attempts_unresolved_check
+  constraint assessment_baseline_attempts_scope_check
     check (
-      cardinality(unresolved_sub_elements) <= 5
-      and unresolved_sub_elements <@ array[
+      expected_sub_elements between 1 and 5
+      and cardinality(scope_sub_elements) = expected_sub_elements
+      and scope_sub_elements <@ array[
         'number-place-value',
         'counting-processes',
         'additive-strategies',
@@ -64,10 +72,14 @@ create table if not exists public.assessment_baseline_attempts (
         'understanding-money'
       ]::text[]
     ),
+  constraint assessment_baseline_attempts_unresolved_check
+    check (
+      cardinality(unresolved_sub_elements) <= expected_sub_elements
+      and unresolved_sub_elements <@ scope_sub_elements
+    ),
   constraint assessment_baseline_attempts_assessed_count_check
     check (
       assessed_sub_elements >= 0
-      and expected_sub_elements = 5
       and assessed_sub_elements <= expected_sub_elements
     ),
   constraint assessment_baseline_attempts_completed_after_started_check
@@ -317,6 +329,8 @@ begin
     or new.form_version is distinct from old.form_version
     or new.schema_version is distinct from old.schema_version
     or new.mode is distinct from old.mode
+    or new.expected_sub_elements is distinct from old.expected_sub_elements
+    or new.scope_sub_elements is distinct from old.scope_sub_elements
     or new.started_at is distinct from old.started_at
     or new.created_by_user_id is distinct from old.created_by_user_id
   ) then
@@ -453,6 +467,55 @@ begin
       using errcode = '22023';
   end if;
 
+  if coalesce(jsonb_typeof(p_attempt->'scopeSubElements'), '') <> 'array' then
+    raise exception 'scopeSubElements must be an array.'
+      using errcode = '22023';
+  end if;
+
+  if (p_attempt->>'expectedSubElements')::integer not between 1 and 5 then
+    raise exception 'expectedSubElements must be between 1 and 5.'
+      using errcode = '22023';
+  end if;
+
+  if jsonb_array_length(p_attempt->'scopeSubElements') <>
+     (p_attempt->>'expectedSubElements')::integer then
+    raise exception 'scopeSubElements must match expectedSubElements.'
+      using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements_text(p_attempt->'scopeSubElements') as scoped(value)
+    where scoped.value not in (
+      'number-place-value',
+      'counting-processes',
+      'additive-strategies',
+      'multiplicative-strategies',
+      'understanding-money'
+    )
+  ) then
+    raise exception 'scopeSubElements contains an unsupported area.'
+      using errcode = '22023';
+  end if;
+
+  if (
+    select count(*)
+    from jsonb_array_elements_text(p_attempt->'scopeSubElements')
+  ) <> (
+    select count(distinct scoped.value)
+    from jsonb_array_elements_text(p_attempt->'scopeSubElements') as scoped(value)
+  ) then
+    raise exception 'scopeSubElements must not contain duplicates.'
+      using errcode = '22023';
+  end if;
+
+  if (p_attempt->>'assessedSubElements')::integer < 0
+     or (p_attempt->>'assessedSubElements')::integer >
+        (p_attempt->>'expectedSubElements')::integer then
+    raise exception 'assessedSubElements must fit inside the requested scope.'
+      using errcode = '22023';
+  end if;
+
   insert into public.assessment_baseline_attempts (
     family_id,
     learner_id,
@@ -466,6 +529,7 @@ begin
     source_route,
     assessed_sub_elements,
     expected_sub_elements,
+    scope_sub_elements,
     unresolved_sub_elements,
     profile_snapshot,
     evidence_preview_snapshot,
@@ -486,6 +550,9 @@ begin
     p_attempt->>'sourceRoute',
     (p_attempt->>'assessedSubElements')::integer,
     (p_attempt->>'expectedSubElements')::integer,
+    array(
+      select jsonb_array_elements_text(p_attempt->'scopeSubElements')
+    ),
     array(
       select jsonb_array_elements_text(
         coalesce(p_attempt->'unresolvedSubElements', '[]'::jsonb)
