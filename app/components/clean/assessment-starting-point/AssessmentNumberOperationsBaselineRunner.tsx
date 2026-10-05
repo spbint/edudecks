@@ -160,6 +160,15 @@ export default function AssessmentNumberOperationsBaselineRunner({
     if (cleanLearnerId) params.set("learnerId", cleanLearnerId);
     return `/my-pathways?${params.toString()}`;
   }, [learnerId]);
+  const startingPointReturnHref = useMemo(() => {
+    const params = new URLSearchParams();
+    const cleanLearnerId = String(learnerId ?? "").trim();
+    if (cleanLearnerId) params.set("learnerId", cleanLearnerId);
+    if (order.length === 1 && order[0]) params.set("area", order[0]);
+    return params.size
+      ? `/assessments/maths-starting-point?${params.toString()}`
+      : "/assessments/maths-starting-point";
+  }, [learnerId, order]);
   const profile = useMemo(
     () =>
       buildNumberOperationsProfile(Object.values(resultsByKey), {
@@ -357,6 +366,26 @@ export default function AssessmentNumberOperationsBaselineRunner({
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
+                  <Link
+                    href={`/my-capture?${new URLSearchParams({
+                      ...(learnerId ? { learnerId } : {}),
+                      learningArea: "mathematics",
+                      learningAreaLabel: "Mathematics",
+                      returnTo: startingPointReturnHref,
+                    }).toString()}`}
+                    style={{
+                      width: "fit-content",
+                      border: "1px solid #17204B",
+                      borderRadius: 10,
+                      background: "#FFFFFF",
+                      color: "#17204B",
+                      padding: "8px 11px",
+                      textDecoration: "none",
+                      fontWeight: 850,
+                    }}
+                  >
+                    Capture what you noticed
+                  </Link>
                 </div>
               </details>
             ))}
