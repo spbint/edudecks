@@ -309,9 +309,9 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         reserveSlot: slot(
           "MYL-ANCHOR-MUL-P06-C",
           "C",
-          "Interpret a remainder after grouping by a single-digit quantity.",
+          "Use a known multiple to calculate a related multiple.",
           "single_choice",
-          "equal-groups context / counters optional",
+          "text-first / related-fact support optional",
           "implemented-draft",
         ),
       },
