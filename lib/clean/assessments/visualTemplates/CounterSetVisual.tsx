@@ -41,7 +41,33 @@ function buildCounterPoints(data: CounterSetStimulus) {
     return positions.slice(0, quantity).map(([x, y]) => ({ x, y }));
   }
 
-  return buildScatteredPoints(quantity, seed, { minX: 44, maxX: 176, minY: 44, maxY: 108 }, 28);
+  if (quantity > 6) {
+    const slots = Array.from({ length: 20 }, (_, slotIndex) => {
+      const column = slotIndex % 5;
+      const row = Math.floor(slotIndex / 5);
+      return {
+        slotIndex,
+        score: seededUnit(seed, slotIndex, 9),
+        x: 48 + column * 31 + (seededUnit(seed, slotIndex, 10) - 0.5) * 2,
+        y: 40 + row * 23 + (seededUnit(seed, slotIndex, 11) - 0.5) * 2,
+      };
+    })
+      .sort((a, b) => a.score - b.score)
+      .slice(0, quantity)
+      .sort((a, b) => a.slotIndex - b.slotIndex);
+
+    return slots.map(({ x, y }) => ({
+      x: Math.round(x * 10) / 10,
+      y: Math.round(y * 10) / 10,
+    }));
+  }
+
+  return buildScatteredPoints(
+    quantity,
+    seed,
+    { minX: 44, maxX: 176, minY: 44, maxY: 108 },
+    28,
+  );
 }
 
 export function CounterSetVisual({
@@ -53,6 +79,7 @@ export function CounterSetVisual({
 }) {
   const points = buildCounterPoints(data);
   const label = altText || describeCounterSet(data);
+  const counterRadius = points.length > 10 ? 9 : points.length > 6 ? 10 : 14;
 
   return (
     <div
@@ -72,8 +99,14 @@ export function CounterSetVisual({
         <rect x="18" y="18" width="184" height="114" rx="22" fill="#ffffff" stroke="#E7EAF2" />
         {points.map((point, index) => (
           <g key={`${point.x}-${point.y}-${index}`} data-testid="counter">
-            <circle cx={point.x} cy={point.y} r="14" fill="#6C4DF6" />
-            <circle cx={point.x - 4} cy={point.y - 5} r="4" fill="#B9A8FF" opacity="0.8" />
+            <circle cx={point.x} cy={point.y} r={counterRadius} fill="#6C4DF6" />
+            <circle
+              cx={point.x - counterRadius * 0.3}
+              cy={point.y - counterRadius * 0.35}
+              r={Math.max(2.5, counterRadius * 0.28)}
+              fill="#B9A8FF"
+              opacity="0.8"
+            />
           </g>
         ))}
       </svg>
