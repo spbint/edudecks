@@ -176,7 +176,9 @@ export async function POST(request: Request) {
 
   let trusted: NumberOperationsBaselinePersistenceDraft;
   try {
-    trusted = buildTrustedNumberOperationsBaselinePersistenceDraft(draft);
+    trusted = buildTrustedNumberOperationsBaselinePersistenceDraft(draft, {
+      allowNonPublishedItems: !MATHS_STARTING_POINT_RELEASE.customerVisible,
+    });
   } catch {
     return NextResponse.json(
       { ok: false, error: "The assessment evidence could not be validated." },
