@@ -71,7 +71,7 @@ const LEVEL_SUMMARIES: Record<
     6: "uses flexible single-digit multiplication/division facts and interprets multiplicative contexts",
     7: "uses inverse operations and distributive/partitioning strategies with multi-digit numbers",
     8: "solves multi-step multiplicative situations with multi-digit natural numbers",
-    9: "works multiplicatively with rational numbers, prime factors, exponents and percentages",
+    9: "works multiplicatively with rational numbers, prime factors and exponents",
     10: "operates multiplicatively with decimals, scientific notation and complex rational-number models",
   },
   "understanding-money": {
