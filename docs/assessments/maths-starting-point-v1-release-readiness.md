@@ -58,7 +58,10 @@ Current behaviour:
 - trusted score-bearing assets are controlled by `numberOperationsAssetApprovals.ts`; Australian currency schematic v1 is explicitly `pending-review`, not implicitly approved
 - choosing that alternative leaves the area unresolved; it never manufactures a digital placement
 - unresolved areas provide area-specific practical-observation guidance and concrete evidence cues
-- the parent question burden is transparent: each area is bounded and the experience pauses between areas
+- the parent question burden is transparent: a fully electronic area is bounded to 6–11 questions and the full five-area electronic route is bounded to 30–55 questions; the experience pauses between areas
+- the scope chooser supports either the full five-area picture or one focused Number & Operations area
+- a focused result is complete for its selected scope only; it never masquerades as a full five-area or whole-Maths profile
+- focused practice returns to the same learner and same focused area
 - parent presentation suppresses P-level/routing/debug language during the assessment
 - learner age/year is not used to infer or alter placement; v1 routing remains evidence-led even when some opening questions feel easier or harder than expected
 - customer-facing copy says Number & Operations rather than implying that v1 assesses all Mathematics
@@ -106,6 +109,15 @@ Proposed tables:
 - `assessment_baseline_attempts`
 - `assessment_baseline_responses`
 
+Focused and full attempts share one scope-aware persistence contract:
+
+- `scopeSubElements` records the exact requested Number & Operations areas;
+- `expectedSubElements` is constrained to 1–5 rather than hard-coded to five;
+- unresolved areas and response rows must stay inside the declared scope;
+- embedded profile/evidence snapshots must agree with the attempt scope and counts;
+- a complete attempt must cover its entire requested scope;
+- the save RPC is valid dollar-quoted PL/pgSQL and remains dark in the foundation.
+
 The migration uses:
 
 - clean family RLS
@@ -126,8 +138,12 @@ The application client throws before touching Supabase while `persistenceEnabled
 - customer visibility and navigation gates;
 - persistence not yet activated/smoke-tested;
 - evidence writing not yet authorised;
+- authenticated hosted parent-flow acceptance not yet approved;
+- 390px/430px mobile parent-flow acceptance not yet approved;
 - all 140 placement items remaining draft/review-only;
 - one trusted asset set (Australian currency schematic v1) remaining pending visual approval.
+
+The release object carries explicit `hostedAcceptanceApproved` and `mobileAcceptanceApproved` gates. Documentation alone cannot satisfy those release requirements.
 
 Automatic Pathways mutation is intentionally **not** a customer-release requirement.
 
@@ -141,12 +157,12 @@ These require explicit, separate release decisions after staff QA:
 4. enable the application persistence gate only after that smoke test succeeds;
 5. turn confirmed starting-point results into Learning Chronicle / Portfolio / report-available evidence according to the parent choices;
 6. promote the accepted placement items out of draft/review status;
-7. approve the trusted Australian currency schematic asset set or keep Money P1–P2 electronically blocked;
-8. expose “Find a Number & Operations starting point” to customers in the covered My Pathways strands;
-9. remove the staff-only access gate for the approved customer surface;
-10. enable customer visibility.
-
-None of those actions should be bundled implicitly.
+7. review the full placement estate through the staff-only `/assessments/maths-starting-point/item-review` catalogue and promote only accepted items out of draft/review status;
+8. approve the trusted Australian currency schematic asset set through the staff-only `/assessments/maths-starting-point/asset-review` route or keep Money P1–P2 electronically blocked;
+9. mark hosted and mobile acceptance approved only after the actual rehearsals pass;
+10. expose “Find a Number & Operations starting point” to customers in the covered My Pathways strands;
+11. remove the staff-only access gate for the approved customer surface;
+12. enable customer visibility.
 
 None of those actions should be bundled implicitly.
 
@@ -160,22 +176,26 @@ Before requesting the persistence/release decision:
 4. Open the starting-point utility and confirm the correct learner is carried through from My Pathways.
 5. With multiple learners, switch learner and verify no other learner's browser-only state flashes or hydrates during the switch.
 6. Confirm the parent intro says **Number & Operations**, not all Mathematics.
-7. Complete a direct-evidence route and confirm no P-level/routing jargon appears during the parent presentation.
-8. Trigger a visual-dependent accessible-form item and choose **Use a practical observation instead**; confirm the area is left open rather than scored.
-9. Trigger a route toward Money P1–P2 and confirm the pending trusted-asset gate prevents electronic placement there.
-10. Complete an observation-needed/routing-only route and confirm the result provides a practical action plus concrete **What to notice** cues.
-11. Complete all five areas and confirm the result begins with **A clear starting point for what to do next**.
-12. Confirm the primary **Start here** card includes fresh-evidence cues and no visible raw P-band.
-13. Open optional technical details and confirm the progression band is available only there.
-14. Open recommended targeted practice; confirm it uses the dedicated starting-point practice lane, preserves learner context, and returns to the same completed learner profile.
-15. Confirm source-guided My Pathways links open the intended canonical step and ambiguous mappings stay at strand level.
-16. Confirm recheck guidance asks for fresh evidence/readiness rather than repeating the same items immediately.
-17. On a partial result, confirm unresolved-area guidance appears before evidence confirmation.
-18. On a zero-reportable-evidence result, confirm Portfolio/report confirmation is not offered at all.
-19. On a confirmable result, confirm Portfolio is selected by default, report availability is **not** selected by default, and no data is written in the staff preview.
-20. Check phone widths at 390px and 430px, including ordering controls, fraction entry, learner switching, result cards and practice return.
-21. Confirm no horizontal overflow, clipped controls or inaccessible answer targets.
-22. Confirm Production and Supabase remain unchanged.
+7. From the scope chooser, complete one focused area and confirm it is presented as complete for that selected area only; open recommended practice and return to the same learner and focused result.
+8. Return to the full five-area scope and confirm completed areas can be paused between and resumed from the same browser tab.
+9. Complete a direct-evidence route and confirm no P-level/routing jargon appears during the parent presentation.
+10. Trigger a visual-dependent accessible-form item and choose **Use a practical observation instead**; confirm the area is left open rather than scored.
+11. Trigger a route toward Money P1–P2 and confirm the pending trusted-asset gate prevents electronic placement there.
+12. Complete an observation-needed/routing-only route and confirm the result provides a practical action plus concrete **What to notice** cues.
+13. Complete all five areas and confirm the result begins with **A clear starting point for what to do next**.
+14. Confirm the primary **Start here** card includes fresh-evidence cues and no visible raw P-band.
+15. Open optional technical details and confirm the progression band is available only there.
+16. Open recommended targeted practice; confirm it uses the dedicated starting-point practice lane, preserves learner context, and returns to the same completed learner profile.
+17. Confirm source-guided My Pathways links open the intended canonical step and ambiguous mappings stay at strand level.
+18. Confirm recheck guidance asks for fresh evidence/readiness rather than repeating the same items immediately.
+19. On a partial result, confirm unresolved-area guidance appears before evidence confirmation.
+20. On a zero-reportable-evidence result, confirm Portfolio/report confirmation is not offered at all.
+21. On a confirmable result, confirm Portfolio is selected by default, report availability is **not** selected by default, and no data is written in the staff preview.
+22. Open the staff-only item-review catalogue and inspect representative anchor, search, boundary, confirmation, accessibility and asset-review items.
+23. Open the currency asset-review route and inspect the exact P1/P2 schematic sets.
+24. Check phone widths at 390px and 430px, including ordering controls, fraction entry, learner switching, result cards and practice return.
+25. Confirm no horizontal overflow, clipped controls or inaccessible answer targets.
+26. Confirm Production and Supabase remain unchanged.
 
 ## Decision point after acceptance
 
