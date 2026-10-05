@@ -116,12 +116,14 @@ function areaFrom(
   result: NumberOperationsPlacementResult,
   recommendation: NumberOperationsRecommendation,
   learnerId?: string | null,
+  assessmentReturnTo?: string,
 ): NumberOperationsParentUtilityArea {
   const state = stateFor(recommendation);
   const parentPracticeTarget = getNumberOperationsPracticeTarget({
     subElementKey: result.subElementKey,
     targetP: recommendation.targetP,
     learnerId,
+    returnTo: assessmentReturnTo,
   });
   const pathways = buildNumberOperationsPathwaysHandoff({
     subElementKey: result.subElementKey,
@@ -170,10 +172,30 @@ export function buildNumberOperationsParentUtility(
     ]),
   );
 
+  const assessmentReturnParams = new URLSearchParams();
+  const cleanLearnerId = String(options.learnerId ?? "").trim();
+  if (cleanLearnerId) assessmentReturnParams.set("learnerId", cleanLearnerId);
+  if (
+    profile.expectedSubElements === 1 &&
+    profile.expectedSubElementKeys[0]
+  ) {
+    assessmentReturnParams.set("area", profile.expectedSubElementKeys[0]);
+  }
+  const assessmentReturnTo = assessmentReturnParams.size
+    ? `/assessments/maths-starting-point?${assessmentReturnParams.toString()}`
+    : "/assessments/maths-starting-point";
+
   const areas = profile.results.flatMap((result) => {
     const recommendation = recommendations.get(result.subElementKey);
     return recommendation
-      ? [areaFrom(result, recommendation, options.learnerId)]
+      ? [
+          areaFrom(
+            result,
+            recommendation,
+            options.learnerId,
+            assessmentReturnTo,
+          ),
+        ]
       : [];
   });
 
