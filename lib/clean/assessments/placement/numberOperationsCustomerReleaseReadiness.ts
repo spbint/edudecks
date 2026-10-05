@@ -8,6 +8,8 @@ export type MathsStartingPointCustomerReleaseBlocker = {
     | "customer-navigation"
     | "persistence"
     | "evidence-write"
+    | "hosted-acceptance"
+    | "mobile-acceptance"
     | "draft-items"
     | "pending-trusted-assets";
   message: string;
@@ -43,6 +45,22 @@ export function getMathsStartingPointCustomerReleaseBlockers(): MathsStartingPoi
       id: "evidence-write",
       message:
         "Confirmed starting-point evidence is not yet authorised to write into the learner evidence flow.",
+    });
+  }
+
+  if (!MATHS_STARTING_POINT_RELEASE.hostedAcceptanceApproved) {
+    blockers.push({
+      id: "hosted-acceptance",
+      message:
+        "The authenticated hosted parent-flow rehearsal has not been accepted.",
+    });
+  }
+
+  if (!MATHS_STARTING_POINT_RELEASE.mobileAcceptanceApproved) {
+    blockers.push({
+      id: "mobile-acceptance",
+      message:
+        "The 390px/430px parent-flow mobile rehearsal has not been accepted.",
     });
   }
 
