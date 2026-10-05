@@ -101,3 +101,25 @@ it("keeps the save RPC dollar-quoted and scope-aware", () => {
     "assessedSubElements must fit inside the requested scope",
   );
 });
+
+
+it("requires the embedded profile and evidence snapshots to agree with the attempt scope", () => {
+  expect(source).toContain(
+    "profileSnapshot scope must match scopeSubElements.",
+  );
+  expect(source).toContain(
+    "evidencePreviewSnapshot scope must match scopeSubElements.",
+  );
+  expect(source).toContain(
+    "profileSnapshot expectedSubElements must match the attempt.",
+  );
+  expect(source).toContain(
+    "evidencePreviewSnapshot expectedSubElements must match the attempt.",
+  );
+  expect(source).toContain(
+    "unresolvedSubElements must stay inside scopeSubElements.",
+  );
+  expect(source).toContain(
+    "A complete baseline must cover its full requested scope.",
+  );
+});
