@@ -113,6 +113,320 @@ export type NumberOperationsFreshRecheckCluster = {
   note: string;
 };
 
+const COUNTING_P2_RECHECK_ITEMS = [
+  choiceItem({
+    id: "myl-recheck-cnt-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P02",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p2-recheck-subitise",
+    skillName: "Conceptually subitise a small collection",
+    prompt: "How many counters are shown?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 4, arrangement: "five-frame", seed: 224, maxQuantity: 5 },
+      altText:
+        "A small organised collection of counters. The quantity is intentionally not stated because recognising it is the task.",
+    },
+    options: [
+      { id: "a", label: "2" },
+      { id: "b", label: "3" },
+      { id: "c", label: "4" },
+      { id: "d", label: "5" },
+    ],
+    correctOptionIds: ["c"],
+    misconceptionTags: ["small-collection-recognition-error"],
+    tags: [
+      "counting-processes",
+      "p2",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+  choiceItem({
+    id: "myl-recheck-cnt-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P02",
+    yearLevel: "Prep",
+    substrand: "Counting processes",
+    skillId: "counting-p2-recheck-small-count",
+    skillName: "Count a very small visible collection",
+    prompt: "Which numeral matches the collection?",
+    stimulus: {
+      type: "counter-set",
+      data: { quantity: 2, arrangement: "scattered", seed: 222, maxQuantity: 3 },
+      altText:
+        "A very small scattered collection of counters. The quantity is intentionally not stated because counting it is the task.",
+    },
+    options: [
+      { id: "a", label: "1" },
+      { id: "b", label: "2" },
+      { id: "c", label: "3" },
+    ],
+    correctOptionIds: ["b"],
+    misconceptionTags: ["one-to-one-counting-error"],
+    tags: [
+      "counting-processes",
+      "p2",
+      "hybrid-routing-only",
+      "separate-accessible-form-required",
+    ],
+  }),
+] as const;
+
+const COUNTING_P7_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-cnt-p07-a-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P07",
+    yearLevel: "Years 2–4",
+    substrand: "Counting processes",
+    skillId: "counting-p7-recheck-off-decade-tens",
+    skillName: "Continue a count by tens off the decade",
+    prompt: "Continue the sequence: 12, 22, 32, 42, __",
+    correctValue: "52",
+    misconceptionTags: ["skip-count-interval-error", "off-decade-counting-error"],
+    tags: ["counting-processes", "p7"],
+  }),
+  shortItem({
+    id: "myl-recheck-cnt-p07-b-v1",
+    code: "MYL-MATH-PROG-NSA-CNT-P07",
+    yearLevel: "Years 2–4",
+    substrand: "Counting processes",
+    skillId: "counting-p7-recheck-grouped-residual",
+    skillName: "Count a grouped quantity and residual",
+    prompt: "What total quantity is represented?",
+    correctValue: "64",
+    stimulus: {
+      type: "place-value-blocks",
+      data: { tens: 6, ones: 4, layout: "grouped" },
+      altText:
+        "A grouped place-value representation with tens and ones. The exact quantities are intentionally not stated because interpreting the total is the task.",
+    },
+    misconceptionTags: ["grouped-counting-error", "residual-counting-error"],
+    tags: [
+      "counting-processes",
+      "p7",
+      "separate-accessible-form-required",
+    ],
+  }),
+] as const;
+
+const ADDITIVE_P3_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-add-p03-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P03",
+    yearLevel: "Year 1",
+    substrand: "Additive strategies",
+    skillId: "add-p3-recheck-concealed-total",
+    skillName: "Solve an additive task with concealed quantities",
+    prompt: "6 counters are hidden under one cup. 2 are hidden under another. How many counters are there altogether?",
+    correctValue: "8",
+    misconceptionTags: ["concealed-quantity-addition-error"],
+    tags: ["additive-strategies", "p3", "hybrid-routing-only"],
+  }),
+  shortItem({
+    id: "myl-recheck-add-p03-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P03",
+    yearLevel: "Year 1",
+    substrand: "Additive strategies",
+    skillId: "add-p3-recheck-second-concealed",
+    skillName: "Retain and combine two concealed quantities",
+    prompt: "3 counters are hidden in one box. 4 are hidden in another. How many counters are hidden altogether?",
+    correctValue: "7",
+    misconceptionTags: ["concealed-quantity-addition-error"],
+    tags: ["additive-strategies", "p3", "hybrid-routing-only"],
+  }),
+] as const;
+
+const ADDITIVE_P9_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-add-p09-a-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P09",
+    yearLevel: "Years 5–7",
+    substrand: "Additive strategies",
+    skillId: "add-p9-recheck-related-fractions",
+    skillName: "Add fractions with related denominators",
+    prompt: "Calculate 2/5 + 1/10. Give your answer as a fraction.",
+    correctValue: "1/2",
+    acceptableValues: ["1/2", "5/10"],
+    misconceptionTags: ["fraction-common-denominator-error"],
+    tags: ["additive-strategies", "p9"],
+  }),
+  shortItem({
+    id: "myl-recheck-add-p09-b-v1",
+    code: "MYL-MATH-PROG-NSA-ADD-P09",
+    yearLevel: "Years 5–7",
+    substrand: "Additive strategies",
+    skillId: "add-p9-recheck-decimal-addition",
+    skillName: "Add decimals to three decimal places",
+    prompt: "Calculate 3.206 + 0.75.",
+    correctValue: "3.956",
+    misconceptionTags: ["decimal-place-alignment-error"],
+    tags: ["additive-strategies", "p9"],
+  }),
+] as const;
+
+const MULTIPLICATIVE_P3_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-mul-p03-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P03",
+    yearLevel: "Year 2",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p3-recheck-concealed-groups",
+    skillName: "Determine a total from concealed equal groups",
+    prompt: "There are 5 closed packs. Each pack has 4 markers inside. How many markers are there altogether?",
+    correctValue: "20",
+    misconceptionTags: ["composite-unit-total-error"],
+    tags: ["multiplicative-strategies", "p3", "hybrid-routing-only"],
+  }),
+  shortItem({
+    id: "myl-recheck-mul-p03-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P03",
+    yearLevel: "Year 2",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p3-recheck-second-concealed",
+    skillName: "Count using imagined composite units",
+    prompt: "There are 2 closed boxes. Each box has 7 objects inside. How many objects are there altogether?",
+    correctValue: "14",
+    misconceptionTags: ["composite-unit-total-error"],
+    tags: ["multiplicative-strategies", "p3", "hybrid-routing-only"],
+  }),
+] as const;
+
+const MULTIPLICATIVE_P9_RECHECK_ITEMS = [
+  choiceItem({
+    id: "myl-recheck-mul-p09-a-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P09",
+    yearLevel: "Years 6–8",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p9-recheck-prime-factors",
+    skillName: "Express a number as a product of prime factors",
+    prompt: "Which expression writes 108 as a product of prime powers?",
+    options: [
+      { id: "a", label: "2² × 3³" },
+      { id: "b", label: "2³ × 3²" },
+      { id: "c", label: "2 × 3 × 18" },
+      { id: "d", label: "10² + 8" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["prime-factorisation-error", "exponent-form-error"],
+    tags: ["multiplicative-strategies", "p9"],
+  }),
+  shortItem({
+    id: "myl-recheck-mul-p09-b-v1",
+    code: "MYL-MATH-PROG-NSA-MUL-P09",
+    yearLevel: "Years 6–8",
+    substrand: "Multiplicative strategies",
+    skillId: "mul-p9-recheck-fraction-of-quantity",
+    skillName: "Calculate a fraction of a quantity multiplicatively",
+    prompt: "Calculate one third of 18.",
+    correctValue: "6",
+    misconceptionTags: ["fraction-of-quantity-error"],
+    tags: ["multiplicative-strategies", "p9"],
+  }),
+] as const;
+
+const MONEY_P2_RECHECK_ITEMS = [
+  choiceItem({
+    id: "myl-recheck-mon-p02-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P02",
+    yearLevel: "Year 1",
+    substrand: "Understanding money",
+    skillId: "money-p2-recheck-face-value-order",
+    skillName: "Order money denominations by face value",
+    prompt: "Which list orders these money values from least to greatest?",
+    stimulus: {
+      type: "currency-tokens",
+      data: {
+        layout: "row",
+        tokens: [
+          { denomination: "$1" },
+          { denomination: "10c" },
+          { denomination: "$2" },
+          { denomination: "50c" },
+        ],
+      },
+      altText:
+        "Four Australian money tokens are shown in an order that must be interpreted visually. Their denominations are intentionally not stated because ordering their values is the task.",
+    },
+    options: [
+      { id: "a", label: "10c, 50c, $1, $2" },
+      { id: "b", label: "$2, $1, 50c, 10c" },
+      { id: "c", label: "10c, $1, 50c, $2" },
+      { id: "d", label: "50c, 10c, $1, $2" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["money-face-value-order-error", "dollars-cents-order-confusion"],
+    tags: [
+      "understanding-money",
+      "p2",
+      "asset-review",
+      "separate-accessible-form-required",
+    ],
+  }),
+  shortItem({
+    id: "myl-recheck-mon-p02-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P02",
+    yearLevel: "Year 1",
+    substrand: "Understanding money",
+    skillId: "money-p2-recheck-count-denomination",
+    skillName: "Count money tokens with the same face value",
+    prompt: "How many 50c tokens are shown?",
+    correctValue: "3",
+    stimulus: {
+      type: "currency-tokens",
+      data: {
+        layout: "grid",
+        tokens: [
+          { denomination: "50c" },
+          { denomination: "$1" },
+          { denomination: "20c" },
+          { denomination: "50c" },
+          { denomination: "$2" },
+          { denomination: "50c" },
+        ],
+      },
+      altText:
+        "Six Australian money tokens are shown. Their denominations are intentionally not stated because identifying and counting a target denomination is the task.",
+    },
+    misconceptionTags: ["money-denomination-count-error"],
+    tags: [
+      "understanding-money",
+      "p2",
+      "asset-review",
+      "separate-accessible-form-required",
+    ],
+  }),
+] as const;
+
+const MONEY_P8_RECHECK_ITEMS = [
+  shortItem({
+    id: "myl-recheck-mon-p08-a-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P08",
+    yearLevel: "Years 6–8",
+    substrand: "Understanding money",
+    skillId: "money-p8-recheck-discount",
+    skillName: "Calculate a percentage discount and sale price",
+    prompt: "A $120 item is reduced by 25%. What is the sale price in dollars?",
+    correctValue: "90",
+    acceptableValues: ["90", "$90", "90.00", "$90.00"],
+    misconceptionTags: ["discount-vs-sale-price-error", "percentage-of-quantity-error"],
+    tags: ["understanding-money", "p8"],
+  }),
+  shortItem({
+    id: "myl-recheck-mon-p08-b-v1",
+    code: "MYL-MATH-PROG-NSA-MON-P08",
+    yearLevel: "Years 6–8",
+    substrand: "Understanding money",
+    skillId: "money-p8-recheck-simple-interest",
+    skillName: "Calculate simple interest from a percentage rate",
+    prompt: "$800 is invested for 1 year at 5% simple interest. How many dollars of interest are earned?",
+    correctValue: "40",
+    acceptableValues: ["40", "$40", "40.00", "$40.00"],
+    misconceptionTags: ["simple-interest-error", "percentage-rate-error"],
+    tags: ["understanding-money", "p8"],
+  }),
+] as const;
+
 const COUNTING_P5_RECHECK_ITEMS = [
   shortItem({
     id: "myl-recheck-cnt-p05-a-v1",
@@ -346,12 +660,36 @@ export const NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS: NumberOperationsFreshRech
   ...NPV_RECHECK_CLUSTERS,
   {
     subElementKey: "counting-processes",
+    pLevel: 2,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P2_RECHECK_ITEMS,
+    note:
+      "Fresh lower-anchor Counting evidence. Strategy-dependent digital correctness remains routing-only.",
+  },
+  {
+    subElementKey: "counting-processes",
     pLevel: 5,
     source: "fresh-recheck-draft",
     items: COUNTING_P5_RECHECK_ITEMS,
     reserveItem: COUNTING_P5_RECHECK_RESERVE,
     note:
       "Fresh initial-level Counting evidence only. Remaining Counting levels still require alternate recheck coverage.",
+  },
+  {
+    subElementKey: "counting-processes",
+    pLevel: 7,
+    source: "fresh-recheck-draft",
+    items: COUNTING_P7_RECHECK_ITEMS,
+    note:
+      "Fresh upper-anchor Counting evidence across off-decade counting and grouped quantities.",
+  },
+  {
+    subElementKey: "additive-strategies",
+    pLevel: 3,
+    source: "fresh-recheck-draft",
+    items: ADDITIVE_P3_RECHECK_ITEMS,
+    note:
+      "Fresh lower-anchor Additive evidence. Concealed-quantity correctness remains routing-only without observation.",
   },
   {
     subElementKey: "additive-strategies",
@@ -363,6 +701,22 @@ export const NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS: NumberOperationsFreshRech
       "Fresh initial-level Additive evidence only. Remaining Additive levels still require alternate recheck coverage.",
   },
   {
+    subElementKey: "additive-strategies",
+    pLevel: 9,
+    source: "fresh-recheck-draft",
+    items: ADDITIVE_P9_RECHECK_ITEMS,
+    note:
+      "Fresh upper-anchor Additive evidence across related-denominator fractions and decimal addition.",
+  },
+  {
+    subElementKey: "multiplicative-strategies",
+    pLevel: 3,
+    source: "fresh-recheck-draft",
+    items: MULTIPLICATIVE_P3_RECHECK_ITEMS,
+    note:
+      "Fresh lower-anchor Multiplicative evidence. Concealed composite-unit correctness remains routing-only without observation.",
+  },
+  {
     subElementKey: "multiplicative-strategies",
     pLevel: 6,
     source: "fresh-recheck-draft",
@@ -372,6 +726,22 @@ export const NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS: NumberOperationsFreshRech
       "Fresh initial-level Multiplicative evidence only. Remaining Multiplicative levels still require alternate recheck coverage.",
   },
   {
+    subElementKey: "multiplicative-strategies",
+    pLevel: 9,
+    source: "fresh-recheck-draft",
+    items: MULTIPLICATIVE_P9_RECHECK_ITEMS,
+    note:
+      "Fresh upper-anchor Multiplicative evidence across prime factors/exponents and rational-number multiplication.",
+  },
+  {
+    subElementKey: "understanding-money",
+    pLevel: 2,
+    source: "fresh-recheck-draft",
+    items: MONEY_P2_RECHECK_ITEMS,
+    note:
+      "Fresh lower-anchor Money content exists but remains behind the same trusted currency-asset approval gate.",
+  },
+  {
     subElementKey: "understanding-money",
     pLevel: 5,
     source: "fresh-recheck-draft",
@@ -379,6 +749,14 @@ export const NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS: NumberOperationsFreshRech
     reserveItem: MONEY_P5_RECHECK_RESERVE,
     note:
       "Fresh initial-level Money evidence only. Remaining Money levels still require alternate recheck coverage.",
+  },
+  {
+    subElementKey: "understanding-money",
+    pLevel: 8,
+    source: "fresh-recheck-draft",
+    items: MONEY_P8_RECHECK_ITEMS,
+    note:
+      "Fresh upper-anchor Money evidence across discounts and simple interest.",
   },
 ];
 
