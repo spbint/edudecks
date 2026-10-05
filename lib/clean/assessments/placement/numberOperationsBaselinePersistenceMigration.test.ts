@@ -168,3 +168,20 @@ it("requires an explicit actor id and keeps customer writes out of authenticated
     'create policy "maths baseline responses insert own family"',
   );
 });
+
+
+it("keeps the server-only save RPC invoker-rights rather than SECURITY DEFINER", () => {
+  const start = source.indexOf(
+    "create or replace function public.mylearna_save_number_operations_baseline",
+  );
+  const end = source.indexOf(
+    "revoke all on function public.mylearna_save_number_operations_baseline",
+    start,
+  );
+  const saveRpc = source.slice(start, end);
+
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  expect(saveRpc).not.toContain("security definer");
+  expect(saveRpc).toContain("set search_path = public");
+});

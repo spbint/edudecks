@@ -419,7 +419,6 @@ create or replace function public.mylearna_save_number_operations_baseline(
 )
 returns uuid
 language plpgsql
-security definer
 set search_path = public
 as $$
 declare
