@@ -121,6 +121,7 @@ it("locks higher-risk choice and multi-select keys", () => {
       "forty-three-hundreds",
     ],
     "myl-anchor-mon-p02-a-v1": ["a"],
+    "myl-anchor-add-p06-b-v1": ["a"],
     "myl-anchor-mon-p05-a-v1": ["a"],
     "myl-anchor-mul-p06-c-v1": ["a"],
     "myl-anchor-mul-p09-a-v1": ["a"],
