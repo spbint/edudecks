@@ -272,6 +272,7 @@ export default function MathsStartingPointWorkspace() {
 
       <AssessmentNumberOperationsBaselineRunner
         key={`${activeLearner.id}:${selectedArea?.key || "full"}`}
+        familyId={workspace.profile.id}
         learnerId={activeLearner.id}
         learnerName={activeLearner.label}
         mode="parent-preview"

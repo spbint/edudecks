@@ -362,3 +362,31 @@ it("builds focused profiles against the requested scope rather than the full fiv
     "buildNumberOperationsProfile(finalResults);",
   );
 });
+
+
+it("keeps the persistence smoke control staff-only, idempotent and tied to canonical family/learner context", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+  const workspaceSource = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/MathsStartingPointWorkspace.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("MATHS_STARTING_POINT_RELEASE.persistenceEnabled");
+  expect(source).toContain("!MATHS_STARTING_POINT_RELEASE.customerVisible");
+  expect(source).toContain("saveNumberOperationsBaseline");
+  expect(source).toContain("persistenceSubmissionIdRef.current");
+  expect(source).toContain("maths-start-");
+  expect(source).toContain("Run staff persistence smoke");
+  expect(workspaceSource).toContain("familyId={workspace.profile.id}");
+  expect(source).toContain("familyId: String(familyId)");
+  expect(source).toContain("learnerId: String(learnerId)");
+});

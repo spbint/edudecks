@@ -24,6 +24,8 @@ import {
 } from "@/lib/clean/assessments/placement/numberOperationsBaselineDraft";
 import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/placement/numberOperationsBaselineBudget";
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
+import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
+import { saveNumberOperationsBaseline } from "@/lib/clean/assessments/placement/numberOperationsBaselinePersistenceClient";
 import { buildNumberOperationsUnresolvedGuidance } from "@/lib/clean/assessments/placement/numberOperationsUnresolvedGuidance";
 
 const DEFAULT_ORDER: NumberOperationsSubElementKey[] = [
@@ -52,12 +54,14 @@ const panel: React.CSSProperties = {
 };
 
 export default function AssessmentNumberOperationsBaselineRunner({
+  familyId,
   learnerId,
   learnerName,
   mode = "staff-debug",
   userId,
   subElementKeys,
 }: {
+  familyId?: string | null;
   learnerId?: string | null;
   learnerName?: string | null;
   mode?: "parent-preview" | "staff-debug";
@@ -96,6 +100,10 @@ export default function AssessmentNumberOperationsBaselineRunner({
   const startedAtRef = useRef(new Date().toISOString());
   const completionTrackedRef = useRef(false);
   const hydratedCompleteRef = useRef(false);
+  const persistenceSubmissionIdRef = useRef<string | null>(null);
+  const [persistenceSaving, setPersistenceSaving] = useState(false);
+  const [persistenceMessage, setPersistenceMessage] = useState("");
+  const [savedAttemptId, setSavedAttemptId] = useState("");
   const learnerStorageSuffix = learnerId ? `:${learnerId}` : "";
   const scopeStorageSuffix = isFullScope ? "" : `:scope-${order.join("+")}`;
   const draftStorageKey =
@@ -236,6 +244,10 @@ export default function AssessmentNumberOperationsBaselineRunner({
     startedAtRef.current = new Date().toISOString();
     completionTrackedRef.current = false;
     hydratedCompleteRef.current = false;
+    persistenceSubmissionIdRef.current = null;
+    setPersistenceSaving(false);
+    setPersistenceMessage("");
+    setSavedAttemptId("");
     window.sessionStorage.removeItem(draftStorageKey);
   };
 
@@ -297,6 +309,47 @@ export default function AssessmentNumberOperationsBaselineRunner({
     });
     const persistenceDraft =
       buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot);
+    const canRunStaffPersistenceSmoke =
+      mode === "parent-preview" &&
+      MATHS_STARTING_POINT_RELEASE.persistenceEnabled &&
+      !MATHS_STARTING_POINT_RELEASE.customerVisible &&
+      Boolean(String(familyId ?? "").trim()) &&
+      Boolean(String(learnerId ?? "").trim());
+
+    const runStaffPersistenceSmoke = async () => {
+      if (!canRunStaffPersistenceSmoke || persistenceSaving) return;
+
+      setPersistenceSaving(true);
+      setPersistenceMessage("");
+      try {
+        if (!persistenceSubmissionIdRef.current) {
+          const randomId =
+            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          persistenceSubmissionIdRef.current = `maths-start-${randomId}`;
+        }
+
+        const saved = await saveNumberOperationsBaseline({
+          familyId: String(familyId),
+          learnerId: String(learnerId),
+          clientSubmissionId: persistenceSubmissionIdRef.current,
+          draft: persistenceDraft,
+        });
+        setSavedAttemptId(saved.attemptId);
+        setPersistenceMessage(
+          "Staff persistence smoke succeeded. Customer visibility remains disabled.",
+        );
+      } catch (error) {
+        setPersistenceMessage(
+          error instanceof Error
+            ? error.message
+            : "The staff persistence smoke could not be completed.",
+        );
+      } finally {
+        setPersistenceSaving(false);
+      }
+    };
     const unresolvedGuidance =
       buildNumberOperationsUnresolvedGuidance(unresolved);
 
@@ -410,6 +463,63 @@ export default function AssessmentNumberOperationsBaselineRunner({
             )
           }
         />
+        {canRunStaffPersistenceSmoke ? (
+          <section
+            style={{
+              ...panel,
+              borderColor: "#D9D0FF",
+              background: "#F8F5FF",
+            }}
+          >
+            <span
+              style={{
+                color: "#6C4DF6",
+                fontSize: 12,
+                fontWeight: 900,
+                textTransform: "uppercase",
+              }}
+            >
+              Staff-only persistence smoke
+            </span>
+            <strong style={{ color: "#17204B" }}>
+              Save this completed baseline through the trusted server replay
+            </strong>
+            <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
+              This control appears only while persistence is enabled and customer
+              visibility remains off. It does not publish items, expose the route to
+              families or create Portfolio/report evidence.
+            </span>
+            <button
+              type="button"
+              onClick={() => void runStaffPersistenceSmoke()}
+              disabled={persistenceSaving}
+              style={{
+                border: 0,
+                borderRadius: 11,
+                minHeight: 44,
+                padding: "10px 14px",
+                background: persistenceSaving ? "#A5B4FC" : "#6C4DF6",
+                color: "#FFFFFF",
+                fontWeight: 850,
+                cursor: persistenceSaving ? "wait" : "pointer",
+                width: "fit-content",
+              }}
+            >
+              {persistenceSaving
+                ? "Saving trusted baseline..."
+                : savedAttemptId
+                  ? "Retry idempotent save"
+                  : "Run staff persistence smoke"}
+            </button>
+            {persistenceMessage ? (
+              <span role="status" style={{ color: "#475569", lineHeight: 1.5 }}>
+                {persistenceMessage}
+                {savedAttemptId ? ` Attempt ID: ${savedAttemptId}` : ""}
+              </span>
+            ) : null}
+          </section>
+        ) : null}
+
         {mode === "staff-debug" ? (
           <>
             <AssessmentNumberOperationsProfileCard profile={finalProfile} />
