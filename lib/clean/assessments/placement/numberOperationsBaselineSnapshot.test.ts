@@ -149,4 +149,7 @@ it("marks a successful focused one-area snapshot complete for that scope", () =>
     scopeSubElements: ["additive-strategies"],
     unresolvedSubElements: [],
   });
+  expect(snapshot.persistencePolicy.reason).toMatch(
+    /focused starting-point check.*rather than one canonical My Pathways step/i,
+  );
 });
