@@ -8,6 +8,7 @@ export const MATHS_STARTING_POINT_RELEASE = Object.freeze({
   customerNavigationEnabled: false,
   hostedAcceptanceApproved: false,
   mobileAcceptanceApproved: false,
+  freshRecheckFormsApproved: false,
 });
 
 export function assertMathsStartingPointStaffPreviewSafety() {
