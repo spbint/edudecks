@@ -14,10 +14,15 @@ export type PlacementItemQualityIssue = {
     | "missing-skill"
     | "missing-correct-value"
     | "missing-options"
+    | "insufficient-options"
+    | "missing-option-label"
     | "duplicate-option-id"
+    | "duplicate-option-label"
+    | "duplicate-correct-option"
     | "invalid-correct-option"
     | "single-choice-answer-count"
     | "ordering-answer-count"
+    | "template-response-mismatch"
     | "missing-visual-description"
     | "unversioned-id";
   message: string;
@@ -102,6 +107,12 @@ export function validatePlacementItem(
         "Short-answer item must define a non-empty correctValue.",
       );
     }
+    if (item.template !== "short-answer") {
+      issue(
+        "template-response-mismatch",
+        "Short-answer response must use the short-answer template.",
+      );
+    }
     return issues;
   }
 
@@ -111,6 +122,27 @@ export function validatePlacementItem(
     return issues;
   }
 
+  if (options.length < 2) {
+    issue(
+      "insufficient-options",
+      "Choice/ordering item must define at least two options.",
+    );
+  }
+
+  if (options.some((option) => !safe(option.label))) {
+    issue("missing-option-label", "Every option must have a visible label.");
+  }
+
+  const normalizedLabels = options.map((option) =>
+    safe(option.label).toLowerCase(),
+  );
+  if (new Set(normalizedLabels).size !== normalizedLabels.length) {
+    issue(
+      "duplicate-option-label",
+      "Answer option labels must be unique within an item.",
+    );
+  }
+
   const ids = options.map((option) => option.id);
   if (new Set(ids).size !== ids.length) {
     issue("duplicate-option-id", "Choice option IDs must be unique.");
@@ -118,6 +150,13 @@ export function validatePlacementItem(
 
   const correctIds = item.response.correctOptionIds || [];
   const optionIds = new Set(ids);
+
+  if (new Set(correctIds).size !== correctIds.length) {
+    issue(
+      "duplicate-correct-option",
+      "Correct option IDs must not contain duplicates.",
+    );
+  }
 
   for (const correctId of correctIds) {
     if (!optionIds.has(correctId)) {
@@ -142,13 +181,28 @@ export function validatePlacementItem(
     );
   }
 
+  if (item.response.type === "ordering") {
+    if (correctIds.length !== options.length) {
+      issue(
+        "ordering-answer-count",
+        "Ordering item must define one correct ordered ID for every option.",
+      );
+    }
+    if (item.template !== "ordering") {
+      issue(
+        "template-response-mismatch",
+        "Ordering response must use the ordering template.",
+      );
+    }
+  }
+
   if (
-    item.response.type === "ordering" &&
-    correctIds.length !== options.length
+    item.template === "ordering" &&
+    item.response.type !== "ordering"
   ) {
     issue(
-      "ordering-answer-count",
-      "Ordering item must define one correct ordered ID for every option.",
+      "template-response-mismatch",
+      "Ordering template must use an ordering response.",
     );
   }
 
