@@ -26,6 +26,13 @@ describe("Number Operations profile", () => {
     ]);
 
     expect(profile).toMatchObject({
+      expectedSubElementKeys: [
+        "number-place-value",
+        "counting-processes",
+        "additive-strategies",
+        "multiplicative-strategies",
+        "understanding-money",
+      ],
       expectedSubElements: 5,
       assessedSubElements: 3,
       complete: false,
@@ -80,4 +87,49 @@ describe("Number Operations profile", () => {
     expect(profile.assessedSubElements).toBe(5);
     expect(profile.overallStatement).toMatch(/all five sub-elements/i);
   });
+});
+
+
+it("treats a focused one-area profile as complete for that requested scope", () => {
+  const result = buildNumberOperationsCandidateBandResult({
+    subElementKey: "additive-strategies",
+    lowerP: 5,
+    upperP: 6,
+  });
+
+  const profile = buildNumberOperationsProfile([result], {
+    expectedSubElementKeys: ["additive-strategies"],
+  });
+
+  expect(profile).toMatchObject({
+    expectedSubElementKeys: ["additive-strategies"],
+    expectedSubElements: 1,
+    assessedSubElements: 1,
+    complete: true,
+  });
+  expect(profile.overallStatement).toMatch(/selected area only/i);
+  expect(profile.overallStatement).toMatch(/not.*whole/i);
+});
+
+it("ignores results outside an explicitly requested focused scope", () => {
+  const profile = buildNumberOperationsProfile(
+    [
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "number-place-value",
+        lowerP: 5,
+        upperP: 6,
+      }),
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "understanding-money",
+        lowerP: 5,
+        upperP: 6,
+      }),
+    ],
+    { expectedSubElementKeys: ["understanding-money"] },
+  );
+
+  expect(profile.results.map((result) => result.subElementKey)).toEqual([
+    "understanding-money",
+  ]);
+  expect(profile.complete).toBe(true);
 });

@@ -7,7 +7,7 @@ import {
   type NumberOperationsRecommendation,
 } from "./numberOperationsRecommendations";
 
-const ORDER: NumberOperationsSubElementKey[] = [
+export const NUMBER_OPERATIONS_PROFILE_ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
   "counting-processes",
   "additive-strategies",
@@ -17,6 +17,7 @@ const ORDER: NumberOperationsSubElementKey[] = [
 
 export type NumberOperationsProfile = {
   frameworkId: "MYL-MATH-AU-NUMERACY-V9";
+  expectedSubElementKeys: NumberOperationsSubElementKey[];
   expectedSubElements: number;
   assessedSubElements: number;
   complete: boolean;
@@ -32,35 +33,82 @@ export type NumberOperationsProfile = {
   recommendations: NumberOperationsRecommendation[];
 };
 
-export function buildNumberOperationsProfile(
-  results: NumberOperationsPlacementResult[],
-): NumberOperationsProfile {
-  const byKey = new Map<NumberOperationsSubElementKey, NumberOperationsPlacementResult>();
+function resolveExpectedSubElementKeys(
+  requested?: NumberOperationsSubElementKey[],
+) {
+  if (!requested?.length) return [...NUMBER_OPERATIONS_PROFILE_ORDER];
+  const requestedSet = new Set(requested);
+  const scoped = NUMBER_OPERATIONS_PROFILE_ORDER.filter((key) =>
+    requestedSet.has(key),
+  );
+  return scoped.length ? scoped : [...NUMBER_OPERATIONS_PROFILE_ORDER];
+}
 
-  for (const result of results) {
-    byKey.set(result.subElementKey, result);
+function profileStatement(input: {
+  expectedSubElementKeys: NumberOperationsSubElementKey[];
+  assessedSubElements: number;
+  complete: boolean;
+}) {
+  const expected = input.expectedSubElementKeys.length;
+
+  if (expected === 1) {
+    return input.complete
+      ? "The Number & Operations profile contains evidence for the selected area only. MyLearna does not treat this focused result as a whole Number & Operations or whole-Maths level."
+      : "The selected Number & Operations area does not yet have reportable electronic evidence. MyLearna leaves it open rather than inferring a result.";
   }
 
-  const ordered = ORDER.flatMap((key) => {
+  if (expected === NUMBER_OPERATIONS_PROFILE_ORDER.length && input.complete) {
+    return "The Number & Operations profile contains evidence across all five sub-elements. MyLearna does not average these continua into one whole-child level.";
+  }
+
+  return `The Number & Operations profile currently contains evidence across ${input.assessedSubElements} of ${expected} selected sub-elements. MyLearna does not infer missing sub-elements or average the available results into one whole-child level.`;
+}
+
+export function buildNumberOperationsProfile(
+  results: NumberOperationsPlacementResult[],
+  options: {
+    expectedSubElementKeys?: NumberOperationsSubElementKey[];
+  } = {},
+): NumberOperationsProfile {
+  const expectedSubElementKeys = resolveExpectedSubElementKeys(
+    options.expectedSubElementKeys,
+  );
+  const expectedSet = new Set(expectedSubElementKeys);
+  const byKey = new Map<
+    NumberOperationsSubElementKey,
+    NumberOperationsPlacementResult
+  >();
+
+  for (const result of results) {
+    if (expectedSet.has(result.subElementKey)) {
+      byKey.set(result.subElementKey, result);
+    }
+  }
+
+  const ordered = expectedSubElementKeys.flatMap((key) => {
     const result = byKey.get(key);
     return result ? [result] : [];
   });
   const assessedSubElements = ordered.length;
+  const expectedSubElements = expectedSubElementKeys.length;
+  const complete = assessedSubElements === expectedSubElements;
   const routingOnlyCount = ordered.filter(
     (result) => result.confidence === "routing-only",
   ).length;
 
   return {
     frameworkId: "MYL-MATH-AU-NUMERACY-V9",
-    expectedSubElements: ORDER.length,
+    expectedSubElementKeys,
+    expectedSubElements,
     assessedSubElements,
-    complete: assessedSubElements === ORDER.length,
+    complete,
     directOrProvisionalCount: assessedSubElements - routingOnlyCount,
     routingOnlyCount,
-    overallStatement:
-      assessedSubElements === ORDER.length
-        ? "The Number & Operations profile contains evidence across all five sub-elements. MyLearna does not average these continua into one whole-child level."
-        : `The Number & Operations profile currently contains evidence across ${assessedSubElements} of ${ORDER.length} sub-elements. MyLearna does not infer missing sub-elements or average the available results into one whole-child level.`,
+    overallStatement: profileStatement({
+      expectedSubElementKeys,
+      assessedSubElements,
+      complete,
+    }),
     results: ordered,
     nextChecks: ordered.map((result) => ({
       subElementKey: result.subElementKey,

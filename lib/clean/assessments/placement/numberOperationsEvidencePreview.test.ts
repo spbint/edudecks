@@ -127,3 +127,24 @@ it("allows report availability only when the retained evidence has no routing-on
   expect(preview.portfolioEligibleAfterConfirmation).toBe(true);
   expect(preview.reportEligibleAfterConfirmation).toBe(true);
 });
+
+
+it("describes a focused one-area check as complete for its selected scope", () => {
+  const profile = buildNumberOperationsProfile(
+    [
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "understanding-money",
+        lowerP: 5,
+        upperP: 6,
+      }),
+    ],
+    { expectedSubElementKeys: ["understanding-money"] },
+  );
+
+  const preview = buildNumberOperationsEvidencePreview(profile);
+
+  expect(preview.expectedSubElements).toBe(1);
+  expect(preview.scopeSubElements).toEqual(["understanding-money"]);
+  expect(preview.summary).toMatch(/selected Number & Operations area/i);
+  expect(preview.summary).not.toMatch(/all five/i);
+});

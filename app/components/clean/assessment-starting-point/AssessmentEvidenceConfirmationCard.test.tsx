@@ -16,6 +16,13 @@ const preview: NumberOperationsEvidencePreview = {
   learningArea: "Mathematics",
   assessedSubElements: 1,
   expectedSubElements: 5,
+  scopeSubElements: [
+    "number-place-value",
+    "counting-processes",
+    "additive-strategies",
+    "multiplicative-strategies",
+    "understanding-money",
+  ],
   routingOnlySubElements: 1,
   curriculumNodeIds: [
     "mylearna::mathematics::au-numeracy-v9::counting-processes::p4-p5",
@@ -30,7 +37,7 @@ const preview: NumberOperationsEvidencePreview = {
   ],
   requiresParentConfirmation: true,
   portfolioEligibleAfterConfirmation: true,
-  reportEligibleAfterConfirmation: true,
+  reportEligibleAfterConfirmation: false,
 };
 
 describe("AssessmentEvidenceConfirmationCard", () => {

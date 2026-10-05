@@ -47,6 +47,13 @@ describe("Number & Operations evidence confirmation", () => {
       includeInPortfolio: true,
       includeInReport: false,
       parentNote: "We also saw this during shopping this week.",
+      scopeSubElements: [
+        "number-place-value",
+        "counting-processes",
+        "additive-strategies",
+        "multiplicative-strategies",
+        "understanding-money",
+      ],
       safeguards: {
         updatesPathwayStatusAutomatically: false,
         updatesAssessmentConfidenceAutomatically: false,

@@ -15,6 +15,7 @@ export type NumberOperationsEvidencePreview = {
   learningArea: "Mathematics";
   assessedSubElements: number;
   expectedSubElements: number;
+  scopeSubElements: NumberOperationsPlacementResult["subElementKey"][];
   routingOnlySubElements: number;
   curriculumNodeIds: string[];
   resultBands: Array<{
@@ -93,9 +94,14 @@ export function buildNumberOperationsEvidencePreview(
   }));
 
   const coverage =
-    profile.assessedSubElements === profile.expectedSubElements
-      ? "all five Number & Operations sub-elements"
-      : `${profile.assessedSubElements} of ${profile.expectedSubElements} Number & Operations sub-elements`;
+    profile.expectedSubElements === 1
+      ? profile.assessedSubElements === 1
+        ? "the selected Number & Operations area"
+        : "0 of 1 selected Number & Operations area"
+      : profile.assessedSubElements === profile.expectedSubElements &&
+          profile.expectedSubElements === 5
+        ? "all five Number & Operations sub-elements"
+        : `${profile.assessedSubElements} of ${profile.expectedSubElements} selected Number & Operations sub-elements`;
 
   const routingNote = profile.routingOnlyCount
     ? ` ${profile.routingOnlyCount} result${profile.routingOnlyCount === 1 ? "" : "s"} remain routing-only and need stronger or observed evidence before a higher-confidence statement.`
@@ -114,6 +120,7 @@ export function buildNumberOperationsEvidencePreview(
     learningArea: "Mathematics",
     assessedSubElements: profile.assessedSubElements,
     expectedSubElements: profile.expectedSubElements,
+    scopeSubElements: [...profile.expectedSubElementKeys],
     routingOnlySubElements: profile.routingOnlyCount,
     curriculumNodeIds: profile.results.map(curriculumNodeId),
     resultBands: results,

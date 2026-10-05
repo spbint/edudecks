@@ -192,9 +192,14 @@ export function buildNumberOperationsParentUtility(
 
   return {
     title: "A clear starting point for what to do next",
-    summary: profile.complete
-      ? "MyLearna found a usable starting point across all five Number & Operations areas. The areas stay separate so strength in one part of maths never hides a place where support would help."
-      : `MyLearna currently has a usable starting point in ${profile.assessedSubElements} of ${profile.expectedSubElements} Number & Operations areas. Missing areas stay unknown rather than being guessed.`,
+    summary:
+      profile.expectedSubElements === 1
+        ? profile.complete
+          ? "MyLearna found a usable starting point for the selected Number & Operations area. This focused result stays separate from the rest of the learner’s Maths profile."
+          : "MyLearna does not yet have enough electronic evidence for the selected Number & Operations area, so it stays open rather than being guessed."
+        : profile.complete
+          ? "MyLearna found a usable starting point across all five Number & Operations areas. The areas stay separate so strength in one part of maths never hides a place where support would help."
+          : `MyLearna currently has a usable starting point in ${profile.assessedSubElements} of ${profile.expectedSubElements} selected Number & Operations areas. Missing areas stay unknown rather than being guessed.`,
     assessedAreas: profile.assessedSubElements,
     expectedAreas: profile.expectedSubElements,
     complete: profile.complete,

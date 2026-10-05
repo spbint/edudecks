@@ -14,6 +14,7 @@ export type NumberOperationsEvidenceConfirmationDraft = {
   title: string;
   summary: string;
   learningArea: NumberOperationsEvidencePreview["learningArea"];
+  scopeSubElements: NumberOperationsEvidencePreview["scopeSubElements"];
   curriculumNodeIds: string[];
   resultBands: NumberOperationsEvidencePreview["resultBands"];
   safeguards: {
@@ -85,6 +86,7 @@ export function buildNumberOperationsEvidenceConfirmationDraft(input: {
     title: input.preview.title,
     summary: input.preview.summary,
     learningArea: input.preview.learningArea,
+    scopeSubElements: [...input.preview.scopeSubElements],
     curriculumNodeIds: [...input.preview.curriculumNodeIds],
     resultBands: input.preview.resultBands.map((result) => ({ ...result })),
     safeguards: {
