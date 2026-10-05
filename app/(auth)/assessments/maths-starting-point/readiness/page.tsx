@@ -40,6 +40,7 @@ const BLOCKER_LABELS: Record<string, string> = {
   "evidence-write": "Evidence write",
   "hosted-acceptance": "Hosted parent-flow acceptance",
   "mobile-acceptance": "Mobile parent-flow acceptance",
+  "fresh-recheck-evidence": "Fresh recheck evidence",
   "draft-items": "Placement item release state",
   "pending-trusted-assets": "Trusted asset approval",
 };
@@ -53,6 +54,10 @@ export default function MathsStartingPointReadinessPage() {
     (approval) => approval.status !== "approved",
   );
   const itemReview = getNumberOperationsItemReviewSummary();
+  const visualMix = Object.entries(itemReview.customerVisualTypeCounts)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([type, count]) => `${count} ${type}`)
+    .join(", ");
 
   return (
     <AssessmentAccessGate mode="lab">
@@ -152,6 +157,9 @@ export default function MathsStartingPointReadinessPage() {
                 ["Persistence", String(MATHS_STARTING_POINT_RELEASE.persistenceEnabled)],
                 ["Evidence write", String(MATHS_STARTING_POINT_RELEASE.evidenceWriteEnabled)],
                 ["Pathway mutation", String(MATHS_STARTING_POINT_RELEASE.pathwayMutationEnabled)],
+                ["Hosted acceptance", String(MATHS_STARTING_POINT_RELEASE.hostedAcceptanceApproved)],
+                ["Mobile acceptance", String(MATHS_STARTING_POINT_RELEASE.mobileAcceptanceApproved)],
+                ["Fresh recheck forms", String(MATHS_STARTING_POINT_RELEASE.freshRecheckFormsApproved)],
               ].map(([label, value]) => (
                 <React.Fragment key={label}>
                   <dt style={{ color: "#64748B" }}>{label}</dt>
@@ -238,8 +246,7 @@ export default function MathsStartingPointReadinessPage() {
               items remain staff/lab review inventory and do not block the v1 parent route.
             </span>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
-              Customer-route visual mix: 4 counter-set, 2 place-value-blocks, 1 array,
-              and 3 currency-token items.
+              Customer-route visual mix: {visualMix || "none"}.
             </span>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {pendingAssets.length} trusted asset set
