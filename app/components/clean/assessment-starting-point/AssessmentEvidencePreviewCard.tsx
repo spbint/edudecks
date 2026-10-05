@@ -78,10 +78,13 @@ export default function AssessmentEvidencePreviewCard({
       <div style={{ ...panel, background: "#FFFDF5" }}>
         <strong style={{ color: "#92400E" }}>Not saved yet</strong>
         <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
-          This assessment result can become Portfolio and report evidence after
-          explicit parent confirmation. The staff baseline does not create a
-          Capture record, Portfolio item, report statement or learner-status
-          update automatically.
+          {!preview.portfolioEligibleAfterConfirmation
+            ? "This electronic check does not yet contain reportable starting-point evidence. Practical or observed evidence is required before anything can be confirmed into Portfolio or reports."
+            : preview.reportEligibleAfterConfirmation
+              ? "This assessment result can become Portfolio evidence and be made available for reports after explicit parent confirmation."
+              : "This assessment result can become Portfolio evidence after explicit parent confirmation, but report use stays blocked until the routing-only evidence has stronger practical or observed verification."}{" "}
+          The staff baseline does not create a Capture record, Portfolio item,
+          report statement or learner-status update automatically.
         </span>
       </div>
     </section>
