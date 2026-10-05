@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildEiEvidenceBalanceState } from "@/lib/clean/ei/evidenceBalance";
+import { EI_V1_POLICY } from "@/lib/clean/ei/policy";
 import type { EiLearningEvent } from "@/lib/clean/ei/types";
 
 function makeEvent(
@@ -31,6 +32,7 @@ function makeEvent(
       originTable: "assessment_attempt_responses",
       originRecordId: overrides.id,
       adapterVersion: "ei-homeschool-v1",
+      policyVersion: EI_V1_POLICY.policyVersion,
     },
     metadata: overrides.metadata,
   };
@@ -50,6 +52,7 @@ describe("EI v1 evidence balance", () => {
     expect(result?.directionalEvidenceGroupCount).toBe(1);
     expect(result?.signalBand).toBe("not_enough_evidence");
     expect(result?.advisoryOnly).toBe(true);
+    expect(result?.policyVersion).toBe(EI_V1_POLICY.policyVersion);
   });
 
   it("treats corroborated positive evidence as a strong signal without making it a formal judgement", () => {
