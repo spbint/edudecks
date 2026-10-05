@@ -572,7 +572,7 @@ export const ADDITIVE_P9_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
     yearLevel: "Years 5–7",
     substrand: "Additive strategies",
     skillId: "add-p9-decimal-addition",
-    skillName: "Add decimals using place-value partitioning",
+    skillName: "Add decimals to three decimal places",
     prompt: "Calculate 2.375 + 0.48.",
     correctValue: "2.855",
     misconceptionTags: ["decimal-place-alignment-error"],
@@ -1515,15 +1515,21 @@ export const ADDITIVE_P7_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
     misconceptionTags: ["two-digit-compensation-error"],
     tags: ["boundary-probe", "additive-strategies", "p7"],
   }),
-  shortAnswerItem({
+  choiceItem({
     id: "myl-boundary-add-p07-b-v1",
     code: "MYL-MATH-PROG-NSA-ADD-P07",
     yearLevel: "Year 2",
     substrand: "Additive strategies",
     skillId: "add-p7-associative-strategy",
     skillName: "Reorder addends to simplify mental addition",
-    prompt: "Calculate 23 + 9 + 7.",
-    correctValue: "39",
+    prompt: "Which working reorders the addends to make 23 + 9 + 7 easier?",
+    options: [
+      { id: "a", label: "(23 + 7) + 9 = 30 + 9 = 39" },
+      { id: "b", label: "(23 + 9) + 7 = 32 + 7 = 39" },
+      { id: "c", label: "23 + 9 + 7 = 2,397" },
+      { id: "d", label: "23 + (9 - 7) = 25" },
+    ],
+    correctOptionIds: ["a"],
     misconceptionTags: ["two-digit-addition-strategy-error"],
     tags: ["boundary-probe", "additive-strategies", "p7"],
   }),
@@ -1542,16 +1548,22 @@ export const ADDITIVE_P7_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 export const ADDITIVE_P8_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
-  shortAnswerItem({
+  choiceItem({
     id: "myl-boundary-add-p08-a-v1",
     code: "MYL-MATH-PROG-NSA-ADD-P08",
     yearLevel: "Years 3–5",
     substrand: "Additive strategies",
     skillId: "add-p8-three-digit-addition",
-    skillName: "Add three-digit numbers using place value",
-    prompt: "Calculate 250 + 457.",
-    correctValue: "707",
-    misconceptionTags: ["three-digit-addition-error"],
+    skillName: "Use place-value partitioning with three-digit addition",
+    prompt: "Which working correctly uses place value to calculate 250 + 457?",
+    options: [
+      { id: "a", label: "457 + 200 + 50 = 657 + 50 = 707" },
+      { id: "b", label: "457 + 20 + 5 = 482" },
+      { id: "c", label: "250 + 45 + 7 = 302" },
+      { id: "d", label: "457 + 25 = 482" },
+    ],
+    correctOptionIds: ["a"],
+    misconceptionTags: ["three-digit-addition-error", "place-value-partitioning-error"],
     tags: ["boundary-probe", "additive-strategies", "p8"],
   }),
   choiceItem({
@@ -1578,7 +1590,7 @@ export const ADDITIVE_P8_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
     yearLevel: "Years 3–5",
     substrand: "Additive strategies",
     skillId: "add-p8-three-digit-second",
-    skillName: "Apply partitioning with three-digit numbers",
+    skillName: "Solve a three-digit addition problem",
     prompt: "Calculate 184 + 270.",
     correctValue: "454",
     misconceptionTags: ["three-digit-place-value-addition-error"],
@@ -1587,27 +1599,39 @@ export const ADDITIVE_P8_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
 ];
 
 export const MULTIPLICATIVE_P7_BOUNDARY_ITEMS: MyLearnaAssessmentItem[] = [
-  shortAnswerItem({
+  choiceItem({
     id: "myl-boundary-mul-p07-a-v1",
     code: "MYL-MATH-PROG-NSA-MUL-P07",
     yearLevel: "Years 4–5",
     substrand: "Multiplicative strategies",
     skillId: "mul-p7-inverse-unknown",
     skillName: "Use inverse operations to solve a missing factor",
-    prompt: "Complete the equation: 14 × __ = 336",
-    correctValue: "24",
+    prompt: "Which division equation can be used to solve 14 × __ = 336?",
+    options: [
+      { id: "a", label: "336 ÷ 14 = __" },
+      { id: "b", label: "336 - 14 = __" },
+      { id: "c", label: "336 + 14 = __" },
+      { id: "d", label: "14 ÷ 336 = __" },
+    ],
+    correctOptionIds: ["a"],
     misconceptionTags: ["multiplicative-inverse-error"],
     tags: ["boundary-probe", "multiplicative-strategies", "p7"],
   }),
-  shortAnswerItem({
+  choiceItem({
     id: "myl-boundary-mul-p07-b-v1",
     code: "MYL-MATH-PROG-NSA-MUL-P07",
     yearLevel: "Years 4–5",
     substrand: "Multiplicative strategies",
     skillId: "mul-p7-distributive",
     skillName: "Use distributive partitioning for multiplication",
-    prompt: "Calculate 7 × 83.",
-    correctValue: "581",
+    prompt: "Which working correctly uses the distributive property to calculate 7 × 83?",
+    options: [
+      { id: "a", label: "7 × 80 + 7 × 3 = 560 + 21 = 581" },
+      { id: "b", label: "7 × 80 + 3 = 563" },
+      { id: "c", label: "7 + 80 + 3 = 90" },
+      { id: "d", label: "7 × 80 + 7 + 3 = 570" },
+    ],
+    correctOptionIds: ["a"],
     misconceptionTags: ["distributive-multiplication-error"],
     tags: ["boundary-probe", "multiplicative-strategies", "p7"],
   }),
