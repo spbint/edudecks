@@ -109,6 +109,18 @@ describe("Number & Operations executable P0 anchor items", () => {
     expect(items.every((item) => item.analytics?.tags?.includes("hybrid-routing-only"))).toBe(true);
   });
 
+
+  it("keeps Counting P8 construct-diverse at the progression endpoint", () => {
+    const items = NUMBER_OPERATIONS_SEARCH_CLUSTERS["counting-processes-p8"];
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.skill.id)).toEqual([
+      "counting-p8-rational-sequence",
+      "counting-p8-possible-outcomes",
+    ]);
+    expect(items[0]?.response.correctValue).toBe("2.8");
+    expect(items[1]?.response.correctValue).toBe("6");
+  });
+
   it("provides one reserve probe for every initial routing anchor", () => {
     expect(Object.keys(NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS)).toEqual([
       "number-place-value-p6",
