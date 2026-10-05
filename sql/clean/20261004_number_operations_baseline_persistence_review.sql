@@ -320,6 +320,14 @@ begin
     raise exception 'Choose a learner from this family.' using errcode = '23503';
   end if;
 
+  if cardinality(new.scope_sub_elements) <> (
+    select count(distinct scoped.value)
+    from unnest(new.scope_sub_elements) as scoped(value)
+  ) then
+    raise exception 'Baseline attempt scope must not contain duplicates.'
+      using errcode = '22023';
+  end if;
+
   if tg_op = 'UPDATE' and (
     new.family_id is distinct from old.family_id
     or new.learner_id is distinct from old.learner_id
@@ -379,8 +387,9 @@ begin
     where attempt.id = new.baseline_attempt_id
       and attempt.family_id = new.family_id
       and attempt.learner_id = new.learner_id
+      and new.sub_element_key = any(attempt.scope_sub_elements)
   ) then
-    raise exception 'Baseline response does not match its attempt.'
+    raise exception 'Baseline response does not match its attempt scope.'
       using errcode = '23503';
   end if;
 
