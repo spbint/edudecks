@@ -17,9 +17,9 @@ describe("Number & Operations fresh recheck evidence", () => {
 
     expect(coverage).toMatchObject({
       requiredProgressionLevels: 48,
-      coveredProgressionLevels: 22,
-      missingProgressionLevels: 26,
-      alternateItems: 48,
+      coveredProgressionLevels: 27,
+      missingProgressionLevels: 21,
+      alternateItems: 58,
       complete: false,
     });
   });
@@ -75,6 +75,15 @@ describe("Number & Operations fresh recheck evidence", () => {
     }
   });
 
+  it("now covers every Counting progression level with alternate evidence", () => {
+    const coverage = getNumberOperationsFreshRecheckCoverage();
+    for (let pLevel = 1; pLevel <= 8; pLevel += 1) {
+      expect(coverage.coveredKeys, `Counting P${pLevel}`).toContain(
+        `counting-processes:p${pLevel}`,
+      );
+    }
+  });
+
   it("covers every lower, initial and upper anchor level with alternate evidence", () => {
     const anchorKeys = [
       "number-place-value:p3",
@@ -123,8 +132,8 @@ describe("Number & Operations fresh recheck evidence", () => {
       ),
     );
 
-    expect(covered.has("counting-processes:p4")).toBe(false);
     expect(covered.has("additive-strategies:p8")).toBe(false);
+    expect(covered.has("additive-strategies:p10")).toBe(false);
     expect(covered.has("multiplicative-strategies:p10")).toBe(false);
     expect(covered.has("understanding-money:p9")).toBe(false);
   });
