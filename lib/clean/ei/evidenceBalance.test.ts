@@ -14,17 +14,20 @@ function makeEvent(
     tenantKind: overrides.tenantKind ?? "family",
     tenantId: overrides.tenantId ?? "family-1",
     learnerId: overrides.learnerId ?? "learner-1",
-    competencyId: overrides.competencyId ?? "mathematics::number::step-1",
+    competencyId:
+      overrides.competencyId ?? "mathematics::number::step-1",
     eventType: overrides.eventType ?? "assessment_response",
     sourceKind: overrides.sourceKind ?? "assessment",
     sourceId: overrides.sourceId ?? "assessment-attempt-1",
     evidenceGroupId: overrides.evidenceGroupId,
-    occurredAt: overrides.occurredAt ?? "2026-10-05T01:00:00.000Z",
+    occurredAt:
+      overrides.occurredAt ?? "2026-10-05T01:00:00.000Z",
     signal: overrides.signal ?? {
       polarity: 1,
       strength: "high",
     },
     provenance: overrides.provenance ?? {
+      originType: "assessment_attempt_response",
       originTable: "assessment_attempt_responses",
       originRecordId: overrides.id,
       adapterVersion: "ei-homeschool-v1",
@@ -44,6 +47,7 @@ describe("EI v1 evidence balance", () => {
     expect(result).not.toBeNull();
     expect(result?.eventCount).toBe(3);
     expect(result?.evidenceGroupCount).toBe(1);
+    expect(result?.directionalEvidenceGroupCount).toBe(1);
     expect(result?.signalBand).toBe("not_enough_evidence");
     expect(result?.advisoryOnly).toBe(true);
   });
@@ -70,7 +74,9 @@ describe("EI v1 evidence balance", () => {
     ]);
 
     expect(result?.evidenceGroupCount).toBe(3);
+    expect(result?.directionalEvidenceGroupCount).toBe(3);
     expect(result?.sourceKindCount).toBe(3);
+    expect(result?.directionalSourceKindCount).toBe(3);
     expect(result?.confidence).toBe("high");
     expect(result?.signalBand).toBe("strong_signal");
     expect(result?.supportRatio).toBe(1);
@@ -96,6 +102,31 @@ describe("EI v1 evidence balance", () => {
     expect(result?.supportRatio).toBe(0.5);
     expect(result?.signalBand).toBe("mixed");
     expect(result?.confidence).toBe("moderate");
+  });
+
+  it("does not turn bare evidence existence into directional evidence", () => {
+    const result = buildEiEvidenceBalanceState([
+      makeEvent({
+        id: "evidence-1",
+        evidenceGroupId: "evidence-entry-1",
+        sourceKind: "evidence_capture",
+        eventType: "evidence_observation",
+        signal: { polarity: 0, strength: "low" },
+      }),
+      makeEvent({
+        id: "evidence-2",
+        evidenceGroupId: "evidence-entry-2",
+        sourceKind: "evidence_capture",
+        eventType: "evidence_observation",
+        signal: { polarity: 0, strength: "low" },
+      }),
+    ]);
+
+    expect(result?.evidenceGroupCount).toBe(2);
+    expect(result?.directionalEvidenceGroupCount).toBe(0);
+    expect(result?.supportRatio).toBeNull();
+    expect(result?.signalBand).toBe("not_enough_evidence");
+    expect(result?.confidence).toBe("low");
   });
 
   it("ignores events for another learner or competency in the same input array", () => {
