@@ -153,6 +153,7 @@ function areaFrom(
     recheckPlan: buildNumberOperationsRecheckPlan({
       subElementKey: result.subElementKey,
       state,
+      targetP: recommendation.targetP,
     }),
     observationGuidance:
       state === "verify-in-learning"
