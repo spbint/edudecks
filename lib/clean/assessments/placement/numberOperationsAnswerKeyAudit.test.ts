@@ -66,6 +66,7 @@ describe("Number & Operations answer-key audit", () => {
   it("locks higher-risk arithmetic, fraction, money and scientific-notation keys", () => {
     const expected: Record<string, string> = {
       "myl-anchor-add-p09-a-v1": "5/8",
+      "myl-anchor-npv-p09-b-v1": "12.5",
       "myl-search-add-p10-a-v1": "31/24",
       "myl-search-add-p10-b-v1": "-1",
       "myl-search-mul-p10-a-v1": "92.2",
