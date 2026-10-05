@@ -17,9 +17,9 @@ describe("Number & Operations fresh recheck evidence", () => {
 
     expect(coverage).toMatchObject({
       requiredProgressionLevels: 48,
-      coveredProgressionLevels: 14,
-      missingProgressionLevels: 34,
-      alternateItems: 32,
+      coveredProgressionLevels: 22,
+      missingProgressionLevels: 26,
+      alternateItems: 48,
       complete: false,
     });
   });
@@ -36,12 +36,20 @@ describe("Number & Operations fresh recheck evidence", () => {
     }
   });
 
-  it("adds independent initial-level recheck clusters for the other four continua", () => {
+  it("adds independent lower, initial and upper anchor evidence for the other four continua", () => {
     const expected = [
+      ["counting-processes", 2],
       ["counting-processes", 5],
+      ["counting-processes", 7],
+      ["additive-strategies", 3],
       ["additive-strategies", 6],
+      ["additive-strategies", 9],
+      ["multiplicative-strategies", 3],
       ["multiplicative-strategies", 6],
+      ["multiplicative-strategies", 9],
+      ["understanding-money", 2],
       ["understanding-money", 5],
+      ["understanding-money", 8],
     ] as const;
 
     for (const [subElementKey, pLevel] of expected) {
@@ -52,7 +60,43 @@ describe("Number & Operations fresh recheck evidence", () => {
       expect(cluster, `${subElementKey} P${pLevel}`).not.toBeNull();
       expect(cluster?.source).toBe("fresh-recheck-draft");
       expect(cluster?.items).toHaveLength(2);
-      expect(cluster?.reserveItem).toBeTruthy();
+    }
+
+    for (const [subElementKey, pLevel] of [
+      ["counting-processes", 5],
+      ["additive-strategies", 6],
+      ["multiplicative-strategies", 6],
+      ["understanding-money", 5],
+    ] as const) {
+      expect(
+        getNumberOperationsFreshRecheckCluster(subElementKey, pLevel)
+          ?.reserveItem,
+      ).toBeTruthy();
+    }
+  });
+
+  it("covers every lower, initial and upper anchor level with alternate evidence", () => {
+    const anchorKeys = [
+      "number-place-value:p3",
+      "number-place-value:p6",
+      "number-place-value:p9",
+      "counting-processes:p2",
+      "counting-processes:p5",
+      "counting-processes:p7",
+      "additive-strategies:p3",
+      "additive-strategies:p6",
+      "additive-strategies:p9",
+      "multiplicative-strategies:p3",
+      "multiplicative-strategies:p6",
+      "multiplicative-strategies:p9",
+      "understanding-money:p2",
+      "understanding-money:p5",
+      "understanding-money:p8",
+    ];
+
+    const coverage = getNumberOperationsFreshRecheckCoverage();
+    for (const key of anchorKeys) {
+      expect(coverage.coveredKeys, key).toContain(key);
     }
   });
 
@@ -80,8 +124,8 @@ describe("Number & Operations fresh recheck evidence", () => {
     );
 
     expect(covered.has("counting-processes:p4")).toBe(false);
-    expect(covered.has("additive-strategies:p9")).toBe(false);
+    expect(covered.has("additive-strategies:p8")).toBe(false);
     expect(covered.has("multiplicative-strategies:p10")).toBe(false);
-    expect(covered.has("understanding-money:p8")).toBe(false);
+    expect(covered.has("understanding-money:p9")).toBe(false);
   });
 });
