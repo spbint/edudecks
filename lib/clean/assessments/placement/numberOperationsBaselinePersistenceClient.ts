@@ -39,29 +39,42 @@ export async function saveNumberOperationsBaseline(
     throw new Error("clientSubmissionId must be 8–128 non-whitespace characters.");
   }
 
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user?.id) {
+  const session = await supabase.auth.getSession();
+  const accessToken = session.data.session?.access_token;
+  if (session.error || !accessToken) {
     throw new Error("Sign in to save this Maths starting point.");
   }
 
-  const { data, error } = await supabase.rpc(
-    "mylearna_save_number_operations_baseline",
+  const response = await fetch(
+    "/api/assessments/maths-starting-point/save",
     {
-      p_family_id: familyId,
-      p_learner_id: learnerId,
-      p_client_submission_id: clientSubmissionId,
-      p_attempt: input.draft.attempt,
-      p_responses: input.draft.responses,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        familyId,
+        learnerId,
+        clientSubmissionId,
+        draft: input.draft,
+      }),
     },
   );
 
-  if (error) {
-    throw error;
+  const payload = (await response.json().catch(() => null)) as
+    | { ok?: boolean; attemptId?: string; error?: string }
+    | null;
+
+  if (!response.ok || !payload?.ok) {
+    throw new Error(
+      String(payload?.error || "The Maths starting point could not be saved."),
+    );
   }
 
-  const attemptId = String(data ?? "").trim();
+  const attemptId = String(payload.attemptId ?? "").trim();
   if (!attemptId) {
-    throw new Error("The baseline save completed without an attempt id.");
+    throw new Error("The save completed without an attempt id.");
   }
 
   return { attemptId };
