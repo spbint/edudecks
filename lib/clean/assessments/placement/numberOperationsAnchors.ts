@@ -228,7 +228,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         sourcePages: [6],
         slots: [
           slot("MYL-ANCHOR-ADD-P06-A", "A", "Use a flexible strategy such as bridging to 10 within 20.", "single_choice", "text-first / part-part-whole optional", "implemented-draft"),
-          slot("MYL-ANCHOR-ADD-P06-B", "B", "Use part-part-whole knowledge to solve a missing-addend problem.", "numeric_entry", "part-part-whole model optional", "implemented-draft"),
+          slot("MYL-ANCHOR-ADD-P06-B", "B", "Use part-part-whole knowledge to solve a missing-addend problem.", "single_choice", "text-first / part-part-whole working", "implemented-draft"),
         ],
         reserveSlot: slot(
           "MYL-ANCHOR-ADD-P06-C",
