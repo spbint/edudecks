@@ -92,7 +92,7 @@ describe("Number Operations practice targets", () => {
       targetP: 7,
     });
 
-    expect(target.href).toContain("/practice/number-targeted?");
+    expect(target.href).toContain("/practice/maths-starting-point?");
     expect(target.href).toContain(
       "moduleId=number-additive-strategies-practice-module-v1",
     );
