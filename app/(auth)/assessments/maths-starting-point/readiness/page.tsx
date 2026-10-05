@@ -11,6 +11,9 @@ import {
 import {
   NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
 } from "@/lib/clean/assessments/placement/numberOperationsItemRegistry";
+import {
+  getNumberOperationsItemReviewSummary,
+} from "@/lib/clean/assessments/placement/numberOperationsItemReviewSummary";
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
 
 export const metadata: Metadata = {
@@ -48,6 +51,7 @@ export default function MathsStartingPointReadinessPage() {
   const pendingAssets = NUMBER_OPERATIONS_ASSET_APPROVALS.filter(
     (approval) => approval.status !== "approved",
   );
+  const itemReview = getNumberOperationsItemReviewSummary();
 
   return (
     <AssessmentAccessGate mode="lab">
@@ -181,6 +185,35 @@ export default function MathsStartingPointReadinessPage() {
 
           <section style={panel}>
             <strong style={{ color: "#17204B" }}>Content review snapshot</strong>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 8,
+              }}
+            >
+              {[
+                ["Placement items", String(itemReview.totalItems)],
+                ["Automated structural issues", String(itemReview.structuralIssueCount)],
+                ["Routing-only items", String(itemReview.routingOnlyItems)],
+                ["Accessibility alternatives", String(itemReview.accessibilityAlternativeItems)],
+                ["Pending-asset items", String(itemReview.pendingTrustedAssetItems)],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    border: "1px solid #E1E6F0",
+                    borderRadius: 12,
+                    padding: 10,
+                    display: "grid",
+                    gap: 3,
+                  }}
+                >
+                  <span style={{ color: "#64748B", fontSize: 12 }}>{label}</span>
+                  <strong style={{ color: "#17204B", fontSize: 20 }}>{value}</strong>
+                </div>
+              ))}
+            </div>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {draftItems.length} of {NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length} placement
               items remain non-published review items.
