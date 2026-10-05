@@ -41,7 +41,7 @@ const LEVEL_SUMMARIES: Record<
     10: "interprets very large and very small numbers through powers and scientific notation",
   },
   "counting-processes": {
-    1: "recognises number words in early counting contexts",
+    1: "recognises number words in early counting contexts and subitises very small collections",
     2: "uses a stable count from one, subitises small collections and counts very small sets",
     3: "uses one-to-one correspondence and cardinality while counting within 1–10",
     4: "continues counting from a non-one start and treats equal counts as the same quantity across object types",
