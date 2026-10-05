@@ -100,6 +100,15 @@ describe("Number & Operations executable P0 anchor items", () => {
     ).toHaveLength(28);
   });
 
+
+  it("keeps Counting P1 on number-word recognition rather than pulling P2 subitising down a level", () => {
+    const items = NUMBER_OPERATIONS_SEARCH_CLUSTERS["counting-processes-p1"];
+    expect(items).toHaveLength(2);
+    expect(items.every((item) => item.stimulus.type === "none")).toBe(true);
+    expect(items.every((item) => item.skill.name.toLowerCase().includes("number word"))).toBe(true);
+    expect(items.every((item) => item.analytics?.tags?.includes("hybrid-routing-only"))).toBe(true);
+  });
+
   it("provides one reserve probe for every initial routing anchor", () => {
     expect(Object.keys(NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS)).toEqual([
       "number-place-value-p6",
