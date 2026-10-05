@@ -67,6 +67,13 @@ describe("Number Operations baseline summary snapshot", () => {
       status: "complete",
       assessedSubElements: 5,
       expectedSubElements: 5,
+      scopeSubElements: [
+        "number-place-value",
+        "counting-processes",
+        "additive-strategies",
+        "multiplicative-strategies",
+        "understanding-money",
+      ],
       unresolvedSubElements: [],
     });
     expect(snapshot.persistencePolicy).toEqual({
@@ -114,5 +121,32 @@ describe("Number Operations baseline summary snapshot", () => {
         completedAt: "2026-10-03T08:00:00Z",
       }),
     ).toThrow(/must not be earlier/i);
+  });
+});
+
+
+it("marks a successful focused one-area snapshot complete for that scope", () => {
+  const result = buildNumberOperationsCandidateBandResult({
+    subElementKey: "additive-strategies",
+    lowerP: 5,
+    upperP: 6,
+  });
+  const profile = buildNumberOperationsProfile([result], {
+    expectedSubElementKeys: ["additive-strategies"],
+  });
+
+  const snapshot = buildNumberOperationsBaselineSummarySnapshot({
+    profile,
+    unresolvedSubElements: ["understanding-money"],
+    startedAt: "2026-10-03T08:00:00Z",
+    completedAt: "2026-10-03T08:05:00Z",
+  });
+
+  expect(snapshot).toMatchObject({
+    status: "complete",
+    assessedSubElements: 1,
+    expectedSubElements: 1,
+    scopeSubElements: ["additive-strategies"],
+    unresolvedSubElements: [],
   });
 });

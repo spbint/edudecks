@@ -18,6 +18,7 @@ export type NumberOperationsBaselineSummarySnapshot = {
   completedAt: string;
   assessedSubElements: number;
   expectedSubElements: number;
+  scopeSubElements: NumberOperationsSubElementKey[];
   unresolvedSubElements: NumberOperationsSubElementKey[];
   subElementAttempts: NumberOperationsSubElementAttemptTrace[];
   profile: NumberOperationsProfile;
@@ -54,9 +55,10 @@ export function buildNumberOperationsBaselineSummarySnapshot(input: {
     throw new Error("completedAt must not be earlier than startedAt.");
   }
 
+  const scopeSet = new Set(input.profile.expectedSubElementKeys);
   const unresolvedSubElements = Array.from(
     new Set(input.unresolvedSubElements || []),
-  );
+  ).filter((key) => scopeSet.has(key));
 
   return {
     schema: "mylearna-number-operations-baseline-summary",
@@ -73,6 +75,7 @@ export function buildNumberOperationsBaselineSummarySnapshot(input: {
     completedAt,
     assessedSubElements: input.profile.assessedSubElements,
     expectedSubElements: input.profile.expectedSubElements,
+    scopeSubElements: [...input.profile.expectedSubElementKeys],
     unresolvedSubElements,
     subElementAttempts: [...(input.subElementAttempts || [])],
     profile: input.profile,

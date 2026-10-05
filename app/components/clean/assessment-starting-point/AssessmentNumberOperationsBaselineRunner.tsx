@@ -161,8 +161,11 @@ export default function AssessmentNumberOperationsBaselineRunner({
     return `/my-pathways?${params.toString()}`;
   }, [learnerId]);
   const profile = useMemo(
-    () => buildNumberOperationsProfile(Object.values(resultsByKey)),
-    [resultsByKey],
+    () =>
+      buildNumberOperationsProfile(Object.values(resultsByKey), {
+        expectedSubElementKeys: order,
+      }),
+    [order, resultsByKey],
   );
   const completedAreaCount = Math.min(
     order.length,
@@ -267,7 +270,9 @@ export default function AssessmentNumberOperationsBaselineRunner({
 
   if (complete) {
     const finalResults = Object.values(resultsByKey);
-    const finalProfile = buildNumberOperationsProfile(finalResults);
+    const finalProfile = buildNumberOperationsProfile(finalResults, {
+      expectedSubElementKeys: order,
+    });
     const parentUtility = buildNumberOperationsParentUtility(finalProfile, {
       learnerId,
     });

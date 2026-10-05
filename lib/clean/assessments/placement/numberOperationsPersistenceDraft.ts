@@ -15,6 +15,7 @@ export type NumberOperationsBaselineAttemptPersistenceDraft = {
   completedAt: string;
   assessedSubElements: number;
   expectedSubElements: number;
+  scopeSubElements: string[];
   unresolvedSubElements: string[];
   profileSnapshot: NumberOperationsBaselineSummarySnapshot["profile"];
   evidencePreviewSnapshot: NumberOperationsBaselineSummarySnapshot["evidencePreview"];
@@ -98,6 +99,7 @@ export function buildNumberOperationsBaselinePersistenceDraft(
       completedAt: snapshot.completedAt,
       assessedSubElements: snapshot.assessedSubElements,
       expectedSubElements: snapshot.expectedSubElements,
+      scopeSubElements: [...snapshot.scopeSubElements],
       unresolvedSubElements: [...snapshot.unresolvedSubElements],
       profileSnapshot: snapshot.profile,
       evidencePreviewSnapshot: snapshot.evidencePreview,

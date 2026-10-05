@@ -84,3 +84,27 @@ it("offers a full picture or one focused Number & Operations area", () => {
   expect(runnerSource).toContain("One focused Maths area");
   expect(runnerSource).toContain("scopeStorageSuffix");
 });
+
+
+it("treats a focused area as complete for that selected scope rather than inherently partial", () => {
+  const workspaceSource = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/MathsStartingPointWorkspace.tsx",
+    ),
+    "utf8",
+  );
+  const runnerSource = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(workspaceSource).toContain(
+    "The result is complete for this selected area only",
+  );
+  expect(workspaceSource).not.toContain("The result is deliberately partial");
+  expect(runnerSource).toContain("expectedSubElementKeys: order");
+});

@@ -265,7 +265,7 @@ export default function MathsStartingPointWorkspace() {
         </div>
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
           {selectedArea
-            ? `Focused check: ${selectedArea.label}. The result is deliberately partial.`
+            ? `Focused check: ${selectedArea.label}. The result is complete for this selected area only; it does not describe the full five-area picture.`
             : "Full picture: five separate areas. You can pause between areas."}
         </small>
       </div>

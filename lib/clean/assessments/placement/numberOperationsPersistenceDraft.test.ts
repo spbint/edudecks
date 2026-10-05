@@ -77,6 +77,13 @@ describe("Number Operations persistence draft", () => {
       status: "partial",
       assessedSubElements: 1,
       expectedSubElements: 5,
+      scopeSubElements: [
+        "number-place-value",
+        "counting-processes",
+        "additive-strategies",
+        "multiplicative-strategies",
+        "understanding-money",
+      ],
       sourceRoute: "/assessments/maths-starting-point",
     });
     expect(draft.responses).toHaveLength(3);
@@ -168,5 +175,30 @@ describe("Number Operations persistence draft", () => {
     expect(serialized).not.toContain("learnerId");
     expect(serialized).not.toContain("createdByUserId");
     expect(serialized).not.toContain("pathwayStepId");
+  });
+});
+
+
+it("preserves the exact focused scope in the future attempt payload", () => {
+  const result = buildNumberOperationsCandidateBandResult({
+    subElementKey: "understanding-money",
+    lowerP: 5,
+    upperP: 6,
+  });
+  const profile = buildNumberOperationsProfile([result], {
+    expectedSubElementKeys: ["understanding-money"],
+  });
+  const snapshot = buildNumberOperationsBaselineSummarySnapshot({
+    profile,
+    startedAt: "2026-10-03T08:00:00Z",
+    completedAt: "2026-10-03T08:05:00Z",
+  });
+
+  const draft = buildNumberOperationsBaselinePersistenceDraft(snapshot);
+
+  expect(draft.attempt).toMatchObject({
+    status: "complete",
+    expectedSubElements: 1,
+    scopeSubElements: ["understanding-money"],
   });
 });
