@@ -717,7 +717,9 @@ export default function AssessmentNumberOperationsBaselineRunner({
           </div>
         )}
         <small style={{ color: "#64748B", lineHeight: 1.5 }}>
-          Progress and the completed starting-point profile stay in this browser tab for this learner during the staff preview, so recommended practice can return here. No family or learner assessment record is written to the database.
+          {MATHS_STARTING_POINT_RELEASE.persistenceEnabled
+            ? "Progress stays in this browser tab during the check. Only the explicit staff-only persistence smoke after completion can write a trusted baseline record; customer evidence writes remain disabled."
+            : "Progress and the completed starting-point profile stay in this browser tab for this learner during the staff preview, so recommended practice can return here. No family or learner assessment record is written to the database."}
         </small>
         {mode === "parent-preview" &&
         order.length > 1 &&
