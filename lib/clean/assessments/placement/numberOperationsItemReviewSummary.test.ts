@@ -11,8 +11,8 @@ describe("Number & Operations item review summary", () => {
     expect(summary.statusCounts).toMatchObject({ draft: 140 });
     expect(summary.structuralIssueCount).toBe(0);
     expect(summary.cleanStructuralItems).toBe(140);
-    expect(summary.routingOnlyItems).toBeGreaterThan(0);
-    expect(summary.accessibilityAlternativeItems).toBeGreaterThan(0);
+    expect(summary.routingOnlyItems).toBe(33);
+    expect(summary.accessibilityAlternativeItems).toBe(5);
     expect(summary.pendingTrustedAssetItems).toBe(3);
   });
 });
