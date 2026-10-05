@@ -14,6 +14,8 @@ describe("Maths starting-point release gate", () => {
       evidenceWriteEnabled: false,
       pathwayMutationEnabled: false,
       customerNavigationEnabled: false,
+      hostedAcceptanceApproved: false,
+      mobileAcceptanceApproved: false,
     });
     expect(assertMathsStartingPointStaffPreviewSafety()).toBe(true);
     expect(() => assertMathsStartingPointPersistenceEnabled()).toThrow(
