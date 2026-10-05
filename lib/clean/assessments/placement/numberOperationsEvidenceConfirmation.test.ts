@@ -130,3 +130,30 @@ it("allows Portfolio confirmation but rejects report inclusion for routing-only 
     }),
   ).toThrow(/stronger verification.*reports/i);
 });
+
+
+it("preserves focused scope in a confirmed evidence intent", () => {
+  const focusedPreview = buildNumberOperationsEvidencePreview(
+    buildNumberOperationsProfile(
+      [
+        buildNumberOperationsCandidateBandResult({
+          subElementKey: "understanding-money",
+          lowerP: 5,
+          upperP: 6,
+        }),
+      ],
+      { expectedSubElementKeys: ["understanding-money"] },
+    ),
+  );
+
+  const draft = buildNumberOperationsEvidenceConfirmationDraft({
+    preview: focusedPreview,
+    parentAcknowledgedStartingPoint: true,
+    includeInPortfolio: true,
+    includeInReport: true,
+  });
+
+  expect(draft.scopeSubElements).toEqual(["understanding-money"]);
+  expect(draft.resultBands).toHaveLength(1);
+  expect(draft.resultBands[0]?.subElementKey).toBe("understanding-money");
+});
