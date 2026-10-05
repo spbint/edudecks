@@ -14,19 +14,19 @@ describe("Number & Operations item review summary", () => {
     expect(summary.structuralIssueCount).toBe(0);
     expect(summary.cleanStructuralItems).toBe(140);
     expect(summary.routingOnlyItems).toBe(33);
-    expect(summary.accessibilityAlternativeItems).toBe(10);
+    expect(summary.accessibilityAlternativeItems).toBe(9);
     expect(summary.pendingTrustedAssetItems).toBe(3);
     expect(summary.attentionCustomerItems).toBe(39);
     expect(summary.routineCustomerItems).toBe(81);
     expect(
       summary.attentionCustomerItems + summary.routineCustomerItems,
     ).toBe(120);
-    expect(summary.customerVisualItems).toBe(10);
-    expect(summary.customerTextFirstItems).toBe(110);
+    expect(summary.customerVisualItems).toBe(9);
+    expect(summary.customerTextFirstItems).toBe(111);
     expect(summary.customerVisualTypeCounts).toEqual({
       "place-value-blocks": 2,
       "currency-tokens": 3,
-      "counter-set": 5,
+      "counter-set": 4,
     });
   });
 });
