@@ -6,9 +6,49 @@ Build one educational-intelligence contract that can serve MyLearna Homeschool a
 
 The engine is not an LLM wrapper. The authoritative sequence is:
 
-learning activity -> evidence -> normalized EI event -> learner competency state -> recommendation -> educator/parent decision -> outcome -> model update
+source records
+-> Learner Thread facts
+-> normalized EI events
+-> learner competency state
+-> recommendation
+-> educator/parent decision
+-> outcome
+-> model update
 
 Large language models may later explain or summarize structured EI state, but they do not own the learner state and they do not silently make high-stakes judgements.
+
+## Architectural discovery: Learner Thread is the evidence spine
+
+The current codebase already contains a product-aware, provenance-preserving learner history contract:
+
+- `lib/clean/learnerThread/types.ts`
+- `lib/clean/learnerThread/homeschoolAdapter.ts`
+
+It already distinguishes:
+
+- direct facts from derived claims
+- source records and source references
+- actor provenance
+- source types
+- freshness
+- data sufficiency
+- next-step suggestions
+
+It also already declares both products:
+
+- `mylearna-homeschool`
+- `mylearna-campus`
+
+EI v1 therefore sits **downstream of Learner Thread**.
+
+That boundary is important:
+
+- Learner Thread answers: **What happened, according to the product records?**
+- EI answers: **What cautious learning signal can be calculated from those facts?**
+- Recommendation logic answers: **What might be worth doing next?**
+- The adult remains responsible for high-trust formal judgement.
+
+EI should not independently reread the same raw tables and create a competing version of learner history.
 
 ## Existing MyLearna assets to preserve
 
@@ -21,11 +61,12 @@ Homeschool already has strong foundations that should be adapted rather than rep
 - adult-confirmed progress judgements in `assessment_skill_statuses`
 - evidence capture in `evidence_entries` and `evidence_entry_learner_links`
 - learner action queue in `learning_queue_items`
+- provenance-preserving learner history in `lib/clean/learnerThread/*`
 - current UI aggregation in `lib/clean/curriculum/learningIntelligenceSummary.ts`
 
 The current Learning Intelligence dashboard remains a product surface. EI v1 sits underneath it and produces traceable, reusable learner-state signals.
 
-Older experimental EI tables in the connected database should not automatically become the new source of truth. Their ideas can be mined, but the new contract must align with the current clean Homeschool architecture and the current Campus architecture.
+Older experimental EI tables in the connected database should not automatically become the new source of truth. Their ideas can be mined, but the new contract must align with the current clean architecture and Learner Thread.
 
 ## Product boundary
 
@@ -33,6 +74,7 @@ Older experimental EI tables in the connected database should not automatically 
 
 The following should be shared between Campus and Homeschool:
 
+- Learner Thread schema semantics
 - EI event vocabulary
 - competency identifiers and graph semantics
 - evidence-strength rules
@@ -57,7 +99,7 @@ The following remain product/tenant scoped:
 
 Do not create a cross-product learner identity graph in v1.
 
-Campus and Homeschool should emit the same EI event contract through separate adapters.
+Each product should build its own Learner Thread from authorized product records. The shared EI layer consumes that thread.
 
 ## EI v1 event contract
 
@@ -77,17 +119,62 @@ Each event carries:
 - provenance and adapter version
 - optional metadata
 
-`evidenceGroupId` is important. Twelve questions from one assessment are twelve events, but they are not twelve independent learning occasions. EI v1 collapses them into one evidence group when calculating evidence balance.
+The Learner Thread adapter is implemented in:
+
+- `lib/clean/ei/learnerThreadAdapter.ts`
+
+### Evidence groups
+
+`evidenceGroupId` prevents repeated records from masquerading as independent evidence.
+
+Examples:
+
+- many question-level records from one assessment session belong to one assessment evidence group
+- an evidence entry and the adult progress judgement stored on that same entry belong to one evidence group
+- an assessment attempt and a parent judgement stored inside that attempt belong to one evidence group
+- a later independent evidence entry is a new evidence group
+
+This distinction is essential for trustworthy learning analytics.
+
+## EI v1 directional vs non-directional evidence
+
+Not every learning record says whether a competency is strong or weak.
+
+Examples of **non-directional evidence**:
+
+- a photo or work sample exists
+- an evidence note was captured
+- an assessment was recorded but contains no auto-scorable responses
+- an explicit state is `Developing`, where v1 deliberately refuses to force partial learning into either success or failure
+
+Examples of **directional evidence**:
+
+- a completed auto-checked assessment is strongly high or low on scorable items
+- an adult explicitly records `Secure`
+- an adult explicitly records `Needs support`
+
+EI v1 therefore tracks both:
+
+- total evidence-group count
+- directional evidence-group count
+
+A bare evidence record can improve provenance and context, but it cannot manufacture confidence.
 
 ## EI v1 state
 
 The first calculator is intentionally conservative.
 
+Implemented in:
+
+- `lib/clean/ei/evidenceBalance.ts`
+
 It produces:
 
 - event count
 - independent evidence-group count
+- independent directional evidence-group count
 - source-type count
+- directional source-type count
 - evidence support ratio
 - evidence confidence band
 - advisory signal band
@@ -115,74 +202,116 @@ These are internal/advisory EI signals, not customer-facing formal attainment la
 
 The purpose is to stop the system from converting a single assessment or observation into false certainty.
 
-## Homeschool adapter map
+## Homeschool normalization path
 
-Initial source adapters should be added in this order.
+The current Homeschool path is:
 
-### 1. Assessment responses
+`assessment_attempts`
+`assessment_skill_statuses`
+`evidence_entries`
+`calendar_items`
+and related records
 
-Source:
+-> existing `buildHomeschoolLearnerThread(...)`
 
-- `assessment_attempt_responses`
-- parent attempt in `assessment_attempts`
+-> `buildEiEventsFromLearnerThread(...)`
 
-Mapping:
+-> `buildEiEvidenceBalanceState(...)`
 
-- competency ID: canonical `pathway_step_id` initially, with sub-element IDs later where stable
-- evidence group: assessment attempt ID
-- event type: `assessment_response`
-- source kind: `assessment`
-- provenance: source table + response ID
+This preserves one interpretation boundary.
 
-The adapter may normalize auto-check results into positive/negative signals, but this must remain separate from formal `assessment_skill_statuses`.
+### Assessment attempts
 
-### 2. Adult judgement
+Learner Thread already creates an `assessment_attempt_recorded` fact containing:
 
-Source:
+- pathway-step reference
+- attempt state
+- correct-response count
+- item count
+- attempted count
+- incorrect count
+- review-needed count
+- source provenance
 
-- `assessment_skill_statuses`
+EI v1 only converts a **completed** assessment attempt.
 
-Mapping:
+For auto-scorable responses:
 
-- event type: `adult_judgement`
-- source kind: `adult_judgement`
-- competency ID: `pathway_step_id`
-- evidence group: judgement row ID
+- >= 80% correct -> positive, moderate signal
+- <= 40% correct -> negative, moderate signal
+- middle range -> non-directional
+- any review-needed responses reduce signal strength
+- no auto-scorable responses -> non-directional
 
-This is a higher-trust source because it represents a human-confirmed judgement, but it still does not erase contradictory evidence.
+These thresholds are v1 routing heuristics, not mastery thresholds.
 
-### 3. Captured evidence
+They must later be evaluated against expert-labelled cases before being treated as stable educational rules.
 
-Source:
+### Adult judgement
 
-- `evidence_entries`
-- `evidence_entry_learner_links`
-- encoded pathway context
+Learner Thread already normalizes explicit progress judgements from saved sources.
 
-Mapping:
+EI v1 maps:
 
-- event type: `evidence_observation`
-- source kind: `evidence_capture`
-- evidence group: evidence-entry ID
-- competency ID: resolved canonical pathway-step ID
+- `Secure`, `Strong`, `Goal achieved`, `Goal achieved + extension` -> positive/high
+- `Consolidating` -> positive/moderate
+- `Needs support`, `Still developing`, `Beginning` -> negative/moderate
+- `Developing`, `Working towards` -> non-directional in v1
 
-### 4. Practice and mini-checks
+The middle states are intentionally not forced into a binary success/failure model.
 
-Persist these only after the current product boundary is deliberately changed. Practice is currently local-only and should not be treated as persistent EI evidence by accident.
+### Captured evidence
+
+A learner-linked evidence record becomes a non-directional `evidence_observation`.
+
+EI v1 does **not** inspect or classify narrative text.
+
+If the same evidence record contains an explicit structured progress judgement, Learner Thread emits that as a second fact, but EI keeps both facts in the same evidence group.
+
+### Planning
+
+Planning facts are ignored by EI v1 as evidence of learning.
+
+A scheduled lesson is evidence of an intended opportunity, not evidence that learning happened.
+
+## Assessment response depth later
+
+The current Learner Thread represents assessment attempts at session level.
+
+When EI needs item-level or sub-element modelling, extend Learner Thread with explicit assessment-response facts rather than bypassing it and querying `assessment_attempt_responses` directly from the EI layer.
+
+That future extension should retain:
+
+- attempt/session evidence-group ID
+- item identity
+- sub-element or competency identity
+- auto-check result
+- response provenance
+- assessment/item-bank version
+
+This allows Bayesian or item-response models later without losing the audit trail.
 
 ## Campus adapter
 
-Campus should emit the same event contract from:
+Campus should follow the same boundary:
+
+Campus assessment/observation/intervention records
+-> Campus Learner Thread adapter
+-> shared EI Learner Thread adapter
+-> shared EI state calculators
+
+Candidate Campus facts should cover:
 
 - assessment results
-- observations
+- teacher observations
 - reviewed priorities
-- interventions
-- intervention reviews/outcomes
+- intervention starts
+- intervention reviews
+- intervention outcomes
 
-Campus data should remain in its own tenancy/data plane. The shared EI package should not require Campus to use Homeschool's family tables.
+Campus data remains in its own tenancy/data plane. The shared EI package must not require Campus to use Homeschool family tables.
 
-The Campus adapter must preserve organisation, campus/class and student authorization rules before any EI event is emitted.
+The Campus Learner Thread adapter must preserve organisation/school/class/student authorization before any facts are emitted.
 
 ## Competency graph
 
@@ -244,7 +373,7 @@ If any EI table is placed in an exposed schema:
 - never rely on `TO authenticated` alone
 - never expose service-role credentials to the browser
 
-This is especially important because Supabase is moving existing projects to explicit Data API exposure for new tables on 30 October 2026. New EI migrations should therefore use explicit grants/revokes rather than depending on legacy defaults.
+Supabase is moving existing projects to explicit Data API exposure for new tables on 30 October 2026. New EI migrations should therefore use explicit grants/revokes rather than depending on legacy defaults.
 
 ## Processing model
 
@@ -252,69 +381,97 @@ Do not recompute a learner's entire history on every page load.
 
 Target flow:
 
-source write
--> adapter emits normalized EI event
--> background/state worker recalculates affected learner + competency
--> persisted EI state is updated
--> UI reads the prepared state
+authorized product write
+-> product Learner Thread fact
+-> EI event
+-> affected learner + competency recalculation
+-> persisted EI state
+-> UI reads prepared state
 
-For v1, this can begin synchronously for low volume as long as the event/state interfaces remain worker-friendly.
+For v1, this can begin synchronously and in memory for low volume as long as the interfaces remain worker-friendly.
 
 At scale, move event processing behind a queue without changing the product contract.
 
 ## Trust rules
 
 1. No single event can silently create a formal mastery judgement.
-2. Multiple questions from one assessment session do not count as independent evidence.
-3. Formal confidence and pathway progress remain separate from EI advisory state.
-4. AI/LLM output is explanatory/recommendatory only unless an explicit future policy says otherwise.
-5. Every recommendation must be traceable to source events and an engine version.
-6. Contradictory evidence must remain visible.
-7. Adult decisions must be recorded separately from machine suggestions.
-8. Child data does not cross tenant or product boundaries merely to improve an AI model.
-9. Raw media is not duplicated into the EI layer; EI stores references/provenance, not extra copies.
-10. Training/evaluation datasets must be de-identified and governed separately from production application records.
+2. Multiple records from one assessment/session do not count as independent evidence.
+3. Evidence existence is not the same as directional evidence.
+4. Formal confidence and pathway progress remain separate from EI advisory state.
+5. AI/LLM output is explanatory/recommendatory only unless an explicit future policy says otherwise.
+6. Every recommendation must be traceable to source facts/events and an engine version.
+7. Contradictory evidence must remain visible.
+8. Adult decisions must be recorded separately from machine suggestions.
+9. Child data does not cross tenant or product boundaries merely to improve an AI model.
+10. Raw media is not duplicated into the EI layer; EI stores references/provenance, not extra copies.
+11. Training/evaluation datasets must be de-identified and governed separately from production application records.
+12. Learner Thread remains the authority for source history; EI must not create a parallel history by rereading raw product tables independently.
 
 ## Rollout sequence
 
 ### EI-0: foundation — current branch
 
+Implemented:
+
 - shared event/state types
 - conservative evidence-balance calculator
-- tests
+- distinction between evidence existence and directional evidence
+- Learner Thread -> EI adapter
+- trust-boundary tests
 - architecture contract
 
-### EI-1: Homeschool read-only adapter
+### EI-1: Homeschool read-only vertical slice
 
-Build normalized events in memory from:
+Next:
 
-- saved Number assessment attempts/responses
-- adult progress judgements
-- evidence entries
+1. Build a developer-only read model for one learner + one canonical pathway step.
+2. Feed that model from the existing Homeschool Learner Thread.
+3. Show:
+   - contributing facts
+   - evidence groups
+   - directional evidence groups
+   - support balance
+   - confidence
+   - contradictions
+   - reasons
+4. Do not write any formal progress state.
+5. Test with synthetic fixtures first, then a controlled QA learner if approved.
 
-Show a developer/read-only EI state for one canonical pathway step.
+No production schema change is required for EI-1.
 
-No production writes.
+### EI-2: evaluation harness
 
-### EI-2: persistence
+Before persistence, create educator-labelled cases that test:
 
-Create reviewed versioned migration for internal EI event/state storage.
+- insufficient evidence
+- strong repeated evidence
+- contradictory evidence
+- assessment vs observation disagreement
+- stale evidence
+- developing/middle states
+- prerequisite-gap scenarios later
+
+A rule change should be measurable against these cases.
+
+### EI-3: persistence
+
+Only after EI-1 and EI-2 are stable, create a reviewed versioned migration for internal EI event/state storage.
 
 Requirements before merge:
 
-- local migration generation/verification
 - explicit grants/revokes
 - RLS or private-schema boundary
-- security advisor clean for the new objects
-- no customer data backfill during initial migration
+- security advisor clean for new objects
+- no customer-data backfill during initial migration
+- provenance/version fields mandatory
 
-### EI-3: asynchronous updates
+### EI-4: asynchronous updates
 
-Emit events on new assessment/evidence/judgement actions and update only affected learner/competency states.
+Emit/update EI state after new learner facts and recalculate only affected learner/competency pairs.
 
-### EI-4: recommendations
+### EI-5: deterministic recommendations
 
-Add deterministic recommendation rules:
+Add separate, explainable recommendation rules:
 
 - prerequisite check
 - targeted practice
@@ -322,24 +479,24 @@ Add deterministic recommendation rules:
 - continue
 - extension
 
-Recommendations remain separate from actions.
+Recommendations remain separate from actions and formal learner state.
 
-### EI-5: Campus adapter
+### EI-6: Campus Learner Thread adapter
 
-Install the same contract in Campus and map Campus assessment/observation/intervention signals into it.
+Map Campus assessment/observation/intervention facts into the same Learner Thread and EI contracts.
 
-### EI-6: calibrated learning models
+### EI-7: calibrated learning models
 
 Only after enough evaluated longitudinal data exists:
 
 - Bayesian Knowledge Tracing or another interpretable mastery model
 - item difficulty/discrimination modelling where item banks support it
 - retention/recency models
-- intervention effectiveness analysis
+- intervention-effectiveness analysis
 
 Do not label an uncalibrated evidence balance as a mastery probability.
 
-### EI-7: LLM reasoning
+### EI-8: LLM reasoning
 
 Give an LLM structured learner state, graph context and allowed resources.
 
@@ -352,16 +509,16 @@ The LLM may:
 
 The LLM may not invent missing evidence or silently write formal mastery.
 
-## Immediate next implementation
+## Current branch boundary
 
-1. Keep this branch isolated from production.
-2. Add the Homeschool in-memory adapter for Number assessment attempts first.
-3. Use one synthetic learner/test fixture to verify:
-   - one 12-item assessment = one evidence group
-   - repeated attempts become separate evidence groups
-   - adult judgement is a separate evidence source
-   - contradictory captured evidence remains visible
-4. Feed the resulting advisory state into a developer-only representation.
-5. Only after that design the database migration.
+The current feature branch is deliberately safe:
 
-This sequence lets MyLearna begin building real educational intelligence without requiring new hardware, a new foundation model, or a risky production data migration.
+- no production database migration
+- no production learner-state writes
+- no formal assessment-confidence updates
+- no pathway-progress updates
+- no report/curriculum claims
+- no LLM calls
+- no raw child data copied to a new store
+
+The next useful implementation is the EI-1 read-only vertical slice.
