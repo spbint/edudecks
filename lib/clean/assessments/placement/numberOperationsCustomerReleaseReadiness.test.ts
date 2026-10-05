@@ -17,6 +17,7 @@ describe("Maths starting-point customer release readiness", () => {
         "evidence-write",
         "hosted-acceptance",
         "mobile-acceptance",
+        "fresh-recheck-evidence",
         "draft-items",
         "pending-trusted-assets",
       ]),
@@ -30,6 +31,14 @@ describe("Maths starting-point customer release readiness", () => {
     expect(() => assertMathsStartingPointCustomerReleaseReady()).toThrow(
       /customer release is blocked/i,
     );
+  });
+
+  it("keeps fresh recheck evidence as an explicit launch requirement", () => {
+    expect(
+      getMathsStartingPointCustomerReleaseBlockers().map((blocker) =>
+        String(blocker.id),
+      ),
+    ).toContain("fresh-recheck-evidence");
   });
 
   it("does not treat automatic Pathways mutation as a launch requirement", () => {
