@@ -48,6 +48,7 @@ export type EiLearningEvent = {
     originTable?: string | null;
     originRecordId?: string | null;
     adapterVersion: string;
+    policyVersion: string;
   };
   metadata?: Record<string, unknown>;
 };
@@ -62,6 +63,8 @@ export type EiEvidenceSignalBand =
   | "strong_signal";
 
 export type EiEvidenceBalanceState = {
+  engineVersion: string;
+  policyVersion: string;
   competencyId: string;
   learnerId: string;
   eventCount: number;
