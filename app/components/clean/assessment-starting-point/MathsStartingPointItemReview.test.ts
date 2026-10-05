@@ -52,3 +52,16 @@ it("defaults human review to the 120 customer-route items and keeps confirmation
   expect(viewer).toContain("Include 20 confirmation-only lab items");
   expect(viewer).toContain('"customer-route"');
 });
+
+
+it("keeps human review progress browser-local and non-canonical", () => {
+  expect(viewer).toContain("LOCAL_REVIEW_STORAGE_KEY");
+  expect(viewer).toContain("window.localStorage");
+  expect(viewer).toContain("Mark reviewed locally");
+  expect(viewer).toContain("Reviewed locally ✓");
+  expect(viewer).toContain("Unreviewed in this browser only");
+  expect(viewer).toContain(
+    "never changes source status, release state or customer visibility",
+  );
+  expect(viewer).not.toContain("supabase");
+});

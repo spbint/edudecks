@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates/AssessmentStimulus";
 import {
   NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
@@ -11,6 +11,37 @@ import {
   getNumberOperationsItemReviewFlags,
   numberOperationsItemReviewFlagLabel,
 } from "@/lib/clean/assessments/placement/numberOperationsItemReviewFlags";
+
+const LOCAL_REVIEW_STORAGE_KEY =
+  "mylearna:maths-starting-point:item-review:v1";
+
+function readLocalReviewedItemIds() {
+  if (typeof window === "undefined") return new Set<string>();
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_REVIEW_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [],
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeLocalReviewedItemIds(reviewed: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      LOCAL_REVIEW_STORAGE_KEY,
+      JSON.stringify(Array.from(reviewed).sort()),
+    );
+  } catch {
+    // Local staff review progress is a convenience only.
+  }
+}
 
 const AREA_LABELS: Record<string, string> = {
   "number-place-value": "Number & place value",
@@ -47,7 +78,27 @@ export default function MathsStartingPointItemReview() {
   const [attentionOnly, setAttentionOnly] = useState(false);
   const [includeConfirmationItems, setIncludeConfirmationItems] =
     useState(false);
+  const [unreviewedOnly, setUnreviewedOnly] = useState(false);
+  const [reviewedItemIds, setReviewedItemIds] = useState<Set<string>>(
+    () => new Set<string>(),
+  );
+  const [reviewHydrated, setReviewHydrated] = useState(false);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    setReviewedItemIds(readLocalReviewedItemIds());
+    setReviewHydrated(true);
+  }, []);
+
+  const toggleReviewed = (itemId: string) => {
+    setReviewedItemIds((current) => {
+      const next = new Set(current);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      writeLocalReviewedItemIds(next);
+      return next;
+    });
+  };
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -63,6 +114,7 @@ export default function MathsStartingPointItemReview() {
       if (status !== "all" && entry.item.status !== status) return false;
       const flags = getNumberOperationsItemReviewFlags(entry);
       if (attentionOnly && !flags.length) return false;
+      if (unreviewedOnly && reviewedItemIds.has(entry.item.id)) return false;
       if (
         q &&
         ![
@@ -86,7 +138,9 @@ export default function MathsStartingPointItemReview() {
     pLevel,
     poolKind,
     query,
+    reviewedItemIds,
     status,
+    unreviewedOnly,
   ]);
 
   const distinctPLevels = Array.from(
@@ -200,6 +254,22 @@ export default function MathsStartingPointItemReview() {
             />
             <strong>Include 20 confirmation-only lab items</strong>
           </label>
+          <label
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              alignSelf: "end",
+              minHeight: 44,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={unreviewedOnly}
+              onChange={(event) => setUnreviewedOnly(event.target.checked)}
+            />
+            <strong>Unreviewed in this browser only</strong>
+          </label>
           <label style={{ display: "grid", gap: 5 }}>
             <strong>Search</strong>
             <input
@@ -217,6 +287,12 @@ export default function MathsStartingPointItemReview() {
             : NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length}{" "}
           {includeConfirmationItems ? "registry" : "customer-route"} items
         </strong>
+        <small style={{ color: "#64748B", lineHeight: 1.5 }}>
+          {reviewHydrated
+            ? `${reviewedItemIds.size} item${reviewedItemIds.size === 1 ? "" : "s"} marked reviewed in this browser.`
+            : "Loading local review progress..."}{" "}
+          This checklist never changes source status, release state or customer visibility.
+        </small>
       </section>
 
       {rows.map((entry) => {
@@ -288,6 +364,32 @@ export default function MathsStartingPointItemReview() {
                 {(entry.item.response.correctOptionIds || []).join(" → ")}
               </div>
             ) : null}
+
+            <button
+              type="button"
+              onClick={() => toggleReviewed(entry.item.id)}
+              style={{
+                border: reviewedItemIds.has(entry.item.id)
+                  ? "1px solid #86EFAC"
+                  : "1px solid #CBD5E1",
+                borderRadius: 10,
+                background: reviewedItemIds.has(entry.item.id)
+                  ? "#F0FDF4"
+                  : "#FFFFFF",
+                color: reviewedItemIds.has(entry.item.id)
+                  ? "#166534"
+                  : "#17204B",
+                minHeight: 40,
+                padding: "8px 11px",
+                width: "fit-content",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {reviewedItemIds.has(entry.item.id)
+                ? "Reviewed locally ✓"
+                : "Mark reviewed locally"}
+            </button>
 
             {flags.length ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
