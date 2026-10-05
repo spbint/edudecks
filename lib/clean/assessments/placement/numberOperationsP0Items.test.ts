@@ -152,6 +152,15 @@ describe("Number & Operations executable P0 anchor items", () => {
     ]);
   });
 
+  it("keeps NPV P9 construct-diverse instead of duplicating the P8 decimal-rounding probe", () => {
+    expect(NPV_P9_ANCHOR_ITEMS).toHaveLength(2);
+    expect(NPV_P9_ANCHOR_ITEMS[0].skill.name).toMatch(/negative/i);
+    expect(NPV_P9_ANCHOR_ITEMS[1]).toMatchObject({
+      prompt: "Calculate 100 × 0.125.",
+      response: { type: "short-answer", correctValue: "12.5" },
+    });
+  });
+
   it("keeps Counting P5 text-first and deterministic-visual anchors", () => {
     const [sequence, collection] = COUNTING_P5_ANCHOR_ITEMS;
     expect(sequence).toMatchObject({
