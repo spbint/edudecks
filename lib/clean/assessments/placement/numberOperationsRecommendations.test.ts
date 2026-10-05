@@ -36,12 +36,16 @@ describe("Number Operations recommendations", () => {
       upperP: 6,
     });
 
-    expect(buildNumberOperationsRecommendation(result).practiceTarget).toMatchObject({
+    const target = buildNumberOperationsRecommendation(result).practiceTarget;
+    expect(target).toMatchObject({
       kind: "pathways-review",
-      href: "/my-pathways",
       moduleId: null,
       mappingConfidence: "fallback",
     });
+    const url = new URL(target.href, "https://mylearna.test");
+    expect(url.pathname).toBe("/my-pathways");
+    expect(url.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(url.searchParams.get("pathwayStepId")).not.toBeNull();
   });
 
   it("does not turn routing-only evidence into a practice certainty", () => {
