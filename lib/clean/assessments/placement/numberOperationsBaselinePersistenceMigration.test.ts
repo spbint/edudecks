@@ -30,6 +30,12 @@ describe("Number & Operations baseline persistence review migration", () => {
     expect(source).toContain(
       "source_route = '/assessments/maths-starting-point'",
     );
+    expect(source).toContain("scope_sub_elements text[]");
+    expect(source).toContain("expected_sub_elements between 1 and 5");
+    expect(source).toContain(
+      "cardinality(scope_sub_elements) = expected_sub_elements",
+    );
+    expect(source).toContain("unresolved_sub_elements <@ scope_sub_elements");
     expect(source).toContain(
       "sub_element_key = 'counting-processes' and progression_level between 1 and 8",
     );
@@ -66,4 +72,23 @@ describe("Number & Operations baseline persistence review migration", () => {
     expect(source).toContain("DO NOT APPLY");
     expect(source).toContain("Rollback");
   });
+});
+
+
+it("keeps the save RPC dollar-quoted and scope-aware", () => {
+  expect(source).toContain(
+    "set search_path = public\nas $$\ndeclare",
+  );
+  expect(source).not.toContain(
+    "set search_path = public\nas $\ndeclare",
+  );
+  expect(source).toContain(
+    "scopeSubElements must match expectedSubElements",
+  );
+  expect(source).toContain(
+    "scopeSubElements must not contain duplicates",
+  );
+  expect(source).toContain(
+    "assessedSubElements must fit inside the requested scope",
+  );
 });
