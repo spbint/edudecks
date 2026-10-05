@@ -14,7 +14,7 @@ const area: NumberOperationsParentUtility["areas"][number] = {
   explanation: "The learner can use current place-value ideas and is ready to build.",
   curriculumContext: "Curriculum context: Years 3–4",
   actionLabel: "Practise place value and operations",
-  actionHref: "/practice/number-targeted?moduleId=test",
+  actionHref: "/practice/maths-starting-point?moduleId=test",
   actionNote: "Broad family match.",
   pathwaysLabel: "Open Number and place value in My Pathways",
   pathwaysHref:
@@ -62,7 +62,7 @@ describe("AssessmentNumberOperationsParentUtilityCard", () => {
     expect(screen.getByText("Ready to build on the next step")).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Practise place value and operations" }),
-    ).toHaveAttribute("href", "/practice/number-targeted?moduleId=test");
+    ).toHaveAttribute("href", "/practice/maths-starting-point?moduleId=test");
     expect(
       screen.getByRole("link", {
         name: "Open Number and place value in My Pathways",
