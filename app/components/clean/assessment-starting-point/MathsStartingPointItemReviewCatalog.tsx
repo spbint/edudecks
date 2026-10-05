@@ -333,7 +333,7 @@ export default function MathsStartingPointItemReviewCatalog() {
                   {entry.item.prompt}
                 </span>
                 <small style={{ color: "#64748B" }}>
-                  {entry.item.curriculum?.code || "No curriculum code"} · {entry.item.yearLevel} · pool {entry.poolKey}
+                  {entry.item.curriculum?.code || "No curriculum code"} · {entry.item.curriculum?.yearLevel || "Year level not set"} · pool {entry.poolKey}
                 </small>
               </div>
 
