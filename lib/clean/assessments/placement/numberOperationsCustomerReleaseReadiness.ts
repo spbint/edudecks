@@ -1,5 +1,6 @@
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
 import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "./numberOperationsAssetApprovals";
+import { getNumberOperationsFreshRecheckCoverage } from "./numberOperationsFreshRecheckCoverage";
 import {
   NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
 } from "./numberOperationsItemRegistry";
@@ -67,11 +68,19 @@ export function getMathsStartingPointCustomerReleaseBlockers(): MathsStartingPoi
     });
   }
 
-  if (!MATHS_STARTING_POINT_RELEASE.freshRecheckFormsApproved) {
+  const freshRecheck = getNumberOperationsFreshRecheckCoverage();
+  if (
+    !freshRecheck.complete ||
+    !MATHS_STARTING_POINT_RELEASE.freshRecheckFormsApproved
+  ) {
     blockers.push({
       id: "fresh-recheck-evidence",
-      message:
-        "Fresh alternate assessment evidence for later rechecks has not yet been accepted across the customer-route areas.",
+      message: freshRecheck.complete
+        ? "Fresh alternate assessment evidence covers all progression levels but still requires explicit release acceptance."
+        : `Fresh alternate assessment evidence currently covers ${freshRecheck.coveredProgressionLevels} of ${freshRecheck.requiredProgressionLevels} progression levels; ${freshRecheck.missingProgressionLevels} still need reviewed recheck coverage.`,
+      ...(freshRecheck.missingProgressionLevels
+        ? { count: freshRecheck.missingProgressionLevels }
+        : {}),
     });
   }
 
