@@ -77,7 +77,9 @@ export function buildNumberOperationsBaselineSummarySnapshot(input: {
     expectedSubElements: input.profile.expectedSubElements,
     scopeSubElements: [...input.profile.expectedSubElementKeys],
     unresolvedSubElements,
-    subElementAttempts: [...(input.subElementAttempts || [])],
+    subElementAttempts: (input.subElementAttempts || []).filter((attempt) =>
+      scopeSet.has(attempt.subElementKey),
+    ),
     profile: input.profile,
     evidencePreview: buildNumberOperationsEvidencePreview(input.profile),
     persistencePolicy: {
