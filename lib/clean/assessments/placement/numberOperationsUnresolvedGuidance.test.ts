@@ -23,6 +23,22 @@ describe("Number & Operations unresolved parent guidance", () => {
     }
   });
 
+  it("keeps unresolved guidance safe for early as well as later learners", () => {
+    const number = getNumberOperationsUnresolvedGuidance("number-place-value");
+    const multiplicative = getNumberOperationsUnresolvedGuidance(
+      "multiplicative-strategies",
+    );
+    const money = getNumberOperationsUnresolvedGuidance("understanding-money");
+
+    expect(number.tryThis).not.toMatch(/round|decimal|scientific notation/i);
+    expect(multiplicative.evidenceToLookFor.join(" ")).not.toMatch(
+      /inverse|exponent|scientific notation/i,
+    );
+    expect(money.evidenceToLookFor.join(" ")).not.toMatch(
+      /budget|interest|discount|tax/i,
+    );
+  });
+
   it("deduplicates unresolved areas while preserving their order", () => {
     const guidance = buildNumberOperationsUnresolvedGuidance([
       "counting-processes",
