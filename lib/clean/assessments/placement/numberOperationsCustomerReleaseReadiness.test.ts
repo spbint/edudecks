@@ -34,11 +34,15 @@ describe("Maths starting-point customer release readiness", () => {
   });
 
   it("keeps fresh recheck evidence as an explicit launch requirement", () => {
-    expect(
-      getMathsStartingPointCustomerReleaseBlockers().map((blocker) =>
-        String(blocker.id),
-      ),
-    ).toContain("fresh-recheck-evidence");
+    const blocker = getMathsStartingPointCustomerReleaseBlockers().find(
+      (entry) => entry.id === "fresh-recheck-evidence",
+    );
+
+    expect(blocker).toMatchObject({
+      id: "fresh-recheck-evidence",
+      count: 34,
+    });
+    expect(blocker?.message).toMatch(/14 of 48 progression levels/i);
   });
 
   it("does not treat automatic Pathways mutation as a launch requirement", () => {
