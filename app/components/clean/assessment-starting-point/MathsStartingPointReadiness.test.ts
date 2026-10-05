@@ -29,6 +29,15 @@ describe("Maths starting-point readiness route", () => {
 });
 
 
+it("shows the fresh-recheck gate and derives visual mix from the live review summary", () => {
+  expect(source).toContain("fresh-recheck-evidence");
+  expect(source).toContain("Fresh recheck evidence");
+  expect(source).toContain("freshRecheckFormsApproved");
+  expect(source).toContain("customerVisualTypeCounts");
+  expect(source).toContain("visualMix");
+  expect(source).not.toContain("1 array");
+});
+
 it("names the hosted/mobile acceptance blockers and links directly to both staff review surfaces", () => {
   expect(source).toContain("Hosted parent-flow acceptance");
   expect(source).toContain("Mobile parent-flow acceptance");
