@@ -9,6 +9,8 @@ import {
   NUMBER_OPERATIONS_ASSET_APPROVALS,
 } from "@/lib/clean/assessments/placement/numberOperationsAssetApprovals";
 import {
+  NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY,
+  NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
   NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
 } from "@/lib/clean/assessments/placement/numberOperationsItemRegistry";
 import {
@@ -45,7 +47,7 @@ const BLOCKER_LABELS: Record<string, string> = {
 
 export default function MathsStartingPointReadinessPage() {
   const blockers = getMathsStartingPointCustomerReleaseBlockers();
-  const draftItems = NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter(
+  const draftItems = NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.filter(
     (entry) => entry.item.status !== "published",
   );
   const pendingAssets = NUMBER_OPERATIONS_ASSET_APPROVALS.filter(
@@ -193,7 +195,9 @@ export default function MathsStartingPointReadinessPage() {
               }}
             >
               {[
-                ["Placement items", String(itemReview.totalItems)],
+                ["All registry items", String(itemReview.totalItems)],
+                ["Customer-route items", String(itemReview.customerRouteItems)],
+                ["Confirmation-only review items", String(itemReview.confirmationReviewItems)],
                 ["Automated structural issues", String(itemReview.structuralIssueCount)],
                 ["Routing-only items", String(itemReview.routingOnlyItems)],
                 ["Accessibility alternatives", String(itemReview.accessibilityAlternativeItems)],
@@ -215,8 +219,10 @@ export default function MathsStartingPointReadinessPage() {
               ))}
             </div>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
-              {draftItems.length} of {NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length} placement
-              items remain non-published review items.
+              {draftItems.length} of {NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length} customer-route
+              placement items remain non-published review items. The separate{" "}
+              {NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY.length} confirmation-only
+              items remain staff/lab review inventory and do not block the v1 parent route.
             </span>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
               {pendingAssets.length} trusted asset set

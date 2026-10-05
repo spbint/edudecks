@@ -8,6 +8,8 @@ describe("Number & Operations item review summary", () => {
     const summary = getNumberOperationsItemReviewSummary();
 
     expect(summary.totalItems).toBe(140);
+    expect(summary.customerRouteItems).toBe(120);
+    expect(summary.confirmationReviewItems).toBe(20);
     expect(summary.statusCounts).toMatchObject({ draft: 140 });
     expect(summary.structuralIssueCount).toBe(0);
     expect(summary.cleanStructuralItems).toBe(140);

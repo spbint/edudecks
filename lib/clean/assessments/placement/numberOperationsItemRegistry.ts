@@ -97,3 +97,14 @@ export function getNumberOperationsPlacementItemInventory() {
     stimulusType: entry.item.stimulus.type,
   }));
 }
+
+
+export const NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY =
+  NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter(
+    (entry) => entry.poolKind !== "confirmation",
+  );
+
+export const NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY =
+  NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter(
+    (entry) => entry.poolKind === "confirmation",
+  );

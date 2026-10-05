@@ -1,11 +1,15 @@
 import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "./numberOperationsAssetApprovals";
 import {
+  NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY,
+  NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
   NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY,
 } from "./numberOperationsItemRegistry";
 import { auditNumberOperationsPlacementItems } from "./numberOperationsItemQuality";
 
 export type NumberOperationsItemReviewSummary = {
   totalItems: number;
+  customerRouteItems: number;
+  confirmationReviewItems: number;
   statusCounts: Record<string, number>;
   structuralIssueCount: number;
   routingOnlyItems: number;
@@ -42,6 +46,9 @@ export function getNumberOperationsItemReviewSummary(): NumberOperationsItemRevi
 
   return {
     totalItems: NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.length,
+    customerRouteItems: NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.length,
+    confirmationReviewItems:
+      NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY.length,
     statusCounts,
     structuralIssueCount: issues.length,
     routingOnlyItems,

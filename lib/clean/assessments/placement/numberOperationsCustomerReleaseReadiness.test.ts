@@ -23,7 +23,7 @@ describe("Maths starting-point customer release readiness", () => {
     );
     expect(
       blockers.find((blocker) => blocker.id === "draft-items")?.count,
-    ).toBe(140);
+    ).toBe(120);
     expect(
       blockers.find((blocker) => blocker.id === "pending-trusted-assets")?.count,
     ).toBe(1);

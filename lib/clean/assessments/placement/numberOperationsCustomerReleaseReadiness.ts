@@ -1,6 +1,8 @@
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
 import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "./numberOperationsAssetApprovals";
-import { NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY } from "./numberOperationsItemRegistry";
+import {
+  NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY,
+} from "./numberOperationsItemRegistry";
 
 export type MathsStartingPointCustomerReleaseBlocker = {
   id:
@@ -64,14 +66,14 @@ export function getMathsStartingPointCustomerReleaseBlockers(): MathsStartingPoi
     });
   }
 
-  const draftItems = NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY.filter(
+  const draftItems = NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY.filter(
     (entry) => entry.item.status !== "published",
   );
   if (draftItems.length) {
     blockers.push({
       id: "draft-items",
       message:
-        "Placement items remain non-customer draft/review items until academic and hosted QA are accepted.",
+        "Customer-route placement items remain non-published until academic and hosted QA are accepted.",
       count: draftItems.length,
     });
   }
