@@ -40,9 +40,11 @@ describe("Maths starting-point customer release readiness", () => {
 
     expect(blocker).toMatchObject({
       id: "fresh-recheck-evidence",
-      count: 21,
     });
-    expect(blocker?.message).toMatch(/27 of 48 progression levels/i);
+    expect(blocker).not.toHaveProperty("count");
+    expect(blocker?.message).toMatch(
+      /covers all progression levels but still requires explicit release acceptance/i,
+    );
   });
 
   it("does not treat automatic Pathways mutation as a launch requirement", () => {

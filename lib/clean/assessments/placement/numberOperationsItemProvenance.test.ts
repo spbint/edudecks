@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const itemSources = [
   "lib/clean/assessments/placement/numberOperationsP0Items.ts",
   "lib/clean/assessments/placement/numberOperationsNpvConfirmationItems.ts",
+  "lib/clean/assessments/placement/numberOperationsFreshRecheckItems.ts",
 ].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
 
 describe("Maths starting-point item provenance", () => {
