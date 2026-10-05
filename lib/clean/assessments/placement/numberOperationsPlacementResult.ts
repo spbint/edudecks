@@ -48,7 +48,7 @@ const LEVEL_SUMMARIES: Record<
     5: "uses next/previous number knowledge within 1–100 and counts collections independently of arrangement",
     6: "counts forward/backward beyond 100 and skip-counts in twos, fives and tens",
     7: "counts efficiently in larger groups, including off-decade sequences and grouped quantities",
-    8: "counts flexibly with rational and negative numbers and applies abstract counting processes",
+    8: "extends counting beyond whole numbers and applies abstract counting processes",
   },
   "additive-strategies": {
     1: "describes adding-to and taking-away situations with small collections",
