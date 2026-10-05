@@ -590,7 +590,8 @@ export const MONEY_P2_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
           { denomination: "50c" },
         ],
       },
-      altText: "Money tokens shown in this order: $2, 20c, $1, 50c.",
+      altText:
+        "Four Australian money tokens are shown in an order that must be interpreted visually. Their denominations are intentionally not stated because ordering their values is the task.",
     },
     options: [
       { id: "a", label: "20c, 50c, $1, $2" },
@@ -600,7 +601,13 @@ export const MONEY_P2_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
     ],
     correctOptionIds: ["a"],
     misconceptionTags: ["money-face-value-order-error", "dollars-cents-order-confusion"],
-    tags: ["understanding-money", "p2", "mon-p02-a", "currency-token-review"],
+    tags: [
+      "understanding-money",
+      "p2",
+      "mon-p02-a",
+      "currency-token-review",
+      "separate-accessible-form-required",
+    ],
   }),
   shortAnswerItem({
     id: "myl-anchor-mon-p02-b-v1",
@@ -623,10 +630,17 @@ export const MONEY_P2_ANCHOR_ITEMS: MyLearnaAssessmentItem[] = [
           { denomination: "20c" },
         ],
       },
-      altText: "Money tokens shown in this order: 20c, $1, 20c, 50c, 20c.",
+      altText:
+        "Five Australian money tokens are shown. Their denominations are intentionally not stated because identifying and counting a target denomination is the task.",
     },
     misconceptionTags: ["money-denomination-count-error"],
-    tags: ["understanding-money", "p2", "mon-p02-b", "currency-token-review"],
+    tags: [
+      "understanding-money",
+      "p2",
+      "mon-p02-b",
+      "currency-token-review",
+      "separate-accessible-form-required",
+    ],
   }),
 ];
 
@@ -1186,7 +1200,8 @@ export const MONEY_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
           { denomination: "$2" },
         ],
       },
-      altText: "Money tokens shown in this order: 50c, $1, $2.",
+      altText:
+        "Three Australian money tokens are shown. Their denominations are intentionally not stated because recognising the face value is the task.",
     },
     options: [
       { id: "a", label: "50c" },
@@ -1195,7 +1210,13 @@ export const MONEY_P1_SEARCH_ITEMS: MyLearnaAssessmentItem[] = [
     ],
     correctOptionIds: ["c"],
     misconceptionTags: ["money-face-value-recognition-error"],
-    tags: ["search-probe", "understanding-money", "p1", "asset-review"],
+    tags: [
+      "search-probe",
+      "understanding-money",
+      "p1",
+      "asset-review",
+      "separate-accessible-form-required",
+    ],
   }),
 ];
 
