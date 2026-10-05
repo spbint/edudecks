@@ -3,6 +3,10 @@ import { getNumberOperationsPlacementItemById } from "./numberOperationsItemRegi
 
 const STRATEGY_SENSITIVE_ITEMS = [
   {
+    id: "myl-anchor-add-p06-b-v1",
+    promptIncludes: "part-part-whole",
+  },
+  {
     id: "myl-anchor-mul-p06-c-v1",
     promptIncludes: "uses that fact",
   },
@@ -49,6 +53,7 @@ describe("Number & Operations strategy-sensitive construct audit", () => {
 
   it("keeps these source-sensitive probes in their intended progression levels", () => {
     const expectedCodes: Record<string, string> = {
+      "myl-anchor-add-p06-b-v1": "MYL-MATH-PROG-NSA-ADD-P06",
       "myl-anchor-mul-p06-c-v1": "MYL-MATH-PROG-NSA-MUL-P06",
       "myl-boundary-add-p07-a-v1": "MYL-MATH-PROG-NSA-ADD-P07",
       "myl-boundary-add-p07-b-v1": "MYL-MATH-PROG-NSA-ADD-P07",
