@@ -123,3 +123,25 @@ it("requires the embedded profile and evidence snapshots to agree with the attem
     "A complete baseline must cover its full requested scope.",
   );
 });
+
+
+it("requires every requested area to be assessed or explicitly unresolved", () => {
+  expect(source).toContain(
+    "assessment_baseline_attempts_scope_resolution_check",
+  );
+  expect(source).toContain(
+    "assessed_sub_elements + cardinality(unresolved_sub_elements)",
+  );
+  expect(source).toContain(
+    "assessment_baseline_attempts_status_resolution_check",
+  );
+  expect(source).toContain(
+    "Baseline unresolved areas must not contain duplicates.",
+  );
+  expect(source).toContain(
+    "unresolvedSubElements must not contain duplicates.",
+  );
+  expect(source).toContain(
+    "Every requested scope area must be assessed or unresolved.",
+  );
+});
