@@ -15,6 +15,9 @@ import {
 import {
   getNumberOperationsItemReviewSummary,
 } from "@/lib/clean/assessments/placement/numberOperationsItemReviewSummary";
+import {
+  getNumberOperationsFreshRecheckCoverage,
+} from "@/lib/clean/assessments/placement/numberOperationsFreshRecheckCoverage";
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
 
 export const metadata: Metadata = {
@@ -54,6 +57,7 @@ export default function MathsStartingPointReadinessPage() {
     (approval) => approval.status !== "approved",
   );
   const itemReview = getNumberOperationsItemReviewSummary();
+  const freshRecheck = getNumberOperationsFreshRecheckCoverage();
   const visualMix = Object.entries(itemReview.customerVisualTypeCounts)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([type, count]) => `${count} ${type}`)
@@ -272,6 +276,45 @@ export default function MathsStartingPointReadinessPage() {
                 </span>
               </div>
             ))}
+          </section>
+
+          <section style={panel}>
+            <strong style={{ color: "#17204B" }}>Fresh recheck evidence</strong>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 8,
+              }}
+            >
+              {[
+                ["Progression levels required", String(freshRecheck.requiredProgressionLevels)],
+                ["Levels with alternate evidence", String(freshRecheck.coveredProgressionLevels)],
+                ["Levels still missing", String(freshRecheck.missingProgressionLevels)],
+                ["Alternate draft items", String(freshRecheck.alternateItems)],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    border: "1px solid #E1E6F0",
+                    borderRadius: 12,
+                    padding: 10,
+                    display: "grid",
+                    gap: 3,
+                  }}
+                >
+                  <span style={{ color: "#64748B", fontSize: 12 }}>{label}</span>
+                  <strong style={{ color: "#17204B", fontSize: 20 }}>{value}</strong>
+                </div>
+              ))}
+            </div>
+            <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
+              This is deliberately incomplete. The current tranche reuses the independent NPV
+              confirmation estate and adds fresh draft evidence at the initial routing level for
+              Counting, Additive strategies, Multiplicative strategies and Money. Customer
+              release remains blocked until the remaining progression levels have reviewed
+              alternate evidence and the full recheck route has passed hosted QA.
+            </span>
           </section>
 
           <section
