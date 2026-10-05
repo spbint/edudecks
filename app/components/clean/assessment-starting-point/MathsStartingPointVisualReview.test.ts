@@ -18,10 +18,12 @@ describe("Maths starting-point visual review", () => {
     expect(source).toContain("does not alter item status");
   });
 
-  it("reviews only customer-route score-bearing visuals in a 390px frame", () => {
+  it("reviews only customer-route score-bearing visuals at both required phone widths", () => {
     expect(source).toContain("NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY");
     expect(source).toContain('entry.item.stimulus.type !== "none"');
-    expect(source).toContain("maxWidth: 390");
+    expect(source).toContain("([390, 430] as const)");
+    expect(source).toContain("maxWidth: frameWidth");
+    expect(source).toContain("390px and 430px phone widths");
     expect(source).toContain("AssessmentStimulus");
     expect(source).toContain("Accessible description");
   });
