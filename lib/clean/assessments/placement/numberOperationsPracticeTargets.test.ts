@@ -35,7 +35,7 @@ describe("Number Operations practice targets", () => {
     });
   });
 
-  it("uses a real strand-level My Pathways handoff when a practice module would mislead", () => {
+  it("uses reviewed My Pathways handoffs when a broad practice module would mislead", () => {
     const counting = getNumberOperationsPracticeTarget({
       subElementKey: "counting-processes",
       targetP: 6,
@@ -50,7 +50,10 @@ describe("Number Operations practice targets", () => {
     expect(countingUrl.pathname).toBe("/my-pathways");
     expect(countingUrl.searchParams.get("subjectKey")).toBe("mathematics");
     expect(countingUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
-    expect(countingUrl.searchParams.get("pathwayStepId")).toBeNull();
+    expect(countingUrl.searchParams.get("pathwayStepId")).not.toBeNull();
+    expect(counting.label).toBe(
+      "Open Skip count by 2s, 5s and 10s in My Pathways",
+    );
 
     const laterMultiplicative = getNumberOperationsPracticeTarget({
       subElementKey: "multiplicative-strategies",
