@@ -120,7 +120,7 @@ function countingEndpointDraft(): NumberOperationsBaselinePersistenceDraft {
         stageKind: "search",
         pLevel: 8,
         direction: "up",
-        responseValue: "-4",
+        responseValue: "6",
       }),
     ],
   };
