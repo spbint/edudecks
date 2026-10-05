@@ -153,3 +153,35 @@ it("marks a successful focused one-area snapshot complete for that scope", () =>
     /focused starting-point check.*rather than one canonical My Pathways step/i,
   );
 });
+
+
+it("drops attempt traces outside a focused requested scope", () => {
+  const additive = buildNumberOperationsCandidateBandResult({
+    subElementKey: "additive-strategies",
+    lowerP: 5,
+    upperP: 6,
+  });
+  const profile = buildNumberOperationsProfile([additive], {
+    expectedSubElementKeys: ["additive-strategies"],
+  });
+
+  const outsideTrace = buildNumberOperationsSubElementAttemptTrace({
+    subElementKey: "understanding-money",
+    subElementLabel: "Understanding money",
+    stages: [],
+    routeTrace: [],
+    result: null,
+  });
+
+  const snapshot = buildNumberOperationsBaselineSummarySnapshot({
+    profile,
+    subElementAttempts: [outsideTrace],
+    unresolvedSubElements: ["understanding-money"],
+    startedAt: "2026-10-03T08:00:00Z",
+    completedAt: "2026-10-03T08:05:00Z",
+  });
+
+  expect(snapshot.scopeSubElements).toEqual(["additive-strategies"]);
+  expect(snapshot.unresolvedSubElements).toEqual([]);
+  expect(snapshot.subElementAttempts).toEqual([]);
+});
