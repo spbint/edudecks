@@ -72,18 +72,32 @@ export default function MathsStartingPointPage() {
               pauses. MyLearna keeps the areas separate and turns the evidence into
               practical next learning rather than one overall maths score.
             </p>
-            <Link
-              href="/assessments/maths-starting-point/asset-review"
-              style={{
-                width: "fit-content",
-                color: "#92400E",
-                fontSize: 13,
-                fontWeight: 800,
-                textDecoration: "none",
-              }}
-            >
-              Staff: review pending Australian currency schematic
-            </Link>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <Link
+                href="/assessments/maths-starting-point/readiness"
+                style={{
+                  width: "fit-content",
+                  color: "#17204B",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Staff: view release readiness
+              </Link>
+              <Link
+                href="/assessments/maths-starting-point/asset-review"
+                style={{
+                  width: "fit-content",
+                  color: "#92400E",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Staff: review pending Australian currency schematic
+              </Link>
+            </div>
             <Link
               href="/assessments/maths-starting-point/item-review"
               style={{
