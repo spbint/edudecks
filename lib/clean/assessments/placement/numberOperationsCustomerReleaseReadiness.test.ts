@@ -15,6 +15,8 @@ describe("Maths starting-point customer release readiness", () => {
         "customer-navigation",
         "persistence",
         "evidence-write",
+        "hosted-acceptance",
+        "mobile-acceptance",
         "draft-items",
         "pending-trusted-assets",
       ]),
