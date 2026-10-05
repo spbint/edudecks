@@ -140,7 +140,10 @@ describe("Number & Operations executable P0 anchor items", () => {
     });
     expect(collection).toMatchObject({
       prompt: "How many counters are shown?",
-      stimulus: { type: "array", data: { rows: 2, columns: 7 } },
+      stimulus: {
+        type: "counter-set",
+        data: { quantity: 14, arrangement: "scattered", maxQuantity: 20 },
+      },
       response: { type: "short-answer", correctValue: "14" },
     });
     expect(collection.analytics?.tags).toContain(
