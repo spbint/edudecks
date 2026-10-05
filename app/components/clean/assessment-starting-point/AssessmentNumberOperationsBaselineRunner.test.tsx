@@ -323,3 +323,21 @@ it("explains adaptive difficulty without implying year-based placement", () => {
     "rather than assuming a level from the learner&apos;s age or year",
   );
 });
+
+
+it("keeps unresolved observation capture attached to the same learner and focused scope", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("Capture what you noticed");
+  expect(source).toContain('learningArea: "mathematics"');
+  expect(source).toContain('learningAreaLabel: "Mathematics"');
+  expect(source).toContain("returnTo: startingPointReturnHref");
+  expect(source).toContain('if (order.length === 1 && order[0]) params.set("area", order[0])');
+  expect(source).toContain('if (cleanLearnerId) params.set("learnerId", cleanLearnerId)');
+});
