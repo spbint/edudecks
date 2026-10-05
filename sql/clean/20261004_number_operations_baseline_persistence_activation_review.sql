@@ -9,9 +9,9 @@
 --   3. the atomic save RPC exists;
 --   4. one authenticated isolation smoke-test plan is approved;
 --   5. the application persistence release gate is still false during DB activation;
---   6. explicit approval has been given to enable authenticated RPC execution.
+--   6. explicit approval has been given to enable server-only RPC execution.
 --
--- This script enables only the baseline save RPC. It does not expose the
+-- This script enables only the server-side baseline save RPC. It does not expose the
 -- customer route, enable Pathways navigation, create Portfolio/report evidence,
 -- or mutate Pathways/assessment confidence.
 
@@ -26,7 +26,7 @@ begin
   end if;
 
   if to_regprocedure(
-    'public.mylearna_save_number_operations_baseline(uuid,uuid,text,jsonb,jsonb)'
+    'public.mylearna_save_number_operations_baseline(uuid,uuid,uuid,text,jsonb,jsonb)'
   ) is null then
     raise exception 'Baseline save RPC is not installed.';
   end if;
@@ -36,18 +36,28 @@ $$;
 grant select on public.assessment_baseline_attempts to authenticated;
 grant select on public.assessment_baseline_responses to authenticated;
 
-grant execute on function public.mylearna_save_number_operations_baseline(
+revoke all on function public.mylearna_save_number_operations_baseline(
+  uuid,
   uuid,
   uuid,
   text,
   jsonb,
   jsonb
-) to authenticated;
+) from authenticated;
+
+grant execute on function public.mylearna_save_number_operations_baseline(
+  uuid,
+  uuid,
+  uuid,
+  text,
+  jsonb,
+  jsonb
+) to service_role;
 
 -- Emergency containment / rollback:
 --
 -- revoke all on function public.mylearna_save_number_operations_baseline(
---   uuid, uuid, text, jsonb, jsonb
--- ) from authenticated;
+--   uuid, uuid, uuid, text, jsonb, jsonb
+-- ) from service_role;
 -- revoke all on public.assessment_baseline_attempts from authenticated;
 -- revoke all on public.assessment_baseline_responses from authenticated;

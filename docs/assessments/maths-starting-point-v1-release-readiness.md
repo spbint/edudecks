@@ -123,7 +123,10 @@ The migration uses:
 - clean family RLS
 - same-family learner checks
 - immutable attempt/response identity guards
-- RPC-only customer writes (no direct authenticated table DML)
+- browser never calls the baseline RPC directly
+- server re-scores item evidence and replays the adaptive route before writing
+- server verifies adult family membership and learner ownership
+- authenticated users retain read-only RLS; the atomic save RPC is server-role only
 - one atomic save RPC
 - concurrency-safe client submission idempotency
 - family/learner/attempt consistency validation

@@ -254,23 +254,6 @@ using (
   )
 );
 
-drop policy if exists "maths baseline attempts insert own family"
-  on public.assessment_baseline_attempts;
-create policy "maths baseline attempts insert own family"
-on public.assessment_baseline_attempts
-for insert
-to authenticated
-with check (
-  public.is_family_member(family_id)
-  and created_by_user_id = (select auth.uid())
-  and exists (
-    select 1
-    from public.learners learner
-    where learner.id = learner_id
-      and learner.family_id = public.assessment_baseline_attempts.family_id
-  )
-);
-
 drop policy if exists "maths baseline responses select own family"
   on public.assessment_baseline_responses;
 create policy "maths baseline responses select own family"
@@ -291,31 +274,6 @@ using (
     where attempt.id = baseline_attempt_id
       and attempt.family_id = public.assessment_baseline_responses.family_id
       and attempt.learner_id = public.assessment_baseline_responses.learner_id
-  )
-);
-
-drop policy if exists "maths baseline responses insert own family"
-  on public.assessment_baseline_responses;
-create policy "maths baseline responses insert own family"
-on public.assessment_baseline_responses
-for insert
-to authenticated
-with check (
-  public.is_family_member(family_id)
-  and created_by_user_id = (select auth.uid())
-  and exists (
-    select 1
-    from public.learners learner
-    where learner.id = learner_id
-      and learner.family_id = public.assessment_baseline_responses.family_id
-  )
-  and exists (
-    select 1
-    from public.assessment_baseline_attempts attempt
-    where attempt.id = baseline_attempt_id
-      and attempt.family_id = public.assessment_baseline_responses.family_id
-      and attempt.learner_id = public.assessment_baseline_responses.learner_id
-      and attempt.created_by_user_id = (select auth.uid())
   )
 );
 
@@ -452,6 +410,7 @@ for each row
 execute function public.mylearna_validate_assessment_baseline_response();
 
 create or replace function public.mylearna_save_number_operations_baseline(
+  p_actor_user_id uuid,
   p_family_id uuid,
   p_learner_id uuid,
   p_client_submission_id text,
@@ -464,16 +423,22 @@ security definer
 set search_path = public
 as $$
 declare
-  v_user_id uuid := auth.uid();
+  v_user_id uuid := p_actor_user_id;
   v_attempt_id uuid;
   v_response jsonb;
 begin
   if v_user_id is null then
-    raise exception 'Sign in to save this Maths starting point.'
+    raise exception 'A validated actor user id is required.'
       using errcode = '42501';
   end if;
 
-  if not public.is_family_member(p_family_id) then
+  if not exists (
+    select 1
+    from public.family_members membership
+    where membership.family_id = p_family_id
+      and membership.user_id = v_user_id
+      and membership.role in ('owner', 'parent', 'caregiver')
+  ) then
     raise exception 'Family workspace unavailable.'
       using errcode = '42501';
   end if;
@@ -794,12 +759,14 @@ $$;
 revoke all on function public.mylearna_save_number_operations_baseline(
   uuid,
   uuid,
+  uuid,
   text,
   jsonb,
   jsonb
 ) from public;
 
 revoke all on function public.mylearna_save_number_operations_baseline(
+  uuid,
   uuid,
   uuid,
   text,
@@ -812,18 +779,28 @@ revoke all on function public.mylearna_save_number_operations_baseline(
 revoke all on function public.mylearna_save_number_operations_baseline(
   uuid,
   uuid,
+  uuid,
   text,
   jsonb,
   jsonb
 ) from authenticated;
 
+revoke all on function public.mylearna_save_number_operations_baseline(
+  uuid,
+  uuid,
+  uuid,
+  text,
+  jsonb,
+  jsonb
+) from service_role;
+
 -- Rollback (manual, only if no retained customer baseline data is required):
 --
 -- revoke execute on function public.mylearna_save_number_operations_baseline(
---   uuid, uuid, text, jsonb, jsonb
--- ) from authenticated;
+--   uuid, uuid, uuid, text, jsonb, jsonb
+-- ) from service_role;
 -- drop function if exists public.mylearna_save_number_operations_baseline(
---   uuid, uuid, text, jsonb, jsonb
+--   uuid, uuid, uuid, text, jsonb, jsonb
 -- );
 -- drop table if exists public.assessment_baseline_responses;
 -- drop table if exists public.assessment_baseline_attempts;

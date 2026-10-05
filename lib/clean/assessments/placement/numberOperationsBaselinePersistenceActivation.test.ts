@@ -29,7 +29,7 @@ describe("Number & Operations baseline persistence activation split", () => {
     );
   });
 
-  it("puts the authenticated execute grant only in the explicit activation file", () => {
+  it("puts only the server-role execute grant in the explicit activation file", () => {
     expect(activation).toContain("DESIGN / REVIEW ACTIVATION ONLY");
     expect(activation).toContain("DO NOT APPLY with the foundation migration");
     expect(activation).toContain(
@@ -41,9 +41,12 @@ describe("Number & Operations baseline persistence activation split", () => {
     expect(activation).not.toMatch(
       /grant (insert|update|delete).*assessment_baseline_/i,
     );
+    expect(activation).toContain("from authenticated");
     expect(activation).toMatch(
       /grant execute on function public\.mylearna_save_number_operations_baseline/,
     );
+    expect(activation).toContain("to service_role");
+    expect(activation).not.toContain("to authenticated;");
     expect(activation).toContain("to_regprocedure");
     expect(activation).toContain("Emergency containment / rollback");
   });

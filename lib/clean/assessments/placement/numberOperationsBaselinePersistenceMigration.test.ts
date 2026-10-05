@@ -24,6 +24,9 @@ describe("Number & Operations baseline persistence review migration", () => {
 
   it("uses current family RLS plus same-family learner validation", () => {
     expect(source).toContain("public.is_family_member(family_id)");
+    expect(source).toContain("from public.family_members membership");
+    expect(source).toContain("membership.user_id = v_user_id");
+    expect(source).toContain("membership.role in ('owner', 'parent', 'caregiver')");
     expect(source).toContain("learner.family_id = public.assessment_baseline_attempts.family_id");
     expect(source).toContain("learner.family_id = public.assessment_baseline_responses.family_id");
     expect(source).toContain("Choose a learner from this family.");
@@ -58,8 +61,15 @@ describe("Number & Operations baseline persistence review migration", () => {
       "revoke all on function public.mylearna_save_number_operations_baseline",
     );
     expect(source).toContain("from authenticated");
+    expect(source).toContain("from service_role");
     expect(source).not.toMatch(
       /grant execute on function public\.mylearna_save_number_operations_baseline/,
+    );
+    expect(source).not.toContain(
+      'create policy "maths baseline attempts insert own family"',
+    );
+    expect(source).not.toContain(
+      'create policy "maths baseline responses insert own family"',
     );
     expect(source).toContain(
       "revoke all on public.assessment_baseline_attempts from authenticated",
@@ -143,5 +153,18 @@ it("requires every requested area to be assessed or explicitly unresolved", () =
   );
   expect(source).toContain(
     "Every requested scope area must be assessed or unresolved.",
+  );
+});
+
+
+it("requires an explicit actor id and keeps customer writes out of authenticated RLS", () => {
+  expect(source).toContain("p_actor_user_id uuid");
+  expect(source).toContain("v_user_id uuid := p_actor_user_id");
+  expect(source).toContain("A validated actor user id is required.");
+  expect(source).not.toContain(
+    'create policy "maths baseline attempts insert own family"',
+  );
+  expect(source).not.toContain(
+    'create policy "maths baseline responses insert own family"',
   );
 });
