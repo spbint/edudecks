@@ -311,13 +311,19 @@ export default function AssessmentNumberOperationsBaselineRunner({
     });
     const persistenceDraft =
       buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot);
-    const canRunStaffPersistenceSmoke =
+    const replayTraceCount = Object.values(tracesByKey).filter(Boolean).length;
+    const hasCompleteReplayTrace = replayTraceCount === order.length;
+    const persistenceContextReady =
       mode === "parent-preview" &&
       MATHS_STARTING_POINT_RELEASE.persistenceEnabled &&
       !MATHS_STARTING_POINT_RELEASE.customerVisible &&
       familyStorageMode === "database" &&
       Boolean(String(familyId ?? "").trim()) &&
       Boolean(String(learnerId ?? "").trim());
+    const canRunStaffPersistenceSmoke =
+      persistenceContextReady && hasCompleteReplayTrace;
+    const persistenceReplayRequired =
+      persistenceContextReady && !hasCompleteReplayTrace;
 
     const runStaffPersistenceSmoke = async () => {
       if (!canRunStaffPersistenceSmoke || persistenceSaving) return;
@@ -466,6 +472,34 @@ export default function AssessmentNumberOperationsBaselineRunner({
             )
           }
         />
+        {persistenceReplayRequired ? (
+          <section
+            style={{
+              ...panel,
+              borderColor: "#F5D08A",
+              background: "#FFFDF5",
+            }}
+          >
+            <span
+              style={{
+                color: "#92400E",
+                fontSize: 12,
+                fontWeight: 900,
+                textTransform: "uppercase",
+              }}
+            >
+              Staff-only persistence safeguard
+            </span>
+            <strong style={{ color: "#17204B" }}>
+              Re-run this check before the persistence smoke
+            </strong>
+            <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
+              Completed browser summaries deliberately drop raw response traces.
+              The trusted server replay needs the full current-tab route evidence,
+              so MyLearna will not persist a rehydrated summary without those traces.
+            </span>
+          </section>
+        ) : null}
         {canRunStaffPersistenceSmoke ? (
           <section
             style={{
