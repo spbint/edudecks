@@ -1,3 +1,4 @@
+import { EI_V1_POLICY } from "@/lib/clean/ei/policy";
 import type {
   EiEventType,
   EiLearningEvent,
@@ -11,8 +12,6 @@ import type {
   LearnerThreadReferenceV1,
   LearnerThreadV1,
 } from "@/lib/clean/learnerThread/types";
-
-const LEARNER_THREAD_EI_ADAPTER_VERSION = "learner-thread-ei-v1";
 
 const COMPETENCY_REFERENCE_PRIORITY = [
   "pathway_step",
@@ -36,6 +35,13 @@ function normalizeState(value: unknown) {
 function numeric(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function includesState(
+  states: readonly string[],
+  value: string,
+) {
+  return states.includes(value);
 }
 
 function productForThread(thread: LearnerThreadV1): EiProduct {
@@ -84,13 +90,9 @@ function resolveCompetencyReference(fact: LearnerThreadFactV1) {
 
 function adultJudgementSignal(state: unknown): EiLearningSignal {
   const normalized = normalizeState(state);
+  const policy = EI_V1_POLICY.adultJudgement;
 
-  if (
-    normalized === "secure" ||
-    normalized === "strong" ||
-    normalized === "goal achieved" ||
-    normalized === "goal achieved + extension"
-  ) {
+  if (includesState(policy.positiveHigh, normalized)) {
     return {
       polarity: 1,
       strength: "high",
@@ -98,7 +100,7 @@ function adultJudgementSignal(state: unknown): EiLearningSignal {
     };
   }
 
-  if (normalized === "consolidating") {
+  if (includesState(policy.positiveModerate, normalized)) {
     return {
       polarity: 1,
       strength: "moderate",
@@ -106,11 +108,7 @@ function adultJudgementSignal(state: unknown): EiLearningSignal {
     };
   }
 
-  if (
-    normalized === "beginning" ||
-    normalized === "needs support" ||
-    normalized === "still developing"
-  ) {
+  if (includesState(policy.negativeModerate, normalized)) {
     return {
       polarity: -1,
       strength: "moderate",
@@ -118,10 +116,7 @@ function adultJudgementSignal(state: unknown): EiLearningSignal {
     };
   }
 
-  if (
-    normalized === "developing" ||
-    normalized === "working towards"
-  ) {
+  if (includesState(policy.nonDirectional, normalized)) {
     return {
       polarity: 0,
       strength: "moderate",
@@ -159,8 +154,9 @@ function assessmentAttemptSignal(
 
   const correctRatio = Math.max(0, correct) / autoScorable;
   const strength = reviewNeeded > 0 ? "low" : "moderate";
+  const policy = EI_V1_POLICY.assessment;
 
-  if (correctRatio >= 0.8) {
+  if (correctRatio >= policy.positiveCorrectRatioAtOrAbove) {
     return {
       polarity: 1,
       strength,
@@ -169,7 +165,7 @@ function assessmentAttemptSignal(
     };
   }
 
-  if (correctRatio <= 0.4) {
+  if (correctRatio <= policy.negativeCorrectRatioAtOrBelow) {
     return {
       polarity: -1,
       strength,
@@ -210,7 +206,10 @@ function eventDescriptor(fact: LearnerThreadFactV1): {
   ) {
     if (
       fact.kind === "assessment_status_recorded" &&
-      normalizeState(fact.explicitValue.state) === "not assessed yet"
+      includesState(
+        EI_V1_POLICY.adultJudgement.ignored,
+        normalizeState(fact.explicitValue.state),
+      )
     ) {
       return null;
     }
@@ -289,7 +288,9 @@ export function buildEiEventsFromLearnerThread(
           originType: sourceRecord.type,
           originTable: originTableForReference(sourceRecord),
           originRecordId: sourceId,
-          adapterVersion: LEARNER_THREAD_EI_ADAPTER_VERSION,
+          adapterVersion:
+            EI_V1_POLICY.learnerThreadAdapterVersion,
+          policyVersion: EI_V1_POLICY.policyVersion,
         },
         metadata: {
           learnerThreadFactId: fact.id,
