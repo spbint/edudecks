@@ -101,11 +101,20 @@ describe("Number & Operations executable P0 anchor items", () => {
   });
 
 
-  it("keeps Counting P1 on number-word recognition rather than pulling P2 subitising down a level", () => {
+  it("keeps Counting P1 across its two QCAA indicator families: number words and pre-counting subitising", () => {
     const items = NUMBER_OPERATIONS_SEARCH_CLUSTERS["counting-processes-p1"];
     expect(items).toHaveLength(2);
-    expect(items.every((item) => item.stimulus.type === "none")).toBe(true);
-    expect(items.every((item) => item.skill.name.toLowerCase().includes("number word"))).toBe(true);
+    expect(items[0]).toMatchObject({
+      prompt: "Which word is a number word?",
+      stimulus: { type: "none" },
+    });
+    expect(items[1]).toMatchObject({
+      prompt: "Which numeral matches the collection?",
+      stimulus: {
+        type: "counter-set",
+        data: { quantity: 3, arrangement: "dice", maxQuantity: 3 },
+      },
+    });
     expect(items.every((item) => item.analytics?.tags?.includes("hybrid-routing-only"))).toBe(true);
   });
 
