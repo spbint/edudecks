@@ -178,6 +178,41 @@ const MATHS_STARTING_POINT_STRANDS = new Set([
   "financial-and-real-world-mathematics",
 ]);
 
+const MATHS_STARTING_POINT_FOCUSED_AREAS: Record<
+  string,
+  Array<{
+    area:
+      | "number-place-value"
+      | "additive-strategies"
+      | "multiplicative-strategies"
+      | "understanding-money";
+    label: string;
+  }>
+> = {
+  "number-and-place-value": [
+    {
+      area: "number-place-value",
+      label: "Check Number & place value",
+    },
+  ],
+  "operations-and-calculation": [
+    {
+      area: "additive-strategies",
+      label: "Check addition & subtraction",
+    },
+    {
+      area: "multiplicative-strategies",
+      label: "Check multiplication & division",
+    },
+  ],
+  "financial-and-real-world-mathematics": [
+    {
+      area: "understanding-money",
+      label: "Check Money",
+    },
+  ],
+};
+
 const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
 const PATHWAYS_INTERACTION_STORAGE_KEY = "mylearna:clean-pathways-interaction:v1";
 const PATHWAYS_MANUAL_COMPLETION_STORAGE_KEY =
@@ -3234,14 +3269,30 @@ function PathwaysWorkspaceBody() {
                         a useful starting point for {selectedLearnerLabel} without turning
                         the result into one overall Maths level.
                       </span>
-                      <Link
-                        href={`/assessments/maths-starting-point?${new URLSearchParams({
-                          learnerId: selectedLearner.id,
-                        }).toString()}`}
-                        style={{ ...buttonStyle, width: "fit-content" }}
-                      >
-                        Find a starting point
-                      </Link>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {(MATHS_STARTING_POINT_FOCUSED_AREAS[
+                          selectedSubjectWorkspace.key
+                        ] || []).map((focus) => (
+                          <Link
+                            key={focus.area}
+                            href={`/assessments/maths-starting-point?${new URLSearchParams({
+                              learnerId: selectedLearner.id,
+                              area: focus.area,
+                            }).toString()}`}
+                            style={{ ...buttonStyle, width: "fit-content" }}
+                          >
+                            {focus.label}
+                          </Link>
+                        ))}
+                        <Link
+                          href={`/assessments/maths-starting-point?${new URLSearchParams({
+                            learnerId: selectedLearner.id,
+                          }).toString()}`}
+                          style={{ ...secondaryButtonStyle, width: "fit-content" }}
+                        >
+                          Full five-area picture
+                        </Link>
+                      </div>
                     </section>
                   ) : null}
 

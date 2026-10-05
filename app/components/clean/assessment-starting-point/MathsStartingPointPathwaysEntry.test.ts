@@ -20,9 +20,14 @@ describe("Maths starting-point My Pathways entry", () => {
 
   it("links the selected learner into the staff-only Maths starting-point utility", () => {
     expect(source).toContain("Staff preview · Number & Operations starting point");
-    expect(source).toContain("Find a starting point");
     expect(source).toContain("/assessments/maths-starting-point?");
     expect(source).toContain("learnerId: selectedLearner.id");
+    expect(source).toContain("MATHS_STARTING_POINT_FOCUSED_AREAS");
+    expect(source).toContain("Check Number & place value");
+    expect(source).toContain("Check addition & subtraction");
+    expect(source).toContain("Check multiplication & division");
+    expect(source).toContain("Check Money");
+    expect(source).toContain("Full five-area picture");
   });
 });
 
@@ -36,4 +41,16 @@ it("shows the entry only in the three Mathematics strands actually covered by v1
     "MATHS_STARTING_POINT_STRANDS.has(selectedSubjectWorkspace.key)",
   );
   expect(source).not.toContain('"geometry-spatial-reasoning",\n]);');
+});
+
+
+it("maps the three live Number & Operations strands to relevant focused checks", () => {
+  expect(source).toContain('"number-and-place-value": [');
+  expect(source).toContain('area: "number-place-value"');
+  expect(source).toContain('"operations-and-calculation": [');
+  expect(source).toContain('area: "additive-strategies"');
+  expect(source).toContain('area: "multiplicative-strategies"');
+  expect(source).toContain('"financial-and-real-world-mathematics": [');
+  expect(source).toContain('area: "understanding-money"');
+  expect(source).toContain("area: focus.area");
 });
