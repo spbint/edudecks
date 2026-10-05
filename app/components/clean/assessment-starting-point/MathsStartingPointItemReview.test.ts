@@ -38,3 +38,9 @@ describe("Maths starting-point staff item review", () => {
     expect(viewer).toContain("Trusted asset pending review");
   });
 });
+
+
+it("can narrow the review queue to items with explicit trust flags", () => {
+  expect(viewer).toContain("Needs attention only");
+  expect(viewer).toContain("attentionOnly && !flags.length");
+});

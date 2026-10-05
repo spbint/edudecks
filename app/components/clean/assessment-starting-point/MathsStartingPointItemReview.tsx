@@ -61,6 +61,7 @@ export default function MathsStartingPointItemReview() {
   const [poolKind, setPoolKind] = useState<"all" | NumberOperationsPlacementPoolKind>("all");
   const [pLevel, setPLevel] = useState("all");
   const [status, setStatus] = useState("all");
+  const [attentionOnly, setAttentionOnly] = useState(false);
   const [query, setQuery] = useState("");
 
   const rows = useMemo(() => {
@@ -71,6 +72,11 @@ export default function MathsStartingPointItemReview() {
       if (poolKind !== "all" && entry.poolKind !== poolKind) return false;
       if (pLevel !== "all" && String(parsed.pLevel ?? "") !== pLevel) return false;
       if (status !== "all" && entry.item.status !== status) return false;
+      const flags = reviewFlags(
+        entry.item.id,
+        entry.item.analytics?.tags || [],
+      );
+      if (attentionOnly && !flags.length) return false;
       if (
         q &&
         ![
@@ -87,7 +93,7 @@ export default function MathsStartingPointItemReview() {
       }
       return true;
     });
-  }, [area, pLevel, poolKind, query, status]);
+  }, [area, attentionOnly, pLevel, poolKind, query, status]);
 
   const distinctPLevels = Array.from(
     new Set(
@@ -165,6 +171,22 @@ export default function MathsStartingPointItemReview() {
                 <option key={value} value={value}>{value}</option>
               ))}
             </select>
+          </label>
+          <label
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              alignSelf: "end",
+              minHeight: 44,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={attentionOnly}
+              onChange={(event) => setAttentionOnly(event.target.checked)}
+            />
+            <strong>Needs attention only</strong>
           </label>
           <label style={{ display: "grid", gap: 5 }}>
             <strong>Search</strong>
