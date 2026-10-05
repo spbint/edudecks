@@ -364,6 +364,26 @@ it("builds focused profiles against the requested scope rather than the full fiv
 });
 
 
+it("does not allow a rehydrated completed summary to bypass trusted route replay", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      "app/components/clean/assessment-starting-point/AssessmentNumberOperationsBaselineRunner.tsx",
+    ),
+    "utf8",
+  );
+
+  expect(source).toContain("replayTraceCount");
+  expect(source).toContain("replayTraceCount === order.length");
+  expect(source).toContain("persistenceReplayRequired");
+  expect(source).toContain(
+    "Completed browser summaries deliberately drop raw response traces",
+  );
+  expect(source).toContain(
+    "MyLearna will not persist a rehydrated summary without those traces",
+  );
+});
+
 it("keeps the persistence smoke control staff-only, idempotent and tied to canonical family/learner context", () => {
   const source = readFileSync(
     join(
