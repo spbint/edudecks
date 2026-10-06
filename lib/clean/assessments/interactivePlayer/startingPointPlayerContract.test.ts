@@ -4,6 +4,7 @@ import {
   ADDITIVE_P6_ANCHOR_ITEMS,
   ADDITIVE_P9_ANCHOR_ITEMS,
   COUNTING_P2_ANCHOR_ITEMS,
+  COUNTING_P5_ANCHOR_ITEMS,
   MONEY_P2_ANCHOR_ITEMS,
   NPV_P3_ANCHOR_ITEMS,
   NPV_P9_ANCHOR_ITEMS,
@@ -76,6 +77,7 @@ describe("Starting Point interactive player contract", () => {
   it("preserves practical-observation flags for inaccessible visual constructs", () => {
     for (const item of [
       COUNTING_P2_ANCHOR_ITEMS[0],
+      COUNTING_P5_ANCHOR_ITEMS[1],
       NPV_P3_ANCHOR_ITEMS[1],
       MONEY_P2_ANCHOR_ITEMS[0],
     ]) {

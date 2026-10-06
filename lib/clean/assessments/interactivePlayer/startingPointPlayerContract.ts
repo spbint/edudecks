@@ -56,7 +56,9 @@ export function adaptAssessmentItemForStartingPointPlayer(
     stimulus: item.stimulus,
     allowsMultiple: item.response.type === "multiple-choice",
     requiresPracticalAlternative:
-      item.analytics?.tags?.includes("separate-accessible-form-required") ??
+      item.analytics?.tags?.some((tag) =>
+        tag.includes("separate-accessible-form-required"),
+      ) ??
       false,
   };
 }
