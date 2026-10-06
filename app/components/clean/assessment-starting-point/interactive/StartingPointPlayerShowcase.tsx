@@ -7,18 +7,22 @@ import StartingPointPlayer from "./StartingPointPlayer";
 type ShowcaseItem = {
   label: string;
   item: MyLearnaAssessmentItem;
+  variants?: MyLearnaAssessmentItem[];
 };
 
 const viewportOptions = [
   { label: "Phone · 390px", width: 390 },
   { label: "Large phone · 430px", width: 430 },
-  { label: "Desktop · 760px", width: 760 },
+  { label: "Tablet · 768px", width: 768 },
+  { label: "Desktop · 1024px", width: 1024 },
 ] as const;
 
 export default function StartingPointPlayerShowcase({ items }: { items: ShowcaseItem[] }) {
   const [frameWidth, setFrameWidth] = useState<number>(390);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [variantIndex, setVariantIndex] = useState(0);
   const selected = items[selectedIndex];
+  const activeItem = selected?.variants?.[variantIndex] ?? selected?.item;
 
   return (
     <main style={{ minHeight: "100vh", background: "#F4F2FA", padding: "clamp(16px, 4vw, 42px)" }}>
@@ -64,7 +68,10 @@ export default function StartingPointPlayerShowcase({ items }: { items: Showcase
               key={item.id}
               type="button"
               aria-pressed={selectedIndex === index}
-              onClick={() => setSelectedIndex(index)}
+              onClick={() => {
+                setSelectedIndex(index);
+                setVariantIndex(0);
+              }}
               style={{
                 minHeight: 48,
                 border: selectedIndex === index ? "2px solid #17204B" : "1px solid #D9DDE8",
@@ -82,11 +89,28 @@ export default function StartingPointPlayerShowcase({ items }: { items: Showcase
         </nav>
 
         {selected ? (
-          <section key={selected.item.id} style={{ display: "grid", gap: 12 }}>
+          <section style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, color: "#17204B", fontSize: 20 }}>{selected.label}</h2>
-              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 800 }}>Review frame: {frameWidth}px</span>
+              <div style={{ display: "grid", gap: 4 }}>
+                <h2 style={{ margin: 0, color: "#17204B", fontSize: 20 }}>{selected.label}</h2>
+                <span style={{ color: "#64748B", fontSize: 12, fontWeight: 750 }}>Staff review chrome — learner surface begins inside the frame.</span>
+              </div>
+              <span style={{ border: "1px solid #D9D0FF", borderRadius: 999, padding: "6px 10px", background: "#F8F6FF", color: "#5535DF", fontSize: 12, fontWeight: 850 }}>Viewport {frameWidth}px</span>
             </div>
+            <div aria-label="Visual quality checks" style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {["Touch targets", "Text wrapping", "Stimulus fit", "No horizontal scroll"].map((label) => (
+                <span key={label} style={{ borderRadius: 999, padding: "5px 9px", background: "#FFFFFF", border: "1px solid #E1E5EE", color: "#5B6478", fontSize: 11, fontWeight: 800 }}>{label}</span>
+              ))}
+            </div>
+            {selected.variants && selected.variants.length > 1 ? (
+              <nav aria-label={`${selected.label} review variants`} style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {selected.variants.map((variant, index) => (
+                  <button key={variant.id} type="button" aria-pressed={variantIndex === index} onClick={() => setVariantIndex(index)} style={{ minHeight: 40, border: variantIndex === index ? "2px solid #6C4DF6" : "1px solid #D9DDE8", borderRadius: 12, padding: "7px 10px", background: variantIndex === index ? "#EEE9FF" : "#FFFFFF", color: "#17204B", fontWeight: 800, cursor: "pointer" }}>
+                    Currency variant {index + 1}
+                  </button>
+                ))}
+              </nav>
+            ) : null}
             <div
               data-review-width={frameWidth}
               style={{
@@ -99,7 +123,8 @@ export default function StartingPointPlayerShowcase({ items }: { items: Showcase
               }}
             >
               <StartingPointPlayer
-                item={selected.item}
+                key={activeItem.id}
+                item={activeItem}
                 progress={{ current: selectedIndex + 1, total: items.length }}
               />
             </div>

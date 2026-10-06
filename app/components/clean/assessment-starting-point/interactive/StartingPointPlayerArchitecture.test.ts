@@ -22,6 +22,10 @@ const showcaseSource = readFileSync(
   join(componentDirectory, "StartingPointPlayerShowcase.tsx"),
   "utf8",
 );
+const designSystemSource = readFileSync(
+  join(componentDirectory, "startingPointPlayerDesignSystem.ts"),
+  "utf8",
+);
 const routeSource = readFileSync(
   join(
     process.cwd(),
@@ -48,6 +52,7 @@ describe("Starting Point player architecture", () => {
       "scoreAssessmentItem",
     ]) {
       expect(stageSource, forbidden).not.toContain(forbidden);
+      expect(designSystemSource, forbidden).not.toContain(forbidden);
     }
   });
 
@@ -58,6 +63,8 @@ describe("Starting Point player architecture", () => {
     expect(playerSource).not.toContain("className={styles.choices}");
     expect(playerSource).not.toContain("Response recorded");
     expect(playerSource).not.toContain("selectedOptionIds={selectedOptionIds}");
+    expect(stageSource).toContain("model.options.length === 0");
+    expect(stageSource).toContain("responseValue: numericValue");
   });
 
   it("keeps keyboard and practical alternatives secondary and explicit", () => {
@@ -69,6 +76,9 @@ describe("Starting Point player architecture", () => {
   it("keeps the showcase staff-only and noindex", () => {
     expect(routeSource).toContain('<AssessmentAccessGate mode="lab">');
     expect(routeSource).toContain("robots: { index: false, follow: false }");
+    expect(routeSource).toContain("MONEY_P1_SEARCH_ITEMS[1]");
+    expect(routeSource).toContain("MONEY_P2_ANCHOR_ITEMS[0]");
+    expect(routeSource).toContain("MONEY_P2_ANCHOR_ITEMS[1]");
   });
 
   it("provides explicit 390px, 430px and desktop review frames", () => {
@@ -76,9 +86,34 @@ describe("Starting Point player architecture", () => {
     expect(showcaseSource).toContain(
       'label: "Large phone · 430px", width: 430',
     );
-    expect(showcaseSource).toContain('label: "Desktop · 760px", width: 760');
+    expect(showcaseSource).toContain('label: "Tablet · 768px", width: 768');
+    expect(showcaseSource).toContain(
+      'label: "Desktop · 1024px", width: 1024',
+    );
     expect(playerStyles).toContain("@media (max-width: 430px)");
-    expect(playerStyles).toContain("min-height: 50px");
+    expect(playerStyles).toContain("min-height: 52px");
+  });
+
+  it("centralises reusable visual and motion primitives", () => {
+    for (const primitive of [
+      "createChoiceCard",
+      "createPrimaryAction",
+      "createDropSlot",
+      "createCounter",
+      "createUnitCube",
+      "createTenRod",
+      "createHundredFlat",
+      "createThousandCube",
+      "createCurrencyToken",
+    ]) {
+      expect(designSystemSource).toContain(`function ${primitive}`);
+      expect(stageSource).toContain(`${primitive}(`);
+    }
+    expect(designSystemSource).toContain("PLAYER_MOTION");
+    expect(stageSource).toContain(
+      'matchMedia("(prefers-reduced-motion: reduce)")',
+    );
+    expect(playerStyles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
   it("uses an immersive application shell while the learner player is active", () => {

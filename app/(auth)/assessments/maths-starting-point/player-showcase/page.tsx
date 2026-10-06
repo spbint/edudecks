@@ -5,6 +5,7 @@ import {
   ADDITIVE_P6_ANCHOR_ITEMS,
   ADDITIVE_P9_ANCHOR_ITEMS,
   COUNTING_P2_ANCHOR_ITEMS,
+  MONEY_P1_SEARCH_ITEMS,
   MONEY_P2_ANCHOR_ITEMS,
   NPV_P3_ANCHOR_ITEMS,
   NPV_P9_ANCHOR_ITEMS,
@@ -22,7 +23,15 @@ const showcaseItems = [
   { label: "Counter counting", item: COUNTING_P2_ANCHOR_ITEMS[0] },
   { label: "Drag to order", item: NPV_P9_ANCHOR_ITEMS[0] },
   { label: "Place value", item: NPV_P3_ANCHOR_ITEMS[1] },
-  { label: "Australian currency", item: MONEY_P2_ANCHOR_ITEMS[0] },
+  {
+    label: "Australian currency",
+    item: MONEY_P1_SEARCH_ITEMS[1],
+    variants: [
+      MONEY_P1_SEARCH_ITEMS[1],
+      MONEY_P2_ANCHOR_ITEMS[0],
+      MONEY_P2_ANCHOR_ITEMS[1],
+    ],
+  },
 ];
 
 export default function MathsStartingPointPlayerShowcasePage() {

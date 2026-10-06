@@ -1,16 +1,22 @@
 .shell {
+  --player-ink: #17204b;
+  --player-slate: #667085;
+  --player-purple: #6c4df6;
+  --player-purple-deep: #5535df;
+  --player-lavender: #eee9ff;
+  --player-line: #dfe3ec;
   width: min(100%, 720px);
   min-width: 0;
   min-height: min(780px, calc(100dvh - 24px));
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
   align-content: start;
-  gap: 14px;
+  gap: 16px;
   padding: clamp(18px, 4vw, 30px);
-  border: 1px solid #e4e0f5;
-  border-radius: 28px;
-  background: linear-gradient(160deg, #ffffff 0%, #fbfaff 100%);
-  box-shadow: 0 24px 64px rgba(23, 32, 75, 0.11);
+  border: 1px solid #e5e1f5;
+  border-radius: 30px;
+  background: #fdfcff;
+  box-shadow: 0 26px 70px rgba(23, 32, 75, 0.12), 0 2px 8px rgba(23, 32, 75, 0.04);
   color: #17204b;
   box-sizing: border-box;
   overflow: hidden;
@@ -23,48 +29,54 @@
 :global(body.starting-point-player-active .mylearna-v2-content-main) { padding: 0 !important; }
 :global(body.starting-point-player-active .mylearna-v2-content-inner) { max-width: none !important; gap: 0 !important; }
 
-.topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.questionCount { color: #6b7280; font-size: 13px; font-weight: 800; }
-.pause { min-height: 40px; border: 0; background: transparent; color: #5b3be8; font: 800 13px/1 Arial, sans-serif; cursor: pointer; }
+.topline { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 12px; }
+.questionCount { color: var(--player-slate); font-size: 13px; font-weight: 800; letter-spacing: 0.01em; }
+.pause { min-height: 42px; border: 1px solid #e1dcf5; border-radius: 13px; padding: 0 13px; background: #fff; color: var(--player-purple-deep); font: 800 13px/1 Arial, sans-serif; cursor: pointer; box-shadow: 0 3px 8px rgba(23, 32, 75, 0.05); transition: transform 95ms ease, border-color 150ms ease, background 150ms ease; }
+.pause:hover { border-color: #b9a8ff; background: #f8f6ff; }
+.pause:active { transform: translateY(2px) scale(0.985); }
 .pause:focus-visible { outline: 3px solid rgba(108, 77, 246, 0.25); outline-offset: 3px; border-radius: 8px; }
-.progressTrack { height: 4px; overflow: hidden; border-radius: 999px; background: #ece9f7; }
+.progressTrack { height: 5px; overflow: hidden; border-radius: 999px; background: #ece9f7; box-shadow: inset 0 1px 2px rgba(23, 32, 75, 0.08); }
 .progressFill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #6c4df6, #947cf8); transition: width 240ms ease; }
-.questionHeader { display: grid; gap: 7px; }
+.questionHeader { display: grid; gap: 8px; padding: 2px 2px 0; }
 .eyebrow { color: #6c4df6; font-size: 11px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
-.prompt { margin: 0; max-width: 28ch; color: #17204b; font-size: clamp(25px, 6vw, 38px); line-height: 1.12; letter-spacing: -0.025em; }
+.prompt { margin: 0; max-width: 30ch; color: var(--player-ink); font-size: clamp(25px, 6vw, 38px); font-weight: 820; line-height: 1.14; letter-spacing: -0.025em; text-wrap: balance; }
 
 .phaserHost {
   width: 100%; min-height: 210px; overflow: hidden; border: 1px solid #ded8f7;
-  border-radius: 24px; background: #f8f6ff; touch-action: none;
+  border-radius: 26px; background: #f8f6ff; box-shadow: inset 0 1px 0 #fff, 0 10px 30px rgba(23, 32, 75, 0.055); touch-action: none;
 }
 .phaserHost canvas { display: block; max-width: 100%; }
 .loading { min-height: 260px; display: grid; place-items: center; border-radius: 24px; background: #f8f6ff; color: #6c4df6; font-weight: 800; }
 
 .numericStage {
-  display: grid; gap: 12px; padding: 18px; border: 1px solid #ded8f7; border-radius: 24px;
-  background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f8f6ff 72%);
+  display: grid; gap: 14px; padding: 18px; border: 1px solid #ded8f7; border-radius: 26px;
+  background: #f8f6ff; box-shadow: inset 0 1px 0 #fff, 0 10px 30px rgba(23, 32, 75, 0.055);
   animation: enter 220ms ease-out both;
 }
+.stimulusNumericStage { padding: 12px; }
+.stimulusNumericStage .phaserHost { border: 0; box-shadow: none; }
 .numericDisplay {
-  min-height: 82px; display: grid; place-items: center; overflow: hidden; border: 2px solid #d9d0ff;
-  border-radius: 20px; background: #fff; color: #17204b; font: 900 clamp(32px, 10vw, 48px)/1.1 Arial, sans-serif;
-  box-shadow: inset 0 1px 0 #fff, 0 10px 28px rgba(23, 32, 75, 0.07);
+  min-height: 92px; display: grid; place-items: center; overflow: hidden; border: 2px solid #d9d0ff;
+  border-radius: 21px; background: #fff; color: var(--player-ink); font: 900 clamp(34px, 10vw, 50px)/1.1 Arial, sans-serif;
+  font-variant-numeric: tabular-nums; letter-spacing: 0.02em; box-shadow: inset 0 -3px 0 rgba(108, 77, 246, 0.05), 0 8px 20px rgba(23, 32, 75, 0.07);
 }
 .numericDisplay span { color: #9ca3af; font-size: 17px; font-weight: 750; }
-.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
 .keypad button, .playerContinue {
-  min-height: 52px; border-radius: 15px; font: 850 18px/1 Arial, sans-serif; cursor: pointer;
+  min-height: 56px; border-radius: 16px; font: 850 19px/1 Arial, sans-serif; cursor: pointer;
   transition: transform 90ms ease, border-color 120ms ease, background 120ms ease;
 }
-.keypad button { border: 1px solid #d8dce7; background: #fff; color: #17204b; box-shadow: 0 3px 0 #e2e5ed; }
+.keypad button { border: 1px solid #d8dce7; background: #fff; color: var(--player-ink); box-shadow: 0 4px 0 #dfe2eb, 0 6px 12px rgba(23, 32, 75, 0.06); }
 .keypad button:hover, .keypad button:focus-visible { border-color: #8d75f7; background: #f4f1ff; }
-.keypad button:active, .playerContinue:active { transform: translateY(2px) scale(0.985); }
-.keypad .backspace { grid-column: 1 / -1; min-height: 44px; color: #5b3be8; font-size: 14px; }
-.playerContinue { border: 0; background: #17204b; color: #fff; box-shadow: 0 8px 20px rgba(23, 32, 75, 0.2); }
+.keypad button:active { transform: translateY(3px) scale(0.985); box-shadow: 0 1px 0 #dfe2eb; }
+.playerContinue:active { transform: translateY(3px) scale(0.99); box-shadow: 0 3px 10px rgba(23, 32, 75, 0.18); }
+.keypad .backspace { grid-column: 1 / -1; min-height: 46px; color: var(--player-purple-deep); font-size: 14px; box-shadow: 0 3px 0 #e3def7; }
+.playerContinue { border: 0; background: var(--player-ink); color: #fff; box-shadow: 0 5px 0 #0e1537, 0 10px 22px rgba(23, 32, 75, 0.18); }
 .playerContinue:disabled { cursor: not-allowed; opacity: 0.38; box-shadow: none; }
 
 .accessibleFallback, .practical { border-top: 1px solid #eeeaf8; color: #687086; font-size: 13px; }
-.accessibleFallback summary, .practical summary { min-height: 38px; display: flex; align-items: center; cursor: pointer; font-weight: 800; }
+.accessibleFallback summary, .practical summary { min-height: 42px; display: flex; align-items: center; cursor: pointer; font-weight: 800; border-radius: 10px; }
+.accessibleFallback summary:focus-visible, .practical summary:focus-visible { outline: 3px solid rgba(108, 77, 246, 0.24); outline-offset: 2px; }
 .fallbackBody, .practicalBody { display: grid; gap: 10px; padding: 4px 0 10px; }
 .fallbackLabel { display: grid; gap: 6px; font-weight: 800; }
 .fallbackInput { min-height: 48px; border: 2px solid #d9d0ff; border-radius: 12px; padding: 8px 12px; font-size: 22px; }
@@ -82,14 +94,20 @@
 @media (max-width: 430px) {
   .shell {
     width: 100%; min-height: 100dvh; gap: 12px; border: 0; border-radius: 0;
-    padding: max(14px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom)); box-shadow: none;
+    padding: max(12px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom)); box-shadow: none;
   }
   .prompt { font-size: clamp(24px, 7.2vw, 31px); }
   .phaserHost { border-inline: 0; border-radius: 18px; margin-inline: -4px; width: calc(100% + 8px); }
-  .numericStage { padding: 13px; }
-  .keypad button { min-height: 50px; }
+  .numericStage { padding: 13px; gap: 10px; }
+  .numericDisplay { min-height: 78px; }
+  .keypad button { min-height: 52px; }
   .orderRow { grid-template-columns: 26px minmax(0, 1fr); }
   .orderRow button { grid-row: 2; }
+}
+
+@media (min-width: 431px) and (max-width: 800px) {
+  .shell { min-height: min(820px, calc(100dvh - 32px)); padding: 24px; }
+  .prompt { font-size: clamp(29px, 5vw, 36px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
