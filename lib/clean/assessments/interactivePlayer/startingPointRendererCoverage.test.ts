@@ -19,6 +19,11 @@ import {
   getStartingPointRendererQaItems,
   resolveStartingPointRendererCoverage,
 } from "./startingPointRendererCoverage";
+import {
+  classifyStartingPointDevelopmentalAccessibility,
+  getStartingPointReadAloudText,
+  hasStartingPointPresentationStimulus,
+} from "./startingPointDevelopmentalAccessibility";
 
 describe("Starting Point full-estate renderer coverage", () => {
   const inventory = getStartingPointRendererCoverageInventory();
@@ -49,6 +54,57 @@ describe("Starting Point full-estate renderer coverage", () => {
     expect(qaItems.map((entry) => entry.item.id)).toEqual(
       inventory.map((entry) => entry.itemId),
     );
+  });
+
+  it("classifies all 220 items for developmental access and read-aloud support", () => {
+    expect([...summary.developmentalStageCounts.entries()]).toEqual([
+      ["junior-primary-p1", 20],
+      ["junior-primary-p2", 20],
+      ["junior-primary-p3", 22],
+      ["developing-p4-p6", 79],
+      ["extending-p7-p10", 79],
+    ]);
+    expect([...summary.readAloudCounts.entries()]).toEqual([
+      ["listen-essential", 20],
+      ["listen-recommended", 42],
+      ["listen-available", 158],
+    ]);
+    expect(inventory.every((entry) => entry.developmentalStage && entry.readAloud)).toBe(true);
+  });
+
+  it("adds a separate presentation stimulus to junior items that name unseen objects or groups", () => {
+    const qaItems = getStartingPointRendererQaItems();
+    const remediated = qaItems.filter((entry) => entry.coverage.stimulusCoverage === "presentation-visual");
+    expect(remediated).toHaveLength(30);
+    expect([...summary.stimulusCoverageCounts.entries()]).toEqual([
+      ["presentation-visual", 30],
+      ["text-or-symbol-sufficient", 171],
+      ["canonical-visual", 19],
+    ]);
+
+    const visualLanguage = /\b(counter|counters|collection|group|groups|pack|packs|box|boxes|token|tokens)\b/i;
+    const juniorVisualClaims = qaItems.filter(({ item, coverage }) =>
+      coverage.developmentalStage.startsWith("junior-primary") && visualLanguage.test(item.prompt),
+    );
+    for (const { item, coverage } of juniorVisualClaims) {
+      expect(coverage.stimulusCoverage, item.id).not.toBe("text-or-symbol-sufficient");
+      expect(
+        item.stimulus.type !== "none" || hasStartingPointPresentationStimulus(item.id),
+        item.id,
+      ).toBe(true);
+    }
+  });
+
+  it("creates answer-safe read-aloud text without visual descriptions or answer keys", () => {
+    for (const { item } of getStartingPointRendererQaItems()) {
+      const classification = classifyStartingPointDevelopmentalAccessibility(item);
+      const readAloudText = getStartingPointReadAloudText(item);
+      expect(classification.readAloud).toMatch(/^listen-/);
+      expect(readAloudText).toContain(item.prompt);
+      expect(readAloudText).not.toContain("correctOptionIds");
+      expect(readAloudText).not.toContain("correctValue");
+      expect(readAloudText).not.toContain("altText");
+    }
   });
 
   it("covers every electronic item and explicitly classifies practical evidence", () => {
@@ -135,7 +191,7 @@ describe("Starting Point full-estate renderer coverage", () => {
     const report = formatStartingPointRendererCoverageMatrix();
     expect(report.split("\n")).toHaveLength(inventory.length + 1);
     expect(report).toContain(
-      "continuum\tprogression\titem_id\tversion\trole\tform\tresponse\tstimulus\tevidence\trenderer",
+      "continuum\tprogression\titem_id\tversion\trole\tform\tresponse\tstimulus\tevidence\trenderer\tdevelopmental_stage\tread_aloud\tstimulus_coverage",
     );
     for (const continuum of [
       "number-place-value",

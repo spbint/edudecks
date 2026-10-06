@@ -3,6 +3,11 @@ import type {
   MyLearnaAssessmentResponse,
 } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import { scoreAssessmentItem } from "@/lib/clean/assessments/mylearnaAssessScoring";
+import {
+  classifyStartingPointDevelopmentalAccessibility,
+  type StartingPointPresentationStimulus,
+  type StartingPointReadAloudClassification,
+} from "./startingPointDevelopmentalAccessibility";
 
 export type StartingPointInteractionKind =
   | "multiple-choice"
@@ -28,6 +33,8 @@ export type StartingPointPlayerModel = {
   stimulus: MyLearnaAssessmentItem["stimulus"];
   allowsMultiple: boolean;
   requiresPracticalAlternative: boolean;
+  presentationStimulus: StartingPointPresentationStimulus | null;
+  readAloud: StartingPointReadAloudClassification;
 };
 
 export function inferStartingPointInteraction(
@@ -44,6 +51,7 @@ export function inferStartingPointInteraction(
 export function adaptAssessmentItemForStartingPointPlayer(
   item: MyLearnaAssessmentItem,
 ): StartingPointPlayerModel {
+  const accessibility = classifyStartingPointDevelopmentalAccessibility(item);
   return {
     kind: inferStartingPointInteraction(item),
     itemId: item.id,
@@ -60,6 +68,8 @@ export function adaptAssessmentItemForStartingPointPlayer(
         tag.includes("separate-accessible-form-required"),
       ) ??
       false,
+    presentationStimulus: accessibility.presentationStimulus,
+    readAloud: accessibility.readAloud,
   };
 }
 

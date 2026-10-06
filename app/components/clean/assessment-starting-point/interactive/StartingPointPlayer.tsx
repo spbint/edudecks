@@ -11,6 +11,7 @@ import {
   scoreStartingPointPlayerAnswer,
   type StartingPointPlayerAnswer,
 } from "@/lib/clean/assessments/interactivePlayer/startingPointPlayerContract";
+import { getStartingPointReadAloudText } from "@/lib/clean/assessments/interactivePlayer/startingPointDevelopmentalAccessibility";
 import styles from "./StartingPointPlayer.module.css";
 
 const PhaserAssessmentStage = dynamic(() => import("./PhaserAssessmentStage"), {
@@ -48,6 +49,7 @@ export default function StartingPointPlayer({
   const [accessibleOrder, setAccessibleOrder] = useState(() => model.options.map((option) => option.id));
   const [accessibleSelection, setAccessibleSelection] = useState<string[]>([]);
   const [accessibleValue, setAccessibleValue] = useState("");
+  const [isListening, setIsListening] = useState(false);
   const progressPercent = Math.max(0, Math.min(100, (progress.current / Math.max(1, progress.total)) * 100));
 
   useEffect(() => {
@@ -58,6 +60,24 @@ export default function StartingPointPlayer({
     document.body.classList.add("starting-point-player-active");
     return () => document.body.classList.remove("starting-point-player-active");
   }, []);
+
+  useEffect(() => () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [model.itemId]);
+
+  function listen() {
+    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(getStartingPointReadAloudText(item));
+    utterance.lang = "en-AU";
+    utterance.rate = 0.9;
+    utterance.onstart = () => setIsListening(true);
+    utterance.onend = () => setIsListening(false);
+    utterance.onerror = () => setIsListening(false);
+    window.speechSynthesis.speak(utterance);
+  }
 
   function submit(answer: StartingPointPlayerAnswer) {
     const response = scoreStartingPointPlayerAnswer({
@@ -87,7 +107,18 @@ export default function StartingPointPlayer({
         <div className={styles.progressFill} style={{ width: `${progressPercent}%` }} />
       </div>
       <header className={styles.questionHeader}>
-        <span className={styles.eyebrow}>Maths question</span>
+        <div className={styles.questionTools}>
+          <span className={styles.eyebrow}>Maths question</span>
+          <button
+            className={styles.listenButton}
+            type="button"
+            onClick={listen}
+            aria-pressed={isListening}
+            aria-label={isListening ? "Reading question aloud" : "Listen to the question"}
+          >
+            {isListening ? "Listening…" : "Listen"}
+          </button>
+        </div>
         <h2 className={styles.prompt}>{model.prompt}</h2>
       </header>
 

@@ -13,6 +13,12 @@ import {
   inferStartingPointInteraction,
   type StartingPointInteractionKind,
 } from "./startingPointPlayerContract";
+import {
+  classifyStartingPointDevelopmentalAccessibility,
+  type StartingPointDevelopmentalStage,
+  type StartingPointReadAloudClassification,
+  type StartingPointStimulusCoverage,
+} from "./startingPointDevelopmentalAccessibility";
 
 export type StartingPointContinuum =
   | "number-place-value"
@@ -46,6 +52,9 @@ export type StartingPointRendererCoverageEntry = {
   routingOnlyEvidence: boolean;
   assetType: "none" | "counter" | "place-value" | "australian-currency";
   rendererFamily: StartingPointInteractionKind | null;
+  developmentalStage: StartingPointDevelopmentalStage;
+  readAloud: StartingPointReadAloudClassification;
+  stimulusCoverage: StartingPointStimulusCoverage;
 };
 
 export type StartingPointRendererQaItem = {
@@ -113,6 +122,8 @@ export function resolveStartingPointRendererCoverage(input: {
   const accessibilityLimited = tags.some((tag) =>
     tag.includes("separate-accessible-form-required"),
   );
+  const developmentalAccessibility =
+    classifyStartingPointDevelopmentalAccessibility(item);
 
   if (!practicalOnly && !SUPPORTED_STIMULUS_TYPES.has(item.stimulus.type)) {
     throw new Error(
@@ -152,6 +163,9 @@ export function resolveStartingPointRendererCoverage(input: {
     routingOnlyEvidence: tags.includes("hybrid-routing-only"),
     assetType: assetTypeFor(item.stimulus.type),
     rendererFamily,
+    developmentalStage: developmentalAccessibility.developmentalStage,
+    readAloud: developmentalAccessibility.readAloud,
+    stimulusCoverage: developmentalAccessibility.stimulusCoverage,
   };
 }
 
@@ -271,8 +285,14 @@ export function getStartingPointRendererCoverageSummary() {
     StartingPointContinuum,
     Map<StartingPointInteractionKind, number>
   >();
+  const developmentalStageCounts = new Map<StartingPointDevelopmentalStage, number>();
+  const readAloudCounts = new Map<StartingPointReadAloudClassification, number>();
+  const stimulusCoverageCounts = new Map<StartingPointStimulusCoverage, number>();
 
   for (const entry of inventory) {
+    developmentalStageCounts.set(entry.developmentalStage, (developmentalStageCounts.get(entry.developmentalStage) ?? 0) + 1);
+    readAloudCounts.set(entry.readAloud, (readAloudCounts.get(entry.readAloud) ?? 0) + 1);
+    stimulusCoverageCounts.set(entry.stimulusCoverage, (stimulusCoverageCounts.get(entry.stimulusCoverage) ?? 0) + 1);
     if (!entry.rendererFamily) continue;
     rendererCounts.set(
       entry.rendererFamily,
@@ -308,6 +328,9 @@ export function getStartingPointRendererCoverageSummary() {
     ).length,
     rendererCounts,
     continuumCounts,
+    developmentalStageCounts,
+    readAloudCounts,
+    stimulusCoverageCounts,
   };
 }
 
@@ -323,6 +346,9 @@ export function formatStartingPointRendererCoverageMatrix() {
     "stimulus",
     "evidence",
     "renderer",
+    "developmental_stage",
+    "read_aloud",
+    "stimulus_coverage",
   ].join("\t");
   const rows = getStartingPointRendererCoverageInventory().map((entry) =>
     [
@@ -336,6 +362,9 @@ export function formatStartingPointRendererCoverageMatrix() {
       entry.stimulusType,
       entry.evidenceClassification,
       entry.rendererFamily ?? "practical-only",
+      entry.developmentalStage,
+      entry.readAloud,
+      entry.stimulusCoverage,
     ].join("\t"),
   );
   return [header, ...rows].join("\n");

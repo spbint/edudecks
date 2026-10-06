@@ -6,6 +6,7 @@ import type {
   StartingPointPlayerAnswer,
   StartingPointPlayerModel,
 } from "@/lib/clean/assessments/interactivePlayer/startingPointPlayerContract";
+import type { StartingPointPresentationStimulus } from "@/lib/clean/assessments/interactivePlayer/startingPointDevelopmentalAccessibility";
 import type {
   CounterSetStimulus,
   CurrencyTokenStimulus,
@@ -75,16 +76,82 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
           if (model.kind === "drag-to-order") this.drawOrdering(Phaser);
           else if (model.options.length === 0) this.drawStimulus(Phaser);
           else {
-            const answerTop = model.kind === "multiple-choice" ? 24 : this.drawStimulus(Phaser);
+            const answerTop = model.kind === "multiple-choice" && !model.presentationStimulus
+              ? 24
+              : this.drawStimulus(Phaser);
             this.drawChoices(answerTop);
           }
         }
 
         private drawStimulus(PhaserRuntime: typeof PhaserType) {
+          if (model.presentationStimulus) {
+            this.drawPresentationStimulus(PhaserRuntime, model.presentationStimulus);
+            return 242;
+          }
           if (model.kind === "counter-counting") this.drawCounters();
           if (model.kind === "place-value") this.drawPlaceValue();
           if (model.kind === "australian-currency") this.drawCurrency(PhaserRuntime);
           return 242;
+        }
+
+        private drawPresentationStimulus(
+          PhaserRuntime: typeof PhaserType,
+          stimulus: StartingPointPresentationStimulus,
+        ) {
+          addStageSurface(this, PLAYER_CANVAS_WIDTH / 2, 115, PLAYER_LAYOUT.contentWidth, 196);
+          if (stimulus.type === "currency-repeat") {
+            const spacing = stimulus.count > 4 ? 52 : 68;
+            Array.from({ length: stimulus.count }).forEach((_, index) => {
+              const columns = Math.min(5, stimulus.count);
+              const x = PLAYER_CANVAS_WIDTH / 2 - ((columns - 1) * spacing) / 2 + (index % columns) * spacing;
+              const y = stimulus.count > 5 ? 78 + Math.floor(index / columns) * 76 : 112;
+              createCurrencyToken(this, PhaserRuntime, stimulus.denomination, x, y);
+            });
+            return;
+          }
+
+          const groupCount = stimulus.groups.length;
+          const groupWidth = Math.min(112, 270 / Math.max(1, groupCount));
+          const gap = Math.min(12, (292 - groupCount * groupWidth) / Math.max(1, groupCount - 1));
+          const totalWidth = groupCount * groupWidth + Math.max(0, groupCount - 1) * gap;
+          const startX = (PLAYER_CANVAS_WIDTH - totalWidth) / 2 + groupWidth / 2;
+          stimulus.groups.forEach((quantity, groupIndex) => {
+            const x = startX + groupIndex * (groupWidth + gap);
+            if (stimulus.type === "closed-groups") {
+              const box = this.add.rectangle(x, 111, groupWidth - 5, 112, 0xeee9ff, 1)
+                .setStrokeStyle(2, PLAYER_COLOURS.purple);
+              this.add.rectangle(x, 57, groupWidth - 17, 13, PLAYER_COLOURS.ink, 0.12);
+              this.add.text(x, 103, String(quantity), { color: PLAYER_COLOURS.inkCss, fontFamily: "Arial, sans-serif", fontSize: "28px", fontStyle: "bold" }).setOrigin(0.5);
+              this.add.text(x, 130, stimulus.objectLabel, { color: PLAYER_COLOURS.slateCss, fontFamily: "Arial, sans-serif", fontSize: "10px", fontStyle: "bold" }).setOrigin(0.5);
+              box.setAlpha(0.98);
+              return;
+            }
+            this.add.rectangle(x, 111, groupWidth - 5, 116, 0xf8f6ff, 1)
+              .setStrokeStyle(2, PLAYER_COLOURS.lavenderLine);
+            const columns = quantity > 6 ? 3 : Math.min(3, quantity);
+            const rows = Math.ceil(quantity / Math.max(1, columns));
+            for (let index = 0; index < quantity; index += 1) {
+              const counterX = x - ((columns - 1) * 25) / 2 + (index % columns) * 25;
+              const counterY = 111 - ((rows - 1) * 25) / 2 + Math.floor(index / columns) * 25;
+              const counter = createCounter(this, counterX, counterY).setScale(0.68);
+              if (stimulus.action === "remove" && index >= quantity - (stimulus.removeCount ?? 0)) {
+                counter.setAlpha(0.28);
+                this.add.text(counterX, counterY, "×", { color: "#92400E", fontSize: "19px", fontStyle: "bold" }).setOrigin(0.5);
+              }
+            }
+          });
+          if (stimulus.type === "counter-groups" && stimulus.action === "share") {
+            const recipientCount = stimulus.recipientCount ?? 2;
+            const recipientGap = 30;
+            const recipientStartX = PLAYER_CANVAS_WIDTH / 2 - ((recipientCount - 1) * recipientGap) / 2;
+            for (let index = 0; index < recipientCount; index += 1) {
+              const recipientX = recipientStartX + index * recipientGap;
+              this.add.circle(recipientX, 166, 6, PLAYER_COLOURS.purple, 0.2)
+                .setStrokeStyle(1.5, PLAYER_COLOURS.purple);
+              this.add.arc(recipientX, 181, 10, 200, 340, false, PLAYER_COLOURS.purple, 0.12)
+                .setStrokeStyle(1.5, PLAYER_COLOURS.purple);
+            }
+          }
         }
 
         private makeContinue(y: number, getReady: () => boolean, getIds: () => string[]) {
@@ -292,7 +359,7 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
         }
       }
 
-      const stimulusHeight = model.kind === "multiple-choice" ? 0 : 218;
+      const stimulusHeight = model.kind === "multiple-choice" && !model.presentationStimulus ? 0 : 218;
       const contentHeight = model.kind === "drag-to-order"
         ? 112 + model.options.length * 68
         : model.options.length === 0
@@ -326,7 +393,7 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
       <button className={styles.playerContinue} type="button" disabled={!numericValue || numericValue === "-" || numericValue === "."} onClick={() => submitRef.current({ itemId: model.itemId, itemVersion: model.itemVersion, selectedOptionIds: [], responseValue: numericValue })}>Continue</button>
     </>;
 
-  if (model.kind === "numeric-entry") {
+  if (model.kind === "numeric-entry" && !model.presentationStimulus) {
     return <div className={styles.numericStage} data-player-renderer="phaser-dom-overlay">{numericControls}</div>;
   }
 

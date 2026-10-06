@@ -8,7 +8,15 @@ import StartingPointPlayer from "./StartingPointPlayer";
 type Props = {
   items: StartingPointRendererQaItem[];
   edgeCases: Array<{ label: string; itemId: string }>;
-  summary: { total: number; initial: number; fresh: number; alternatives: number; routingOnly: number };
+  summary: {
+    total: number;
+    initial: number;
+    fresh: number;
+    alternatives: number;
+    routingOnly: number;
+    juniorPrimary: number;
+    remediatedVisuals: number;
+  };
 };
 
 const viewportOptions = [
@@ -39,6 +47,9 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
   const [renderer, setRenderer] = useState("all");
   const [form, setForm] = useState("all");
   const [alternative, setAlternative] = useState("all");
+  const [developmentalStage, setDevelopmentalStage] = useState("all");
+  const [readAloud, setReadAloud] = useState("all");
+  const [stimulusCoverage, setStimulusCoverage] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(items[0]?.item.id ?? "");
 
@@ -48,8 +59,11 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
     (renderer === "all" || coverage.rendererFamily === renderer) &&
     (form === "all" || coverage.form === form) &&
     (alternative === "all" || (alternative === "yes") === coverage.accessibilityLimited) &&
+    (developmentalStage === "all" || coverage.developmentalStage === developmentalStage) &&
+    (readAloud === "all" || coverage.readAloud === readAloud) &&
+    (stimulusCoverage === "all" || coverage.stimulusCoverage === stimulusCoverage) &&
     (!query.trim() || item.id.toLowerCase().includes(query.trim().toLowerCase())),
-  ), [alternative, continuum, form, items, progression, query, renderer]);
+  ), [alternative, continuum, developmentalStage, form, items, progression, query, readAloud, renderer, stimulusCoverage]);
 
   const selected = filtered.find(({ item }) => item.id === selectedId) ?? filtered[0];
   const selectedIndex = selected ? filtered.findIndex(({ item }) => item.id === selected.item.id) : -1;
@@ -60,6 +74,7 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
   function resetFilters(nextItemId?: string) {
     setContinuum("all"); setProgression("all"); setRenderer("all");
     setForm("all"); setAlternative("all"); setQuery("");
+    setDevelopmentalStage("all"); setReadAloud("all"); setStimulusCoverage("all");
     if (nextItemId) setSelectedId(nextItemId);
   }
 
@@ -73,7 +88,7 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
             Review all {summary.total} active canonical items through the production player adapter. This surface saves no evidence and changes no learner pathway.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {[`${summary.initial} initial`, `${summary.fresh} fresh/recheck`, `${summary.alternatives} with another answer path`, `${summary.routingOnly} routing-only evidence`].map((label) =>
+            {[`${summary.initial} initial`, `${summary.fresh} fresh/recheck`, `${summary.juniorPrimary} P1/P2/P3 audit`, `${summary.remediatedVisuals} remediated visuals`, `${summary.alternatives} with another answer path`, `${summary.routingOnly} routing-only evidence`].map((label) =>
               <span key={label} style={{ borderRadius: 999, padding: "6px 10px", background: "#FFFFFF", border: "1px solid #E1E5EE", color: "#4B5563", fontSize: 12, fontWeight: 800 }}>{label}</span>
             )}
           </div>
@@ -87,11 +102,20 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
             <label style={{ display: "grid", gap: 5 }}><span>Renderer family</span><select style={controlStyle} value={renderer} onChange={(event) => setRenderer(event.target.value)}><option value="all">All renderers</option>{renderers.map((value) => <option key={value}>{value}</option>)}</select></label>
             <label style={{ display: "grid", gap: 5 }}><span>Assessment form</span><select style={controlStyle} value={form} onChange={(event) => setForm(event.target.value)}><option value="all">Initial and fresh</option><option value="initial-placement">Initial placement</option><option value="fresh-recheck">Fresh/recheck</option></select></label>
             <label style={{ display: "grid", gap: 5 }}><span>Another answer path</span><select style={controlStyle} value={alternative} onChange={(event) => setAlternative(event.target.value)}><option value="all">All items</option><option value="yes">Required</option><option value="no">Not required</option></select></label>
+            <label style={{ display: "grid", gap: 5 }}><span>Developmental stage</span><select style={controlStyle} value={developmentalStage} onChange={(event) => setDevelopmentalStage(event.target.value)}><option value="all">All stages</option><option value="junior-primary-p1">Junior primary · P1</option><option value="junior-primary-p2">Junior primary · P2</option><option value="junior-primary-p3">Junior primary · P3</option><option value="developing-p4-p6">Developing · P4–P6</option><option value="extending-p7-p10">Extending · P7–P10</option></select></label>
+            <label style={{ display: "grid", gap: 5 }}><span>Read-aloud support</span><select style={controlStyle} value={readAloud} onChange={(event) => setReadAloud(event.target.value)}><option value="all">All classifications</option><option value="listen-essential">Listen essential</option><option value="listen-recommended">Listen recommended</option><option value="listen-available">Listen available</option></select></label>
+            <label style={{ display: "grid", gap: 5 }}><span>Stimulus coverage</span><select style={controlStyle} value={stimulusCoverage} onChange={(event) => setStimulusCoverage(event.target.value)}><option value="all">All classifications</option><option value="canonical-visual">Canonical visual</option><option value="presentation-visual">Remediated presentation visual</option><option value="text-or-symbol-sufficient">Text/symbol sufficient</option></select></label>
             <label style={{ display: "grid", gap: 5 }}><span>Item ID</span><input style={controlStyle} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search canonical ID" /></label>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <strong style={{ color: "#17204B" }}>Edge cases:</strong>
             {edgeCases.map((edgeCase) => <button key={`${edgeCase.label}:${edgeCase.itemId}`} type="button" onClick={() => resetFilters(edgeCase.itemId)} style={{ ...controlStyle, minHeight: 38, padding: "6px 9px", cursor: "pointer" }}>{edgeCase.label}</button>)}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <strong style={{ color: "#17204B" }}>Accessibility shortcuts:</strong>
+            <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setDevelopmentalStage("junior-primary-p1"); }}>All P1 items</button>
+            <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setReadAloud("listen-essential"); }}>Listen essential</button>
+            <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setStimulusCoverage("presentation-visual"); }}>Remediated visuals</button>
           </div>
           <label style={{ display: "grid", gap: 5 }}><span>{filtered.length} matching items</span><select style={controlStyle} size={Math.min(6, Math.max(2, filtered.length))} value={selected?.item.id ?? ""} onChange={(event) => setSelectedId(event.target.value)}>{filtered.map(({ item, coverage }) => <option key={item.id} value={item.id}>{coverage.progressionTarget} · {coverage.form === "fresh-recheck" ? "Fresh" : "Initial"} · {coverage.rendererFamily} · {item.id}</option>)}</select></label>
         </section>
@@ -105,7 +129,7 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
             <div style={{ display: "grid", gap: 4 }}><h2 style={{ margin: 0, color: "#17204B", fontSize: 20 }}>{continuumLabels[selected.coverage.continuum]} · {selected.coverage.progressionTarget}</h2><span style={{ color: "#64748B", fontSize: 12, fontWeight: 750 }}>Staff metadata: {selected.item.id} · v{selected.item.version} · {selected.coverage.assessmentRole} · {selected.coverage.rendererFamily}</span></div>
             <span style={{ border: "1px solid #D9D0FF", borderRadius: 999, padding: "6px 10px", background: "#F8F6FF", color: "#5535DF", fontSize: 12, fontWeight: 850 }}>Viewport {frameWidth}px</span>
           </div>
-          <div aria-label="Visual quality checks" style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{[selected.coverage.form === "fresh-recheck" ? "Fresh/recheck" : "Initial", selected.coverage.accessibilityLimited ? "Another answer path required" : "Standard access", selected.coverage.routingOnlyEvidence ? "Routing-only evidence" : "Standard evidence", "No persistence"].map((label) => <span key={label} style={{ borderRadius: 999, padding: "5px 9px", background: "#FFFFFF", border: "1px solid #E1E5EE", color: "#5B6478", fontSize: 11, fontWeight: 800 }}>{label}</span>)}</div>
+          <div aria-label="Visual quality checks" style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{[selected.coverage.form === "fresh-recheck" ? "Fresh/recheck" : "Initial", selected.coverage.developmentalStage, selected.coverage.readAloud, selected.coverage.stimulusCoverage, selected.coverage.accessibilityLimited ? "Another answer path required" : "Standard access", selected.coverage.routingOnlyEvidence ? "Routing-only evidence" : "Standard evidence", "No persistence"].map((label) => <span key={label} style={{ borderRadius: 999, padding: "5px 9px", background: "#FFFFFF", border: "1px solid #E1E5EE", color: "#5B6478", fontSize: 11, fontWeight: 800 }}>{label}</span>)}</div>
           <div data-review-width={frameWidth} style={{ width: `min(100%, ${frameWidth}px)`, margin: "0 auto", overflow: "hidden", border: "1px dashed #B9A8FF", borderRadius: frameWidth <= 430 ? 22 : 30, background: "#FFFFFF" }}>
             <StartingPointPlayer key={selected.item.id} item={selected.item} progress={{ current: selectedIndex + 1, total: filtered.length }} />
           </div>

@@ -31,6 +31,12 @@ export default async function MathsStartingPointPlayerShowcasePage() {
           fresh: summary.freshRecheckItems,
           alternatives: summary.practicalAlternativeItems,
           routingOnly: summary.routingOnlyEvidenceItems,
+          juniorPrimary:
+            (summary.developmentalStageCounts.get("junior-primary-p1") ?? 0) +
+            (summary.developmentalStageCounts.get("junior-primary-p2") ?? 0) +
+            (summary.developmentalStageCounts.get("junior-primary-p3") ?? 0),
+          remediatedVisuals:
+            summary.stimulusCoverageCounts.get("presentation-visual") ?? 0,
         }}
       />
     </AssessmentAccessGate>

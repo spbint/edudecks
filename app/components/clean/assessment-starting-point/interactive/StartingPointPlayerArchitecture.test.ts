@@ -75,6 +75,22 @@ describe("Starting Point player architecture", () => {
     expect(playerSource).toContain("No electronic result will be inferred.");
   });
 
+  it("provides first-class, answer-safe Listen support", () => {
+    expect(playerSource).toContain("getStartingPointReadAloudText(item)");
+    expect(playerSource).toContain('utterance.lang = "en-AU"');
+    expect(playerSource).toContain('utterance.rate = 0.9');
+    expect(playerSource).toContain('"Listen"');
+    expect(playerSource).toContain("speechSynthesis.cancel()");
+  });
+
+  it("renders remediation as a separate mathematical stimulus layer", () => {
+    expect(stageSource).toContain("drawPresentationStimulus");
+    expect(stageSource).toContain("model.presentationStimulus");
+    expect(stageSource).toContain('stimulus.type === "counter-groups"');
+    expect(stageSource).toContain('stimulus.type === "closed-groups"');
+    expect(stageSource).toContain('stimulus.type === "currency-repeat"');
+  });
+
   it("keeps the showcase staff-only and noindex", () => {
     expect(routeSource).toContain("await requireAssessmentLabAccess(SHOWCASE_ROUTE)");
     expect(routeSource).toContain('<AssessmentAccessGate mode="lab">');
@@ -82,6 +98,14 @@ describe("Starting Point player architecture", () => {
     expect(routeSource).toContain("getStartingPointRendererQaItems()");
     expect(routeSource).toContain("getStartingPointRendererQaEdgeCases()");
     expect(routeSource).not.toContain("MONEY_P1_SEARCH_ITEMS");
+  });
+
+  it("exposes protected staff filters for the developmental accessibility audit", () => {
+    expect(showcaseSource).toContain("Developmental stage");
+    expect(showcaseSource).toContain("Read-aloud support");
+    expect(showcaseSource).toContain("Stimulus coverage");
+    expect(showcaseSource).toContain("Listen essential");
+    expect(showcaseSource).toContain("Remediated visuals");
   });
 
   it("provides explicit 390px, 430px and desktop review frames", () => {
