@@ -34,7 +34,7 @@ describe("Maths starting-point practice route contract", () => {
       '"/practice/maths-starting-point"',
     );
     expect(viewerSource).toContain(
-      'Return to Maths starting point',
+      'Return to Number &amp; Operations Starting Point',
     );
     expect(viewerSource).toContain(
       '!isMathsStartingPoint && exactStepAssessmentHref',
@@ -45,7 +45,7 @@ describe("Maths starting-point practice route contract", () => {
 
 it("uses parent-readable starting-point provenance instead of raw sub-element keys", () => {
   expect(viewerSource).toContain(
-    "Recommended from your Maths starting-point check",
+    "Recommended from your Number &amp; Operations Starting Point",
   );
   expect(viewerSource).toContain(
     '"additive-strategies": "Additive strategies"',

@@ -635,7 +635,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
             width: "fit-content",
           }}
         >
-          Start this Maths check again
+          Start this Number &amp; Operations check again
         </button>
       </section>
     );
@@ -652,7 +652,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
             textTransform: "uppercase",
           }}
         >
-          {mode === "parent-preview" ? "Adaptive Maths starting point" : "Staff all-in-one baseline proof"}
+          {mode === "parent-preview" ? "Number & Operations Starting Point" : "Staff all-in-one baseline proof"}
         </span>
         <h2 style={{ margin: 0, color: "#17204B" }}>
           {learnerName ? `${learnerName}'s Number & Operations check` : "Number & Operations baseline"}
@@ -700,7 +700,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
             }}
           >
             <strong style={{ color: "#17204B" }}>
-              {order.length === 1 ? "One focused Maths area" : "Five separate Maths areas"}
+              {order.length === 1 ? "One focused Number & Operations area" : "Five separate Number & Operations areas"}
             </strong>
             <span>
               A fully electronic area uses {currentAreaBudget?.minimumQuestions ?? 6}–{currentAreaBudget?.maximumQuestions ?? 11} questions. MyLearna may stop sooner when practical or observed evidence is more trustworthy than another screen question.

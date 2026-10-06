@@ -146,7 +146,7 @@ export default function AssessmentPlayerV1({
       <section style={shellStyle}>
         <div style={{ display: "grid", gap: 8 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            {parentPresentation ? "Maths check" : "MyLearna Assess V1"}
+            {parentPresentation ? "Number & Operations check" : "MyLearna Assess V1"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 38px)" }}>
             {title}

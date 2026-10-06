@@ -42,7 +42,7 @@ export async function saveNumberOperationsBaseline(
   const session = await supabase.auth.getSession();
   const accessToken = session.data.session?.access_token;
   if (session.error || !accessToken) {
-    throw new Error("Sign in to save this Maths starting point.");
+    throw new Error("Sign in to save this Number & Operations Starting Point.");
   }
 
   const response = await fetch(
@@ -68,7 +68,7 @@ export async function saveNumberOperationsBaseline(
 
   if (!response.ok || !payload?.ok) {
     throw new Error(
-      String(payload?.error || "The Maths starting point could not be saved."),
+      String(payload?.error || "The Number & Operations Starting Point could not be saved."),
     );
   }
 

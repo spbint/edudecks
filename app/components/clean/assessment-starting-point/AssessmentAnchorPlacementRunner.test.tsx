@@ -115,7 +115,7 @@ describe("parent presentation", () => {
       }),
     );
 
-    expect(screen.getByText("Adaptive Maths check")).toBeTruthy();
+    expect(screen.getByText("Adaptive Number & Operations check")).toBeTruthy();
     expect(screen.queryByText("Automatic routing proof")).toBeNull();
     expect(screen.queryByText(/Initial anchor · P/i)).toBeNull();
     expect(screen.getByRole("button", { name: "Restart this area" })).toBeTruthy();

@@ -217,7 +217,7 @@ it("uses parent language and advances placement questions with one Continue acti
     }),
   );
 
-  expect(screen.getByText("Maths check")).toBeTruthy();
+  expect(screen.getByText("Number & Operations check")).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "Start this area" }),
   ).toBeTruthy();

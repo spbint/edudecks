@@ -48,6 +48,11 @@ export type StartingPointRendererCoverageEntry = {
   rendererFamily: StartingPointInteractionKind | null;
 };
 
+export type StartingPointRendererQaItem = {
+  item: MyLearnaAssessmentItem;
+  coverage: StartingPointRendererCoverageEntry;
+};
+
 const CONTINUA: readonly StartingPointContinuum[] = [
   "number-place-value",
   "counting-processes",
@@ -150,50 +155,113 @@ export function resolveStartingPointRendererCoverage(input: {
   };
 }
 
-export function getStartingPointRendererCoverageInventory() {
+export function getStartingPointRendererQaItems(): StartingPointRendererQaItem[] {
   const initial = NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY
     .filter((entry) => entry.item.status !== "retired")
-    .map((entry) =>
-      resolveStartingPointRendererCoverage({
-        item: entry.item,
-        assessmentRole: entry.poolKind,
-        form: "initial-placement",
-      }),
-    );
+    .map((entry) => ({
+      item: entry.item,
+      coverage: resolveStartingPointRendererCoverage({
+          item: entry.item,
+          assessmentRole: entry.poolKind,
+          form: "initial-placement",
+        }),
+    }));
 
   const fresh = NUMBER_OPERATIONS_FRESH_RECHECK_CLUSTERS.flatMap((cluster) => [
-    ...cluster.items.map((item) =>
-      resolveStartingPointRendererCoverage({
+    ...cluster.items.map((item) => ({
+      item,
+      coverage: resolveStartingPointRendererCoverage({
         item,
         assessmentRole: "fresh-recheck" as const,
         form: "fresh-recheck",
       }),
-    ),
+    })),
     ...(cluster.reserveItem
       ? [
-          resolveStartingPointRendererCoverage({
+          {
+            item: cluster.reserveItem,
+            coverage: resolveStartingPointRendererCoverage({
             item: cluster.reserveItem,
             assessmentRole: "fresh-recheck-reserve",
             form: "fresh-recheck",
-          }),
+            }),
+          },
         ]
       : []),
-  ]).filter((entry) => entry.itemStatus !== "retired");
+  ]).filter((entry) => entry.coverage.itemStatus !== "retired");
 
   const inventory = [...initial, ...fresh].sort((left, right) =>
-    left.continuum.localeCompare(right.continuum) ||
-    Number(left.progressionTarget.slice(1)) - Number(right.progressionTarget.slice(1)) ||
-    left.form.localeCompare(right.form) ||
-    left.itemId.localeCompare(right.itemId),
+    left.coverage.continuum.localeCompare(right.coverage.continuum) ||
+    Number(left.coverage.progressionTarget.slice(1)) - Number(right.coverage.progressionTarget.slice(1)) ||
+    left.coverage.form.localeCompare(right.coverage.form) ||
+    left.coverage.itemId.localeCompare(right.coverage.itemId),
   );
   const itemIds = new Set<string>();
   for (const entry of inventory) {
-    if (itemIds.has(entry.itemId)) {
-      throw new Error(`Starting Point renderer inventory contains duplicate item ${entry.itemId}.`);
+    if (itemIds.has(entry.coverage.itemId)) {
+      throw new Error(`Starting Point renderer inventory contains duplicate item ${entry.coverage.itemId}.`);
     }
-    itemIds.add(entry.itemId);
+    itemIds.add(entry.coverage.itemId);
   }
   return inventory;
+}
+
+export function getStartingPointRendererCoverageInventory() {
+  return getStartingPointRendererQaItems().map((entry) => entry.coverage);
+}
+
+export function getStartingPointRendererQaEdgeCases() {
+  const entries = getStartingPointRendererQaItems();
+  const longestPrompt = [...entries].sort(
+    (left, right) => right.item.prompt.length - left.item.prompt.length,
+  )[0];
+  const mostChoices = [...entries].sort(
+    (left, right) =>
+      (right.item.response.options?.length ?? 0) -
+      (left.item.response.options?.length ?? 0),
+  )[0];
+  const longestChoice = [...entries].sort((left, right) => {
+    const maxLength = (entry: StartingPointRendererQaItem) =>
+      Math.max(0, ...(entry.item.response.options ?? []).map((option) =>
+        String(option.label ?? option.value).length,
+      ));
+    return maxLength(right) - maxLength(left);
+  })[0];
+  const largestCounterSet = [...entries]
+    .filter((entry) => entry.item.stimulus.type === "counter-set")
+    .sort((left, right) =>
+      Number((right.item.stimulus.data as { quantity?: number }).quantity ?? 0) -
+      Number((left.item.stimulus.data as { quantity?: number }).quantity ?? 0),
+    )[0];
+  const representatives = [
+    { label: "Longest prompt", entry: longestPrompt },
+    { label: "Most answer choices", entry: mostChoices },
+    { label: "Longest answer label", entry: longestChoice },
+    { label: "Largest counter set", entry: largestCounterSet },
+    {
+      label: "Ordering interaction",
+      entry: entries.find((entry) => entry.coverage.rendererFamily === "drag-to-order"),
+    },
+    {
+      label: "Place-value interaction",
+      entry: entries.find((entry) => entry.coverage.rendererFamily === "place-value"),
+    },
+    {
+      label: "Australian currency",
+      entry: entries.find((entry) => entry.coverage.rendererFamily === "australian-currency"),
+    },
+    {
+      label: "Accessibility alternative",
+      entry: entries.find((entry) => entry.coverage.accessibilityLimited),
+    },
+    {
+      label: "Fresh recheck",
+      entry: entries.find((entry) => entry.coverage.form === "fresh-recheck"),
+    },
+  ];
+  return representatives.flatMap(({ label, entry }) =>
+    entry ? [{ label, itemId: entry.item.id }] : [],
+  );
 }
 
 export function getStartingPointRendererCoverageSummary() {

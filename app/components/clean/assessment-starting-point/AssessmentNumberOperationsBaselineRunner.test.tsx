@@ -213,7 +213,7 @@ it("makes the bounded parent question load explicit without inventing a duration
     "utf8",
   );
 
-  expect(source).toContain("Five separate Maths areas");
+  expect(source).toContain("Five separate Number & Operations areas");
   expect(source).toContain("budget.bySubElement[currentIndex]?.minimumQuestions");
   expect(source).toContain("budget.bySubElement[currentIndex]?.maximumQuestions");
   expect(source).toContain("MyLearna pauses between areas");
@@ -263,7 +263,7 @@ it("can complete one focused area without forcing the other four areas", () => {
   );
 
   expect(screen.getByText(/Area 1 of 1/i)).toBeTruthy();
-  expect(screen.getByText("One focused Maths area")).toBeTruthy();
+  expect(screen.getByText("One focused Number & Operations area")).toBeTruthy();
   expect(
     screen.getByRole("progressbar", {
       name: "Starting-point areas completed",

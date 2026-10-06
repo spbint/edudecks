@@ -5086,7 +5086,7 @@ export default function CleanNumberTargetedPracticeViewer({
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {isMathsStartingPoint ? (
             <Link href={startingPointReturnHref} style={secondaryButtonStyle}>
-              Return to Maths starting point
+              Return to Number &amp; Operations Starting Point
             </Link>
           ) : (
             <>
@@ -5279,7 +5279,7 @@ export default function CleanNumberTargetedPracticeViewer({
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {isMathsStartingPoint ? (
                     <Link href={startingPointReturnHref} style={buttonStyle}>
-                      Return to Maths starting point
+                      Return to Number &amp; Operations Starting Point
                     </Link>
                   ) : returnTo ? (
                     <Link href={returnTo} style={buttonStyle}>
@@ -5342,7 +5342,7 @@ export default function CleanNumberTargetedPracticeViewer({
                 >
                   {isMathsStartingPoint ? (
                     <>
-                      Recommended from your Maths starting-point check
+                      Recommended from your Number &amp; Operations Starting Point
                       {sourceSubElement
                         ? `: ${startingPointSubElementLabel(sourceSubElement)}`
                         : ""}

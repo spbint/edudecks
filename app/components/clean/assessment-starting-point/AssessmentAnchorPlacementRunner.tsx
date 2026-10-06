@@ -729,7 +729,7 @@ export default function AssessmentAnchorPlacementRunner({
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            {parentPresentation ? "Adaptive Maths check" : "Automatic routing proof"}
+            {parentPresentation ? "Adaptive Number & Operations check" : "Automatic routing proof"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B" }}>{anchorSet.label}</h2>
           {stage.kind !== "result" ? (

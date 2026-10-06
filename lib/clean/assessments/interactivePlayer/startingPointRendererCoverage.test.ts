@@ -16,6 +16,7 @@ import {
   formatStartingPointRendererCoverageMatrix,
   getStartingPointRendererCoverageInventory,
   getStartingPointRendererCoverageSummary,
+  getStartingPointRendererQaItems,
   resolveStartingPointRendererCoverage,
 } from "./startingPointRendererCoverage";
 
@@ -40,6 +41,14 @@ describe("Starting Point full-estate renderer coverage", () => {
       missingProgressionLevels: 0,
       complete: true,
     });
+  });
+
+  it("provides canonical item objects for staff QA without a copied registry", () => {
+    const qaItems = getStartingPointRendererQaItems();
+    expect(qaItems).toHaveLength(inventory.length);
+    expect(qaItems.map((entry) => entry.item.id)).toEqual(
+      inventory.map((entry) => entry.itemId),
+    );
   });
 
   it("covers every electronic item and explicitly classifies practical evidence", () => {

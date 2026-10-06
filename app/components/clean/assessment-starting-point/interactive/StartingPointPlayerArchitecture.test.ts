@@ -78,9 +78,9 @@ describe("Starting Point player architecture", () => {
   it("keeps the showcase staff-only and noindex", () => {
     expect(routeSource).toContain('<AssessmentAccessGate mode="lab">');
     expect(routeSource).toContain("robots: { index: false, follow: false }");
-    expect(routeSource).toContain("MONEY_P1_SEARCH_ITEMS[1]");
-    expect(routeSource).toContain("MONEY_P2_ANCHOR_ITEMS[0]");
-    expect(routeSource).toContain("MONEY_P2_ANCHOR_ITEMS[1]");
+    expect(routeSource).toContain("getStartingPointRendererQaItems()");
+    expect(routeSource).toContain("getStartingPointRendererQaEdgeCases()");
+    expect(routeSource).not.toContain("MONEY_P1_SEARCH_ITEMS");
   });
 
   it("provides explicit 390px, 430px and desktop review frames", () => {

@@ -19,9 +19,10 @@ import {
   getNumberOperationsFreshRecheckCoverage,
 } from "@/lib/clean/assessments/placement/numberOperationsFreshRecheckCoverage";
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
+import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
 
 export const metadata: Metadata = {
-  title: "Maths Starting Point Readiness | MyLearna",
+  title: `${NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.shortDisplayName} readiness | MyLearna`,
   description:
     "Staff-only release readiness view for the Number & Operations starting-point utility.",
   robots: { index: false, follow: false },
@@ -138,6 +139,16 @@ export default function MathsStartingPointReadinessPage() {
                 }}
               >
                 Review all 10 score-bearing visuals
+              </Link>
+              <Link
+                href="/assessments/maths-starting-point/player-showcase"
+                style={{
+                  color: "#5535DF",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Review all 220 items in the commercial player
               </Link>
             </div>
           </section>
@@ -309,11 +320,10 @@ export default function MathsStartingPointReadinessPage() {
               ))}
             </div>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
-              This is deliberately incomplete. The current tranche reuses the independent NPV
-              confirmation estate and adds fresh draft evidence at the initial routing level for
-              Counting, Additive strategies, Multiplicative strategies and Money. Customer
-              release remains blocked until the remaining progression levels have reviewed
-              alternate evidence and the full recheck route has passed hosted QA.
+              Alternate evidence now covers all 48 required progression levels across the five
+              Number &amp; Operations continua. The forms remain draft and customer release stays
+              blocked until the alternate evidence has completed review and the full recheck
+              route has passed hosted QA.
             </span>
           </section>
 
