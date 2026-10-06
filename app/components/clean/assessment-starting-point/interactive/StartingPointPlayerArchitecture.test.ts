@@ -51,6 +51,21 @@ describe("Starting Point player architecture", () => {
     }
   });
 
+  it("uses Phaser as the normal answer surface without duplicate visible React choices", () => {
+    expect(stageSource).toContain("onSubmit: (answer: StartingPointPlayerAnswer) => void");
+    expect(stageSource).toContain("selectedOptionIds: getIds()");
+    expect(stageSource).toContain("() => [...this.orderedIds]");
+    expect(playerSource).not.toContain("className={styles.choices}");
+    expect(playerSource).not.toContain("Response recorded");
+    expect(playerSource).not.toContain("selectedOptionIds={selectedOptionIds}");
+  });
+
+  it("keeps keyboard and practical alternatives secondary and explicit", () => {
+    expect(playerSource).toContain("<details className={styles.accessibleFallback}>");
+    expect(playerSource).toContain("Can’t use this visual? Use a practical observation instead.");
+    expect(playerSource).toContain("No electronic result will be inferred.");
+  });
+
   it("keeps the showcase staff-only and noindex", () => {
     expect(routeSource).toContain('<AssessmentAccessGate mode="lab">');
     expect(routeSource).toContain("robots: { index: false, follow: false }");
@@ -64,6 +79,13 @@ describe("Starting Point player architecture", () => {
     expect(showcaseSource).toContain('label: "Desktop · 760px", width: 760');
     expect(playerStyles).toContain("@media (max-width: 430px)");
     expect(playerStyles).toContain("min-height: 50px");
+  });
+
+  it("uses an immersive application shell while the learner player is active", () => {
+    expect(playerSource).toContain('document.body.classList.add("starting-point-player-active")');
+    expect(playerSource).toContain("window.history.back()");
+    expect(playerStyles).toContain("body.starting-point-player-active .mylearna-v2-sidebar");
+    expect(playerStyles).toContain("body.starting-point-player-active .mylearna-v2-mobile-bottom-nav");
   });
 
   it("does not expose internal placement language in the learner player", () => {
