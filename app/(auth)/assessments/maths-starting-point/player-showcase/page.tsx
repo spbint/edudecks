@@ -7,6 +7,7 @@ import {
   getStartingPointRendererCoverageSummary,
 } from "@/lib/clean/assessments/interactivePlayer/startingPointRendererCoverage";
 import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
+import { requireAssessmentLabAccess } from "@/lib/clean/assessments/assessmentLabAccess.server";
 
 export const metadata: Metadata = {
   title: `Full-estate player QA | ${NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.shortDisplayName}`,
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function MathsStartingPointPlayerShowcasePage() {
+const SHOWCASE_ROUTE = "/assessments/maths-starting-point/player-showcase";
+
+export default async function MathsStartingPointPlayerShowcasePage() {
+  await requireAssessmentLabAccess(SHOWCASE_ROUTE);
   const summary = getStartingPointRendererCoverageSummary();
   return (
     <AssessmentAccessGate mode="lab">

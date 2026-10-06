@@ -20,6 +20,10 @@ const customerCopyFiles = [
   "app/components/clean/assessment-starting-point/AssessmentNumberOperationsParentUtilityCard.tsx",
   "app/(auth)/practice/maths-starting-point/page.tsx",
 ].map((path) => readFileSync(join(process.cwd(), path), "utf8")).join("\n");
+const showcaseRoute = readFileSync(
+  join(process.cwd(), "app/(auth)/assessments/maths-starting-point/player-showcase/page.tsx"),
+  "utf8",
+);
 
 describe("Number & Operations Starting Point commercial readiness", () => {
   it("uses an honest modular product identity and names all five assessed areas", () => {
@@ -67,6 +71,13 @@ describe("Number & Operations Starting Point commercial readiness", () => {
       expect(model.kind).toBe(coverage.rendererFamily);
     }
     expect(getStartingPointRendererQaEdgeCases().length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("checks staff access on the server before serializing canonical QA items", () => {
+    expect(showcaseRoute).toContain("await requireAssessmentLabAccess(SHOWCASE_ROUTE)");
+    expect(showcaseRoute.indexOf("await requireAssessmentLabAccess")).toBeLessThan(
+      showcaseRoute.indexOf("getStartingPointRendererQaItems()"),
+    );
   });
 
   it("keeps currency pending and every release gate dark", () => {

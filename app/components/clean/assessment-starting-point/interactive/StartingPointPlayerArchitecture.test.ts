@@ -76,6 +76,7 @@ describe("Starting Point player architecture", () => {
   });
 
   it("keeps the showcase staff-only and noindex", () => {
+    expect(routeSource).toContain("await requireAssessmentLabAccess(SHOWCASE_ROUTE)");
     expect(routeSource).toContain('<AssessmentAccessGate mode="lab">');
     expect(routeSource).toContain("robots: { index: false, follow: false }");
     expect(routeSource).toContain("getStartingPointRendererQaItems()");
