@@ -69,6 +69,8 @@ describe("Starting Point player architecture", () => {
 
   it("keeps keyboard and practical alternatives secondary and explicit", () => {
     expect(playerSource).toContain("<details className={styles.accessibleFallback}>");
+    expect(playerSource).toContain("Need another way to answer?");
+    expect(playerSource).not.toContain("Use an accessible answer control");
     expect(playerSource).toContain("Can’t use this visual? Use a practical observation instead.");
     expect(playerSource).toContain("No electronic result will be inferred.");
   });
@@ -114,6 +116,14 @@ describe("Starting Point player architecture", () => {
       'matchMedia("(prefers-reduced-motion: reduce)")',
     );
     expect(playerStyles).toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
+  it("keeps educational assets coherent and interaction motion explicit", () => {
+    expect(designSystemSource).toContain("regularPolygonPoints(PhaserRuntime, 12");
+    expect(designSystemSource).toContain("materialFace");
+    expect(stageSource).toContain("NEUTRAL_COUNTER_POSITIONS");
+    expect(stageSource).toContain("activeDragId");
+    expect(stageSource).toContain("activeTarget");
   });
 
   it("uses an immersive application shell while the learner player is active", () => {

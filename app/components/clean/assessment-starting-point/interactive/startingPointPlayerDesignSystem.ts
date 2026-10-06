@@ -21,6 +21,10 @@ export const PLAYER_COLOURS = Object.freeze({
   silverEdge: 0x667085,
   gold: 0xf3d273,
   goldEdge: 0x98701b,
+  materialFace: 0x78cfc4,
+  materialLight: 0xbcebe4,
+  materialSide: 0x3da99e,
+  materialEdge: 0x237d78,
 });
 
 export const PLAYER_LAYOUT = Object.freeze({
@@ -70,7 +74,10 @@ export function addStageSurface(
     .rectangle(x, y, width, height, PLAYER_COLOURS.white)
     .setStrokeStyle(1, PLAYER_COLOURS.line)
     .setOrigin(0.5);
-  return { shadow, surface };
+  const brandLine = scene.add
+    .rectangle(x, y - height / 2 + 3, width - 28, 3, PLAYER_COLOURS.purple, 0.34)
+    .setOrigin(0.5);
+  return { shadow, surface, brandLine };
 }
 
 export function createChoiceCard(
@@ -153,12 +160,14 @@ export function createDropSlot(scene: Phaser.Scene, y: number) {
 }
 
 export function createCounter(scene: Phaser.Scene, x: number, y: number) {
-  const shadow = scene.add.ellipse(1, 5, 31, 13, PLAYER_COLOURS.shadow, 0.13);
-  const rim = scene.add.circle(0, 0, 16, PLAYER_COLOURS.purpleDeep);
-  const face = scene.add.circle(0, -2, 14, PLAYER_COLOURS.purple);
-  const sheen = scene.add.ellipse(-5, -7, 9, 5, 0xffffff, 0.42).setRotation(-0.28);
-  const inner = scene.add.circle(0, -2, 10, PLAYER_COLOURS.purple, 0).setStrokeStyle(1, 0xc9bdff, 0.5);
-  return scene.add.container(x, y, [shadow, rim, face, inner, sheen]);
+  const shadow = scene.add.ellipse(1, 7, 34, 12, PLAYER_COLOURS.shadow, 0.14);
+  const edge = scene.add.ellipse(0, 2, 35, 31, PLAYER_COLOURS.purpleDeep);
+  const rim = scene.add.ellipse(0, -1, 35, 31, 0x8067f8).setStrokeStyle(1, 0x4e32cd, 0.9);
+  const face = scene.add.ellipse(0, -3, 29, 25, PLAYER_COLOURS.purple);
+  const innerRim = scene.add.ellipse(0, -3, 23, 19, PLAYER_COLOURS.purple, 0)
+    .setStrokeStyle(1, 0xb9a8ff, 0.58);
+  const sheen = scene.add.ellipse(-6, -9, 10, 5, 0xffffff, 0.38).setRotation(-0.22);
+  return scene.add.container(x, y, [shadow, edge, rim, face, innerRim, sheen]);
 }
 
 function addSubdivisionLines(
@@ -182,52 +191,68 @@ function addSubdivisionLines(
 
 export function createUnitCube(scene: Phaser.Scene, x: number, y: number) {
   const container = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(2, 10, 24, 8, PLAYER_COLOURS.shadow, 0.1);
-  const front = scene.add.rectangle(0, 0, 18, 18, 0xf6b84c).setStrokeStyle(2, PLAYER_COLOURS.amber);
-  const top = scene.add.polygon(0, 0, [-9, -9, -4, -14, 14, -14, 9, -9], 0xffd987).setStrokeStyle(1, PLAYER_COLOURS.amber);
-  const side = scene.add.polygon(0, 0, [9, -9, 14, -14, 14, 4, 9, 9], 0xeaa130).setStrokeStyle(1, PLAYER_COLOURS.amber);
+  const shadow = scene.add.ellipse(2, 11, 25, 8, PLAYER_COLOURS.shadow, 0.11);
+  const front = scene.add.rectangle(0, 0, 19, 19, PLAYER_COLOURS.materialFace).setStrokeStyle(1.5, PLAYER_COLOURS.materialEdge);
+  const top = scene.add.polygon(0, 0, [-9.5, -9.5, -4, -15, 15, -15, 9.5, -9.5], PLAYER_COLOURS.materialLight).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
+  const side = scene.add.polygon(0, 0, [9.5, -9.5, 15, -15, 15, 4, 9.5, 9.5], PLAYER_COLOURS.materialSide).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
   return container.add([shadow, front, top, side]);
 }
 
 export function createTenRod(scene: Phaser.Scene, x: number, y: number) {
   const container = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(3, 39, 25, 10, PLAYER_COLOURS.shadow, 0.1);
-  const body = scene.add.rectangle(0, 0, 18, 76, 0x7ed5aa).setStrokeStyle(2, PLAYER_COLOURS.green);
-  const side = scene.add.polygon(0, 0, [9, -38, 14, -43, 14, 33, 9, 38], 0x55b986).setStrokeStyle(1, PLAYER_COLOURS.green);
-  const top = scene.add.polygon(0, 0, [-9, -38, -4, -43, 14, -43, 9, -38], 0xb6ecd0).setStrokeStyle(1, PLAYER_COLOURS.green);
+  const shadow = scene.add.ellipse(3, 47, 28, 10, PLAYER_COLOURS.shadow, 0.11);
+  const body = scene.add.rectangle(0, 0, 19, 91, PLAYER_COLOURS.materialFace).setStrokeStyle(1.5, PLAYER_COLOURS.materialEdge);
+  const side = scene.add.polygon(0, 0, [9.5, -45.5, 15, -51, 15, 40, 9.5, 45.5], PLAYER_COLOURS.materialSide).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
+  const top = scene.add.polygon(0, 0, [-9.5, -45.5, -4, -51, 15, -51, 9.5, -45.5], PLAYER_COLOURS.materialLight).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
   container.add([shadow, body, side, top]);
-  addSubdivisionLines(scene, container, 18, 76, 1, 10, PLAYER_COLOURS.green);
+  addSubdivisionLines(scene, container, 19, 91, 1, 10, PLAYER_COLOURS.materialEdge);
   return container;
 }
 
 export function createHundredFlat(scene: Phaser.Scene, x: number, y: number) {
   const container = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(3, 31, 64, 12, PLAYER_COLOURS.shadow, 0.1);
-  const face = scene.add.rectangle(0, 0, 60, 60, 0xcfc5ff).setStrokeStyle(2, PLAYER_COLOURS.purpleDeep);
-  container.add([shadow, face]);
-  addSubdivisionLines(scene, container, 60, 60, 10, 10, PLAYER_COLOURS.purple);
+  const shadow = scene.add.ellipse(3, 37, 75, 13, PLAYER_COLOURS.shadow, 0.11);
+  const face = scene.add.rectangle(0, 0, 70, 70, PLAYER_COLOURS.materialFace).setStrokeStyle(2, PLAYER_COLOURS.materialEdge);
+  const topEdge = scene.add.polygon(0, 0, [-35, -35, -30, -40, 40, -40, 35, -35], PLAYER_COLOURS.materialLight).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
+  const sideEdge = scene.add.polygon(0, 0, [35, -35, 40, -40, 40, 30, 35, 35], PLAYER_COLOURS.materialSide).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
+  container.add([shadow, face, topEdge, sideEdge]);
+  addSubdivisionLines(scene, container, 70, 70, 10, 10, PLAYER_COLOURS.materialEdge);
   return container;
 }
 
 export function createThousandCube(scene: Phaser.Scene, x: number, y: number) {
   const container = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(4, 34, 69, 15, PLAYER_COLOURS.shadow, 0.12);
-  const front = scene.add.rectangle(0, 0, 62, 62, 0xb9a8ff).setStrokeStyle(2, PLAYER_COLOURS.purpleDeep);
-  const top = scene.add.polygon(0, 0, [-31, -31, -19, -43, 43, -43, 31, -31], 0xe7e1ff).setStrokeStyle(2, PLAYER_COLOURS.purpleDeep);
-  const side = scene.add.polygon(0, 0, [31, -31, 43, -43, 43, 19, 31, 31], 0x947cf8).setStrokeStyle(2, PLAYER_COLOURS.purpleDeep);
+  const shadow = scene.add.ellipse(5, 40, 80, 16, PLAYER_COLOURS.shadow, 0.13);
+  const front = scene.add.rectangle(0, 0, 72, 72, PLAYER_COLOURS.materialFace).setStrokeStyle(2, PLAYER_COLOURS.materialEdge);
+  const top = scene.add.polygon(0, 0, [-36, -36, -23, -49, 49, -49, 36, -36], PLAYER_COLOURS.materialLight).setStrokeStyle(2, PLAYER_COLOURS.materialEdge);
+  const side = scene.add.polygon(0, 0, [36, -36, 49, -49, 49, 23, 36, 36], PLAYER_COLOURS.materialSide).setStrokeStyle(2, PLAYER_COLOURS.materialEdge);
   container.add([shadow, front, top, side]);
-  addSubdivisionLines(scene, container, 62, 62, 5, 5, PLAYER_COLOURS.purpleDeep);
+  addSubdivisionLines(scene, container, 72, 72, 6, 6, PLAYER_COLOURS.materialEdge);
   return container;
 }
 
 const CURRENCY_RADIUS: Record<string, number> = {
-  "5c": 17,
-  "10c": 20,
-  "20c": 24,
-  "50c": 29,
-  "$1": 23,
-  "$2": 19,
+  "5c": 18,
+  "10c": 21,
+  "20c": 26,
+  "50c": 30,
+  "$1": 24,
+  "$2": 20,
 };
+
+function regularPolygonPoints(
+  PhaserRuntime: typeof Phaser,
+  sides: number,
+  radius: number,
+) {
+  return Array.from({ length: sides }, (_, index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI * 2) / sides;
+    return new PhaserRuntime.Geom.Point(
+      Math.cos(angle) * radius,
+      Math.sin(angle) * radius,
+    );
+  });
+}
 
 export function createCurrencyToken(
   scene: Phaser.Scene,
@@ -239,27 +264,32 @@ export function createCurrencyToken(
   const radius = CURRENCY_RADIUS[denomination] ?? 22;
   const gold = denomination === "$1" || denomination === "$2";
   const container = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(1, radius * 0.7, radius * 1.7, radius * 0.55, PLAYER_COLOURS.shadow, 0.12);
+  const shadow = scene.add.ellipse(1, radius * 0.76, radius * 1.75, radius * 0.5, PLAYER_COLOURS.shadow, 0.13);
   const edge = denomination === "50c"
-    ? scene.add.polygon(0, 2, Array.from({ length: 12 }, (_, index) => {
-        const angle = -Math.PI / 2 + (index * Math.PI * 2) / 12;
-        return new PhaserRuntime.Geom.Point(Math.cos(angle) * radius, Math.sin(angle) * radius);
-      }), PLAYER_COLOURS.silverEdge)
+    ? scene.add.polygon(0, 2, regularPolygonPoints(PhaserRuntime, 12, radius), PLAYER_COLOURS.silverEdge)
     : scene.add.circle(0, 2, radius, gold ? PLAYER_COLOURS.goldEdge : PLAYER_COLOURS.silverEdge);
-  const faceRadius = radius - 2;
+  const faceRadius = radius - 2.5;
   const face = denomination === "50c"
-    ? scene.add.polygon(0, 0, Array.from({ length: 12 }, (_, index) => {
-        const angle = -Math.PI / 2 + (index * Math.PI * 2) / 12;
-        return new PhaserRuntime.Geom.Point(Math.cos(angle) * faceRadius, Math.sin(angle) * faceRadius);
-      }), PLAYER_COLOURS.silver)
+    ? scene.add.polygon(0, 0, regularPolygonPoints(PhaserRuntime, 12, faceRadius), PLAYER_COLOURS.silver)
     : scene.add.circle(0, 0, faceRadius, gold ? PLAYER_COLOURS.gold : PLAYER_COLOURS.silver);
-  const inner = scene.add.circle(0, 0, Math.max(8, faceRadius - 5), gold ? 0xf8e5a8 : 0xf7f9fc, 0.54)
-    .setStrokeStyle(1, gold ? PLAYER_COLOURS.goldEdge : 0x9aa3b1, 0.7);
+  const insetRadius = Math.max(8, faceRadius - 5);
+  const inner = denomination === "50c"
+    ? scene.add.polygon(0, 0, regularPolygonPoints(PhaserRuntime, 12, insetRadius), 0xf7f9fc, 0.28)
+        .setStrokeStyle(1, 0x9aa3b1, 0.62)
+    : scene.add.circle(0, 0, insetRadius, gold ? 0xf8e5a8 : 0xf7f9fc, 0.3)
+        .setStrokeStyle(1, gold ? PLAYER_COLOURS.goldEdge : 0x9aa3b1, 0.62);
+  const motif = denomination === "$1"
+    ? scene.add.star(0, -1, 8, radius * 0.42, radius * 0.55, gold ? 0xc99c32 : 0x9aa3b1, 0.18)
+    : denomination === "$2"
+      ? scene.add.ellipse(0, -1, radius * 1.05, radius * 0.72, 0xc08c1e, 0.16)
+          .setStrokeStyle(1, PLAYER_COLOURS.goldEdge, 0.45)
+      : scene.add.ellipse(-radius * 0.18, -radius * 0.24, radius * 0.48, radius * 0.24, 0xffffff, 0.28)
+          .setRotation(-0.35);
   const label = scene.add.text(0, 0, denomination, {
     color: PLAYER_COLOURS.inkCss,
     fontFamily: "Arial, sans-serif",
-    fontSize: denomination === "50c" ? "11px" : "12px",
+    fontSize: denomination === "50c" ? "12px" : "12px",
     fontStyle: "bold",
-  }).setOrigin(0.5);
-  return container.add([shadow, edge, face, inner, label]);
+  }).setOrigin(0.5).setShadow(0, 1, "#FFFFFF", 1, false, true);
+  return container.add([shadow, edge, face, inner, motif, label]);
 }

@@ -94,7 +94,7 @@ export default function StartingPointPlayer({
       <PhaserAssessmentStage key={`${model.itemId}:${model.itemVersion}`} model={model} onSubmit={submit} />
 
       <details className={styles.accessibleFallback}>
-        <summary>{item.response.type === "ordering" ? "Use keyboard controls" : "Use an accessible answer control"}</summary>
+        <summary>{item.response.type === "ordering" ? "Use keyboard controls" : "Need another way to answer?"}</summary>
         <div className={styles.fallbackBody}>
           {item.response.type === "short-answer" ? (
             <label className={styles.fallbackLabel}>Your answer

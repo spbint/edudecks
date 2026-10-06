@@ -36,10 +36,12 @@ type StageProps = {
   onSubmit: (answer: StartingPointPlayerAnswer) => void;
 };
 
-function seededUnit(seed: number, index: number) {
-  const value = Math.sin(seed * 91.7 + index * 177.3) * 43758.5453;
-  return value - Math.floor(value);
-}
+const NEUTRAL_COUNTER_POSITIONS = [
+  [0.14, 0.24], [0.46, 0.18], [0.78, 0.28], [0.29, 0.48], [0.64, 0.47],
+  [0.88, 0.55], [0.12, 0.69], [0.45, 0.75], [0.74, 0.78], [0.28, 0.9],
+  [0.61, 0.92], [0.93, 0.84], [0.3, 0.12], [0.62, 0.08], [0.92, 0.2],
+  [0.07, 0.45], [0.5, 0.55], [0.8, 0.08], [0.16, 0.94], [0.95, 0.39],
+] as const;
 
 export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -146,16 +148,22 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
           const data = model.stimulus.data as CounterSetStimulus;
           const quantity = Math.max(0, Math.min(20, Math.round(data.quantity)));
           addStageSurface(this, PLAYER_CANVAS_WIDTH / 2, 115, PLAYER_LAYOUT.contentWidth, 196);
+          const organised = ["five-frame", "ten-frame-like", "array", "dice"].includes(data.arrangement ?? "");
           const columns = quantity > 10 ? 5 : Math.min(5, Math.max(1, quantity));
           const rows = Math.ceil(quantity / columns);
-          const gapX = 50;
-          const gapY = 45;
+          const gapX = 52;
+          const gapY = 48;
           const startX = 175 - ((columns - 1) * gapX) / 2;
           const startY = 112 - ((rows - 1) * gapY) / 2;
+          const offset = Math.abs(Math.round(data.seed || 1)) % NEUTRAL_COUNTER_POSITIONS.length;
           for (let index = 0; index < quantity; index += 1) {
-            const organised = ["five-frame", "ten-frame-like", "array", "dice"].includes(data.arrangement ?? "");
-            const x = startX + (index % columns) * gapX + (organised ? 0 : (seededUnit(data.seed || 1, index) - 0.5) * 8);
-            const y = startY + Math.floor(index / columns) * gapY + (organised ? 0 : (seededUnit((data.seed || 1) + 9, index) - 0.5) * 6);
+            const neutral = NEUTRAL_COUNTER_POSITIONS[(index + offset) % NEUTRAL_COUNTER_POSITIONS.length];
+            const x = organised
+              ? startX + (index % columns) * gapX
+              : 32 + neutral[0] * 286;
+            const y = organised
+              ? startY + Math.floor(index / columns) * gapY
+              : 33 + neutral[1] * 158;
             const counter = createCounter(this, x, y).setScale(this.motion.reduced ? 1 : 0.72).setAlpha(this.motion.reduced ? 1 : 0);
             this.tweens.add({
               targets: counter,
@@ -172,9 +180,11 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
           const slotY = (index: number) => 42 + index * 68;
           const slots = model.options.map((_, index) => createDropSlot(this, slotY(index)));
           const cards = new Map<string, PhaserType.GameObjects.Container>();
+          let activeDragId: string | null = null;
+          let activeTarget = -1;
           const layout = (duration: number = PLAYER_MOTION.reorderMs) => this.orderedIds.forEach((id, index) => {
             const card = cards.get(id);
-            if (card) this.tweens.add({ targets: card, y: slotY(index), x: PLAYER_CANVAS_WIDTH / 2, duration: motionDuration(this.motion, duration), ease: PLAYER_MOTION.easeOut });
+            if (card && id !== activeDragId) this.tweens.add({ targets: card, y: slotY(index), x: PLAYER_CANVAS_WIDTH / 2, duration: motionDuration(this.motion, duration), ease: PLAYER_MOTION.easeOut });
           });
           model.options.forEach((option, index) => {
             const choice = createChoiceCard(this, option.label, slotY(index) + 12);
@@ -189,24 +199,32 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
             card.on("pointerover", () => paint("hover"));
             card.on("pointerout", () => { if (card.depth < 20) paint("rest"); });
             card.on("dragstart", () => {
+              activeDragId = option.id;
+              activeTarget = this.orderedIds.indexOf(option.id);
               card.setDepth(20);
               paint("selected");
-              this.tweens.add({ targets: card, scale: 1.035, duration: motionDuration(this.motion, PLAYER_MOTION.liftMs), ease: PLAYER_MOTION.easeOut });
+              this.tweens.add({ targets: card, scale: 1.045, x: PLAYER_CANVAS_WIDTH / 2 + 5, duration: motionDuration(this.motion, PLAYER_MOTION.liftMs), ease: PLAYER_MOTION.easeOut });
             });
             card.on("drag", (_pointer: unknown, _dragX: number, dragY: number) => {
               card.y = PhaserRuntime.Math.Clamp(dragY, slotY(0), slotY(this.orderedIds.length - 1));
               const target = PhaserRuntime.Math.Clamp(Math.round((card.y - slotY(0)) / 68), 0, this.orderedIds.length - 1);
               slots.forEach((slot, slotIndex) => slot.setActive(slotIndex === target));
+              if (target !== activeTarget) {
+                const from = this.orderedIds.indexOf(option.id);
+                this.orderedIds.splice(from, 1);
+                this.orderedIds.splice(target, 0, option.id);
+                activeTarget = target;
+                layout();
+              }
             });
             card.on("dragend", () => {
-              const from = this.orderedIds.indexOf(option.id);
-              const to = PhaserRuntime.Math.Clamp(Math.round((card.y - slotY(0)) / 68), 0, this.orderedIds.length - 1);
-              this.orderedIds.splice(from, 1); this.orderedIds.splice(to, 0, option.id);
               card.setDepth(1);
               paint("rest");
               background.setStrokeStyle(2, PLAYER_COLOURS.lavenderLine);
               slots.forEach((slot) => slot.setActive(false));
-              this.tweens.add({ targets: card, scale: 1, duration: motionDuration(this.motion, PLAYER_MOTION.snapMs), ease: PLAYER_MOTION.physicalOut });
+              activeDragId = null;
+              activeTarget = -1;
+              this.tweens.add({ targets: card, scale: 1, x: PLAYER_CANVAS_WIDTH / 2, duration: motionDuration(this.motion, PLAYER_MOTION.snapMs), ease: PLAYER_MOTION.physicalOut });
               layout(PLAYER_MOTION.snapMs);
             });
             cards.set(option.id, card);
@@ -222,9 +240,9 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
             { key: "hundreds", label: "Hundreds", count: data.hundreds || 0 },
             { key: "tens", label: "Tens", count: data.tens || 0 },
             { key: "ones", label: "Ones", count: data.ones || 0 },
-          ].filter((group) => group.count > 0 || group.key !== "thousands");
+          ].filter((group) => group.count > 0);
           addStageSurface(this, PLAYER_CANVAS_WIDTH / 2, 115, PLAYER_LAYOUT.contentWidth, 196);
-          const columns = groups.map((_, index) => 43 + index * (264 / Math.max(1, groups.length - 1)));
+          const columns = groups.map((_, index) => groups.length === 1 ? 175 : 55 + index * (240 / Math.max(1, groups.length - 1)));
           groups.forEach((group, index) => this.add.text(columns[index], 32, group.label, {
             color: PLAYER_COLOURS.slateCss,
             fontFamily: "Arial, sans-serif",
@@ -239,21 +257,21 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
           const thousandsX = columnFor("thousands");
           if (thousandsX !== undefined) {
             for (let i = 0; i < (data.thousands || 0); i += 1) {
-              reveal(createThousandCube(this, thousandsX, 94 + i * 16), i, 0.72);
+              reveal(createThousandCube(this, thousandsX, 103 + i * 14), i, 0.8);
             }
           }
           const hundredsX = columnFor("hundreds");
           for (let i = 0; i < (data.hundreds || 0); i += 1) {
-            const x = (hundredsX ?? 58) - 22 + (i % 2) * 44;
-            reveal(createHundredFlat(this, x, 86 + Math.floor(i / 2) * 68), i, 0.78);
+            const x = (hundredsX ?? 58) - 24 + (i % 2) * 48;
+            reveal(createHundredFlat(this, x, 103 + Math.floor(i / 2) * 72), i, 0.82);
           }
           const tensX = columnFor("tens") ?? 174;
           for (let i = 0; i < (data.tens || 0); i += 1) {
-            reveal(createTenRod(this, tensX - 22 + (i % 3) * 22, 102 + Math.floor(i / 3) * 82), i, 0.83);
+            reveal(createTenRod(this, tensX - 23 + (i % 3) * 23, 108 + Math.floor(i / 3) * 84), i, 0.82);
           }
           const onesX = columnFor("ones") ?? 290;
           for (let i = 0; i < (data.ones || 0); i += 1) {
-            reveal(createUnitCube(this, onesX - 24 + (i % 3) * 24, 72 + Math.floor(i / 3) * 27), i);
+            reveal(createUnitCube(this, onesX - 25 + (i % 3) * 25, 72 + Math.floor(i / 3) * 29), i, 1.05);
           }
         }
 
@@ -263,7 +281,8 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
           addStageSurface(this, PLAYER_CANVAS_WIDTH / 2, 115, PLAYER_LAYOUT.contentWidth, 196);
           tokens.forEach((token, index) => {
             const columns = Math.min(5, tokens.length);
-            const x = PLAYER_CANVAS_WIDTH / 2 - ((columns - 1) * 56) / 2 + (index % columns) * 56;
+            const spacing = tokens.length <= 4 ? 68 : 62;
+            const x = PLAYER_CANVAS_WIDTH / 2 - ((columns - 1) * spacing) / 2 + (index % columns) * spacing;
             const y = tokens.length > 5 ? 79 + Math.floor(index / columns) * 79 : 113;
             const coin = createCurrencyToken(this, PhaserRuntime, token.denomination, x, y)
               .setScale(this.motion.reduced ? 1 : 0.72)
