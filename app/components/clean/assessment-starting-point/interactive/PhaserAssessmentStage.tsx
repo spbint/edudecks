@@ -37,6 +37,10 @@ type StageProps = {
   onSubmit: (answer: StartingPointPlayerAnswer) => void;
 };
 
+export function shouldInitializePhaser(model: StartingPointPlayerModel) {
+  return model.kind !== "numeric-entry" || model.presentationStimulus !== null;
+}
+
 const NEUTRAL_COUNTER_POSITIONS = [
   [0.14, 0.24], [0.46, 0.18], [0.78, 0.28], [0.29, 0.48], [0.64, 0.47],
   [0.88, 0.55], [0.12, 0.69], [0.45, 0.75], [0.74, 0.78], [0.28, 0.9],
@@ -53,7 +57,7 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || model.kind === "numeric-entry") return;
+    if (!host || !shouldInitializePhaser(model)) return;
     let disposed = false;
     let game: PhaserType.Game | null = null;
 

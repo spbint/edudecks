@@ -89,6 +89,9 @@ describe("Starting Point player architecture", () => {
     expect(stageSource).toContain('stimulus.type === "counter-groups"');
     expect(stageSource).toContain('stimulus.type === "closed-groups"');
     expect(stageSource).toContain('stimulus.type === "currency-repeat"');
+    expect(showcaseSource).toContain("Numeric presentation stimuli");
+    expect(showcaseSource).toContain('setRenderer("numeric-entry")');
+    expect(showcaseSource).toContain('setStimulusCoverage("presentation-visual")');
   });
 
   it("keeps the showcase staff-only and noindex", () => {

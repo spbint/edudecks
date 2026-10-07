@@ -116,6 +116,7 @@ export default function StartingPointPlayerShowcase({ items, edgeCases, summary 
             <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setDevelopmentalStage("junior-primary-p1"); }}>All P1 items</button>
             <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setReadAloud("listen-essential"); }}>Listen essential</button>
             <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setStimulusCoverage("presentation-visual"); }}>Remediated visuals</button>
+            <button type="button" style={{ ...controlStyle, minHeight: 38, cursor: "pointer" }} onClick={() => { resetFilters(); setRenderer("numeric-entry"); setStimulusCoverage("presentation-visual"); }}>Numeric presentation stimuli</button>
           </div>
           <label style={{ display: "grid", gap: 5 }}><span>{filtered.length} matching items</span><select style={controlStyle} size={Math.min(6, Math.max(2, filtered.length))} value={selected?.item.id ?? ""} onChange={(event) => setSelectedId(event.target.value)}>{filtered.map(({ item, coverage }) => <option key={item.id} value={item.id}>{coverage.progressionTarget} · {coverage.form === "fresh-recheck" ? "Fresh" : "Initial"} · {coverage.rendererFamily} · {item.id}</option>)}</select></label>
         </section>
