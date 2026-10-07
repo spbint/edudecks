@@ -61,8 +61,11 @@ export function describeFractionBar(data: FractionBarStimulus) {
 }
 
 export function describeCurrencyTokens(data: CurrencyTokenStimulus) {
-  if (!data.tokens.length) return "No money tokens are shown.";
-  return `Money tokens shown in this order: ${data.tokens
+  if (!data.tokens.length) return "No Australian coins or notes are shown.";
+  const allCoins = data.tokens.every((token) =>
+    ["5c", "10c", "20c", "50c", "$1", "$2"].includes(token.denomination),
+  );
+  return `${allCoins ? "Australian coins" : "Australian money"} shown in this order: ${data.tokens
     .map((token) => token.denomination)
     .join(", ")}.`;
 }

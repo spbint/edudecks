@@ -21,6 +21,7 @@ import {
 } from "./startingPointRendererCoverage";
 import {
   classifyStartingPointDevelopmentalAccessibility,
+  getStartingPointPresentationCopy,
   getStartingPointReadAloudText,
   hasStartingPointPresentationStimulus,
 } from "./startingPointDevelopmentalAccessibility";
@@ -100,7 +101,9 @@ describe("Starting Point full-estate renderer coverage", () => {
       const classification = classifyStartingPointDevelopmentalAccessibility(item);
       const readAloudText = getStartingPointReadAloudText(item);
       expect(classification.readAloud).toMatch(/^listen-/);
-      expect(readAloudText).toContain(item.prompt);
+      expect(readAloudText).toContain(
+        getStartingPointPresentationCopy(item).prompt,
+      );
       expect(readAloudText).not.toContain("correctOptionIds");
       expect(readAloudText).not.toContain("correctValue");
       expect(readAloudText).not.toContain("altText");

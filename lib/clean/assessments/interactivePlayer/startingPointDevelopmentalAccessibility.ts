@@ -43,6 +43,40 @@ export type StartingPointDevelopmentalAccessibility = {
   presentationStimulus: StartingPointPresentationStimulus | null;
 };
 
+export type StartingPointPresentationCopy = {
+  prompt: string;
+};
+
+const PRESENTATION_COPY: Readonly<Record<string, StartingPointPresentationCopy>> = {
+  "myl-recheck-mon-p01-b-v1": {
+    prompt: "Which Australian coin has a face value of one dollar?",
+  },
+  "myl-search-mon-p01-b-v1": {
+    prompt: "Which Australian coin has a face value of two dollars?",
+  },
+  "myl-recheck-mon-p02-b-v1": {
+    prompt: "How many 50c coins are shown?",
+  },
+  "myl-anchor-mon-p02-b-v1": {
+    prompt: "How many 20c coins are shown?",
+  },
+  "myl-recheck-mon-p03-a-v1": {
+    prompt: "Six 20c coins have a total value of how many cents?",
+  },
+  "myl-recheck-mon-p03-b-v1": {
+    prompt: "Four $2 coins have a total value of how many dollars?",
+  },
+  "myl-boundary-mon-p03-a-v1": {
+    prompt: "Four 50c coins have a total value of how many cents?",
+  },
+  "myl-boundary-mon-p03-b-v1": {
+    prompt: "Five $1 coins have a total value of how many dollars?",
+  },
+  "myl-boundary-mon-p03-c-v1": {
+    prompt: "Three 20c coins have a total value of how many cents?",
+  },
+};
+
 const PRESENTATION_STIMULI: Readonly<Record<string, StartingPointPresentationStimulus>> = {
   "myl-recheck-add-p01-a-v1": { type: "counter-groups", groups: [4], action: "remove", removeCount: 1 },
   "myl-recheck-add-p01-b-v1": { type: "counter-groups", groups: [1, 3], action: "combine" },
@@ -107,11 +141,16 @@ export function hasStartingPointPresentationStimulus(itemId: string) {
   return Object.hasOwn(PRESENTATION_STIMULI, itemId);
 }
 
+export function getStartingPointPresentationCopy(item: MyLearnaAssessmentItem) {
+  return PRESENTATION_COPY[item.id] ?? { prompt: item.prompt };
+}
+
 export function getStartingPointReadAloudText(item: MyLearnaAssessmentItem) {
+  const presentationCopy = getStartingPointPresentationCopy(item);
   const optionLabels = item.response.options?.map((option) =>
     String(option.label ?? option.value).trim(),
   ).filter(Boolean) ?? [];
-  return [item.prompt.trim(), ...optionLabels.map((label, index) =>
+  return [presentationCopy.prompt.trim(), ...optionLabels.map((label, index) =>
     `Choice ${index + 1}. ${label}`,
   )].filter(Boolean).join(" ");
 }

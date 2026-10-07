@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type React from "react";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import { CurrencyTokenVisual } from "@/lib/clean/assessments/visualTemplates/CurrencyTokenVisual";
@@ -24,7 +25,7 @@ const panel: React.CSSProperties = {
   gap: 10,
 };
 
-function TokenProof({
+function CoinProof({
   title,
   width,
   tokens,
@@ -52,7 +53,7 @@ function TokenProof({
       <small style={{ color: "#64748B" }}>{width}px review frame</small>
       <CurrencyTokenVisual
         data={{ layout: "row", tokens }}
-        altText={`Currency review set: ${tokens
+        altText={`Australian coin review set: ${tokens
           .map((token) => token.denomination)
           .join(", ")}.`}
       />
@@ -97,6 +98,13 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
               Money P1–P2 electronic placement stays blocked until the set is
               deliberately accepted after hosted visual review.
             </p>
+            <nav aria-label="Trusted asset QA shortcuts" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-77">Historical QA 77</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-79">Historical QA 79</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-141">Historical QA 141</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#all-base-ten-visuals">All base-ten visuals</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#all-currency-visuals">All currency visuals</Link>
+            </nav>
           </section>
 
           <section style={panel}>
@@ -109,7 +117,19 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
           </section>
 
           <div style={{ display: "grid", gap: 16 }}>
-            <TokenProof
+            <CoinProof
+              title="All coin denominations · 390px"
+              width={390}
+              tokens={[
+                { denomination: "5c" },
+                { denomination: "10c" },
+                { denomination: "20c" },
+                { denomination: "50c" },
+                { denomination: "$1" },
+                { denomination: "$2" },
+              ]}
+            />
+            <CoinProof
               title="All coin denominations · 430px"
               width={430}
               tokens={[
@@ -121,7 +141,7 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
                 { denomination: "$2" },
               ]}
             />
-            <TokenProof
+            <CoinProof
               title="P1 face-value item · 390px"
               width={390}
               tokens={[
@@ -130,7 +150,7 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
                 { denomination: "$2" },
               ]}
             />
-            <TokenProof
+            <CoinProof
               title="P2 ordering item · 390px"
               width={390}
               tokens={[
@@ -140,7 +160,7 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
                 { denomination: "50c" },
               ]}
             />
-            <TokenProof
+            <CoinProof
               title="P2 counting item · 390px"
               width={390}
               tokens={[

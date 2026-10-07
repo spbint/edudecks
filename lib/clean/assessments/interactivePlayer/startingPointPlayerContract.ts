@@ -5,6 +5,7 @@ import type {
 import { scoreAssessmentItem } from "@/lib/clean/assessments/mylearnaAssessScoring";
 import {
   classifyStartingPointDevelopmentalAccessibility,
+  getStartingPointPresentationCopy,
   type StartingPointPresentationStimulus,
   type StartingPointReadAloudClassification,
 } from "./startingPointDevelopmentalAccessibility";
@@ -52,11 +53,12 @@ export function adaptAssessmentItemForStartingPointPlayer(
   item: MyLearnaAssessmentItem,
 ): StartingPointPlayerModel {
   const accessibility = classifyStartingPointDevelopmentalAccessibility(item);
+  const presentationCopy = getStartingPointPresentationCopy(item);
   return {
     kind: inferStartingPointInteraction(item),
     itemId: item.id,
     itemVersion: item.version,
-    prompt: item.prompt,
+    prompt: presentationCopy.prompt,
     options: (item.response.options || []).map((option) => ({
       id: option.id,
       label: option.label || String(option.value ?? ""),

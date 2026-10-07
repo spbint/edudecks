@@ -138,7 +138,22 @@ export default function MathsStartingPointReadinessPage() {
                   textDecoration: "none",
                 }}
               >
-                Review all 10 score-bearing visuals
+                Review all active trusted visuals
+              </Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-77" style={{ color: "#5535DF", fontWeight: 800, textDecoration: "none" }}>
+                Historical QA 77
+              </Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-79" style={{ color: "#5535DF", fontWeight: 800, textDecoration: "none" }}>
+                Historical QA 79
+              </Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-141" style={{ color: "#5535DF", fontWeight: 800, textDecoration: "none" }}>
+                Historical QA 141
+              </Link>
+              <Link href="/assessments/maths-starting-point/visual-review#all-base-ten-visuals" style={{ color: "#5535DF", fontWeight: 800, textDecoration: "none" }}>
+                All base-ten visuals
+              </Link>
+              <Link href="/assessments/maths-starting-point/visual-review#all-currency-visuals" style={{ color: "#5535DF", fontWeight: 800, textDecoration: "none" }}>
+                All currency visuals
               </Link>
               <Link
                 href="/assessments/maths-starting-point/player-showcase"

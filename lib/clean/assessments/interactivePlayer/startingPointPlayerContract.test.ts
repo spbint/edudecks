@@ -5,6 +5,7 @@ import {
   ADDITIVE_P9_ANCHOR_ITEMS,
   COUNTING_P2_ANCHOR_ITEMS,
   COUNTING_P5_ANCHOR_ITEMS,
+  MONEY_P1_SEARCH_ITEMS,
   MONEY_P2_ANCHOR_ITEMS,
   NPV_P3_ANCHOR_ITEMS,
   NPV_P9_ANCHOR_ITEMS,
@@ -57,6 +58,16 @@ describe("Starting Point interactive player contract", () => {
 
       expect(playerResult).toEqual(canonicalResult);
     }
+  });
+
+  it("uses academically safe coin wording through presentation metadata", () => {
+    const coinItem = MONEY_P1_SEARCH_ITEMS[1];
+    const model = adaptAssessmentItemForStartingPointPlayer(coinItem);
+    expect(coinItem.prompt).toMatch(/money token/i);
+    expect(model.prompt).toBe(
+      "Which Australian coin has a face value of two dollars?",
+    );
+    expect(model.prompt).not.toMatch(/token/i);
   });
 
   it("rejects a response replayed against a different canonical version", () => {

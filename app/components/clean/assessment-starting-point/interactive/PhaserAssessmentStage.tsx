@@ -100,7 +100,7 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
         ) {
           addStageSurface(this, PLAYER_CANVAS_WIDTH / 2, 115, PLAYER_LAYOUT.contentWidth, 196);
           if (stimulus.type === "currency-repeat") {
-            const spacing = stimulus.count > 4 ? 52 : 68;
+            const spacing = stimulus.count > 4 ? 58 : 68;
             Array.from({ length: stimulus.count }).forEach((_, index) => {
               const columns = Math.min(5, stimulus.count);
               const x = PLAYER_CANVAS_WIDTH / 2 - ((columns - 1) * spacing) / 2 + (index % columns) * spacing;

@@ -18,13 +18,25 @@ describe("Maths starting-point visual review", () => {
     expect(source).toContain("does not alter item status");
   });
 
-  it("reviews only customer-route score-bearing visuals at both required phone widths", () => {
-    expect(source).toContain("NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY");
-    expect(source).toContain('entry.item.stimulus.type !== "none"');
+  it("reviews the full active trusted-asset estate at both required phone widths", () => {
+    expect(source).toContain("getTrustedMathAssetCoverage");
+    expect(source).toContain("coverage.baseTenVisuals");
+    expect(source).toContain("coverage.currencyVisuals");
     expect(source).toContain("([390, 430] as const)");
     expect(source).toContain("maxWidth: frameWidth");
-    expect(source).toContain("390px and 430px phone widths");
     expect(source).toContain("AssessmentStimulus");
-    expect(source).toContain("Accessible description");
+    expect(source).toContain("CurrencyAuditVisual");
+  });
+
+  it("provides direct staff shortcuts for every requested QA target", () => {
+    for (const anchor of [
+      "historical-qa-77",
+      "historical-qa-79",
+      "historical-qa-141",
+      "all-base-ten-visuals",
+      "all-currency-visuals",
+    ]) {
+      expect(source).toContain(anchor);
+    }
   });
 });

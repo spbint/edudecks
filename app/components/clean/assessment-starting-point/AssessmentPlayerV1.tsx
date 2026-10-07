@@ -10,6 +10,7 @@ import {
   summarizeAssessmentAttempt,
 } from "@/lib/clean/assessments/mylearnaAssessScoring";
 import { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates";
+import { getStartingPointPresentationCopy } from "@/lib/clean/assessments/interactivePlayer/startingPointDevelopmentalAccessibility";
 
 type AssessmentPlayerV1Props = {
   title: string;
@@ -237,6 +238,8 @@ export default function AssessmentPlayerV1({
 
   if (!currentItem) return null;
 
+  const presentationCopy = getStartingPointPresentationCopy(currentItem);
+
   const selectedFeedback = currentItem.response.options?.find((option) =>
     selectedOptionIds.includes(option.id),
   )?.feedback;
@@ -274,7 +277,7 @@ export default function AssessmentPlayerV1({
 
       <div style={{ display: "grid", gap: 14 }}>
         <h3 style={{ margin: 0, color: "#17204B", fontSize: "clamp(22px, 4vw, 30px)" }}>
-          {currentItem.prompt}
+          {presentationCopy.prompt}
         </h3>
         <AssessmentItemRenderer item={currentItem} />
       </div>

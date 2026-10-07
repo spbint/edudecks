@@ -359,8 +359,8 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
         evidenceMode: "asset-review",
         sourcePages: [13],
         slots: [
-          slot("MYL-ANCHOR-MON-P02-A", "A", "Order Australian money denominations by face value.", "single_choice", "schematic denomination tokens", "implemented-draft-asset-review"),
-          slot("MYL-ANCHOR-MON-P02-B", "B", "Count the number of money tokens sharing the same denomination.", "numeric_entry", "schematic denomination tokens", "implemented-draft-asset-review"),
+          slot("MYL-ANCHOR-MON-P02-A", "A", "Order Australian money denominations by face value.", "single_choice", "Australian coin schematics", "implemented-draft-asset-review"),
+          slot("MYL-ANCHOR-MON-P02-B", "B", "Count the number of coins sharing the same denomination.", "numeric_entry", "Australian coin schematics", "implemented-draft-asset-review"),
         ],
       },
       {
@@ -379,7 +379,7 @@ export const NUMBER_OPERATIONS_ANCHOR_SETS: NumberOperationsAnchorSet[] = [
             "reuse-audited",
             "money-practical-contexts-money-notation-002",
           ),
-          slot("MYL-ANCHOR-MON-P05-B", "B", "Determine the total value of a larger mixed money collection.", "numeric_entry", "text-first until currency-token assets are approved", "implemented-draft"),
+          slot("MYL-ANCHOR-MON-P05-B", "B", "Determine the total value of a larger mixed money collection.", "numeric_entry", "text-first until Australian coin assets are approved", "implemented-draft"),
         ],
         reserveSlot: slot(
           "MYL-ANCHOR-MON-P05-C",

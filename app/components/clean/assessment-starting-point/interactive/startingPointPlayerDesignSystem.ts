@@ -1,4 +1,14 @@
 import type Phaser from "phaser";
+import {
+  AUSTRALIAN_COIN_SPECIFICATIONS,
+  BASE_TEN_MANIPULATIVE_SPEC,
+  getAustralianCoinRenderedDiameter,
+  isAustralianCoinDenomination,
+} from "@/lib/clean/assessments/visualTemplates/trustedMathAssetSpecifications";
+
+function colourNumber(value: string) {
+  return Number.parseInt(value.slice(1), 16);
+}
 
 export const PLAYER_CANVAS_WIDTH = 350;
 
@@ -21,10 +31,11 @@ export const PLAYER_COLOURS = Object.freeze({
   silverEdge: 0x667085,
   gold: 0xf3d273,
   goldEdge: 0x98701b,
-  materialFace: 0x78cfc4,
-  materialLight: 0xbcebe4,
-  materialSide: 0x3da99e,
-  materialEdge: 0x237d78,
+  materialFace: colourNumber(BASE_TEN_MANIPULATIVE_SPEC.palette.face),
+  materialLight: colourNumber(BASE_TEN_MANIPULATIVE_SPEC.palette.light),
+  materialSide: colourNumber(BASE_TEN_MANIPULATIVE_SPEC.palette.side),
+  materialEdge: colourNumber(BASE_TEN_MANIPULATIVE_SPEC.palette.edge),
+  materialGrid: colourNumber(BASE_TEN_MANIPULATIVE_SPEC.palette.grid),
 });
 
 export const PLAYER_LAYOUT = Object.freeze({
@@ -200,12 +211,12 @@ export function createUnitCube(scene: Phaser.Scene, x: number, y: number) {
 
 export function createTenRod(scene: Phaser.Scene, x: number, y: number) {
   const container = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(3, 47, 28, 10, PLAYER_COLOURS.shadow, 0.11);
-  const body = scene.add.rectangle(0, 0, 19, 91, PLAYER_COLOURS.materialFace).setStrokeStyle(1.5, PLAYER_COLOURS.materialEdge);
-  const side = scene.add.polygon(0, 0, [9.5, -45.5, 15, -51, 15, 40, 9.5, 45.5], PLAYER_COLOURS.materialSide).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
-  const top = scene.add.polygon(0, 0, [-9.5, -45.5, -4, -51, 15, -51, 9.5, -45.5], PLAYER_COLOURS.materialLight).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
+  const shadow = scene.add.ellipse(3, 59, 25, 9, PLAYER_COLOURS.shadow, 0.11);
+  const body = scene.add.rectangle(0, 0, 16, 112, PLAYER_COLOURS.materialFace).setStrokeStyle(1.5, PLAYER_COLOURS.materialEdge);
+  const side = scene.add.polygon(0, 0, [8, -56, 13, -61, 13, 51, 8, 56], PLAYER_COLOURS.materialSide).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
+  const top = scene.add.polygon(0, 0, [-8, -56, -3, -61, 13, -61, 8, -56], PLAYER_COLOURS.materialLight).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
   container.add([shadow, body, side, top]);
-  addSubdivisionLines(scene, container, 19, 91, 1, 10, PLAYER_COLOURS.materialEdge);
+  addSubdivisionLines(scene, container, 16, 112, 1, BASE_TEN_MANIPULATIVE_SPEC.tenUnits, PLAYER_COLOURS.materialGrid);
   return container;
 }
 
@@ -216,7 +227,15 @@ export function createHundredFlat(scene: Phaser.Scene, x: number, y: number) {
   const topEdge = scene.add.polygon(0, 0, [-35, -35, -30, -40, 40, -40, 35, -35], PLAYER_COLOURS.materialLight).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
   const sideEdge = scene.add.polygon(0, 0, [35, -35, 40, -40, 40, 30, 35, 35], PLAYER_COLOURS.materialSide).setStrokeStyle(1, PLAYER_COLOURS.materialEdge);
   container.add([shadow, face, topEdge, sideEdge]);
-  addSubdivisionLines(scene, container, 70, 70, 10, 10, PLAYER_COLOURS.materialEdge);
+  addSubdivisionLines(
+    scene,
+    container,
+    70,
+    70,
+    BASE_TEN_MANIPULATIVE_SPEC.hundredColumns,
+    BASE_TEN_MANIPULATIVE_SPEC.hundredRows,
+    PLAYER_COLOURS.materialGrid,
+  );
   return container;
 }
 
@@ -227,18 +246,37 @@ export function createThousandCube(scene: Phaser.Scene, x: number, y: number) {
   const top = scene.add.polygon(0, 0, [-36, -36, -23, -49, 49, -49, 36, -36], PLAYER_COLOURS.materialLight).setStrokeStyle(2, PLAYER_COLOURS.materialEdge);
   const side = scene.add.polygon(0, 0, [36, -36, 49, -49, 49, 23, 36, 36], PLAYER_COLOURS.materialSide).setStrokeStyle(2, PLAYER_COLOURS.materialEdge);
   container.add([shadow, front, top, side]);
-  addSubdivisionLines(scene, container, 72, 72, 6, 6, PLAYER_COLOURS.materialEdge);
+  addSubdivisionLines(
+    scene,
+    container,
+    72,
+    72,
+    BASE_TEN_MANIPULATIVE_SPEC.thousandColumns,
+    BASE_TEN_MANIPULATIVE_SPEC.thousandRows,
+    PLAYER_COLOURS.materialGrid,
+  );
+  for (let index = 1; index < 10; index += 1) {
+    const faceOffset = (index * 72) / 10;
+    const depthOffset = (index * 13) / 10;
+    container.add([
+      scene.add.line(0, 0, -36 + faceOffset, -36, -23 + faceOffset, -49, PLAYER_COLOURS.materialGrid, 0.55).setLineWidth(1),
+      scene.add.line(0, 0, -36 + depthOffset, -36 - depthOffset, 36 + depthOffset, -36 - depthOffset, PLAYER_COLOURS.materialGrid, 0.55).setLineWidth(1),
+      scene.add.line(0, 0, 36, -36 + faceOffset, 49, -49 + faceOffset, PLAYER_COLOURS.materialGrid, 0.55).setLineWidth(1),
+      scene.add.line(0, 0, 36 + depthOffset, -36 - depthOffset, 36 + depthOffset, 36 - depthOffset, PLAYER_COLOURS.materialGrid, 0.55).setLineWidth(1),
+    ]);
+  }
   return container;
 }
 
-const CURRENCY_RADIUS: Record<string, number> = {
-  "5c": 18,
-  "10c": 21,
-  "20c": 26,
-  "50c": 30,
-  "$1": 24,
-  "$2": 20,
-};
+const CURRENCY_RADIUS = Object.fromEntries(
+  Object.keys(AUSTRALIAN_COIN_SPECIFICATIONS).map((denomination) => [
+    denomination,
+    getAustralianCoinRenderedDiameter(
+      denomination as keyof typeof AUSTRALIAN_COIN_SPECIFICATIONS,
+      66,
+    ) / 2,
+  ]),
+) as Record<keyof typeof AUSTRALIAN_COIN_SPECIFICATIONS, number>;
 
 function regularPolygonPoints(
   PhaserRuntime: typeof Phaser,
@@ -261,7 +299,10 @@ export function createCurrencyToken(
   x: number,
   y: number,
 ) {
-  const radius = CURRENCY_RADIUS[denomination] ?? 22;
+  const trustedDenomination = isAustralianCoinDenomination(denomination)
+    ? denomination
+    : "$2";
+  const radius = CURRENCY_RADIUS[trustedDenomination];
   const gold = denomination === "$1" || denomination === "$2";
   const container = scene.add.container(x, y);
   const shadow = scene.add.ellipse(1, radius * 0.76, radius * 1.75, radius * 0.5, PLAYER_COLOURS.shadow, 0.13);
@@ -278,18 +319,55 @@ export function createCurrencyToken(
         .setStrokeStyle(1, 0x9aa3b1, 0.62)
     : scene.add.circle(0, 0, insetRadius, gold ? 0xf8e5a8 : 0xf7f9fc, 0.3)
         .setStrokeStyle(1, gold ? PLAYER_COLOURS.goldEdge : 0x9aa3b1, 0.62);
-  const motif = denomination === "$1"
-    ? scene.add.star(0, -1, 8, radius * 0.42, radius * 0.55, gold ? 0xc99c32 : 0x9aa3b1, 0.18)
-    : denomination === "$2"
-      ? scene.add.ellipse(0, -1, radius * 1.05, radius * 0.72, 0xc08c1e, 0.16)
-          .setStrokeStyle(1, PLAYER_COLOURS.goldEdge, 0.45)
-      : scene.add.ellipse(-radius * 0.18, -radius * 0.24, radius * 0.48, radius * 0.24, 0xffffff, 0.28)
-          .setRotation(-0.35);
+  const motif = scene.add.graphics();
+  motif.lineStyle(1.35, gold ? 0x76520b : 0x52606e, 0.48);
+  if (denomination === "5c") {
+    motif.strokeEllipse(-2, 5, radius * 1.05, radius * 0.6);
+    for (let index = -2; index <= 2; index += 1) {
+      motif.lineBetween(index * 4, -2, index * 6, -radius * 0.58);
+    }
+  } else if (denomination === "10c") {
+    for (let index = -2; index <= 2; index += 1) {
+      motif.beginPath();
+      motif.moveTo(0, radius * 0.52);
+      motif.lineTo(index * radius * 0.28, -radius * 0.52);
+      motif.strokePath();
+    }
+  } else if (denomination === "20c") {
+    motif.strokeEllipse(0, 4, radius * 1.15, radius * 0.58);
+    motif.beginPath();
+    motif.moveTo(-radius * 0.65, radius * 0.54);
+    motif.lineTo(-radius * 0.2, radius * 0.38);
+    motif.lineTo(radius * 0.25, radius * 0.55);
+    motif.lineTo(radius * 0.66, radius * 0.38);
+    motif.strokePath();
+  } else if (denomination === "50c") {
+    motif.strokeRect(-radius * 0.28, -radius * 0.32, radius * 0.56, radius * 0.68);
+    motif.lineBetween(0, -radius * 0.32, 0, radius * 0.36);
+    motif.lineBetween(-radius * 0.28, 0, radius * 0.28, 0);
+  } else if (denomination === "$1") {
+    for (let index = -2; index <= 2; index += 1) {
+      motif.strokeEllipse(index * radius * 0.22, index * -radius * 0.12, radius * 0.38, radius * 0.22);
+    }
+  } else {
+    motif.strokeEllipse(-2, 1, radius * 0.76, radius * 1.08);
+    for (let index = 0; index < 5; index += 1) {
+      const angle = -Math.PI / 2 + index * 1.26;
+      motif.fillStyle(0x76520b, 0.48);
+      motif.fillCircle(Math.cos(angle) * radius * 0.62, Math.sin(angle) * radius * 0.62, 1.4);
+    }
+  }
+  const country = scene.add.text(0, -radius * 0.62, "AUSTRALIA", {
+    color: gold ? "#604207" : "#394652",
+    fontFamily: "Arial, sans-serif",
+    fontSize: radius < 24 ? "5px" : "6px",
+    fontStyle: "bold",
+  }).setOrigin(0.5);
   const label = scene.add.text(0, 0, denomination, {
     color: PLAYER_COLOURS.inkCss,
     fontFamily: "Arial, sans-serif",
-    fontSize: denomination === "50c" ? "12px" : "12px",
+    fontSize: radius < 24 ? "12px" : "14px",
     fontStyle: "bold",
   }).setOrigin(0.5).setShadow(0, 1, "#FFFFFF", 1, false, true);
-  return container.add([shadow, edge, face, inner, motif, label]);
+  return container.add([shadow, edge, face, inner, motif, country, label]);
 }

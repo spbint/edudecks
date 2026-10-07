@@ -22,7 +22,8 @@ describe("Maths starting-point readiness route", () => {
 
   it("shows release gates, item count and trusted asset review state", () => {
     expect(source).toContain("getMathsStartingPointCustomerReleaseBlockers");
-    expect(source).toContain("NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY");
+    expect(source).toContain("NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY");
+    expect(source).toContain("NUMBER_OPERATIONS_CONFIRMATION_REVIEW_ITEM_REGISTRY");
     expect(source).toContain("NUMBER_OPERATIONS_ASSET_APPROVALS");
     expect(source).toContain("MATHS_STARTING_POINT_RELEASE");
   });
