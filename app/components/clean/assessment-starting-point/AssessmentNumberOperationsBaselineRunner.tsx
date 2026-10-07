@@ -11,7 +11,6 @@ import { buildNumberOperationsProfile } from "@/lib/clean/assessments/placement/
 import { buildNumberOperationsParentUtility } from "@/lib/clean/assessments/placement/numberOperationsParentUtility";
 import { buildNumberOperationsEvidencePreview } from "@/lib/clean/assessments/placement/numberOperationsEvidencePreview";
 import { buildNumberOperationsBaselineSummarySnapshot } from "@/lib/clean/assessments/placement/numberOperationsBaselineSnapshot";
-import { buildNumberOperationsBaselinePersistenceDraft } from "@/lib/clean/assessments/placement/numberOperationsPersistenceDraft";
 import type {
   NumberOperationsPlacementResult,
   NumberOperationsSubElementKey,
@@ -25,7 +24,6 @@ import {
 import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/placement/numberOperationsBaselineBudget";
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
-import { saveNumberOperationsBaseline } from "@/lib/clean/assessments/placement/numberOperationsBaselinePersistenceClient";
 import { buildNumberOperationsUnresolvedGuidance } from "@/lib/clean/assessments/placement/numberOperationsUnresolvedGuidance";
 
 const DEFAULT_ORDER: NumberOperationsSubElementKey[] = [
@@ -54,16 +52,12 @@ const panel: React.CSSProperties = {
 };
 
 export default function AssessmentNumberOperationsBaselineRunner({
-  familyId,
-  familyStorageMode,
   learnerId,
   learnerName,
   mode = "staff-debug",
   userId,
   subElementKeys,
 }: {
-  familyId?: string | null;
-  familyStorageMode?: "database" | "local";
   learnerId?: string | null;
   learnerName?: string | null;
   mode?: "parent-preview" | "staff-debug";
@@ -99,13 +93,9 @@ export default function AssessmentNumberOperationsBaselineRunner({
   const [complete, setComplete] = useState(false);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
-  const startedAtRef = useRef(new Date().toISOString());
+  const [startedAt, setStartedAt] = useState(() => new Date().toISOString());
   const completionTrackedRef = useRef(false);
   const hydratedCompleteRef = useRef(false);
-  const persistenceSubmissionIdRef = useRef<string | null>(null);
-  const [persistenceSaving, setPersistenceSaving] = useState(false);
-  const [persistenceMessage, setPersistenceMessage] = useState("");
-  const [savedAttemptId, setSavedAttemptId] = useState("");
   const learnerStorageSuffix = learnerId ? `:${learnerId}` : "";
   const scopeStorageSuffix = isFullScope ? "" : `:scope-${order.join("+")}`;
   const draftStorageKey =
@@ -116,11 +106,13 @@ export default function AssessmentNumberOperationsBaselineRunner({
       window.sessionStorage.getItem(draftStorageKey),
     );
     if (draft) {
+      // Hydrate the learner-scoped external session snapshot as one state batch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentIndex(draft.currentIndex);
       setResultsByKey(draft.resultsByKey);
       setUnresolved(draft.unresolvedSubElements);
       setTracesByKey(draft.tracesByKey);
-      startedAtRef.current = draft.startedAt;
+      setStartedAt(draft.startedAt);
       if (draft.status === "complete") {
         hydratedCompleteRef.current = true;
         setCompletedAt(draft.completedAt);
@@ -140,7 +132,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
       resultsByKey,
       unresolvedSubElements: unresolved,
       tracesByKey: complete ? {} : tracesByKey,
-      startedAt: startedAtRef.current,
+      startedAt,
       completedAt: complete ? completedAt : null,
     });
     window.sessionStorage.setItem(
@@ -153,6 +145,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
     currentIndex,
     draftHydrated,
     resultsByKey,
+    startedAt,
     tracesByKey,
     unresolved,
     draftStorageKey,
@@ -243,13 +236,9 @@ export default function AssessmentNumberOperationsBaselineRunner({
     setPendingResult(undefined);
     setComplete(false);
     setCompletedAt(null);
-    startedAtRef.current = new Date().toISOString();
+    setStartedAt(new Date().toISOString());
     completionTrackedRef.current = false;
     hydratedCompleteRef.current = false;
-    persistenceSubmissionIdRef.current = null;
-    setPersistenceSaving(false);
-    setPersistenceMessage("");
-    setSavedAttemptId("");
     window.sessionStorage.removeItem(draftStorageKey);
   };
 
@@ -306,59 +295,9 @@ export default function AssessmentNumberOperationsBaselineRunner({
       subElementAttempts: Object.values(tracesByKey).filter(
         (trace): trace is NumberOperationsSubElementAttemptTrace => Boolean(trace),
       ),
-      startedAt: startedAtRef.current,
+      startedAt,
       completedAt: completedAt || new Date().toISOString(),
     });
-    const persistenceDraft =
-      buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot);
-    const replayTraceCount = Object.values(tracesByKey).filter(Boolean).length;
-    const hasCompleteReplayTrace = replayTraceCount === order.length;
-    const persistenceContextReady =
-      mode === "parent-preview" &&
-      MATHS_STARTING_POINT_RELEASE.persistenceEnabled &&
-      !MATHS_STARTING_POINT_RELEASE.customerVisible &&
-      familyStorageMode === "database" &&
-      Boolean(String(familyId ?? "").trim()) &&
-      Boolean(String(learnerId ?? "").trim());
-    const canRunStaffPersistenceSmoke =
-      persistenceContextReady && hasCompleteReplayTrace;
-    const persistenceReplayRequired =
-      persistenceContextReady && !hasCompleteReplayTrace;
-
-    const runStaffPersistenceSmoke = async () => {
-      if (!canRunStaffPersistenceSmoke || persistenceSaving) return;
-
-      setPersistenceSaving(true);
-      setPersistenceMessage("");
-      try {
-        if (!persistenceSubmissionIdRef.current) {
-          const randomId =
-            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-              ? crypto.randomUUID()
-              : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-          persistenceSubmissionIdRef.current = `maths-start-${randomId}`;
-        }
-
-        const saved = await saveNumberOperationsBaseline({
-          familyId: String(familyId),
-          learnerId: String(learnerId),
-          clientSubmissionId: persistenceSubmissionIdRef.current,
-          draft: persistenceDraft,
-        });
-        setSavedAttemptId(saved.attemptId);
-        setPersistenceMessage(
-          "Staff persistence smoke succeeded. Customer visibility remains disabled.",
-        );
-      } catch (error) {
-        setPersistenceMessage(
-          error instanceof Error
-            ? error.message
-            : "The staff persistence smoke could not be completed.",
-        );
-      } finally {
-        setPersistenceSaving(false);
-      }
-    };
     const unresolvedGuidance =
       buildNumberOperationsUnresolvedGuidance(unresolved);
 
@@ -472,91 +411,6 @@ export default function AssessmentNumberOperationsBaselineRunner({
             )
           }
         />
-        {persistenceReplayRequired ? (
-          <section
-            style={{
-              ...panel,
-              borderColor: "#F5D08A",
-              background: "#FFFDF5",
-            }}
-          >
-            <span
-              style={{
-                color: "#92400E",
-                fontSize: 12,
-                fontWeight: 900,
-                textTransform: "uppercase",
-              }}
-            >
-              Staff-only persistence safeguard
-            </span>
-            <strong style={{ color: "#17204B" }}>
-              Re-run this check before the persistence smoke
-            </strong>
-            <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
-              Completed browser summaries deliberately drop raw response traces.
-              The trusted server replay needs the full current-tab route evidence,
-              so MyLearna will not persist a rehydrated summary without those traces.
-            </span>
-          </section>
-        ) : null}
-        {canRunStaffPersistenceSmoke ? (
-          <section
-            style={{
-              ...panel,
-              borderColor: "#D9D0FF",
-              background: "#F8F5FF",
-            }}
-          >
-            <span
-              style={{
-                color: "#6C4DF6",
-                fontSize: 12,
-                fontWeight: 900,
-                textTransform: "uppercase",
-              }}
-            >
-              Staff-only persistence smoke
-            </span>
-            <strong style={{ color: "#17204B" }}>
-              Save this completed baseline through the trusted server replay
-            </strong>
-            <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
-              This control appears only while persistence is enabled and customer
-              visibility remains off. It does not publish items, expose the route to
-              families or create Portfolio/report evidence.
-            </span>
-            <button
-              type="button"
-              onClick={() => void runStaffPersistenceSmoke()}
-              disabled={persistenceSaving}
-              style={{
-                border: 0,
-                borderRadius: 11,
-                minHeight: 44,
-                padding: "10px 14px",
-                background: persistenceSaving ? "#A5B4FC" : "#6C4DF6",
-                color: "#FFFFFF",
-                fontWeight: 850,
-                cursor: persistenceSaving ? "wait" : "pointer",
-                width: "fit-content",
-              }}
-            >
-              {persistenceSaving
-                ? "Saving trusted baseline..."
-                : savedAttemptId
-                  ? "Retry idempotent save"
-                  : "Run staff persistence smoke"}
-            </button>
-            {persistenceMessage ? (
-              <span role="status" style={{ color: "#475569", lineHeight: 1.5 }}>
-                {persistenceMessage}
-                {savedAttemptId ? ` Attempt ID: ${savedAttemptId}` : ""}
-              </span>
-            ) : null}
-          </section>
-        ) : null}
-
         {mode === "staff-debug" ? (
           <>
             <AssessmentNumberOperationsProfileCard profile={finalProfile} />
@@ -591,33 +445,6 @@ export default function AssessmentNumberOperationsBaselineRunner({
             </pre>
           </div>
         </details>
-        <details style={panel}>
-          <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
-            Future persistence rows · {persistenceDraft.responses.length} response
-            {persistenceDraft.responses.length === 1 ? "" : "s"}
-          </summary>
-          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-            <span style={{ color: "#5B6478", lineHeight: 1.55 }}>
-              Read-only staff preview. No family ID, learner ID, database ID or user ID is created here.
-            </span>
-            <pre
-              style={{
-                margin: 0,
-                maxHeight: 360,
-                overflow: "auto",
-                borderRadius: 12,
-                background: "#0F172A",
-                color: "#E2E8F0",
-                padding: 14,
-                fontSize: 12,
-                lineHeight: 1.5,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {JSON.stringify(persistenceDraft, null, 2)}
-            </pre>
-          </div>
-            </details>
           </>
         ) : null}
         <button
@@ -643,7 +470,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
 
   return (
     <section style={{ display: "grid", gap: 18 }}>
-      <div style={panel}>
+      <div style={panel} data-starting-point-route-progress>
         <span
           style={{
             color: "#6C4DF6",
@@ -765,6 +592,12 @@ export default function AssessmentNumberOperationsBaselineRunner({
         anchorSetKey={currentKey}
         allowBandConfirmation={false}
         presentation={mode === "parent-preview" ? "parent" : "staff"}
+        areaProgress={{
+          current: currentIndex + 1,
+          total: order.length,
+          label: LABELS[currentKey],
+        }}
+        onPause={() => window.location.assign(pauseHref)}
         onResult={setPendingResult}
         onAttemptTrace={(trace) =>
           setTracesByKey((current) => ({

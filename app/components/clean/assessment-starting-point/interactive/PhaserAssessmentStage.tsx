@@ -48,6 +48,7 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const submitRef = useRef(onSubmit);
   const [numericValue, setNumericValue] = useState("");
+  const [initializationFailed, setInitializationFailed] = useState(false);
   submitRef.current = onSubmit;
 
   useEffect(() => {
@@ -378,6 +379,8 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
         audio: { noAudio: true },
         banner: false,
       });
+    }).catch(() => {
+      if (!disposed) setInitializationFailed(true);
     });
 
     return () => { disposed = true; game?.destroy(true); host.replaceChildren(); };
@@ -387,7 +390,7 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
   const numericControls = <>
       <div className={styles.numericDisplay} aria-live="polite">{numericValue || <span>Enter your answer</span>}</div>
       <div className={styles.keypad} aria-label="Number keypad">
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "−", "0", "."].map((key) => <button key={key} type="button" onClick={() => append(key)}>{key}</button>)}
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "−", "0", ".", "/"].map((key) => <button key={key} type="button" onClick={() => append(key)}>{key}</button>)}
         <button className={styles.backspace} type="button" onClick={() => setNumericValue((current) => current.slice(0, -1))}>Delete</button>
       </div>
       <button className={styles.playerContinue} type="button" disabled={!numericValue || numericValue === "-" || numericValue === "."} onClick={() => submitRef.current({ itemId: model.itemId, itemVersion: model.itemVersion, selectedOptionIds: [], responseValue: numericValue })}>Continue</button>
@@ -395,6 +398,15 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
 
   if (model.kind === "numeric-entry" && !model.presentationStimulus) {
     return <div className={styles.numericStage} data-player-renderer="phaser-dom-overlay">{numericControls}</div>;
+  }
+
+  if (initializationFailed) {
+    return (
+      <div className={styles.stageFailure} role="alert" data-player-initialization-failed>
+        <strong>The interactive view could not start.</strong>
+        <span>Use “Need another way to answer?” below, or pause and try again.</span>
+      </div>
+    );
   }
 
   if (model.options.length === 0) {

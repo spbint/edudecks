@@ -23,6 +23,7 @@
   color: #17204b;
   box-sizing: border-box;
   overflow: hidden;
+  margin-inline: auto;
 }
 .shell::before {
   content: "";
@@ -41,8 +42,17 @@
 :global(body.starting-point-player-active .mylearna-v2-grid) { grid-template-columns: minmax(0, 1fr) !important; }
 :global(body.starting-point-player-active .mylearna-v2-content-main) { padding: 0 !important; }
 :global(body.starting-point-player-active .mylearna-v2-content-inner) { max-width: none !important; gap: 0 !important; }
+:global(body.starting-point-player-active [data-starting-point-route-header]),
+:global(body.starting-point-player-active [data-starting-point-route-setup]),
+:global(body.starting-point-player-active [data-starting-point-route-progress]),
+:global(body.starting-point-player-active [data-starting-point-anchor-header]) { display: none !important; }
+:global(body.starting-point-player-active [data-starting-point-route-main]) { padding: 0 !important; background: #fff !important; }
+:global(body.starting-point-player-active [data-starting-point-route-main] > div) { max-width: none !important; gap: 0 !important; }
+:global(body.starting-point-player-active [data-starting-point-anchor-shell]) { border: 0 !important; border-radius: 0 !important; background: transparent !important; padding: 0 !important; }
 
 .topline { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 12px; }
+.progressContext { display: grid; gap: 3px; min-width: 0; }
+.areaContext { color: var(--player-purple-deep); font-size: 12px; font-weight: 900; overflow-wrap: anywhere; }
 .questionCount { color: var(--player-slate); font-size: 13px; font-weight: 800; letter-spacing: 0.01em; }
 .pause { min-height: 42px; border: 1px solid #e1dcf5; border-radius: 13px; padding: 0 13px; background: #fff; color: var(--player-purple-deep); font: 800 13px/1 Arial, sans-serif; cursor: pointer; box-shadow: 0 3px 8px rgba(23, 32, 75, 0.05); transition: transform 95ms ease, border-color 150ms ease, background 150ms ease; }
 .pause:hover { border-color: #b9a8ff; background: #f8f6ff; }
@@ -54,6 +64,7 @@
 .questionTools { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .listenButton { min-height: 42px; border: 1px solid #d9d0ff; border-radius: 999px; padding: 8px 13px; background: #f8f6ff; color: #5535df; font: inherit; font-size: 14px; font-weight: 850; cursor: pointer; }
 .listenButton:hover, .listenButton:focus-visible { border-color: #6c4df6; background: #eee9ff; }
+.listenButton:disabled { cursor: not-allowed; opacity: 0.52; }
 .eyebrow { color: #6c4df6; font-size: 11px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
 .prompt { margin: 0; max-width: 30ch; color: var(--player-ink); font-size: clamp(25px, 6vw, 38px); font-weight: 820; line-height: 1.14; letter-spacing: -0.025em; text-wrap: balance; }
 
@@ -65,6 +76,10 @@
 }
 .phaserHost canvas { display: block; max-width: 100%; }
 .loading { min-height: 260px; display: grid; place-items: center; border-radius: 24px; background: #f8f6ff; color: #6c4df6; font-weight: 800; }
+.stageFailure, .responseError { border: 1px solid #f5d08a; border-radius: 18px; background: #fffdf5; color: #6b4f1d; padding: 16px; display: grid; gap: 8px; line-height: 1.5; }
+.failureActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.failureActions button { min-height: 44px; border: 1px solid #d9d0ff; border-radius: 12px; padding: 8px 12px; background: #fff; color: #4f35cc; font-weight: 800; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .numericStage {
   display: grid; gap: 14px; padding: 18px; border: 1px solid #ded8f7; border-radius: 26px;

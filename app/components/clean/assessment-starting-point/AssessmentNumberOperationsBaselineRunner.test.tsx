@@ -110,18 +110,11 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
     expect(screen.getAllByText("P5–P6")).toHaveLength(10);
     expect(screen.getByText("Assessment evidence preview")).toBeTruthy();
     expect(screen.getByText("Not saved yet")).toBeTruthy();
-    expect(
-      screen.getByText(/can become Portfolio and report evidence after explicit parent confirmation/i),
-    ).toBeTruthy();
     expect(screen.getByText(/Baseline data handoff · schema v1/i)).toBeTruthy();
     fireEvent.click(screen.getByText(/Baseline data handoff · schema v1/i));
     expect(screen.getByText(/not written to the existing pathway-scoped assessment_attempts table/i)).toBeTruthy();
     expect(screen.getByText(/"pathwayAttemptCompatible": false/i)).toBeTruthy();
-    expect(screen.getByText(/Future persistence rows · 5 responses/i)).toBeTruthy();
-    fireEvent.click(screen.getByText(/Future persistence rows · 5 responses/i));
-    expect(
-      screen.getByText(/No family ID, learner ID, database ID or user ID is created here/i),
-    ).toBeTruthy();
+    expect(screen.queryByText(/Future persistence rows/i)).toBeNull();
     const completedRaw = window.sessionStorage.getItem(
       NUMBER_OPERATIONS_BASELINE_DRAFT_STORAGE_KEY,
     );
@@ -142,7 +135,7 @@ describe("AssessmentNumberOperationsBaselineRunner", () => {
       screen.getByRole("button", { name: "Complete number-place-value" }),
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Continue to next area" }),
+      screen.getByRole("button", { name: "Continue to the next area" }),
     );
 
     await waitFor(() => {
@@ -214,8 +207,8 @@ it("makes the bounded parent question load explicit without inventing a duration
   );
 
   expect(source).toContain("Five separate Number & Operations areas");
-  expect(source).toContain("budget.bySubElement[currentIndex]?.minimumQuestions");
-  expect(source).toContain("budget.bySubElement[currentIndex]?.maximumQuestions");
+  expect(source).toContain("currentAreaBudget?.minimumQuestions");
+  expect(source).toContain("currentAreaBudget?.maximumQuestions");
   expect(source).toContain("MyLearna pauses between areas");
   expect(source).not.toMatch(/\b\d+\s*(?:minute|minutes|min)\b/i);
 });
@@ -246,7 +239,7 @@ it("offers a learner-preserving pause point only between completed areas", () =>
     "utf8",
   );
 
-  expect(source).toContain('currentIndex > 0 && pendingResult === undefined');
+  expect(source).toMatch(/currentIndex > 0 &&\s+pendingResult === undefined/);
   expect(source).toContain("Pause here and return to My Pathways");
   expect(source).toContain('subjectKey: "mathematics"');
   expect(source).toContain('params.set("learnerId", cleanLearnerId)');
@@ -265,10 +258,10 @@ it("can complete one focused area without forcing the other four areas", () => {
   expect(screen.getByText(/Area 1 of 1/i)).toBeTruthy();
   expect(screen.getByText("One focused Number & Operations area")).toBeTruthy();
   expect(
-    screen.getByRole("progressbar", {
-      name: "Starting-point areas completed",
-    }),
-  ).toHaveAttribute("aria-valuenow", "0");
+    screen
+      .getByRole("progressbar", { name: "Starting-point areas completed" })
+      .getAttribute("aria-valuenow"),
+  ).toBe("0");
   expect(
     screen.getByRole("button", { name: "Complete additive-strategies" }),
   ).toBeTruthy();
@@ -280,10 +273,10 @@ it("can complete one focused area without forcing the other four areas", () => {
     screen.getByRole("button", { name: "Complete additive-strategies" }),
   );
   expect(
-    screen.getByRole("progressbar", {
-      name: "Starting-point areas completed",
-    }),
-  ).toHaveAttribute("aria-valuenow", "1");
+    screen
+      .getByRole("progressbar", { name: "Starting-point areas completed" })
+      .getAttribute("aria-valuenow"),
+  ).toBe("1");
   fireEvent.click(
     screen.getByRole("button", { name: "See the starting-point profile" }),
   );
@@ -319,8 +312,8 @@ it("explains adaptive difficulty without implying year-based placement", () => {
   );
 
   expect(source).toContain("Some questions may feel unusually easy or hard");
-  expect(source).toContain(
-    "rather than assuming a level from the learner&apos;s age or year",
+  expect(source).toMatch(
+    /rather than assuming a\s+level from the learner&apos;s age or year/,
   );
 });
 
@@ -364,7 +357,7 @@ it("builds focused profiles against the requested scope rather than the full fiv
 });
 
 
-it("does not allow a rehydrated completed summary to bypass trusted route replay", () => {
+it("keeps completed browser summaries answer-safe and outside persistence", () => {
   const source = readFileSync(
     join(
       process.cwd(),
@@ -373,18 +366,12 @@ it("does not allow a rehydrated completed summary to bypass trusted route replay
     "utf8",
   );
 
-  expect(source).toContain("replayTraceCount");
-  expect(source).toContain("replayTraceCount === order.length");
-  expect(source).toContain("persistenceReplayRequired");
-  expect(source).toContain(
-    "Completed browser summaries deliberately drop raw response traces",
-  );
-  expect(source).toContain(
-    "MyLearna will not persist a rehydrated summary without those traces",
-  );
+  expect(source).toContain("tracesByKey: complete ? {} : tracesByKey");
+  expect(source).not.toContain("buildNumberOperationsBaselinePersistenceDraft");
+  expect(source).not.toContain("saveNumberOperationsBaseline");
 });
 
-it("keeps the persistence smoke control staff-only, idempotent and tied to canonical family/learner context", () => {
+it("does not mount any persistence control or database context on the real route", () => {
   const source = readFileSync(
     join(
       process.cwd(),
@@ -401,14 +388,8 @@ it("keeps the persistence smoke control staff-only, idempotent and tied to canon
   );
 
   expect(source).toContain("MATHS_STARTING_POINT_RELEASE.persistenceEnabled");
-  expect(source).toContain("!MATHS_STARTING_POINT_RELEASE.customerVisible");
-  expect(source).toContain("saveNumberOperationsBaseline");
-  expect(source).toContain("persistenceSubmissionIdRef.current");
-  expect(source).toContain("maths-start-");
-  expect(source).toContain("Run staff persistence smoke");
-  expect(workspaceSource).toContain("familyId={workspace.profile.id}");
-  expect(workspaceSource).toContain("familyStorageMode={workspace.storageMode}");
-  expect(source).toContain('familyStorageMode === "database"');
-  expect(source).toContain("familyId: String(familyId)");
-  expect(source).toContain("learnerId: String(learnerId)");
+  expect(source).not.toContain("saveNumberOperationsBaseline");
+  expect(source).not.toContain("Run staff persistence smoke");
+  expect(workspaceSource).not.toContain("familyId={workspace.profile.id}");
+  expect(workspaceSource).not.toContain("familyStorageMode={workspace.storageMode}");
 });

@@ -104,7 +104,7 @@ export default function MathsStartingPointWorkspace() {
 
   if (!workspace.learners.length || !activeLearner) {
     return (
-      <div style={card}>
+      <div style={card} data-starting-point-route-setup>
         <strong style={{ color: "#17204B", fontSize: 18 }}>
           Add a learner before starting the Number &amp; Operations check
         </strong>
@@ -131,7 +131,7 @@ export default function MathsStartingPointWorkspace() {
 
   return (
     <section style={{ display: "grid", gap: 18 }}>
-      <div style={card}>
+      <div style={card} data-starting-point-route-setup>
         <span
           style={{
             color: "#166534",
@@ -198,7 +198,7 @@ export default function MathsStartingPointWorkspace() {
         </Link>
       </div>
 
-      <div style={card}>
+      <div style={card} data-starting-point-route-setup>
         <span
           style={{
             color: "#166534",
@@ -268,8 +268,6 @@ export default function MathsStartingPointWorkspace() {
 
       <AssessmentNumberOperationsBaselineRunner
         key={`${activeLearner.id}:${selectedArea?.key || "full"}`}
-        familyId={workspace.profile.id}
-        familyStorageMode={workspace.storageMode}
         learnerId={activeLearner.id}
         learnerName={activeLearner.label}
         mode="parent-preview"

@@ -1,7 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Component,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   MyLearnaAssessmentItem,
   MyLearnaAssessmentResponse,
@@ -22,10 +29,50 @@ const PhaserAssessmentStage = dynamic(() => import("./PhaserAssessmentStage"), {
 type StartingPointPlayerProps = {
   item: MyLearnaAssessmentItem;
   progress?: { current: number; total: number };
+  areaProgress?: { current: number; total: number; label: string };
+  scoreAnswer?: (input: {
+    answer: StartingPointPlayerAnswer;
+    timeSpentSeconds: number;
+  }) => Promise<MyLearnaAssessmentResponse> | MyLearnaAssessmentResponse;
   onResponse?: (response: MyLearnaAssessmentResponse) => void;
   onPause?: () => void;
   onUsePracticalObservation?: () => void;
 };
+
+class PlayerStageErrorBoundary extends Component<
+  { children: ReactNode; onPause?: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch() {
+    // Learners get a safe recovery state, never implementation details.
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className={styles.stageFailure} role="alert" data-player-load-failed>
+        <strong>This question did not load.</strong>
+        <span>Try the accessible answer below, or pause and return safely.</span>
+        <div className={styles.failureActions}>
+          <button type="button" onClick={() => this.setState({ failed: false })}>
+            Try again
+          </button>
+          {this.props.onPause ? (
+            <button type="button" onClick={this.props.onPause}>
+              Pause &amp; exit
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+}
 
 function moveOption(ids: string[], optionId: string, direction: -1 | 1) {
   const currentIndex = ids.indexOf(optionId);
@@ -40,6 +87,8 @@ function moveOption(ids: string[], optionId: string, direction: -1 | 1) {
 export default function StartingPointPlayer({
   item,
   progress = { current: 1, total: 1 },
+  areaProgress,
+  scoreAnswer,
   onResponse,
   onPause,
   onUsePracticalObservation,
@@ -50,11 +99,23 @@ export default function StartingPointPlayer({
   const [accessibleSelection, setAccessibleSelection] = useState<string[]>([]);
   const [accessibleValue, setAccessibleValue] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [readAloudAvailable, setReadAloudAvailable] = useState<boolean | null>(null);
+  const [responseError, setResponseError] = useState(false);
+  const responseSubmittedRef = useRef(false);
   const progressPercent = Math.max(0, Math.min(100, (progress.current / Math.max(1, progress.total)) * 100));
 
   useEffect(() => {
     startedAtRef.current = Date.now();
   }, [model.itemId, model.itemVersion]);
+
+  useEffect(() => {
+    const checkId = window.setTimeout(() => {
+      setReadAloudAvailable(
+        "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
+      );
+    }, 0);
+    return () => window.clearTimeout(checkId);
+  }, []);
 
   useEffect(() => {
     document.body.classList.add("starting-point-player-active");
@@ -68,7 +129,7 @@ export default function StartingPointPlayer({
   }, [model.itemId]);
 
   function listen() {
-    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
+    if (!readAloudAvailable) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(getStartingPointReadAloudText(item));
     utterance.lang = "en-AU";
@@ -79,17 +140,29 @@ export default function StartingPointPlayer({
     window.speechSynthesis.speak(utterance);
   }
 
-  function submit(answer: StartingPointPlayerAnswer) {
-    const response = scoreStartingPointPlayerAnswer({
-      item,
-      answer,
-      timeSpentSeconds: Math.max(1, Math.round((Date.now() - (startedAtRef.current ?? Date.now())) / 1000)),
-    });
-    onResponse?.(response);
+  async function submit(answer: StartingPointPlayerAnswer) {
+    if (responseSubmittedRef.current) return;
+    responseSubmittedRef.current = true;
+    setResponseError(false);
+    try {
+      const timeSpentSeconds = Math.max(
+        1,
+        Math.round(
+          (Date.now() - (startedAtRef.current ?? Date.now())) / 1000,
+        ),
+      );
+      const response = scoreAnswer
+        ? await scoreAnswer({ answer, timeSpentSeconds })
+        : scoreStartingPointPlayerAnswer({ item, answer, timeSpentSeconds });
+      onResponse?.(response);
+    } catch {
+      responseSubmittedRef.current = false;
+      setResponseError(true);
+    }
   }
 
   function submitAccessible() {
-    submit({
+    void submit({
       itemId: model.itemId,
       itemVersion: model.itemVersion,
       selectedOptionIds: item.response.type === "ordering" ? accessibleOrder : accessibleSelection,
@@ -100,7 +173,14 @@ export default function StartingPointPlayer({
   return (
     <section className={styles.shell} data-starting-point-player data-item-id={item.id}>
       <div className={styles.topline}>
-        <span className={styles.questionCount}>Question {progress.current} of {progress.total}</span>
+        <div className={styles.progressContext}>
+          {areaProgress ? (
+            <span className={styles.areaContext}>
+              Area {areaProgress.current} of {areaProgress.total} · {areaProgress.label}
+            </span>
+          ) : null}
+          <span className={styles.questionCount}>Question {progress.current} of {progress.total}</span>
+        </div>
         <button className={styles.pause} type="button" onClick={() => onPause ? onPause() : window.history.back()}>Pause &amp; exit</button>
       </div>
       <div className={styles.progressTrack} aria-hidden="true">
@@ -113,23 +193,38 @@ export default function StartingPointPlayer({
             className={styles.listenButton}
             type="button"
             onClick={listen}
+            disabled={readAloudAvailable === false}
             aria-pressed={isListening}
+            aria-describedby={readAloudAvailable === false ? "starting-point-listen-status" : undefined}
             aria-label={isListening ? "Reading question aloud" : "Listen to the question"}
           >
             {isListening ? "Listening…" : "Listen"}
           </button>
+          {readAloudAvailable === false ? (
+            <span id="starting-point-listen-status" className={styles.srOnly}>
+              Read aloud is unavailable in this browser. The question remains available on screen and through assistive technology.
+            </span>
+          ) : null}
         </div>
         <h2 className={styles.prompt}>{model.prompt}</h2>
       </header>
 
-      <PhaserAssessmentStage key={`${model.itemId}:${model.itemVersion}`} model={model} onSubmit={submit} />
+      <PlayerStageErrorBoundary key={`${model.itemId}:${model.itemVersion}`} onPause={onPause}>
+        <PhaserAssessmentStage model={model} onSubmit={submit} />
+      </PlayerStageErrorBoundary>
+
+      {responseError ? (
+        <div className={styles.responseError} role="alert">
+          That answer could not be recorded. Please try again or use the accessible answer controls below.
+        </div>
+      ) : null}
 
       <details className={styles.accessibleFallback}>
         <summary>{item.response.type === "ordering" ? "Use keyboard controls" : "Need another way to answer?"}</summary>
         <div className={styles.fallbackBody}>
           {item.response.type === "short-answer" ? (
             <label className={styles.fallbackLabel}>Your answer
-              <input className={styles.fallbackInput} inputMode="decimal" autoComplete="off" value={accessibleValue} onChange={(event) => setAccessibleValue(event.target.value)} />
+              <input className={styles.fallbackInput} inputMode="text" autoComplete="off" value={accessibleValue} onChange={(event) => setAccessibleValue(event.target.value)} />
             </label>
           ) : item.response.type === "ordering" ? (
             <div className={styles.orderList} role="list" aria-label="Current order">

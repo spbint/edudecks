@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import MathsStartingPointWorkspace from "@/app/components/clean/assessment-starting-point/MathsStartingPointWorkspace";
+import { requireAssessmentLabAccess } from "@/lib/clean/assessments/assessmentLabAccess.server";
 import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
+
+const STARTING_POINT_ROUTE = "/assessments/maths-starting-point";
 
 export const metadata: Metadata = {
   title: `${NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.shortDisplayName} | MyLearna`,
@@ -11,10 +14,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function MathsStartingPointPage() {
+export default async function MathsStartingPointPage() {
+  await requireAssessmentLabAccess(STARTING_POINT_ROUTE);
+
   return (
     <AssessmentAccessGate mode="lab">
       <main
+        data-starting-point-route-main
         style={{
           minHeight: "100vh",
           background: "#F7F8FC",
@@ -30,6 +36,7 @@ export default function MathsStartingPointPage() {
           }}
         >
           <section
+            data-starting-point-route-header
             style={{
               border: "1px solid #DDE4EE",
               borderRadius: 24,
