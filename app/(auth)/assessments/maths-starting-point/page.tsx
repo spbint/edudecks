@@ -95,7 +95,7 @@ export default function MathsStartingPointPage() {
                   textDecoration: "none",
                 }}
               >
-                Staff: review pending Australian currency schematic
+                Staff: review Australian currency asset approval
               </Link>
             </div>
             <Link

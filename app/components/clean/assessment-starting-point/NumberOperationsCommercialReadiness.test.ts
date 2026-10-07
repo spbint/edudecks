@@ -80,8 +80,8 @@ describe("Number & Operations Starting Point commercial readiness", () => {
     );
   });
 
-  it("keeps currency pending and every release gate dark", () => {
-    expect(NUMBER_OPERATIONS_ASSET_APPROVALS.find((asset) => asset.id === "australian-currency-schematic-v1")?.status).toBe("pending-review");
+  it("records currency asset approval while keeping every release gate dark", () => {
+    expect(NUMBER_OPERATIONS_ASSET_APPROVALS.find((asset) => asset.id === "australian-currency-schematic-v1")?.status).toBe("approved");
     expect(Object.entries(MATHS_STARTING_POINT_RELEASE).filter(([, value]) => typeof value === "boolean").every(([, value]) => value === false)).toBe(true);
   });
 });

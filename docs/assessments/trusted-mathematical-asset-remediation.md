@@ -40,6 +40,26 @@ The Australian coin family now covers `5c`, `10c`, `20c`, `50c`, `$1`, and `$2`.
 
 Learner presentation metadata replaces “money token” wording with “Australian coin” or “coin” for the nine active prompts where the depicted objects are coins. Canonical IDs, item versions, response keys, scorer inputs, and routing metadata are unchanged.
 
+## Human approval record
+
+- approval type: human visual review
+- reviewed implementation SHA: `7ca0af353a4aef08b60b2462614e56ce24f8a0df`
+- review result: approved
+- review date: `2026-10-07`
+
+TRUSTED BASE-TEN ASSETS = APPROVED
+
+- unit cube: approved
+- ten rod: approved
+- hundred flat: approved
+- thousand cube: approved
+
+AUSTRALIAN CURRENCY VISUAL SYSTEM = HUMAN VISUAL APPROVED
+
+The approved asset family is `australian-currency-schematic-v1`, covering the Australian `5c`, `10c`, `20c`, `50c`, `$1`, and `$2` coins, repeated-coin presentation, multi-coin/total-value presentation, and mobile legibility at the commercial 390px standard.
+
+This is asset-level approval only. It is not customer release approval and does not approve hosted parent-flow acceptance, mobile parent-flow acceptance, persistence, evidence writes, Pathways mutation, fresh-recheck release, customer navigation, or customer visibility.
+
 ## Staff QA
 
 The staff-only trusted-asset review route provides direct shortcuts for:
@@ -63,7 +83,7 @@ Coverage tests lock:
 - all six Australian coin diameters;
 - 50c 12-sided geometry;
 - learner coin wording;
-- currency `pending-review` status; and
+- currency human-visual approval status and provenance; and
 - all eight release booleans remaining `false`.
 
 Existing canonical scorer comparison, item-ID/version inventory, renderer-family, progression, routing, evidence, persistence, and customer-release blocker tests remain in place.
@@ -72,8 +92,10 @@ No Supabase file or state was changed. Production was not touched. PR #220 was n
 
 ## Verification status
 
-- Targeted trusted-asset and Starting Point contract suite: 12 files, 52 tests passed.
+- Approval-record, trusted-asset, release-gate, scorer, routing, progression, evidence, and persistence contract suites: 23 files, 107 tests passed.
 - Production TypeScript check: passed.
-- Changed-file ESLint check: passed, excluding one unchanged `AssessmentPlayerV1` purity warning already present at the starting SHA.
-- Browser screenshot review: not completed because the in-app QA browser was unavailable in this session.
-- Currency approval remains `pending-review`; this implementation is ready for human 390px/430px hosted visual acceptance, not self-approved.
+- Scoped changed-file ESLint check: passed.
+- Production Next.js build: passed.
+- `git diff --check`: passed.
+- Hosted human visual review: completed and approved against implementation `7ca0af353a4aef08b60b2462614e56ce24f8a0df`.
+- Trusted mathematical assets are human approved; Starting Point customer release remains not approved and not enabled.

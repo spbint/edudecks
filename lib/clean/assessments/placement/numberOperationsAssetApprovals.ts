@@ -7,6 +7,13 @@ export type NumberOperationsAssetApprovalStatus =
 export type NumberOperationsAssetApproval = {
   id: string;
   status: NumberOperationsAssetApprovalStatus;
+  approvalProvenance?: {
+    approvalType: "human-visual-review";
+    assetFamily: string;
+    reviewedImplementationSha: string;
+    reviewResult: "approved";
+    reviewDate: string;
+  };
   subElementKey: NumberOperationsSubElementKey;
   pLevels: number[];
   itemIds: string[];
@@ -17,7 +24,15 @@ export type NumberOperationsAssetApproval = {
 export const NUMBER_OPERATIONS_ASSET_APPROVALS: NumberOperationsAssetApproval[] = [
   {
     id: "australian-currency-schematic-v1",
-    status: "pending-review",
+    status: "approved",
+    approvalProvenance: {
+      approvalType: "human-visual-review",
+      assetFamily: "Australian currency schematic",
+      reviewedImplementationSha:
+        "7ca0af353a4aef08b60b2462614e56ce24f8a0df",
+      reviewResult: "approved",
+      reviewDate: "2026-10-07",
+    },
     subElementKey: "understanding-money",
     pLevels: [1, 2],
     itemIds: [
@@ -33,7 +48,7 @@ export const NUMBER_OPERATIONS_ASSET_APPROVALS: NumberOperationsAssetApproval[] 
       "Accessible description does not introduce ambiguity or expose an unrelated answer.",
     ],
     note:
-      "Money P1-P2 remain blocked from electronic placement until the trusted Australian coin set has passed hosted visual review.",
+      "Human visual review approved the trusted Australian coin system at the asset level only; customer release remains separately gated.",
   },
 ];
 

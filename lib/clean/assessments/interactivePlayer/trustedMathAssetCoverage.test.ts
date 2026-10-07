@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
 import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "@/lib/clean/assessments/placement/numberOperationsAssetApprovals";
@@ -56,6 +58,22 @@ describe("Starting Point trusted mathematical asset coverage", () => {
       thousandRows: 10,
       thousandColumns: 10,
     });
+    const approvalRecord = readFileSync(
+      join(
+        process.cwd(),
+        "docs/assessments/trusted-mathematical-asset-remediation.md",
+      ),
+      "utf8",
+    );
+    expect(approvalRecord).toContain("TRUSTED BASE-TEN ASSETS = APPROVED");
+    for (const component of [
+      "unit cube",
+      "ten rod",
+      "hundred flat",
+      "thousand cube",
+    ]) {
+      expect(approvalRecord).toContain(`- ${component}: approved`);
+    }
   });
 
   it("locks all six Australian coin dimensions and the 12-sided 50c geometry", () => {
@@ -95,12 +113,20 @@ describe("Starting Point trusted mathematical asset coverage", () => {
     }
   });
 
-  it("keeps currency pending-review and every release gate off", () => {
+  it("records asset approval while keeping every release gate off", () => {
     expect(NUMBER_OPERATIONS_ASSET_APPROVALS).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "australian-currency-schematic-v1",
-          status: "pending-review",
+          status: "approved",
+          approvalProvenance: {
+            approvalType: "human-visual-review",
+            assetFamily: "Australian currency schematic",
+            reviewedImplementationSha:
+              "7ca0af353a4aef08b60b2462614e56ce24f8a0df",
+            reviewResult: "approved",
+            reviewDate: "2026-10-07",
+          },
         }),
       ]),
     );

@@ -196,7 +196,7 @@ export default function MathsStartingPointVisualReviewPage() {
           <section style={{ ...panel, borderColor: "#CFE3D5", background: "#F7FCF8" }}>
             <strong style={{ color: "#166534" }}>Review outcome is recorded elsewhere</strong>
             <span style={{ color: "#4B5563", lineHeight: 1.55 }}>
-              Currency remains pending-review. This route cannot approve assets, publish items, enable persistence, or begin real-route integration.
+              Currency is human visually approved at the asset level. This route cannot publish items, enable persistence, enable customer release, or begin real-route integration.
             </span>
           </section>
         </div>

@@ -19,15 +19,12 @@ describe("Maths starting-point customer release readiness", () => {
         "mobile-acceptance",
         "fresh-recheck-evidence",
         "draft-items",
-        "pending-trusted-assets",
       ]),
     );
     expect(
       blockers.find((blocker) => blocker.id === "draft-items")?.count,
     ).toBe(120);
-    expect(
-      blockers.find((blocker) => blocker.id === "pending-trusted-assets")?.count,
-    ).toBe(1);
+    expect(ids).not.toContain("pending-trusted-assets");
     expect(() => assertMathsStartingPointCustomerReleaseReady()).toThrow(
       /customer release is blocked/i,
     );

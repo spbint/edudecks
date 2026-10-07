@@ -23,14 +23,14 @@ describe("Number & Operations item review flags", () => {
     );
   });
 
-  it("marks only currently pending trusted assets as attention items", () => {
+  it("does not mark the approved currency asset as pending attention", () => {
     const currency = getNumberOperationsPlacementItemById(
       "myl-anchor-mon-p02-a-v1",
     );
     expect(currency).toBeTruthy();
     if (!currency) return;
 
-    expect(getNumberOperationsItemReviewFlags(currency)).toContain(
+    expect(getNumberOperationsItemReviewFlags(currency)).not.toContain(
       "pending-trusted-asset",
     );
     expect(

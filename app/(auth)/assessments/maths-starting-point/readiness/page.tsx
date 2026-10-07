@@ -118,7 +118,7 @@ export default function MathsStartingPointReadinessPage() {
                   textDecoration: "none",
                 }}
               >
-                Review pending currency asset
+                Review currency asset approval
               </Link>
               <Link
                 href="/assessments/maths-starting-point/item-review"

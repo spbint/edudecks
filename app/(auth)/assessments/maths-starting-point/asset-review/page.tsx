@@ -8,7 +8,7 @@ import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "@/lib/clean/assessments/place
 export const metadata: Metadata = {
   title: "Currency Asset Review | MyLearna",
   description:
-    "Staff-only visual review of the pending Australian currency schematic used by the Number & Operations starting-point utility.",
+    "Staff-only approval record for the Australian currency schematic used by the Number & Operations starting-point utility.",
   robots: { index: false, follow: false },
 };
 
@@ -94,9 +94,9 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
               Australian currency schematic v1
             </h1>
             <p style={{ margin: 0, color: "#4B5563", lineHeight: 1.6 }}>
-              This asset remains <strong>{approval?.status || "pending-review"}</strong>.
-              Money P1–P2 electronic placement stays blocked until the set is
-              deliberately accepted after hosted visual review.
+              This asset is <strong>{approval?.status || "pending-review"}</strong> after
+              human visual review. This asset-level decision does not approve
+              customer release or enable any release gate.
             </p>
             <nav aria-label="Trusted asset QA shortcuts" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               <Link href="/assessments/maths-starting-point/visual-review#historical-qa-77">Historical QA 77</Link>
@@ -176,8 +176,8 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
           <section style={{ ...panel, background: "#FFFDF5", borderColor: "#F5D08A" }}>
             <strong style={{ color: "#92400E" }}>Review outcome is not changed here</strong>
             <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
-              This page is evidence for a human release decision. It does not mutate
-              the approval registry or enable Money routing.
+              This page displays the recorded human asset decision. It does not mutate
+              the approval registry, customer release gates or persistence state.
             </span>
           </section>
         </div>
