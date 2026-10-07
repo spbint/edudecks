@@ -1,10 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AssessmentPlayerV1 from "@/app/components/clean/assessment-starting-point/AssessmentPlayerV1";
 import AssessmentPlacementResultCard from "@/app/components/clean/assessment-starting-point/AssessmentPlacementResultCard";
-import AssessmentNpvBandConfirmation from "@/app/components/clean/assessment-starting-point/AssessmentNpvBandConfirmation";
 import type { MyLearnaAssessmentResponse } from "@/lib/clean/assessments/mylearnaAssessTypes";
+import type { StartingPointQuestionPool } from "@/lib/clean/assessments/interactivePlayer/startingPointPreviewClient";
 import {
   buildNumberOperationsSubElementAttemptTrace,
   type NumberOperationsAttemptStageRecord,
@@ -33,12 +34,11 @@ import {
   type InitialAnchorRoute,
   type NumberOperationsAnchorSet,
 } from "@/lib/clean/assessments/placement/numberOperationsAnchors";
-import {
-  NUMBER_OPERATIONS_BOUNDARY_CLUSTERS,
-  NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS,
-  NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS,
-  NUMBER_OPERATIONS_SEARCH_CLUSTERS,
-} from "@/lib/clean/assessments/placement/numberOperationsP0Items";
+
+const AssessmentNpvBandConfirmation = dynamic(
+  () => import("@/app/components/clean/assessment-starting-point/AssessmentNpvBandConfirmation"),
+  { ssr: false },
+);
 
 type RunnerStage =
   | { kind: "initial"; pLevel: number }
@@ -75,30 +75,6 @@ function pairFromResponses(
     responses[0] ? (responses[0].correct ? 1 : 0) : null,
     responses[1] ? (responses[1].correct ? 1 : 0) : null,
   ];
-}
-
-function anchorClusterKey(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
-  return `${setKey}-p${pLevel}`;
-}
-
-function getAnchorCluster(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
-  const key = anchorClusterKey(setKey, pLevel) as keyof typeof NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS;
-  return NUMBER_OPERATIONS_EXECUTABLE_ANCHOR_CLUSTERS[key] || null;
-}
-
-function getReserveItem(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
-  const key = anchorClusterKey(setKey, pLevel) as keyof typeof NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS;
-  return NUMBER_OPERATIONS_RESERVE_ANCHOR_ITEMS[key] || null;
-}
-
-function getSearchCluster(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
-  const key = anchorClusterKey(setKey, pLevel) as keyof typeof NUMBER_OPERATIONS_SEARCH_CLUSTERS;
-  return NUMBER_OPERATIONS_SEARCH_CLUSTERS[key] || null;
-}
-
-function getBoundaryCluster(setKey: NumberOperationsAnchorSet["key"], pLevel: number) {
-  const key = anchorClusterKey(setKey, pLevel) as keyof typeof NUMBER_OPERATIONS_BOUNDARY_CLUSTERS;
-  return NUMBER_OPERATIONS_BOUNDARY_CLUSTERS[key] || null;
 }
 
 function resultForUnavailableTarget(
@@ -138,12 +114,16 @@ export default function AssessmentAnchorPlacementRunner({
   onAttemptTrace,
   allowBandConfirmation = true,
   presentation = "staff",
+  areaProgress,
+  onPause,
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
   onResult?: (result: NumberOperationsPlacementResult | null) => void;
   onAttemptTrace?: (trace: NumberOperationsSubElementAttemptTrace) => void;
   allowBandConfirmation?: boolean;
   presentation?: "parent" | "staff";
+  areaProgress?: { current: number; total: number; label: string };
+  onPause?: () => void;
 }) {
   const parentPresentation = presentation === "parent";
   const anchorSet = useMemo(() => {
@@ -164,6 +144,18 @@ export default function AssessmentAnchorPlacementRunner({
   const [evidenceNotes, setEvidenceNotes] = useState<string[]>([]);
   const [stageRecords, setStageRecords] = useState<NumberOperationsAttemptStageRecord[]>([]);
   const reportedResultKey = useRef<string | null>(null);
+  const questionRequest = useMemo(() => {
+    if (stage.kind === "result") return null;
+    const pool: StartingPointQuestionPool =
+      stage.kind === "initial" || stage.kind === "branch"
+        ? "anchor"
+        : stage.kind;
+    return {
+      continuum: anchorSet.key,
+      pool,
+      pLevel: stage.pLevel,
+    };
+  }, [anchorSet.key, stage]);
 
   const reset = useCallback(() => {
     const set = getNumberOperationsAnchorSet(anchorSetKey);
@@ -290,14 +282,9 @@ export default function AssessmentAnchorPlacementRunner({
     if (route.kind !== "down" && route.kind !== "up") return;
     recordEvidenceLimit(route.targetP);
     if (blockUnapprovedProgressionLevel(route.targetP)) return;
-    const items = getAnchorCluster(anchorSet.key, route.targetP);
     pushHistory(
       `Initial evidence routed ${route.kind} from P${anchorSet.initialP} to P${route.targetP}.`,
     );
-    if (!items) {
-      setStage(resultForUnavailableTarget(anchorSet, route.targetP));
-      return;
-    }
     setStage({
       kind: "branch",
       pLevel: route.targetP,
@@ -323,19 +310,9 @@ export default function AssessmentAnchorPlacementRunner({
       setResolvedInitialRoute(route);
 
       if (route.kind === "same-level-extra") {
-        const reserve = getReserveItem(anchorSet.key, anchorSet.initialP);
         pushHistory(
           `Initial P${anchorSet.initialP} cluster was mixed (1/2); reserve probe required.`,
         );
-        if (!reserve) {
-          setStage({
-            kind: "result",
-            headline: "Mixed anchor evidence cannot be resolved yet.",
-            detail:
-              "A same-level reserve probe is required before routing can continue.",
-          });
-          return;
-        }
         setStage({ kind: "reserve", pLevel: anchorSet.initialP });
         return;
       }
@@ -393,11 +370,9 @@ export default function AssessmentAnchorPlacementRunner({
 
         if (bracket && nextP) {
           if (blockUnapprovedProgressionLevel(nextP)) return;
-          if (getBoundaryCluster(anchorSet.key, nextP)) {
-            pushHistory(`Boundary search continues at P${nextP}.`);
-            setStage({ kind: "boundary", pLevel: nextP, bracket });
-            return;
-          }
+          pushHistory(`Boundary search continues at P${nextP}.`);
+          setStage({ kind: "boundary", pLevel: nextP, bracket });
+          return;
         }
 
         setStage({
@@ -425,14 +400,9 @@ export default function AssessmentAnchorPlacementRunner({
         }
         recordEvidenceLimit(targetP);
         if (blockUnapprovedProgressionLevel(targetP)) return;
-        const items = getSearchCluster(anchorSet.key, targetP);
         pushHistory(
           `Branch evidence remained clear; continue ${route.kind === "search-up" ? "up" : "down"} to P${targetP}.`,
         );
-        if (!items) {
-          setStage(resultForUnavailableTarget(anchorSet, targetP));
-          return;
-        }
         setStage({
           kind: "search",
           pLevel: targetP,
@@ -477,11 +447,9 @@ export default function AssessmentAnchorPlacementRunner({
 
         if (nextP) {
           if (blockUnapprovedProgressionLevel(nextP)) return;
-          if (getBoundaryCluster(anchorSet.key, nextP)) {
-            pushHistory(`Boundary search continues at P${nextP}.`);
-            setStage({ kind: "boundary", pLevel: nextP, bracket });
-            return;
-          }
+          pushHistory(`Boundary search continues at P${nextP}.`);
+          setStage({ kind: "boundary", pLevel: nextP, bracket });
+          return;
         }
 
         setStage({
@@ -524,14 +492,9 @@ export default function AssessmentAnchorPlacementRunner({
         }
         recordEvidenceLimit(targetP);
         if (blockUnapprovedProgressionLevel(targetP)) return;
-        const items = getSearchCluster(anchorSet.key, targetP);
         pushHistory(
           `Search remains clear; continue to P${targetP}.`,
         );
-        if (!items) {
-          setStage(resultForUnavailableTarget(anchorSet, targetP));
-          return;
-        }
         setStage({
           kind: "search",
           pLevel: targetP,
@@ -573,18 +536,7 @@ export default function AssessmentAnchorPlacementRunner({
       const nextP = nextBoundaryTarget(narrowed);
       if (nextP) {
         if (blockUnapprovedProgressionLevel(nextP)) return;
-        const items = getBoundaryCluster(anchorSet.key, nextP);
-        if (items) {
-          setStage({ kind: "boundary", pLevel: nextP, bracket: narrowed });
-          return;
-        }
-        setStage({
-          kind: "result",
-          headline: `Candidate neighbourhood: P${narrowed.lowerP}–P${narrowed.upperP}`,
-          detail: `Next boundary target P${nextP} is not executable yet. No exact placement is claimed.`,
-          bracket: narrowed,
-          placementResult: buildBandResult(narrowed.lowerP, narrowed.upperP),
-        });
+        setStage({ kind: "boundary", pLevel: nextP, bracket: narrowed });
         return;
       }
 
@@ -598,7 +550,6 @@ export default function AssessmentAnchorPlacementRunner({
       });
     },
     [
-      anchorSet,
       blockUnapprovedProgressionLevel,
       buildBandResult,
       pushHistory,
@@ -629,15 +580,17 @@ export default function AssessmentAnchorPlacementRunner({
   let stageLabel = "";
 
   if (stage.kind === "initial") {
-    const items = getAnchorCluster(anchorSet.key, stage.pLevel);
     stageLabel = `Initial anchor · P${stage.pLevel}`;
-    player = items ? (
+    player = (
       <AssessmentPlayerV1
         key={`initial-${anchorSet.key}-${stage.pLevel}`}
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} initial anchor`}
-        items={[...items]}
+        items={[]}
+        questionRequest={questionRequest || undefined}
         mode="placement"
         presentation={parentPresentation ? "parent" : "staff"}
+        areaProgress={areaProgress}
+        onPause={onPause}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -645,18 +598,20 @@ export default function AssessmentAnchorPlacementRunner({
         }
         onComplete={handleInitialComplete}
       />
-    ) : null;
+    );
   } else if (stage.kind === "reserve") {
-    const item = getReserveItem(anchorSet.key, stage.pLevel);
     stageLabel = `Reserve probe · P${stage.pLevel}`;
-    player = item ? (
+    player = (
       <AssessmentPlayerV1
         key={`reserve-${anchorSet.key}-${stage.pLevel}`}
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} reserve probe`}
-        items={[item]}
+        items={[]}
+        questionRequest={questionRequest || undefined}
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        areaProgress={areaProgress}
+        onPause={onPause}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -664,18 +619,20 @@ export default function AssessmentAnchorPlacementRunner({
         }
         onComplete={handleReserveComplete}
       />
-    ) : null;
+    );
   } else if (stage.kind === "branch") {
-    const items = getAnchorCluster(anchorSet.key, stage.pLevel);
     stageLabel = `${stage.direction === "up" ? "Upper" : "Lower"} branch · P${stage.pLevel}`;
-    player = items ? (
+    player = (
       <AssessmentPlayerV1
         key={`branch-${anchorSet.key}-${stage.pLevel}`}
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} branch anchor`}
-        items={[...items]}
+        items={[]}
+        questionRequest={questionRequest || undefined}
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        areaProgress={areaProgress}
+        onPause={onPause}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -683,18 +640,20 @@ export default function AssessmentAnchorPlacementRunner({
         }
         onComplete={handleBranchComplete}
       />
-    ) : null;
+    );
   } else if (stage.kind === "search") {
-    const items = getSearchCluster(anchorSet.key, stage.pLevel);
     stageLabel = `Search ${stage.direction} · P${stage.pLevel}`;
-    player = items ? (
+    player = (
       <AssessmentPlayerV1
         key={`search-${anchorSet.key}-${stage.pLevel}`}
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} search cluster`}
-        items={[...items]}
+        items={[]}
+        questionRequest={questionRequest || undefined}
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        areaProgress={areaProgress}
+        onPause={onPause}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -702,18 +661,20 @@ export default function AssessmentAnchorPlacementRunner({
         }
         onComplete={handleSearchComplete}
       />
-    ) : null;
+    );
   } else if (stage.kind === "boundary") {
-    const items = getBoundaryCluster(anchorSet.key, stage.pLevel);
     stageLabel = `Boundary search · P${stage.pLevel} within P${stage.bracket.lowerP}–P${stage.bracket.upperP}`;
-    player = items ? (
+    player = (
       <AssessmentPlayerV1
         key={`boundary-${anchorSet.key}-${stage.pLevel}-${stage.bracket.lowerP}-${stage.bracket.upperP}`}
         title={parentPresentation ? `${anchorSet.label} check` : `${anchorSet.label} · P${stage.pLevel} boundary probes`}
-        items={[...items]}
+        items={[]}
+        questionRequest={questionRequest || undefined}
         mode="placement"
         autoStart={parentPresentation}
         presentation={parentPresentation ? "parent" : "staff"}
+        areaProgress={areaProgress}
+        onPause={onPause}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -721,15 +682,15 @@ export default function AssessmentAnchorPlacementRunner({
         }
         onComplete={handleBoundaryComplete}
       />
-    ) : null;
+    );
   }
 
   return (
-    <section style={shell}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <section style={shell} data-starting-point-anchor-shell>
+      <div data-starting-point-anchor-header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            {parentPresentation ? "Adaptive Maths check" : "Automatic routing proof"}
+            {parentPresentation ? "Adaptive Number & Operations check" : "Automatic routing proof"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B" }}>{anchorSet.label}</h2>
           {stage.kind !== "result" ? (

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { CurrencyTokenVisual } from "./CurrencyTokenVisual";
 
 describe("CurrencyTokenVisual", () => {
-  it("renders exact deterministic denomination tokens with an accessible ordered description", () => {
+  it("renders exact deterministic Australian coins with an accessible ordered description", () => {
     const { container } = render(
       React.createElement(CurrencyTokenVisual, {
         data: {
@@ -24,7 +24,7 @@ describe("CurrencyTokenVisual", () => {
 
     expect(container.querySelectorAll('[data-testid="currency-token"]')).toHaveLength(5);
     expect(screen.getByRole("img").getAttribute("aria-label")).toBe(
-      "Money tokens shown in this order: 20c, $1, 20c, 50c, 20c.",
+      "Australian coins shown in this order: 20c, $1, 20c, 50c, 20c.",
     );
     expect(
       Array.from(container.querySelectorAll('[data-testid="currency-token"]')).map(
@@ -40,6 +40,7 @@ describe("CurrencyTokenVisual", () => {
           layout: "row",
           tokens: [
             { denomination: "5c" },
+            { denomination: "10c" },
             { denomination: "20c" },
             { denomination: "50c" },
             { denomination: "$1" },
@@ -57,6 +58,7 @@ describe("CurrencyTokenVisual", () => {
     );
 
     expect(byDenomination.get("5c")?.dataset.diameterMm).toBe("19.41");
+    expect(byDenomination.get("10c")?.dataset.diameterMm).toBe("23.6");
     expect(byDenomination.get("20c")?.dataset.diameterMm).toBe("28.65");
     expect(byDenomination.get("50c")?.dataset.diameterMm).toBe("31.65");
     expect(byDenomination.get("$1")?.dataset.diameterMm).toBe("25");
@@ -67,8 +69,19 @@ describe("CurrencyTokenVisual", () => {
     ).toBeGreaterThan(
       Number.parseFloat(byDenomination.get("20c")?.style.width || "0"),
     );
-    expect(byDenomination.get("50c")?.style.clipPath).toContain("polygon");
-    expect(byDenomination.get("20c")?.style.borderRadius).toBe("999px");
+    expect(byDenomination.get("50c")?.dataset.coinSides).toBe("12");
+    expect(byDenomination.get("20c")?.dataset.coinSides).toBe("circle");
+    expect(
+      tokens.every((node) => node.dataset.assetKind === "australian-coin"),
+    ).toBe(true);
+    const visual = container.querySelector(
+      '[data-testid="trusted-australian-currency-visual"]',
+    ) as HTMLElement;
+    expect(visual.style.width).toBe("100%");
+    expect(visual.style.boxSizing).toBe("border-box");
+    expect((visual.firstElementChild as HTMLElement).style.flexWrap).toBe(
+      "wrap",
+    );
   });
 
 });

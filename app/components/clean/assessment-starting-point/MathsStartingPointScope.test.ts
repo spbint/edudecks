@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
 
 const assessmentPage = readFileSync(
   join(process.cwd(), "app/(auth)/assessments/maths-starting-point/page.tsx"),
@@ -25,7 +26,7 @@ const pathways = readFileSync(
 describe("Maths starting-point v1 scope language", () => {
   it("states that v1 covers Number & Operations rather than all Mathematics", () => {
     expect(assessmentPage).toContain(
-      "Find a useful starting point in Number & Operations",
+      "NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.commercialDisplayName",
     );
     expect(assessmentPage).not.toContain(
       "Find a useful starting point in Maths",
@@ -68,20 +69,18 @@ it("offers a full picture or one focused Number & Operations area", () => {
 
   expect(workspaceSource).toContain('searchParams.get("area")');
   expect(workspaceSource).toContain("Full five-area picture");
-  for (const key of [
+  expect(NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.assessedAreas.map((area) => area.key)).toEqual([
     "number-place-value",
     "counting-processes",
     "additive-strategies",
     "multiplicative-strategies",
     "understanding-money",
-  ]) {
-    expect(workspaceSource).toContain(`key: "${key}"`);
-  }
+  ]);
   expect(workspaceSource).toContain(
     "subElementKeys={selectedArea ? [selectedArea.key] : undefined}",
   );
   expect(runnerSource).toContain("subElementKeys?: NumberOperationsSubElementKey[]");
-  expect(runnerSource).toContain("One focused Maths area");
+  expect(runnerSource).toContain("One focused Number & Operations area");
   expect(runnerSource).toContain("scopeStorageSuffix");
 });
 

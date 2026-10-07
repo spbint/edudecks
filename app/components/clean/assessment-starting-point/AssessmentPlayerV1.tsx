@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import StartingPointPlayer from "@/app/components/clean/assessment-starting-point/interactive/StartingPointPlayer";
 import type {
   MyLearnaAssessmentItem,
   MyLearnaAssessmentResponse,
@@ -10,13 +11,26 @@ import {
   summarizeAssessmentAttempt,
 } from "@/lib/clean/assessments/mylearnaAssessScoring";
 import { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates";
+import { getStartingPointPresentationCopy } from "@/lib/clean/assessments/interactivePlayer/startingPointDevelopmentalAccessibility";
+import {
+  loadStartingPointQuestion,
+  scoreStartingPointPreviewAnswer,
+  type StartingPointQuestionPool,
+} from "@/lib/clean/assessments/interactivePlayer/startingPointPreviewClient";
 
 type AssessmentPlayerV1Props = {
   title: string;
   items: MyLearnaAssessmentItem[];
+  questionRequest?: {
+    continuum: string;
+    pool: StartingPointQuestionPool;
+    pLevel: number;
+  };
   mode?: "practice" | "placement";
   presentation?: "staff" | "parent";
   autoStart?: boolean;
+  areaProgress?: { current: number; total: number; label: string };
+  onPause?: () => void;
   onUsePracticalObservation?: () => void;
   onComplete?: (responses: MyLearnaAssessmentResponse[]) => void;
 };
@@ -101,52 +115,114 @@ function moveOrderedOption(
 export default function AssessmentPlayerV1({
   title,
   items,
+  questionRequest,
   mode = "practice",
   presentation = "staff",
   autoStart = false,
+  areaProgress,
+  onPause,
   onUsePracticalObservation,
   onComplete,
 }: AssessmentPlayerV1Props) {
   const parentPresentation = presentation === "parent";
   const [started, setStarted] = useState(autoStart);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>(() =>
+    initialOptionOrder(items[0]),
+  );
   const [textValue, setTextValue] = useState("");
   const [submittedResponse, setSubmittedResponse] = useState<MyLearnaAssessmentResponse | null>(null);
   const [responses, setResponses] = useState<MyLearnaAssessmentResponse[]>([]);
-  const itemStartedAt = useRef(autoStart ? Date.now() : 0);
-  const currentItem = items[currentIndex] || null;
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loadedQuestion, setLoadedQuestion] = useState<{
+    key: string;
+    item: MyLearnaAssessmentItem | null;
+    itemCount: number;
+    error: boolean;
+  }>({ key: "", item: null, itemCount: 0, error: false });
+  const itemStartedAt = useRef(0);
+  const questionContinuum = questionRequest?.continuum;
+  const questionPool = questionRequest?.pool;
+  const questionPLevel = questionRequest?.pLevel;
+  const questionKey = questionContinuum && questionPool && questionPLevel
+    ? `${questionContinuum}:${questionPool}:${questionPLevel}:${currentIndex}`
+    : "";
+  const currentRemoteQuestion =
+    questionRequest && loadedQuestion.key === questionKey ? loadedQuestion : null;
+  const currentItem = questionRequest
+    ? currentRemoteQuestion?.item || null
+    : items[currentIndex] || null;
+  const totalItems = questionRequest
+    ? currentRemoteQuestion?.itemCount || 0
+    : items.length;
   const summary = useMemo(() => summarizeAssessmentAttempt(items, responses), [items, responses]);
   const complete =
     started &&
     !submittedResponse &&
-    responses.length === items.length &&
-    currentIndex >= items.length - 1 &&
-    items.length > 0;
+    responses.length === totalItems &&
+    currentIndex >= totalItems - 1 &&
+    totalItems > 0;
 
   useEffect(() => {
-    if (complete && !(parentPresentation && mode === "placement")) {
+    if (!questionContinuum || !questionPool || !questionPLevel || !started) return;
+    let active = true;
+    void loadStartingPointQuestion({
+      continuum: questionContinuum,
+      pool: questionPool,
+      pLevel: questionPLevel,
+      itemIndex: currentIndex,
+    })
+      .then(({ item, itemCount }) => {
+        if (!active) return;
+        setLoadedQuestion({
+          key: questionKey,
+          item,
+          itemCount,
+          error: false,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoadedQuestion({
+          key: questionKey,
+          item: null,
+          itemCount: 0,
+          error: true,
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    currentIndex,
+    loadAttempt,
+    questionContinuum,
+    questionKey,
+    questionPLevel,
+    questionPool,
+    started,
+  ]);
+
+  useEffect(() => {
+    if (
+      complete &&
+      !questionRequest &&
+      !(parentPresentation && mode === "placement")
+    ) {
       onComplete?.(responses);
     }
-  }, [complete, mode, onComplete, parentPresentation, responses]);
+  }, [complete, mode, onComplete, parentPresentation, questionRequest, responses]);
 
   useEffect(() => {
-    if (!currentItem) return;
-    setSelectedOptionIds(initialOptionOrder(currentItem));
-    setTextValue("");
-    setSubmittedResponse(null);
-  }, [currentItem?.id]);
-
-  if (!items.length) {
-    return <section style={shellStyle}>No assessment items available.</section>;
-  }
+    if (autoStart) itemStartedAt.current = Date.now();
+  }, [autoStart]);
 
   if (!started) {
     return (
       <section style={shellStyle}>
         <div style={{ display: "grid", gap: 8 }}>
           <span style={{ color: "#6C4DF6", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-            {parentPresentation ? "Maths check" : "MyLearna Assess V1"}
+            {parentPresentation ? "Number & Operations check" : "MyLearna Assess V1"}
           </span>
           <h2 style={{ margin: 0, color: "#17204B", fontSize: "clamp(26px, 4vw, 38px)" }}>
             {title}
@@ -235,7 +311,66 @@ export default function AssessmentPlayerV1({
     );
   }
 
+  if (questionRequest && !currentRemoteQuestion) {
+    return (
+      <section style={shellStyle} role="status">
+        Preparing the next question…
+      </section>
+    );
+  }
+
+  if (currentRemoteQuestion?.error) {
+    return (
+      <section style={shellStyle} role="alert">
+        <strong>This question could not be prepared.</strong>
+        <span>Your completed areas are still safe in this browser.</span>
+        <button
+          type="button"
+          onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+          style={{ ...secondaryButtonStyle, width: "fit-content" }}
+        >
+          Try again
+        </button>
+      </section>
+    );
+  }
+
+  if (!questionRequest && !items.length) {
+    return <section style={shellStyle}>No assessment items available.</section>;
+  }
+
   if (!currentItem) return null;
+
+  if (questionRequest || (parentPresentation && mode === "placement")) {
+    return (
+      <StartingPointPlayer
+        key={`${currentItem.id}:${currentItem.version}`}
+        item={currentItem}
+        progress={{ current: currentIndex + 1, total: totalItems }}
+        areaProgress={areaProgress}
+        scoreAnswer={questionRequest ? scoreStartingPointPreviewAnswer : undefined}
+        onPause={onPause}
+        onUsePracticalObservation={onUsePracticalObservation}
+        onResponse={(response) => {
+          const nextResponses = [
+            ...responses.filter((item) => item.itemId !== response.itemId),
+            response,
+          ];
+          setResponses(nextResponses);
+
+          if (currentIndex >= totalItems - 1) {
+            onComplete?.(nextResponses);
+            return;
+          }
+
+          setCurrentIndex((current) => Math.min(totalItems - 1, current + 1));
+          itemStartedAt.current = Date.now();
+        }}
+      />
+    );
+  }
+
+  const presentationCopy = getStartingPointPresentationCopy(currentItem);
 
   const selectedFeedback = currentItem.response.options?.find((option) =>
     selectedOptionIds.includes(option.id),
@@ -274,7 +409,7 @@ export default function AssessmentPlayerV1({
 
       <div style={{ display: "grid", gap: 14 }}>
         <h3 style={{ margin: 0, color: "#17204B", fontSize: "clamp(22px, 4vw, 30px)" }}>
-          {currentItem.prompt}
+          {presentationCopy.prompt}
         </h3>
         <AssessmentItemRenderer item={currentItem} />
       </div>
@@ -537,11 +672,10 @@ export default function AssessmentPlayerV1({
                   onComplete?.(nextResponses);
                 } else {
                   setSubmittedResponse(null);
-                  setSelectedOptionIds([]);
+                  const nextIndex = Math.min(items.length - 1, currentIndex + 1);
+                  setSelectedOptionIds(initialOptionOrder(items[nextIndex]));
                   setTextValue("");
-                  setCurrentIndex((current) =>
-                    Math.min(items.length - 1, current + 1),
-                  );
+                  setCurrentIndex(nextIndex);
                   itemStartedAt.current = Date.now();
                 }
                 return;
@@ -564,9 +698,10 @@ export default function AssessmentPlayerV1({
             type="button"
             onClick={() => {
               setSubmittedResponse(null);
-              setSelectedOptionIds([]);
+              const nextIndex = Math.min(items.length - 1, currentIndex + 1);
+              setSelectedOptionIds(initialOptionOrder(items[nextIndex]));
               setTextValue("");
-              setCurrentIndex((current) => Math.min(items.length - 1, current + 1));
+              setCurrentIndex(nextIndex);
               itemStartedAt.current = Date.now();
             }}
             style={primaryButtonStyle}

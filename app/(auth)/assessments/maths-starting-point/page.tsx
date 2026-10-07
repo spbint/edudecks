@@ -2,18 +2,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import MathsStartingPointWorkspace from "@/app/components/clean/assessment-starting-point/MathsStartingPointWorkspace";
+import { requireAssessmentLabAccess } from "@/lib/clean/assessments/assessmentLabAccess.server";
+import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
+
+const STARTING_POINT_ROUTE = "/assessments/maths-starting-point";
 
 export const metadata: Metadata = {
-  title: "Number & Operations Starting Point | MyLearna",
+  title: `${NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.shortDisplayName} | MyLearna`,
   description:
     "A staff-gated preview of MyLearna's parent-facing Number & Operations starting-point utility.",
   robots: { index: false, follow: false },
 };
 
-export default function MathsStartingPointPage() {
+export default async function MathsStartingPointPage() {
+  await requireAssessmentLabAccess(STARTING_POINT_ROUTE);
+
   return (
     <AssessmentAccessGate mode="lab">
       <main
+        data-starting-point-route-main
         style={{
           minHeight: "100vh",
           background: "#F7F8FC",
@@ -29,6 +36,7 @@ export default function MathsStartingPointPage() {
           }}
         >
           <section
+            data-starting-point-route-header
             style={{
               border: "1px solid #DDE4EE",
               borderRadius: 24,
@@ -56,7 +64,7 @@ export default function MathsStartingPointPage() {
                 fontSize: "clamp(32px, 5vw, 48px)",
               }}
             >
-              Find a useful starting point in Number & Operations
+              {NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.commercialDisplayName}
             </h1>
             <p
               style={{
@@ -67,10 +75,9 @@ export default function MathsStartingPointPage() {
                 fontSize: 16,
               }}
             >
-              Check one Number & Operations area when you have one immediate
-              question, or build a broader five-area starting picture over several
-              pauses. MyLearna keeps the areas separate and turns the evidence into
-              practical next learning rather than one overall maths score.
+              {NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.parentSummary}{" "}
+              {NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.parentEvidenceNote}{" "}
+              {NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.accessibilityNote}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
               <Link
@@ -95,7 +102,7 @@ export default function MathsStartingPointPage() {
                   textDecoration: "none",
                 }}
               >
-                Staff: review pending Australian currency schematic
+                Staff: review Australian currency asset approval
               </Link>
             </div>
             <Link

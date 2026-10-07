@@ -1,0 +1,178 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const componentDirectory = join(
+  process.cwd(),
+  "app/components/clean/assessment-starting-point/interactive",
+);
+const stageSource = readFileSync(
+  join(componentDirectory, "PhaserAssessmentStage.tsx"),
+  "utf8",
+);
+const playerSource = readFileSync(
+  join(componentDirectory, "StartingPointPlayer.tsx"),
+  "utf8",
+);
+const playerStyles = readFileSync(
+  join(componentDirectory, "StartingPointPlayer.module.css"),
+  "utf8",
+);
+const showcaseSource = readFileSync(
+  join(componentDirectory, "StartingPointPlayerShowcase.tsx"),
+  "utf8",
+);
+const designSystemSource = readFileSync(
+  join(componentDirectory, "startingPointPlayerDesignSystem.ts"),
+  "utf8",
+);
+const routeSource = readFileSync(
+  join(
+    process.cwd(),
+    "app/(auth)/assessments/maths-starting-point/player-showcase/page.tsx",
+  ),
+  "utf8",
+);
+
+describe("Starting Point player architecture", () => {
+  it("keeps Phaser dynamically isolated from unrelated MyLearna routes", () => {
+    expect(stageSource).toContain('void import("phaser")');
+    expect(playerSource).toContain("dynamic(");
+    expect(playerSource).toContain("ssr: false");
+  });
+
+  it("keeps placement, routing, progression and persistence decisions out of Phaser", () => {
+    for (const forbidden of [
+      "numberOperationsPlacement",
+      "routeAnchor",
+      "progressionLevel",
+      "persistenceEnabled",
+      "pathwayMutation",
+      "supabase",
+      "scoreAssessmentItem",
+    ]) {
+      expect(stageSource, forbidden).not.toContain(forbidden);
+      expect(designSystemSource, forbidden).not.toContain(forbidden);
+    }
+  });
+
+  it("uses Phaser as the normal answer surface without duplicate visible React choices", () => {
+    expect(stageSource).toContain("onSubmit: (answer: StartingPointPlayerAnswer) => void");
+    expect(stageSource).toContain("selectedOptionIds: getIds()");
+    expect(stageSource).toContain("() => [...this.orderedIds]");
+    expect(playerSource).not.toContain("className={styles.choices}");
+    expect(playerSource).not.toContain("Response recorded");
+    expect(playerSource).not.toContain("selectedOptionIds={selectedOptionIds}");
+    expect(stageSource).toContain("model.options.length === 0");
+    expect(stageSource).toContain("responseValue: numericValue");
+  });
+
+  it("keeps keyboard and practical alternatives secondary and explicit", () => {
+    expect(playerSource).toContain("<details className={styles.accessibleFallback}>");
+    expect(playerSource).toContain("Need another way to answer?");
+    expect(playerSource).not.toContain("Use an accessible answer control");
+    expect(playerSource).toContain("Can’t use this visual? Use a practical observation instead.");
+    expect(playerSource).toContain("No electronic result will be inferred.");
+  });
+
+  it("provides first-class, answer-safe Listen support", () => {
+    expect(playerSource).toContain("getStartingPointReadAloudText(item)");
+    expect(playerSource).toContain('utterance.lang = "en-AU"');
+    expect(playerSource).toContain('utterance.rate = 0.9');
+    expect(playerSource).toContain('"Listen"');
+    expect(playerSource).toContain("speechSynthesis.cancel()");
+  });
+
+  it("renders remediation as a separate mathematical stimulus layer", () => {
+    expect(stageSource).toContain("drawPresentationStimulus");
+    expect(stageSource).toContain("model.presentationStimulus");
+    expect(stageSource).toContain('stimulus.type === "counter-groups"');
+    expect(stageSource).toContain('stimulus.type === "closed-groups"');
+    expect(stageSource).toContain('stimulus.type === "currency-repeat"');
+    expect(showcaseSource).toContain("Numeric presentation stimuli");
+    expect(showcaseSource).toContain('setRenderer("numeric-entry")');
+    expect(showcaseSource).toContain('setStimulusCoverage("presentation-visual")');
+  });
+
+  it("keeps the showcase staff-only and noindex", () => {
+    expect(routeSource).toContain("await requireAssessmentLabAccess(SHOWCASE_ROUTE)");
+    expect(routeSource).toContain('<AssessmentAccessGate mode="lab">');
+    expect(routeSource).toContain("robots: { index: false, follow: false }");
+    expect(routeSource).toContain("getStartingPointRendererQaItems()");
+    expect(routeSource).toContain("getStartingPointRendererQaEdgeCases()");
+    expect(routeSource).not.toContain("MONEY_P1_SEARCH_ITEMS");
+  });
+
+  it("exposes protected staff filters for the developmental accessibility audit", () => {
+    expect(showcaseSource).toContain("Developmental stage");
+    expect(showcaseSource).toContain("Read-aloud support");
+    expect(showcaseSource).toContain("Stimulus coverage");
+    expect(showcaseSource).toContain("Listen essential");
+    expect(showcaseSource).toContain("Remediated visuals");
+  });
+
+  it("provides explicit 390px, 430px and desktop review frames", () => {
+    expect(showcaseSource).toContain('label: "Phone · 390px", width: 390');
+    expect(showcaseSource).toContain(
+      'label: "Large phone · 430px", width: 430',
+    );
+    expect(showcaseSource).toContain('label: "Tablet · 768px", width: 768');
+    expect(showcaseSource).toContain(
+      'label: "Desktop · 1024px", width: 1024',
+    );
+    expect(playerStyles).toContain("@media (max-width: 430px)");
+    expect(playerStyles).toContain("min-height: 52px");
+  });
+
+  it("centralises reusable visual and motion primitives", () => {
+    for (const primitive of [
+      "createChoiceCard",
+      "createPrimaryAction",
+      "createDropSlot",
+      "createCounter",
+      "createUnitCube",
+      "createTenRod",
+      "createHundredFlat",
+      "createThousandCube",
+      "createCurrencyToken",
+    ]) {
+      expect(designSystemSource).toContain(`function ${primitive}`);
+      expect(stageSource).toContain(`${primitive}(`);
+    }
+    expect(designSystemSource).toContain("PLAYER_MOTION");
+    expect(stageSource).toContain(
+      'matchMedia("(prefers-reduced-motion: reduce)")',
+    );
+    expect(playerStyles).toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
+  it("keeps educational assets coherent and interaction motion explicit", () => {
+    expect(designSystemSource).toContain("regularPolygonPoints(PhaserRuntime, 12");
+    expect(designSystemSource).toContain("materialFace");
+    expect(stageSource).toContain("NEUTRAL_COUNTER_POSITIONS");
+    expect(stageSource).toContain("activeDragId");
+    expect(stageSource).toContain("activeTarget");
+  });
+
+  it("uses an immersive application shell while the learner player is active", () => {
+    expect(playerSource).toContain('document.body.classList.add("starting-point-player-active")');
+    expect(playerSource).toContain("window.history.back()");
+    expect(playerStyles).toContain("body.starting-point-player-active .mylearna-v2-sidebar");
+    expect(playerStyles).toContain("body.starting-point-player-active .mylearna-v2-mobile-bottom-nav");
+  });
+
+  it("does not expose internal placement language in the learner player", () => {
+    for (const forbidden of [
+      "P-level",
+      "progression level",
+      "routing proof",
+      "evidence ceiling",
+      "curriculum code",
+    ]) {
+      expect(playerSource.toLowerCase(), forbidden).not.toContain(
+        forbidden.toLowerCase(),
+      );
+    }
+    expect(playerSource).not.toContain(">Restart<");
+  });
+});

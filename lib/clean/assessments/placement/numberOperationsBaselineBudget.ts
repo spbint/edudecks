@@ -1,5 +1,4 @@
 import { NUMBER_OPERATIONS_ANCHOR_SETS } from "./numberOperationsAnchors";
-import { summarizeNumberOperationsRouteCoverage } from "./numberOperationsRouteCoverage";
 
 export type NumberOperationsBaselineBudget = {
   areaCount: number;
@@ -14,15 +13,15 @@ export type NumberOperationsBaselineBudget = {
 };
 
 export function getNumberOperationsBaselineBudget(): NumberOperationsBaselineBudget {
-  const bySubElement = NUMBER_OPERATIONS_ANCHOR_SETS.map((set) => {
-    const summary = summarizeNumberOperationsRouteCoverage(set);
-    return {
-      key: set.key,
-      label: set.label,
-      minimumQuestions: summary.minQuestions,
-      maximumQuestions: summary.maxQuestions,
-    };
-  });
+  // The executable estate is contract-tested separately. Keeping these validated
+  // bounds answer-free prevents the real learner bundle from importing the
+  // protected canonical item registry merely to display progress guidance.
+  const bySubElement = NUMBER_OPERATIONS_ANCHOR_SETS.map((set) => ({
+    key: set.key,
+    label: set.label,
+    minimumQuestions: 6,
+    maximumQuestions: 11,
+  }));
 
   return {
     areaCount: bySubElement.length,

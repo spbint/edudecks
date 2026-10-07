@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type React from "react";
 import AssessmentAccessGate from "@/app/components/clean/assessment-lab/AssessmentAccessGate";
 import { CurrencyTokenVisual } from "@/lib/clean/assessments/visualTemplates/CurrencyTokenVisual";
@@ -7,7 +8,7 @@ import { NUMBER_OPERATIONS_ASSET_APPROVALS } from "@/lib/clean/assessments/place
 export const metadata: Metadata = {
   title: "Currency Asset Review | MyLearna",
   description:
-    "Staff-only visual review of the pending Australian currency schematic used by the Number & Operations starting-point utility.",
+    "Staff-only approval record for the Australian currency schematic used by the Number & Operations starting-point utility.",
   robots: { index: false, follow: false },
 };
 
@@ -24,7 +25,7 @@ const panel: React.CSSProperties = {
   gap: 10,
 };
 
-function TokenProof({
+function CoinProof({
   title,
   width,
   tokens,
@@ -52,7 +53,7 @@ function TokenProof({
       <small style={{ color: "#64748B" }}>{width}px review frame</small>
       <CurrencyTokenVisual
         data={{ layout: "row", tokens }}
-        altText={`Currency review set: ${tokens
+        altText={`Australian coin review set: ${tokens
           .map((token) => token.denomination)
           .join(", ")}.`}
       />
@@ -93,10 +94,17 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
               Australian currency schematic v1
             </h1>
             <p style={{ margin: 0, color: "#4B5563", lineHeight: 1.6 }}>
-              This asset remains <strong>{approval?.status || "pending-review"}</strong>.
-              Money P1–P2 electronic placement stays blocked until the set is
-              deliberately accepted after hosted visual review.
+              This asset is <strong>{approval?.status || "pending-review"}</strong> after
+              human visual review. This asset-level decision does not approve
+              customer release or enable any release gate.
             </p>
+            <nav aria-label="Trusted asset QA shortcuts" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-77">Historical QA 77</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-79">Historical QA 79</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#historical-qa-141">Historical QA 141</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#all-base-ten-visuals">All base-ten visuals</Link>
+              <Link href="/assessments/maths-starting-point/visual-review#all-currency-visuals">All currency visuals</Link>
+            </nav>
           </section>
 
           <section style={panel}>
@@ -109,7 +117,19 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
           </section>
 
           <div style={{ display: "grid", gap: 16 }}>
-            <TokenProof
+            <CoinProof
+              title="All coin denominations · 390px"
+              width={390}
+              tokens={[
+                { denomination: "5c" },
+                { denomination: "10c" },
+                { denomination: "20c" },
+                { denomination: "50c" },
+                { denomination: "$1" },
+                { denomination: "$2" },
+              ]}
+            />
+            <CoinProof
               title="All coin denominations · 430px"
               width={430}
               tokens={[
@@ -121,7 +141,7 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
                 { denomination: "$2" },
               ]}
             />
-            <TokenProof
+            <CoinProof
               title="P1 face-value item · 390px"
               width={390}
               tokens={[
@@ -130,7 +150,7 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
                 { denomination: "$2" },
               ]}
             />
-            <TokenProof
+            <CoinProof
               title="P2 ordering item · 390px"
               width={390}
               tokens={[
@@ -140,7 +160,7 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
                 { denomination: "50c" },
               ]}
             />
-            <TokenProof
+            <CoinProof
               title="P2 counting item · 390px"
               width={390}
               tokens={[
@@ -156,8 +176,8 @@ export default function MathsStartingPointCurrencyAssetReviewPage() {
           <section style={{ ...panel, background: "#FFFDF5", borderColor: "#F5D08A" }}>
             <strong style={{ color: "#92400E" }}>Review outcome is not changed here</strong>
             <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
-              This page is evidence for a human release decision. It does not mutate
-              the approval registry or enable Money routing.
+              This page displays the recorded human asset decision. It does not mutate
+              the approval registry, customer release gates or persistence state.
             </span>
           </section>
         </div>

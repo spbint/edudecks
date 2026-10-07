@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const user = await authenticatedUser(request);
   if (!user) {
     return NextResponse.json(
-      { ok: false, error: "Sign in to save this Maths starting point." },
+      { ok: false, error: "Sign in to save this Number & Operations Starting Point." },
       { status: 401 },
     );
   }
@@ -197,7 +197,7 @@ export async function POST(request: Request) {
 
   if (save.error) {
     return NextResponse.json(
-      { ok: false, error: "The Maths starting point could not be saved." },
+      { ok: false, error: "The Number & Operations Starting Point could not be saved." },
       { status: 500 },
     );
   }

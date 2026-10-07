@@ -3,7 +3,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AssessmentPlayerV1, {
   getShortAnswerInputMode,
@@ -14,6 +14,33 @@ import {
   COUNTING_P5_ANCHOR_ITEMS,
   NPV_P8_BOUNDARY_ITEMS,
 } from "@/lib/clean/assessments/placement/numberOperationsP0Items";
+import {
+  loadStartingPointQuestion,
+  scoreStartingPointPreviewAnswer,
+} from "@/lib/clean/assessments/interactivePlayer/startingPointPreviewClient";
+
+vi.mock(
+  "@/lib/clean/assessments/interactivePlayer/startingPointPreviewClient",
+  () => ({
+    loadStartingPointQuestion: vi.fn(),
+    scoreStartingPointPreviewAnswer: vi.fn(({ answer }: { answer: {
+      itemId: string;
+      selectedOptionIds: string[];
+      responseValue?: string;
+    } }) =>
+      Promise.resolve({
+        itemId: answer.itemId,
+        selectedOptionIds: answer.selectedOptionIds,
+        ...(answer.responseValue !== undefined
+          ? { responseValue: answer.responseValue }
+          : {}),
+        correct: true,
+        skillId: "integration-test",
+        misconceptionTags: [],
+        timeSpentSeconds: 1,
+      })),
+  }),
+);
 
 afterEach(() => cleanup());
 
@@ -205,7 +232,7 @@ it("uses a text keyboard for symbolic fractions and a decimal keyboard for numer
   expect(getShortAnswerInputMode(fraction)).toBe("text");
 });
 
-it("uses parent language and advances placement questions with one Continue action", () => {
+it("uses parent language and advances placement questions with one Continue action", async () => {
   const onComplete = vi.fn();
   render(
     React.createElement(AssessmentPlayerV1, {
@@ -217,34 +244,95 @@ it("uses parent language and advances placement questions with one Continue acti
     }),
   );
 
-  expect(screen.getByText("Maths check")).toBeTruthy();
+  expect(screen.getByText("Number & Operations check")).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "Start this area" }),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
 
   expect(screen.getByText("Maths question")).toBeTruthy();
-  expect(screen.queryByText(/Question\s+1\s+of\s+2/)).toBeNull();
+  expect(screen.getByText(/Question\s+1\s+of\s+2/)).toBeTruthy();
   expect(
     screen.queryByText(/Determine the next or previous number/i),
   ).toBeNull();
 
-  fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "Your answer" }), {
     target: { value: "62" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.click(
+    screen
+      .getAllByRole("button", { name: "Continue" })
+      .find((button) => !(button as HTMLButtonElement).disabled)!,
+  );
 
+  await waitFor(() => {
+    expect(screen.getByText(/Question\s+2\s+of\s+2/)).toBeTruthy();
+  });
   expect(screen.getByText("Maths question")).toBeTruthy();
-  expect(screen.queryByText(/Question\s+2\s+of\s+2/)).toBeNull();
   expect(screen.queryByText("Response recorded.")).toBeNull();
 
-  fireEvent.change(screen.getByRole("textbox", { name: "Answer" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "Your answer" }), {
     target: { value: "14" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-  expect(onComplete).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
   expect(screen.queryByRole("button", { name: "View summary" })).toBeNull();
+});
+
+it("loads one protected item at a time and returns its canonical response", async () => {
+  const onComplete = vi.fn();
+  const canonical = COUNTING_P5_ANCHOR_ITEMS[0];
+  const answerSafeItem = {
+    ...canonical,
+    response: { type: canonical.response.type },
+    feedback: { correct: "Response recorded.", incorrect: "Response recorded." },
+  };
+  vi.mocked(loadStartingPointQuestion).mockResolvedValueOnce({
+    item: answerSafeItem,
+    itemCount: 1,
+  });
+
+  render(
+    React.createElement(AssessmentPlayerV1, {
+      title: "Counting check",
+      items: [],
+      questionRequest: {
+        continuum: "counting-processes",
+        pool: "anchor",
+        pLevel: 5,
+      },
+      mode: "placement",
+      presentation: "parent",
+      onComplete,
+    }),
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
+  expect(screen.getByText("Preparing the next question…")).toBeTruthy();
+  await screen.findByText(/Question\s+1\s+of\s+1/);
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Your answer" }), {
+    target: { value: "62" },
+  });
+  fireEvent.click(
+    screen
+      .getAllByRole("button", { name: "Continue" })
+      .find((button) => !(button as HTMLButtonElement).disabled)!,
+  );
+
+  await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+  expect(loadStartingPointQuestion).toHaveBeenCalledWith({
+    continuum: "counting-processes",
+    pool: "anchor",
+    pLevel: 5,
+    itemIndex: 0,
+  });
+  expect(scoreStartingPointPreviewAnswer).toHaveBeenCalledTimes(1);
+  expect(onComplete.mock.calls[0][0][0]).toMatchObject({
+    itemId: canonical.id,
+    correct: true,
+  });
 });
 
 
@@ -282,13 +370,13 @@ it("offers a truthful practical-observation path for visual-dependent accessible
   );
 
   fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
-  expect(
-    screen.getByText("This question depends on seeing a visual collection."),
-  ).toBeTruthy();
+  fireEvent.click(
+    screen.getByText("Can’t use this visual? Use a practical observation instead."),
+  );
 
   fireEvent.click(
     screen.getByRole("button", {
-      name: "Use a practical observation instead",
+      name: "Open practical observation",
     }),
   );
 
@@ -309,9 +397,7 @@ it("uses starting-point language for the accessible visual alternative", () => {
   );
 
   fireEvent.click(screen.getByRole("button", { name: "Start this area" }));
-  expect(
-    screen.getByText(/guess a starting point from evidence that is not accessible/i),
-  ).toBeTruthy();
+  expect(screen.getByText(/No electronic result will be inferred/i)).toBeTruthy();
   expect(screen.queryByText(/guess a placement/i)).toBeNull();
 });
 

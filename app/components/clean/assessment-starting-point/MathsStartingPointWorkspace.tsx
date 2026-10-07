@@ -11,17 +11,13 @@ import {
   MATHS_STARTING_POINT_RELEASE,
   assertMathsStartingPointStaffPreviewSafety,
 } from "@/lib/clean/assessments/mathsStartingPointRelease";
+import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
 
-const AREA_OPTIONS: Array<{
-  key: NumberOperationsSubElementKey;
-  label: string;
-}> = [
-  { key: "number-place-value", label: "Number & place value" },
-  { key: "counting-processes", label: "Counting" },
-  { key: "additive-strategies", label: "Additive strategies" },
-  { key: "multiplicative-strategies", label: "Multiplicative strategies" },
-  { key: "understanding-money", label: "Money" },
-];
+const AREA_OPTIONS: Array<{ key: NumberOperationsSubElementKey; label: string }> =
+  NUMBER_OPERATIONS_STARTING_POINT_PRODUCT.assessedAreas.map((area) => ({
+    key: area.key,
+    label: area.shortLabel,
+  }));
 
 const card: React.CSSProperties = {
   border: "1px solid #DDE4EE",
@@ -108,9 +104,9 @@ export default function MathsStartingPointWorkspace() {
 
   if (!workspace.learners.length || !activeLearner) {
     return (
-      <div style={card}>
+      <div style={card} data-starting-point-route-setup>
         <strong style={{ color: "#17204B", fontSize: 18 }}>
-          Add a learner before starting the Maths check
+          Add a learner before starting the Number &amp; Operations check
         </strong>
         <span style={{ color: "#4B5563", lineHeight: 1.6 }}>
           The starting point belongs to one learner, so MyLearna needs a learner profile first.
@@ -135,7 +131,7 @@ export default function MathsStartingPointWorkspace() {
 
   return (
     <section style={{ display: "grid", gap: 18 }}>
-      <div style={card}>
+      <div style={card} data-starting-point-route-setup>
         <span
           style={{
             color: "#166534",
@@ -202,7 +198,7 @@ export default function MathsStartingPointWorkspace() {
         </Link>
       </div>
 
-      <div style={card}>
+      <div style={card} data-starting-point-route-setup>
         <span
           style={{
             color: "#166534",
@@ -272,8 +268,6 @@ export default function MathsStartingPointWorkspace() {
 
       <AssessmentNumberOperationsBaselineRunner
         key={`${activeLearner.id}:${selectedArea?.key || "full"}`}
-        familyId={workspace.profile.id}
-        familyStorageMode={workspace.storageMode}
         learnerId={activeLearner.id}
         learnerName={activeLearner.label}
         mode="parent-preview"

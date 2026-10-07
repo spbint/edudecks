@@ -73,17 +73,40 @@ describe("AssessmentStimulus visual templates", () => {
     expect(container.querySelectorAll('[data-testid="array-item"]')).toHaveLength(12);
   });
 
-  it("renders place-value blocks for hundreds, tens and ones", () => {
+  it("renders the complete trusted base-ten family", () => {
     const { container } = render(
       React.createElement(AssessmentStimulus, {
-        stimulus: { type: "place-value-blocks", data: { hundreds: 2, tens: 3, ones: 6 } },
+        stimulus: { type: "place-value-blocks", data: { thousands: 1, hundreds: 2, tens: 3, ones: 6 } },
       }),
     );
 
-    expect(screen.getByLabelText("Place-value blocks showing 2 hundreds, 3 tens, 6 ones.")).toBeTruthy();
+    expect(screen.getByLabelText("Place-value blocks showing 1 thousand, 2 hundreds, 3 tens, 6 ones.")).toBeTruthy();
+    expect(container.querySelectorAll('[data-testid="place-value-thousand"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-testid="place-value-hundred"]')).toHaveLength(2);
     expect(container.querySelectorAll('[data-testid="place-value-ten"]')).toHaveLength(3);
     expect(container.querySelectorAll('[data-testid="place-value-one"]')).toHaveLength(6);
+    expect(
+      Array.from(container.querySelectorAll("[data-base-ten-kind]")).map(
+        (node) => node.getAttribute("data-base-ten-kind"),
+      ),
+    ).toEqual([
+      "thousand",
+      "hundred",
+      "hundred",
+      "ten",
+      "ten",
+      "ten",
+      "one",
+      "one",
+      "one",
+      "one",
+      "one",
+      "one",
+    ]);
+    const visual = screen.getByTestId("trusted-base-ten-visual");
+    expect(visual.style.width).toBe("100%");
+    expect(visual.style.boxSizing).toBe("border-box");
+    expect(visual.style.overflow).toBe("hidden");
   });
 
   it("renders fraction bars with exact denominator and numerator counts", () => {

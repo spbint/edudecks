@@ -54,8 +54,8 @@ Current behaviour:
 - raw item-response traces are dropped from the completed browser-only state
 - no assessment record is written to Supabase
 - visual-dependent counting/subitising items expose a practical-observation alternative instead of forcing inaccessible electronic evidence
-- Money P1–P2 remain electronically blocked while their evidence mode is `asset-review`; having executable draft items does not bypass the evidence policy
-- trusted score-bearing assets are controlled by `numberOperationsAssetApprovals.ts`; Australian currency schematic v1 is explicitly `pending-review`, not implicitly approved
+- Money P1–P2 remain governed by the explicit `asset-review` evidence policy; asset approval does not bypass any customer release gate
+- trusted score-bearing assets are controlled by `numberOperationsAssetApprovals.ts`; Australian currency schematic v1 carries asset-level human visual approval against implementation `7ca0af353a4aef08b60b2462614e56ce24f8a0df`
 - choosing that alternative leaves the area unresolved; it never manufactures a digital placement
 - unresolved areas provide area-specific practical-observation guidance and concrete evidence cues
 - the parent question burden is transparent: a fully electronic area is bounded to 6–11 questions and the full five-area electronic route is bounded to 30–55 questions; the experience pauses between areas
@@ -144,7 +144,8 @@ The application client throws before touching Supabase while `persistenceEnabled
 - authenticated hosted parent-flow acceptance not yet approved;
 - 390px/430px mobile parent-flow acceptance not yet approved;
 - all 140 placement items remaining draft/review-only;
-- one trusted asset set (Australian currency schematic v1) remaining pending visual approval.
+
+The trusted mathematical asset blocker has been cleared at the asset level only. Every customer-release gate above remains outstanding.
 
 The release object carries explicit `hostedAcceptanceApproved` and `mobileAcceptanceApproved` gates. Documentation alone cannot satisfy those release requirements.
 
@@ -161,7 +162,7 @@ These require explicit, separate release decisions after staff QA:
 5. turn confirmed starting-point results into Learning Chronicle / Portfolio / report-available evidence according to the parent choices;
 6. promote the accepted placement items out of draft/review status;
 7. review the full placement estate through the staff-only `/assessments/maths-starting-point/item-review` catalogue and promote only accepted items out of draft/review status;
-8. approve the trusted Australian currency schematic asset set through the staff-only `/assessments/maths-starting-point/asset-review` route or keep Money P1–P2 electronically blocked;
+8. retain the trusted Australian currency schematic approval record without treating it as customer release approval;
 9. mark hosted and mobile acceptance approved only after the actual rehearsals pass;
 10. expose “Find a Number & Operations starting point” to customers in the covered My Pathways strands;
 11. remove the staff-only access gate for the approved customer surface;

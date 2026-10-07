@@ -7,7 +7,7 @@ import {
 } from "./numberOperationsAssetApprovals";
 
 describe("Number & Operations trusted asset approvals", () => {
-  it("keeps Australian currency P1-P2 pending until hosted visual review passes", () => {
+  it("records the completed Australian currency human visual approval", () => {
     expect(NUMBER_OPERATIONS_ASSET_APPROVALS).toHaveLength(1);
     expect(
       getNumberOperationsAssetApproval({
@@ -16,20 +16,28 @@ describe("Number & Operations trusted asset approvals", () => {
       }),
     ).toMatchObject({
       id: "australian-currency-schematic-v1",
-      status: "pending-review",
+      status: "approved",
+      approvalProvenance: {
+        approvalType: "human-visual-review",
+        assetFamily: "Australian currency schematic",
+        reviewedImplementationSha:
+          "7ca0af353a4aef08b60b2462614e56ce24f8a0df",
+        reviewResult: "approved",
+        reviewDate: "2026-10-07",
+      },
     });
     expect(
       isNumberOperationsAssetApproved({
         subElementKey: "understanding-money",
         pLevel: 1,
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isNumberOperationsAssetApproved({
         subElementKey: "understanding-money",
         pLevel: 2,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("does not invent asset gates for direct non-money progression levels", () => {
@@ -49,7 +57,7 @@ describe("Number & Operations trusted asset approvals", () => {
 });
 
 
-it("scopes the pending currency approval only to real currency-token placement items", () => {
+it("scopes the approved currency asset only to real currency-token placement items", () => {
   const approval = NUMBER_OPERATIONS_ASSET_APPROVALS.find(
     (candidate) => candidate.id === "australian-currency-schematic-v1",
   );

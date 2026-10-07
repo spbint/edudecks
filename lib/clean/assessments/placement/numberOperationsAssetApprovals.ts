@@ -7,6 +7,13 @@ export type NumberOperationsAssetApprovalStatus =
 export type NumberOperationsAssetApproval = {
   id: string;
   status: NumberOperationsAssetApprovalStatus;
+  approvalProvenance?: {
+    approvalType: "human-visual-review";
+    assetFamily: string;
+    reviewedImplementationSha: string;
+    reviewResult: "approved";
+    reviewDate: string;
+  };
   subElementKey: NumberOperationsSubElementKey;
   pLevels: number[];
   itemIds: string[];
@@ -17,7 +24,15 @@ export type NumberOperationsAssetApproval = {
 export const NUMBER_OPERATIONS_ASSET_APPROVALS: NumberOperationsAssetApproval[] = [
   {
     id: "australian-currency-schematic-v1",
-    status: "pending-review",
+    status: "approved",
+    approvalProvenance: {
+      approvalType: "human-visual-review",
+      assetFamily: "Australian currency schematic",
+      reviewedImplementationSha:
+        "7ca0af353a4aef08b60b2462614e56ce24f8a0df",
+      reviewResult: "approved",
+      reviewDate: "2026-10-07",
+    },
     subElementKey: "understanding-money",
     pLevels: [1, 2],
     itemIds: [
@@ -28,12 +43,12 @@ export const NUMBER_OPERATIONS_ASSET_APPROVALS: NumberOperationsAssetApproval[] 
     reviewCriteria: [
       "Denomination labels are unambiguous and match Australian money values.",
       "Relative coin sizes and the 50c shape are represented consistently.",
-      "The visual is clearly schematic and does not imply photographic fidelity.",
+      "Each denomination reads as a classroom coin schematic rather than a generic token or chip.",
       "Phone rendering remains legible at 390px and 430px widths.",
       "Accessible description does not introduce ambiguity or expose an unrelated answer.",
     ],
     note:
-      "Money P1-P2 remain blocked from electronic placement until the trusted schematic currency set has passed hosted visual review.",
+      "Human visual review approved the trusted Australian coin system at the asset level only; customer release remains separately gated.",
   },
 ];
 

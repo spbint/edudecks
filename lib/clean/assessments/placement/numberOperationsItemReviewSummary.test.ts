@@ -15,7 +15,7 @@ describe("Number & Operations item review summary", () => {
     expect(summary.cleanStructuralItems).toBe(140);
     expect(summary.routingOnlyItems).toBe(33);
     expect(summary.accessibilityAlternativeItems).toBe(10);
-    expect(summary.pendingTrustedAssetItems).toBe(3);
+    expect(summary.pendingTrustedAssetItems).toBe(0);
     expect(summary.attentionCustomerItems).toBe(39);
     expect(summary.routineCustomerItems).toBe(81);
     expect(
