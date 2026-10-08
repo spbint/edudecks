@@ -21,6 +21,7 @@ export type NumberOperationsBaselineDraft = {
   tracesByKey: Partial<
     Record<NumberOperationsSubElementKey, NumberOperationsSubElementAttemptTrace>
   >;
+  itemVersions: Record<string, number>;
   startedAt: string;
   completedAt: string | null;
   savedAt: string;
@@ -48,6 +49,7 @@ export function buildNumberOperationsBaselineDraft(input: {
   resultsByKey: NumberOperationsBaselineDraft["resultsByKey"];
   unresolvedSubElements: NumberOperationsSubElementKey[];
   tracesByKey: NumberOperationsBaselineDraft["tracesByKey"];
+  itemVersions?: Record<string, number>;
   startedAt: string;
   completedAt?: string | null;
   savedAt?: string;
@@ -85,6 +87,12 @@ export function buildNumberOperationsBaselineDraft(input: {
       input.unresolvedSubElements.filter((key) => VALID_KEYS.has(key)),
     ),
   );
+  const itemVersions = Object.fromEntries(
+    Object.entries(input.itemVersions ?? {}).filter(
+      ([itemId, version]) =>
+        Boolean(itemId.trim()) && Number.isInteger(version) && version > 0,
+    ),
+  );
 
   return {
     schema: "mylearna-number-operations-baseline-draft",
@@ -94,6 +102,7 @@ export function buildNumberOperationsBaselineDraft(input: {
     resultsByKey: { ...input.resultsByKey },
     unresolvedSubElements,
     tracesByKey: { ...input.tracesByKey },
+    itemVersions,
     startedAt: startedAt.toISOString(),
     completedAt: completedAt ? completedAt.toISOString() : null,
     savedAt: savedAt.toISOString(),
@@ -148,6 +157,7 @@ export function parseNumberOperationsBaselineDraft(
           VALID_KEYS.has(key as NumberOperationsSubElementKey),
       ),
       tracesByKey: parsed.tracesByKey,
+      itemVersions: parsed.itemVersions,
       startedAt: parsed.startedAt,
       completedAt:
         parsed.status === "complete" ? parsed.completedAt : null,

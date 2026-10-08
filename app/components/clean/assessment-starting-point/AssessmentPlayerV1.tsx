@@ -32,6 +32,7 @@ type AssessmentPlayerV1Props = {
   areaProgress?: { current: number; total: number; label: string };
   onPause?: () => void;
   onUsePracticalObservation?: () => void;
+  onItemPresented?: (item: { id: string; version: number }) => void;
   onComplete?: (responses: MyLearnaAssessmentResponse[]) => void;
 };
 
@@ -122,6 +123,7 @@ export default function AssessmentPlayerV1({
   areaProgress,
   onPause,
   onUsePracticalObservation,
+  onItemPresented,
   onComplete,
 }: AssessmentPlayerV1Props) {
   const parentPresentation = presentation === "parent";
@@ -216,6 +218,11 @@ export default function AssessmentPlayerV1({
   useEffect(() => {
     if (autoStart) itemStartedAt.current = Date.now();
   }, [autoStart]);
+
+  useEffect(() => {
+    if (!currentItem) return;
+    onItemPresented?.({ id: currentItem.id, version: currentItem.version });
+  }, [currentItem, onItemPresented]);
 
   if (!started) {
     return (

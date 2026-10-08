@@ -116,6 +116,7 @@ export default function AssessmentAnchorPlacementRunner({
   presentation = "staff",
   areaProgress,
   onPause,
+  onItemPresented,
 }: {
   anchorSetKey: NumberOperationsAnchorSet["key"];
   onResult?: (result: NumberOperationsPlacementResult | null) => void;
@@ -124,6 +125,7 @@ export default function AssessmentAnchorPlacementRunner({
   presentation?: "parent" | "staff";
   areaProgress?: { current: number; total: number; label: string };
   onPause?: () => void;
+  onItemPresented?: (item: { id: string; version: number }) => void;
 }) {
   const parentPresentation = presentation === "parent";
   const anchorSet = useMemo(() => {
@@ -591,6 +593,7 @@ export default function AssessmentAnchorPlacementRunner({
         presentation={parentPresentation ? "parent" : "staff"}
         areaProgress={areaProgress}
         onPause={onPause}
+        onItemPresented={onItemPresented}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -612,6 +615,7 @@ export default function AssessmentAnchorPlacementRunner({
         presentation={parentPresentation ? "parent" : "staff"}
         areaProgress={areaProgress}
         onPause={onPause}
+        onItemPresented={onItemPresented}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -633,6 +637,7 @@ export default function AssessmentAnchorPlacementRunner({
         presentation={parentPresentation ? "parent" : "staff"}
         areaProgress={areaProgress}
         onPause={onPause}
+        onItemPresented={onItemPresented}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -654,6 +659,7 @@ export default function AssessmentAnchorPlacementRunner({
         presentation={parentPresentation ? "parent" : "staff"}
         areaProgress={areaProgress}
         onPause={onPause}
+        onItemPresented={onItemPresented}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative
@@ -675,6 +681,7 @@ export default function AssessmentAnchorPlacementRunner({
         presentation={parentPresentation ? "parent" : "staff"}
         areaProgress={areaProgress}
         onPause={onPause}
+        onItemPresented={onItemPresented}
         onUsePracticalObservation={
           parentPresentation
             ? handlePracticalObservationAlternative

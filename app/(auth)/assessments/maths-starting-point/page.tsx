@@ -81,6 +81,18 @@ export default async function MathsStartingPointPage() {
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
               <Link
+                href="/assessments/maths-starting-point/learning-profile"
+                style={{
+                  width: "fit-content",
+                  color: "#5B3BE8",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Staff: review Mathematics Learning Profile
+              </Link>
+              <Link
                 href="/assessments/maths-starting-point/readiness"
                 style={{
                   width: "fit-content",

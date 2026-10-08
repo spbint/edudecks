@@ -20,6 +20,7 @@ describe("Number Operations baseline browser draft", () => {
       resultsByKey: { "number-place-value": result },
       unresolvedSubElements: [],
       tracesByKey: {},
+      itemVersions: { "myl-anchor-npv-p05-a-v1": 1 },
       startedAt: "2026-10-03T08:00:00Z",
       savedAt: "2026-10-03T08:10:00Z",
     });
@@ -36,6 +37,7 @@ describe("Number Operations baseline browser draft", () => {
       savedAt: "2026-10-03T08:10:00.000Z",
     });
     expect(parsed?.resultsByKey["number-place-value"]?.lowerP).toBe(5);
+    expect(parsed?.itemVersions).toEqual({ "myl-anchor-npv-p05-a-v1": 1 });
 
     const serialized = JSON.stringify(parsed);
     expect(serialized).not.toContain("learnerId");

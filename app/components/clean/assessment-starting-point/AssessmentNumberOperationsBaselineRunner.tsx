@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AssessmentAnchorPlacementRunner from "@/app/components/clean/assessment-starting-point/AssessmentAnchorPlacementRunner";
 import AssessmentNumberOperationsProfileCard from "@/app/components/clean/assessment-starting-point/AssessmentNumberOperationsProfileCard";
 import AssessmentNumberOperationsParentUtilityCard from "@/app/components/clean/assessment-starting-point/AssessmentNumberOperationsParentUtilityCard";
@@ -25,6 +25,10 @@ import { getNumberOperationsBaselineBudget } from "@/lib/clean/assessments/place
 import { trackCoreJourneyEvent } from "@/lib/clean/analytics/productAnalytics";
 import { MATHS_STARTING_POINT_RELEASE } from "@/lib/clean/assessments/mathsStartingPointRelease";
 import { buildNumberOperationsUnresolvedGuidance } from "@/lib/clean/assessments/placement/numberOperationsUnresolvedGuidance";
+import MathematicsLearningProfile from "@/app/components/clean/assessment-starting-point/MathematicsLearningProfile";
+import { projectStartingPointCompletion } from "@/lib/clean/educationalIntelligence/startingPointResultProjection";
+import { presentMathematicsLearningProfile } from "@/lib/clean/educationalIntelligence/mathematicsLearningProfilePresentation";
+import type { MathematicsLearningProfilePresentationV1 } from "@/lib/clean/educationalIntelligence/mathematicsLearningProfilePresentation";
 
 const DEFAULT_ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -87,6 +91,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
   const [tracesByKey, setTracesByKey] = useState<
     Partial<Record<NumberOperationsSubElementKey, NumberOperationsSubElementAttemptTrace>>
   >({});
+  const [itemVersions, setItemVersions] = useState<Record<string, number>>({});
   const [pendingResult, setPendingResult] = useState<
     NumberOperationsPlacementResult | null | undefined
   >(undefined);
@@ -112,6 +117,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
       setResultsByKey(draft.resultsByKey);
       setUnresolved(draft.unresolvedSubElements);
       setTracesByKey(draft.tracesByKey);
+      setItemVersions(draft.itemVersions);
       setStartedAt(draft.startedAt);
       if (draft.status === "complete") {
         hydratedCompleteRef.current = true;
@@ -132,6 +138,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
       resultsByKey,
       unresolvedSubElements: unresolved,
       tracesByKey: complete ? {} : tracesByKey,
+      itemVersions,
       startedAt,
       completedAt: complete ? completedAt : null,
     });
@@ -149,6 +156,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
     tracesByKey,
     unresolved,
     draftStorageKey,
+    itemVersions,
   ]);
 
   const currentKey =
@@ -233,6 +241,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
     setResultsByKey({});
     setUnresolved([]);
     setTracesByKey({});
+    setItemVersions({});
     setPendingResult(undefined);
     setComplete(false);
     setCompletedAt(null);
@@ -241,6 +250,17 @@ export default function AssessmentNumberOperationsBaselineRunner({
     hydratedCompleteRef.current = false;
     window.sessionStorage.removeItem(draftStorageKey);
   };
+
+  const recordItemVersion = useCallback(
+    (item: { id: string; version: number }) => {
+      setItemVersions((current) =>
+        current[item.id] === item.version
+          ? current
+          : { ...current, [item.id]: item.version },
+      );
+    },
+    [],
+  );
 
   const continueBaseline = () => {
     if (pendingResult === undefined) return;
@@ -300,26 +320,62 @@ export default function AssessmentNumberOperationsBaselineRunner({
     });
     const unresolvedGuidance =
       buildNumberOperationsUnresolvedGuidance(unresolved);
+    let mathematicsLearningProfile: MathematicsLearningProfilePresentationV1 | null = null;
+    try {
+      const canonicalProjection = projectStartingPointCompletion({
+        learnerId: String(learnerId ?? "staff-preview-learner"),
+        attemptId: `local:${String(learnerId ?? "staff-preview-learner")}:${startedAt}`,
+        attemptKind: "initial",
+        completion: baselineSnapshot,
+        itemVersions,
+      });
+      mathematicsLearningProfile = presentMathematicsLearningProfile({
+        profile: canonicalProjection.profile,
+        learnerDisplayName: learnerName,
+      });
+    } catch {
+      // A pre-integration browser draft may not contain item-version provenance.
+      // Keep the previous staff completion view reachable instead of guessing.
+    }
 
     return (
       <section style={{ display: "grid", gap: 18 }}>
-        <AssessmentNumberOperationsParentUtilityCard
-          utility={parentUtility}
-          onActionSelected={(_area, destination) =>
-            trackCoreJourneyEvent(
-              "maths_starting_point_next_action_selected",
-              {
-                area: "maths_starting_point",
-                featureArea: "assessment",
-                subjectKey: "mathematics",
-                destination,
-                presentation: mode,
-                viewType: order.length === 1 ? "focused" : "full",
-              },
-              userId,
-            )
-          }
-        />
+        {mathematicsLearningProfile ? (
+          <MathematicsLearningProfile profile={mathematicsLearningProfile} />
+        ) : (
+          <section style={{ ...panel, background: "#FFFDF5" }} role="status">
+            <strong style={{ color: "#92400E" }}>
+              This older browser session cannot prepare the new Learning Profile safely.
+            </strong>
+            <span style={{ color: "#6B4F1D", lineHeight: 1.55 }}>
+              The previous completion view remains available below. Start a fresh check when you want a profile with complete item-version provenance.
+            </span>
+          </section>
+        )}
+        <details style={panel} data-legacy-result-equivalence>
+          <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
+            Staff equivalence view: previous completion presentation
+          </summary>
+          <div style={{ marginTop: 12 }}>
+            <AssessmentNumberOperationsParentUtilityCard
+              utility={parentUtility}
+              onActionSelected={(_area, destination) =>
+                trackCoreJourneyEvent(
+                  "maths_starting_point_next_action_selected",
+                  {
+                    area: "maths_starting_point",
+                    featureArea: "assessment",
+                    subjectKey: "mathematics",
+                    destination,
+                    presentation: mode,
+                    viewType: order.length === 1 ? "focused" : "full",
+                  },
+                  userId,
+                )
+              }
+            />
+          </div>
+        </details>
         {unresolvedGuidance.length ? (
           <section style={{ ...panel, background: "#FFFDF5", gap: 12 }}>
             <div style={{ display: "grid", gap: 4 }}>
@@ -598,6 +654,7 @@ export default function AssessmentNumberOperationsBaselineRunner({
           label: LABELS[currentKey],
         }}
         onPause={() => window.location.assign(pauseHref)}
+        onItemPresented={recordItemVersion}
         onResult={setPendingResult}
         onAttemptTrace={(trace) =>
           setTracesByKey((current) => ({
