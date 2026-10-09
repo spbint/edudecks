@@ -85,7 +85,7 @@ const RESULT_SELECT = [
   "learner_id",
   "canonical_payload",
   "created_at",
-  "learning_evidence_result_reviews(review_state,confirmation_state,portfolio_inclusion,human_note_reference)",
+  "learning_evidence_result_reviews!learning_evidence_result_reviews_result_owner_fk(review_state,confirmation_state,portfolio_inclusion,human_note_reference)",
 ].join(",");
 
 function mapAttempt(row: AttemptRow): PersistedLearningEvidenceAttempt {
