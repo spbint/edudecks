@@ -75,6 +75,12 @@
   touch-action: none;
 }
 .phaserHost canvas { display: block; max-width: 100%; }
+.visualFrame { position: relative; min-width: 0; }
+.visualPreparing {
+  position: absolute; inset: 0; z-index: 2; min-height: 210px; display: grid; place-items: center;
+  border: 1px solid #ded8f7; border-radius: 26px; background: #f8f6ff; color: #6c4df6;
+  font-weight: 800;
+}
 .loading { min-height: 260px; display: grid; place-items: center; border-radius: 24px; background: #f8f6ff; color: #6c4df6; font-weight: 800; }
 .stageFailure, .responseError { border: 1px solid #f5d08a; border-radius: 18px; background: #fffdf5; color: #6b4f1d; padding: 16px; display: grid; gap: 8px; line-height: 1.5; }
 .failureActions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -101,6 +107,7 @@
 }
 .keypad button { border: 1px solid #d8dce7; background: #fff; color: var(--player-ink); box-shadow: 0 4px 0 #dfe2eb, 0 6px 12px rgba(23, 32, 75, 0.06); }
 .keypad button:hover, .keypad button:focus-visible { border-color: #8d75f7; background: #f4f1ff; }
+.keypad button:disabled { cursor: not-allowed; opacity: 0.42; box-shadow: none; }
 .keypad button:active { transform: translateY(3px) scale(0.985); box-shadow: 0 1px 0 #dfe2eb; }
 .playerContinue:active { transform: translateY(3px) scale(0.99); box-shadow: 0 3px 10px rgba(23, 32, 75, 0.18); }
 .keypad .backspace { grid-column: 1 / -1; min-height: 46px; color: var(--player-purple-deep); font-size: 14px; box-shadow: 0 3px 0 #e3def7; }

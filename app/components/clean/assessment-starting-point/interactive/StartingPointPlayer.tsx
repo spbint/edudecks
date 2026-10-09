@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import React, {
   Component,
   type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -16,6 +17,7 @@ import type {
 import {
   adaptAssessmentItemForStartingPointPlayer,
   scoreStartingPointPlayerAnswer,
+  startingPointPlayerRequiresVisual,
   type StartingPointPlayerAnswer,
 } from "@/lib/clean/assessments/interactivePlayer/startingPointPlayerContract";
 import { getStartingPointReadAloudText } from "@/lib/clean/assessments/interactivePlayer/startingPointDevelopmentalAccessibility";
@@ -58,7 +60,7 @@ class PlayerStageErrorBoundary extends Component<
     return (
       <div className={styles.stageFailure} role="alert" data-player-load-failed>
         <strong>This question did not load.</strong>
-        <span>Try the accessible answer below, or pause and return safely.</span>
+        <span>Try again, or pause and return safely so the mathematical question is not skipped.</span>
         <div className={styles.failureActions}>
           <button type="button" onClick={() => this.setState({ failed: false })}>
             Try again
@@ -101,6 +103,15 @@ export default function StartingPointPlayer({
   const [isListening, setIsListening] = useState(false);
   const [readAloudAvailable, setReadAloudAvailable] = useState<boolean | null>(null);
   const [responseError, setResponseError] = useState(false);
+  const visualKey = `${model.itemId}:${model.itemVersion}`;
+  const requiresVisual = startingPointPlayerRequiresVisual(model);
+  const [readyVisualKey, setReadyVisualKey] = useState<string | null>(
+    () => requiresVisual ? null : visualKey,
+  );
+  const visualReady = !requiresVisual || readyVisualKey === visualKey;
+  const handleVisualReadinessChange = useCallback((ready: boolean) => {
+    setReadyVisualKey(ready ? visualKey : null);
+  }, [visualKey]);
   const responseSubmittedRef = useRef(false);
   const progressPercent = Math.max(0, Math.min(100, (progress.current / Math.max(1, progress.total)) * 100));
 
@@ -210,7 +221,11 @@ export default function StartingPointPlayer({
       </header>
 
       <PlayerStageErrorBoundary key={`${model.itemId}:${model.itemVersion}`} onPause={onPause}>
-        <PhaserAssessmentStage model={model} onSubmit={submit} />
+        <PhaserAssessmentStage
+          model={model}
+          onSubmit={submit}
+          onVisualReadinessChange={handleVisualReadinessChange}
+        />
       </PlayerStageErrorBoundary>
 
       {responseError ? (
@@ -224,7 +239,7 @@ export default function StartingPointPlayer({
         <div className={styles.fallbackBody}>
           {item.response.type === "short-answer" ? (
             <label className={styles.fallbackLabel}>Your answer
-              <input className={styles.fallbackInput} inputMode="text" autoComplete="off" value={accessibleValue} onChange={(event) => setAccessibleValue(event.target.value)} />
+              <input className={styles.fallbackInput} inputMode="text" autoComplete="off" value={accessibleValue} disabled={!visualReady} onChange={(event) => setAccessibleValue(event.target.value)} />
             </label>
           ) : item.response.type === "ordering" ? (
             <div className={styles.orderList} role="list" aria-label="Current order">
@@ -233,17 +248,17 @@ export default function StartingPointPlayer({
                 if (!option) return null;
                 return <div className={styles.orderRow} role="listitem" key={optionId}>
                   <strong>{index + 1}</strong><span>{option.label}</span>
-                  <button type="button" disabled={index === 0} onClick={() => setAccessibleOrder((current) => moveOption(current, optionId, -1))}>Move up</button>
-                  <button type="button" disabled={index === accessibleOrder.length - 1} onClick={() => setAccessibleOrder((current) => moveOption(current, optionId, 1))}>Move down</button>
+                  <button type="button" disabled={!visualReady || index === 0} onClick={() => setAccessibleOrder((current) => moveOption(current, optionId, -1))}>Move up</button>
+                  <button type="button" disabled={!visualReady || index === accessibleOrder.length - 1} onClick={() => setAccessibleOrder((current) => moveOption(current, optionId, 1))}>Move down</button>
                 </div>;
               })}
             </div>
           ) : (
             <div className={styles.fallbackChoices} role="group" aria-label="Answer choices">
-              {model.options.map((option) => <button key={option.id} type="button" aria-pressed={accessibleSelection.includes(option.id)} onClick={() => setAccessibleSelection(model.allowsMultiple ? (current => current.includes(option.id) ? current.filter((id) => id !== option.id) : [...current, option.id])(accessibleSelection) : [option.id])}>{option.label}</button>)}
+              {model.options.map((option) => <button key={option.id} type="button" disabled={!visualReady} aria-pressed={accessibleSelection.includes(option.id)} onClick={() => setAccessibleSelection(model.allowsMultiple ? (current => current.includes(option.id) ? current.filter((id) => id !== option.id) : [...current, option.id])(accessibleSelection) : [option.id])}>{option.label}</button>)}
             </div>
           )}
-          <button className={styles.fallbackSubmit} type="button" onClick={submitAccessible} disabled={item.response.type === "short-answer" ? !accessibleValue.trim() : item.response.type !== "ordering" && accessibleSelection.length === 0}>Continue</button>
+          <button className={styles.fallbackSubmit} type="button" onClick={submitAccessible} disabled={!visualReady || (item.response.type === "short-answer" ? !accessibleValue.trim() : item.response.type !== "ordering" && accessibleSelection.length === 0)}>Continue</button>
         </div>
       </details>
 

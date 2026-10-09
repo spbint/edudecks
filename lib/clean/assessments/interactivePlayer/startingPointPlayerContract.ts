@@ -38,6 +38,12 @@ export type StartingPointPlayerModel = {
   readAloud: StartingPointReadAloudClassification;
 };
 
+export function startingPointPlayerRequiresVisual(
+  model: StartingPointPlayerModel,
+) {
+  return model.presentationStimulus !== null || model.stimulus.type !== "none";
+}
+
 export function inferStartingPointInteraction(
   item: MyLearnaAssessmentItem,
 ): StartingPointInteractionKind {
