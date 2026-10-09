@@ -29,6 +29,8 @@ import MathematicsLearningProfile from "@/app/components/clean/assessment-starti
 import { projectStartingPointCompletion } from "@/lib/clean/educationalIntelligence/startingPointResultProjection";
 import { presentMathematicsLearningProfile } from "@/lib/clean/educationalIntelligence/mathematicsLearningProfilePresentation";
 import type { MathematicsLearningProfilePresentationV1 } from "@/lib/clean/educationalIntelligence/mathematicsLearningProfilePresentation";
+import { buildNumberOperationsBaselinePersistenceDraft } from "@/lib/clean/assessments/placement/numberOperationsPersistenceDraft";
+import StaffLearningEvidenceSavePanel from "@/app/components/clean/assessment-starting-point/StaffLearningEvidenceSavePanel";
 
 const DEFAULT_ORDER: NumberOperationsSubElementKey[] = [
   "number-place-value",
@@ -58,15 +60,21 @@ const panel: React.CSSProperties = {
 export default function AssessmentNumberOperationsBaselineRunner({
   learnerId,
   learnerName,
+  familyId,
   mode = "staff-debug",
   userId,
   subElementKeys,
+  staffPersistenceSmokeEnabled = false,
+  attemptKind = "initial",
 }: {
   learnerId?: string | null;
   learnerName?: string | null;
+  familyId?: string | null;
   mode?: "parent-preview" | "staff-debug";
   userId?: string | null;
   subElementKeys?: NumberOperationsSubElementKey[];
+  staffPersistenceSmokeEnabled?: boolean;
+  attemptKind?: "initial" | "recheck";
 }) {
   const requestedScopeKey = (subElementKeys || []).join("|");
   const order = useMemo(() => {
@@ -320,12 +328,13 @@ export default function AssessmentNumberOperationsBaselineRunner({
     });
     const unresolvedGuidance =
       buildNumberOperationsUnresolvedGuidance(unresolved);
+    const canonicalAttemptId = `staff-ei-smoke:${attemptKind}:${String(learnerId ?? "staff-preview-learner")}:${startedAt}`;
     let mathematicsLearningProfile: MathematicsLearningProfilePresentationV1 | null = null;
     try {
       const canonicalProjection = projectStartingPointCompletion({
         learnerId: String(learnerId ?? "staff-preview-learner"),
-        attemptId: `local:${String(learnerId ?? "staff-preview-learner")}:${startedAt}`,
-        attemptKind: "initial",
+        attemptId: canonicalAttemptId,
+        attemptKind,
         completion: baselineSnapshot,
         itemVersions,
       });
@@ -352,6 +361,15 @@ export default function AssessmentNumberOperationsBaselineRunner({
             </span>
           </section>
         )}
+        {staffPersistenceSmokeEnabled && familyId && learnerId ? (
+          <StaffLearningEvidenceSavePanel
+            familyId={familyId}
+            learnerId={learnerId}
+            attemptId={canonicalAttemptId}
+            attemptKind={attemptKind}
+            draft={buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot)}
+          />
+        ) : null}
         <details style={panel} data-legacy-result-equivalence>
           <summary style={{ cursor: "pointer", color: "#17204B", fontWeight: 850 }}>
             Staff equivalence view: previous completion presentation

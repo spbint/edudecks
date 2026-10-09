@@ -4,6 +4,7 @@ import AssessmentAccessGate from "@/app/components/clean/assessment-lab/Assessme
 import MathsStartingPointWorkspace from "@/app/components/clean/assessment-starting-point/MathsStartingPointWorkspace";
 import { requireAssessmentLabAccess } from "@/lib/clean/assessments/assessmentLabAccess.server";
 import { NUMBER_OPERATIONS_STARTING_POINT_PRODUCT } from "@/lib/clean/assessments/numberOperationsStartingPointProduct";
+import { isStaffLearningEvidenceSmokeConfigured } from "@/lib/clean/educationalIntelligence/persistence/staffLearningEvidenceSmokeEnvironment.server";
 
 const STARTING_POINT_ROUTE = "/assessments/maths-starting-point";
 
@@ -131,7 +132,9 @@ export default async function MathsStartingPointPage() {
             </Link>
 
           </section>
-          <MathsStartingPointWorkspace />
+          <MathsStartingPointWorkspace
+            staffPersistenceSmokeEnabled={isStaffLearningEvidenceSmokeConfigured()}
+          />
         </div>
       </main>
     </AssessmentAccessGate>

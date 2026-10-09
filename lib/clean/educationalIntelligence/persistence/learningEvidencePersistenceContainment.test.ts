@@ -29,16 +29,25 @@ describe("Learning Evidence persistence containment", () => {
     expect(runner).not.toContain("saveNumberOperationsBaseline");
     expect(runner).not.toContain("saveCanonicalResults");
     expect(runner).not.toMatch(/supabase\.(from|rpc)/);
+    expect(runner).toContain(
+      "staffPersistenceSmokeEnabled && familyId && learnerId",
+    );
   });
 
-  it("does not expose canonical-result persistence as a public API route", () => {
+  it("keeps canonical persistence server-only behind the internal assessment-lab route", () => {
     const repository = source(
       "lib/clean/educationalIntelligence/persistence/supabaseLearningEvidenceRepository.server.ts",
     );
     const preview = source(
       "app/components/clean/assessment-starting-point/LearningEvidenceResultsPreview.tsx",
     );
+    const route = source(
+      "app/api/internal/assessment-lab/learning-evidence/route.ts",
+    );
     expect(repository).toContain('import "server-only"');
     expect(preview).not.toMatch(/fetch\(|supabase\.|\.rpc\(/);
+    expect(route).toContain("requireStaffApiAccess");
+    expect(route).toContain("parseStaffLearningEvidenceSaveRequest");
+    expect(route).toContain("saveTrustedStaffLearningEvidence");
   });
 });

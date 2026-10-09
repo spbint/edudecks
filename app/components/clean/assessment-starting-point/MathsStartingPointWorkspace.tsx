@@ -28,11 +28,17 @@ const card: React.CSSProperties = {
   gap: 12,
 };
 
-export default function MathsStartingPointWorkspace() {
+export default function MathsStartingPointWorkspace({
+  staffPersistenceSmokeEnabled = false,
+}: {
+  staffPersistenceSmokeEnabled?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const learnerParam = String(searchParams.get("learnerId") ?? "").trim();
   const areaParam = String(searchParams.get("area") ?? "").trim();
+  const attemptKind =
+    searchParams.get("attemptKind") === "recheck" ? "recheck" : "initial";
   const selectedArea = useMemo(
     () => AREA_OPTIONS.find((option) => option.key === areaParam) ?? null,
     [areaParam],
@@ -131,6 +137,24 @@ export default function MathsStartingPointWorkspace() {
 
   return (
     <section style={{ display: "grid", gap: 18 }}>
+      {staffPersistenceSmokeEnabled ? (
+        <div
+          style={{
+            ...card,
+            border: "2px solid #166534",
+            background: "#F0FDF4",
+          }}
+          data-staff-ei-staging-target
+        >
+          <strong style={{ color: "#14532D" }}>
+            Staff EI smoke target: intelligence-staging
+          </strong>
+          <span style={{ color: "#365347", lineHeight: 1.55 }}>
+            This protected Preview can save only through the server-authoritative
+            staff test boundary. Customer persistence and every release gate remain off.
+          </span>
+        </div>
+      ) : null}
       <div style={card} data-starting-point-route-setup>
         <span
           style={{
@@ -267,12 +291,15 @@ export default function MathsStartingPointWorkspace() {
       </div>
 
       <AssessmentNumberOperationsBaselineRunner
-        key={`${activeLearner.id}:${selectedArea?.key || "full"}`}
+        key={`${activeLearner.id}:${selectedArea?.key || "full"}:${attemptKind}`}
         learnerId={activeLearner.id}
         learnerName={activeLearner.label}
+        familyId={workspace.profile.id}
         mode="parent-preview"
         userId={workspace.userId}
         subElementKeys={selectedArea ? [selectedArea.key] : undefined}
+        staffPersistenceSmokeEnabled={staffPersistenceSmokeEnabled}
+        attemptKind={attemptKind}
       />
     </section>
   );

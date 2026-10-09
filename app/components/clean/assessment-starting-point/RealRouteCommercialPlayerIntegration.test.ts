@@ -144,7 +144,12 @@ describe("real Number & Operations route commercial-player integration", () => {
     expect(baselineSource).toContain("MATHS_STARTING_POINT_RELEASE.persistenceEnabled");
     expect(baselineSource).toContain("onPause={() => window.location.assign(pauseHref)}");
     expect(baselineSource).not.toContain("saveNumberOperationsBaseline");
-    expect(baselineSource).not.toContain("buildNumberOperationsBaselinePersistenceDraft");
+    expect(baselineSource).toContain(
+      "buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot)",
+    );
+    expect(baselineSource).toContain(
+      "staffPersistenceSmokeEnabled && familyId && learnerId",
+    );
     expect(
       Object.entries(MATHS_STARTING_POINT_RELEASE)
         .filter(([, value]) => typeof value === "boolean")

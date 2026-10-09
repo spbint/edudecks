@@ -23,16 +23,19 @@ describe("staff My Results preview", () => {
     expect(page).toContain("robots: { index: false, follow: false }");
   });
 
-  it("uses synthetic profile projections without enabling a write action", () => {
+  it("keeps synthetic fixtures while accepting server-loaded staging history", () => {
     expect(component).toContain("getMathematicsLearningProfileFixtures");
     expect(component).toContain("MathematicsLearningProfile");
-    expect(component).toContain("no database writes");
+    expect(component).toContain("real intelligence-staging history");
+    expect(page).toContain("loadStaffLearningEvidenceHistory");
     expect(component).not.toMatch(/fetch\(|supabase\.|\.rpc\(/);
   });
 
   it("shows original, recheck and focused history semantics", () => {
-    expect(component).toContain('attempts: [mixed, recheck]');
-    expect(component).toContain('attempts: [focused]');
+    expect(component).toContain("fixtureAttempt(");
+    expect(component).toContain("Synthetic deterministic recheck fixture");
+    expect(component).toContain("Synthetic focused-attempt fixture");
+    expect(component).toContain("persistedHistory.attempts.map");
     expect(component).toContain("append-safe");
   });
 });

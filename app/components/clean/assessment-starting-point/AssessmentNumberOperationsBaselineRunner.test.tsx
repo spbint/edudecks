@@ -357,7 +357,7 @@ it("builds focused profiles against the requested scope rather than the full fiv
 });
 
 
-it("keeps completed browser summaries answer-safe and outside persistence", () => {
+it("keeps completed browser summaries answer-safe while preparing only the explicit staff smoke draft", () => {
   const source = readFileSync(
     join(
       process.cwd(),
@@ -367,11 +367,12 @@ it("keeps completed browser summaries answer-safe and outside persistence", () =
   );
 
   expect(source).toContain("tracesByKey: complete ? {} : tracesByKey");
-  expect(source).not.toContain("buildNumberOperationsBaselinePersistenceDraft");
+  expect(source).toContain("buildNumberOperationsBaselinePersistenceDraft(baselineSnapshot)");
+  expect(source).toContain("staffPersistenceSmokeEnabled && familyId && learnerId");
   expect(source).not.toContain("saveNumberOperationsBaseline");
 });
 
-it("does not mount any persistence control or database context on the real route", () => {
+it("keeps the staff persistence control explicit and outside the release gate", () => {
   const source = readFileSync(
     join(
       process.cwd(),
@@ -389,7 +390,8 @@ it("does not mount any persistence control or database context on the real route
 
   expect(source).toContain("MATHS_STARTING_POINT_RELEASE.persistenceEnabled");
   expect(source).not.toContain("saveNumberOperationsBaseline");
-  expect(source).not.toContain("Run staff persistence smoke");
-  expect(workspaceSource).not.toContain("familyId={workspace.profile.id}");
+  expect(source).toContain("StaffLearningEvidenceSavePanel");
+  expect(workspaceSource).toContain("familyId={workspace.profile.id}");
+  expect(workspaceSource).toContain("staffPersistenceSmokeEnabled={staffPersistenceSmokeEnabled}");
   expect(workspaceSource).not.toContain("familyStorageMode={workspace.storageMode}");
 });
