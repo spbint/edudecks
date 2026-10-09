@@ -38,4 +38,10 @@ describe("staff My Results preview", () => {
     expect(component).toContain("persistedHistory.attempts.map");
     expect(component).toContain("append-safe");
   });
+
+  it("exposes the Capture evidence bridge only inside the protected staff preview", () => {
+    expect(component).toContain("CaptureLearningEvidencePreview");
+    expect(component).toContain('"Capture evidence"');
+    expect(page).toContain("requireAssessmentLabAccess(RESULTS_PREVIEW_ROUTE)");
+  });
 });

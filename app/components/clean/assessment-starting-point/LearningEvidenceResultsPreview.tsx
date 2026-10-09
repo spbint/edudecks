@@ -8,6 +8,7 @@ import type { MathematicsLearningProfilePresentationV1 } from "@/lib/clean/educa
 import type { StaffLearningEvidenceHistory } from "@/lib/clean/educationalIntelligence/persistence/staffLearningEvidenceSmoke";
 import MathematicsLearningProfile from "./MathematicsLearningProfile";
 import LearningChangeComparison from "./LearningChangeComparison";
+import CaptureLearningEvidencePreview from "./CaptureLearningEvidencePreview";
 
 const panel = {
   border: "1px solid #DDE4EE",
@@ -144,7 +145,7 @@ export default function LearningEvidenceResultsPreview({
   const [selectedId, setSelectedId] = useState(
     persistedHistory ? "persisted-staging-history" : histories[0]?.id ?? "",
   );
-  const [view, setView] = useState<"compare" | "history" | "profile">(
+  const [view, setView] = useState<"compare" | "history" | "profile" | "evidence">(
     persistedHistory?.comparisons.length ? "compare" : "history",
   );
   const [selectedAttemptId, setSelectedAttemptId] = useState("");
@@ -208,7 +209,7 @@ export default function LearningEvidenceResultsPreview({
       </header>
 
       <nav aria-label="Educational Intelligence result views" style={{ ...panel, display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {(["compare", "history", "profile"] as const).map((option) => (
+        {(["compare", "history", "profile", "evidence"] as const).map((option) => (
           <button
             key={option}
             type="button"
@@ -226,7 +227,13 @@ export default function LearningEvidenceResultsPreview({
               cursor: "pointer",
             }}
           >
-            {option === "compare" ? "Compare attempts" : option === "history" ? "History" : "Profile"}
+            {option === "compare"
+              ? "Compare attempts"
+              : option === "history"
+                ? "History"
+                : option === "evidence"
+                  ? "Capture evidence"
+                  : "Profile"}
           </button>
         ))}
       </nav>
@@ -309,6 +316,8 @@ export default function LearningEvidenceResultsPreview({
           <MathematicsLearningProfile profile={activeAttempt.presentation} />
         </section>
       ) : null}
+
+      {view === "evidence" ? <CaptureLearningEvidencePreview /> : null}
     </div>
   );
 }
