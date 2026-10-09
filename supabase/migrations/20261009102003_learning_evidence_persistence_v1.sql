@@ -216,6 +216,10 @@ create index learning_evidence_results_status_idx
     evidence_sufficiency,
     evaluated_at desc
   );
+create index learning_evidence_results_attempt_owner_idx
+  on public.learning_evidence_results (family_id, learner_id, attempt_id);
+create index learning_evidence_result_reviews_owner_idx
+  on public.learning_evidence_result_reviews (family_id, learner_id, result_id);
 
 alter table public.learning_evidence_attempts enable row level security;
 alter table public.learning_evidence_results enable row level security;
@@ -231,8 +235,8 @@ using (
   and exists (
     select 1
     from public.learners as learner
-    where learner.id = learner_id
-      and learner.family_id = family_id
+    where learner.id = learning_evidence_attempts.learner_id
+      and learner.family_id = learning_evidence_attempts.family_id
   )
 );
 
@@ -246,8 +250,8 @@ using (
   and exists (
     select 1
     from public.learners as learner
-    where learner.id = learner_id
-      and learner.family_id = family_id
+    where learner.id = learning_evidence_results.learner_id
+      and learner.family_id = learning_evidence_results.family_id
   )
 );
 
@@ -261,14 +265,14 @@ using (
   and exists (
     select 1
     from public.learners as learner
-    where learner.id = learner_id
-      and learner.family_id = family_id
+    where learner.id = learning_evidence_result_reviews.learner_id
+      and learner.family_id = learning_evidence_result_reviews.family_id
   )
 );
 
-revoke all on table public.learning_evidence_attempts from public, anon, authenticated;
-revoke all on table public.learning_evidence_results from public, anon, authenticated;
-revoke all on table public.learning_evidence_result_reviews from public, anon, authenticated;
+revoke all on table public.learning_evidence_attempts from public, anon, authenticated, service_role;
+revoke all on table public.learning_evidence_results from public, anon, authenticated, service_role;
+revoke all on table public.learning_evidence_result_reviews from public, anon, authenticated, service_role;
 grant select on table public.learning_evidence_attempts to authenticated;
 grant select on table public.learning_evidence_results to authenticated;
 grant select on table public.learning_evidence_result_reviews to authenticated;

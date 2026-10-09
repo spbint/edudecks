@@ -26,6 +26,8 @@ describe("Learning Evidence Persistence V1 migration contract", () => {
     expect(migration).toContain("learning_evidence_attempts_assessment_history_idx");
     expect(migration).toContain("learning_evidence_results_construct_history_idx");
     expect(migration).toContain("learning_evidence_results_status_idx");
+    expect(migration).toContain("learning_evidence_results_attempt_owner_idx");
+    expect(migration).toContain("learning_evidence_result_reviews_owner_idx");
     expect(migration).toMatch(/continuum_id,[\s\S]*construct_id,[\s\S]*evaluated_at desc/);
     expect(migration).toMatch(/developmental_status,[\s\S]*evidence_sufficiency/);
   });
@@ -56,13 +58,25 @@ describe("Learning Evidence Persistence V1 migration contract", () => {
         `alter table public.${table} enable row level security`,
       );
       expect(migration).toContain(
-        `revoke all on table public.${table} from public, anon, authenticated`,
+        `revoke all on table public.${table} from public, anon, authenticated, service_role`,
       );
       expect(migration).toContain(`grant select on table public.${table} to authenticated`);
+      expect(migration).toContain(
+        `grant select, insert on table public.${table} to service_role`,
+      );
     }
     expect(migration.match(/for insert\s+to authenticated/gi)).toBeNull();
     expect(migration).toContain("(select auth.uid()) is not null");
     expect(migration).toContain("public.is_family_member(family_id)");
+    expect(migration).toContain(
+      "learner.family_id = learning_evidence_attempts.family_id",
+    );
+    expect(migration).toContain(
+      "learner.family_id = learning_evidence_results.family_id",
+    );
+    expect(migration).toContain(
+      "learner.family_id = learning_evidence_result_reviews.family_id",
+    );
   });
 
   it("keeps the atomic save RPC service-role-only and checks actor ownership", () => {
