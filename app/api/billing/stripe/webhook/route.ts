@@ -5,6 +5,10 @@ import {
   StripeBillingConfigurationError,
 } from "@/lib/billing/stripe.server";
 import {
+  isMarketplaceStripeEvent,
+  processMarketplaceStripeWebhook,
+} from "@/lib/billing/marketplaceStripeWebhook.server";
+import {
   createSupabaseStripeWebhookRepository,
   processVerifiedStripeWebhook,
 } from "@/lib/billing/stripeWebhook.server";
@@ -31,13 +35,29 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (isMarketplaceStripeEvent(event)) {
+      const result = await processMarketplaceStripeWebhook({
+        event,
+        rawBody,
+      });
+      return NextResponse.json({
+        received: true,
+        purchaseKind: "marketplace_resource",
+        outcome: result.outcome,
+      });
+    }
+
     const result = await processVerifiedStripeWebhook({
       event,
       rawBody,
       stripe: getStripeClient(),
       repository: createSupabaseStripeWebhookRepository(),
     });
-    return NextResponse.json({ received: true, outcome: result.outcome });
+    return NextResponse.json({
+      received: true,
+      purchaseKind: "media_storage",
+      outcome: result.outcome,
+    });
   } catch (error) {
     console.error("stripe_webhook_processing_failed", {
       eventType: event.type,
