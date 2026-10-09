@@ -1,0 +1,67 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const page = readFileSync(
+  join(
+    process.cwd(),
+    "app/(auth)/assessments/maths-starting-point/item-review/page.tsx",
+  ),
+  "utf8",
+);
+const viewer = readFileSync(
+  join(
+    process.cwd(),
+    "app/components/clean/assessment-starting-point/MathsStartingPointItemReview.tsx",
+  ),
+  "utf8",
+);
+
+describe("Maths starting-point staff item review", () => {
+  it("is staff-gated and read-only", () => {
+    expect(page).toContain('AssessmentAccessGate mode="lab"');
+    expect(page).toContain("index: false");
+    expect(page).toContain("follow: false");
+    expect(viewer).toContain("Staff-only item QA");
+    expect(viewer).not.toContain("update");
+    expect(viewer).not.toContain("publishItem");
+  });
+
+  it("reviews the canonical registry with practical filters and trust flags", () => {
+    expect(viewer).toContain("NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY");
+    expect(viewer).toContain("All areas");
+    expect(viewer).toContain("All P-levels");
+    expect(viewer).toContain("All pools");
+    expect(viewer).toContain("All statuses");
+    expect(viewer).toContain("Routing-only evidence");
+    expect(viewer).toContain("Practical observation alternative required");
+    expect(viewer).toContain("Trusted asset pending review");
+  });
+});
+
+
+it("can narrow the review queue to items with explicit trust flags", () => {
+  expect(viewer).toContain("Needs attention only");
+  expect(viewer).toContain("attentionOnly && !flags.length");
+});
+
+
+it("defaults human review to the 120 customer-route items and keeps confirmation-only items optional", () => {
+  expect(viewer).toContain("NUMBER_OPERATIONS_CUSTOMER_ROUTE_ITEM_REGISTRY");
+  expect(viewer).toContain("includeConfirmationItems");
+  expect(viewer).toContain("Include 20 confirmation-only lab items");
+  expect(viewer).toContain('"customer-route"');
+});
+
+
+it("keeps human review progress browser-local and non-canonical", () => {
+  expect(viewer).toContain("LOCAL_REVIEW_STORAGE_KEY");
+  expect(viewer).toContain("window.localStorage");
+  expect(viewer).toContain("Mark reviewed locally");
+  expect(viewer).toContain("Reviewed locally ✓");
+  expect(viewer).toContain("Unreviewed in this browser only");
+  expect(viewer).toContain(
+    "never changes source status, release state or customer visibility",
+  );
+  expect(viewer).not.toContain("supabase");
+});

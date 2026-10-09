@@ -1,0 +1,54 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const source = readFileSync(
+  join(
+    process.cwd(),
+    "app/(auth)/assessments/maths-starting-point/readiness/page.tsx",
+  ),
+  "utf8",
+);
+
+describe("Maths starting-point readiness route", () => {
+  it("is staff-gated, noindex and read-only", () => {
+    expect(source).toContain('AssessmentAccessGate mode="lab"');
+    expect(source).toContain("index: false");
+    expect(source).toContain("follow: false");
+    expect(source).toContain("Nothing on this page changes release state");
+    expect(source).not.toContain("updateNumberOperationsAssetApproval");
+    expect(source).not.toContain("updateMathsStartingPointRelease");
+  });
+
+  it("shows release gates, item count and trusted asset review state", () => {
+    expect(source).toContain("getMathsStartingPointCustomerReleaseBlockers");
+    expect(source).toContain("NUMBER_OPERATIONS_PLACEMENT_ITEM_REGISTRY");
+    expect(source).toContain("NUMBER_OPERATIONS_ASSET_APPROVALS");
+    expect(source).toContain("MATHS_STARTING_POINT_RELEASE");
+  });
+});
+
+
+it("shows the fresh-recheck gate and derives visual mix from the live review summary", () => {
+  expect(source).toContain("fresh-recheck-evidence");
+  expect(source).toContain("Fresh recheck evidence");
+  expect(source).toContain("freshRecheckFormsApproved");
+  expect(source).toContain("customerVisualTypeCounts");
+  expect(source).toContain("visualMix");
+  expect(source).toContain("getNumberOperationsFreshRecheckCoverage");
+  expect(source).toContain("Levels with alternate evidence");
+  expect(source).toContain("Levels still missing");
+  expect(source).toContain("Alternate draft items");
+  expect(source).not.toContain("1 array");
+});
+
+it("names the hosted/mobile acceptance blockers and links directly to both staff review surfaces", () => {
+  expect(source).toContain("Hosted parent-flow acceptance");
+  expect(source).toContain("Mobile parent-flow acceptance");
+  expect(source).toContain(
+    '/assessments/maths-starting-point/asset-review',
+  );
+  expect(source).toContain(
+    '/assessments/maths-starting-point/item-review',
+  );
+});

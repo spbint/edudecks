@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import { useCleanFamilyWorkspace } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanFirstRunSetupGate from "@/app/components/clean/setup/CleanFirstRunSetupGate";
 import { CleanFeedbackPrompt } from "@/app/components/clean/CleanPersonalisationCards";
@@ -48,6 +49,7 @@ import {
 } from "@/lib/clean/pathways/pathwayNavigationContext";
 import { buildPathwayCalendarHandoffHref } from "@/lib/clean/pathways/pathwayCalendarHandoff";
 import { CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE } from "@/lib/clean/pathways/pathwayCustomerActionAvailability";
+import { canAccessAssessmentLab } from "@/lib/clean/assessments/assessmentPermissions";
 import {
   getPathwaySubjectAvailabilityOptions,
   isCustomerPathwaySubjectActive,
@@ -169,6 +171,52 @@ const LIVE_PATHWAY_SUBJECTS = PATHWAY_SUBJECT_OPTIONS.filter(
 const IN_DEVELOPMENT_PATHWAY_SUBJECT_OPTIONS = PATHWAY_SUBJECT_OPTIONS.filter(
   (option) => !option.selectable,
 );
+
+const MATHS_STARTING_POINT_STRANDS = new Set([
+  "number-and-place-value",
+  "operations-and-calculation",
+  "financial-and-real-world-mathematics",
+]);
+
+const MATHS_STARTING_POINT_FOCUSED_AREAS: Record<
+  string,
+  Array<{
+    area:
+      | "number-place-value"
+      | "counting-processes"
+      | "additive-strategies"
+      | "multiplicative-strategies"
+      | "understanding-money";
+    label: string;
+  }>
+> = {
+  "number-and-place-value": [
+    {
+      area: "number-place-value",
+      label: "Check Number & place value",
+    },
+    {
+      area: "counting-processes",
+      label: "Check Counting",
+    },
+  ],
+  "operations-and-calculation": [
+    {
+      area: "additive-strategies",
+      label: "Check addition & subtraction",
+    },
+    {
+      area: "multiplicative-strategies",
+      label: "Check multiplication & division",
+    },
+  ],
+  "financial-and-real-world-mathematics": [
+    {
+      area: "understanding-money",
+      label: "Check Money",
+    },
+  ],
+};
 
 const PATHWAYS_UI_STORAGE_KEY = "mylearna:clean-pathways-ui:v2";
 const PATHWAYS_INTERACTION_STORAGE_KEY = "mylearna:clean-pathways-interaction:v1";
@@ -873,6 +921,8 @@ function getStepPassesWorksheetFilter(
 
 function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const { user: authUser, profile: authProfile, loading: authLoading } =
+    useAuthUser();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -880,6 +930,16 @@ function PathwaysWorkspaceBody() {
   const sourceFromQuery = searchParams.get("source") || "";
   const showPathwayEvidenceUpdatedBanner =
     Boolean(latestEvidenceIdFromQuery) && sourceFromQuery === "my-capture";
+  const canPreviewMathsStartingPoint =
+    !authLoading &&
+    canAccessAssessmentLab(
+      {
+        id: authUser?.id ?? null,
+        email: authUser?.email ?? null,
+        isAdmin: authProfile?.is_admin ?? false,
+      },
+      authProfile,
+    );
   const regionalStageContext =
     workspace.profile?.countryCode || workspace.profile?.jurisdictionCode || null;
   const persistedUiState = useMemo(() => readPersistedPathwaysUiState(), []);
@@ -3191,6 +3251,57 @@ function PathwaysWorkspaceBody() {
                     },
                   ]}
                 >
+                  {canPreviewMathsStartingPoint &&
+                  selectedSubjectKey === "mathematics" &&
+                  MATHS_STARTING_POINT_STRANDS.has(selectedSubjectWorkspace.key) &&
+                  selectedLearner ? (
+                    <section
+                      style={{
+                        border: "1px solid #CFE3D5",
+                        borderRadius: 16,
+                        background: "#F7FCF8",
+                        padding: "14px 16px",
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={eyebrowStyle}>Staff preview · Number & Operations starting point</div>
+                      <strong style={{ color: "#17204B", fontSize: 18 }}>
+                        Not sure where to begin?
+                      </strong>
+                      <span style={{ color: "#4B5563", lineHeight: 1.55, fontSize: 14 }}>
+                        Use a focused 6–11 question check for one area, or the full
+                        five-area picture when you need a broader starting point for{" "}
+                        {selectedLearnerLabel}. The full check uses 30–55 questions
+                        and can be paused between areas.
+                      </span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {(MATHS_STARTING_POINT_FOCUSED_AREAS[
+                          selectedSubjectWorkspace.key
+                        ] || []).map((focus) => (
+                          <Link
+                            key={focus.area}
+                            href={`/assessments/maths-starting-point?${new URLSearchParams({
+                              learnerId: selectedLearner.id,
+                              area: focus.area,
+                            }).toString()}`}
+                            style={{ ...buttonStyle, width: "fit-content" }}
+                          >
+                            {focus.label}
+                          </Link>
+                        ))}
+                        <Link
+                          href={`/assessments/maths-starting-point?${new URLSearchParams({
+                            learnerId: selectedLearner.id,
+                          }).toString()}`}
+                          style={{ ...secondaryButtonStyle, width: "fit-content" }}
+                        >
+                          Full five-area picture
+                        </Link>
+                      </div>
+                    </section>
+                  ) : null}
+
                   {numberPathwayRevealGroups ? (
                     <NumberPathwayRevealPanel
                       groups={numberPathwayRevealGroups}

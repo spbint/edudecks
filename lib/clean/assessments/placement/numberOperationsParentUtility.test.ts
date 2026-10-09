@@ -1,0 +1,151 @@
+import { describe, expect, it } from "vitest";
+import { buildNumberOperationsProfile } from "./numberOperationsProfile";
+import {
+  buildNumberOperationsCandidateBandResult,
+  buildNumberOperationsEndpointResult,
+} from "./numberOperationsPlacementResult";
+import { buildNumberOperationsParentUtility } from "./numberOperationsParentUtility";
+
+describe("Number & Operations parent utility projection", () => {
+  it("turns a direct candidate band into a next-learning action without making one whole-child level", () => {
+    const profile = buildNumberOperationsProfile([
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "number-place-value",
+        lowerP: 5,
+        upperP: 6,
+      }),
+    ]);
+
+    const utility = buildNumberOperationsParentUtility(profile, {
+      learnerId: "learner-123",
+    });
+
+    expect(utility).toMatchObject({
+      complete: false,
+      assessedAreas: 1,
+      expectedAreas: 5,
+    });
+    expect(utility.areas[0]).toMatchObject({
+      state: "build-next",
+      headline: "Ready to build on the next step",
+      technicalBand: "P5–P6",
+      recheckRecommended: true,
+      recheckPlan: {
+        trigger: "after-practice",
+        repeatSameItemsImmediately: false,
+      },
+      pathwaysLabel: "Open Read, write, order and compare numbers to 1000 and beyond in My Pathways",
+    });
+    const pathwayUrl = new URL(
+      utility.areas[0]!.pathwaysHref,
+      "https://mylearna.test",
+    );
+    expect(pathwayUrl.searchParams.get("subjectKey")).toBe("mathematics");
+    expect(pathwayUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(pathwayUrl.searchParams.get("pathwayStepId")).not.toBeNull();
+    expect(pathwayUrl.searchParams.get("learnerId")).toBe("learner-123");
+    const practiceUrl = new URL(
+      utility.areas[0]!.actionHref,
+      "https://mylearna.test",
+    );
+    expect(practiceUrl.searchParams.get("learnerId")).toBe("learner-123");
+    expect(practiceUrl.searchParams.get("returnTo")).toBe(
+      "/assessments/maths-starting-point",
+    );
+    expect(utility.trustNote).toMatch(
+      /not a grade, score, diagnosis or single maths level/i,
+    );
+  });
+
+  it("prioritises evidence that needs practical verification before ordinary practice", () => {
+    const profile = buildNumberOperationsProfile([
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "number-place-value",
+        lowerP: 5,
+        upperP: 6,
+      }),
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "additive-strategies",
+        lowerP: 2,
+        upperP: 3,
+        evidenceLimitations: [
+          "Observed strategy evidence is required for high-confidence placement.",
+        ],
+      }),
+    ]);
+
+    const utility = buildNumberOperationsParentUtility(profile);
+
+    expect(utility.startHere).toMatchObject({
+      subElementKey: "additive-strategies",
+      state: "verify-in-learning",
+      headline: "Check this in everyday learning",
+      pathwaysLabel: "Open Use counting strategies and known facts more efficiently in My Pathways",
+      observationGuidance: {
+        subElementKey: "additive-strategies",
+        headline: "Give one simple joining or difference story",
+      },
+    });
+    expect(utility.startHere?.observationGuidance?.tryThis).toMatch(
+      /ask the learner to work it out in any way they choose/i,
+    );
+    expect(
+      utility.startHere?.observationGuidance?.evidenceToLookFor.length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("uses foundation and extension language at progression endpoints", () => {
+    const profile = buildNumberOperationsProfile([
+      buildNumberOperationsEndpointResult({
+        subElementKey: "counting-processes",
+        relation: "below-or-around",
+        pLevel: 1,
+        evidenceLimitations: ["Observed counting behaviour is required."],
+      }),
+      buildNumberOperationsEndpointResult({
+        subElementKey: "multiplicative-strategies",
+        relation: "at-least",
+        pLevel: 10,
+      }),
+    ]);
+
+    const utility = buildNumberOperationsParentUtility(profile);
+
+    expect(
+      utility.areas.find((area) => area.subElementKey === "counting-processes"),
+    ).toMatchObject({ state: "verify-in-learning" });
+    expect(
+      utility.areas.find(
+        (area) => area.subElementKey === "multiplicative-strategies",
+      ),
+    ).toMatchObject({ state: "extend", headline: "Ready for extension" });
+  });
+});
+
+
+it("returns focused practice to the same learner and focused area", () => {
+  const profile = buildNumberOperationsProfile(
+    [
+      buildNumberOperationsCandidateBandResult({
+        subElementKey: "additive-strategies",
+        lowerP: 6,
+        upperP: 7,
+      }),
+    ],
+    { expectedSubElementKeys: ["additive-strategies"] },
+  );
+
+  const utility = buildNumberOperationsParentUtility(profile, {
+    learnerId: "learner-123",
+  });
+  const practiceUrl = new URL(
+    utility.areas[0]!.actionHref,
+    "https://mylearna.test",
+  );
+
+  expect(practiceUrl.pathname).toBe("/practice/maths-starting-point");
+  expect(practiceUrl.searchParams.get("learnerId")).toBe("learner-123");
+  expect(practiceUrl.searchParams.get("returnTo")).toBe(
+    "/assessments/maths-starting-point?learnerId=learner-123&area=additive-strategies",
+  );
+});
