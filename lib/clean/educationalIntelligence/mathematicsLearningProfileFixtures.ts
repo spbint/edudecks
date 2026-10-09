@@ -8,7 +8,6 @@ import {
 } from "./learningEvidenceResult";
 import {
   projectNumberOperationsLearningProfile,
-  type NumberOperationsLearningProfileV1,
 } from "./numberOperationsLearningProfile";
 import {
   presentMathematicsLearningProfile,
@@ -180,22 +179,20 @@ function fixtureResult(input: {
   };
 }
 
-function fixtureProfile(input: {
+function fixtureResults(input: {
   attemptId: string;
   attemptKind: "initial" | "recheck";
   assessedAt: string;
   areas: Record<NumberOperationsSubElementKey, FixtureArea>;
-}): NumberOperationsLearningProfileV1 {
-  return projectNumberOperationsLearningProfile(
-    NUMBER_OPERATIONS_PROFILE_ORDER.map((continuumId) =>
-      fixtureResult({
-        continuumId,
-        area: input.areas[continuumId],
-        attemptId: input.attemptId,
-        attemptKind: input.attemptKind,
-        assessedAt: input.assessedAt,
-      }),
-    ),
+}) {
+  return NUMBER_OPERATIONS_PROFILE_ORDER.map((continuumId) =>
+    fixtureResult({
+      continuumId,
+      area: input.areas[continuumId],
+      attemptId: input.attemptId,
+      attemptKind: input.attemptKind,
+      assessedAt: input.assessedAt,
+    }),
   );
 }
 
@@ -281,49 +278,63 @@ export type MathematicsLearningProfileFixture = {
   presentation: MathematicsLearningProfilePresentationV1;
 };
 
-export function getMathematicsLearningProfileFixtures(): MathematicsLearningProfileFixture[] {
+export type MathematicsLearningProfileEvidenceFixture = {
+  id: MathematicsLearningProfileFixture["id"];
+  label: string;
+  description: string;
+  learnerDisplayName: string;
+  results: LearningEvidenceResultV1[];
+};
+
+export function getMathematicsLearningProfileEvidenceFixtures(): MathematicsLearningProfileEvidenceFixture[] {
   return [
     {
       id: "mixed",
       label: "Mixed five-area profile",
       description: "Five independent outcomes, including practical confirmation.",
-      presentation: presentMathematicsLearningProfile({
-        profile: fixtureProfile({
-          attemptId: "fixture-mixed-initial",
-          attemptKind: "initial",
-          assessedAt: "2026-10-09T01:00:00.000Z",
-          areas: mixedAreas,
-        }),
-        learnerDisplayName: "Sample learner",
+      learnerDisplayName: "Sample learner",
+      results: fixtureResults({
+        attemptId: "fixture-mixed-initial",
+        attemptKind: "initial",
+        assessedAt: "2026-10-09T01:00:00.000Z",
+        areas: mixedAreas,
       }),
     },
     {
       id: "focused",
       label: "Focused attempt",
       description: "One assessed area; the other four remain explicitly unknown.",
-      presentation: presentMathematicsLearningProfile({
-        profile: fixtureProfile({
-          attemptId: "fixture-focused-initial",
-          attemptKind: "initial",
-          assessedAt: "2026-10-09T02:00:00.000Z",
-          areas: focusedAreas,
-        }),
-        learnerDisplayName: "Sample learner",
+      learnerDisplayName: "Sample learner",
+      results: fixtureResults({
+        attemptId: "fixture-focused-initial",
+        attemptKind: "initial",
+        assessedAt: "2026-10-09T02:00:00.000Z",
+        areas: focusedAreas,
       }),
     },
     {
       id: "recheck",
       label: "Recheck profile",
       description: "A later attempt with the recheck classification preserved.",
-      presentation: presentMathematicsLearningProfile({
-        profile: fixtureProfile({
-          attemptId: "fixture-recheck",
-          attemptKind: "recheck",
-          assessedAt: "2026-11-20T03:00:00.000Z",
-          areas: recheckAreas,
-        }),
-        learnerDisplayName: "Sample learner",
+      learnerDisplayName: "Sample learner",
+      results: fixtureResults({
+        attemptId: "fixture-recheck",
+        attemptKind: "recheck",
+        assessedAt: "2026-11-20T03:00:00.000Z",
+        areas: recheckAreas,
       }),
     },
   ];
+}
+
+export function getMathematicsLearningProfileFixtures(): MathematicsLearningProfileFixture[] {
+  return getMathematicsLearningProfileEvidenceFixtures().map((fixture) => ({
+    id: fixture.id,
+    label: fixture.label,
+    description: fixture.description,
+    presentation: presentMathematicsLearningProfile({
+      profile: projectNumberOperationsLearningProfile(fixture.results),
+      learnerDisplayName: fixture.learnerDisplayName,
+    }),
+  }));
 }

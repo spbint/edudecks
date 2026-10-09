@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { getMathematicsLearningProfileFixtures } from "@/lib/clean/educationalIntelligence/mathematicsLearningProfileFixtures";
+import { getLearningChangePresentationFixtures } from "@/lib/clean/educationalIntelligence/learningChangeFixtures";
+import type { LearningChangePresentationV1 } from "@/lib/clean/educationalIntelligence/learningChangePresentation";
 import type { MathematicsLearningProfilePresentationV1 } from "@/lib/clean/educationalIntelligence/mathematicsLearningProfilePresentation";
 import type { StaffLearningEvidenceHistory } from "@/lib/clean/educationalIntelligence/persistence/staffLearningEvidenceSmoke";
 import MathematicsLearningProfile from "./MathematicsLearningProfile";
+import LearningChangeComparison from "./LearningChangeComparison";
 
 const panel = {
   border: "1px solid #DDE4EE",
@@ -26,6 +29,7 @@ type PreviewHistory = {
   learnerLabel: string;
   source: "persisted" | "synthetic";
   attempts: PreviewAttempt[];
+  comparisons: LearningChangePresentationV1[];
 };
 
 export default function LearningEvidenceResultsPreview({
@@ -37,6 +41,7 @@ export default function LearningEvidenceResultsPreview({
 }) {
   const histories = useMemo<PreviewHistory[]>(() => {
     const fixtures = getMathematicsLearningProfileFixtures();
+    const changeFixtures = getLearningChangePresentationFixtures();
     const mixed = fixtures.find((fixture) => fixture.id === "mixed");
     const focused = fixtures.find((fixture) => fixture.id === "focused");
     const recheck = fixtures.find((fixture) => fixture.id === "recheck");
@@ -55,6 +60,9 @@ export default function LearningEvidenceResultsPreview({
               resultCount: attempt.resultCount,
               reviewDefaults: attempt.reviewDefaults,
             })),
+            comparisons: persistedHistory.comparisons.map(
+              (comparison) => comparison.presentation,
+            ),
           },
         ]
       : [];
@@ -85,6 +93,9 @@ export default function LearningEvidenceResultsPreview({
             "Synthetic deterministic recheck fixture for design QA.",
           ),
         ],
+        comparisons: changeFixtures
+          .filter((fixture) => fixture.id === "mixed-recheck")
+          .map((fixture) => fixture.presentation),
       },
       {
         id: "focused-history",
@@ -95,16 +106,54 @@ export default function LearningEvidenceResultsPreview({
             focused,
             "Synthetic focused-attempt fixture with unknown areas retained.",
           ),
+          fixtureAttempt(
+            recheck,
+            "Synthetic deterministic recheck fixture for design QA.",
+          ),
         ],
+        comparisons: changeFixtures
+          .filter((fixture) => fixture.id === "focused-recheck")
+          .map((fixture) => fixture.presentation),
       },
+      ...changeFixtures
+        .filter((fixture) => fixture.id === "practical-resolved")
+        .map((fixture) => ({
+          id: "practical-confirmation-history",
+          learnerLabel: "Sample learner - practical confirmation resolved",
+          source: "synthetic" as const,
+          attempts: [
+            {
+              id: "fixture-practical-previous",
+              presentation: fixture.previousProfile,
+              provenanceSummary: "Synthetic practical-confirmation edge case for design QA.",
+              resultCount: 5,
+              reviewDefaults: null,
+            },
+            {
+              id: "fixture-practical-current",
+              presentation: fixture.currentProfile,
+              provenanceSummary: "Synthetic confirmed practical evidence for design QA.",
+              resultCount: 5,
+              reviewDefaults: null,
+            },
+          ],
+          comparisons: [fixture.presentation],
+        })),
     ];
   }, [persistedHistory]);
   const [selectedId, setSelectedId] = useState(
     persistedHistory ? "persisted-staging-history" : histories[0]?.id ?? "",
   );
+  const [view, setView] = useState<"compare" | "history" | "profile">(
+    persistedHistory?.comparisons.length ? "compare" : "history",
+  );
+  const [selectedAttemptId, setSelectedAttemptId] = useState("");
   const selected = histories.find((history) => history.id === selectedId);
 
   if (!selected) return null;
+  const activeAttempt =
+    selected.attempts.find((attempt) => attempt.id === selectedAttemptId) ??
+    selected.attempts[selected.attempts.length - 1];
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -158,6 +207,42 @@ export default function LearningEvidenceResultsPreview({
         </label>
       </header>
 
+      <nav aria-label="Educational Intelligence result views" style={{ ...panel, display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(["compare", "history", "profile"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={view === option}
+            disabled={option === "compare" && selected.comparisons.length === 0}
+            onClick={() => setView(option)}
+            style={{
+              minHeight: 42,
+              border: view === option ? "2px solid #5B3BE8" : "1px solid #CBD5E1",
+              borderRadius: 999,
+              background: view === option ? "#F3F0FF" : "#FFFFFF",
+              color: "#17204B",
+              padding: "8px 14px",
+              fontWeight: 850,
+              cursor: "pointer",
+            }}
+          >
+            {option === "compare" ? "Compare attempts" : option === "history" ? "History" : "Profile"}
+          </button>
+        ))}
+      </nav>
+
+      {view === "compare" && selected.comparisons.length ? (
+        <div style={{ display: "grid", gap: 18 }}>
+          {selected.comparisons.map((comparison, index) => (
+            <LearningChangeComparison
+              key={`${comparison.attempts.previous.assessedDateLabel}:${comparison.attempts.current.assessedDateLabel}:${index}`}
+              comparison={comparison}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {view === "history" ? (
       <section aria-labelledby="attempt-history-heading" style={{ display: "grid", gap: 16 }}>
         <div style={panel}>
           <h2 id="attempt-history-heading" style={{ margin: 0, color: "#17204B" }}>
@@ -187,11 +272,43 @@ export default function LearningEvidenceResultsPreview({
                   {attempt.resultCount} results · Review {attempt.reviewDefaults.reviewState} · Confirmation {attempt.reviewDefaults.confirmationState} · Portfolio {attempt.reviewDefaults.portfolioInclusion}
                 </p>
               ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedAttemptId(attempt.id);
+                  setView("profile");
+                }}
+                style={{ width: "fit-content", minHeight: 42, border: "1px solid #CBD5E1", borderRadius: 10, background: "#FFFFFF", color: "#17204B", padding: "8px 12px", fontWeight: 850, cursor: "pointer" }}
+              >
+                Open this profile
+              </button>
             </div>
-            <MathematicsLearningProfile profile={attempt.presentation} />
           </article>
         ))}
       </section>
+      ) : null}
+
+      {view === "profile" && activeAttempt ? (
+        <section aria-labelledby="selected-profile-heading" style={{ display: "grid", gap: 14 }}>
+          <div style={panel}>
+            <label style={{ display: "grid", gap: 6, maxWidth: 480 }}>
+              <strong id="selected-profile-heading" style={{ color: "#17204B" }}>Open historical profile</strong>
+              <select
+                value={activeAttempt.id}
+                onChange={(event) => setSelectedAttemptId(event.target.value)}
+                style={{ minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#FFFFFF", color: "#17204B", font: "inherit" }}
+              >
+                {selected.attempts.map((attempt, index) => (
+                  <option key={attempt.id} value={attempt.id}>
+                    Attempt {index + 1}: {attempt.presentation.assessment.attemptLabel} · {attempt.presentation.assessment.assessedDateLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <MathematicsLearningProfile profile={activeAttempt.presentation} />
+        </section>
+      ) : null}
     </div>
   );
 }

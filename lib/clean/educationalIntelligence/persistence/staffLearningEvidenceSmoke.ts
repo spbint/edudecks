@@ -1,4 +1,5 @@
 import type { MathematicsLearningProfilePresentationV1 } from "../mathematicsLearningProfilePresentation";
+import type { LearningChangePresentationV1 } from "../learningChangePresentation";
 import type { NumberOperationsBaselinePersistenceDraft } from "@/lib/clean/assessments/placement/numberOperationsPersistenceDraft";
 
 export const EI_STAGING_PROJECT_REF = "owvxggviughmpursepof" as const;
@@ -41,4 +42,9 @@ export type StaffLearningEvidenceHistory = {
     displayName: string;
   };
   attempts: StaffLearningEvidenceSavedAttempt[];
+  comparisons: Array<{
+    previousAttemptId: string;
+    currentAttemptId: string;
+    presentation: LearningChangePresentationV1;
+  }>;
 };

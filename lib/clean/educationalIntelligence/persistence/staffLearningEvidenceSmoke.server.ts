@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { presentMathematicsLearningProfile } from "../mathematicsLearningProfilePresentation";
+import { presentLearningChange } from "../learningChangePresentation";
+import { projectNumberOperationsLearningChange } from "../numberOperationsLearningChange";
 import { projectNumberOperationsLearningProfile } from "../numberOperationsLearningProfile";
 import type { LearningEvidenceResultV1 } from "../learningEvidenceResult";
 import { createSupabaseLearningEvidenceRepository } from "./supabaseLearningEvidenceRepository.server";
@@ -277,6 +279,7 @@ export async function loadStaffLearningEvidenceHistory(input: {
   ]);
 
   const histories: StaffLearningEvidenceSavedAttempt[] = [];
+  const canonicalResultsByAttempt = new Map<string, LearningEvidenceResultV1[]>();
   for (const attempt of attempts.filter(
     (entry) => entry.assessmentId === "number-operations-baseline",
   )) {
@@ -291,6 +294,7 @@ export async function loadStaffLearningEvidenceHistory(input: {
     }
     assertReviewDefaults(attemptResults.map((entry) => entry.review));
     const canonicalResults = attemptResults.map((entry) => entry.result);
+    canonicalResultsByAttempt.set(attempt.attemptId, canonicalResults);
     const profile = projectNumberOperationsLearningProfile(canonicalResults);
     histories.push({
       attemptId: attempt.attemptId,
@@ -322,5 +326,25 @@ export async function loadStaffLearningEvidenceHistory(input: {
     },
     learner: { id: learnerId, displayName: learnerDisplayName },
     attempts: histories,
+    comparisons: histories.slice(1).flatMap((current, index) => {
+      const previous = histories[index];
+      const previousResults = canonicalResultsByAttempt.get(previous.attemptId);
+      const currentResults = canonicalResultsByAttempt.get(current.attemptId);
+      if (!previousResults || !currentResults) return [];
+      const comparison = projectNumberOperationsLearningChange({
+        previousResults,
+        currentResults,
+      });
+      return [
+        {
+          previousAttemptId: previous.attemptId,
+          currentAttemptId: current.attemptId,
+          presentation: presentLearningChange({
+            comparison,
+            learnerDisplayName,
+          }),
+        },
+      ];
+    }),
   };
 }

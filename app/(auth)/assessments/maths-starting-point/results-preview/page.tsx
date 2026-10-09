@@ -16,7 +16,7 @@ const RESULTS_PREVIEW_ROUTE =
 export const metadata: Metadata = {
   title: "My Results Educational Intelligence Preview | MyLearna",
   description:
-    "Staff-only synthetic preview of append-safe Learning Evidence Result history.",
+    "Staff-only preview of append-safe Learning Evidence Result history and deterministic longitudinal change.",
   robots: { index: false, follow: false },
 };
 
