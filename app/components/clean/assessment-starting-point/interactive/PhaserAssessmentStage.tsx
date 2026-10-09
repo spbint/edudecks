@@ -6,6 +6,7 @@ import type {
   StartingPointPlayerAnswer,
   StartingPointPlayerModel,
 } from "@/lib/clean/assessments/interactivePlayer/startingPointPlayerContract";
+import { startingPointPlayerRequiresVisual } from "@/lib/clean/assessments/interactivePlayer/startingPointPlayerContract";
 import type { StartingPointPresentationStimulus } from "@/lib/clean/assessments/interactivePlayer/startingPointDevelopmentalAccessibility";
 import type {
   CounterSetStimulus,
@@ -35,6 +36,7 @@ import {
 type StageProps = {
   model: StartingPointPlayerModel;
   onSubmit: (answer: StartingPointPlayerAnswer) => void;
+  onVisualReadinessChange?: (ready: boolean) => void;
 };
 
 export function shouldInitializePhaser(model: StartingPointPlayerModel) {
@@ -48,11 +50,17 @@ const NEUTRAL_COUNTER_POSITIONS = [
   [0.07, 0.45], [0.5, 0.55], [0.8, 0.08], [0.16, 0.94], [0.95, 0.39],
 ] as const;
 
-export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
+export default function PhaserAssessmentStage({
+  model,
+  onSubmit,
+  onVisualReadinessChange,
+}: StageProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const submitRef = useRef(onSubmit);
   const [numericValue, setNumericValue] = useState("");
   const [initializationFailed, setInitializationFailed] = useState(false);
+  const requiresVisual = startingPointPlayerRequiresVisual(model);
+  const [visualReady, setVisualReady] = useState(!requiresVisual);
   submitRef.current = onSubmit;
 
   useEffect(() => {
@@ -85,6 +93,10 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
               ? 24
               : this.drawStimulus(Phaser);
             this.drawChoices(answerTop);
+          }
+          if (requiresVisual && !disposed) {
+            setVisualReady(true);
+            onVisualReadinessChange?.(true);
           }
         }
 
@@ -388,16 +400,16 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
     });
 
     return () => { disposed = true; game?.destroy(true); host.replaceChildren(); };
-  }, [model]);
+  }, [model, onVisualReadinessChange, requiresVisual]);
 
   const append = (value: string) => setNumericValue((current) => value === "−" ? (current.startsWith("-") ? current.slice(1) : `-${current}`) : `${current}${value}`);
   const numericControls = <>
       <div className={styles.numericDisplay} aria-live="polite">{numericValue || <span>Enter your answer</span>}</div>
       <div className={styles.keypad} aria-label="Number keypad">
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "−", "0", ".", "/"].map((key) => <button key={key} type="button" onClick={() => append(key)}>{key}</button>)}
-        <button className={styles.backspace} type="button" onClick={() => setNumericValue((current) => current.slice(0, -1))}>Delete</button>
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "−", "0", ".", "/"].map((key) => <button key={key} type="button" disabled={!visualReady} onClick={() => append(key)}>{key}</button>)}
+        <button className={styles.backspace} type="button" disabled={!visualReady} onClick={() => setNumericValue((current) => current.slice(0, -1))}>Delete</button>
       </div>
-      <button className={styles.playerContinue} type="button" disabled={!numericValue || numericValue === "-" || numericValue === "."} onClick={() => submitRef.current({ itemId: model.itemId, itemVersion: model.itemVersion, selectedOptionIds: [], responseValue: numericValue })}>Continue</button>
+      <button className={styles.playerContinue} type="button" disabled={!visualReady || !numericValue || numericValue === "-" || numericValue === "."} onClick={() => submitRef.current({ itemId: model.itemId, itemVersion: model.itemVersion, selectedOptionIds: [], responseValue: numericValue })}>Continue</button>
     </>;
 
   if (model.kind === "numeric-entry" && !model.presentationStimulus) {
@@ -408,17 +420,23 @@ export default function PhaserAssessmentStage({ model, onSubmit }: StageProps) {
     return (
       <div className={styles.stageFailure} role="alert" data-player-initialization-failed>
         <strong>The interactive view could not start.</strong>
-        <span>Use “Need another way to answer?” below, or pause and try again.</span>
+        <span>Pause and try again so the mathematical question is not skipped.</span>
       </div>
     );
   }
 
   if (model.options.length === 0) {
     return <div className={`${styles.numericStage} ${styles.stimulusNumericStage}`} data-player-renderer="phaser-dom-overlay">
-      <div ref={hostRef} aria-label="Interactive stimulus area" className={styles.phaserHost} />
+      <div className={styles.visualFrame}>
+        {!visualReady ? <div className={styles.visualPreparing} role="status">Preparing question…</div> : null}
+        <div ref={hostRef} aria-label="Interactive stimulus area" aria-busy={!visualReady} className={styles.phaserHost} />
+      </div>
       {numericControls}
     </div>;
   }
 
-  return <div ref={hostRef} aria-label="Interactive answer area" data-player-renderer="phaser" className={styles.phaserHost} />;
+  return <div className={styles.visualFrame}>
+    {requiresVisual && !visualReady ? <div className={styles.visualPreparing} role="status">Preparing question…</div> : null}
+    <div ref={hostRef} aria-label="Interactive answer area" aria-busy={requiresVisual && !visualReady} data-player-renderer="phaser" className={styles.phaserHost} />
+  </div>;
 }

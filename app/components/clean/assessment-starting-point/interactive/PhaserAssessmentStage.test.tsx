@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StartingPointPlayerModel } from "@/lib/clean/assessments/interactivePlayer/startingPointPlayerContract";
 import {
   adaptAssessmentItemForStartingPointPlayer,
@@ -13,14 +13,56 @@ import PhaserAssessmentStage, {
   shouldInitializePhaser,
 } from "./PhaserAssessmentStage";
 
-const { gameMock, destroyMock } = vi.hoisted(() => ({
+const { gameMock, destroyMock, lifecycle } = vi.hoisted(() => ({
   gameMock: vi.fn(),
   destroyMock: vi.fn(),
+  lifecycle: { scene: null as { create: () => void } | null },
 }));
 
 vi.mock("phaser", () => {
-  class Scene {}
-  gameMock.mockImplementation(function MockGame() {
+  const displayObject = () => {
+    const object = {
+      setOrigin: () => object,
+      setStrokeStyle: () => object,
+      setAlpha: () => object,
+      setScale: () => object,
+      setRotation: () => object,
+      setShadow: () => object,
+      setFillStyle: () => object,
+      add: () => object,
+    };
+    return object;
+  };
+  class Scene {
+    cameras = { main: { setBackgroundColor: vi.fn(), fadeIn: vi.fn() } };
+    add = {
+      rectangle: vi.fn(displayObject),
+      ellipse: vi.fn(displayObject),
+      circle: vi.fn(displayObject),
+      arc: vi.fn(displayObject),
+      polygon: vi.fn(displayObject),
+      line: vi.fn(() => ({ ...displayObject(), setLineWidth: () => displayObject() })),
+      container: vi.fn(displayObject),
+      text: vi.fn(displayObject),
+      graphics: vi.fn(() => ({
+        ...displayObject(),
+        lineStyle: vi.fn(),
+        strokeEllipse: vi.fn(),
+        lineBetween: vi.fn(),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        strokePath: vi.fn(),
+        strokeRect: vi.fn(),
+        fillStyle: vi.fn(),
+        fillCircle: vi.fn(),
+      })),
+    };
+    tweens = { add: vi.fn() };
+    input = { setDraggable: vi.fn() };
+  }
+  gameMock.mockImplementation(function MockGame(config: { scene: new () => { create: () => void } }) {
+    lifecycle.scene = new config.scene();
     return { destroy: destroyMock };
   });
   return {
@@ -29,6 +71,7 @@ vi.mock("phaser", () => {
       Game: gameMock,
       Scene,
       Scale: { FIT: "FIT", CENTER_HORIZONTALLY: "CENTER_HORIZONTALLY" },
+      Geom: { Point: class Point { constructor(public x: number, public y: number) {} } },
     },
   };
 });
@@ -57,21 +100,39 @@ const numericPresentationCases: Array<[
   ["currency-repeat", { type: "currency-repeat", count: 4, denomination: "50c" }],
 ];
 
+beforeEach(() => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn(() => ({ matches: true })),
+  });
+});
+
 afterEach(() => {
   cleanup();
   gameMock.mockClear();
   destroyMock.mockClear();
+  lifecycle.scene = null;
 });
 
 describe("Phaser numeric presentation stimuli", () => {
   it("keeps numeric entry without a presentation stimulus DOM-only", async () => {
-    render(<PhaserAssessmentStage model={numericModel(null)} onSubmit={vi.fn()} />);
+    const onSubmit = vi.fn();
+    const model = numericModel(null);
+    render(<PhaserAssessmentStage model={model} onSubmit={onSubmit} />);
 
     expect(screen.getByLabelText("Number keypad")).toBeTruthy();
     expect(screen.queryByLabelText("Interactive stimulus area")).toBeNull();
     await Promise.resolve();
     expect(gameMock).not.toHaveBeenCalled();
     expect(shouldInitializePhaser(numericModel(null))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      itemId: model.itemId,
+      itemVersion: model.itemVersion,
+      selectedOptionIds: [],
+      responseValue: "3",
+    });
   });
 
   it.each(numericPresentationCases)(
@@ -85,8 +146,12 @@ describe("Phaser numeric presentation stimuli", () => {
       expect(screen.getByLabelText("Interactive stimulus area")).toBeTruthy();
       expect(screen.getAllByLabelText("Number keypad")).toHaveLength(1);
       expect(screen.queryByRole("textbox")).toBeNull();
+      expect(screen.getByRole("status").textContent).toMatch(/preparing question/i);
+      expect(screen.getByRole("button", { name: "3" })).toHaveProperty("disabled", true);
       await waitFor(() => expect(gameMock).toHaveBeenCalledTimes(1));
-
+      act(() => lifecycle.scene?.create());
+      await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+      expect(screen.getByRole("button", { name: "3" })).toHaveProperty("disabled", false);
       fireEvent.click(screen.getByRole("button", { name: "3" }));
       fireEvent.click(screen.getByRole("button", { name: "Continue" }));
       expect(onSubmit).toHaveBeenCalledWith({
@@ -111,6 +176,7 @@ describe("Phaser numeric presentation stimuli", () => {
 
     expect(shouldInitializePhaser(model)).toBe(true);
     expect(screen.getByLabelText("Interactive answer area")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toMatch(/preparing question/i);
     expect(screen.queryByLabelText("Number keypad")).toBeNull();
     await waitFor(() => expect(gameMock).toHaveBeenCalledTimes(1));
   });
