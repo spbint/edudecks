@@ -126,11 +126,6 @@ function routeSubtitle(pathname: string) {
   return "MyLearna";
 }
 
-function routeTitle(pathname: string) {
-  if (normalizeRoute(pathname)) return "";
-  return "MyLearna";
-}
-
 function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") {
     return "Move through today's learning with clarity";
@@ -318,7 +313,6 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
 
 export default function FamilyTopNavShell({
   children,
-  title,
   subtitle,
   className,
   contentClassName,
@@ -338,7 +332,6 @@ export default function FamilyTopNavShell({
   const { user } = useAuthUser();
   const { workspace, activeLearner } = useFamilyWorkspace();
 
-  const resolvedTitle = title ?? routeTitle(pathname);
   const resolvedSubtitle = subtitle ?? routeSubtitle(pathname);
   const resolvedHeroTitle = heroTitle ?? routeHeroTitle(pathname, resolvedSubtitle);
   const resolvedHeroText = heroText ?? routeHeroText(pathname);
