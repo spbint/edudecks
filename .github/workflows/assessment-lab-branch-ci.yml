@@ -1,0 +1,91 @@
+name: Assessment Lab Branch CI
+
+on:
+  push:
+    branches:
+      - feat/assessment-anchor-routing-lab
+
+jobs:
+  validate-assessment-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck application
+        run: npm run typecheck
+
+      # Repository-wide test typecheck currently has unrelated legacy failures on main.
+      # Focused Vitest below compiles the assessment files changed by this branch.
+      - name: Run focused assessment tests
+        run: >
+          npx vitest run
+          app/components/clean/assessment-lab/AssessmentPlayerV1.test.ts
+          app/components/clean/assessment-lab/AssessmentAnchorPlacementRunner.test.tsx
+          app/components/clean/assessment-lab/AssessmentPlacementResultCard.test.tsx
+          app/components/clean/assessment-lab/AssessmentNpvBandConfirmation.test.tsx
+          app/components/clean/assessment-lab/AssessmentItemReviewLab.test.tsx
+          app/components/clean/assessment-lab/AssessmentNumeracySpineLab.test.tsx
+          app/components/clean/assessment-lab/AssessmentMeasurementUnitsLab.test.tsx
+          app/components/clean/assessment-lab/AssessmentChanceLab.test.tsx
+          app/components/clean/assessment-lab/AssessmentFractionsLab.test.tsx
+          app/components/clean/assessment-lab/AssessmentNumberOperationsProfileCard.test.tsx
+          app/components/clean/assessment-lab/AssessmentNumberOperationsBaselineRunner.test.tsx
+          app/components/clean/assessment-lab/AssessmentNumberOperationsParentUtilityCard.test.tsx
+          app/components/clean/assessment-lab/AssessmentEvidenceConfirmationCard.test.tsx
+          lib/clean/assessments/mylearnaAssessScoring.test.ts
+          lib/clean/assessments/placement/numeracyProgressionRegistry.test.ts
+          lib/clean/assessments/placement/assessmentPlacementItemRegistry.test.ts
+          lib/clean/assessments/placement/assessmentPlacementItemQuality.test.ts
+          lib/clean/assessments/placement/adaptiveProgressionRouting.test.ts
+          lib/clean/assessments/placement/chanceAnchors.test.ts
+          lib/clean/assessments/placement/chancePlacementResult.test.ts
+          lib/clean/assessments/placement/chanceRouteCoverage.test.ts
+          lib/clean/assessments/placement/fractionAnchors.test.ts
+          lib/clean/assessments/placement/fractionPlacementResult.test.ts
+          lib/clean/assessments/placement/fractionRouteCoverage.test.ts
+          lib/clean/assessments/placement/measurementUnitsAnchors.test.ts
+          lib/clean/assessments/placement/measurementUnitsPlacementResult.test.ts
+          lib/clean/assessments/placement/measurementUnitsRouteCoverage.test.ts
+          lib/clean/assessments/placement/numberOperationsAnchors.test.ts
+          lib/clean/assessments/placement/numberOperationsP0Audit.test.ts
+          lib/clean/assessments/placement/numberOperationsP0Items.test.ts
+          lib/clean/assessments/placement/numberOperationsNpvConfirmationItems.test.ts
+          lib/clean/assessments/placement/numberOperationsNpvConfirmation.test.ts
+          lib/clean/assessments/placement/numberOperationsItemRegistry.test.ts
+          lib/clean/assessments/placement/numberOperationsItemQuality.test.ts
+          lib/clean/assessments/placement/numberOperationsPlacementResult.test.ts
+          lib/clean/assessments/placement/numberOperationsProfile.test.ts
+          lib/clean/assessments/placement/numberOperationsRecommendations.test.ts
+          lib/clean/assessments/placement/numberOperationsPracticeTargets.test.ts
+          lib/clean/assessments/placement/legacyNumberAssessmentEstate.test.ts
+          lib/clean/assessments/placement/numberOperationsParentUtility.test.ts
+          lib/clean/assessments/placement/numberOperationsPathwaysHandoff.test.ts
+          lib/clean/assessments/placement/numberOperationsProgressionPathwayCrosswalk.test.ts
+          lib/clean/assessments/placement/numberOperationsRecheckPlan.test.ts
+          lib/clean/assessments/placement/numberOperationsEvidenceConfirmation.test.ts
+          lib/clean/assessments/placement/numberOperationsEvidencePreview.test.ts
+          lib/clean/assessments/placement/numberOperationsBaselineSnapshot.test.ts
+          lib/clean/assessments/placement/numberOperationsBaselineDraft.test.ts
+          lib/clean/assessments/placement/numberOperationsAttemptTrace.test.ts
+          lib/clean/assessments/placement/numberOperationsPersistenceDraft.test.ts
+          lib/clean/assessments/placement/numberOperationsRoutingFixtures.test.ts
+          lib/clean/assessments/placement/numberOperationsRouteCoverage.test.ts
+          lib/clean/assessments/placement/numberOperationsBaselineBudget.test.ts
+          lib/clean/assessments/visualTemplates/CurrencyTokenVisual.test.tsx
+          lib/clean/assessments/visualTemplates/GraduatedScaleVisual.test.tsx
+          lib/clean/assessments/visualTemplates/NumberLineVisual.test.tsx
+
+
+      - name: Build application
+        run: npm run build
