@@ -1,3 +1,4 @@
+import { buildPathwayStepReturnHref } from "@/lib/clean/pathways/pathwayNavigationContext";
 import type { NumberOperationsSubElementKey } from "./numberOperationsPlacementResult";
 import {
   getNumberOperationsProgressionPathwayCrosswalkEntry,
@@ -72,13 +73,20 @@ export function buildNumberOperationsPathwaysHandoff(input: {
     : null;
 
   if (crosswalk?.confidence === "source-guided-step" && resolved) {
-    params.set("stageKey", resolved.stageKey);
-    params.set("pathwayStepId", resolved.id);
+    const href = buildPathwayStepReturnHref({
+      pathname: "/my-pathways",
+      subjectKey: resolved.subjectKey,
+      strandKey: resolved.strandKey,
+      stageKey: resolved.stageKey,
+      pathwayStepId: resolved.id,
+      learnerId,
+      detailPanelId: `pathway-step-${resolved.strandKey}-${resolved.stageKey}-${resolved.legacyStepNumber}`,
+    });
     return {
       subjectKey: "mathematics",
       strandKey: strand.key,
       strandLabel: strand.label,
-      href: `/my-pathways?${params.toString()}`,
+      href,
       mappingConfidence: "source-guided-step",
       pathwayStepId: resolved.id,
       stageKey: resolved.stageKey,

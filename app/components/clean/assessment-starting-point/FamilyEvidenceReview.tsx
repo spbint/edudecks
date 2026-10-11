@@ -74,6 +74,7 @@ function EvidenceTimeline({ area }: { area: FamilyEvidenceReviewArea }) {
 }
 
 function AreaDetail({ area }: { area: FamilyEvidenceReviewArea }) {
+  const opensPathways = area.nextLearning?.handoffKind === "pathways-review";
   return (
     <section className={styles.detail} aria-labelledby={`family-evidence-${area.continuumId}`}>
       <header className={styles.detailHeader}>
@@ -163,7 +164,10 @@ function AreaDetail({ area }: { area: FamilyEvidenceReviewArea }) {
               ))}
             </ul>
           ) : (
-            <p>No additional evidence limitation is recorded for this area.</p>
+            <p>
+              The current evidence is enough for this learning view. You can keep
+              adding everyday examples as learning continues.
+            </p>
           )}
         </section>
       </div>
@@ -177,6 +181,16 @@ function AreaDetail({ area }: { area: FamilyEvidenceReviewArea }) {
           {area.nextLearning?.explanation ??
             "A practical observation or later check can help before choosing a specific learning step."}
         </p>
+        {opensPathways ? (
+          <div className={styles.pathwaysContext}>
+            <strong>Current assessment view: {area.currentView.statusLabel}</strong>
+            <p>
+              My Pathways opens the recommended next learning step for this area.
+              That specific step may still say “Not checked yet” until it has been
+              checked or worked on.
+            </p>
+          </div>
+        ) : null}
         {area.nextLearning?.href && area.nextLearning.actionLabel ? (
           <Link href={area.nextLearning.href} prefetch={false} className={styles.continueLink}>
             {area.nextLearning.actionLabel}
@@ -199,25 +213,10 @@ export default function FamilyEvidenceReview() {
     fixture.presentation.areas[0]!;
 
   return (
-    <div className={styles.root} data-family-evidence-review>
-      <header className={styles.hero}>
-        <span className={styles.staffBadge}>Protected staff preview · read only</span>
-        <span className={styles.eyebrow}>{fixture.presentation.scope.label}</span>
-        <h1>{fixture.presentation.title}</h1>
-        <strong className={styles.learnerName}>
-          Learning evidence for {fixture.presentation.learner.displayName}
-        </strong>
-        <p className={styles.lead}>{fixture.presentation.introduction}</p>
-        <p className={styles.scope}>{fixture.presentation.scope.statement}</p>
-        <aside className={styles.boundaryCallout} aria-label="Assessment and Capture evidence boundary">
-          <strong>Two evidence lanes, kept distinct</strong>
-          <p>{fixture.presentation.assessmentCaptureBoundary}</p>
-        </aside>
-      </header>
-
-      <section className={styles.fixturePanel} aria-labelledby="family-evidence-preview-state">
+    <div className={styles.previewRoot}>
+      <section className={styles.staffToolbar} aria-labelledby="family-evidence-review-example">
         <label>
-          <strong id="family-evidence-preview-state">Preview state</strong>
+          <strong id="family-evidence-review-example">Staff review example</strong>
           <select value={fixture.id} onChange={(event) => setFixtureId(event.target.value)}>
             {fixtures.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
@@ -229,32 +228,47 @@ export default function FamilyEvidenceReview() {
         <p>{fixture.description}</p>
       </section>
 
-      <section aria-labelledby="family-evidence-overview" className={styles.overview}>
-        <div>
-          <span className={styles.eyebrow}>Five independent areas</span>
-          <h2 id="family-evidence-overview">What MyLearna currently knows</h2>
-          <p>Choose an area to see the assessment view, authentic evidence, open questions and next learning.</p>
-        </div>
-        <div className={styles.areaGrid}>
-          {fixture.presentation.areas.map((area) => (
-            <AreaOverview
-              key={area.continuumId}
-              area={area}
-              selected={area.continuumId === selectedArea.continuumId}
-              onSelect={() => setSelectedAreaId(area.continuumId)}
-            />
-          ))}
-        </div>
-      </section>
+      <main className={styles.root} data-family-evidence-review>
+        <header className={styles.hero}>
+          <span className={styles.eyebrow}>{fixture.presentation.scope.label}</span>
+          <h1>{fixture.presentation.title}</h1>
+          <strong className={styles.learnerName}>
+            Learning evidence for {fixture.presentation.learner.displayName}
+          </strong>
+          <p className={styles.lead}>{fixture.presentation.introduction}</p>
+          <p className={styles.scope}>{fixture.presentation.scope.statement}</p>
+          <aside
+            className={styles.boundaryCallout}
+            aria-label="Assessment and Capture evidence boundary"
+          >
+            <strong>Assessment and everyday learning evidence</strong>
+            <p>{fixture.presentation.assessmentCaptureBoundary}</p>
+          </aside>
+        </header>
 
-      <AreaDetail area={selectedArea} />
+        <section aria-labelledby="family-evidence-overview" className={styles.overview}>
+          <div>
+            <span className={styles.eyebrow}>Five independent areas</span>
+            <h2 id="family-evidence-overview">What MyLearna currently knows</h2>
+            <p>
+              Choose an area to see the assessment view, authentic evidence, open
+              questions and next learning.
+            </p>
+          </div>
+          <div className={styles.areaGrid}>
+            {fixture.presentation.areas.map((area) => (
+              <AreaOverview
+                key={area.continuumId}
+                area={area}
+                selected={area.continuumId === selectedArea.continuumId}
+                onSelect={() => setSelectedAreaId(area.continuumId)}
+              />
+            ))}
+          </div>
+        </section>
 
-      <footer className={styles.readOnlyFooter}>
-        <strong>Read-only family presentation</strong>
-        <p>
-          This preview cannot write results, change Portfolio, alter My Pathways or turn captured evidence into an educational judgement.
-        </p>
-      </footer>
+        <AreaDetail area={selectedArea} />
+      </main>
     </div>
   );
 }

@@ -194,6 +194,20 @@ function changeFor(
   return comparison?.areas.find((area) => area.continuumId === continuumId);
 }
 
+function parentNextLearning(
+  area: MathematicsLearningProfileAreaPresentation | undefined,
+): FamilyEvidenceReviewArea["nextLearning"] {
+  const nextLearning = area?.nextLearning ?? null;
+  if (!nextLearning) return null;
+  return {
+    ...nextLearning,
+    actionLabel:
+      nextLearning.handoffKind === "pathways-review" && nextLearning.href
+        ? "Open in My Pathways"
+        : nextLearning.actionLabel,
+  };
+}
+
 export function presentFamilyEvidenceReview(input: {
   learnerDisplayName?: string | null;
   currentProfile?: MathematicsLearningProfilePresentationV1 | null;
@@ -280,7 +294,7 @@ export function presentFamilyEvidenceReview(input: {
           hasOpenQuestions: unknowns.length > 0,
           statements: unknowns,
         },
-        nextLearning: area?.nextLearning ?? null,
+        nextLearning: parentNextLearning(area),
         timeline,
       };
     }),

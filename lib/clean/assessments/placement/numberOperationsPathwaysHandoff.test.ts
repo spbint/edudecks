@@ -19,6 +19,7 @@ describe("Number & Operations My Pathways handoff", () => {
     expect(url.searchParams.get("stageKey")).toBe("years-9-10-consolidation");
     expect(url.searchParams.get("pathwayStepId")).toBe(handoff.pathwayStepId);
     expect(url.searchParams.get("stepKey")).toBeNull();
+    expect(url.hash).toMatch(/^#pathway-step-number-and-place-value-years-9-10-consolidation-/);
   });
 
   it("keeps mixed Counting P1 evidence at strand level instead of inventing one exact step", () => {
@@ -81,4 +82,5 @@ it("uses only query parameters that the live My Pathways workspace consumes", ()
   );
   expect(url.searchParams.get("stepKey")).toBeNull();
   expect(url.searchParams.get("openStep")).toBeNull();
+  expect(url.hash).toMatch(/^#pathway-step-financial-and-real-world-mathematics-/);
 });

@@ -136,7 +136,17 @@ describe("Family Educational Intelligence presentation V1", () => {
     for (const area of assessmentOnly.presentation.areas) {
       expect(area.nextLearning?.pathwayMutation).toBe("not-requested");
       expect(area.nextLearning?.href).toMatch(/^\/my-pathways\?/);
+      expect(area.nextLearning?.actionLabel).toBe("Open in My Pathways");
     }
+    const numberHandoff = new URL(
+      assessmentOnly.presentation.areas[0]!.nextLearning!.href!,
+      "https://mylearna.test",
+    );
+    expect(numberHandoff.searchParams.get("learnerId")).toBe("fixture-learner");
+    expect(numberHandoff.searchParams.get("subjectKey")).toBe("mathematics");
+    expect(numberHandoff.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(numberHandoff.searchParams.get("pathwayStepId")).toBeTruthy();
+    expect(numberHandoff.hash).toMatch(/^#pathway-step-/);
     expect(assessmentOnly.presentation.controls).toEqual({
       readOnly: true,
       portfolioMutation: "not-requested",

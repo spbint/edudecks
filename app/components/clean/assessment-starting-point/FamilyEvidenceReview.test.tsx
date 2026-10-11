@@ -10,6 +10,7 @@ afterEach(() => cleanup());
 describe("FamilyEvidenceReview", () => {
   it("renders five independent areas and a parent-readable evidence story", () => {
     const { container } = render(<FamilyEvidenceReview />);
+    const familySurface = container.querySelector("[data-family-evidence-review]")!;
     expect(screen.getByRole("heading", { name: "My Learning Evidence" })).toBeTruthy();
     const overviewHeading = screen.getByRole("heading", {
       name: "What MyLearna currently knows",
@@ -28,12 +29,16 @@ describe("FamilyEvidenceReview", () => {
     expect(screen.getByRole("heading", { name: "What MyLearna has seen" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Evidence timeline" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "What remains open" })).toBeTruthy();
-    expect(container.textContent).not.toMatch(/overall maths level|\d+%|percentile|rank/i);
+    expect(familySurface.textContent).not.toMatch(
+      /preview state|staff preview|read-only family presentation|deterministic comparison|implementation safety/i,
+    );
+    expect(familySurface.textContent).not.toMatch(/overall maths level|\d+%|percentile|rank/i);
+    expect(within(familySurface).getByText("Assessment and everyday learning evidence")).toBeTruthy();
   });
 
   it("lets staff inspect unknown, practical and unreviewed states without writes", () => {
     render(<FamilyEvidenceReview />);
-    const selector = screen.getByRole("combobox", { name: "Preview state" });
+    const selector = screen.getByRole("combobox", { name: "Staff review example" });
     fireEvent.change(selector, { target: { value: "focused-unknown" } });
     expect(screen.getAllByText("Not enough evidence").length).toBeGreaterThan(0);
 
@@ -67,10 +72,24 @@ describe("FamilyEvidenceReview", () => {
     }
   });
 
-  it("offers a navigation-only Continue learning handoff", () => {
+  it("offers an honest navigation-only My Pathways handoff with assessment context", () => {
     render(<FamilyEvidenceReview />);
-    const link = screen.getByRole("link", { name: "Continue learning" });
+    const link = screen.getByRole("link", { name: "Open in My Pathways" });
     expect(link.getAttribute("href")).toMatch(/^\/my-pathways\?/);
+    const url = new URL(link.getAttribute("href")!, "https://mylearna.test");
+    expect(url.searchParams.get("subjectKey")).toBe("mathematics");
+    expect(url.searchParams.get("learnerId")).toBe("fixture-learner");
+    expect(url.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(url.searchParams.get("pathwayStepId")).toBeTruthy();
+    expect(url.hash).toMatch(/^#pathway-step-/);
+    expect(screen.getByText("Current assessment view: Secure")).toBeTruthy();
+    expect(screen.getByText(/specific step may still say “Not checked yet”/i)).toBeTruthy();
     expect(screen.getByText(/does not change the learner's pathway automatically/i)).toBeTruthy();
+  });
+
+  it("uses calm parent language when no evidence limitation remains open", () => {
+    render(<FamilyEvidenceReview />);
+    expect(screen.getByText(/current evidence is enough for this learning view/i)).toBeTruthy();
+    expect(screen.queryByText(/No additional evidence limitation is recorded/i)).toBeNull();
   });
 });

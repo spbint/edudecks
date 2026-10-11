@@ -28,7 +28,7 @@ describe("family evidence review route and responsive contract", () => {
 
   it.each([390, 430])("uses a single-column layout at %ipx", () => {
     expect(css).toContain("@media (max-width: 640px)");
-    expect(css).toMatch(/\.fixturePanel,\s*\.areaGrid,\s*\.detailGrid,\s*\.facts\s*{\s*grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(css).toMatch(/\.staffToolbar,\s*\.areaGrid,\s*\.detailGrid,\s*\.facts\s*{\s*grid-template-columns:\s*minmax\(0, 1fr\)/);
     expect(css).not.toMatch(/min-width:\s*[4-9]\d{2}px/);
   });
 
@@ -44,5 +44,13 @@ describe("family evidence review route and responsive contract", () => {
     expect(component).toContain('type="button"');
     expect(component).toContain("aria-pressed");
     expect(css).toContain(":focus-visible");
+  });
+
+  it("keeps staff fixture controls outside the parent-facing family surface", () => {
+    expect(component.indexOf("styles.staffToolbar")).toBeLessThan(
+      component.indexOf("data-family-evidence-review"),
+    );
+    expect(component).not.toContain("Preview state");
+    expect(component).not.toContain("Read-only family presentation");
   });
 });

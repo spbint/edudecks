@@ -1,3 +1,5 @@
+import { buildNumberOperationsPathwaysHandoff } from "@/lib/clean/assessments/placement/numberOperationsPathwaysHandoff";
+import type { NumberOperationsSubElementKey } from "@/lib/clean/assessments/placement/numberOperationsPlacementResult";
 import { getCaptureLearningEvidenceFixtures } from "./capture/captureLearningEvidenceFixtures";
 import type { CapturedLearningEvidenceV1 } from "./capture/capturedLearningEvidence";
 import { projectLearningEvidenceTimeline } from "./capture/learningEvidenceTimeline";
@@ -8,6 +10,39 @@ import { getMathematicsLearningProfileEvidenceFixtures } from "./mathematicsLear
 import { presentMathematicsLearningProfile } from "./mathematicsLearningProfilePresentation";
 import { projectNumberOperationsLearningChange } from "./numberOperationsLearningChange";
 import { projectNumberOperationsLearningProfile } from "./numberOperationsLearningProfile";
+
+const REVIEW_HANDOFF_TARGETS: Record<NumberOperationsSubElementKey, number> = {
+  "number-place-value": 10,
+  "counting-processes": 6,
+  "additive-strategies": 8,
+  "multiplicative-strategies": 8,
+  "understanding-money": 7,
+};
+
+function withReviewHandoffs(results: readonly LearningEvidenceResultV1[]) {
+  return results.map((result) => {
+    if (!result.recommendation) return result;
+    const continuumId = result.construct.continuumId as NumberOperationsSubElementKey;
+    const handoff = buildNumberOperationsPathwaysHandoff({
+      subElementKey: continuumId,
+      targetP: REVIEW_HANDOFF_TARGETS[continuumId],
+      learnerId: result.learnerId,
+    });
+    return {
+      ...result,
+      recommendation: {
+        ...result.recommendation,
+        handoffTarget: {
+          ...result.recommendation.handoffTarget,
+          label: handoff.stepTitle
+            ? `Open ${handoff.stepTitle} in My Pathways`
+            : `Open ${handoff.strandLabel} in My Pathways`,
+          href: handoff.href,
+        },
+      },
+    };
+  });
+}
 
 export type FamilyEvidenceReviewFixture = {
   id:
@@ -38,21 +73,22 @@ export function getFamilyEvidenceReviewFixtures(): FamilyEvidenceReviewFixture[]
     previousResults?: LearningEvidenceResultV1[];
     capturedEvidence: CapturedLearningEvidenceV1[];
   }): FamilyEvidenceReviewFixture => {
-    const assessmentResults = [
-      ...(input.previousResults ?? []),
-      ...(input.currentResults ?? []),
-    ];
-    const currentProfile = input.currentResults
+    const previousResults = withReviewHandoffs(input.previousResults ?? []);
+    const currentResults = input.currentResults
+      ? withReviewHandoffs(input.currentResults)
+      : null;
+    const assessmentResults = [...previousResults, ...(currentResults ?? [])];
+    const currentProfile = currentResults
       ? presentMathematicsLearningProfile({
-          profile: projectNumberOperationsLearningProfile(input.currentResults),
+          profile: projectNumberOperationsLearningProfile(currentResults),
           learnerDisplayName: "Sample learner",
         })
       : null;
-    const comparison = input.previousResults && input.currentResults
+    const comparison = previousResults.length && currentResults
       ? presentLearningChange({
           comparison: projectNumberOperationsLearningChange({
-            previousResults: input.previousResults,
-            currentResults: input.currentResults,
+            previousResults,
+            currentResults,
           }),
           learnerDisplayName: "Sample learner",
         })
