@@ -16,6 +16,13 @@ const page = readFileSync(
   ),
   "utf8",
 );
+const captureComponent = readFileSync(
+  join(
+    process.cwd(),
+    "app/components/clean/assessment-starting-point/CaptureLearningEvidencePreview.tsx",
+  ),
+  "utf8",
+);
 
 describe("staff My Results preview", () => {
   it("is protected server-side and excluded from search", () => {
@@ -50,5 +57,7 @@ describe("staff My Results preview", () => {
     expect(component).toContain('gridTemplateColumns: "minmax(0, 1fr)"');
     expect(component).toContain('minWidth: 0, maxWidth: 480');
     expect(component).toContain('width: "100%"');
+    expect(captureComponent).toContain('gridTemplateColumns: "minmax(0, 1fr)"');
+    expect(captureComponent).toContain("minWidth: 0");
   });
 });

@@ -16,6 +16,7 @@ const panel = {
   borderRadius: 20,
   background: "#FFFFFF",
   padding: "clamp(18px, 4vw, 28px)",
+  minWidth: 0,
 } as const;
 
 function formatSource(value: string) {
@@ -25,7 +26,15 @@ function formatSource(value: string) {
 function PersistedTimeline({ history }: { history: StaffCaptureEvidenceHistory }) {
   const constructIds = [...new Set(history.timeline.map((event) => event.constructId))];
   return (
-    <section aria-labelledby="persisted-capture-history-heading" style={{ display: "grid", gap: 14 }}>
+    <section
+      aria-labelledby="persisted-capture-history-heading"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        gap: 14,
+        minWidth: 0,
+      }}
+    >
       <header style={{ ...panel, display: "grid", gap: 8 }}>
         <span style={{ color: "#166534", fontSize: 12, fontWeight: 900, letterSpacing: ".045em", textTransform: "uppercase" }}>
           Genuine intelligence-staging reload
@@ -133,7 +142,15 @@ export default function CaptureLearningEvidencePreview({
   }
 
   return (
-    <section aria-labelledby="capture-evidence-heading" style={{ display: "grid", gap: 18 }}>
+    <section
+      aria-labelledby="capture-evidence-heading"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        gap: 18,
+        minWidth: 0,
+      }}
+    >
       {persistedHistory ? <PersistedTimeline history={persistedHistory} /> : null}
       <header style={{ ...panel, display: "grid", gap: 9 }}>
         <span style={{ color: "#7C3AED", fontSize: 12, fontWeight: 900, letterSpacing: ".045em", textTransform: "uppercase" }}>
@@ -194,7 +211,15 @@ export default function CaptureLearningEvidencePreview({
         </p>
       </section>
 
-      <section aria-labelledby="multi-source-heading" style={{ display: "grid", gap: 14 }}>
+      <section
+        aria-labelledby="multi-source-heading"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr)",
+          gap: 14,
+          minWidth: 0,
+        }}
+      >
         <div style={panel}>
           <h3 id="multi-source-heading" style={{ margin: 0, color: "#17204B" }}>
             Learning history · structured and authentic evidence
