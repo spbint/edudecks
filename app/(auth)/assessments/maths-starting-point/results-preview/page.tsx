@@ -9,6 +9,8 @@ import {
 } from "@/lib/clean/educationalIntelligence/persistence/staffLearningEvidenceSmokeEnvironment.server";
 import { loadStaffLearningEvidenceHistory } from "@/lib/clean/educationalIntelligence/persistence/staffLearningEvidenceSmoke.server";
 import type { StaffLearningEvidenceHistory } from "@/lib/clean/educationalIntelligence/persistence/staffLearningEvidenceSmoke";
+import { loadStaffCaptureEvidenceHistory } from "@/lib/clean/educationalIntelligence/capture/staffCaptureLearningEvidence.server";
+import type { StaffCaptureEvidenceHistory } from "@/lib/clean/educationalIntelligence/capture/staffCaptureLearningEvidence";
 
 const RESULTS_PREVIEW_ROUTE =
   "/assessments/maths-starting-point/results-preview";
@@ -31,6 +33,7 @@ export default async function LearningEvidenceResultsPreviewPage({
   const learnerId = typeof query.learnerId === "string" ? query.learnerId : "";
   const requestsStaging = query.source === "intelligence-staging";
   let persistedHistory: StaffLearningEvidenceHistory | null = null;
+  let persistedCaptureHistory: StaffCaptureEvidenceHistory | null = null;
   let persistedHistoryError = "";
 
   if (requestsStaging && familyId && learnerId) {
@@ -40,12 +43,20 @@ export default async function LearningEvidenceResultsPreviewPage({
     } else {
       try {
         const { client } = createStaffLearningEvidenceSmokeClient();
-        persistedHistory = await loadStaffLearningEvidenceHistory({
-          client,
-          actorUserId: staff.id,
-          familyId,
-          learnerId,
-        });
+        [persistedHistory, persistedCaptureHistory] = await Promise.all([
+          loadStaffLearningEvidenceHistory({
+            client,
+            actorUserId: staff.id,
+            familyId,
+            learnerId,
+          }),
+          loadStaffCaptureEvidenceHistory({
+            client,
+            actorUserId: staff.id,
+            familyId,
+            learnerId,
+          }),
+        ]);
       } catch {
         persistedHistoryError =
           "The persisted staging history could not be loaded safely.";
@@ -73,6 +84,7 @@ export default async function LearningEvidenceResultsPreviewPage({
           </nav>
           <LearningEvidenceResultsPreview
             persistedHistory={persistedHistory}
+            persistedCaptureHistory={persistedCaptureHistory}
             persistedHistoryError={persistedHistoryError}
           />
         </div>

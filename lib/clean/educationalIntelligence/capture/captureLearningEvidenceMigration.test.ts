@@ -26,6 +26,8 @@ describe("Capture Learning Evidence migration contract", () => {
 
   it("denies anonymous access and does not expose a public write path", () => {
     expect(migration).toContain("from public, anon, authenticated, service_role");
+    expect(migration).toContain("grant select on table public.learning_evidence_artifact_links\n  to authenticated");
+    expect(migration).not.toContain("grant select, insert, update, delete on table public.learning_evidence_artifact_links\n  to authenticated");
     expect(migration).not.toMatch(/grant .* to anon/i);
     expect(migration).not.toMatch(/grant .* to public/i);
   });
@@ -33,6 +35,7 @@ describe("Capture Learning Evidence migration contract", () => {
   it("stores human association provenance and relevance, not judgement", () => {
     expect(migration).toContain("assigned_by_user_id");
     expect(migration).toContain("curriculum_mapping_version");
+    expect(migration).toContain("evidence_source_type");
     expect(migration).toContain("confirmed-relevant");
     expect(migration).not.toMatch(/developmental_status|recommendation_id|pathway_mutation|portfolio_inclusion/);
   });

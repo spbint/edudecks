@@ -144,7 +144,9 @@ export function adaptCleanCaptureToLearningEvidence(
     learnerId: entry.learnerId,
     familyId: entry.familyId,
     sourceType: options.sourceType ?? deriveSourceType(entry),
-    capturedAt: entry.observedOn,
+    // Capture rows retain an observed calendar date, but created_at is the only
+    // exact timestamp available for deterministic same-day evidence ordering.
+    capturedAt: entry.createdAt ?? entry.observedOn,
     createdAt: entry.createdAt,
     originatingSubsystem: "my-capture",
     artifactReferences: references.map((reference) => ({

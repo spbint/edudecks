@@ -9,6 +9,7 @@ import type { StaffLearningEvidenceHistory } from "@/lib/clean/educationalIntell
 import MathematicsLearningProfile from "./MathematicsLearningProfile";
 import LearningChangeComparison from "./LearningChangeComparison";
 import CaptureLearningEvidencePreview from "./CaptureLearningEvidencePreview";
+import type { StaffCaptureEvidenceHistory } from "@/lib/clean/educationalIntelligence/capture/staffCaptureLearningEvidence";
 
 const panel = {
   border: "1px solid #DDE4EE",
@@ -35,9 +36,11 @@ type PreviewHistory = {
 
 export default function LearningEvidenceResultsPreview({
   persistedHistory = null,
+  persistedCaptureHistory = null,
   persistedHistoryError = "",
 }: {
   persistedHistory?: StaffLearningEvidenceHistory | null;
+  persistedCaptureHistory?: StaffCaptureEvidenceHistory | null;
   persistedHistoryError?: string;
 }) {
   const histories = useMemo<PreviewHistory[]>(() => {
@@ -317,7 +320,9 @@ export default function LearningEvidenceResultsPreview({
         </section>
       ) : null}
 
-      {view === "evidence" ? <CaptureLearningEvidencePreview /> : null}
+      {view === "evidence" ? (
+        <CaptureLearningEvidencePreview persistedHistory={persistedCaptureHistory} />
+      ) : null}
     </div>
   );
 }

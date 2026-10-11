@@ -115,4 +115,10 @@ describe("CapturedLearningEvidenceV1", () => {
     expect(JSON.stringify(adapted)).not.toContain("Private reflection");
     expect(adapted.artifactReferences[0].reference).toBe("family/ref/photo.jpg");
   });
+
+  it("uses the governed creation timestamp for deterministic same-day ordering", () => {
+    const fixture = getCaptureLearningEvidenceFixtures();
+    const captured = fixture.capturedEvidence[0];
+    expect(captured.capturedAt).toMatch(/T02:00:00\.000Z$/);
+  });
 });

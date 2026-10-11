@@ -9,6 +9,7 @@ import {
   type CapturedLearningEvidenceV1,
 } from "@/lib/clean/educationalIntelligence/capture/capturedLearningEvidence";
 import { projectLearningEvidenceTimeline } from "@/lib/clean/educationalIntelligence/capture/learningEvidenceTimeline";
+import type { StaffCaptureEvidenceHistory } from "@/lib/clean/educationalIntelligence/capture/staffCaptureLearningEvidence";
 
 const panel = {
   border: "1px solid #DDE4EE",
@@ -21,7 +22,49 @@ function formatSource(value: string) {
   return value.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export default function CaptureLearningEvidencePreview() {
+function PersistedTimeline({ history }: { history: StaffCaptureEvidenceHistory }) {
+  const constructIds = [...new Set(history.timeline.map((event) => event.constructId))];
+  return (
+    <section aria-labelledby="persisted-capture-history-heading" style={{ display: "grid", gap: 14 }}>
+      <header style={{ ...panel, display: "grid", gap: 8 }}>
+        <span style={{ color: "#166534", fontSize: 12, fontWeight: 900, letterSpacing: ".045em", textTransform: "uppercase" }}>
+          Genuine intelligence-staging reload
+        </span>
+        <h3 id="persisted-capture-history-heading" style={{ margin: 0, color: "#17204B" }}>
+          Multi-source history for {history.learner.displayName}
+        </h3>
+        <p style={{ margin: 0, color: "#4B5563", lineHeight: 1.55 }}>
+          {history.evidence.length} persisted Capture records and {history.timeline.length} timeline events were reloaded server-side from {history.target.branchName}. Capture events remain evidence-only and carry no developmental judgement.
+        </p>
+      </header>
+      {constructIds.map((constructId) => {
+        const events = history.timeline.filter((event) => event.constructId === constructId);
+        return (
+          <article key={constructId} style={{ ...panel, display: "grid", gap: 10 }}>
+            <h4 style={{ margin: 0, color: "#17204B" }}>{events[0]?.continuumId?.replaceAll("-", " ") ?? "Learning construct"}</h4>
+            {events.map((event) => (
+              <div key={event.id} style={{ borderLeft: event.sourceLane === "structured-assessment" ? "4px solid #5B3BE8" : "4px solid #0F766E", paddingLeft: 12, display: "grid", gap: 3 }}>
+                <strong>{event.sourceLabel}</strong>
+                <span style={{ color: "#64748B", fontSize: 14 }}>{event.occurredAt.slice(0, 10)} · {event.sourceLane === "structured-assessment" ? "Structured evidence" : "Authentic evidence"}</span>
+                <span style={{ color: "#334155", fontSize: 14 }}>
+                  {event.assessmentInterpretation
+                    ? `Canonical interpretation: ${formatSource(event.assessmentInterpretation.developmentalStatus)}`
+                    : `Evidence relevance: ${formatSource(event.provenance.reviewState ?? "unreviewed")} · No developmental judgement`}
+                </span>
+              </div>
+            ))}
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
+export default function CaptureLearningEvidencePreview({
+  persistedHistory = null,
+}: {
+  persistedHistory?: StaffCaptureEvidenceHistory | null;
+}) {
   const fixture = useMemo(() => getCaptureLearningEvidenceFixtures(), []);
   const [capturedEvidence, setCapturedEvidence] = useState<CapturedLearningEvidenceV1[]>(
     () => fixture.capturedEvidence,
@@ -91,6 +134,7 @@ export default function CaptureLearningEvidencePreview() {
 
   return (
     <section aria-labelledby="capture-evidence-heading" style={{ display: "grid", gap: 18 }}>
+      {persistedHistory ? <PersistedTimeline history={persistedHistory} /> : null}
       <header style={{ ...panel, display: "grid", gap: 9 }}>
         <span style={{ color: "#7C3AED", fontSize: 12, fontWeight: 900, letterSpacing: ".045em", textTransform: "uppercase" }}>
           Protected staff lab · fixture-only linking

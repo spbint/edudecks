@@ -11,6 +11,16 @@ create table public.learning_evidence_artifact_links (
   family_id uuid not null references public.family_profiles(id) on delete cascade,
   learner_id uuid not null,
   evidence_entry_id uuid not null references public.evidence_entries(id) on delete cascade,
+  evidence_source_type text not null
+    check (evidence_source_type in (
+      'captured-photo',
+      'captured-video',
+      'work-sample',
+      'parent-observation',
+      'practical-observation',
+      'note',
+      'document-file'
+    )),
   canonical_construct_id text not null check (btrim(canonical_construct_id) <> ''),
   learning_domain text not null check (btrim(learning_domain) <> ''),
   continuum_id text,
@@ -193,6 +203,7 @@ begin
   if old.family_id is distinct from new.family_id
     or old.learner_id is distinct from new.learner_id
     or old.evidence_entry_id is distinct from new.evidence_entry_id
+    or old.evidence_source_type is distinct from new.evidence_source_type
     or old.canonical_construct_id is distinct from new.canonical_construct_id
     or old.learning_domain is distinct from new.learning_domain
     or old.continuum_id is distinct from new.continuum_id
@@ -217,7 +228,10 @@ for each row execute function public.mylearna_protect_capture_evidence_construct
 
 revoke all on table public.learning_evidence_artifact_links
   from public, anon, authenticated, service_role;
-grant select, insert, update, delete on table public.learning_evidence_artifact_links
+-- Family members may read their own links through RLS. Writes are deliberately
+-- service-role only so canonical construct metadata can only be supplied by the
+-- governed server operation after it has been derived from canonical results.
+grant select on table public.learning_evidence_artifact_links
   to authenticated;
 grant select, insert, update, delete on table public.learning_evidence_artifact_links
   to service_role;
@@ -225,12 +239,12 @@ grant select, insert, update, delete on table public.learning_evidence_artifact_
 revoke all on function public.mylearna_validate_capture_evidence_construct_link()
   from public, anon, authenticated, service_role;
 grant execute on function public.mylearna_validate_capture_evidence_construct_link()
-  to authenticated, service_role;
+  to service_role;
 
 revoke all on function public.mylearna_protect_capture_evidence_construct_identity()
   from public, anon, authenticated, service_role;
 grant execute on function public.mylearna_protect_capture_evidence_construct_identity()
-  to authenticated, service_role;
+  to service_role;
 
 comment on table public.learning_evidence_artifact_links is
   'Human-controlled canonical construct associations for existing governed Capture evidence. This table records evidence relevance, not developmental judgement.';
