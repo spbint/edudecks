@@ -166,19 +166,27 @@ export default function CaptureLearningEvidencePreview({
         </p>
       </header>
 
-      <section aria-labelledby="manual-link-heading" style={{ ...panel, display: "grid", gap: 16 }}>
+      <section
+        aria-labelledby="manual-link-heading"
+        style={{
+          ...panel,
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr)",
+          gap: 16,
+        }}
+      >
         <h3 id="manual-link-heading" style={{ margin: 0, color: "#17204B" }}>
           Manual construct association
         </h3>
-        <label style={{ display: "grid", gap: 6, maxWidth: 520 }}>
+        <label style={{ display: "grid", gap: 6, minWidth: 0, maxWidth: 520 }}>
           <strong>Learner</strong>
-          <select aria-label="Learner" value={fixture.learnerId} disabled style={{ minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#F8FAFC" }}>
+          <select aria-label="Learner" value={fixture.learnerId} disabled style={{ width: "100%", minWidth: 0, minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#F8FAFC" }}>
             <option value={fixture.learnerId}>{fixture.learnerLabel} (synthetic)</option>
           </select>
         </label>
-        <label style={{ display: "grid", gap: 6, maxWidth: 520 }}>
+        <label style={{ display: "grid", gap: 6, minWidth: 0, maxWidth: 520 }}>
           <strong>Captured evidence</strong>
-          <select value={selectedEvidenceId} onChange={(event) => setSelectedEvidenceId(event.target.value)} style={{ minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#FFFFFF" }}>
+          <select value={selectedEvidenceId} onChange={(event) => setSelectedEvidenceId(event.target.value)} style={{ width: "100%", minWidth: 0, minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#FFFFFF" }}>
             {capturedEvidence.map((evidence) => (
               <option key={evidence.evidenceId} value={evidence.evidenceId}>
                 {fixture.labelsByEvidenceId[evidence.evidenceId]} · {formatSource(evidence.sourceType)}
@@ -186,7 +194,7 @@ export default function CaptureLearningEvidencePreview({
             ))}
           </select>
         </label>
-        <fieldset style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 8 }}>
+        <fieldset style={{ minWidth: 0, border: 0, padding: 0, margin: 0, display: "grid", gap: 8 }}>
           <legend style={{ fontWeight: 850, marginBottom: 8 }}>Canonical Number &amp; Operations constructs</legend>
           {continua.map((continuum) => (
             <label key={continuum.construct.constructId} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -195,9 +203,9 @@ export default function CaptureLearningEvidencePreview({
             </label>
           ))}
         </fieldset>
-        <label style={{ display: "grid", gap: 6, maxWidth: 360 }}>
+        <label style={{ display: "grid", gap: 6, minWidth: 0, maxWidth: 360 }}>
           <strong>Evidence relevance review</strong>
-          <select value={reviewState} onChange={(event) => setReviewState(event.target.value as CapturedEvidenceReviewState)} style={{ minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#FFFFFF" }}>
+          <select value={reviewState} onChange={(event) => setReviewState(event.target.value as CapturedEvidenceReviewState)} style={{ width: "100%", minWidth: 0, minHeight: 44, border: "1px solid #CBD5E1", borderRadius: 10, padding: "8px 10px", background: "#FFFFFF" }}>
             {CAPTURED_EVIDENCE_REVIEW_STATES.map((state) => (
               <option key={state} value={state}>{formatSource(state)}</option>
             ))}
