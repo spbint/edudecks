@@ -4,7 +4,9 @@ import { getHome } from "@/lib/shopify/client";
 import { ShopifyError } from "@/lib/shopify/errors";
 import MarketplaceProductCard from "./MarketplaceProductCard";
 import MylearnaIncludedResourceCard from "./MylearnaIncludedResourceCard";
+import AgentWorksheetCard from "./AgentWorksheetCard";
 import { MYLEARNA_MARKETPLACE_RESOURCES } from "@/lib/marketplace/mylearnaCatalog";
+import { listPublishedAgentMarketplaceResources } from "@/lib/resourceFactory/marketplace.server";
 
 export const metadata: Metadata = { title: "Affordable resources for meaningful learning", description: "Educational supplies, practical learning kits and structured programs for families and educators." };
 export const revalidate = 300;
@@ -13,6 +15,9 @@ export default async function MarketplaceHomePage() {
   let home: Awaited<ReturnType<typeof getHome>> | null = null;
   let unavailable = false;
   try { home = await getHome(); } catch (error) { unavailable = error instanceof ShopifyError; }
+
+  const agentResources = await listPublishedAgentMarketplaceResources({ limit: 24 });
+
   return <main className="marketplace-main">
     <section className="marketplace-hero" aria-labelledby="marketplace-heading">
       <div className="marketplace-hero-copy"><div className="marketplace-eyebrow">MyLearna Marketplace</div><h1 id="marketplace-heading">Affordable resources. Meaningful learning.</h1><p>Educational supplies, practical learning kits and structured programs for families and educators.</p><div style={{ marginTop: 28 }}><Link className="marketplace-button" href="/marketplace/collections">Explore the collection</Link></div></div>
@@ -35,6 +40,21 @@ export default async function MarketplaceHomePage() {
         ))}
       </div>
     </section>
+    {agentResources.length ? (
+      <section className="marketplace-section" aria-labelledby="worksheets-heading">
+        <div className="marketplace-section-heading">
+          <div>
+            <h2 id="worksheets-heading">Fresh worksheets</h2>
+            <p>Free printable practice resources from MyLearna, with answer keys included.</p>
+          </div>
+        </div>
+        <div className="marketplace-product-grid">
+          {agentResources.map((resource) => (
+            <AgentWorksheetCard key={resource.id} resource={resource} />
+          ))}
+        </div>
+      </section>
+    ) : null}
     <section className="marketplace-section" aria-labelledby="products-heading"><div className="marketplace-section-heading"><div><h2 id="products-heading">Featured learning resources</h2><p>Real products from the MyLearna Shopify catalogue.</p></div></div>
       {home?.products.length ? <div className="marketplace-product-grid">{home.products.map((product) => <MarketplaceProductCard key={product.id} product={product} />)}</div> : <div className="marketplace-state">Featured products will appear here as the catalogue grows.</div>}
     </section>

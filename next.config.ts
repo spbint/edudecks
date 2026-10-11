@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@hyzyla/pdfium", "sharp"],
+  outputFileTracingIncludes: {
+    "/api/internal/resource-factory/**/*": [
+      "./node_modules/@hyzyla/pdfium/dist/**/*",
+    ],
+  },
   async redirects() {
     return [
       {

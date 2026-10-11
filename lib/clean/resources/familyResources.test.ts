@@ -6,7 +6,7 @@ const migration = readFileSync("supabase/migrations/20260913032028_family_resour
 const quotaMigration = readFileSync("supabase/migrations/20260913041441_align_resource_cupboard_free_quota.sql", "utf8");
 const optionalReferenceMigration = readFileSync("supabase/migrations/20260913112513_make_reference_details_optional.sql", "utf8");
 const catalogueMigration = readFileSync("supabase/migrations/20260921113000_classical_marketplace_cupboard.sql", "utf8");
-const cupboardWorkspace = readFileSync("app/components/clean/CleanResourceCupboardWorkspace.tsx", "utf8");
+const cupboardWorkspace = readFileSync("app/components/clean/CleanResourceCupboardWorkspace.tsx", "utf8");\nconst familyResourcesSource = readFileSync("lib/clean/resources/familyResources.ts", "utf8");
 const featureFiles = `${readFileSync("lib/clean/onDeck/resourceFiles.ts", "utf8")}\n${readFileSync("lib/clean/onDeck/client.ts", "utf8")}`;
 
 describe("My Resource Cupboard foundation", () => {
@@ -59,6 +59,11 @@ describe("My Resource Cupboard foundation", () => {
     expect(catalogueMigration).toContain("'family_included'");
     expect(catalogueMigration).not.toContain("insert into public.family_resource_files");
     expect(catalogueMigration).not.toContain("storage.objects");
+  });
+
+  it("opens both agent worksheet assets and existing Classical booklet assets from the Cupboard", () => {
+    expect(familyResourcesSource).toContain("metadata?.worksheet_href");
+    expect(familyResourcesSource).toContain("metadata?.pdf_href");
   });
 
   it("normalizes friendly website addresses without accepting unsafe schemes", () => {
