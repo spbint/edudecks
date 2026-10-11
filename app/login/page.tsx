@@ -10,5 +10,23 @@ export const metadata: Metadata = buildPublicMetadata({
 });
 
 export default function LoginPage() {
-  return <EmailAuthPage mode="login" />;
+  return (
+    <>
+      <div
+        role="status"
+        style={{
+          background: "#17204B",
+          color: "#FFFFFF",
+          padding: "12px 20px",
+          textAlign: "center",
+          fontSize: 14,
+          fontWeight: 700,
+          lineHeight: 1.5,
+        }}
+      >
+        MyLearna Homeschool Australia opens January 2027. Existing families can still sign in below.
+      </div>
+      <EmailAuthPage mode="login" />
+    </>
+  );
 }
