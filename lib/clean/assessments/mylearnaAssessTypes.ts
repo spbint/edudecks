@@ -14,6 +14,7 @@ export type MyLearnaAssessmentTemplate =
   | "fraction-bar-choice"
   | "shape-set-choice"
   | "multiple-choice"
+  | "ordering"
   | "short-answer";
 
 export type CounterSetStimulus = {
@@ -88,13 +89,45 @@ export type ShapeSetStimulus = {
   seed?: number;
 };
 
+export type CurrencyTokenStimulus = {
+  tokens: Array<{
+    denomination:
+      | "5c"
+      | "10c"
+      | "20c"
+      | "50c"
+      | "$1"
+      | "$2"
+      | "$5"
+      | "$10"
+      | "$20"
+      | "$50"
+      | "$100";
+  }>;
+  layout?: "row" | "grid";
+};
+
+export type GraduatedScaleStimulus = {
+  min: number;
+  max: number;
+  majorStep: number;
+  subdivisions?: number;
+  marker: number;
+  unit: "kg" | "g" | "cm" | "mm" | "m" | "mL" | "L" | "°C";
+  orientation?: "horizontal" | "vertical";
+  labelMajorTicks?: boolean;
+};
+
 export type MyLearnaAssessmentStimulus =
+  | { type: "none"; data?: Record<string, never>; altText?: string }
   | { type: "counter-set"; data: CounterSetStimulus; altText?: string }
   | { type: "ten-frame"; data: TenFrameStimulus; altText?: string }
   | { type: "number-line"; data: NumberLineStimulus; altText?: string }
   | { type: "array"; data: ArrayStimulus; altText?: string }
   | { type: "place-value-blocks"; data: PlaceValueBlocksStimulus; altText?: string }
   | { type: "fraction-bar"; data: FractionBarStimulus; altText?: string }
+  | { type: "currency-tokens"; data: CurrencyTokenStimulus; altText?: string }
+  | { type: "graduated-scale"; data: GraduatedScaleStimulus; altText?: string }
   | { type: "shape-set"; data: ShapeSetStimulus; altText?: string }
   | { type: string; data: Record<string, unknown>; altText?: string };
 
@@ -121,7 +154,7 @@ export type MyLearnaAssessmentItem = {
   prompt: string;
   stimulus: MyLearnaAssessmentStimulus;
   response: {
-    type: "single-choice" | "multiple-choice" | "short-answer";
+    type: "single-choice" | "multiple-choice" | "ordering" | "short-answer";
     options?: Array<{
       id: string;
       label?: string;
@@ -130,6 +163,7 @@ export type MyLearnaAssessmentItem = {
     }>;
     correctOptionIds?: string[];
     correctValue?: unknown;
+    acceptableValues?: unknown[];
   };
   feedback: {
     correct: string;
@@ -145,6 +179,7 @@ export type MyLearnaAssessmentItem = {
 export type MyLearnaAssessmentResponse = {
   itemId: string;
   selectedOptionIds: string[];
+  responseValue?: string;
   correct: boolean;
   skillId: string;
   misconceptionTags: string[];

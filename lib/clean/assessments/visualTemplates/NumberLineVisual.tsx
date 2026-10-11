@@ -17,20 +17,28 @@ export function NumberLineVisual({
 }) {
   const min = numberOrFallback(data.min, 0);
   const max = numberOrFallback(data.max, 10);
-  const step = Math.max(1, numberOrFallback(data.step, 1));
+  const step = numberOrFallback(data.step, 1);
   if (max <= min) return <InvalidStimulus message="number-line max must be greater than min" />;
+  if (step <= 0) return <InvalidStimulus message="number-line step must be greater than zero" />;
 
   const marker = data.marker === undefined ? null : numberOrFallback(data.marker, min);
   if (marker !== null && (marker < min || marker > max)) {
     return <InvalidStimulus message="number-line marker must be between min and max" />;
   }
 
-  const hiddenLabels = new Set(data.hiddenLabels || []);
+  const roundTick = (value: number) => Number(value.toFixed(10));
+  const hiddenLabels = new Set((data.hiddenLabels || []).map(roundTick));
   const ticks: number[] = [];
-  for (let value = min; value <= max; value += step) {
-    ticks.push(value);
+  const span = max - min;
+  const wholeIntervals = Math.floor(span / step + 1e-10);
+
+  for (let index = 0; index <= wholeIntervals; index += 1) {
+    const value = roundTick(min + index * step);
+    if (value <= max + 1e-10) ticks.push(value);
   }
-  if (ticks[ticks.length - 1] !== max) ticks.push(max);
+
+  const roundedMax = roundTick(max);
+  if (ticks[ticks.length - 1] !== roundedMax) ticks.push(roundedMax);
   const label = altText || describeNumberLine({ ...data, min, max, step, marker: marker ?? undefined });
 
   return (
