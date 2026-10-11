@@ -69,11 +69,20 @@ export default async function LearningEvidenceResultsPreviewPage({
       <main
         style={{
           minHeight: "100vh",
+          minWidth: 0,
           background: "#F7F8FC",
           padding: "clamp(16px, 4vw, 42px)",
         }}
       >
-        <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gap: 20 }}>
+        <div
+          style={{
+            minWidth: 0,
+            maxWidth: 1180,
+            margin: "0 auto",
+            display: "grid",
+            gap: 20,
+          }}
+        >
           <nav aria-label="Starting Point staff preview">
             <Link
               href="/assessments/maths-starting-point"

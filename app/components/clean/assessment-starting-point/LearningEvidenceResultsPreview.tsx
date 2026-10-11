@@ -187,7 +187,7 @@ export default function LearningEvidenceResultsPreview({
             {persistedHistoryError}
           </p>
         ) : null}
-        <label style={{ display: "grid", gap: 6, maxWidth: 480 }}>
+        <label style={{ display: "grid", gap: 6, minWidth: 0, maxWidth: 480 }}>
           <strong style={{ color: "#17204B" }}>Test learner history</strong>
           <select
             value={selected.id}
@@ -200,6 +200,8 @@ export default function LearningEvidenceResultsPreview({
               background: "#FFFFFF",
               color: "#17204B",
               font: "inherit",
+              minWidth: 0,
+              width: "100%",
             }}
           >
             {histories.map((history) => (

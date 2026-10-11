@@ -44,4 +44,10 @@ describe("staff My Results preview", () => {
     expect(component).toContain('"Capture evidence"');
     expect(page).toContain("requireAssessmentLabAccess(RESULTS_PREVIEW_ROUTE)");
   });
+
+  it("allows the staff history shell and learner selector to shrink at phone widths", () => {
+    expect(page).toContain("minWidth: 0");
+    expect(component).toContain('minWidth: 0, maxWidth: 480');
+    expect(component).toContain('width: "100%"');
+  });
 });
