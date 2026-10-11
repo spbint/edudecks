@@ -16,20 +16,49 @@ export function canUseAssessmentItem(
   return item.status === "published";
 }
 
+function normalizeResponseValue(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .replace(/,/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
 export function scoreAssessmentItem(
   item: MyLearnaAssessmentItem,
   selectedOptionIds: string[],
   timeSpentSeconds?: number,
+  responseValue?: string,
 ): MyLearnaAssessmentResponse {
-  const expected = [...(item.response.correctOptionIds || [])].sort();
-  const actual = [...selectedOptionIds].sort();
-  const correct =
-    expected.length === actual.length &&
-    expected.every((optionId, index) => optionId === actual[index]);
+  let correct = false;
+
+  if (item.response.type === "short-answer") {
+    const expectedValues = [
+      item.response.correctValue,
+      ...(item.response.acceptableValues || []),
+    ].filter((value) => value !== undefined && value !== null);
+    const actual = normalizeResponseValue(responseValue);
+    correct = Boolean(actual) && expectedValues.some(
+      (expected) => normalizeResponseValue(expected) === actual,
+    );
+  } else if (item.response.type === "ordering") {
+    const expected = [...(item.response.correctOptionIds || [])];
+    const actual = [...selectedOptionIds];
+    correct =
+      expected.length === actual.length &&
+      expected.every((optionId, index) => optionId === actual[index]);
+  } else {
+    const expected = [...(item.response.correctOptionIds || [])].sort();
+    const actual = [...selectedOptionIds].sort();
+    correct =
+      expected.length === actual.length &&
+      expected.every((optionId, index) => optionId === actual[index]);
+  }
 
   return {
     itemId: item.id,
     selectedOptionIds,
+    ...(responseValue !== undefined ? { responseValue } : {}),
     correct,
     skillId: item.skill.id,
     misconceptionTags: correct ? [] : item.misconceptionTags || [],

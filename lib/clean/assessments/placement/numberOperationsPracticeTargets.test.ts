@@ -1,0 +1,102 @@
+import { describe, expect, it } from "vitest";
+import { getNumberOperationsPracticeTarget } from "./numberOperationsPracticeTargets";
+
+describe("Number Operations practice targets", () => {
+  it("maps only reviewed broad practice families", () => {
+    expect(
+      getNumberOperationsPracticeTarget({
+        subElementKey: "number-place-value",
+        targetP: 7,
+      }),
+    ).toMatchObject({
+      kind: "broad-practice-family",
+      moduleId: "number-place-value-operations-practice-module-v1",
+      mappingConfidence: "broad-family",
+    });
+
+    expect(
+      getNumberOperationsPracticeTarget({
+        subElementKey: "additive-strategies",
+        targetP: 9,
+      }),
+    ).toMatchObject({
+      kind: "broad-practice-family",
+      moduleId: "number-rational-operations-practice-module-v1",
+    });
+
+    expect(
+      getNumberOperationsPracticeTarget({
+        subElementKey: "understanding-money",
+        targetP: 8,
+      }),
+    ).toMatchObject({
+      kind: "broad-practice-family",
+      moduleId: "number-percent-ratio-finance-practice-module-v1",
+    });
+  });
+
+  it("uses a real strand-level My Pathways handoff when a practice module would mislead", () => {
+    const counting = getNumberOperationsPracticeTarget({
+      subElementKey: "counting-processes",
+      targetP: 6,
+    });
+    const countingUrl = new URL(counting.href, "https://mylearna.test");
+
+    expect(counting).toMatchObject({
+      kind: "pathways-review",
+      moduleId: null,
+      mappingConfidence: "fallback",
+    });
+    expect(countingUrl.pathname).toBe("/my-pathways");
+    expect(countingUrl.searchParams.get("subjectKey")).toBe("mathematics");
+    expect(countingUrl.searchParams.get("strandKey")).toBe("number-and-place-value");
+    expect(countingUrl.searchParams.get("pathwayStepId")).toBeNull();
+
+    const laterMultiplicative = getNumberOperationsPracticeTarget({
+      subElementKey: "multiplicative-strategies",
+      targetP: 9,
+    });
+    const operationsUrl = new URL(
+      laterMultiplicative.href,
+      "https://mylearna.test",
+    );
+    expect(operationsUrl.searchParams.get("strandKey")).toBe(
+      "operations-and-calculation",
+    );
+    expect(operationsUrl.searchParams.get("pathwayStepId")).not.toBeNull();
+  });
+
+  it("keeps early place-value and money targets out of over-advanced modules", () => {
+    const number = getNumberOperationsPracticeTarget({
+      subElementKey: "number-place-value",
+      targetP: 4,
+    });
+    const money = getNumberOperationsPracticeTarget({
+      subElementKey: "understanding-money",
+      targetP: 2,
+    });
+
+    expect(number.kind).toBe("pathways-review");
+    expect(new URL(number.href, "https://mylearna.test").searchParams.get("strandKey")).toBe(
+      "number-and-place-value",
+    );
+    expect(money.kind).toBe("pathways-review");
+    expect(new URL(money.href, "https://mylearna.test").searchParams.get("strandKey")).toBe(
+      "financial-and-real-world-mathematics",
+    );
+  });
+
+  it("builds targeted-practice links with provenance metadata", () => {
+    const target = getNumberOperationsPracticeTarget({
+      subElementKey: "additive-strategies",
+      targetP: 7,
+    });
+
+    expect(target.href).toContain("/practice/number-targeted?");
+    expect(target.href).toContain(
+      "moduleId=number-additive-strategies-practice-module-v1",
+    );
+    expect(target.href).toContain("sourceProgressionStep=P7");
+    expect(target.href).toContain("sourceSubElement=additive-strategies");
+  });
+});

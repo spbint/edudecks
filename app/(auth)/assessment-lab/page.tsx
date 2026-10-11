@@ -12,9 +12,30 @@ export default async function AssessmentLabPage() {
   return (
     <AssessmentAccessGate mode="lab">
       {proofAccess.allowed ? (
-        <nav aria-label="Internal assessment proofs" style={{ padding: "16px 24px" }}>
+        <nav
+          aria-label="Internal assessment proofs"
+          style={{ padding: "16px 24px", display: "flex", gap: 18, flexWrap: "wrap" }}
+        >
           <Link href="/assessment-lab/assets-proof" prefetch={false}>
             Open the six-asset trusted-diagram proof
+          </Link>
+          <Link href="/assessment-lab/placement-simulator" prefetch={false}>
+            Open the Number & Operations anchor-routing simulator
+          </Link>
+          <Link href="/assessment-lab/item-review" prefetch={false}>
+            Open the trusted item & visual review lab
+          </Link>
+          <Link href="/assessment-lab/numeracy-spine" prefetch={false}>
+            Open the complete numeracy progression spine
+          </Link>
+          <Link href="/assessment-lab/measurement-units" prefetch={false}>
+            Open the Measurement units cross-strand proof
+          </Link>
+          <Link href="/assessment-lab/chance" prefetch={false}>
+            Open the Understanding chance cross-strand proof
+          </Link>
+          <Link href="/assessment-lab/fractions" prefetch={false}>
+            Open the Interpreting fractions adaptive proof
           </Link>
         </nav>
       ) : null}

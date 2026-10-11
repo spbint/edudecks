@@ -2,7 +2,9 @@ import React from "react";
 import type {
   ArrayStimulus,
   CounterSetStimulus,
+  CurrencyTokenStimulus,
   FractionBarStimulus,
+  GraduatedScaleStimulus,
   MyLearnaAssessmentStimulus,
   NumberLineStimulus,
   PlaceValueBlocksStimulus,
@@ -11,7 +13,9 @@ import type {
 } from "@/lib/clean/assessments/mylearnaAssessTypes";
 import { ArrayVisual } from "@/lib/clean/assessments/visualTemplates/ArrayVisual";
 import { CounterSetVisual } from "@/lib/clean/assessments/visualTemplates/CounterSetVisual";
+import { CurrencyTokenVisual } from "@/lib/clean/assessments/visualTemplates/CurrencyTokenVisual";
 import { FractionBarVisual } from "@/lib/clean/assessments/visualTemplates/FractionBarVisual";
+import { GraduatedScaleVisual } from "@/lib/clean/assessments/visualTemplates/GraduatedScaleVisual";
 import { InvalidStimulus } from "@/lib/clean/assessments/visualTemplates/InvalidStimulus";
 import { NumberLineVisual } from "@/lib/clean/assessments/visualTemplates/NumberLineVisual";
 import { PlaceValueBlocksVisual } from "@/lib/clean/assessments/visualTemplates/PlaceValueBlocksVisual";
@@ -20,6 +24,8 @@ import { TenFrameVisual } from "@/lib/clean/assessments/visualTemplates/TenFrame
 
 export function AssessmentStimulus({ stimulus }: { stimulus: MyLearnaAssessmentStimulus }) {
   switch (stimulus.type) {
+    case "none":
+      return null;
     case "counter-set":
       return <CounterSetVisual data={stimulus.data as CounterSetStimulus} altText={stimulus.altText} />;
     case "ten-frame":
@@ -32,6 +38,10 @@ export function AssessmentStimulus({ stimulus }: { stimulus: MyLearnaAssessmentS
       return <PlaceValueBlocksVisual data={stimulus.data as PlaceValueBlocksStimulus} altText={stimulus.altText} />;
     case "fraction-bar":
       return <FractionBarVisual data={stimulus.data as FractionBarStimulus} altText={stimulus.altText} />;
+    case "currency-tokens":
+      return <CurrencyTokenVisual data={stimulus.data as CurrencyTokenStimulus} altText={stimulus.altText} />;
+    case "graduated-scale":
+      return <GraduatedScaleVisual data={stimulus.data as GraduatedScaleStimulus} altText={stimulus.altText} />;
     case "shape-set":
       return <ShapeSetVisual data={stimulus.data as ShapeSetStimulus} altText={stimulus.altText} />;
     default:

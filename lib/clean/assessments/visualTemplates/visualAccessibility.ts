@@ -1,7 +1,9 @@
 import type {
   ArrayStimulus,
   CounterSetStimulus,
+  CurrencyTokenStimulus,
   FractionBarStimulus,
+  GraduatedScaleStimulus,
   NumberLineStimulus,
   PlaceValueBlocksStimulus,
   ShapeSetStimulus,
@@ -56,6 +58,31 @@ export function describePlaceValueBlocks(data: PlaceValueBlocksStimulus) {
 
 export function describeFractionBar(data: FractionBarStimulus) {
   return `Fraction bar showing ${data.numerator} out of ${data.denominator} equal parts shaded.`;
+}
+
+export function describeCurrencyTokens(data: CurrencyTokenStimulus) {
+  if (!data.tokens.length) return "No money tokens are shown.";
+  return `Money tokens shown in this order: ${data.tokens
+    .map((token) => token.denomination)
+    .join(", ")}.`;
+}
+
+export function describeGraduatedScale(data: GraduatedScaleStimulus) {
+  const subdivisions = Math.max(1, Math.floor(Number(data.subdivisions) || 1));
+  const minorStep = data.majorStep / subdivisions;
+  const markerIndex = Math.round((data.marker - data.min) / minorStep);
+  const orientation = data.orientation || "horizontal";
+  const firstMajorIndex = Math.round(data.majorStep / minorStep);
+  const relative =
+    markerIndex === 0
+      ? "at the first labelled value"
+      : markerIndex === firstMajorIndex
+        ? "at the next labelled value"
+        : markerIndex < firstMajorIndex
+          ? `at interval ${markerIndex} of ${firstMajorIndex} after the first labelled value`
+          : `at interval ${markerIndex} from the first labelled value`;
+
+  return `${orientation === "vertical" ? "Vertical" : "Horizontal"} ${data.unit} scale from ${data.min} to ${data.max}, with ${subdivisions} equal intervals per major step and a pointer ${relative}.`;
 }
 
 export function describeShapeSet(data: ShapeSetStimulus) {

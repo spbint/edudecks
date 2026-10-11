@@ -2,6 +2,7 @@ export { AssessmentStimulus } from "@/lib/clean/assessments/visualTemplates/Asse
 export { ArrayVisual } from "@/lib/clean/assessments/visualTemplates/ArrayVisual";
 export { CounterSetVisual } from "@/lib/clean/assessments/visualTemplates/CounterSetVisual";
 export { FractionBarVisual } from "@/lib/clean/assessments/visualTemplates/FractionBarVisual";
+export { GraduatedScaleVisual } from "@/lib/clean/assessments/visualTemplates/GraduatedScaleVisual";
 export { InvalidStimulus } from "@/lib/clean/assessments/visualTemplates/InvalidStimulus";
 export { NumberLineVisual } from "@/lib/clean/assessments/visualTemplates/NumberLineVisual";
 export { PlaceValueBlocksVisual } from "@/lib/clean/assessments/visualTemplates/PlaceValueBlocksVisual";
