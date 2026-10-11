@@ -47,7 +47,7 @@ describe("staff My Results preview", () => {
 
   it("allows the staff history shell and learner selector to shrink at phone widths", () => {
     expect(page).toContain("minWidth: 0");
-    expect(component).toContain('display: "grid", gap: 20, minWidth: 0');
+    expect(component).toContain('gridTemplateColumns: "minmax(0, 1fr)"');
     expect(component).toContain('minWidth: 0, maxWidth: 480');
     expect(component).toContain('width: "100%"');
   });

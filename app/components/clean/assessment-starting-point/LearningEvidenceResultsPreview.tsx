@@ -160,7 +160,14 @@ export default function LearningEvidenceResultsPreview({
     selected.attempts[selected.attempts.length - 1];
 
   return (
-    <div style={{ display: "grid", gap: 20, minWidth: 0 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        gap: 20,
+        minWidth: 0,
+      }}
+    >
       <header style={{ ...panel, display: "grid", gap: 10 }}>
         <span
           style={{
