@@ -30,32 +30,23 @@ describe("public launch truthfulness", () => {
     );
   });
 
-  it("locks the homepage to the brings-it-together positioning", () => {
+  it("locks the homepage to learning intelligence without reopening registration", () => {
     const homepage = read("app/page.tsx");
-    expect(homepage).toContain(
-      "Homeschool learning happens everywhere. MyLearna brings it all together.",
-    );
-    expect(homepage).toContain(
-      "Plan your week, capture learning as it happens, build meaningful portfolios and create reports—all in one private family space.",
-    );
-    expect(homepage).toContain("Plan the week");
-    expect(homepage).toContain("Capture real learning");
-    expect(homepage).toContain("Build portfolios");
-    expect(homepage).toContain("Create reports");
-    expect(homepage).toContain("No account needed for the demo. Use a fictional family, try the workflow and see how MyLearna brings learning together.");
-    expect(homepage).toContain('label: "See how learning becomes a report"');
+    expect(homepage).toContain("Know what they know. Know what to do next.");
+    expect(homepage).toContain("MyLearna brings assessment evidence and everyday learning together");
+    expect(homepage).toContain("Understand → Learn → Capture → Recheck → See change → Report");
+    expect(homepage).toContain("Most homeschool apps help you organise homeschooling. MyLearna helps you understand the learning.");
+    expect(homepage).toContain("The current trusted assessment view covers Number &amp; Operations.");
+    expect(homepage).toContain("New registrations remain paused");
+    expect(homepage).toContain("January 2027 Australian reopening");
+    expect(homepage).toContain('label: "Explore MyLearna"');
     expect(homepage).toContain('href: "/demo?source=home-primary-demo"');
-    expect(homepage).toContain('label: "Create your family space"');
-    expect(homepage).toContain('href: "/start-free?source=home-secondary-family-space"');
     expect(homepage).toContain('href: "/demo?source=home-final-demo"');
-    expect(homepage).toContain('href: "/start-free?source=home-final-family-space"');
+    expect(homepage).toContain('href: "/login"');
+    expect(homepage).not.toContain('href: "/start-free');
+    expect(homepage).not.toContain('label: "Create your family space"');
     expect(homepage).not.toContain('label: "Start free"');
-    expect(homepage).not.toContain('href: "/demo"');
-    expect(homepage).toContain("One connected learning story");
-    expect(homepage).toContain("Plan → Learn → Capture → Report");
-    expect(homepage).toContain("Everything stays connected");
-    expect(homepage).toContain("Start with the tools you need today.");
-    expect(homepage).toContain("Explore the fictional Carter family first, or create your own private family space when you are ready.");
+    expect(homepage).not.toContain("Plan your week, capture learning as it happens");
     expect(homepage).not.toContain("Use MyLearna now while we continue improving with family feedback.");
     expect(homepage).not.toContain("Start free. Upgrade when you need more.");
     expect(homepage).not.toMatch(/\bOTP\b/i);
@@ -111,9 +102,9 @@ describe("public launch truthfulness", () => {
 
   it("keeps root metadata useful for homeschool search", () => {
     const layout = read("app/layout.tsx");
-    expect(layout).toContain("Homeschool Planning, Portfolios and Reports | MyLearna");
-    expect(layout).toContain("Homeschool learning happens everywhere.");
-    expect(layout).toContain("planning, pathways, evidence, portfolios and reports");
+    expect(layout).toContain("Homeschool Learning Intelligence | MyLearna");
+    expect(layout).toContain("assessment evidence and everyday learning");
+    expect(layout).toContain("know what to teach next");
     expect(layout).toContain("metadataBase");
     expect(layout).toContain("p:domain_verify");
     expect(layout).toContain("msvalidate.01");

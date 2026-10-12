@@ -1,5 +1,10 @@
 # MyLearna Public Positioning V1
 
+> Superseded on 12 October 2026 by
+> `docs/product/homeschool-learning-intelligence-positioning-v1.md`. This file
+> remains as a record of the earlier planning-and-records-first position; it is
+> not the current public positioning authority.
+
 ## Central promise
 
 Homeschool learning happens everywhere.

@@ -6,11 +6,12 @@ const source = readFileSync(join(process.cwd(), "app/components/clean/CleanMyLea
 
 describe("My Learna parent guidance workspace", () => {
   it("uses a learner-specific, parent-facing hub first viewport", () => {
-    expect(source).toContain("selectedLearnerName}&apos;s Learning");
-    expect(source).toContain("A calm learning picture");
-    expect(source).toContain("Quick actions");
+    expect(source).toContain("What we currently know about {selectedLearnerName}&apos;s learning");
+    expect(source).toContain("Assessment and everyday learning evidence");
+    expect(source).toContain("The learning story");
+    expect(source).toContain("Supporting tools");
     expect(source).toContain("Current learning");
-    expect(source).toContain("Add learning");
+    expect(source).toContain("Add learning evidence");
     expect(source).toContain("Open My Day");
     expect(source).toContain("View Portfolio");
     expect(source).toContain("View Reports");
@@ -24,7 +25,7 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).toContain("readPathwayPlacements");
     expect(source).toContain("pathwayPlacementIds");
     expect(source).toContain("fallbackPathwayStepIds: [");
-    expect(source).toContain("Current progress remains your confirmation");
+    expect(source).toContain("Everyday learning records add context without changing the judgement automatically.");
     expect(source).toContain("Why this is shown");
     expect(source).toContain("Latest observed progress");
     expect(source).toContain("Completed checks:");
@@ -54,17 +55,17 @@ describe("My Learna parent guidance workspace", () => {
 
   it("adds Where we are summary cards for each active subject", () => {
     expect(source).toContain("data-where-we-are-summary");
-    expect(source).toContain("Where we are");
+    expect(source).toContain("Learning overview");
     expect(source).toContain("No next step suggested yet.");
     expect(source).toContain("Open step");
     expect(source).toContain("View On Deck");
   });
 
   it("provides accessible progressive disclosure and preserves deeper links", () => {
-    expect(source).toContain("Progress and judgements");
-    expect(source).toContain("Recent records");
-    expect(source).toContain("Learning areas");
-    expect(source).toContain("Reports and records");
+    expect(source).toContain("Since the last check");
+    expect(source).toContain("Everyday learning evidence");
+    expect(source).toContain("What remains unknown");
+    expect(source).toContain("Reporting and proof");
     expect(source).toContain("aria-expanded={open}");
     expect(source).toContain("aria-controls={contentId}");
     expect(source).toContain("minHeight: 48");

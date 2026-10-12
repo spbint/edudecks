@@ -92,6 +92,15 @@ const quietTextStyle: React.CSSProperties = {
   lineHeight: 1.65,
 };
 
+const LEARNING_INTELLIGENCE_LOOP = [
+  "Understand",
+  "Learn",
+  "Capture",
+  "Recheck",
+  "See change",
+  "Report",
+] as const;
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -296,9 +305,9 @@ function WhereWeAreSection({
       style={{ display: "grid", gap: 12 }}
     >
       <div style={{ display: "grid", gap: 5, padding: "4px 2px" }}>
-        <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Where we are</p>
-        <h2 id="where-we-are-heading" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>What {learnerName} is working on</h2>
-        <p style={{ ...quietTextStyle, margin: 0 }}>See what each learner is working on and what comes next.</p>
+        <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Learning overview</p>
+        <h2 id="where-we-are-heading" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>What we currently know about {learnerName}&apos;s learning</h2>
+        <p style={{ ...quietTextStyle, margin: 0 }}>See the current learning position, the evidence around it and the next useful step for each active area.</p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
         {summaries.map((summary) => {
@@ -904,15 +913,21 @@ export default function CleanMyLearnaWorkspace() {
           </label>
           <div>
             <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>My Learna</p>
-            <h1 id="my-learna-heading" style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 6vw, 46px)", lineHeight: 1.05 }}>{selectedLearnerName}&apos;s Learning</h1>
-            <p style={{ ...quietTextStyle, margin: "12px 0 0", fontSize: 16 }}>See what {selectedLearnerName} has been learning, what the evidence is beginning to show, and what could come next.</p>
+            <h1 id="my-learna-heading" style={{ margin: "6px 0 0", color: "#17204b", fontSize: "clamp(28px, 6vw, 46px)", lineHeight: 1.05 }}>What we currently know about {selectedLearnerName}&apos;s learning</h1>
+            <p style={{ ...quietTextStyle, margin: "12px 0 0", fontSize: 16 }}>Understand what the evidence suggests, what the family has seen in everyday learning, what remains unknown and what to do next.</p>
           </div>
         </div>
         <aside style={{ borderRadius: 18, padding: 18, background: "#f5f3ff", border: "1px solid #ddd6fe", display: "grid", gap: 10, alignContent: "start" }}>
-          <strong style={{ color: "#17204b", fontSize: 16 }}>A calm learning picture</strong>
-          <p style={{ ...quietTextStyle, margin: 0 }}>You&apos;re building a useful picture of {selectedLearnerName}&apos;s recent learning.</p>
+          <strong style={{ color: "#17204b", fontSize: 16 }}>Assessment and everyday learning evidence</strong>
+          <p style={{ ...quietTextStyle, margin: 0 }}>Checks can support a structured learning view. Observations, photos and work samples show authentic everyday learning without changing that view automatically.</p>
           <span style={{ color: "#6c4df6", fontSize: 13, fontWeight: 800 }}>{entriesLoading ? "Refreshing recent records" : `${visibleEntries.length} learning records · ${summary.progressJudgementObservations.length} progress judgements`}</span>
         </aside>
+      </section>
+      <section aria-label="Learning intelligence loop" style={{ ...cardStyle, display: "grid", gap: 10 }}>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>The learning story</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 130px), 1fr))", gap: 8 }}>
+          {LEARNING_INTELLIGENCE_LOOP.map((label) => <span key={label} style={{ padding: "9px 10px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#334155", textAlign: "center", fontSize: 13, fontWeight: 800 }}>{label}</span>)}
+        </div>
       </section>
       <WhereWeAreSection
         learnerName={selectedLearnerName}
@@ -926,20 +941,12 @@ export default function CleanMyLearnaWorkspace() {
           {onDeckError}
         </div>
       ) : null}
-      <section aria-label="Quick actions" style={{ ...cardStyle, display: "grid", gap: 12 }}>
-        <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Quick actions</p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link href={quickCaptureHref} style={primaryActionStyle}>Add learning</Link>
-          <Link href={learnerPath("/my-day", selectedLearnerId)} style={secondaryActionStyle}>Open My Day</Link>
-          <Link href={learnerPath("/my-portfolio", selectedLearnerId)} style={secondaryActionStyle}>View Portfolio</Link>
-          <Link href={learnerPath("/my-reports", selectedLearnerId)} style={secondaryActionStyle}>View Reports</Link>
-        </div>
-      </section>
       <section aria-labelledby="current-learning-heading" style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "grid", gap: 5, padding: "4px 2px" }}>
           <p style={{ margin: 0, color: "#6c4df6", fontSize: 12, fontWeight: 850, letterSpacing: "0.08em", textTransform: "uppercase" }}>Current learning</p>
           <h2 id="current-learning-heading" style={{ margin: 0, color: "#17204b", fontSize: 24 }}>What {selectedLearnerName} is working on</h2>
-          <p style={{ ...quietTextStyle, margin: 0 }}>Current progress remains your confirmation. Learning records and checks give useful context without changing it automatically.</p>
+          <p style={{ ...quietTextStyle, margin: 0 }}>Assessment checks and family confirmation provide the current learning view. Everyday learning records add context without changing the judgement automatically.</p>
+          <p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>The trusted assessment view is starting with Maths Starting Point — Number &amp; Operations. Other areas show family-confirmed pathways and saved learning evidence without claiming equivalent assessment coverage.</p>
         </div>
         {currentLearningSteps.length ? currentLearningSteps.map((step) => <CurrentLearningCard key={step.pathwayStepId} step={step} stepIndex={pathwayStepIndex} attempts={visibleAssessmentAttempts} learnerId={selectedLearnerId} familyId={profileId} onProgressSaved={() => void reloadLearnerData({ force: true })} />) : <section style={cardStyle}>
           <h3 style={{ margin: 0, color: "#17204b", fontSize: 20 }}>Start building {selectedLearnerName}&apos;s learning story</h3>
@@ -949,32 +956,42 @@ export default function CleanMyLearnaWorkspace() {
         {attemptsLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>Loading completed checks...</p> : null}
       </section>
       <section style={{ ...cardStyle, display: "grid", gap: 8, borderColor: recordHealth.label === "Attention" ? "#fcd34d" : "#e7eaf2" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}><strong style={{ color: "#17204b", fontSize: 17 }}>Records</strong><span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{recordHealth.label}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}><strong style={{ color: "#17204b", fontSize: 17 }}>Everyday learning evidence</strong><span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{recordHealth.label}</span></div>
         <p style={{ ...quietTextStyle, margin: 0 }}>{recordHealth.copy}</p>
         {entriesError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{entriesError}</div> : null}
         {assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
         {entriesError || assessmentError ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
       </section>
       {PUBLIC_PATHWAYS_ENABLED ? <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
-        <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>What the evidence suggests</h2>
+        <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>Why MyLearna thinks that</h2>
         {latestJudgement ? <><p style={{ ...quietTextStyle, margin: 0 }}>Your latest saved judgement is <strong style={{ color: "#17204b" }}>{latestJudgement.judgement}</strong>.</p><p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{dateLabel(latestJudgement.dateValue)}{latestJudgement.subjectTitle ? ` · ${latestJudgement.subjectTitle}` : ""}{latestJudgement.stepTitle ? ` · ${latestJudgement.stepTitle}` : ""}</p><Link href={latestJudgement.sourceType === "evidence" ? `${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(latestJudgement.sourceId)}` : pathwayPath(selectedLearnerId, currentLearningSteps[0] ?? null)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View the underlying record</Link></> : <p style={{ ...quietTextStyle, margin: 0 }}>There is not enough saved evidence yet to describe change over time.</p>}
       </section> : null}
-      {PUBLIC_PATHWAYS_ENABLED ? <Disclosure id="progress-and-judgements" title="Progress and judgements" description="Saved judgements and pathway state, not activity volume.">
+      {PUBLIC_PATHWAYS_ENABLED ? <Disclosure id="progress-and-judgements" title="Since the last check" description="A factual history of saved checks and family-confirmed learning, without turning change into a score.">
         {assessmentLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading saved judgements...</p> : null}
         {assessmentRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing saved judgements...</p> : null}
         {summary.progressJudgementObservations.length ? summary.progressJudgementObservations.slice(0, 6).map((observation) => <article key={observation.id} style={{ borderTop: "1px solid #e7eaf2", paddingTop: 12, display: "grid", gap: 5 }}><strong style={{ color: "#17204b" }}>{observation.judgement}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(observation.dateValue)}{observation.subjectTitle ? ` · ${observation.subjectTitle}` : ""}{observation.stepTitle ? ` · ${observation.stepTitle}` : ""}</span></article>) : <p style={{ ...quietTextStyle, margin: 0 }}>No recognised progress judgement has been saved yet.</p>}
       </Disclosure> : null}
-      <Disclosure id="recent-records" title="Recent records" description="Saved observations and work samples, with Portfolio as the full record.">
+      <Disclosure id="recent-records" title="Everyday learning evidence" description="Saved observations, photos and work samples remain distinct from assessment judgements. Portfolio holds the full record.">
         {entriesLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading recent records...</p> : null}
         {entriesRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing recent records...</p> : null}
         {visibleEntries.length ? visibleEntries.slice(0, 4).map((entry) => <Link key={entry.id} href={`${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(entry.id)}`} style={{ display: "grid", gap: 4, padding: "12px 0", borderTop: "1px solid #e7eaf2", color: "#17204b", textDecoration: "none" }}><strong>{evidenceTitle(entry)}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(entry.observedOn)}{entry.learningArea ? ` · ${entry.learningArea}` : ""}</span></Link>) : <p style={{ ...quietTextStyle, margin: 0 }}>No saved learning records yet.</p>}
         <Link href={learnerPath("/my-portfolio", selectedLearnerId)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View Portfolio</Link>
       </Disclosure>
-      <Disclosure id="learning-areas" title="Learning areas" description="What has recently been active, without treating quiet areas as failure.">
+      <Disclosure id="learning-areas" title="What remains unknown" description="Areas without recent evidence remain open questions, not failures.">
         <div style={{ display: "grid", gap: 10 }}><strong style={{ color: "#17204b" }}>Active recently</strong>{activeAreas.length ? activeAreas.map((area) => <div key={area.key} style={{ padding: 12, borderRadius: 12, background: "#f8fbff", color: "#334155" }}>{area.title}<span style={{ display: "block", color: "#64748b", fontSize: 13 }}>{area.latestActivityLabel}</span></div>) : <p style={{ ...quietTextStyle, margin: 0 }}>No learning area has recent saved activity yet.</p>}</div>
         <div style={{ display: "grid", gap: 10 }}><strong style={{ color: "#17204b" }}>Quiet for now</strong><p style={{ ...quietTextStyle, margin: 0 }}>Quiet areas are not treated as missing. They simply have no recent plan or evidence.</p>{quietAreas.length ? <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{quietAreas.slice(0, 8).map((area) => <span key={area.key} style={{ padding: "8px 10px", borderRadius: 999, background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", fontSize: 13 }}>{area.title}</span>)}</div> : null}</div>
       </Disclosure>
-      <Disclosure id="reports-and-records" title="Reports and records" description="Useful report ingredients accumulating over time.">
+      <section aria-label="Supporting tools" style={{ ...cardStyle, display: "grid", gap: 12 }}>
+        <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Supporting tools</p>
+        <p style={{ ...quietTextStyle, margin: 0 }}>Plan the day, capture authentic learning and keep proof for Portfolio and reports.</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link href={quickCaptureHref} style={primaryActionStyle}>Add learning evidence</Link>
+          <Link href={learnerPath("/my-day", selectedLearnerId)} style={secondaryActionStyle}>Open My Day</Link>
+          <Link href={learnerPath("/my-portfolio", selectedLearnerId)} style={secondaryActionStyle}>View Portfolio</Link>
+          <Link href={learnerPath("/my-reports", selectedLearnerId)} style={secondaryActionStyle}>View Reports</Link>
+        </div>
+      </section>
+      <Disclosure id="reports-and-records" title="Reporting and proof" description="Portfolio and report ingredients accumulating from the learning evidence already collected.">
         <div style={{ display: "grid", gap: 10, color: "#334155" }}><p style={{ margin: 0 }}>{reportReadyCount} {reportReadyCount === 1 ? "record is" : "records are"} selected for reports.</p><p style={{ margin: 0 }}>{summary.reportingReadiness.representedAreaCount} learning areas represented · {summary.progressJudgementObservations.length} progress judgements available.</p><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><Link href={learnerPath("/my-reports", selectedLearnerId)} style={{ ...secondaryActionStyle, minHeight: 44 }}>Open My Reports</Link><button type="button" onClick={() => void handleDownloadCoverageRecord()} disabled={coverageSubmitting} style={{ ...secondaryActionStyle, minHeight: 44, cursor: coverageSubmitting ? "wait" : "pointer" }}>{coverageSubmitting ? "Preparing record..." : "Download coverage record"}</button></div>{coverageMessage ? <div role="status" style={{ color: "#166534", fontSize: 13 }}>{coverageMessage}</div> : null}{coverageError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{coverageError}</div> : null}</div>
       </Disclosure>
     </main>

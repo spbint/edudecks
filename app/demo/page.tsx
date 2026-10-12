@@ -3,10 +3,10 @@ import DemoShell from "@/components/demo/DemoShell";
 import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
 const demoDescription =
-  "Explore a fictional U.S. homeschool family demo and see how MyLearna connects planning, learning pathways, evidence, portfolios, data, reports and outputs.";
+  "Explore a fictional homeschool family and see how MyLearna connects learning evidence, clear next steps, Capture, Portfolio and reports.";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "MyLearna Demo | Homeschool Planning, Evidence and Reports",
+  title: "MyLearna Demo | Understand Learning and What Comes Next",
   description: demoDescription,
   path: "/demo",
 });

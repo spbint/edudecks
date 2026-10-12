@@ -3,7 +3,7 @@ import CleanLearnaWorkspace from "@/app/components/clean/CleanLearnaWorkspace";
 
 export const metadata: Metadata = {
   title: "My Learna | MyLearna",
-  description: "A calm parent-facing view of saved learning, current focus and helpful next steps.",
+  description: "Understand what current evidence suggests, what remains unknown and what to do next for each learner.",
 };
 
 export default function MyLearnaPage() {

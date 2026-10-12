@@ -709,7 +709,7 @@ export default function PublicSiteShell({
                     color: "#e2e8f0",
                   }}
                 >
-                  MyLearna - Plan. Learn. Capture. Report.
+                  MyLearna - Understand. Learn. Capture. Recheck. See change. Report.
                 </div>
               </div>
 

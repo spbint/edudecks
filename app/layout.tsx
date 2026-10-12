@@ -30,7 +30,7 @@ const PUBLIC_STRUCTURED_DATA = {
       name: "MyLearna",
       url: PUBLIC_SITE_URL,
       description:
-        "Homeschool learning happens everywhere. MyLearna brings planning, pathways, evidence, portfolios and reports together in one private family space.",
+        "MyLearna brings assessment evidence and everyday learning together so families can understand where a child is, see why, and know what to teach next.",
       publisher: {
         "@id": `${PUBLIC_SITE_URL}#organization`,
       },
@@ -68,9 +68,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   ...buildPublicMetadata({
-    title: "Homeschool Planning, Portfolios and Reports | MyLearna",
+    title: "Homeschool Learning Intelligence | MyLearna",
     description:
-      "Homeschool learning happens everywhere. MyLearna brings planning, pathways, evidence, portfolios and reports together in one private family space.",
+      "Understand what current evidence suggests, connect assessment with everyday learning, and know what to teach next while building portfolios and reports.",
     path: "/",
   }),
   other: {
