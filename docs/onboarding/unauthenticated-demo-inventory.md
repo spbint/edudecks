@@ -84,7 +84,7 @@ the same clean components.
 | My Portfolio | `app/(auth)/my-portfolio/page.tsx` | `app/components/clean/CleanPortfolioWorkspace.tsx` | **E/D/C.** It loads and mutates evidence and portfolio highlights, resolves attachment previews, and imports the authenticated report PDF generator. |
 | My Reports | `app/(auth)/my-reports/page.tsx` | `app/components/clean/CleanReportsWorkspace.tsx` and `CleanReportPreview.tsx` | **E/D/C.** It loads report periods, reports, sections, portfolio evidence and assessment evidence; it creates/updates/deletes report records and exports PDFs. |
 | My Outputs | `app/(auth)/my-outputs/page.tsx` | `app/components/clean/CleanOutputsWorkspace.tsx` | **E/D/C.** It loads calendar/evidence/program/report/output data and records report exports. |
-| My Learna | `app/(auth)/my-learna/page.tsx` | `app/components/clean/CleanLearnaWorkspace.tsx` | **C/D.** It is the authorised learner-specific recent-learning view and uses clean workspace state and authenticated clients. |
+| My Learna | `app/(my-learna-auth)/my-learna/page.tsx` | `app/components/clean/CleanLearnaWorkspace.tsx` | **C/D.** It is the authorised learner-specific recent-learning view and uses clean workspace state and authenticated clients. |
 | Family/learner loading | Clean route layout and providers | `app/(clean)/layout.tsx`, `app/components/FamilyWorkspaceProvider.tsx`, `app/components/clean/CleanFamilyWorkspaceProvider.tsx`, `lib/clean/workspace/client.ts`, `lib/clean/setup/setupStateClient.ts`, `lib/clean/family/client.ts`, `lib/clean/learners/client.ts` | **C/D.** Membership, family ownership, learners and setup state are server-backed and must not be replaced by fictional demo state. |
 
 Safe current candidates are limited to presentation or explicitly static

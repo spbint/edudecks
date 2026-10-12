@@ -13,5 +13,8 @@ describe("authenticated return paths", () => {
     expect(normalizeAuthNextPath("https://example.com/elsewhere", "/my-profile")).toBe("/my-profile");
     expect(normalizeAuthNextPath("//example.com/elsewhere", "/my-profile")).toBe("/my-profile");
     expect(normalizeAuthNextPath("javascript:alert(1)", "/my-profile")).toBe("/my-profile");
+    expect(normalizeAuthNextPath("\\\\example.com/elsewhere", "/my-profile")).toBe("/my-profile");
+    expect(normalizeAuthNextPath("/\\example.com/elsewhere", "/my-profile")).toBe("/my-profile");
+    expect(normalizeAuthNextPath("/my-learna\n/elsewhere", "/my-profile")).toBe("/my-profile");
   });
 });

@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   track: vi.fn(),
   loadProfile: vi.fn(),
+  hasSettings: vi.fn(),
+  rememberPending: vi.fn(),
   searchParams: new URLSearchParams("next=%2Ffounder"),
 }));
 
@@ -51,8 +53,12 @@ vi.mock("@/lib/authAnalytics", () => ({
   trackAuthEvent: mocks.track,
 }));
 vi.mock("@/lib/clean/family/client", () => ({ loadCleanFamilyProfile: mocks.loadProfile }));
-vi.mock("@/lib/clean/setup/setupFlow", () => ({ hasRequiredLearningSettings: vi.fn(() => true) }));
-vi.mock("@/lib/authPendingMarketplaceDestination", () => ({ rememberPendingMarketplaceDestination: vi.fn() }));
+vi.mock("@/lib/clean/setup/setupFlow", () => ({
+  hasRequiredLearningSettings: () => mocks.hasSettings(),
+}));
+vi.mock("@/lib/authPendingMarketplaceDestination", () => ({
+  rememberPendingMarketplaceDestination: mocks.rememberPending,
+}));
 vi.mock("@/lib/familySignOut", () => ({ completeFamilySignOut: vi.fn() }));
 vi.mock("@/lib/signupPrefill", () => ({ readSignupPrefill: vi.fn(() => null) }));
 
@@ -73,6 +79,9 @@ describe("EmailAuthPage OTP login", () => {
     mocks.getSession.mockReset().mockResolvedValue({ data: { session: { user: { id: "founder" } } } });
     mocks.track.mockReset();
     mocks.loadProfile.mockReset().mockResolvedValue({ profile: { id: "profile" } });
+    mocks.hasSettings.mockReset().mockReturnValue(true);
+    mocks.rememberPending.mockReset();
+    mocks.searchParams = new URLSearchParams("next=%2Ffounder");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
     window.sessionStorage.clear();
   });
@@ -106,6 +115,56 @@ describe("EmailAuthPage OTP login", () => {
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/founder"), { timeout: 3000 });
     expect(mocks.track).toHaveBeenCalledWith("auth_verification_succeeded", expect.objectContaining({ challengeType: "otp_code" }));
     expect(mocks.track).toHaveBeenCalledWith("auth_session_ready", expect.objectContaining({ route: "/founder" }));
+  });
+
+  it("returns a configured family to My Learna with learner context", async () => {
+    mocks.searchParams = new URLSearchParams(
+      "next=%2Fmy-learna%3Flearner_id%3Dlearner-a",
+    );
+    render(<EmailAuthPage mode="login" />);
+    submitEmail();
+    fireEvent.change(await screen.findByLabelText("Six-digit sign-in code"), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+
+    await waitFor(
+      () =>
+        expect(mocks.replace).toHaveBeenCalledWith(
+          "/my-learna?learner_id=learner-a",
+        ),
+      { timeout: 3000 },
+    );
+  });
+
+  it("keeps setup authoritative while retaining the requested My Learna destination", async () => {
+    mocks.searchParams = new URLSearchParams("next=%2Fmy-learna");
+    mocks.hasSettings.mockReturnValue(false);
+    render(<EmailAuthPage mode="login" />);
+    submitEmail();
+    fireEvent.change(await screen.findByLabelText("Six-digit sign-in code"), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/my-settings"), {
+      timeout: 3000,
+    });
+    expect(mocks.rememberPending).toHaveBeenCalledWith("/my-learna");
+  });
+
+  it("keeps the existing My Day default when login has no next value", async () => {
+    mocks.searchParams = new URLSearchParams();
+    render(<EmailAuthPage mode="login" />);
+    submitEmail();
+    fireEvent.change(await screen.findByLabelText("Six-digit sign-in code"), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/my-day"), {
+      timeout: 3000,
+    });
   });
 
   it("shows safe invalid-or-expired messaging", async () => {

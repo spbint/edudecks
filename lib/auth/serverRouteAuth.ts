@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { normalizeAuthNextPath } from "@/lib/authRedirect";
 import { requireSupabasePublicEnv } from "@/lib/supabaseClient";
 
 export async function getServerAuthClient() {
@@ -30,11 +31,16 @@ export async function getAuthenticatedRouteUser() {
   return data.user;
 }
 
+export function buildAuthenticatedRouteLoginHref(loginNext: string) {
+  const safeNext = normalizeAuthNextPath(loginNext, "/my-day");
+  return `/login?next=${encodeURIComponent(safeNext)}`;
+}
+
 export async function requireAuthenticatedRoute(loginNext: string) {
   const user = await getAuthenticatedRouteUser();
 
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(loginNext)}`);
+    redirect(buildAuthenticatedRouteLoginHref(loginNext));
   }
 
   return user;

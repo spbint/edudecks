@@ -81,6 +81,6 @@ describe("external calendar removal", () => {
     expect(read("app/(auth)/my-capture/page.tsx")).toContain("CleanCaptureWorkspace");
     expect(read("app/(auth)/my-portfolio/page.tsx")).toContain("CleanPortfolioWorkspace");
     expect(read("app/(auth)/my-reports/page.tsx")).toContain("CleanReportsWorkspace");
-    expect(read("app/(auth)/my-learna/page.tsx")).toContain("CleanLearnaWorkspace");
+    expect(read("app/(my-learna-auth)/my-learna/page.tsx")).toContain("CleanLearnaWorkspace");
   });
 });
