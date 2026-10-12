@@ -90,18 +90,20 @@ describe("My Learna current learning live-data wiring", () => {
       />,
     );
 
-    expect(screen.getByText("Estimate and check reasonableness")).toBeTruthy();
+    expect(screen.getAllByText("Estimate and check reasonableness")).toHaveLength(2);
     expect(screen.getByRole("group", { name: "Latest check" }).textContent).toContain("Needs support");
     expect(screen.getByRole("group", { name: "Latest check" }).textContent).toContain("Checked 15 Aug");
     expect(screen.getByRole("group", { name: "Your confirmation" }).textContent).toContain("Developing");
     expect(screen.getByRole("group", { name: "Your confirmation" }).textContent).toContain("Confirmed 14 Aug");
     expect(screen.queryByRole("link", { name: "Check understanding" })).toBeNull();
-    const recommendation = screen.getByRole("link", { name: "Add to Portfolio" });
+    const recommendation = screen.getByRole("link", { name: "Open next learning" });
     const destination = new URL(recommendation.getAttribute("href") || "", "https://mylearna.test");
     expect(destination.searchParams.get("learnerId")).toBe("learner-james");
     expect(destination.searchParams.get("pathwayStepId")).toBe(pathwayStepId);
     expect(destination.searchParams.get("stepKey")).toBe("estimate-and-check-reasonableness");
     expect(destination.hash).toBe("#pathway-step-number-and-place-value-middle-primary-28");
+    expect(screen.getByRole("link", { name: "Capture learning evidence" }).getAttribute("href")).toContain("/my-capture?");
+    expect(screen.getByRole("link", { name: "Review Portfolio" }).getAttribute("href")).toContain("/my-portfolio?");
     expect(screen.getByRole("group", { name: "Latest check" }).textContent).toContain("Needs support");
     expect(screen.queryByText("Start building James's learning story")).toBeNull();
   });

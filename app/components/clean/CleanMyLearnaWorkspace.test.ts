@@ -15,7 +15,7 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).toContain("Open My Day");
     expect(source).toContain("View Portfolio");
     expect(source).toContain("View Reports");
-    expect(source).toContain("PUBLIC_PATHWAYS_ENABLED");
+    expect(source).not.toContain("PUBLIC_PATHWAYS_ENABLED");
     expect(source).toContain("Start building {selectedLearnerName}&apos;s learning story");
   });
 
@@ -40,6 +40,23 @@ describe("My Learna parent guidance workspace", () => {
     expect(source).toContain("currentLearningSteps = currentLearningCandidates.map");
     expect(source).toContain("whereWeAreSummaries");
     expect(source).not.toContain("PUBLIC_PATHWAYS_ENABLED && currentLearningSteps.length");
+  });
+
+  it("shows read-only EI from canonical data without coupling it to Pathways visibility", () => {
+    expect(source).toContain("projectMyLearnaReadOnlyIntelligence");
+    expect(source).toContain("readOnlyIntelligence.currentProfile || latestJudgement");
+    expect(source).toContain("readOnlyIntelligence.comparison ?");
+    expect(source).not.toContain("PUBLIC_PATHWAYS_ENABLED ?");
+    expect(source).not.toContain("No recognised progress judgement has been saved yet.");
+  });
+
+  it("keeps the learning action primary and evidence/Portfolio actions secondary", () => {
+    expect(source).toContain("Recommended next learning");
+    expect(source).toContain("Open next learning");
+    expect(source).toContain("Capture learning evidence");
+    expect(source).toContain("Review Portfolio");
+    expect(source).not.toContain("Add to Portfolio");
+    expect(source).toContain("recommendation?.href || pathwayPath");
   });
 
   it("shows only factual, bounded check chronology without deriving growth", () => {

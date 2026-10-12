@@ -37,7 +37,6 @@ import { readPathwayPlacements } from "@/lib/clean/pathways/pathwayPlacement";
 import { listComparableLearningObservations } from "@/lib/clean/pathways/learningObservationHistory";
 import {
   buildActionablePathwayRecommendation,
-  pathwayRecommendationLabel,
 } from "@/lib/clean/pathways/pathwayRecommendationNavigation";
 import { getAllPathwaySteps } from "@/lib/clean/pathways/pathwayStepRegistry";
 import type { PathwayStageKey } from "@/lib/clean/pathways/mathematicsNumberPrototype";
@@ -48,7 +47,9 @@ import {
   CURRICULUM_COVERAGE_EMPTY_COPY,
   generateCurriculumCoveragePdfBytes,
 } from "@/lib/clean/outputs/curriculumCoveragePdf";
-import { PUBLIC_PATHWAYS_ENABLED } from "@/lib/clean/publicVisibility";
+import type { LearningEvidenceResultV1 } from "@/lib/clean/educationalIntelligence/learningEvidenceResult";
+import { projectMyLearnaReadOnlyIntelligence } from "@/lib/clean/educationalIntelligence/myLearnaReadOnlyIntelligence";
+import { listCanonicalLearningEvidenceHistory } from "@/lib/clean/educationalIntelligence/persistence/learningEvidenceHistoryClient";
 import { buildLearnerContextHref } from "@/lib/clean/learners/learnerContextHref";
 import {
   buildWhereWeAreSubjectSummaries,
@@ -468,20 +469,20 @@ export function CurrentLearningCard({
       {comparableObservations.length > 3 ? <button type="button" onClick={() => setCheckHistoryOpen((open) => !open)} aria-expanded={checkHistoryOpen} style={{ ...secondaryActionStyle, width: "fit-content", cursor: "pointer" }}>{checkHistoryOpen ? "Show fewer checks" : "Show earlier checks"}</button> : null}
     </section> : null}
     <div style={{ display: "grid", gap: 8 }}>
-      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recommended next action</span>
-      <strong style={{ color: "#17204b" }}>{pathwayRecommendationLabel(recommendation?.action || null)}</strong>
+      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recommended next learning</span>
+      <strong style={{ color: "#17204b" }}>{recommendation?.targetStep.stepTitle || step.stepTitle}</strong>
       <Link
         href={recommendation?.href || pathwayPath(learnerId, step)}
         style={{ ...primaryActionStyle, width: "100%" }}
         data-pathways-recommendation-action={recommendation?.action || "open-pathways"}
       >
-        {pathwayRecommendationLabel(recommendation?.action || null)}
+        {recommendation?.learningActionLabel || "Open next learning"}
       </Link>
     </div>
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      <Link href={pathwayCapturePath(learnerId, step)} style={secondaryActionStyle}>Add learning</Link>
+      <Link href={pathwayCapturePath(learnerId, step)} style={secondaryActionStyle}>Capture learning evidence</Link>
       <button type="button" onClick={() => setWhyOpen((open) => !open)} aria-expanded={whyOpen} aria-controls={whyId} style={{ ...secondaryActionStyle, cursor: "pointer" }}>Why this is shown</button>
-      <Link href={pathwayEvidencePath(learnerId)} style={{ ...secondaryActionStyle, minHeight: 44 }}>View evidence</Link>
+      <Link href={pathwayEvidencePath(learnerId)} style={{ ...secondaryActionStyle, minHeight: 44 }}>Review Portfolio</Link>
     </div>
     {whyOpen ? <section id={whyId} aria-label={`Why this is shown for ${step.stepTitle}`} style={{ display: "grid", gap: 8, paddingTop: 2, borderTop: "1px solid #e7eaf2" }}>
       {story.currentProgressSource === "parent-confirmation" ? <p style={{ ...quietTextStyle, margin: 0 }}>Parent confirmation: {story.currentProgress} · {dateLabel(story.currentProgressConfirmedAt)}</p> : <p style={{ ...quietTextStyle, margin: 0 }}>No parent-confirmed progress has been saved.</p>}
@@ -514,12 +515,12 @@ export default function CleanMyLearnaWorkspace() {
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
+  const [canonicalResults, setCanonicalResults] = useState<LearningEvidenceResultV1[]>([]);
   const [pathwayPlacementIds, setPathwayPlacementIds] = useState<string[]>([]);
   const [onDeckItems, setOnDeckItems] = useState<LearningQueueItem[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesRefreshing, setEntriesRefreshing] = useState(false);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
-  const [assessmentRefreshing, setAssessmentRefreshing] = useState(false);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
@@ -536,6 +537,7 @@ export default function CleanMyLearnaWorkspace() {
   const loadedEvidenceKeyRef = useRef("");
   const loadedAssessmentKeyRef = useRef("");
   const loadedAttemptsKeyRef = useRef("");
+  const loadedCanonicalResultsKeyRef = useRef("");
   const loadedOnDeckKeyRef = useRef("");
   const trackedWhereWeAreKeyRef = useRef("");
 
@@ -586,6 +588,10 @@ export default function CleanMyLearnaWorkspace() {
     () => (loadedAttemptsKeyRef.current === evidenceKey ? assessmentAttempts : []),
     [assessmentAttempts, evidenceKey],
   );
+  const visibleCanonicalResults = useMemo(
+    () => (loadedCanonicalResultsKeyRef.current === evidenceKey ? canonicalResults : []),
+    [canonicalResults, evidenceKey],
+  );
   const visibleOnDeckItems = useMemo(
     () => (loadedOnDeckKeyRef.current === onDeckKey ? onDeckItems : []),
     [onDeckItems, onDeckKey],
@@ -611,11 +617,11 @@ export default function CleanMyLearnaWorkspace() {
     setEntriesLoading(!hasLoadedEvidence);
     setEntriesRefreshing(hasLoadedEvidence);
     setAssessmentLoading(!hasLoadedAssessment);
-    setAssessmentRefreshing(hasLoadedAssessment);
     setAttemptsLoading(!hasLoadedAttempts);
     if (!hasLoadedEvidence) setEntries([]);
     if (!hasLoadedAssessment) setAssessmentStatuses([]);
     if (!hasLoadedAttempts) setAssessmentAttempts([]);
+    if (loadedCanonicalResultsKeyRef.current !== evidenceKey) setCanonicalResults([]);
 
     const refreshPromise = Promise.all([
       listCleanEvidenceEntries(profileId, { learnerId: selectedLearnerId, limit: 250 })
@@ -646,7 +652,6 @@ export default function CleanMyLearnaWorkspace() {
         .finally(() => {
           if (generation !== requestGenerationRef.current) return;
           setAssessmentLoading(false);
-          setAssessmentRefreshing(false);
         }),
       listAssessmentAttemptsForLearner(profileId, {
         learnerId: selectedLearnerId,
@@ -666,6 +671,20 @@ export default function CleanMyLearnaWorkspace() {
           if (generation !== requestGenerationRef.current) return;
           setAttemptsLoading(false);
         }),
+      listCanonicalLearningEvidenceHistory({
+        familyId: profileId,
+        learnerId: selectedLearnerId,
+      })
+        .then((results) => {
+          if (generation !== requestGenerationRef.current) return;
+          loadedCanonicalResultsKeyRef.current = evidenceKey;
+          setCanonicalResults(results);
+        })
+        .catch(() => {
+          if (generation !== requestGenerationRef.current) return;
+          loadedCanonicalResultsKeyRef.current = evidenceKey;
+          setCanonicalResults([]);
+        }),
     ]).then(() => undefined).finally(() => {
       if (inFlightRefreshRef.current?.key === evidenceKey) {
         inFlightRefreshRef.current = null;
@@ -683,15 +702,16 @@ export default function CleanMyLearnaWorkspace() {
       loadedEvidenceKeyRef.current = "";
       loadedAssessmentKeyRef.current = "";
       loadedAttemptsKeyRef.current = "";
+      loadedCanonicalResultsKeyRef.current = "";
       loadedOnDeckKeyRef.current = "";
       setEntries([]);
       setAssessmentStatuses([]);
       setAssessmentAttempts([]);
+      setCanonicalResults([]);
       setOnDeckItems([]);
       setEntriesLoading(false);
       setEntriesRefreshing(false);
       setAssessmentLoading(false);
-      setAssessmentRefreshing(false);
       setAttemptsLoading(false);
       return;
     }
@@ -769,6 +789,13 @@ export default function CleanMyLearnaWorkspace() {
   );
   const latestEntry = visibleEntries[0] ?? null;
   const latestJudgement = summary.progressJudgementObservations[0] ?? null;
+  const readOnlyIntelligence = useMemo(
+    () => projectMyLearnaReadOnlyIntelligence({
+      results: visibleCanonicalResults,
+      learnerDisplayName: selectedLearnerName,
+    }),
+    [selectedLearnerName, visibleCanonicalResults],
+  );
   const currentLearningCandidates = useMemo(
     () => selectCurrentLearningCandidates({
       stepIndex: pathwayStepIndex,
@@ -955,6 +982,19 @@ export default function CleanMyLearnaWorkspace() {
         </section>}
         {attemptsLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>Loading completed checks...</p> : null}
       </section>
+      {readOnlyIntelligence.currentProfile || latestJudgement ? <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
+        <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>Why MyLearna thinks that</h2>
+        {readOnlyIntelligence.currentProfile ? <>
+          <p style={{ ...quietTextStyle, margin: 0 }}>The latest Number &amp; Operations check is interpreted across five separate learning areas. Each view below comes from the accepted assessment evidence for that area.</p>
+          <div role="list" aria-label="Assessment evidence explanations" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 210px), 1fr))", gap: 10 }}>
+            {readOnlyIntelligence.currentProfile.areas.map((area) => <article role="listitem" key={area.continuumId} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 12, display: "grid", gap: 5 }}>
+              <strong style={{ color: "#17204b" }}>{area.areaName}</strong>
+              <span style={{ color: "#6c4df6", fontSize: 13, fontWeight: 800 }}>{area.statusLabel}</span>
+              <span style={{ ...quietTextStyle, fontSize: 13 }}>{area.evidence.whyStatement}</span>
+            </article>)}
+          </div>
+        </> : latestJudgement ? <><p style={{ ...quietTextStyle, margin: 0 }}>Your latest saved judgement is <strong style={{ color: "#17204b" }}>{latestJudgement.judgement}</strong>.</p><p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{dateLabel(latestJudgement.dateValue)}{latestJudgement.subjectTitle ? ` · ${latestJudgement.subjectTitle}` : ""}{latestJudgement.stepTitle ? ` · ${latestJudgement.stepTitle}` : ""}</p><Link href={latestJudgement.sourceType === "evidence" ? `${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(latestJudgement.sourceId)}` : pathwayPath(selectedLearnerId, currentLearningSteps[0] ?? null)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View the underlying record</Link></> : null}
+      </section> : null}
       <section style={{ ...cardStyle, display: "grid", gap: 8, borderColor: recordHealth.label === "Attention" ? "#fcd34d" : "#e7eaf2" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}><strong style={{ color: "#17204b", fontSize: 17 }}>Everyday learning evidence</strong><span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{recordHealth.label}</span></div>
         <p style={{ ...quietTextStyle, margin: 0 }}>{recordHealth.copy}</p>
@@ -962,14 +1002,16 @@ export default function CleanMyLearnaWorkspace() {
         {assessmentError ? <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>{assessmentError}</div> : null}
         {entriesError || assessmentError ? <button type="button" onClick={() => void reloadLearnerData({ force: true })} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>Try again</button> : null}
       </section>
-      {PUBLIC_PATHWAYS_ENABLED ? <section style={{ ...cardStyle, display: "grid", gap: 10 }}>
-        <h2 style={{ margin: 0, color: "#17204b", fontSize: 21 }}>Why MyLearna thinks that</h2>
-        {latestJudgement ? <><p style={{ ...quietTextStyle, margin: 0 }}>Your latest saved judgement is <strong style={{ color: "#17204b" }}>{latestJudgement.judgement}</strong>.</p><p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{dateLabel(latestJudgement.dateValue)}{latestJudgement.subjectTitle ? ` · ${latestJudgement.subjectTitle}` : ""}{latestJudgement.stepTitle ? ` · ${latestJudgement.stepTitle}` : ""}</p><Link href={latestJudgement.sourceType === "evidence" ? `${learnerPath("/my-portfolio", selectedLearnerId)}&latestEvidenceId=${encodeURIComponent(latestJudgement.sourceId)}` : pathwayPath(selectedLearnerId, currentLearningSteps[0] ?? null)} style={{ ...secondaryActionStyle, width: "fit-content", minHeight: 44 }}>View the underlying record</Link></> : <p style={{ ...quietTextStyle, margin: 0 }}>There is not enough saved evidence yet to describe change over time.</p>}
-      </section> : null}
-      {PUBLIC_PATHWAYS_ENABLED ? <Disclosure id="progress-and-judgements" title="Since the last check" description="A factual history of saved checks and family-confirmed learning, without turning change into a score.">
-        {assessmentLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading saved judgements...</p> : null}
-        {assessmentRefreshing ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Refreshing saved judgements...</p> : null}
-        {summary.progressJudgementObservations.length ? summary.progressJudgementObservations.slice(0, 6).map((observation) => <article key={observation.id} style={{ borderTop: "1px solid #e7eaf2", paddingTop: 12, display: "grid", gap: 5 }}><strong style={{ color: "#17204b" }}>{observation.judgement}</strong><span style={{ ...quietTextStyle, fontSize: 13 }}>{dateLabel(observation.dateValue)}{observation.subjectTitle ? ` · ${observation.subjectTitle}` : ""}{observation.stepTitle ? ` · ${observation.stepTitle}` : ""}</span></article>) : <p style={{ ...quietTextStyle, margin: 0 }}>No recognised progress judgement has been saved yet.</p>}
+      {readOnlyIntelligence.comparison ? <Disclosure id="progress-and-judgements" title="Since the last check" description={readOnlyIntelligence.comparison.explanation}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 10 }}>
+          {readOnlyIntelligence.comparison.areas.map((area) => <article key={area.continuumId} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
+            <strong style={{ color: "#17204b" }}>{area.areaName}</strong>
+            <span style={{ ...quietTextStyle, fontSize: 13 }}>{area.previous.statusLabel} → {area.current.statusLabel}</span>
+            <span style={{ color: "#17204b", fontSize: 13, lineHeight: 1.55 }}>{area.whatChanged}</span>
+            <span style={{ ...quietTextStyle, fontSize: 12 }}>{area.evidenceChange.explanation}</span>
+          </article>)}
+        </div>
+        <p style={{ ...quietTextStyle, margin: 0, fontSize: 13 }}>{readOnlyIntelligence.comparison.evidenceNote}</p>
       </Disclosure> : null}
       <Disclosure id="recent-records" title="Everyday learning evidence" description="Saved observations, photos and work samples remain distinct from assessment judgements. Portfolio holds the full record.">
         {entriesLoading ? <p role="status" style={{ ...quietTextStyle, margin: 0 }}>Loading recent records...</p> : null}

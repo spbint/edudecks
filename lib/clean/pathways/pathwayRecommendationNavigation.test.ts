@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildActionablePathwayRecommendation,
-  pathwayRecommendationLabel,
 } from "@/lib/clean/pathways/pathwayRecommendationNavigation";
 import { resolvePathwayNextAction } from "@/lib/clean/pathways/pathwayNextAction";
 import { getAllPathwaySteps, getPathwayStepById } from "@/lib/clean/pathways/pathwayStepRegistry";
@@ -72,7 +71,7 @@ describe("My Learna actionable Pathways recommendation", () => {
     const href = new URL(recommendation.href, "https://mylearna.test");
 
     expect(recommendation.action).toBe("worksheet");
-    expect(pathwayRecommendationLabel(recommendation.action)).toBe("Open My Pathways");
+    expect(recommendation.learningActionLabel).toBe("Open next learning");
     expect(href.searchParams.get("subjectKey")).toBe("classical");
     expect(href.searchParams.get("strandKey")).toBe("history-and-civilisation");
     expect(href.searchParams.get("pathwayStepId")).toBe(classicalEncounterOneStep!.id);
@@ -113,11 +112,12 @@ describe("My Learna actionable Pathways recommendation", () => {
     expect(noAction.secondary).toEqual([]);
   });
 
-  it("does not expose unavailable customer action labels from the recommendation label helper", () => {
-    expect(pathwayRecommendationLabel("check-understanding")).toBe("Open My Pathways");
-    expect(pathwayRecommendationLabel("practise")).toBe("Open My Pathways");
-    expect(pathwayRecommendationLabel("worksheet")).toBe("Open My Pathways");
-    expect(pathwayRecommendationLabel(null)).toBe("Open My Pathways");
+  it("keeps a Pathways destination labelled as learning, never Portfolio", () => {
+    const recommendation = recommendationFor("Developing");
+
+    expect(recommendation.href).toContain("/my-pathways?");
+    expect(recommendation.learningActionLabel).toBe("Open next learning");
+    expect(recommendation.learningActionLabel).not.toMatch(/portfolio/i);
   });
 
   it("preserves the complete exact current-step context and expanded card hash", () => {

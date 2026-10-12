@@ -20,6 +20,7 @@ import { getPathwayResourceForPathwayStep } from "@/lib/clean/resources/pathwayR
 export type ActionablePathwayRecommendation = {
   action: PathwayNextAction | null;
   href: string;
+  learningActionLabel: "Open next learning";
   targetStep: PathwayStepRegistryItem;
 };
 
@@ -103,23 +104,7 @@ export function buildActionablePathwayRecommendation(input: {
   return {
     action: actionPlan.primary,
     href: pathwayStepHref(input.learnerId, targetStep),
+    learningActionLabel: "Open next learning",
     targetStep,
   };
-}
-
-export function pathwayRecommendationLabel(action: PathwayNextAction | null) {
-  switch (action) {
-    case "check-understanding":
-      return CUSTOMER_PATHWAY_ASSESSMENT_AVAILABLE ? "Check understanding" : "Open My Pathways";
-    case "practise":
-      return CUSTOMER_PATHWAY_PRACTICE_AVAILABLE ? "Practise this focus" : "Open My Pathways";
-    case "next-step":
-      return "Next step";
-    case "worksheet":
-      return CUSTOMER_PATHWAY_WORKSHEET_VIEW_AVAILABLE ? "Open worksheet" : "Open My Pathways";
-    case "capture-evidence":
-      return "Add to Portfolio";
-    default:
-      return "Open My Pathways";
-  }
 }
